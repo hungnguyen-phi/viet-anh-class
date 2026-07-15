@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframes — Viet Anh Class (Brand + Charts)</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#26275D; --navy2:#1b1c45; --gold:#F9DD0E;
+    --bg:#F5F5F5; --ink:#1A1A1A; --txt:#333333; --mut:#666666; --line:#EDEDED;
+    --ok:#16C172;       /* xanh tươi — thắng / on-track */
+    --bad:#F23B3B;      /* đỏ tươi — thua / off-track (status) */
+    --warn:#F2B705;     /* amber — tiến độ giữa */
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#e7ebf1;color:var(--txt);padding:28px;font-family:'Be Vietnam Pro',sans-serif;}
+  h1,h2,h3,h4,.mont{font-family:'Montserrat',sans-serif;}
+  header.page{max-width:1120px;margin:0 auto 20px;}
+  header.page h1{font-size:24px;margin:0 0 4px;color:var(--navy);font-weight:900;}
+  header.page p{margin:2px 0;color:var(--mut);font-size:14px;}
+  .palette{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .sw{display:flex;align-items:center;gap:6px;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 8px;}
+  .dot{width:14px;height:14px;border-radius:4px;}
+  section.screen{max-width:1120px;margin:0 auto 34px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 18px 22px;}
+  section.screen > h2{margin:0 0 2px;font-size:18px;color:var(--navy);font-weight:800;}
+  section.screen > .desc{margin:0 0 14px;color:var(--mut);font-size:13px;}
+  .devices{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;}
+  .laptop{flex:1 1 580px;min-width:340px;}
+  .phone{flex:0 0 252px;}
+  .label{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+  .browser{border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 4px 16px rgba(3,63,133,.10);}
+  .urlbar{background:#eef1f5;border-bottom:1px solid var(--line);padding:6px 10px;display:flex;align-items:center;gap:6px;}
+  .urlbar i{width:9px;height:9px;border-radius:50%;background:#cbd2dc;display:inline-block;}
+  .urlbar span{font-size:11px;color:var(--mut);margin-left:8px;}
+  .iphone{border:8px solid #10233f;border-radius:28px;overflow:hidden;box-shadow:0 6px 20px rgba(3,63,133,.20);}
+  .notch{background:#10233f;height:18px;}
+  .vp{background:var(--bg);} .vp.lap{min-height:300px;} .vp.mob{min-height:430px;}
+  /* shell */
+  .topbar{background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:8px 12px;}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px;font-family:'Montserrat';}
+  .logo{height:26px;width:22px;}
+  .biglogo{height:46px;width:38px;margin:0 auto 8px;display:block;}
+  .lionhead{height:1.15em;width:1.15em;vertical-align:-0.22em;display:inline-block;}
+  .topbar .ic{display:flex;gap:10px;align-items:center;font-size:13px;}
+  .navrow{display:flex;gap:6px;background:#022e61;padding:6px 8px;overflow:auto;}
+  .navrow a{color:#cdd8e8;font-size:11px;white-space:nowrap;padding:4px 8px;border-radius:6px;}
+  .navrow a.act{background:var(--gold);color:var(--navy);font-weight:800;}
+  .content{padding:12px;}
+  /* hero */
+  .hero{position:relative;border-radius:10px;overflow:hidden;padding:14px;color:#fff;margin-bottom:12px;
+        background:linear-gradient(rgba(38,39,93,.74),rgba(38,39,93,.88)),repeating-linear-gradient(45deg,#353766,#353766 11px,#2b2c5a 11px,#2b2c5a 22px);}
+  .hero h3{margin:0;font-size:16px;font-weight:800;font-family:'Montserrat';}
+  .hero .sub{font-size:11px;opacity:.9;margin-top:2px;}
+  .lion{font-size:18px;}
+  .rankbar{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+  .rank{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);border-radius:8px;padding:4px 8px;font-size:10px;}
+  .rank b{color:var(--gold);}
+  /* big status banner — đọc 3 giây */
+  .status{display:flex;align-items:center;justify-content:space-between;border-radius:10px;padding:10px 14px;color:#fff;margin-bottom:12px;font-family:'Montserrat';}
+  .status.win{background:var(--ok);} .status.lose{background:var(--bad);}
+  .status .big{font-size:20px;font-weight:900;}
+  .status .small{font-size:11px;opacity:.92;}
+  /* grids */
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  .mob .grid4{grid-template-columns:repeat(2,1fr);}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;}
+  .card .area{font-size:11px;font-weight:800;margin-bottom:6px;color:var(--navy);font-family:'Montserrat';}
+  .card .h{font-size:10px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.03em;text-align:left;}
+  .card .big{font-size:18px;font-weight:800;color:var(--navy);}
+  /* donut ring */
+  .ring{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;margin:0 auto;}
+  .ring::before{content:"";position:absolute;inset:7px;background:#fff;border-radius:50%;}
+  .ring span{position:relative;font-size:12px;font-weight:800;color:var(--navy);font-family:'Montserrat';}
+  .stat{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;margin-top:5px;}
+  .stat.ok{color:var(--ok);} .stat.bad{color:var(--bad);}
+  .check{display:inline-flex;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:900;}
+  .check.ok{background:var(--ok);} .check.bad{background:var(--bad);}
+  /* win pips */
+  .pips{display:flex;gap:3px;justify-content:center;margin:5px 0 3px;}
+  .pip{width:11px;height:11px;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;font-size:8px;color:#fff;}
+  .pip.w{background:var(--ok);} .pip.l{background:#d7dbe0;color:#9aa1ab;}
+  /* progress bar */
+  .lead{display:flex;align-items:center;gap:8px;margin:6px 0;}
+  .lead .nm{font-size:11px;color:var(--txt);width:110px;text-align:left;font-weight:600;}
+  .bar2{flex:1;height:12px;background:#e4e7ec;border-radius:7px;overflow:hidden;}
+  .bar2 i{display:block;height:100%;border-radius:7px;}
+  .lead .vv{font-size:11px;font-weight:800;color:var(--navy);width:54px;text-align:right;font-family:'Montserrat';}
+  .sectionlbl{font-size:11px;font-weight:800;color:var(--navy);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.03em;font-family:'Montserrat';}
+  table{width:100%;border-collapse:collapse;font-size:11px;background:#fff;border-radius:8px;overflow:hidden;}
+  th,td{border:1px solid var(--line);padding:5px 6px;text-align:left;}
+  th{background:#eef1f5;color:var(--navy);font-weight:700;}
+  .btn{background:var(--gold);color:var(--navy);border-radius:7px;padding:7px 10px;font-size:11px;font-weight:800;display:inline-block;text-align:center;font-family:'Montserrat';}
+  .btn.navy{background:var(--navy);color:#fff;}
+  .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--line);}
+  .inp{width:100%;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:11px;background:#fff;margin-bottom:8px;color:var(--mut);}
+  .note{font-size:10px;color:var(--mut);font-style:italic;margin-top:6px;}
+  .lock{display:inline-block;font-size:9px;background:#fbeae8;color:var(--bad);border-radius:4px;padding:1px 5px;font-weight:700;}
+  .ok2{display:inline-block;font-size:9px;background:#e3f3ec;color:var(--ok);border-radius:4px;padding:1px 5px;font-weight:700;}
+  /* login */
+  .loginwrap{position:relative;min-height:100%;display:flex;align-items:center;justify-content:center;padding:18px;
+    background:linear-gradient(rgba(38,39,93,.55),rgba(38,39,93,.84)),repeating-linear-gradient(135deg,#3a3c70,#3a3c70 16px,#2f3060 16px,#2f3060 32px);}
+  .values{position:absolute;top:12px;left:0;right:0;text-align:center;color:var(--gold);font-size:10px;font-weight:800;letter-spacing:.02em;padding:0 10px;font-family:'Montserrat';}
+  .loginbox{background:#fff;border-radius:12px;padding:16px;width:230px;box-shadow:0 12px 32px rgba(0,0,0,.28);text-align:center;}
+  .loginbox img{height:38px;margin:0 auto 8px;}
+  .loginbox h4{margin:0 0 10px;font-size:13px;color:var(--navy);}
+  .legend{max-width:1120px;margin:8px auto 0;font-size:12px;color:var(--mut);}
+</style>
+</head>
+<body>
+
+<!-- ===== SVG defs: logo lá chắn Việt Anh + đầu sư tử mascot (dùng lại bằng <use>) ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="valogo" viewBox="0 0 40 48">
+    <path d="M20 2 L36 8 L36 26 C36 38 28 44 20 46 C12 44 4 38 4 26 L4 8 Z" fill="#F9DD0E" stroke="#26275D" stroke-width="2.5"/>
+    <path d="M20 7 L31 11 L31 26 C31 35 26 39 20 41 C14 39 9 35 9 26 L9 11 Z" fill="#26275D"/>
+    <text x="20" y="29" text-anchor="middle" font-family="Montserrat,Arial" font-size="15" font-weight="900" fill="#F9DD0E">VA</text>
+    <circle cx="13" cy="7" r="1.2" fill="#F9DD0E"/><circle cx="20" cy="5" r="1.2" fill="#F9DD0E"/><circle cx="27" cy="7" r="1.2" fill="#F9DD0E"/>
+  </symbol>
+  <symbol id="lion" viewBox="0 0 48 48">
+    <polygon points="46,24 38.5,27.9 43,35 34.6,34.6 35,43 27.9,38.5 24,46 20.1,38.5 13,43 13.4,34.6 5,35 9.5,27.9 2,24 9.5,20.1 5,13 13.4,13.4 13,5 20.1,9.5 24,2 27.9,9.5 35,5 34.6,13.4 43,13 38.5,20.1" fill="#F9DD0E"/>
+    <circle cx="14" cy="15" r="4.5" fill="#E9A23B"/><circle cx="34" cy="15" r="4.5" fill="#E9A23B"/>
+    <circle cx="24" cy="24" r="14" fill="#F6C36B"/>
+    <ellipse cx="24" cy="30" rx="9" ry="7" fill="#FBE2A8"/>
+    <circle cx="18.5" cy="21" r="2.3" fill="#26275D"/><circle cx="29.5" cy="21" r="2.3" fill="#26275D"/>
+    <circle cx="19.1" cy="20.3" r="0.7" fill="#fff"/><circle cx="30.1" cy="20.3" r="0.7" fill="#fff"/>
+    <path d="M21 28 L27 28 L24 31 Z" fill="#26275D"/>
+    <path d="M24 31 L24 34 M24 34 C24 35.5 21.5 36 20.5 35 M24 34 C24 35.5 26.5 36 27.5 35" stroke="#26275D" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<header class="page">
+  <h1><svg class="lionhead"><use href="#lion"/></svg> Viet Anh Class — Wireframes v3 (Brand chuẩn + Biểu đồ)</h1>
+  <p>8 màn hình · mobile + laptop · áp Brand Guideline Việt Anh: navy #26275D + gold #F9DD0E, heading Montserrat, body Be Vietnam Pro, logo thật, mascot sư tử.</p>
+  <p>Scoreboard thiết kế theo nguyên tắc <b>"nhìn 3 giây biết thắng/thua"</b>: banner trạng thái lớn + donut on/off-track + tick xanh ✓ / cross đỏ ✗.</p>
+  <div class="palette">
+    <span class="sw"><span class="dot" style="background:#26275D"></span>Navy #26275D (chủ đạo)</span>
+    <span class="sw"><span class="dot" style="background:#F9DD0E;border:1px solid #ccc"></span>Gold #F9DD0E (accent/CTA)</span>
+    <span class="sw"><span class="dot" style="background:#1E8A5A"></span>Emerald ✓ thắng/on-track</span>
+    <span class="sw"><span class="dot" style="background:#C0392B"></span>Đỏ ✗ thua/off-track</span>
+  </div>
+</header>
+
+<!-- ===== 1. ĐĂNG NHẬP ===== -->
+<section class="screen">
+  <h2>1 · Đăng nhập</h2>
+  <p class="desc">Ảnh học sinh Việt Anh tràn màn hình + dải 5 giá trị + mascot sư tử. Ô login đơn giản. Đăng nhập xong tự định tuyến theo vai trò.</p>
+  <div class="devices">
+    <div class="laptop">
+      <div class="label">💻 Laptop</div>
+      <div class="browser">
+        <div class="urlbar"><i></i><i></i><i></i><span>vietanhclass.vercel.app/login</span></div>
+        <div class="vp lap">
+          <div class="loginwrap" style="min-height:300px">
+            <div class="values"><svg class="lionhead"><use href="#lion"/></svg> TÔN TRỌNG &amp; TỰ TRỌNG · TRÁCH NHIỆM · TÀI GIỎI · CHÍNH TRỰC · YÊU THƯƠNG</div>
+            <div class="loginbox">
+              <svg class="biglogo"><use href="#valogo"/></svg>
+              <h4 class="mont">Viet Anh Class</h4>
+              <input class="inp" placeholder="Tên đăng nhập / Email">
+              <input class="inp" placeholder="Mật khẩu">
+              <div class="btn navy" style="width:100%">Đăng nhập</div>
+              <div class="note">Tự nhận vai trò → chuyển đúng trang</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="label">📱 Mobile</div>
+      <div class="iphone"><div class="notch"></div>
+        <div class="vp mob">
+          <div class="loginwrap" style="min-height:404px">
+            <div class="values"><svg class="lionhead"><use href="#lion"/></svg> TÔN TRỌNG · TRÁCH NHIỆM · TÀI GIỎI · CHÍNH TRỰC · YÊU THƯƠNG</div>
+            <div class="loginbox" style="width:188px">
+              <svg class="biglogo"><use href="#valogo"/></svg>
+              <h4 class="mont">Viet Anh Class</h4>
+              <input class="inp" placeholder="Tên đăng nhập">
+              <input class="inp" placeholder="Mật khẩu">
+              <div class="btn navy" style="width:100%">Đăng nhập</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">Định tuyến: Admin→/admin · BGH→/campus · GVCN→trang lớp · Học sinh→scoreboard cá nhân · Phụ huynh→báo cáo con.</p>
+</section>
+
+<!-- ===== 2. TRANG LỚP = SCOREBOARD LỚP ===== -->
+<section class="screen">
+  <h2>2 · Trang lớp = Scoreboard của lớp <span style="font-size:12px;color:var(--ok)">★ nhìn 3 giây biết thắng/thua</span></h2>
+  <p class="desc">Banner trạng thái lớn + WIG năm ×4 (donut on/off-track) + WIG tuần ×4 (pip thắng/tổng + ✓/✗) + Lead measure (thanh tiến độ) + thứ hạng + menu.</p>
+  <div class="devices">
+    <div class="laptop">
+      <div class="label">💻 Laptop</div>
+      <div class="browser">
+        <div class="urlbar"><i></i><i></i><i></i><span>vietanhclass.vercel.app/</span></div>
+        <div class="vp lap">
+          <div class="topbar"><div class="brand"><svg class="logo"><use href="#valogo"/></svg> Lớp 6A1 · VAGV</div><div class="ic">🔔 <span>cô Lan ▾</span></div></div>
+          <div class="navrow"><a class="act">Scoreboard</a><a>Danh sách</a><a>Điểm danh</a><a>Meeting</a><a>Thời khoá biểu</a></div>
+          <div class="content">
+            <div class="hero" style="padding:12px">
+              <h3>Lớp 6A1 — 2026–2027 <span class="lion"><svg class="lionhead"><use href="#lion"/></svg></span></h3>
+              <div class="sub">Ảnh lớp làm nền mờ · GVCN cô Lan · 25 HS</div>
+              <div class="rankbar">
+                <span class="rank">Khối <b>#2</b>/8</span><span class="rank">Cấp <b>#5</b>/20</span>
+                <span class="rank">Campus <b>#7</b>/40</span><span class="rank">Group <b>#21</b>/160</span>
+              </div>
+            </div>
+
+            <div class="status win">
+              <div><div class="big"><svg class="lionhead"><use href="#lion"/></svg> ĐANG THẮNG</div><div class="small">Tuần W38: thắng 10/16 WIG · điểm thi đua 7.6 LM/HS</div></div>
+              <div class="check ok" style="width:34px;height:34px;font-size:18px">✓</div>
+            </div>
+
+            <div class="sectionlbl">WIG năm của lớp — dự báo on/off track</div>
+            <div class="grid4">
+              <div class="card"><div class="area">Kiến thức</div>
+                <div class="ring" style="background:conic-gradient(var(--ok) 72%,#e4e7ec 0)"><span>72%</span></div>
+                <div class="stat ok"><span class="check ok">✓</span> ON TRACK</div></div>
+              <div class="card"><div class="area">Kỹ năng</div>
+                <div class="ring" style="background:conic-gradient(var(--bad) 48%,#e4e7ec 0)"><span>48%</span></div>
+                <div class="stat bad"><span class="check bad">✗</span> OFF TRACK</div></div>
+              <div class="card"><div class="area">Tiếng Anh</div>
+                <div class="ring" style="background:conic-gradient(var(--ok) 80%,#e4e7ec 0)"><span>80%</span></div>
+                <div class="stat ok"><span class="check ok">✓</span> ON TRACK</div></div>
+              <div class="card"><div class="area">Thể chất</div>
+                <div class="ring" style="background:conic-gradient(var(--bad) 35%,#e4e7ec 0)"><span>35%</span></div>
+                <div class="stat bad"><span class="check bad">✗</span> OFF TRACK</div></div>
+            </div>
+
+            <div class="sectionlbl">WIG tuần gần nhất (thắng/tổng)</div>
+            <div class="grid4">
+              <div class="card"><div class="area">Kiến thức</div><div class="pips"><span class="pip w">✓</span><span class="pip w">✓</span><span class="pip w">✓</span><span class="pip l">✗</span></div><div class="stat ok">3/4</div></div>
+              <div class="card"><div class="area">Kỹ năng</div><div class="pips"><span class="pip w">✓</span><span class="pip w">✓</span><span class="pip l">✗</span><span class="pip l">✗</span></div><div class="stat bad">2/4</div></div>
+              <div class="card"><div class="area">Tiếng Anh</div><div class="pips"><span class="pip w">✓</span><span class="pip w">✓</span><span class="pip w">✓</span><span class="pip w">✓</span></div><div class="stat ok">4/4</div></div>
+              <div class="card"><div class="area">Thể chất</div><div class="pips"><span class="pip w">✓</span><span class="pip l">✗</span><span class="pip l">✗</span><span class="pip l">✗</span></div><div class="stat bad">1/4</div></div>
+            </div>
+
+            <div class="sectionlbl">Lead measure (hoàn thành/tổng)</div>
+            <div class="lead"><span class="nm">Buổi tutor</span><div class="bar2"><i style="width:60%;background:var(--warn)"></i></div><span class="vv">120/200</span></div>
+            <div class="lead"><span class="nm">Hành vi văn hoá</span><div class="bar2"><i style="width:90%;background:var(--ok)"></i></div><span class="vv">90/100</span></div>
+            <p class="note">Điểm thi đua = TB số Lead measure hoàn thành / học sinh.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- mobile -->
+    <div class="phone">
+      <div class="label">📱 Mobile</div>
+      <div class="iphone"><div class="notch"></div>
+        <div class="vp mob">
+          <div class="topbar"><div class="brand"><svg class="logo"><use href="#valogo"/></svg>6A1</div><div class="ic">🔔</div></div>
+          <div class="navrow"><a class="act">Score</a><a>D.sách</a><a>Đ.danh</a><a>Meet</a><a>TKB</a></div>
+          <div class="content">
+            <div class="status win" style="padding:8px 10px"><div><div class="big" style="font-size:15px"><svg class="lionhead"><use href="#lion"/></svg> ĐANG THẮNG</div><div class="small">10/16 WIG</div></div><div class="check ok" style="width:26px;height:26px">✓</div></div>
+            <div class="sectionlbl">WIG năm</div>
+            <div class="grid4">
+              <div class="card" style="padding:7px"><div class="area">KT</div><div class="ring" style="width:44px;height:44px;background:conic-gradient(var(--ok) 72%,#e4e7ec 0)"><span style="font-size:10px">72</span></div><div class="stat ok"><span class="check ok">✓</span></div></div>
+              <div class="card" style="padding:7px"><div class="area">KN</div><div class="ring" style="width:44px;height:44px;background:conic-gradient(var(--bad) 48%,#e4e7ec 0)"><span style="font-size:10px">48</span></div><div class="stat bad"><span class="check bad">✗</span></div></div>
+              <div class="card" style="padding:7px"><div class="area">TA</div><div class="ring" style="width:44px;height:44px;background:conic-gradient(var(--ok) 80%,#e4e7ec 0)"><span style="font-size:10px">80</span></div><div class="stat ok"><span class="check ok">✓</span></div></div>
+              <div class="card" style="padding:7px"><div class="area">TC</div><div class="ring" style="width:44px;height:44px;background:conic-gradient(var(--bad) 35%,#e4e7ec 0)"><span style="font-size:10px">35</span></div><div class="stat bad"><span class="check bad">✗</span></div></div>
+            </div>
+            <div class="sectionlbl">Lead measure</div>
+            <div class="lead"><span class="nm" style="width:60px">Tutor</span><div class="bar2"><i style="width:60%;background:var(--warn)"></i></div><span class="vv">120/200</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 3. ĐIỂM DANH ===== -->
+<section class="screen">
+  <h2>3 · Điểm danh</h2>
+  <p class="desc">Chỉ GVCN / người được phân công sửa. Tự mở theo ngày hôm nay. Không sửa quá khứ (chỉ Admin). Trạng thái dùng ✓ xanh / ✗ đỏ.</p>
+  <div class="devices">
+    <div class="laptop">
+      <div class="label">💻 Laptop</div>
+      <div class="browser">
+        <div class="urlbar"><i></i><i></i><i></i><span>vietanhclass.vercel.app/attendance</span></div>
+        <div class="vp lap">
+          <div class="topbar"><div class="brand"><svg class="logo"><use href="#valogo"/></svg>Điểm danh · 6A1</div><div class="ic">🔔</div></div>
+          <div class="content">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div class="mont" style="font-size:12px;font-weight:800;color:var(--navy)">📅 Hôm nay 23/06/2026 · sĩ số 25</div>
+              <span class="lock">🔒 Ngày cũ chỉ Admin sửa</span>
+            </div>
+            <table>
+              <tr><th>#</th><th>Học sinh</th><th>Có mặt</th><th>Vắng</th><th>Trễ</th><th>Có phép</th></tr>
+              <tr><td>1</td><td>Nguyễn Văn An</td><td><span class="check ok">✓</span></td><td>○</td><td>○</td><td>○</td></tr>
+              <tr><td>2</td><td>Trần Thị Bình</td><td>○</td><td><span class="check bad">✗</span></td><td>○</td><td>○</td></tr>
+              <tr><td>3</td><td>Lê Văn Châu</td><td>○</td><td>○</td><td>🕘</td><td>○</td></tr>
+            </table>
+            <div style="margin-top:10px"><span class="btn navy">Lưu điểm danh</span> <span class="ok2">Tự lưu realtime &lt; 3s</span></div>
+            <p class="note">Người được phân công: GVCN gán "Attendance leader" trong Danh sách lớp.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="label">📱 Mobile</div>
+      <div class="iphone"><div class="notch"></div>
+        <div class="vp mob">
+          <div class="topbar"><div class="brand"><svg class="logo"><use href="#valogo"/></svg>Điểm danh</div><div class="ic">🔔</div></div>
+          <div class="content">
+            <div class="mont" style="font-size:11px;font-weight:800;color:var(--navy);margin-bottom:6px">📅 23/06 <span class="lock">🔒 khoá quá khứ</span></div>
+            <table>
+              <tr><th>HS</th><th>CM</th><th>V</th><th>Trễ</th></tr>
+              <tr><td>An</td><td><span class="check ok">✓</span></td><td>○</td><td>○</td></tr>
+              <tr><td>Bình</td><td>○</td><td><span class="check bad">✗</span></td><td>○</td></tr>
+              <tr><td>Châu</td><td>○</td><td>○</td><td>🕘</td></tr>
+            </table>
+            <div style="margin-top:10px"><span class="btn navy" style="width:100%">Lưu</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 4. SCOREBOARD HỌC SINH ===== -->
+<section class="screen">
+  <h2>4 · Scoreboard từng học sinh <span style="font-size:12px;color:var(--ok)">★ nhìn 3 giây</span></h2>
+  <p class="desc">Bố cục như scoreboard lớp + bảng Lead measure tick hằng ngày (khoá 🔒 sau 24h). Banner trạng thái cá nhân.</p>
+  <div class="devices">
+    <div class="laptop">
+      <div class="label">💻 Laptop</div>
+      <div class="browser">
+        <div class="urlbar"><i></i><i></i><i></i><span>vietanhclass.vercel.app/student/an</span></div>
+        <div class="vp lap">
+          <div class="topbar"><div class="brand"><svg class="logo"><use href="#valogo"/></svg>Nguyễn Văn An · 6A1</div><div class="ic">🔔</div></div>
+          <div class="content">
+            <div class="status win" style="padding:9px 12px"><div><div class="big" style="font-size:17px"><svg class="lionhead"><use href="#lion"/></svg> An đang THẮNG</div><div class="small">Hạng #4/25 trong lớp · WIG tuần 12/16</div></div><div class="check ok" style="width:30px;height:30px;font-size:15px">✓</div></div>
+            <div class="sectionlbl">WIG năm (dự báo)</div>
+            <div class="grid4">
+              <div class="card"><div class="area">KT</div><div class="ring" style="background:conic-gradient(var(--ok) 85%,#e4e7ec 0)"><span>85%</span></div><div class="stat ok"><span class="check ok">✓</span> ON</div></div>
+              <div class="card"><div class="area">KN</div><div class="ring" style="background:conic-gradient(var(--ok) 70%,#e4e7ec 0)"><span>70%</span></div><div class="stat ok"><span class="check ok">✓</span> ON</div></div>
+              <div class="card"><div class="area">TA</div><div class="ring" style="background:conic-gradient(var(--bad) 52%,#e4e7ec 0)"><span>52%</span></div><div class="stat bad"><span class="check bad">✗</span> OFF</div></div>
+              <div class="card"><div class="area">TC</div><div class="ring" style="background:conic-gradient(var(--ok) 66%,#e4e7ec 0)"><span>66%</span></div><div class="stat ok"><span class="check ok">✓</span> ON</div></div>
+            </div>
+            <div class="sectionlbl">Lead measure — tick hằng ngày (🔒 khoá sau 24h)</div>
+            <table>
+              <tr><th>Lead measure</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th><th>Σ</th></tr>
+              <tr><td>Buổi tutor</td><td><span class="check ok">✓</span></td><td><span class="check ok">✓</span></td><td><span class="lock">🔒</span></td><td>☐</td><td>☐</td><td>2/5</td></tr>
+              <tr><td>Đọc DEAR</td><td><span class="check ok">✓</span></td><td>☐</td><td><span class="check ok">✓</span></td><td>☐</td><td>☐</td><td>2/5</td></tr>
+            </table>
+            <p class="note">Hôm nay tick được; mục quá 24h hiện 🔒 không sửa (giữ trung thực dữ liệu).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="label">📱 Mobile</div>
+      <div class="iphone"><div class="notch"></div>
+        <div class="vp mob">
+          <div class="topbar"><div class="brand"><svg class="logo"><use href="#valogo"/></svg>An</div><div class="ic">🔔</div></div>
+          <div class="content">
+            <div class="status win" style="padding:8px 10px"><div><div class="big" style="font-size:14px"><svg class="lionhead"><use href="#lion"/></svg> THẮNG</div><div class="small">#4/25</div></div><div class="check ok" style="width:24px;height:24px">✓</div></div>
+            <div class="sectionlbl">WIG năm</div>
+            <div class="grid4">
+              <div class="card" style="padding:7px"><div class="area">KT</div><div class="ring" style="width:44px;height:44px;background:conic-gradient(var(--ok) 85%,#e4e7ec 0)"><span style="font-size:10px">85</span></div><div class="stat ok"><span class="check ok">✓</span></div></div>
+              <div class="card" style="padding:7px"><div class="area">KN</div><div class="ring" style="width:44px;height:44px;background:conic-gradient(var(--ok) 70%,#e4e7ec 0)"><span style="font-size:10px">70</span></div><div class="stat ok"><span class="check ok">✓</span></div></div>
+              <div class="card" style="padding:7px"><div class="area">TA</div><div class="ring" style="width:44px;height:44px;background:conic-gradient(var(--bad) 52%,#e4e7ec 0)"><span style="font-size:10px">52</span></div><div class="stat bad"><span class="check bad">✗</span></div></div>
+              <div class="card" style="padding:7px"><div class="area">TC</div><div class="ring" style="width:44px;height:44px;background:conic-gradient(var(--ok) 66%,#e4e7ec 0)"><span style="font-size:10px">66</span></div><div class="stat ok"><span class="check ok">✓</span></div></div>
+            </div>
+            <div class="sectionlbl">Tick hôm nay</div>
+            <div class="lead"><span class="nm" style="width:70px">Tutor</span><span class="btn ghost" style="padding:4px 8px">☐ Tick</span></div>
+            <div class="lead"><span class="nm" style="width:70px">DEAR</span><span class="stat ok"><span class="check ok">✓</span></span> <span class="lock">🔒</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 5. WIG MEETING LỚP ===== -->
+<section class="screen">
+  <h2>5 · WIG Meeting của cả lớp</h2>
+  <p class="desc">LM (hoàn thành/tổng) · WIG tuần (thắng/tổng) · Chiêm nghiệm · Thiết lập WIG &amp; LM tuần sau.</p>
+  <div class="devices">
+    <div class="laptop">
+      <div class="label">💻 Laptop</div>
+      <div class="browser">
+        <div class="urlbar"><i></i><i></i><i></i><span>vietanhclass.vercel.app/meeting</span></div>
+        <div class="vp lap">
+          <div class="topbar"><div class="brand"><svg class="logo"><use href="#valogo"/></svg>WIG Meeting · 6A1 · W38</div><div class="ic">🔔</div></div>
+          <div class="content">
+            <div class="grid2">
+              <div class="card" style="text-align:left"><div class="h">Lead measure tuần này</div><div class="lead"><div class="bar2"><i style="width:67%;background:var(--ok)"></i></div><span class="vv">8/12</span></div></div>
+              <div class="card" style="text-align:left"><div class="h">WIG tuần (thắng/tổng)</div><div class="big" style="color:var(--ok)">10/16 <span class="check ok">✓</span></div></div>
+            </div>
+            <div class="sectionlbl">Chiêm nghiệm tuần qua</div>
+            <textarea class="inp" rows="2" style="height:46px">Điều gì hiệu quả? Vướng ở đâu? Bài học...</textarea>
+            <div class="sectionlbl">Thiết lập WIG &amp; Lead measure tuần sau</div>
+            <table>
+              <tr><th>Lĩnh vực</th><th>WIG tuần sau</th><th>Lead measure</th></tr>
+              <tr><td>Kiến thức</td><td>Hoàn thành 50 buổi tutor (24–30/6)</td><td>10 buổi/ngày</td></tr>
+              <tr><td>Kỹ năng</td><td>25 hành vi văn hoá</td><td>5 hành vi/ngày</td></tr>
+            </table>
+            <div style="margin-top:10px"><span class="btn navy">Lưu biên bản họp</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="label">📱 Mobile</div>
+      <div class="iphone"><div class="notch"></div>
+        <div class="vp mob">
+          <div class="topbar"><div class="brand"><svg class="logo"><use href="#valogo"/></svg>Meeting 6A1</div><div class="ic">🔔</div></div>
+          <div class="content">
+            <div class="card" style="text-align:left"><div class="h">LM tuần</div><div class="lead"><div class="bar2"><i style="width:67%;background:var(--ok)"></i></div><span class="vv">8/12</span></div></div>
+            <div class="card" style="text-align:left;margin-top:8px"><div class="h">WIG thắng/tổng</div><div class="big" style="color:var(--ok)">10/16 <span class="check ok">✓</span></div></div>
+            <div class="sectionlbl">Chiêm nghiệm</div><textarea class="inp" rows="2" style="height:40px">...</textarea>
+            <div class="sectionlbl">WIG + LM tuần sau</div><textarea class="inp" rows="2" style="height:40px">KT: 50 buổi tutor...</textarea>
+            <span class="btn navy" style="width:100%">Lưu</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 6. WIG MEETING HỌC SINH ===== -->
+<section class="screen">
+  <h2>6 · WIG Meeting từng học sinh (Coach × Buddy)</h2>
+  <p class="desc">Cấu trúc giống meeting lớp: LM (hoàn thành/tổng) · WIG tuần (thắng/tổng) · Chiêm nghiệm · Thiết lập WIG &amp; LM tuần sau.</p>
+  <div class="devices">
+    <div class="laptop">
+      <div class="label">💻 Laptop</div>
+      <div class="browser">
+        <div class="urlbar"><i></i><i></i><i></i><span>vietanhclass.vercel.app/student/an/meeting</span></div>
+        <div class="vp lap">
+          <div class="topbar"><div class="brand"><svg class="logo"><use href="#valogo"/></svg>Meeting cá nhân · An · W38</div><div class="ic">🔔</div></div>
+          <div class="content">
+            <p class="note" style="margin-top:0">Coach: cô Lan · Buddy: bạn Bình</p>
+            <div class="grid2">
+              <div class="card" style="text-align:left"><div class="h">Lead measure</div><div class="lead"><div class="bar2"><i style="width:75%;background:var(--ok)"></i></div><span class="vv">6/8</span></div></div>
+              <div class="card" style="text-align:left"><div class="h">WIG tuần (thắng/tổng)</div><div class="big" style="color:var(--ok)">12/16 <span class="check ok">✓</span></div></div>
+            </div>
+            <div class="sectionlbl">Chiêm nghiệm</div>
+            <textarea class="inp" rows="2" style="height:46px">An tự học tốt hơn, còn yếu phần nói tiếng Anh...</textarea>
+            <div class="sectionlbl">Thiết lập WIG &amp; LM tuần sau</div>
+            <textarea class="inp" rows="2" style="height:46px">TA: hoàn thành 5 buổi luyện nói (24–30/6); LM: 1 buổi/ngày</textarea>
+            <div><span class="btn navy">Lưu</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="label">📱 Mobile</div>
+      <div class="iphone"><div class="notch"></div>
+        <div class="vp mob">
+          <div class="topbar"><div class="brand"><svg class="logo"><use href="#valogo"/></svg>Meeting·An</div><div class="ic">🔔</div></div>
+          <div class="content">
+            <div class="card" style="text-align:left"><div class="h">LM</div><div class="big" style="color:var(--ok)">6/8</div></div>
+            <div class="card" style="text-align:left;margin-top:8px"><div class="h">WIG</div><div class="big" style="color:var(--ok)">12/16 <span class="check ok">✓</span></div></div>
+            <div class="sectionlbl">Chiêm nghiệm</div><textarea class="inp" rows="2" style="height:40px">...</textarea>
+            <div class="sectionlbl">Tuần sau</div><textarea class="inp" rows="2" style="height:40px">TA: 5 buổi nói...</textarea>
+            <span class="btn navy" style="width:100%">Lưu</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 7. BÁO CÁO PHỤ HUYNH ===== -->
+<section class="screen">
+  <h2>7 · Báo cáo phụ huynh (chỉ con mình)</h2>
+  <p class="desc">Mặc định tuần gần nhất, lọc theo tuần. Banner trạng thái con + bảng: Vắng/Trễ · WIG (thắng/tổng) · LM (hoàn thành/tổng) · Chiêm nghiệm · WIG/LM tuần sau.</p>
+  <div class="devices">
+    <div class="laptop">
+      <div class="label">💻 Laptop</div>
+      <div class="browser">
+        <div class="urlbar"><i></i><i></i><i></i><span>vietanhclass.vercel.app/report</span></div>
+        <div class="vp lap">
+          <div class="topbar"><div class="brand"><svg class="logo"><use href="#valogo"/></svg>Báo cáo phụ huynh</div><div class="ic">🔔</div></div>
+          <div class="content">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div class="mont" style="font-size:13px;font-weight:800;color:var(--navy)">👦 Nguyễn Văn An — Lớp 6A1</div>
+              <select class="inp" style="width:auto;margin:0;padding:5px 8px">Tuần W38 (16–22/6) ▾</select>
+            </div>
+            <div class="status win" style="padding:9px 12px"><div><div class="big" style="font-size:16px"><svg class="lionhead"><use href="#lion"/></svg> Tuần này con THẮNG</div><div class="small">12/16 WIG · 6/8 Lead measure</div></div><div class="check ok" style="width:28px;height:28px">✓</div></div>
+            <table>
+              <tr><th>Mục</th><th>Kết quả tuần W38</th></tr>
+              <tr><td>Vắng / Trễ</td><td>1 vắng <span class="check bad">✗</span> · 2 trễ 🕘</td></tr>
+              <tr><td>WIG (thắng/tổng)</td><td>12/16 <span class="check ok">✓</span></td></tr>
+              <tr><td>Lead measure (hoàn thành/tổng)</td><td>6/8</td></tr>
+              <tr><td>Chiêm nghiệm (GVCN)</td><td>An tiến bộ tự học, cần luyện nói tiếng Anh.</td></tr>
+              <tr><td>WIG tuần sau</td><td>TA: 5 buổi luyện nói (24–30/6)</td></tr>
+              <tr><td>Lead measure tuần sau</td><td>1 buổi nói / ngày</td></tr>
+            </table>
+            <p class="note">🔒 Phụ huynh chỉ xem (read-only) đúng con mình — RLS is_my_child. Không thấy HS khác.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="label">📱 Mobile</div>
+      <div class="iphone"><div class="notch"></div>
+        <div class="vp mob">
+          <div class="topbar"><div class="brand"><svg class="logo"><use href="#valogo"/></svg>Báo cáo</div><div class="ic">🔔</div></div>
+          <div class="content">
+            <div class="mont" style="font-size:12px;font-weight:800;color:var(--navy)">👦 An — 6A1</div>
+            <select class="inp" style="margin-top:6px">Tuần W38 ▾</select>
+            <div class="status win" style="padding:7px 10px"><div><div class="big" style="font-size:13px"><svg class="lionhead"><use href="#lion"/></svg> THẮNG</div></div><div class="check ok" style="width:22px;height:22px">✓</div></div>
+            <table>
+              <tr><th>Mục</th><th>W38</th></tr>
+              <tr><td>Vắng/Trễ</td><td>1/2</td></tr>
+              <tr><td>WIG</td><td>12/16 <span class="check ok">✓</span></td></tr>
+              <tr><td>LM</td><td>6/8</td></tr>
+              <tr><td>Chiêm nghiệm</td><td>Luyện nói TA</td></tr>
+              <tr><td>WIG sau</td><td>5 buổi nói</td></tr>
+              <tr><td>LM sau</td><td>1/ngày</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 8. QUẢN TRỊ ===== -->
+<section class="screen">
+  <h2>8 · Quản trị (Admin)</h2>
+  <p class="desc">Bộ lọc đa cấp Campus → Lớp → GVCN → Học sinh. Quản lý người dùng, gán GVCN, mời phụ huynh.</p>
+  <div class="devices">
+    <div class="laptop">
+      <div class="label">💻 Laptop</div>
+      <div class="browser">
+        <div class="urlbar"><i></i><i></i><i></i><span>vietanhclass.vercel.app/admin</span></div>
+        <div class="vp lap">
+          <div class="topbar"><div class="brand"><svg class="logo"><use href="#valogo"/></svg>Quản trị hệ thống</div><div class="ic">🔔</div></div>
+          <div class="content">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+              <select class="inp" style="width:auto;margin:0">Campus: VAGV ▾</select>
+              <select class="inp" style="width:auto;margin:0">Lớp: 6A1 ▾</select>
+              <select class="inp" style="width:auto;margin:0">GVCN: cô Lan ▾</select>
+              <select class="inp" style="width:auto;margin:0">Học sinh: tất cả ▾</select>
+            </div>
+            <table>
+              <tr><th>Người dùng</th><th>Email</th><th>Vai trò</th><th>Phạm vi</th></tr>
+              <tr><td>cô Lan</td><td>lan@truongvietanh.com</td><td>GVCN</td><td>6A1</td></tr>
+              <tr><td>An</td><td>an@student.truongvietanh.com</td><td>Học sinh</td><td>6A1</td></tr>
+              <tr><td>Mẹ An</td><td>me.an@gmail.com</td><td>Phụ huynh</td><td>con: An</td></tr>
+            </table>
+            <div style="margin-top:10px;display:flex;gap:8px">
+              <span class="btn navy">+ Tạo lớp</span><span class="btn">+ Mời phụ huynh</span><span class="btn ghost">Gán GVCN</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="label">📱 Mobile</div>
+      <div class="iphone"><div class="notch"></div>
+        <div class="vp mob">
+          <div class="topbar"><div class="brand"><svg class="logo"><use href="#valogo"/></svg>Quản trị</div><div class="ic">🔔</div></div>
+          <div class="content">
+            <select class="inp">Campus: VAGV ▾</select>
+            <select class="inp">Lớp: 6A1 ▾</select>
+            <select class="inp">GVCN ▾</select>
+            <table>
+              <tr><th>User</th><th>Vai trò</th></tr>
+              <tr><td>cô Lan</td><td>GVCN</td></tr>
+              <tr><td>An</td><td>HS</td></tr>
+              <tr><td>Mẹ An</td><td>PH</td></tr>
+            </table>
+            <span class="btn navy" style="width:100%;margin-top:8px">+ Mời phụ huynh</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<p class="legend">★ Wireframe áp Brand Guideline Việt Anh (navy #033F85 + gold #C39953, Montserrat + Be Vietnam Pro), logo thật từ truongvietanh.com, mascot sư tử <svg class="lionhead"><use href="#lion"/></svg>. Tick xanh ✓ / cross đỏ ✗ và biểu đồ donut/thanh tiến độ giúp scoreboard đọc được trong 3 giây. Theo guideline, đỏ/cam chỉ dùng làm <b>tín hiệu trạng thái chức năng</b> (thắng/thua), không dùng cho sắc thái "sale". Giao diện chi tiết (ảnh thật, spacing) hoàn thiện ở bước UI.</p>
+
+</body>
+</html>

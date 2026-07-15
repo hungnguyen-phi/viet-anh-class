@@ -1,0 +1,6 @@
+node_modules
+.env*
+.next
+docs
+PRD_Viet_Anh_Class_v2.md
+Wireframes_Viet_Anh_Class.html
