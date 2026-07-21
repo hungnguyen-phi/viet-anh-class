@@ -1,4 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
+import {Link} from '@/i18n/navigation';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getAccessibleClasses, getMyClass} from '@/lib/queries';
@@ -25,8 +26,11 @@ export default async function RosterPage({
   const t = await getTranslations('roster');
   const tc = await getTranslations('class');
   const supabase = await createClient();
-  const myClass = await getMyClass(supabase, profile, classParam);
-  const accessible = await getAccessibleClasses(supabase, profile);
+  // Hai truy vấn độc lập — chạy song song, tránh waterfall.
+  const [myClass, accessible] = await Promise.all([
+    getMyClass(supabase, profile, classParam),
+    getAccessibleClasses(supabase, profile),
+  ]);
 
   if (!myClass) {
     return (
@@ -71,7 +75,13 @@ export default async function RosterPage({
               <tr key={r.student_id} className="border-t border-grey-line">
                 <td className="px-3 py-2 text-grey-mid">{i + 1}</td>
                 <td className="px-3 py-2 font-medium text-ink">
-                  {r.profiles?.full_name ?? r.student_id}
+                  {/* Mở scoreboard cá nhân của em (GVCN/Admin xem từng em) */}
+                  <Link
+                    href={`/student/${r.student_id}`}
+                    className="underline-offset-2 transition-colors hover:text-navy hover:underline"
+                  >
+                    {r.profiles?.full_name ?? r.student_id}
+                  </Link>
                 </td>
                 <td className="px-3 py-2 text-grey-mid">{r.profiles?.email}</td>
                 <td className="px-3 py-2 text-center">

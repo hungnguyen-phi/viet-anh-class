@@ -29,8 +29,11 @@ export default async function MeetingPage({
   const t = await getTranslations('meeting');
   const tc = await getTranslations('class');
   const supabase = await createClient();
-  const myClass = await getMyClass(supabase, profile, classParam);
-  const accessible = await getAccessibleClasses(supabase, profile);
+  // Hai truy vấn độc lập — chạy song song, tránh waterfall.
+  const [myClass, accessible] = await Promise.all([
+    getMyClass(supabase, profile, classParam),
+    getAccessibleClasses(supabase, profile),
+  ]);
 
   if (!myClass) {
     return (

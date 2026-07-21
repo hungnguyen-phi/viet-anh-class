@@ -40,8 +40,11 @@ export default async function WigPage({
   const tArea = await getTranslations('class');
   const tc = await getTranslations('class');
   const supabase = await createClient();
-  const myClass = await getMyClass(supabase, profile, classParam);
-  const accessible = await getAccessibleClasses(supabase, profile);
+  // Hai truy vấn độc lập — chạy song song, tránh waterfall.
+  const [myClass, accessible] = await Promise.all([
+    getMyClass(supabase, profile, classParam),
+    getAccessibleClasses(supabase, profile),
+  ]);
 
   if (!myClass) {
     return (
@@ -51,18 +54,20 @@ export default async function WigPage({
     );
   }
 
-  const {data: wigsData} = await supabase
-    .from('wigs')
-    .select('id, area, period, period_label, parent_wig_id, target_value, unit')
-    .eq('class_id', myClass.id)
-    .eq('scope', 'class');
+  // WIG + tiến độ chỉ phụ thuộc myClass.id — chạy song song.
+  const [{data: wigsData}, {data: progData}] = await Promise.all([
+    supabase
+      .from('wigs')
+      .select('id, area, period, period_label, parent_wig_id, target_value, unit')
+      .eq('class_id', myClass.id)
+      .eq('scope', 'class'),
+    supabase
+      .from('wig_progress_v')
+      .select('wig_id, actual, pct, status')
+      .eq('class_id', myClass.id)
+      .eq('scope', 'class'),
+  ]);
   const wigs = (wigsData ?? []) as Wig[];
-
-  const {data: progData} = await supabase
-    .from('wig_progress_v')
-    .select('wig_id, actual, pct, status')
-    .eq('class_id', myClass.id)
-    .eq('scope', 'class');
   const progByWig = new Map((progData ?? []).map((p) => [p.wig_id, p as unknown as Prog]));
 
   const yearWigs = wigs.filter((w) => w.period === 'year').sort((a, b) => a.area.localeCompare(b.area));

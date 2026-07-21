@@ -1,26 +1,93 @@
 @import "tailwindcss";
 
-/* Brand tokens Trường Việt Anh (PRD §6.1 — bắt buộc). Đỏ/emerald chỉ dùng làm tín hiệu trạng thái. */
+/* ============================================================
+   Việt Anh Class — Design tokens
+   Bản sắc: navy #26275d + gold #f9dd0e (PRD §6.1).
+   Hướng thị giác: premium dashboard — nền slate dịu ngả navy,
+   thẻ trắng bo góc lớn với viền hairline + bóng ambient mềm,
+   sidebar navy gradient, gold dùng tiết chế làm điểm nhấn đắt.
+   ============================================================ */
 @theme {
+  /* Thương hiệu */
   --color-navy: #26275d;
   --color-navy-dark: #1b1c45;
+  --color-navy-700: #2f3170;
+  --color-navy-900: #14152f;
   --color-gold: #f9dd0e;
-  --color-grey-light: #f5f5f5;
-  --color-grey-line: #ededed;
-  --color-ink: #1a1a1a;
-  --color-txt: #333333;
-  --color-grey-mid: #666666;
-  --color-success: #1e8a5a; /* thắng / on-track */
-  --color-status-bad: #c0392b; /* thua / off-track */
-  --color-warn: #f2b705; /* tiến độ "giữa" */
+  --color-gold-soft: #ffe94d;
+
+  /* Bề mặt — canvas slate dịu ngả navy, thẻ trắng nổi bằng bóng ambient */
+  --color-canvas: #f4f5fb;
+  --color-surface: #ffffff;
+  --color-grey-light: #eef0f8; /* ô lõm, header bảng */
+  --color-grey-line: #e5e8f2; /* đường kẻ mặc định */
+  --color-line-strong: #d4d9ea; /* viền nhấn */
+
+  /* Mực & chữ (ngả navy) */
+  --color-ink: #171930;
+  --color-txt: #3d4060;
+  --color-grey-mid: #5d6180;
+
+  /* Trạng thái 4DX — mã CHUẨN theo PRD §6.1 (bắt buộc): emerald thắng, đỏ trầm thua */
+  --color-success: #1e8a5a;
+  --color-status-bad: #c0392b;
+  --color-warn: #b98900;
+
+  /* Bo góc lớn, hiện đại */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-4xl: 32px;
+
+  /* Bóng ambient nhiều lớp, ngả navy — mềm nhưng không đục */
+  --shadow-card:
+    0 1px 2px rgba(23, 25, 48, 0.04),
+    0 8px 24px -12px rgba(23, 25, 48, 0.08);
+  --shadow-raise:
+    0 2px 4px rgba(23, 25, 48, 0.05),
+    0 14px 34px -12px rgba(23, 25, 48, 0.16);
+  --shadow-pop: 0 24px 64px -16px rgba(20, 21, 47, 0.4);
+
+  /* Chuyển động — nhanh, mượt, ease-out expo */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
+
+  /* z-index ngữ nghĩa */
+  --z-sticky: 20;
+  --z-drawer-backdrop: 40;
+  --z-drawer: 50;
 
   --font-heading: var(--font-montserrat), "Montserrat", ui-sans-serif, sans-serif;
   --font-body: var(--font-be-vietnam), "Be Vietnam Pro", ui-sans-serif, sans-serif;
+
+  /* Font vui cho trải nghiệm học sinh */
+  --font-fun: var(--font-fredoka), "Fredoka", ui-rounded, "Segoe UI", sans-serif;
+  --font-fun-body: var(--font-nunito), "Nunito", ui-rounded, "Segoe UI", sans-serif;
+
+  /* Bảng màu môn học — pastel vui, tương phản tốt trên nền sáng (WCAG AA) */
+  --color-subj-knowledge: #2f6df6; /* xanh dương */
+  --color-subj-knowledge-soft: #e3edff;
+  --color-subj-skills: #8b5cf6; /* tím */
+  --color-subj-skills-soft: #efe8ff;
+  --color-subj-english: #e0409a; /* hồng */
+  --color-subj-english-soft: #ffe4f3;
+  --color-subj-physical: #16a34a; /* xanh lá */
+  --color-subj-physical-soft: #dcfce7;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   font-family: var(--font-body);
-  line-height: 1.7;
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
 }
 
 h1,
@@ -28,4 +95,197 @@ h2,
 h3,
 h4 {
   font-family: var(--font-heading);
+  letter-spacing: -0.015em;
+}
+
+::selection {
+  background: var(--color-gold);
+  color: var(--color-navy);
+}
+
+/* Chuyển động mượt mặc định cho phần tử tương tác (state, không trang trí) */
+a,
+button,
+input,
+select,
+textarea,
+[role="button"],
+[tabindex] {
+  transition:
+    color var(--dur-fast) var(--ease-out-expo),
+    background-color var(--dur-fast) var(--ease-out-expo),
+    border-color var(--dur-fast) var(--ease-out-expo),
+    box-shadow var(--dur-base) var(--ease-out-expo),
+    transform var(--dur-base) var(--ease-out-expo),
+    opacity var(--dur-fast) var(--ease-out-expo);
+}
+
+/* Focus nhìn thấy được, đồng nhất */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-navy);
+  outline-offset: 2px;
+}
+
+/* Tôn trọng prefers-reduced-motion (bắt buộc) */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---- Tiện ích tái dùng ---- */
+
+/* Thẻ chuẩn: trắng, bo góc lớn, viền hairline + bóng ambient mềm */
+@utility card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-grey-line);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-card);
+}
+
+/* Thẻ tương tác: nhấc nhẹ khi hover (không làm xô layout) */
+@utility card-hover {
+  transition:
+    transform var(--dur-base) var(--ease-out-expo),
+    box-shadow var(--dur-base) var(--ease-out-expo),
+    border-color var(--dur-fast) var(--ease-out-expo);
+  &:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-line-strong);
+    box-shadow: var(--shadow-raise);
+  }
+}
+
+/* Bóng đen cho chữ vàng trên nền sáng (theo yêu cầu — chống mờ) */
+@utility text-shadow-dark {
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 0 1px rgba(0, 0, 0, 0.45);
+}
+
+/* Vào màn tinh tế (đã hiển thị sẵn, chỉ trượt/mờ nhẹ) */
+@keyframes va-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@utility animate-rise {
+  animation: va-rise var(--dur-base) var(--ease-out-expo) both;
+}
+
+@keyframes va-slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@utility animate-slide-in {
+  animation: va-slide-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+@keyframes va-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@utility animate-fade {
+  animation: va-fade var(--dur-fast) ease-out both;
+}
+
+/* ============================================================
+   Trải nghiệm HỌC SINH — vui, bo tròn, đáng yêu (.kid scope)
+   Không ảnh hưởng giao diện GV/Admin (nghiêm túc, sắc nét).
+   ============================================================ */
+.kid {
+  font-family: var(--font-fun-body);
+  line-height: 1.6;
+}
+.kid h1,
+.kid h2,
+.kid h3,
+.kid h4 {
+  font-family: var(--font-fun);
+  letter-spacing: 0;
+  font-weight: 700;
+}
+
+/* Nảy nhẹ khi vào màn (dùng cho thẻ môn, mặt cảm xúc) */
+@keyframes va-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(10px);
+  }
+  60% {
+    transform: scale(1.04) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@utility animate-pop {
+  animation: va-pop 0.42s var(--ease-out-expo) both;
+}
+
+/* Lắc lư đáng yêu (mascot / mặt cười đang active) */
+@keyframes va-wiggle {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+@utility animate-wiggle {
+  animation: va-wiggle 1.8s ease-in-out infinite;
+}
+
+/* Trôi nổi nhẹ lên-xuống (ngôi sao thưởng) — ease-in-out mượt, không phải bounce */
+@keyframes va-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+@utility animate-float {
+  animation: va-float 1.6s ease-in-out infinite;
+}
+
+/* Thẻ vui: bo tròn lớn, viền dày mềm, bóng màu nhẹ, nhấc khi hover */
+@utility card-fun {
+  background: var(--color-surface);
+  border: 2px solid var(--color-grey-line);
+  border-radius: var(--radius-3xl);
+  box-shadow: 0 6px 0 rgba(23, 25, 48, 0.06);
+  transition:
+    transform var(--dur-base) var(--ease-out-expo),
+    box-shadow var(--dur-base) var(--ease-out-expo),
+    border-color var(--dur-fast) var(--ease-out-expo);
+}
+@utility card-fun-hover {
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 0 rgba(23, 25, 48, 0.08);
+  }
 }

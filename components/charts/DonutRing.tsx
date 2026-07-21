@@ -10,11 +10,11 @@ export function DonutRing({pct, status}: {pct: number; status: string}) {
   const color = STATUS_COLOR[status] ?? 'var(--color-grey-mid)';
   return (
     <div
-      className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-full"
-      style={{background: `conic-gradient(${color} ${percent}%, #e4e7ec 0)`}}
+      className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-full"
+      style={{background: `conic-gradient(${color} ${percent}%, #e8ebf5 0)`}}
     >
-      <div className="absolute inset-[7px] rounded-full bg-white" />
-      <span className="relative font-heading text-xs font-extrabold text-navy">
+      <div className="absolute inset-[7px] rounded-full bg-white shadow-[inset_0_1px_3px_rgba(23,25,48,0.06)]" />
+      <span className="relative font-heading text-[13px] font-black text-navy">
         {percent}%
       </span>
     </div>

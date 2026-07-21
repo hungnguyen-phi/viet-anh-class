@@ -2,14 +2,50 @@
 
 import {useState} from 'react';
 import {useTranslations} from 'next-intl';
+import {Mail, MailCheck, Loader2} from 'lucide-react';
 import {createClient} from '@/lib/supabase/client';
+
+// ============================================================
+// DEMO LOGIN (tạm — XOÁ khối này + seed tương ứng trước khi deploy production).
+// Mật khẩu đặt trong supabase/seed.sql, chỉ tồn tại trên DB demo/local.
+// ============================================================
+const DEMO_PASSWORD = 'demo1234';
+// label tuỳ chọn: nếu có thì hiển thị thay cho tên vai trò (vd tổ trưởng điểm danh).
+const DEMO_ACCOUNTS: {role: string; email: string; to: string; label?: string}[] = [
+  {role: 'teacher', email: 'co.lan@truongvietanh.com', to: '/'},
+  // Học sinh THƯỜNG (không tổ trưởng) — demo đúng trải nghiệm cá nhân.
+  {role: 'student', email: 'hs02@student.truongvietanh.com', to: '/'},
+  // Tổ trưởng điểm danh — học sinh được GVCN uỷ quyền điểm danh lớp.
+  {role: 'student', email: 'hs01@student.truongvietanh.com', to: '/attendance', label: 'Tổ trưởng ĐD'},
+  {role: 'admin', email: 'admin@truongvietanh.com', to: '/admin'},
+  {role: 'principal', email: 'bgh@truongvietanh.com', to: '/campus'},
+  {role: 'parent', email: 'phuhuynh.an@gmail.com', to: '/report'},
+];
 
 export function LoginForm() {
   const t = useTranslations('login');
+  const tr = useTranslations('roles');
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState<false | 'google' | 'magic'>(false);
+  const [loading, setLoading] = useState<false | string>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // DEMO — đăng nhập nhanh bằng mật khẩu seed (xoá cùng khối DEMO_ACCOUNTS).
+  async function signInDemo(acc: (typeof DEMO_ACCOUNTS)[number]) {
+    setError(null);
+    setLoading(acc.email);
+    const supabase = createClient();
+    const {error} = await supabase.auth.signInWithPassword({
+      email: acc.email,
+      password: DEMO_PASSWORD,
+    });
+    if (error) {
+      setError(t('errorGeneric'));
+      setLoading(false);
+    } else {
+      window.location.assign(acc.to);
+    }
+  }
 
   async function signInGoogle() {
     setError(null);
@@ -46,6 +82,9 @@ export function LoginForm() {
   if (sent) {
     return (
       <div className="text-center">
+        <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-success/10 text-success">
+          <MailCheck size={22} strokeWidth={2} />
+        </div>
         <div className="font-heading text-lg font-extrabold text-success">
           {t('linkSent')}
         </div>
@@ -60,8 +99,9 @@ export function LoginForm() {
         type="button"
         onClick={signInGoogle}
         disabled={loading !== false}
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-grey-line bg-white px-4 py-3 font-heading font-bold text-navy transition-colors hover:bg-grey-light disabled:opacity-60"
+        className="flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-xl border border-grey-line bg-white px-4 py-3 font-heading font-bold text-navy shadow-card transition-all hover:border-line-strong hover:shadow-raise disabled:opacity-60"
       >
+        {loading === 'google' && <Loader2 size={16} className="animate-spin" />}
         <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
           <path
             fill="#4285F4"
@@ -91,25 +131,55 @@ export function LoginForm() {
       </div>
 
       <form onSubmit={sendMagicLink} className="flex flex-col gap-2">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder={t('emailPlaceholder')}
-          className="w-full rounded-lg border border-grey-line bg-white px-4 py-3 text-sm text-ink outline-none focus:border-navy"
-        />
+        <div className="relative">
+          <Mail
+            size={16}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-grey-mid"
+          />
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={t('emailPlaceholder')}
+            className="w-full rounded-xl border border-grey-line bg-grey-light/60 py-3 pl-10 pr-4 text-sm text-ink outline-none transition-all focus:border-navy focus:bg-white focus:ring-4 focus:ring-navy/10"
+          />
+        </div>
         <button
           type="submit"
           disabled={loading !== false}
-          className="rounded-lg bg-navy px-4 py-3 font-heading font-bold text-white transition-colors hover:bg-navy-dark disabled:opacity-60"
+          className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-navy px-4 py-3 font-heading font-bold text-white shadow-[0_10px_24px_-10px_rgba(38,39,93,0.55)] transition-all hover:bg-navy-700 active:scale-[0.99] disabled:opacity-60"
         >
-          {loading === 'magic' ? '…' : t('sendLink')}
+          {loading === 'magic' && <Loader2 size={16} className="animate-spin" />}
+          {t('sendLink')}
         </button>
       </form>
 
       {error && (
-        <p className="text-center text-sm text-status-bad">{error}</p>
+        <p className="rounded-lg bg-status-bad/[0.08] px-3 py-2.5 text-center text-sm font-medium text-status-bad">
+          {error}
+        </p>
       )}
+
+      {/* DEMO — đăng nhập nhanh theo vai trò (xoá trước khi deploy production) */}
+      <div className="mt-1 flex items-center gap-3 text-[11px] text-grey-mid">
+        <span className="h-px flex-1 bg-grey-line" />
+        <span className="whitespace-nowrap font-bold uppercase tracking-wider">Demo</span>
+        <span className="h-px flex-1 bg-grey-line" />
+      </div>
+      <div className="flex flex-wrap justify-center gap-1.5">
+        {DEMO_ACCOUNTS.map((acc) => (
+          <button
+            key={acc.email}
+            type="button"
+            onClick={() => signInDemo(acc)}
+            disabled={loading !== false}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-grey-line bg-grey-light/50 px-3 py-1.5 text-xs font-semibold text-txt transition-colors hover:border-navy hover:bg-white hover:text-navy disabled:opacity-50"
+          >
+            {loading === acc.email && <Loader2 size={12} className="animate-spin" />}
+            {acc.label ?? tr(acc.role)}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

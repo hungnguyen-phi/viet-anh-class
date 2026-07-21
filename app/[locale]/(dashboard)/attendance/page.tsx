@@ -1,4 +1,6 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
+import {redirect} from 'next/navigation';
+import {Lock, CalendarDays, Users} from 'lucide-react';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getAccessibleClasses, getMyClass} from '@/lib/queries';
@@ -27,8 +29,11 @@ export default async function AttendancePage({
   const t = await getTranslations('attendance');
   const tc = await getTranslations('class');
   const supabase = await createClient();
-  const myClass = await getMyClass(supabase, profile, classParam);
-  const accessible = await getAccessibleClasses(supabase, profile);
+  // Hai truy vấn độc lập — chạy song song, tránh waterfall.
+  const [myClass, accessible] = await Promise.all([
+    getMyClass(supabase, profile, classParam),
+    getAccessibleClasses(supabase, profile),
+  ]);
 
   if (!myClass) {
     return (
@@ -38,19 +43,34 @@ export default async function AttendancePage({
     );
   }
 
-  const {data: todayData} = await supabase.rpc('app_today');
-  const today = (todayData as unknown as string) ?? todayInVN();
+  // Học sinh chỉ vào được trang điểm danh KHI là tổ trưởng điểm danh (PRD §6.2 màn 3).
+  // Học sinh thường → về trang cá nhân, không thấy dữ liệu cả lớp.
+  if (profile.role === 'student') {
+    const {data: myEnr} = await supabase
+      .from('enrollments')
+      .select('is_attendance_leader')
+      .eq('class_id', myClass.id)
+      .eq('student_id', profile.id)
+      .maybeSingle();
+    if (!myEnr?.is_attendance_leader) redirect('/student');
+  }
 
-  const {data: enrolls} = await supabase
-    .from('enrollments')
-    .select('student_id, profiles!enrollments_student_id_fkey(id, full_name)')
-    .eq('class_id', myClass.id)
-    .eq('is_active', true);
+  // Đợt 1 (song song): ngày hôm nay + danh sách lớp.
+  const [{data: todayData}, {data: enrolls}] = await Promise.all([
+    supabase.rpc('app_today'),
+    supabase
+      .from('enrollments')
+      .select('student_id, profiles!enrollments_student_id_fkey(id, full_name)')
+      .eq('class_id', myClass.id)
+      .eq('is_active', true),
+  ]);
+  const today = (todayData as unknown as string) ?? todayInVN();
 
   const students = ((enrolls ?? []) as unknown as EnrRow[])
     .map((e) => ({id: e.student_id, name: e.profiles?.full_name ?? e.student_id}))
     .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
 
+  // Đợt 2: bản ghi điểm danh phụ thuộc `today` nên phải chờ đợt 1.
   const {data: recs} = await supabase
     .from('attendance_records')
     .select('student_id, status')
@@ -61,16 +81,11 @@ export default async function AttendancePage({
     initial[r.student_id] = r.status;
   });
 
-  let canEdit = profile.role === 'teacher' || profile.role === 'admin';
-  if (profile.role === 'student') {
-    const {data: myEnr} = await supabase
-      .from('enrollments')
-      .select('is_attendance_leader')
-      .eq('class_id', myClass.id)
-      .eq('student_id', profile.id)
-      .maybeSingle();
-    canEdit = Boolean(myEnr?.is_attendance_leader);
-  }
+  // Tới đây học sinh chắc chắn là tổ trưởng (đã guard ở trên) → được sửa hôm nay.
+  const canEdit =
+    profile.role === 'student' ||
+    profile.role === 'teacher' ||
+    profile.role === 'admin';
 
   return (
     <div className="space-y-4">
@@ -80,13 +95,21 @@ export default async function AttendancePage({
         </h1>
         <div className="flex items-center gap-2">
           {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
-          <span className="rounded bg-status-bad/10 px-2 py-1 text-[11px] font-bold text-status-bad">
-            🔒 {t('lockedPast')}
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-status-bad/10 px-2.5 py-1 text-[11px] font-bold text-status-bad">
+            <Lock size={12} strokeWidth={2.5} />
+            {t('lockedPast')}
           </span>
         </div>
       </div>
-      <div className="text-sm font-semibold text-navy">
-        📅 {t('todayLabel')}: {today} · {t('sizeLabel')}: {students.length}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-semibold text-txt">
+        <span className="inline-flex items-center gap-1.5">
+          <CalendarDays size={15} strokeWidth={2} className="text-navy" />
+          {t('todayLabel')}: <span className="text-navy">{today}</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <Users size={15} strokeWidth={2} className="text-navy" />
+          {t('sizeLabel')}: <span className="text-navy">{students.length}</span>
+        </span>
       </div>
       {!canEdit && (
         <p className="text-xs italic text-grey-mid">{t('readOnly')}</p>

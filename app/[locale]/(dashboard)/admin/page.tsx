@@ -380,7 +380,7 @@ export default async function AdminPage({
             >
               <div className="flex items-center justify-between">
                 <span className="font-heading font-extrabold text-navy">{s.label}</span>
-                <span className="text-xs font-bold text-gold">{tcommon('open')} →</span>
+                <span className="text-shadow-dark text-xs font-bold text-gold">{tcommon('open')} →</span>
               </div>
               <p className="mt-1 text-xs text-grey-mid">{s.desc}</p>
               <code className="mt-1 block text-[11px] text-grey-mid">{s.href}</code>

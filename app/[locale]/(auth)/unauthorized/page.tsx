@@ -1,4 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
+import {ShieldAlert} from 'lucide-react';
 import {signOut} from '@/lib/auth-actions';
 import {LocaleSwitcher} from '@/components/shell/LocaleSwitcher';
 
@@ -16,9 +17,9 @@ export default async function UnauthorizedPage({
       <div className="absolute right-4 top-4">
         <LocaleSwitcher />
       </div>
-      <div className="w-full max-w-md rounded-2xl bg-white p-7 text-center shadow-2xl">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-status-bad/10 text-2xl">
-          🔒
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-surface p-7 text-center shadow-pop">
+        <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-status-bad/10 text-status-bad">
+          <ShieldAlert size={24} strokeWidth={2} />
         </div>
         <h1 className="font-heading text-lg font-extrabold text-navy">
           {t('title')}

@@ -20,7 +20,7 @@ export function LocaleSwitcher() {
       onClick={() =>
         startTransition(() => router.replace(pathname, {locale: other}))
       }
-      className="rounded-md border border-grey-line bg-white px-3 py-1.5 text-sm font-semibold text-navy transition-colors hover:bg-grey-light disabled:opacity-50"
+      className="cursor-pointer rounded-lg bg-white/10 px-3.5 py-2 text-sm font-semibold text-white ring-1 ring-white/25 backdrop-blur-sm transition-colors hover:bg-white/20 disabled:opacity-50"
     >
       {locale === 'vi' ? 'EN' : 'VI'}
     </button>

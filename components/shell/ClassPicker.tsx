@@ -19,7 +19,7 @@ export function ClassPicker({
     <select
       value={current ?? ''}
       onChange={(e) => router.push(`${pathname}?class=${e.target.value}`)}
-      className="rounded-md border border-grey-line bg-white px-3 py-1.5 text-sm font-semibold text-navy"
+      className="cursor-pointer rounded-lg border border-grey-line bg-white px-3 py-2 text-sm font-semibold text-navy shadow-card transition-all hover:border-line-strong hover:shadow-raise focus:border-navy"
     >
       {classes.map((c) => (
         <option key={c.id} value={c.id}>

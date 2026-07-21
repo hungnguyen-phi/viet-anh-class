@@ -2,6 +2,7 @@
 
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTranslations} from 'next-intl';
+import {Check, CheckCheck} from 'lucide-react';
 import {createClient} from '@/lib/supabase/client';
 import type {Database} from '@/lib/database.types';
 
@@ -120,7 +121,7 @@ export function AttendanceTable({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-xl border border-grey-line bg-white">
+      <div className="overflow-x-auto rounded-2xl border border-grey-line bg-white shadow-card">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-grey-light text-navy">
@@ -144,9 +145,10 @@ export function AttendanceTable({
                       type="button"
                       onClick={() => setAllStatus(s.key)}
                       title={`${t('tickAll')}: ${t(s.key)}`}
-                      className="rounded border border-grey-line bg-white px-2 py-0.5 text-[11px] font-bold text-navy hover:border-navy"
+                      aria-label={`${t('tickAll')}: ${t(s.key)}`}
+                      className="inline-grid h-7 w-9 cursor-pointer place-items-center rounded-lg border border-grey-line bg-white text-navy transition-colors hover:border-navy hover:bg-grey-light"
                     >
-                      ✓✓
+                      <CheckCheck size={14} strokeWidth={2.5} />
                     </button>
                   </td>
                 ))}
@@ -158,11 +160,18 @@ export function AttendanceTable({
               const cur = display(st.id);
               const isDirty = st.id in pending;
               return (
-                <tr key={st.id} className="border-t border-grey-line">
+                <tr key={st.id} className="border-t border-grey-line transition-colors hover:bg-grey-light/40">
                   <td className="px-3 py-2 text-grey-mid">{i + 1}</td>
                   <td className="px-3 py-2 font-medium text-ink">
-                    {st.name}
-                    {isDirty && <span className="ml-1 text-warn">•</span>}
+                    <span className="inline-flex items-center gap-1.5">
+                      {st.name}
+                      {isDirty && (
+                        <span
+                          aria-hidden
+                          className="inline-block h-1.5 w-1.5 rounded-full bg-warn"
+                        />
+                      )}
+                    </span>
                   </td>
                   {STATUSES.map((s) => {
                     const active = cur === s.key;
@@ -173,13 +182,14 @@ export function AttendanceTable({
                           disabled={!canEdit}
                           onClick={() => setStatus(st.id, s.key)}
                           aria-pressed={active}
-                          className={`h-7 w-7 rounded-full border text-xs font-black transition-colors ${
+                          aria-label={t(s.key)}
+                          className={`inline-grid h-8 w-8 place-items-center rounded-full border-2 transition-all ${
                             active
-                              ? s.activeClass
-                              : 'border-grey-line bg-white text-grey-line hover:border-navy'
-                          } ${!canEdit ? 'cursor-default opacity-90' : ''}`}
+                              ? `${s.activeClass} shadow-card`
+                              : 'border-grey-line bg-white text-transparent hover:border-navy hover:shadow-card'
+                          } ${!canEdit ? 'cursor-default' : 'cursor-pointer'}`}
                         >
-                          {active ? '✓' : ''}
+                          <Check size={14} strokeWidth={3} />
                         </button>
                       </td>
                     );
@@ -199,13 +209,16 @@ export function AttendanceTable({
         {canEdit && (
           <div className="flex items-center gap-2">
             {savedFlash && dirtyCount === 0 && (
-              <span className="text-sm font-bold text-success">✓ {t('savedAt')}</span>
+              <span className="inline-flex items-center gap-1 text-sm font-bold text-success">
+                <Check size={16} strokeWidth={3} />
+                {t('savedAt')}
+              </span>
             )}
             <button
               type="button"
               onClick={save}
               disabled={saving || dirtyCount === 0}
-              className="rounded-lg bg-navy px-5 py-2 font-heading font-bold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
+              className="cursor-pointer rounded-xl bg-navy px-5 py-2.5 font-heading font-bold text-white shadow-[0_10px_24px_-10px_rgba(38,39,93,0.55)] transition-all hover:bg-navy-700 active:scale-[0.99] disabled:opacity-50"
             >
               {saving
                 ? t('saving')

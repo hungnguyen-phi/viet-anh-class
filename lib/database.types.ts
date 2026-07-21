@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   public: {
     Tables: {
       attendance_records: {
@@ -63,6 +58,38 @@ export type Database = {
           {
             foreignKeyName: "attendance_records_student_id_fkey"
             columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          detail: Json | null
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_actor_id_fkey"
+            columns: ["actor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -206,6 +233,13 @@ export type Database = {
           wig_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lead_measures_wig_id_fkey"
+            columns: ["wig_id"]
+            isOneToOne: false
+            referencedRelation: "wig_progress_v"
+            referencedColumns: ["wig_id"]
+          },
           {
             foreignKeyName: "lead_measures_wig_id_fkey"
             columns: ["wig_id"]
@@ -370,7 +404,29 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           student_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pending_user_grants_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_user_grants_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_user_grants_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -621,6 +677,13 @@ export type Database = {
             foreignKeyName: "wigs_parent_wig_id_fkey"
             columns: ["parent_wig_id"]
             isOneToOne: false
+            referencedRelation: "wig_progress_v"
+            referencedColumns: ["wig_id"]
+          },
+          {
+            foreignKeyName: "wigs_parent_wig_id_fkey"
+            columns: ["parent_wig_id"]
+            isOneToOne: false
             referencedRelation: "wigs"
             referencedColumns: ["id"]
           },
@@ -653,7 +716,56 @@ export type Database = {
           unit: string | null
           wig_id: string | null
         }
-        Relationships: []
+        Insert: {
+          actual?: never
+          area?: Database["public"]["Enums"]["wig_area"] | null
+          class_id?: string | null
+          end_date?: string | null
+          expected_pct?: never
+          pct?: never
+          period?: Database["public"]["Enums"]["wig_period"] | null
+          period_label?: string | null
+          scope?: Database["public"]["Enums"]["wig_scope"] | null
+          start_date?: string | null
+          status?: never
+          student_id?: string | null
+          target_value?: number | null
+          unit?: string | null
+          wig_id?: string | null
+        }
+        Update: {
+          actual?: never
+          area?: Database["public"]["Enums"]["wig_area"] | null
+          class_id?: string | null
+          end_date?: string | null
+          expected_pct?: never
+          pct?: never
+          period?: Database["public"]["Enums"]["wig_period"] | null
+          period_label?: string | null
+          scope?: Database["public"]["Enums"]["wig_scope"] | null
+          start_date?: string | null
+          status?: never
+          student_id?: string | null
+          target_value?: number | null
+          unit?: string | null
+          wig_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wigs_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wigs_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
@@ -663,30 +775,6 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
-      class_competition_scores: {
-        Args: never
-        Returns: {
-          class_id: string
-          campus_id: string
-          grade: string
-          level: string
-          score: number
-        }[]
-      }
-      class_ranks: {
-        Args: { c: string }
-        Returns: {
-          score: number
-          grade_rank: number
-          grade_total: number
-          level_rank: number
-          level_total: number
-          campus_rank: number
-          campus_total: number
-          global_rank: number
-          global_total: number
-        }[]
-      }
       child_class_progress: {
         Args: { s: string }
         Returns: {
@@ -695,9 +783,46 @@ export type Database = {
           status: string
         }[]
       }
-      log_audit: {
-        Args: { p_action: string; p_detail?: Json }
-        Returns: undefined
+      child_week_report: {
+        Args: { s: string; wk: string }
+        Returns: {
+          area: Database["public"]["Enums"]["wig_area"]
+          leads_done: number
+          leads_total: number
+          wig_actual: number
+          wig_target: number
+          wig_won: boolean
+        }[]
+      }
+      child_weeks: {
+        Args: { s: string }
+        Returns: {
+          week_label: string
+        }[]
+      }
+      class_competition_scores: {
+        Args: never
+        Returns: {
+          campus_id: string
+          class_id: string
+          grade: string
+          level: string
+          score: number
+        }[]
+      }
+      class_ranks: {
+        Args: { c: string }
+        Returns: {
+          campus_rank: number
+          campus_total: number
+          global_rank: number
+          global_total: number
+          grade_rank: number
+          grade_total: number
+          level_rank: number
+          level_total: number
+          score: number
+        }[]
       }
       is_attendance_leader: { Args: { c: string }; Returns: boolean }
       is_campus_class: { Args: { c: string }; Returns: boolean }
@@ -708,17 +833,22 @@ export type Database = {
       is_my_student: { Args: { s: string }; Returns: boolean }
       is_parent_of_class: { Args: { c: string }; Returns: boolean }
       lead_class: { Args: { lm: string }; Returns: string }
+      log_audit: {
+        Args: { p_action: string; p_detail?: Json }
+        Returns: undefined
+      }
       mark_attendance: {
         Args: {
           p_class: string
-          p_student: string
           p_status: Database["public"]["Enums"]["attendance_status"]
+          p_student: string
         }
         Returns: undefined
       }
       restrict_signup_by_email_domain: { Args: { event: Json }; Returns: Json }
       staff_can_manage_class: { Args: { c: string }; Returns: boolean }
       staff_can_read_class: { Args: { c: string }; Returns: boolean }
+      wig_actual: { Args: { w: string }; Returns: number }
       wig_class: { Args: { w: string }; Returns: string }
     }
     Enums: {
@@ -877,3 +1007,4 @@ export const Constants = {
     },
   },
 } as const
+

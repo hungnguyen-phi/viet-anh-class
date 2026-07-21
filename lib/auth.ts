@@ -1,3 +1,4 @@
+import {cache} from 'react';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import type {Database} from '@/lib/database.types';
@@ -14,14 +15,17 @@ export function homeRouteForRole(role: Role): string {
       return '/campus';
     case 'parent':
       return '/report';
-    case 'teacher':
     case 'student':
+      return '/student'; // scoreboard CÁ NHÂN (PRD §6.2.1) — không vào scoreboard lớp
+    case 'teacher':
     default:
       return '/';
   }
 }
 
-export async function getCurrentProfile(): Promise<Profile | null> {
+// cache() theo request: layout + page cùng gọi requireProfile nhưng chỉ tốn
+// 1 lượt getUser + 1 lượt profiles cho mỗi request (trước đây nhân đôi).
+export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const {
     data: {user},
@@ -33,7 +37,7 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     .eq('id', user.id)
     .maybeSingle();
   return data ?? null;
-}
+});
 
 // Dùng trong layout/page server: bắt buộc đã đăng nhập + đã được cấp quyền.
 export async function requireProfile(): Promise<Profile> {
