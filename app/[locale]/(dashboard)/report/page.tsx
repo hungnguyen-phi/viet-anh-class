@@ -1,7 +1,7 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {Check, X, GraduationCap, Trophy} from 'lucide-react';
+import {Check, X, Trophy} from 'lucide-react';
 import {DonutRing} from '@/components/charts/DonutRing';
 import {WeekPicker} from '@/components/report/WeekPicker';
 
@@ -39,8 +39,8 @@ export default async function ReportPage({
 
   if (!childId) {
     return (
-      <div className="card p-10 text-center">
-        <h1 className="font-heading text-xl font-extrabold text-navy">{t('title')}</h1>
+      <div className="glass rounded-[26px] p-10 text-center">
+        <h1 className="font-display text-xl font-bold text-navy">{t('title')}</h1>
         <p className="mt-2 text-sm text-grey-mid">{t('noChild')}</p>
       </div>
     );
@@ -111,49 +111,43 @@ export default async function ReportPage({
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Hero + bộ lọc tuần */}
-      <div className="animate-rise relative overflow-hidden rounded-3xl p-6 text-white shadow-pop ring-1 ring-white/10 sm:p-8 [background:radial-gradient(40rem_22rem_at_85%_-20%,rgba(249,221,14,0.16),transparent_55%),linear-gradient(135deg,#2c2e6e_0%,#26275d_55%,#1b1c45_100%)]">
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
+      <div className="glass animate-rise rounded-[26px] p-6 sm:p-7">
+        <div className="flex flex-wrap items-start gap-4">
           <div className="min-w-0">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-gold/90">
+            <div className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gold-deep">
               {t('title')}
-            </p>
-            <h1 className="mt-1 font-heading text-3xl font-black tracking-tight sm:text-4xl">
+            </div>
+            <h1 className="mt-0.5 font-display text-[27px] font-bold leading-tight text-navy">
               {child?.full_name ?? t('child')}
             </h1>
             {cls && (
-              <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-white/80">
-                <GraduationCap size={16} strokeWidth={2} className="text-gold/80" />
-                {t('class')}: <b className="font-semibold text-white">{cls.name}</b>
-                <span className="text-white/50">· {cls.school_year}</span>
+              <p className="mt-1 text-[13px] font-bold text-txt">
+                {t('class')}: <b className="text-navy">{cls.name}</b>{' '}
+                <span className="text-grey-mid">· {cls.school_year}</span>
               </p>
             )}
           </div>
-          {weeks.length > 0 && week && (
-            <WeekPicker weeks={weeks} current={week} label={t('week')} />
-          )}
+          <div className="ml-auto flex flex-col items-end gap-2">
+            {weeks.length > 0 && week && (
+              <WeekPicker weeks={weeks} current={week} label={t('selectWeek')} />
+            )}
+            <span className="text-[10.5px] font-semibold italic text-grey-mid">{t('readOnly')}</span>
+          </div>
         </div>
-        <p className="text-shadow-dark relative mt-3 text-xs font-semibold text-gold">
-          {t('readOnly')}
-        </p>
       </div>
 
       {/* Điểm danh tổng quan */}
       <section>
-        <div className="mb-4 flex items-center gap-2.5">
-          <span aria-hidden className="h-5 w-1 rounded-full bg-gold" />
-          <h2 className="font-heading text-sm font-extrabold uppercase tracking-[0.12em] text-navy">
-            {t('attendance')}
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('attendance')}</h2>
+        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
           {statuses.map((s) => (
-            <div key={s} className="card card-hover p-5 text-center">
-              <div className={`font-heading text-3xl font-black ${statusColor[s]}`}>
+            <div key={s} className="glass glass-hover rounded-[20px] p-4 text-center">
+              <div className={`font-display text-[26px] font-bold ${statusColor[s]}`}>
                 {counts[s] ?? 0}
               </div>
-              <div className="mt-1 text-xs font-semibold text-grey-mid">{t(s)}</div>
+              <div className="mt-1 text-xs font-extrabold text-txt">{t(s)}</div>
             </div>
           ))}
         </div>
@@ -161,24 +155,22 @@ export default async function ReportPage({
 
       {/* Kết quả tuần được chọn: WIG thắng/tổng + LM hoàn thành/tổng theo 4 lĩnh vực */}
       <section>
-        <div className="mb-4 flex items-center gap-2.5">
-          <span aria-hidden className="h-5 w-1 rounded-full bg-gold" />
-          <h2 className="font-heading text-sm font-extrabold uppercase tracking-[0.12em] text-navy">
-            {t('weekResult')} {week ? `· ${week}` : ''}
-          </h2>
-        </div>
+        <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
+          {t('weekResult')}
+          {week ? ` · ${week}` : ''}
+        </h2>
         {weeks.length === 0 ? (
           <p className="text-xs italic text-grey-mid">{t('noWeeks')}</p>
         ) : weekRows.length === 0 ? (
           <p className="text-xs italic text-grey-mid">{t('noWeekData')}</p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
             {AREAS.map((a) => {
               const r = weekByArea.get(a);
               if (!r) {
                 return (
-                  <div key={a} className="card p-5">
-                    <div className="font-heading text-sm font-extrabold text-navy">
+                  <div key={a} className="glass rounded-[20px] p-4">
+                    <div className="text-[13.5px] font-extrabold text-navy">
                       {tArea(`areas.${a}`)}
                     </div>
                     <p className="mt-3 text-xs italic text-grey-mid">{t('noWeekData')}</p>
@@ -186,40 +178,40 @@ export default async function ReportPage({
                 );
               }
               return (
-                <div key={a} className="card card-hover p-5">
+                <div key={a} className="glass glass-hover rounded-[20px] p-4">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="font-heading text-sm font-extrabold text-navy">
+                    <span className="text-[13.5px] font-extrabold whitespace-nowrap text-navy">
                       {tArea(`areas.${a}`)}
-                    </div>
+                    </span>
                     <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${
-                        r.wig_won ? 'bg-success/10 text-success' : 'bg-status-bad/10 text-status-bad'
-                      }`}
+                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-extrabold"
+                      style={{
+                        background: r.wig_won ? 'rgba(30,138,90,0.12)' : 'rgba(192,57,43,0.12)',
+                        color: r.wig_won ? '#1e8a5a' : '#c0392b',
+                      }}
                     >
                       {r.wig_won ? (
-                        <Check size={12} strokeWidth={2.5} />
+                        <Check size={11} strokeWidth={2.5} />
                       ) : (
-                        <X size={12} strokeWidth={2.5} />
+                        <X size={11} strokeWidth={2.5} />
                       )}
                       {r.wig_won ? t('won') : t('notWon')}
                     </span>
                   </div>
-                  <dl className="mt-4 space-y-2.5 text-sm">
-                    <div className="flex items-center justify-between">
-                      <dt className="text-grey-mid">{t('wigWon')}</dt>
-                      <dd className="font-heading font-black text-navy">
-                        {Number(r.wig_actual)}
-                        <span className="font-bold text-grey-mid">/{Number(r.wig_target)}</span>
-                      </dd>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <dt className="text-grey-mid">{t('leadDone')}</dt>
-                      <dd className="font-heading font-black text-navy">
-                        {r.leads_done}
-                        <span className="font-bold text-grey-mid">/{r.leads_total}</span>
-                      </dd>
-                    </div>
-                  </dl>
+                  <div className="mt-3 flex items-center justify-between text-[12.5px]">
+                    <span className="font-semibold text-grey-mid">{t('wigWon')}</span>
+                    <b className="font-display font-bold text-navy">
+                      {Number(r.wig_actual)}
+                      <span className="text-grey-mid">/{Number(r.wig_target)}</span>
+                    </b>
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between text-[12.5px]">
+                    <span className="font-semibold text-grey-mid">{t('leadDone')}</span>
+                    <b className="font-display font-bold text-navy">
+                      {r.leads_done}
+                      <span className="text-grey-mid">/{r.leads_total}</span>
+                    </b>
+                  </div>
                 </div>
               );
             })}
@@ -227,74 +219,68 @@ export default async function ReportPage({
         )}
       </section>
 
-      {/* Chiêm nghiệm + tuần sau (từ biên bản họp WIG cá nhân Coach×Buddy) */}
-      {week && (
-        <section>
-          <div className="mb-4 flex items-center gap-2.5">
-            <span aria-hidden className="h-5 w-1 rounded-full bg-gold" />
-            <h2 className="font-heading text-sm font-extrabold uppercase tracking-[0.12em] text-navy">
-              {t('reflection')}
-            </h2>
-          </div>
-          {meeting ? (
-            <div className="card space-y-4 p-6">
-              {meeting.results && (
-                <div>
-                  <div className="text-[11px] font-bold uppercase tracking-wide text-grey-mid">
-                    {t('reflection')}
-                  </div>
-                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink">
-                    {meeting.results}
-                  </p>
-                </div>
-              )}
-              {meeting.next_actions && (
-                <div className="border-t border-grey-line pt-4">
-                  <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-navy">
-                    <Trophy size={12} strokeWidth={2.5} className="text-gold" />
-                    {t('nextWeek')}
-                  </div>
-                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink">
-                    {meeting.next_actions}
-                  </p>
-                </div>
-              )}
-              {!meeting.results && !meeting.next_actions && (
+      {/* Chiêm nghiệm tuần + Tiến độ WIG năm cá nhân (2 cột như prototype) */}
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+        {/* Chiêm nghiệm + tuần sau (từ biên bản họp WIG cá nhân Coach×Buddy) */}
+        {week && (
+          <section>
+            <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('reflection')}</h2>
+            <div className="glass rounded-[20px] p-[18px]">
+              {meeting && (meeting.results || meeting.next_actions) ? (
+                <>
+                  {meeting.results && (
+                    <div>
+                      <div className="text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+                        {t('reflection')}
+                      </div>
+                      <p className="mt-1.5 text-[13px] leading-[1.7] font-semibold whitespace-pre-line text-txt">
+                        {meeting.results}
+                      </p>
+                    </div>
+                  )}
+                  {meeting.next_actions && (
+                    <div className="mt-3.5 border-t border-navy/[0.08] pt-3">
+                      <div className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-navy">
+                        <Trophy size={11} strokeWidth={2.5} style={{color: '#e3b400'}} />
+                        {t('nextWeek')}
+                      </div>
+                      <p className="mt-1.5 text-[13px] leading-[1.7] font-semibold whitespace-pre-line text-txt">
+                        {meeting.next_actions}
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
                 <p className="text-xs italic text-grey-mid">{t('noMeeting')}</p>
               )}
             </div>
-          ) : (
-            <p className="text-xs italic text-grey-mid">{t('noMeeting')}</p>
-          )}
-        </section>
-      )}
+          </section>
+        )}
 
-      {/* Tiến độ WIG NĂM cá nhân (4 lĩnh vực) — cumulative */}
-      <section>
-        <div className="mb-4 flex items-center gap-2.5">
-          <span aria-hidden className="h-5 w-1 rounded-full bg-gold" />
-          <h2 className="font-heading text-sm font-extrabold uppercase tracking-[0.12em] text-navy">
-            {t('wigProgress')}
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {AREAS.map((a) => {
-            const w = yearByArea.get(a);
-            return (
-              <div key={a} className="card card-hover p-5 text-center">
-                <div className="mb-4 font-heading text-sm font-extrabold text-navy">
-                  {tArea(`areas.${a}`)}
+        {/* Tiến độ WIG NĂM cá nhân (4 lĩnh vực) — cumulative */}
+        <section>
+          <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('wigProgress')}</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {AREAS.map((a) => {
+              const w = yearByArea.get(a);
+              return (
+                <div key={a} className="glass glass-hover rounded-[18px] p-3 text-center">
+                  <div className="text-xs font-extrabold whitespace-nowrap text-navy">
+                    {tArea(`areas.${a}`)}
+                  </div>
+                  {w ? (
+                    <div className="mt-2.5">
+                      <DonutRing pct={Number(w.pct ?? 0)} status={w.status ?? ''} size={62} />
+                    </div>
+                  ) : (
+                    <div className="mt-3 text-xs text-grey-mid">{tArea('noWig')}</div>
+                  )}
                 </div>
-                {w ? (
-                  <DonutRing pct={Number(w.pct ?? 0)} status={w.status ?? ''} />
-                ) : (
-                  <div className="mt-3 text-xs text-grey-mid">{tArea('noWig')}</div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
+              );
+            })}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

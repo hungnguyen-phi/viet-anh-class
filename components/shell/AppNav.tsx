@@ -1,10 +1,11 @@
 'use client';
 
-import {useState, useTransition, type ComponentType} from 'react';
+import {useTransition, type ComponentType} from 'react';
 import {useTranslations, useLocale} from 'next-intl';
 import {Link, usePathname, useRouter} from '@/i18n/navigation';
 import {signOut} from '@/lib/auth-actions';
 import type {Profile} from '@/lib/auth';
+import {isoWeekLabel} from '@/lib/dates';
 import {
   LayoutDashboard,
   Users,
@@ -16,14 +17,13 @@ import {
   LineChart,
   BookOpen,
   LogOut,
-  Menu,
-  X,
   Languages,
 } from 'lucide-react';
 
-type NavItem = {href: string; key: string; Icon: ComponentType<{size?: number; strokeWidth?: number; className?: string}>};
+type IconType = ComponentType<{size?: number; strokeWidth?: number; className?: string}>;
+type NavItem = {href: string; key: string; Icon: IconType};
 
-// Cùng bộ link/quyền như bản cũ, nay kèm icon (không dùng emoji).
+// Bộ link + quyền theo vai trò (giữ nguyên logic phân quyền cũ).
 const LINKS: Record<string, NavItem[]> = {
   teacher: [
     {href: '/', key: 'scoreboard', Icon: LayoutDashboard},
@@ -32,9 +32,6 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/wig', key: 'wig', Icon: Target},
     {href: '/meeting', key: 'meeting', Icon: MessagesSquare},
   ],
-  // Học sinh thường CHỈ thấy scoreboard cá nhân của mình — không có gì của cả lớp.
-  // Link "Điểm danh" chỉ thêm cho tổ trưởng điểm danh (xử lý trong AppNav).
-  student: [{href: '/student', key: 'myScoreboard', Icon: LayoutDashboard}],
   admin: [
     {href: '/admin', key: 'admin', Icon: ShieldCheck},
     {href: '/', key: 'scoreboard', Icon: LayoutDashboard},
@@ -48,11 +45,9 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/', key: 'scoreboard', Icon: LayoutDashboard},
   ],
   parent: [{href: '/report', key: 'report', Icon: LineChart}],
+  // Học sinh thường chỉ thấy scoreboard cá nhân; tổ trưởng được thêm Điểm danh.
+  student: [{href: '/student', key: 'myScoreboard', Icon: LayoutDashboard}],
 };
-
-// Nền sidebar: navy gradient dọc + quầng gold rất nhẹ phía trên (chiều sâu, không lòe loẹt).
-const SIDEBAR_BG =
-  '[background:radial-gradient(28rem_16rem_at_50%_-8rem,rgba(249,221,14,0.10),transparent_60%),linear-gradient(180deg,#2c2e6e_0%,#26275d_45%,#1b1c45_100%)]';
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -68,188 +63,108 @@ export function AppNav({
   profile: Profile;
   isAttendanceLeader?: boolean;
 }) {
-  const role = profile.role;
-  const baseLinks = LINKS[role] ?? [];
-  // Tổ trưởng điểm danh (là học sinh) được thêm link Điểm danh — nhiệm vụ lớp giao.
-  const links =
-    role === 'student' && isAttendanceLeader
-      ? [...baseLinks, {href: '/attendance', key: 'attendance', Icon: ClipboardCheck}]
-      : baseLinks;
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      {/* Sidebar cố định — desktop */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-white/[0.06] px-4 py-5 lg:flex ${SIDEBAR_BG}`}
-      >
-        <NavBody profile={profile} links={links} />
-      </aside>
-
-      {/* Thanh trên — mobile */}
-      <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-white/10 bg-navy-dark/90 px-4 py-2.5 text-white backdrop-blur-md lg:hidden">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Mở menu điều hướng"
-          className="grid h-10 w-10 cursor-pointer place-items-center rounded-xl text-white/85 transition-colors hover:bg-white/10"
-        >
-          <Menu size={20} strokeWidth={2} />
-        </button>
-        <Brand />
-        <form action={signOut}>
-          <button
-            type="submit"
-            aria-label="Đăng xuất"
-            className="grid h-10 w-10 cursor-pointer place-items-center rounded-xl text-white/85 transition-colors hover:bg-white/10"
-          >
-            <LogOut size={18} strokeWidth={2} />
-          </button>
-        </form>
-      </header>
-
-      {/* Drawer — mobile */}
-      {open && (
-        <div className="lg:hidden">
-          <button
-            type="button"
-            aria-label="Đóng menu"
-            onClick={() => setOpen(false)}
-            className="animate-fade fixed inset-0 z-40 cursor-pointer bg-navy-900/70 backdrop-blur-sm"
-          />
-          <aside
-            className={`animate-slide-in fixed inset-y-0 left-0 z-50 flex w-72 max-w-[82%] flex-col rounded-r-3xl px-4 py-5 shadow-pop ${SIDEBAR_BG}`}
-          >
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Đóng menu"
-              className="absolute right-3 top-4 grid h-9 w-9 cursor-pointer place-items-center rounded-xl text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <X size={18} strokeWidth={2} />
-            </button>
-            <NavBody profile={profile} links={links} onNavigate={() => setOpen(false)} />
-          </aside>
-        </div>
-      )}
-    </>
-  );
-}
-
-function Brand() {
-  const t = useTranslations('app');
-  return (
-    <div className="flex items-center gap-2.5">
-      <span className="flex h-9 w-8 shrink-0 items-center justify-center rounded-b-[40%] rounded-t-md bg-linear-to-b from-gold-soft to-gold font-heading text-[13px] font-black text-navy shadow-[0_2px_8px_rgba(249,221,14,0.35)]">
-        VA
-      </span>
-      <span className="font-heading text-[15px] font-extrabold leading-tight text-white">
-        {t('name')}
-      </span>
-    </div>
-  );
-}
-
-function NavBody({
-  profile,
-  links,
-  onNavigate,
-}: {
-  profile: Profile;
-  links: NavItem[];
-  onNavigate?: () => void;
-}) {
   const t = useTranslations('nav');
   const tr = useTranslations('roles');
   const tc = useTranslations('common');
   const pathname = usePathname();
 
+  const role = profile.role;
+  const baseLinks = LINKS[role] ?? [];
+  const links =
+    role === 'student' && isAttendanceLeader
+      ? [...baseLinks, {href: '/attendance', key: 'attendance', Icon: ClipboardCheck}]
+      : baseLinks;
+
   const displayName = profile.full_name ?? profile.email;
+  const weekLabel = isoWeekLabel(new Date());
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="px-1.5 pb-4">
-        <Brand />
-      </div>
+    <div className="sticky top-0 z-20 px-4 pb-2.5 pt-3.5 sm:px-6 [background:linear-gradient(180deg,rgba(235,240,236,0.95)_0%,rgba(235,240,236,0.75)_70%,rgba(235,240,236,0)_100%)]">
+      <div className="glass-strong mx-auto flex max-w-[1160px] flex-wrap items-center gap-x-3.5 gap-y-2 rounded-[20px] px-3.5 py-2">
+        {/* Logo + tên */}
+        <Link href="/" className="flex min-w-0 items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-viet-anh.jpg"
+            alt="Logo Việt Anh"
+            className="h-8 w-8 shrink-0 rounded-full border-[1.5px] border-white/90 bg-white object-cover shadow-[0_2px_8px_rgba(38,39,93,0.15)]"
+          />
+          <span className="whitespace-nowrap font-display text-[16px] font-bold text-navy">
+            Việt Anh Class
+          </span>
+        </Link>
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto border-t border-white/[0.08] pt-4">
-        {links.map(({href, key, Icon}) => {
-          const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={onNavigate}
-              aria-current={active ? 'page' : undefined}
-              className={`group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-colors duration-200 ${
-                active
-                  ? 'bg-white/[0.12] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-white/[0.08]'
-                  : 'text-white/65 hover:bg-white/[0.06] hover:text-white'
-              }`}
-            >
-              <span
-                aria-hidden
-                className={`absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-gold transition-all duration-200 ${
-                  active ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0 group-hover:scale-y-75 group-hover:opacity-60'
+        {/* Nav tabs */}
+        <nav className="ml-2 flex flex-wrap items-center gap-1">
+          {links.map(({href, key, Icon}) => {
+            const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? 'page' : undefined}
+                className={`inline-flex h-[38px] items-center gap-[7px] whitespace-nowrap rounded-xl px-3.5 text-[13px] font-extrabold transition-all ${
+                  active
+                    ? 'bg-white/65 text-navy shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_12px_rgba(38,39,93,0.12)]'
+                    : 'text-navy/50 hover:text-navy'
                 }`}
-              />
-              <Icon
-                size={18}
-                strokeWidth={2}
-                className={`shrink-0 transition-colors duration-200 ${
-                  active ? 'text-gold' : 'text-white/50 group-hover:text-white/90'
-                }`}
-              />
-              <span className="truncate transition-transform duration-200 group-hover:translate-x-0.5">
+              >
+                <Icon size={16} strokeWidth={2} />
                 {t(key)}
-              </span>
-            </Link>
-          );
-        })}
-      </nav>
+              </Link>
+            );
+          })}
+        </nav>
 
-      {/* Footer: thẻ người dùng + hành động */}
-      <div className="mt-4 space-y-2.5">
-        <div className="flex items-center gap-2.5 rounded-2xl bg-white/[0.06] p-2.5 ring-1 ring-white/[0.08]">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-linear-to-b from-gold-soft to-gold font-heading text-xs font-black text-navy">
+        <span className="flex-1" />
+
+        {/* Tuần hiện tại */}
+        <span className="glass-pill hidden whitespace-nowrap rounded-full px-3 py-[5px] text-[11.5px] font-extrabold text-navy sm:inline">
+          {weekLabel}
+        </span>
+
+        {/* Người dùng */}
+        <span className="glass-pill inline-flex items-center gap-2 rounded-full py-1 pl-1 pr-3">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-linear-to-b from-gold-soft to-gold font-display text-[11px] font-bold text-navy">
             {initialsOf(displayName)}
           </span>
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-white">{displayName}</div>
-            <div className="truncate text-[11px] font-medium uppercase tracking-wide text-gold/80">
-              {tr(profile.role)}
-            </div>
-          </div>
-        </div>
+          <span className="min-w-0">
+            <span className="block max-w-[140px] truncate text-[12.5px] font-extrabold leading-tight text-navy">
+              {displayName}
+            </span>
+            <span className="block text-[9.5px] font-extrabold uppercase tracking-wide text-gold-deep">
+              {tr(role)}
+            </span>
+          </span>
+        </span>
 
-        <div className="space-y-1.5">
+        {/* Hành động: hướng dẫn · đổi ngôn ngữ · đăng xuất */}
+        <div className="flex items-center gap-1.5">
           <Link
             href="/guide"
-            onClick={onNavigate}
-            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-white/70 transition-colors hover:bg-white/[0.08] hover:text-white"
+            aria-label={tc('guide')}
+            title={tc('guide')}
+            className="grid h-9 w-9 place-items-center rounded-full text-navy/60 transition-colors hover:bg-white/60 hover:text-navy"
           >
-            <BookOpen size={15} strokeWidth={2} className="shrink-0" />
-            {tc('guide')}
+            <BookOpen size={17} strokeWidth={2} />
           </Link>
-          <div className="flex items-center gap-1.5">
-            <LocaleToggle />
-            <form action={signOut} className="flex-1">
-              <button
-                type="submit"
-                className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-white/[0.06] px-2 py-2 text-xs font-semibold text-white/70 ring-1 ring-white/[0.06] transition-colors hover:bg-white/[0.12] hover:text-white"
-              >
-                <LogOut size={15} strokeWidth={2} />
-                {tc('logout')}
-              </button>
-            </form>
-          </div>
+          <LocaleToggle />
+          <form action={signOut}>
+            <button
+              type="submit"
+              aria-label={tc('logout')}
+              title={tc('logout')}
+              className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-navy/60 transition-colors hover:bg-white/60 hover:text-navy"
+            >
+              <LogOut size={17} strokeWidth={2} />
+            </button>
+          </form>
         </div>
       </div>
     </div>
   );
 }
 
-// Toggle ngôn ngữ tối giản, hợp nền navy (không tái dùng LocaleSwitcher nền sáng).
 function LocaleToggle() {
   const locale = useLocale();
   const pathname = usePathname();
@@ -263,9 +178,9 @@ function LocaleToggle() {
       aria-label="Đổi ngôn ngữ"
       disabled={isPending}
       onClick={() => startTransition(() => router.replace(pathname, {locale: other}))}
-      className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-white/[0.06] px-2 py-2 text-xs font-semibold text-white/70 ring-1 ring-white/[0.06] transition-colors hover:bg-white/[0.12] hover:text-white disabled:opacity-50"
+      className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full px-3 text-[12px] font-extrabold text-navy/60 transition-colors hover:bg-white/60 hover:text-navy disabled:opacity-50"
     >
-      <Languages size={15} strokeWidth={2} />
+      <Languages size={16} strokeWidth={2} />
       {locale === 'vi' ? 'EN' : 'VI'}
     </button>
   );

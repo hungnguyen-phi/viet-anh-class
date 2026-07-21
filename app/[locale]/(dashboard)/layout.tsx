@@ -34,14 +34,10 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen">
       <AppNav profile={profile} isAttendanceLeader={isAttendanceLeader} />
-      {/* Vùng nội dung: lệch qua sidebar trên desktop, dùng trọn bề ngang còn lại. */}
-      <main className="lg:pl-64">
-        <div className="mx-auto max-w-[1680px] px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
-          {children}
-        </div>
-      </main>
+      {/* Nội dung căn giữa dưới top-nav; nền gradient nằm ở <body>. */}
+      <main className="mx-auto max-w-[1160px] px-4 pb-10 pt-2 sm:px-6">{children}</main>
     </div>
   );
 }

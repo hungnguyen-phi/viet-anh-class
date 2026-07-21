@@ -304,6 +304,51 @@ export type Database = {
           },
         ]
       }
+      mood_checkins: {
+        Row: {
+          class_id: string | null
+          created_at: string
+          date: string
+          id: string
+          mood: Database["public"]["Enums"]["mood_level"]
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          mood: Database["public"]["Enums"]["mood_level"]
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          mood?: Database["public"]["Enums"]["mood_level"]
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mood_checkins_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mood_checkins_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parent_invitations: {
         Row: {
           created_at: string
@@ -846,6 +891,10 @@ export type Database = {
         Returns: undefined
       }
       restrict_signup_by_email_domain: { Args: { event: Json }; Returns: Json }
+      set_my_mood: {
+        Args: { p_mood: Database["public"]["Enums"]["mood_level"] }
+        Returns: undefined
+      }
       staff_can_manage_class: { Args: { c: string }; Returns: boolean }
       staff_can_read_class: { Args: { c: string }; Returns: boolean }
       wig_actual: { Args: { w: string }; Returns: number }
@@ -853,6 +902,7 @@ export type Database = {
     }
     Enums: {
       attendance_status: "present" | "absent" | "late" | "excused"
+      mood_level: "great" | "good" | "ok" | "low" | "bad"
       score_category: "knowledge" | "skills" | "english" | "physical"
       user_role:
         | "admin"
@@ -992,6 +1042,7 @@ export const Constants = {
   public: {
     Enums: {
       attendance_status: ["present", "absent", "late", "excused"],
+      mood_level: ["great", "good", "ok", "low", "bad"],
       score_category: ["knowledge", "skills", "english", "physical"],
       user_role: [
         "admin",

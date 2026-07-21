@@ -1,7 +1,6 @@
 'use client';
 
 import {useRouter, usePathname} from '@/i18n/navigation';
-import {CalendarRange} from 'lucide-react';
 
 // Bộ lọc tuần cho báo cáo phụ huynh — đổi ?week= giữ nguyên trang.
 export function WeekPicker({
@@ -18,20 +17,29 @@ export function WeekPicker({
   if (weeks.length === 0) return null;
 
   return (
-    <label className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/25 backdrop-blur-sm">
-      <CalendarRange size={16} strokeWidth={2} className="text-gold" />
-      <span className="text-xs font-semibold text-white/80">{label}</span>
-      <select
-        value={current}
-        onChange={(e) => router.push(`${pathname}?week=${encodeURIComponent(e.target.value)}`)}
-        className="cursor-pointer rounded-lg border-0 bg-transparent text-sm font-bold text-white outline-none [&>option]:text-navy"
-      >
-        {weeks.map((w) => (
-          <option key={w} value={w}>
-            {w}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div className="flex flex-col items-end gap-2">
+      <span className="text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+        {label}
+      </span>
+      <div className="flex flex-wrap justify-end gap-1.5">
+        {weeks.map((w) => {
+          const active = w === current;
+          return (
+            <button
+              key={w}
+              type="button"
+              onClick={() => router.push(`${pathname}?week=${encodeURIComponent(w)}`)}
+              className={`inline-flex h-8 cursor-pointer items-center rounded-[10px] px-3 text-xs font-extrabold whitespace-nowrap text-navy transition-all ${
+                active
+                  ? 'btn-gold border border-transparent'
+                  : 'border-[1.5px] border-navy/20 bg-white/60 hover:border-navy'
+              }`}
+            >
+              {w}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

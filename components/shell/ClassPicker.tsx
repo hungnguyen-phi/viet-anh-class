@@ -1,5 +1,6 @@
 'use client';
 
+import {ChevronDown} from 'lucide-react';
 import {useRouter, usePathname} from '@/i18n/navigation';
 import type {ClassOption} from '@/lib/queries';
 
@@ -16,16 +17,23 @@ export function ClassPicker({
   if (classes.length <= 1) return null;
 
   return (
-    <select
-      value={current ?? ''}
-      onChange={(e) => router.push(`${pathname}?class=${e.target.value}`)}
-      className="cursor-pointer rounded-lg border border-grey-line bg-white px-3 py-2 text-sm font-semibold text-navy shadow-card transition-all hover:border-line-strong hover:shadow-raise focus:border-navy"
-    >
-      {classes.map((c) => (
-        <option key={c.id} value={c.id}>
-          {c.name} · {c.school_year}
-        </option>
-      ))}
-    </select>
+    <div className="relative inline-flex items-center">
+      <select
+        value={current ?? ''}
+        onChange={(e) => router.push(`${pathname}?class=${e.target.value}`)}
+        className="glass-pill cursor-pointer appearance-none rounded-full py-2 pl-4 pr-9 text-sm font-bold text-navy outline-none transition-all hover:bg-white/70 focus:border-navy"
+      >
+        {classes.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name} · {c.school_year}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        size={16}
+        strokeWidth={2.5}
+        className="pointer-events-none absolute right-3 text-navy/60"
+      />
+    </div>
   );
 }

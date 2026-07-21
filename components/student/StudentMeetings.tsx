@@ -20,7 +20,6 @@ export async function StudentMeetings({
   classmates,
   canManage,
   defaultWeek,
-  flash,
 }: {
   studentId: string;
   classId: string | null;
@@ -28,38 +27,31 @@ export async function StudentMeetings({
   classmates: Classmate[];
   canManage: boolean;
   defaultWeek: string;
-  flash?: string;
 }) {
   const t = await getTranslations('student');
 
   const inputCls =
-    'w-full rounded-lg border border-grey-line bg-grey-light/50 px-3 py-2 text-sm text-ink outline-none transition-all focus:border-navy focus:bg-white';
-  const taCls = `${inputCls} min-h-[64px] resize-y`;
+    'w-full rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white';
+  const taCls = `${inputCls} min-h-[60px] resize-y`;
 
   return (
-    <div className="space-y-4">
-      {flash && (
-        <div className="rounded-xl border border-success/30 bg-success/10 px-4 py-2.5 text-sm font-semibold text-success">
-          {flash}
-        </div>
-      )}
-
+    <div className="flex flex-col gap-3">
       {canManage && classId && (
-        <form action={saveStudentMeeting} className="card space-y-4 p-6">
+        <form action={saveStudentMeeting} className="glass flex flex-col gap-3 rounded-[20px] p-5">
           <input type="hidden" name="student_id" value={studentId} />
           <input type="hidden" name="class_id" value={classId} />
           <p className="text-xs italic text-grey-mid">{t('meetingHint')}</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-grey-mid">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
                 {t('week')}
-              </label>
+              </span>
               <input name="week_label" defaultValue={defaultWeek} className={inputCls} required />
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-grey-mid">
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
                 {t('buddy')}
-              </label>
+              </span>
               <select name="buddy_id" defaultValue="" className={`${inputCls} cursor-pointer`}>
                 <option value="">{t('noBuddy')}</option>
                 {classmates.map((c) => (
@@ -68,29 +60,29 @@ export async function StudentMeetings({
                   </option>
                 ))}
               </select>
-            </div>
+            </label>
           </div>
-          <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-grey-mid">
+          <label className="block">
+            <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
               {t('reflection')}
-            </label>
+            </span>
             <textarea name="results" className={taCls} />
-          </div>
-          <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-grey-mid">
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
               {t('commitments')}
-            </label>
+            </span>
             <textarea name="commitments" className={taCls} />
-          </div>
-          <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-grey-mid">
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
               {t('nextActions')}
-            </label>
+            </span>
             <textarea name="next_actions" className={taCls} />
-          </div>
+          </label>
           <button
             type="submit"
-            className="cursor-pointer rounded-xl bg-navy px-5 py-2.5 font-heading font-bold text-white shadow-[0_10px_24px_-10px_rgba(38,39,93,0.55)] transition-all hover:bg-navy-700 active:scale-[0.99]"
+            className="btn-gold h-10 cursor-pointer self-start rounded-xl px-[18px] font-display text-[13.5px] font-bold"
           >
             {t('saveMeeting')}
           </button>
@@ -98,13 +90,15 @@ export async function StudentMeetings({
       )}
 
       {meetings.length === 0 ? (
-        <p className="text-xs italic text-grey-mid">{t('noMeetings')}</p>
+        <div className="rounded-[20px] border-[1.5px] border-dashed border-navy/20 bg-white/30 p-5 text-center text-[12.5px] font-semibold italic text-grey-mid backdrop-blur-[24px]">
+          {t('noMeetings')}
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-2.5">
           {meetings.map((m) => (
-            <div key={m.id} className="card p-5">
+            <div key={m.id} className="glass rounded-[20px] p-[18px]">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-navy px-3 py-1 font-heading text-xs font-black text-white">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-navy px-3 py-1 font-display text-xs font-bold text-white">
                   <MessagesSquare size={12} strokeWidth={2.5} />
                   {m.week_label}
                 </span>
@@ -116,33 +110,21 @@ export async function StudentMeetings({
                 )}
               </div>
               {m.results && (
-                <div className="mt-3">
-                  <div className="text-[11px] font-bold uppercase tracking-wide text-grey-mid">
-                    {t('reflection')}
-                  </div>
-                  <p className="mt-0.5 whitespace-pre-line text-sm leading-relaxed text-ink">
-                    {m.results}
-                  </p>
+                <div className="mt-3 text-[13px] font-semibold text-navy">
+                  <b className="text-grey-mid">{t('reflection')}: </b>
+                  <span className="whitespace-pre-line">{m.results}</span>
                 </div>
               )}
               {m.commitments && (
-                <div className="mt-2.5">
-                  <div className="text-[11px] font-bold uppercase tracking-wide text-grey-mid">
-                    {t('commitments')}
-                  </div>
-                  <p className="mt-0.5 whitespace-pre-line text-sm leading-relaxed text-ink">
-                    {m.commitments}
-                  </p>
+                <div className="mt-1.5 text-[13px] font-semibold text-navy">
+                  <b className="text-grey-mid">{t('commitments')}: </b>
+                  <span className="whitespace-pre-line">{m.commitments}</span>
                 </div>
               )}
               {m.next_actions && (
-                <div className="mt-2.5">
-                  <div className="text-[11px] font-bold uppercase tracking-wide text-grey-mid">
-                    {t('nextActions')}
-                  </div>
-                  <p className="mt-0.5 whitespace-pre-line text-sm leading-relaxed text-ink">
-                    {m.next_actions}
-                  </p>
+                <div className="mt-1.5 text-[13px] font-semibold text-navy">
+                  <b className="text-grey-mid">{t('nextActions')}: </b>
+                  <span className="whitespace-pre-line">{m.next_actions}</span>
                 </div>
               )}
             </div>

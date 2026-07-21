@@ -43,7 +43,14 @@
     "linkSent": "Đã gửi liên kết!",
     "linkSentDesc": "Kiểm tra email và bấm vào liên kết để đăng nhập.",
     "errorGeneric": "Có lỗi xảy ra. Vui lòng thử lại.",
-    "errorEmail": "Vui lòng nhập email hợp lệ."
+    "errorEmail": "Vui lòng nhập email hợp lệ.",
+    "hero": "Lãnh đạo lớp học theo khung 4DX — nơi mỗi học sinh Trường Việt Anh cùng nhau thắng từng tuần.",
+    "brand": "Trường Việt Anh",
+    "parentLink": "Phụ huynh đăng nhập bằng email",
+    "sendShort": "Gửi",
+    "sentShort": "Đã gửi liên kết, kiểm tra email nhé.",
+    "again": "Email khác",
+    "guide": "Xem hướng dẫn"
   },
   "unauthorized": {
     "title": "Tài khoản chưa được cấp quyền",
@@ -235,6 +242,10 @@
     "notFound": "Không tìm thấy học sinh hoặc bạn không có quyền xem.",
     "mood": "Hôm nay em thế nào?",
     "moodHint": "Màu theo tiến độ WIG cá nhân — càng xanh càng vui.",
+    "moodEdit": "Sửa",
+    "moodSend": "Gửi",
+    "moodPickFirst": "Chọn một mặt trước nhé",
+    "leadsHint": "tick mỗi ngày",
     "levels": {
       "great": "Tuyệt vời",
       "good": "Vui",
@@ -254,8 +265,9 @@
     "noWig": "GVCN chưa thiết lập WIG cá nhân.",
     "leads": "Lead measure — tick hằng ngày",
     "noLeads": "Tuần này chưa có lead measure cá nhân.",
-    "tickToday": "+1 hôm nay",
-    "doneTag": "Hoàn thành!",
+    "tickToday": "Hôm nay",
+    "ticked": "Đã tick",
+    "doneTag": "Xong!",
     "undo": "Hoàn tác",
     "lockedNote": "Mục đã tick quá 24 giờ sẽ khoá, không sửa được (chỉ GVCN/Admin).",
     "last7": "7 ngày qua",

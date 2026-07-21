@@ -45,37 +45,75 @@ export default async function CampusPage({
   await supabase.rpc('log_audit', {p_action: 'view_campus_report'});
 
   return (
-    <div className="space-y-4">
-      <h1 className="font-heading text-xl font-black text-navy">{t('title')}</h1>
+    <div className="flex flex-col gap-3.5">
+      <h1 className="font-display text-[22px] font-bold text-navy">
+        {t('title')}
+      </h1>
 
       {rows.length === 0 ? (
         <p className="text-sm italic text-grey-mid">{t('noClasses')}</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-grey-line bg-white">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-grey-light text-navy">
-                <th className="px-3 py-2 text-left">{t('class')}</th>
-                <th className="px-3 py-2 text-left">{t('year')}</th>
-                <th className="px-3 py-2 text-right">{t('score')}</th>
-                <th className="px-3 py-2 text-right">{t('attToday')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t border-grey-line">
-                  <td className="px-3 py-2 font-medium text-ink">{r.name}</td>
-                  <td className="px-3 py-2 text-grey-mid">{r.school_year}</td>
-                  <td className="px-3 py-2 text-right font-heading font-extrabold text-navy">
-                    {Number(r.score)}
-                  </td>
-                  <td className="px-3 py-2 text-right text-grey-mid">
-                    {r.att} {t('marked')}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="glass overflow-x-auto rounded-[20px]">
+          {/* Header */}
+          <div className="flex min-w-[560px] items-center gap-2 bg-white/40 px-[18px] py-2.5">
+            <span
+              className="text-[11px] font-extrabold uppercase text-grey-mid"
+              style={{flex: 1.3}}
+            >
+              {t('class')}
+            </span>
+            <span
+              className="text-[11px] font-extrabold uppercase text-grey-mid"
+              style={{flex: 1}}
+            >
+              {t('year')}
+            </span>
+            <span
+              className="text-right text-[11px] font-extrabold uppercase text-grey-mid"
+              style={{flex: 1}}
+            >
+              {t('score')}
+            </span>
+            <span
+              className="text-right text-[11px] font-extrabold uppercase text-grey-mid"
+              style={{flex: 1}}
+            >
+              {t('attToday')}
+            </span>
+          </div>
+
+          {/* Rows */}
+          {rows.map((r) => (
+            <div
+              key={r.id}
+              className="flex min-w-[560px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2.5 transition-colors hover:bg-white/35"
+            >
+              <span
+                className="text-[13.5px] font-bold text-navy"
+                style={{flex: 1.3}}
+              >
+                {r.name}
+              </span>
+              <span
+                className="text-[12.5px] font-semibold text-grey-mid"
+                style={{flex: 1}}
+              >
+                {r.school_year}
+              </span>
+              <span
+                className="text-right font-display text-[15px] text-navy"
+                style={{flex: 1}}
+              >
+                {Number(r.score)}
+              </span>
+              <span
+                className="text-right text-[12.5px] font-semibold text-grey-mid"
+                style={{flex: 1}}
+              >
+                {r.att} {t('marked')}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>

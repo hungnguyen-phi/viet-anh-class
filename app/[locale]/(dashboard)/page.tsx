@@ -3,7 +3,21 @@ import {redirect} from 'next/navigation';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getAccessibleClasses, getMyClass} from '@/lib/queries';
-import {Check, X, Minus, Users, GraduationCap, Trophy, TrendingUp, Flame} from 'lucide-react';
+import {
+  Check,
+  X,
+  Minus,
+  Users,
+  GraduationCap,
+  Trophy,
+  TrendingUp,
+  Flame,
+  BookOpen,
+  Sparkles,
+  Languages,
+  Bike,
+  type LucideIcon,
+} from 'lucide-react';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {DonutRing} from '@/components/charts/DonutRing';
 
@@ -24,6 +38,21 @@ type LeadRow = {
 };
 
 const AREAS = ['knowledge', 'skills', 'english', 'physical'] as const;
+
+// Màu + icon môn học (design system v3) — chỉ ảnh hưởng trình bày.
+const SUBJ: Record<string, {hex: string; soft: string; Icon: LucideIcon}> = {
+  knowledge: {hex: '#3a62c9', soft: 'rgba(58,98,201,0.14)', Icon: BookOpen},
+  skills: {hex: '#557f3c', soft: 'rgba(85,127,60,0.14)', Icon: Sparkles},
+  english: {hex: '#0e7c86', soft: 'rgba(14,124,134,0.14)', Icon: Languages},
+  physical: {hex: '#cf5a42', soft: 'rgba(207,90,66,0.14)', Icon: Bike},
+};
+
+// Meta trạng thái WIG (label lấy từ i18n, màu/nền theo design system v3).
+const STATUS_META: Record<string, {color: string; bg: string}> = {
+  on_track: {color: '#1e8a5a', bg: 'rgba(30,138,90,0.12)'},
+  mid: {color: '#b98900', bg: 'rgba(185,137,0,0.12)'},
+  off_track: {color: '#c0392b', bg: 'rgba(192,57,43,0.12)'},
+};
 
 export default async function ClassPage({
   params,
@@ -48,8 +77,8 @@ export default async function ClassPage({
 
   if (!myClass) {
     return (
-      <div className="card p-10 text-center">
-        <h1 className="font-heading text-xl font-extrabold text-navy">
+      <div className="glass rounded-[26px] p-10 text-center">
+        <h1 className="font-display text-xl font-bold text-navy">
           {t('class.noClass')}
         </h1>
         <p className="mt-2 text-sm text-grey-mid">{t('class.noClassDesc')}</p>
@@ -131,7 +160,7 @@ export default async function ClassPage({
     : [];
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-[22px]">
       {accessible.length > 1 && (
         <div className="flex justify-end">
           <ClassPicker classes={accessible} current={myClass.id} />
@@ -141,132 +170,130 @@ export default async function ClassPage({
       {/* Banner trạng thái "nhìn 3 giây biết thắng/thua" (PRD §6.1.1) */}
       {isWinning !== null && (
         <div
-          className={`animate-rise flex items-center gap-4 rounded-2xl p-5 text-white shadow-raise ${
-            isWinning
-              ? '[background:linear-gradient(120deg,#1e8a5a_0%,#16724a_100%)]'
-              : '[background:linear-gradient(120deg,#c0392b_0%,#9e2f23_100%)]'
-          }`}
+          className="animate-rise flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-[20px] p-5 text-white"
+          style={{
+            background: isWinning
+              ? 'linear-gradient(120deg,#1e8a5a 0%,#16724a 100%)'
+              : 'linear-gradient(120deg,#c0392b 0%,#9e2f23 100%)',
+            boxShadow: isWinning
+              ? '0 10px 26px rgba(30,138,90,0.3)'
+              : '0 10px 26px rgba(192,57,43,0.3)',
+          }}
         >
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white/15 ring-2 ring-white/30">
+          <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full bg-white/15 ring-2 ring-white/30">
             {isWinning ? (
-              <Check size={30} strokeWidth={3} />
+              <Check size={26} strokeWidth={3} />
             ) : (
-              <X size={30} strokeWidth={3} />
+              <X size={26} strokeWidth={3} />
             )}
           </span>
           <div className="min-w-0">
-            <div className="font-heading text-2xl font-black tracking-tight sm:text-3xl">
+            <div className="font-display text-2xl font-bold tracking-tight">
               {isWinning ? t('class.winning') : t('class.losing')}
             </div>
-            <p className="mt-0.5 text-sm text-white/85">
+            <p className="mt-0.5 text-[13px] font-bold text-white/85">
               {isWinning ? t('class.winningDesc') : t('class.losingDesc')}
             </p>
           </div>
-          <span className="ml-auto hidden shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold sm:inline-flex">
-            {isWinning ? <TrendingUp size={14} strokeWidth={2.5} /> : <Flame size={14} strokeWidth={2.5} />}
+          <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-extrabold">
+            {isWinning ? (
+              <TrendingUp size={14} strokeWidth={2.5} />
+            ) : (
+              <Flame size={14} strokeWidth={2.5} />
+            )}
             {onCount}/{yearRows.length} on-track
           </span>
         </div>
       )}
 
-      {/* Hero lớp — ảnh lớp làm nền mờ (PRD §6.2.2), fallback gradient navy */}
-      <div className="animate-rise relative overflow-hidden rounded-3xl p-6 text-white shadow-pop ring-1 ring-white/10 sm:p-8 [background:radial-gradient(40rem_22rem_at_85%_-20%,rgba(249,221,14,0.16),transparent_55%),radial-gradient(30rem_20rem_at_-10%_120%,rgba(47,49,112,0.9),transparent_60%),linear-gradient(135deg,#2c2e6e_0%,#26275d_55%,#1b1c45_100%)]">
-        {myClass.cover_image_url && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={myClass.cover_image_url}
-            alt=""
-            aria-hidden
-            className="absolute inset-0 h-full w-full object-cover opacity-[0.18] blur-[2px]"
-          />
-        )}
-        <div className="relative">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <h1 className="font-heading text-3xl font-black tracking-tight sm:text-4xl">
-              {myClass.name}
-            </h1>
-            <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 font-heading text-xs font-extrabold tracking-wide text-gold">
-              {myClass.school_year}
-            </span>
-          </div>
-
-          {(gvcnName || rosterCount !== null) && (
-            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-white/80">
-              {gvcnName && (
-                <span className="inline-flex items-center gap-1.5">
-                  <GraduationCap size={16} strokeWidth={2} className="text-gold/80" />
-                  {t('class.gvcn')}: <b className="font-semibold text-white">{gvcnName}</b>
-                </span>
-              )}
-              {rosterCount !== null && (
-                <span className="inline-flex items-center gap-1.5">
-                  <Users size={15} strokeWidth={2} className="text-gold/80" />
-                  <b className="font-semibold text-white">{rosterCount}</b> {t('class.students')}
-                </span>
-              )}
-            </div>
-          )}
-
+      {/* Hero lớp — thẻ kính (glass on gradient v3) */}
+      <div className="animate-rise glass rounded-[26px] p-6 sm:px-7 sm:py-6">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h1 className="font-display text-[28px] font-bold leading-none text-navy">
+            {myClass.name}
+          </h1>
+          <span className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/10 px-3 py-1 text-[11.5px] font-extrabold text-gold-deep">
+            {myClass.school_year}
+          </span>
           {rank && (
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-              {rankItems.map(([label, r, total]) => (
-                <span
-                  key={label}
-                  className="rounded-full bg-white/[0.07] px-3 py-1.5 text-[11px] font-medium text-white/75 ring-1 ring-white/15"
-                >
-                  {label}{' '}
-                  <b className="font-heading text-[13px] font-black text-gold">#{r}</b>
-                  <span className="text-white/50">/{total}</span>
-                </span>
-              ))}
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-linear-to-b from-gold-soft to-gold px-3.5 py-1.5 text-[11px] font-black text-navy shadow-[0_4px_14px_rgba(249,221,14,0.35)]">
-                <Trophy size={13} strokeWidth={2.5} />
-                {t('class.score')}: {Number(rank.score)}
-              </span>
-            </div>
+            <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-linear-to-b from-gold-soft to-gold px-3.5 py-1.5 text-[12px] font-extrabold text-navy shadow-[0_4px_12px_rgba(233,180,0,0.35)]">
+              <Trophy size={13} strokeWidth={2.5} />
+              {t('class.score')}: {Number(rank.score)}
+            </span>
           )}
         </div>
+
+        {(gvcnName || rosterCount !== null) && (
+          <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-[13px] font-bold text-txt">
+            {gvcnName && (
+              <span className="inline-flex items-center gap-1.5">
+                <GraduationCap size={16} strokeWidth={2} className="text-gold-deep" />
+                {t('class.gvcn')}: <b className="text-navy">{gvcnName}</b>
+              </span>
+            )}
+            {rosterCount !== null && (
+              <span className="inline-flex items-center gap-1.5">
+                <Users size={15} strokeWidth={2} className="text-gold-deep" />
+                {t('class.students')}: <b className="text-navy">{rosterCount}</b>
+              </span>
+            )}
+          </div>
+        )}
+
+        {rank && (
+          <div className="mt-3.5 flex flex-wrap gap-2">
+            {rankItems.map(([label, r, total]) => (
+              <span
+                key={label}
+                className="glass-pill rounded-full px-3.5 py-1.5 text-[11.5px] font-bold text-txt"
+              >
+                {label}{' '}
+                <b className="font-display text-[13px] font-bold text-navy">#{r}</b>
+                <span className="text-grey-soft">/{total}</span>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* WIG năm — 4 lĩnh vực */}
       <section>
-        <div className="mb-4 flex items-center gap-2.5">
-          <span aria-hidden className="h-5 w-1 rounded-full bg-gold" />
-          <h2 className="font-heading text-sm font-extrabold uppercase tracking-[0.12em] text-navy">
-            {t('class.wigYear')}
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
+          {t('class.wigYear')}
+        </h2>
+        <div
+          className="grid gap-3.5"
+          style={{gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))'}}
+        >
           {AREAS.map((a) => {
             const w = wigByArea.get(a);
-            const on = w?.status === 'on_track';
-            const off = w?.status === 'off_track';
+            const subj = SUBJ[a];
+            const meta = STATUS_META[w?.status ?? ''];
+            const Icon = subj.Icon;
             return (
-              <div key={a} className="card card-hover p-5 text-center">
-                <div className="mb-4 font-heading text-sm font-extrabold text-navy">
+              <div key={a} className="glass glass-hover rounded-[20px] p-4 text-center">
+                <div className="flex items-center justify-center gap-2 text-[13.5px] font-extrabold text-navy">
+                  <span
+                    className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg"
+                    style={{background: subj.soft, color: subj.hex}}
+                  >
+                    <Icon size={15} strokeWidth={2.5} />
+                  </span>
                   {t(`class.areas.${a}`)}
                 </div>
                 {w ? (
                   <>
-                    <DonutRing pct={Number(w.pct ?? 0)} status={w.status ?? ''} />
-                    <div
-                      className={`mt-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${
-                        on
-                          ? 'bg-success/10 text-success'
-                          : off
-                            ? 'bg-status-bad/10 text-status-bad'
-                            : 'bg-warn/10 text-warn'
-                      }`}
-                    >
-                      {on ? (
-                        <Check size={13} strokeWidth={2.5} />
-                      ) : off ? (
-                        <X size={13} strokeWidth={2.5} />
-                      ) : (
-                        <Minus size={13} strokeWidth={2.5} />
-                      )}
-                      {statusLabel[w.status ?? ''] ?? ''}
+                    <div className="mt-3.5 flex justify-center">
+                      <DonutRing pct={Number(w.pct ?? 0)} status={w.status ?? ''} />
                     </div>
+                    {meta && (
+                      <span
+                        className="mt-3 inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-extrabold"
+                        style={{background: meta.bg, color: meta.color}}
+                      >
+                        {statusLabel[w.status ?? ''] ?? ''}
+                      </span>
+                    )}
                   </>
                 ) : (
                   <div className="mt-4 text-xs font-semibold text-grey-mid">
@@ -279,118 +306,141 @@ export default async function ClassPage({
         </div>
       </section>
 
-      {/* WIG tuần — dãy pip thắng/thua + số thắng/tổng (PRD §6.1.1) */}
-      <section>
-        <div className="mb-4 flex items-center gap-2.5">
-          <span aria-hidden className="h-5 w-1 rounded-full bg-gold" />
-          <h2 className="font-heading text-sm font-extrabold uppercase tracking-[0.12em] text-navy">
+      {/* WIG tuần + Lead measure — 2 cột */}
+      <div
+        className="grid items-start gap-5"
+        style={{gridTemplateColumns: 'repeat(auto-fit,minmax(360px,1fr))'}}
+      >
+        {/* WIG tuần theo 4 lĩnh vực — dãy pip thắng/thua vuông (PRD §6.1.1) */}
+        <div>
+          <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
             {t('class.wigWeek')}
           </h2>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {AREAS.map((a) => {
-            const weeks = weeksByArea.get(a) ?? [];
-            const wins = weeks.filter((w) => Number(w.pct ?? 0) >= 1).length;
-            return (
-              <div key={a} className="card card-hover p-5">
-                <div className="flex items-baseline justify-between gap-2">
-                  <div className="font-heading text-sm font-extrabold text-navy">
-                    {t(`class.areas.${a}`)}
-                  </div>
-                  {weeks.length > 0 && (
-                    <div className="font-heading text-lg font-black text-navy">
-                      {wins}
-                      <span className="text-sm font-bold text-grey-mid">/{weeks.length}</span>
-                    </div>
-                  )}
-                </div>
-                {weeks.length > 0 ? (
-                  <>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {weeks.slice(-10).map((w) => {
-                        const won = Number(w.pct ?? 0) >= 1;
-                        return (
-                          <span
-                            key={w.wig_id}
-                            title={w.period_label ?? ''}
-                            className={`grid h-6 w-6 place-items-center rounded-md ${
-                              won ? 'bg-success text-white' : 'bg-grey-light text-grey-mid'
-                            }`}
-                          >
-                            {won ? (
-                              <Check size={13} strokeWidth={3} />
-                            ) : (
-                              <X size={12} strokeWidth={2.5} />
-                            )}
-                          </span>
-                        );
-                      })}
-                    </div>
-                    <div className="mt-2 text-[11px] font-semibold text-grey-mid">
-                      {wins}/{weeks.length} {t('class.weekWins')}
-                    </div>
-                  </>
-                ) : (
-                  <div className="mt-3 text-xs font-semibold text-grey-mid">
-                    {t('class.noWeekWig')}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Lead measure — hoàn thành/tổng + thanh tiến độ 3 màu */}
-      <section>
-        <div className="mb-4 flex items-center gap-2.5">
-          <span aria-hidden className="h-5 w-1 rounded-full bg-gold" />
-          <h2 className="font-heading text-sm font-extrabold uppercase tracking-[0.12em] text-navy">
-            {t('class.leadWeek')}
-          </h2>
-          {leads.length > 0 && (
-            <span className="ml-auto rounded-full bg-navy px-3 py-1 font-heading text-xs font-black text-white">
-              {leadsDone}/{leads.length} {t('class.leadDone')}
-            </span>
-          )}
-        </div>
-        {leads.length === 0 ? (
-          <p className="text-xs italic text-grey-mid">{t('class.noLeads')}</p>
-        ) : (
-          <div className="card divide-y divide-grey-line">
-            {leads.map((l) => {
-              const pct = l.target > 0 ? Math.min(1, l.actual / l.target) : 0;
-              const barColor =
-                pct >= 1 ? 'bg-success' : pct >= 0.5 ? 'bg-gold' : 'bg-status-bad';
+          <div className="glass rounded-[20px]">
+            {AREAS.map((a, i) => {
+              const weeks = weeksByArea.get(a) ?? [];
+              const wins = weeks.filter((w) => Number(w.pct ?? 0) >= 1).length;
+              const subj = SUBJ[a];
               return (
-                <div key={l.id} className="flex items-center gap-4 px-5 py-3.5">
+                <div
+                  key={a}
+                  className={`flex flex-wrap items-center gap-x-[9px] gap-y-2 px-3.5 py-3 ${
+                    i < AREAS.length - 1 ? 'border-b border-navy/[0.08]' : ''
+                  }`}
+                >
                   <span
-                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${
-                      l.done ? 'bg-success text-white' : 'bg-grey-light text-grey-mid'
-                    }`}
-                  >
-                    {l.done ? <Check size={14} strokeWidth={3} /> : <Minus size={14} strokeWidth={2.5} />}
+                    className="h-[9px] w-[9px] shrink-0 rounded-full"
+                    style={{background: subj.hex}}
+                  />
+                  <span className="text-[13px] font-extrabold text-navy">
+                    {t(`class.areas.${a}`)}
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold text-ink">{l.title}</div>
-                    <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-grey-light">
-                      <div
-                        className={`h-full rounded-full ${barColor}`}
-                        style={{width: `${Math.round(pct * 100)}%`}}
-                      />
-                    </div>
-                  </div>
-                  <div className="shrink-0 font-heading text-sm font-black text-navy">
-                    {l.actual}
-                    <span className="font-bold text-grey-mid">/{l.target}</span>
-                  </div>
+                  <span className="flex-1" />
+                  {weeks.length > 0 ? (
+                    <>
+                      <span className="flex gap-1">
+                        {weeks.slice(-10).map((w) => {
+                          const won = Number(w.pct ?? 0) >= 1;
+                          return (
+                            <span
+                              key={w.wig_id}
+                              title={w.period_label ?? ''}
+                              className="grid h-[22px] w-[22px] place-items-center rounded-[7px]"
+                              style={{
+                                background: won ? '#1e8a5a' : 'rgba(38,39,93,0.08)',
+                                color: won ? '#ffffff' : '#a6abc4',
+                              }}
+                            >
+                              {won ? (
+                                <Check size={12} strokeWidth={3} />
+                              ) : (
+                                <X size={12} strokeWidth={3} />
+                              )}
+                            </span>
+                          );
+                        })}
+                      </span>
+                      <span className="w-9 shrink-0 text-right font-display text-[15px] font-bold text-navy">
+                        {wins}
+                        <span className="text-[11.5px] font-bold text-grey-mid">
+                          /{weeks.length}
+                        </span>
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-[11.5px] font-semibold text-grey-mid">
+                      {t('class.noWeekWig')}
+                    </span>
+                  )}
                 </div>
               );
             })}
           </div>
-        )}
-        <p className="mt-3 text-xs italic text-grey-mid">{t('class.noWigDesc')}</p>
-      </section>
+        </div>
+
+        {/* Lead measure tuần này — hoàn thành/tổng + thanh tiến độ 3 màu */}
+        <div>
+          <div className="mb-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1.5">
+            <h2 className="font-display text-[17px] font-bold text-navy">
+              {t('class.leadWeek')}
+            </h2>
+            {leads.length > 0 && (
+              <span className="rounded-full bg-navy px-2.5 py-1 text-[11px] font-extrabold text-white">
+                {leadsDone}/{leads.length} {t('class.leadDone')}
+              </span>
+            )}
+          </div>
+          {leads.length === 0 ? (
+            <p className="text-xs italic text-grey-mid">{t('class.noLeads')}</p>
+          ) : (
+            <div className="glass overflow-x-auto rounded-[20px]">
+              {leads.map((l, i) => {
+                const pct = l.target > 0 ? Math.min(1, l.actual / l.target) : 0;
+                const barBg = pct >= 1 ? '#1e8a5a' : pct >= 0.5 ? '#e3b400' : '#c0392b';
+                return (
+                  <div
+                    key={l.id}
+                    className={`flex items-center gap-3 px-4 py-3 ${
+                      i < leads.length - 1 ? 'border-b border-navy/[0.08]' : ''
+                    }`}
+                  >
+                    <span
+                      className="grid h-7 w-7 shrink-0 place-items-center rounded-full"
+                      style={{
+                        background: l.done ? '#1e8a5a' : 'rgba(38,39,93,0.08)',
+                        color: l.done ? '#ffffff' : '#a6abc4',
+                      }}
+                    >
+                      {l.done ? (
+                        <Check size={14} strokeWidth={3} />
+                      ) : (
+                        <Minus size={14} strokeWidth={3} />
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-extrabold text-navy">
+                        {l.title}
+                      </div>
+                      <div className="mt-[7px] h-[9px] overflow-hidden rounded-[5px] bg-navy/[0.08]">
+                        <div
+                          className="h-full rounded-[5px]"
+                          style={{width: `${Math.round(pct * 100)}%`, background: barBg}}
+                        />
+                      </div>
+                    </div>
+                    <span className="shrink-0 font-display text-base font-bold text-navy">
+                      {l.actual}
+                      <span className="text-xs font-bold text-grey-mid">/{l.target}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <p className="text-xs italic text-grey-mid">{t('class.noWigDesc')}</p>
     </div>
   );
 }

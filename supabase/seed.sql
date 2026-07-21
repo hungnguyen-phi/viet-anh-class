@@ -292,3 +292,13 @@ begin
   end if;
 end $$;
 
+-- ============================================================
+-- DEMO mood check-in (tam - xoa truoc production): cam xuc hom nay cho hs01/hs02.
+-- ============================================================
+insert into mood_checkins (student_id, class_id, date, mood)
+select p.id, e.class_id, current_date, m.mood
+from (values ('hs01@student.truongvietanh.com','ok'::mood_level),
+             ('hs02@student.truongvietanh.com','great'::mood_level)) as m(email, mood)
+join profiles p on p.email = m.email
+left join enrollments e on e.student_id = p.id and e.is_active
+on conflict (student_id, date) do update set mood = excluded.mood;

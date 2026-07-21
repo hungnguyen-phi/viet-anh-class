@@ -43,7 +43,14 @@
     "linkSent": "Link sent!",
     "linkSentDesc": "Check your email and click the link to sign in.",
     "errorGeneric": "Something went wrong. Please try again.",
-    "errorEmail": "Please enter a valid email."
+    "errorEmail": "Please enter a valid email.",
+    "hero": "Classroom leadership with 4DX — where every Viet Anh student wins the week, together.",
+    "brand": "Viet Anh School",
+    "parentLink": "Parents sign in with email",
+    "sendShort": "Send",
+    "sentShort": "Link sent, please check your email.",
+    "again": "Other email",
+    "guide": "View guide"
   },
   "unauthorized": {
     "title": "Account not yet authorized",
@@ -235,6 +242,10 @@
     "notFound": "Student not found or you don't have access.",
     "mood": "How are you today?",
     "moodHint": "Color follows personal WIG progress — greener means happier.",
+    "moodEdit": "Edit",
+    "moodSend": "Send",
+    "moodPickFirst": "Pick a face first",
+    "leadsHint": "tick daily",
     "levels": {
       "great": "Awesome",
       "good": "Happy",
@@ -254,7 +265,8 @@
     "noWig": "Your homeroom teacher hasn't set personal WIGs yet.",
     "leads": "Lead measures — daily ticks",
     "noLeads": "No personal lead measures this week.",
-    "tickToday": "+1 today",
+    "tickToday": "Today",
+    "ticked": "Ticked",
     "doneTag": "Done!",
     "undo": "Undo",
     "lockedNote": "Ticks older than 24 hours are locked (teacher/admin only).",

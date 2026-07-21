@@ -1,101 +1,119 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Việt Anh Class — Design tokens
-   Bản sắc: navy #26275d + gold #f9dd0e (PRD §6.1).
-   Hướng thị giác: premium dashboard — nền slate dịu ngả navy,
-   thẻ trắng bo góc lớn với viền hairline + bóng ambient mềm,
-   sidebar navy gradient, gold dùng tiết chế làm điểm nhấn đắt.
+   Việt Anh Class — Design system v3 "Glass on gradient"
+   Redesign theo prototype 2026-07: top-nav kính mờ trên nền
+   gradient mint→kem có quầng gold/teal/blue; thẻ glass trắng;
+   font bo tròn (Baloo 2 display + Nunito body); gold gradient
+   làm CTA; màu môn học + màu cảm xúc là tín hiệu trạng thái.
+   Bản sắc navy #26275d + gold #f9dd0e giữ nguyên (PRD §6.1).
    ============================================================ */
 @theme {
   /* Thương hiệu */
   --color-navy: #26275d;
-  --color-navy-dark: #1b1c45;
   --color-navy-700: #2f3170;
-  --color-navy-900: #14152f;
+  --color-navy-dark: #1b1c45;
   --color-gold: #f9dd0e;
   --color-gold-soft: #ffe94d;
+  --color-gold-mid: #e3b400; /* viền/sao đầy */
+  --color-gold-deep: #b98900; /* chữ gold trên nền sáng (đủ tương phản) */
 
-  /* Bề mặt — canvas slate dịu ngả navy, thẻ trắng nổi bằng bóng ambient */
-  --color-canvas: #f4f5fb;
+  /* Bề mặt & mực */
+  --color-canvas: #ebf0ec; /* nền cơ sở dưới lớp gradient */
   --color-surface: #ffffff;
-  --color-grey-light: #eef0f8; /* ô lõm, header bảng */
-  --color-grey-line: #e5e8f2; /* đường kẻ mặc định */
-  --color-line-strong: #d4d9ea; /* viền nhấn */
+  --color-ink: #26275d; /* chữ chính = navy */
+  --color-txt: #5d6180; /* chữ phụ */
+  --color-grey-mid: #8a8fab; /* chữ mờ */
+  --color-grey-soft: #a6abc4; /* rất mờ (số thứ tự) */
 
-  /* Mực & chữ (ngả navy) */
-  --color-ink: #171930;
-  --color-txt: #3d4060;
-  --color-grey-mid: #5d6180;
-
-  /* Trạng thái 4DX — mã CHUẨN theo PRD §6.1 (bắt buộc): emerald thắng, đỏ trầm thua */
+  /* Trạng thái 4DX (PRD §6.1) */
   --color-success: #1e8a5a;
-  --color-status-bad: #c0392b;
+  --color-success-dark: #16724a;
   --color-warn: #b98900;
+  --color-status-bad: #c0392b;
+  --color-status-bad-dark: #9e2f23;
 
-  /* Bo góc lớn, hiện đại */
-  --radius-xs: 6px;
+  /* Màu môn học (+ biến -rgb cho nền chip alpha) */
+  --color-subj-knowledge: #3a62c9;
+  --color-subj-knowledge-rgb: 58, 98, 201;
+  --color-subj-skills: #557f3c;
+  --color-subj-skills-rgb: 85, 127, 60;
+  --color-subj-english: #0e7c86;
+  --color-subj-english-rgb: 14, 124, 134;
+  --color-subj-physical: #cf5a42;
+  --color-subj-physical-rgb: 207, 90, 66;
+
+  /* Màu cảm xúc (5 mức) */
+  --color-mood-great: #1e8a5a;
+  --color-mood-good: #7bb662;
+  --color-mood-ok: #f9dd0e;
+  --color-mood-low: #e08a00;
+  --color-mood-bad: #e0483a;
+
+  /* Bo góc */
   --radius-sm: 8px;
   --radius-md: 10px;
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-2xl: 20px;
   --radius-3xl: 24px;
-  --radius-4xl: 32px;
+  --radius-4xl: 26px;
 
-  /* Bóng ambient nhiều lớp, ngả navy — mềm nhưng không đục */
-  --shadow-card:
-    0 1px 2px rgba(23, 25, 48, 0.04),
-    0 8px 24px -12px rgba(23, 25, 48, 0.08);
-  --shadow-raise:
-    0 2px 4px rgba(23, 25, 48, 0.05),
-    0 14px 34px -12px rgba(23, 25, 48, 0.16);
-  --shadow-pop: 0 24px 64px -16px rgba(20, 21, 47, 0.4);
+  /* Bóng đổ */
+  --shadow-glass: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 8px 24px rgba(38, 39, 93, 0.08);
+  --shadow-glass-sm: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 6px 20px rgba(38, 39, 93, 0.07);
+  --shadow-glass-raise: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 12px 28px rgba(38, 39, 93, 0.12);
+  --shadow-gold: 0 4px 12px rgba(233, 180, 0, 0.35);
+  --shadow-pop: 0 20px 50px rgba(38, 39, 93, 0.25);
 
-  /* Chuyển động — nhanh, mượt, ease-out expo */
+  /* Chuyển động */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-fast: 150ms;
   --dur-base: 220ms;
 
   /* z-index ngữ nghĩa */
   --z-sticky: 20;
-  --z-drawer-backdrop: 40;
-  --z-drawer: 50;
+  --z-modal-backdrop: 40;
+  --z-modal: 50;
 
-  --font-heading: var(--font-montserrat), "Montserrat", ui-sans-serif, sans-serif;
-  --font-body: var(--font-be-vietnam), "Be Vietnam Pro", ui-sans-serif, sans-serif;
-
-  /* Font vui cho trải nghiệm học sinh */
-  --font-fun: var(--font-fredoka), "Fredoka", ui-rounded, "Segoe UI", sans-serif;
-  --font-fun-body: var(--font-nunito), "Nunito", ui-rounded, "Segoe UI", sans-serif;
-
-  /* Bảng màu môn học — pastel vui, tương phản tốt trên nền sáng (WCAG AA) */
-  --color-subj-knowledge: #2f6df6; /* xanh dương */
-  --color-subj-knowledge-soft: #e3edff;
-  --color-subj-skills: #8b5cf6; /* tím */
-  --color-subj-skills-soft: #efe8ff;
-  --color-subj-english: #e0409a; /* hồng */
-  --color-subj-english-soft: #ffe4f3;
-  --color-subj-physical: #16a34a; /* xanh lá */
-  --color-subj-physical-soft: #dcfce7;
+  /* Fonts — Baloo 2 (display, có tiếng Việt) + Nunito (body) */
+  --font-display: var(--font-baloo), "Baloo 2", ui-rounded, "Segoe UI", sans-serif;
+  --font-body: var(--font-nunito), "Nunito", ui-rounded, "Segoe UI", sans-serif;
+  /* Alias tương thích với code cũ trong lúc chuyển đổi */
+  --font-heading: var(--font-display);
+  --font-fun: var(--font-display);
+  --font-fun-body: var(--font-body);
 }
 
 html {
   scroll-behavior: smooth;
 }
 
+/* Nền gradient mint→kem + quầng gold/teal/blue — phủ toàn app, cố định khi cuộn */
 body {
+  margin: 0;
+  min-height: 100vh;
   font-family: var(--font-body);
-  line-height: 1.55;
+  line-height: 1.6;
+  color: var(--color-navy);
+  -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  background-color: var(--color-canvas);
+  background-image:
+    radial-gradient(50% 40% at 88% -8%, rgba(249, 221, 14, 0.2), transparent 60%),
+    radial-gradient(40% 45% at -8% 30%, rgba(14, 124, 134, 0.12), transparent 60%),
+    radial-gradient(60% 50% at 55% 115%, rgba(58, 98, 201, 0.14), transparent 62%),
+    linear-gradient(170deg, #f1f5f2 0%, #ebf0ec 55%, #e4ebe6 100%);
+  background-attachment: fixed;
 }
 
 h1,
 h2,
 h3,
 h4 {
-  font-family: var(--font-heading);
-  letter-spacing: -0.015em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 ::selection {
@@ -103,7 +121,14 @@ h4 {
   color: var(--color-navy);
 }
 
-/* Chuyển động mượt mặc định cho phần tử tương tác (state, không trang trí) */
+a {
+  color: var(--color-navy);
+}
+a:hover {
+  color: var(--color-navy-700);
+}
+
+/* Chuyển động mượt mặc định cho phần tử tương tác */
 a,
 button,
 input,
@@ -120,13 +145,13 @@ textarea,
     opacity var(--dur-fast) var(--ease-out-expo);
 }
 
-/* Focus nhìn thấy được, đồng nhất */
+/* Focus nhìn thấy được */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--color-navy);
   outline-offset: 2px;
 }
 
-/* Tôn trọng prefers-reduced-motion (bắt buộc) */
+/* Tôn trọng prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -138,39 +163,75 @@ textarea,
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
-}
-
-/* ---- Tiện ích tái dùng ---- */
-
-/* Thẻ chuẩn: trắng, bo góc lớn, viền hairline + bóng ambient mềm */
-@utility card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-grey-line);
-  border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-card);
-}
-
-/* Thẻ tương tác: nhấc nhẹ khi hover (không làm xô layout) */
-@utility card-hover {
-  transition:
-    transform var(--dur-base) var(--ease-out-expo),
-    box-shadow var(--dur-base) var(--ease-out-expo),
-    border-color var(--dur-fast) var(--ease-out-expo);
-  &:hover {
-    transform: translateY(-2px);
-    border-color: var(--color-line-strong);
-    box-shadow: var(--shadow-raise);
+  /* Ẩn hẳn đám đông đi lại — tôn trọng người tắt chuyển động */
+  .va-crowd {
+    display: none !important;
   }
 }
 
-/* Bóng đen cho chữ vàng trên nền sáng (theo yêu cầu — chống mờ) */
-@utility text-shadow-dark {
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.55),
-    0 0 1px rgba(0, 0, 0, 0.45);
+/* ============================================================
+   Tiện ích glass — dùng chung mọi màn hình
+   ============================================================ */
+
+/* Thẻ kính mờ chuẩn */
+@utility glass {
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: var(--shadow-glass);
 }
 
-/* Vào màn tinh tế (đã hiển thị sẵn, chỉ trượt/mờ nhẹ) */
+/* Thẻ kính đậm hơn (nav, popup) */
+@utility glass-strong {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 8px 24px rgba(38, 39, 93, 0.1);
+}
+
+/* Nhấc nhẹ khi hover (không xô layout) */
+@utility glass-hover {
+  transition:
+    transform var(--dur-base) var(--ease-out-expo),
+    box-shadow var(--dur-base) var(--ease-out-expo);
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glass-raise);
+  }
+}
+
+/* Viên thuốc kính (chip/badge nền sáng) */
+@utility glass-pill {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Nút CTA gold gradient */
+@utility btn-gold {
+  background: linear-gradient(to bottom, var(--color-gold-soft), var(--color-gold));
+  color: var(--color-navy);
+  box-shadow: var(--shadow-gold);
+  &:active {
+    transform: translateY(1.5px);
+  }
+}
+
+/* Alias tương thích code cũ (card = glass) trong lúc chuyển đổi */
+@utility card {
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-glass);
+}
+
+/* ============================================================
+   Animations
+   ============================================================ */
 @keyframes va-rise {
   from {
     opacity: 0;
@@ -185,16 +246,47 @@ textarea,
   animation: va-rise var(--dur-base) var(--ease-out-expo) both;
 }
 
-@keyframes va-slide-in {
-  from {
-    transform: translateX(-100%);
+@keyframes va-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) translateY(8px);
   }
-  to {
-    transform: none;
+  60% {
+    transform: scale(1.03) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
   }
 }
-@utility animate-slide-in {
-  animation: va-slide-in var(--dur-base) var(--ease-out-expo) both;
+@utility animate-pop {
+  animation: va-pop 0.42s var(--ease-out-expo) both;
+}
+
+@keyframes va-wiggle {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+@utility animate-wiggle {
+  animation: va-wiggle 2.2s ease-in-out infinite;
+}
+
+@keyframes va-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+@utility animate-float {
+  animation: va-float 1.6s ease-in-out infinite;
 }
 
 @keyframes va-fade {
@@ -209,83 +301,6 @@ textarea,
   animation: va-fade var(--dur-fast) ease-out both;
 }
 
-/* ============================================================
-   Trải nghiệm HỌC SINH — vui, bo tròn, đáng yêu (.kid scope)
-   Không ảnh hưởng giao diện GV/Admin (nghiêm túc, sắc nét).
-   ============================================================ */
-.kid {
-  font-family: var(--font-fun-body);
-  line-height: 1.6;
-}
-.kid h1,
-.kid h2,
-.kid h3,
-.kid h4 {
-  font-family: var(--font-fun);
-  letter-spacing: 0;
-  font-weight: 700;
-}
-
-/* Nảy nhẹ khi vào màn (dùng cho thẻ môn, mặt cảm xúc) */
-@keyframes va-pop {
-  0% {
-    opacity: 0;
-    transform: scale(0.8) translateY(10px);
-  }
-  60% {
-    transform: scale(1.04) translateY(0);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-@utility animate-pop {
-  animation: va-pop 0.42s var(--ease-out-expo) both;
-}
-
-/* Lắc lư đáng yêu (mascot / mặt cười đang active) */
-@keyframes va-wiggle {
-  0%,
-  100% {
-    transform: rotate(-4deg);
-  }
-  50% {
-    transform: rotate(4deg);
-  }
-}
-@utility animate-wiggle {
-  animation: va-wiggle 1.8s ease-in-out infinite;
-}
-
-/* Trôi nổi nhẹ lên-xuống (ngôi sao thưởng) — ease-in-out mượt, không phải bounce */
-@keyframes va-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-@utility animate-float {
-  animation: va-float 1.6s ease-in-out infinite;
-}
-
-/* Thẻ vui: bo tròn lớn, viền dày mềm, bóng màu nhẹ, nhấc khi hover */
-@utility card-fun {
-  background: var(--color-surface);
-  border: 2px solid var(--color-grey-line);
-  border-radius: var(--radius-3xl);
-  box-shadow: 0 6px 0 rgba(23, 25, 48, 0.06);
-  transition:
-    transform var(--dur-base) var(--ease-out-expo),
-    box-shadow var(--dur-base) var(--ease-out-expo),
-    border-color var(--dur-fast) var(--ease-out-expo);
-}
-@utility card-fun-hover {
-  &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 0 rgba(23, 25, 48, 0.08);
-  }
-}
+/* Keyframes đám đông login (va-wk, va-st, va-bob2) đặt inline trong
+   components/auth/StudentCrowd.tsx qua thẻ style — vì Tailwind v4 purge
+   các keyframes chỉ được tham chiếu bởi inline style, không qua @utility. */

@@ -37,7 +37,7 @@ export default async function AttendancePage({
 
   if (!myClass) {
     return (
-      <div className="rounded-xl border border-grey-line bg-white p-8 text-center">
+      <div className="glass rounded-[20px] p-8 text-center">
         <p className="text-sm text-grey-mid">{tc('noClass')}</p>
       </div>
     );
@@ -89,27 +89,30 @@ export default async function AttendancePage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-heading text-xl font-black text-navy">
-          {t('title')} · {myClass.name}
-        </h1>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <h1 className="font-display text-[22px] font-bold text-navy">
+            {t('title')} · {myClass.name}
+          </h1>
+          <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-txt">
+            <CalendarDays size={14} strokeWidth={2.2} className="text-grey-mid" />
+            {t('todayLabel')}: <b className="text-navy">{today}</b>
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-txt">
+            <Users size={14} strokeWidth={2.2} className="text-grey-mid" />
+            {t('sizeLabel')}: <b className="text-navy">{students.length}</b>
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-status-bad/10 px-2.5 py-1 text-[11px] font-bold text-status-bad">
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold text-status-bad"
+            style={{backgroundColor: 'rgba(192,57,43,0.12)'}}
+          >
             <Lock size={12} strokeWidth={2.5} />
             {t('lockedPast')}
           </span>
         </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-semibold text-txt">
-        <span className="inline-flex items-center gap-1.5">
-          <CalendarDays size={15} strokeWidth={2} className="text-navy" />
-          {t('todayLabel')}: <span className="text-navy">{today}</span>
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <Users size={15} strokeWidth={2} className="text-navy" />
-          {t('sizeLabel')}: <span className="text-navy">{students.length}</span>
-        </span>
       </div>
       {!canEdit && (
         <p className="text-xs italic text-grey-mid">{t('readOnly')}</p>

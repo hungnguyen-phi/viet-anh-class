@@ -80,129 +80,162 @@ export default async function AdminPage({
   ];
   const defaultYear = schoolYearLabel(new Date());
 
-  const inputCls = 'w-full rounded-md border border-grey-line bg-white px-2 py-1.5 text-sm';
-  const cardCls = 'rounded-xl border border-grey-line bg-white p-4';
-  const btnCls = 'rounded-md bg-navy px-3 py-1.5 text-sm font-bold text-white hover:bg-navy-dark';
+  // Design system v3 — glass on gradient
+  const inputCls =
+    'w-full rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white';
+  const goldBtn =
+    'btn-gold inline-flex h-[38px] cursor-pointer items-center self-start whitespace-nowrap rounded-[12px] px-3.5 text-[12.5px] font-extrabold transition-all';
+  const cardTitle = 'mb-3 font-display text-[15px] font-bold text-navy';
+  const th = 'text-[11px] font-extrabold uppercase tracking-wide text-grey-mid';
+  const selectSm =
+    'min-w-0 flex-1 cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-2.5 py-[7px] text-xs font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white';
+  const navyBtnSm =
+    'h-8 cursor-pointer whitespace-nowrap rounded-[10px] bg-navy px-[11px] text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700';
+  const outlineBtnSm =
+    'h-8 cursor-pointer whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white/60 px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
+  const dangerBtnSm =
+    'h-8 cursor-pointer whitespace-nowrap rounded-[10px] bg-[rgba(192,57,43,0.12)] px-2.5 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-[rgba(192,57,43,0.22)]';
 
   return (
-    <div className="space-y-6">
-      <h1 className="font-heading text-2xl font-black text-navy">{t('title')}</h1>
+    <div className="flex flex-col gap-4">
+      <h1 className="font-display text-[22px] font-bold text-navy">{t('title')}</h1>
 
       {flash && (
-        <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-2 text-sm font-semibold text-success">
+        <div className="rounded-[14px] border border-success/30 bg-success/10 px-4 py-2.5 text-sm font-bold text-success">
           {flash}
         </div>
       )}
 
       {/* Người dùng + đổi vai trò */}
-      <section className={cardCls}>
-        <h2 className="mb-3 font-heading font-extrabold text-navy">
+      <section className="glass rounded-[20px] p-[18px]">
+        <div className={cardTitle}>
           {t('users')} ({all.length})
-        </h2>
-        <div className="max-h-80 overflow-auto rounded-md border border-grey-line">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0">
-              <tr className="bg-grey-light text-navy">
-                <th className="px-2 py-2 text-left">{t('name')}</th>
-                <th className="px-2 py-2 text-left">{t('email')}</th>
-                <th className="px-2 py-2 text-left">{t('role')}</th>
-                <th className="px-2 py-2 text-left">{t('setRole')}</th>
-                <th className="px-2 py-2 text-left">{t('actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {all.map((p) => (
-                <tr key={p.id} className="border-t border-grey-line">
-                  <td className="px-2 py-1.5 font-medium text-ink">{p.full_name ?? '—'}</td>
-                  <td className="px-2 py-1.5 text-grey-mid">{p.email}</td>
-                  <td className="px-2 py-1.5">{tr(p.role)}</td>
-                  <td className="px-2 py-1.5">
-                    <form action={setUserRole} className="flex items-center gap-2">
+        </div>
+        <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
+          <div className="box-border flex min-w-[760px] items-center gap-2 bg-white/45 px-[14px] py-[9px]">
+            <span className={`flex-[1.2] ${th}`}>{t('name')}</span>
+            <span className={`flex-[1.4] ${th}`}>{t('email')}</span>
+            <span className={`flex-1 ${th}`}>{t('role')}</span>
+            <span className={`flex-[1.6] ${th}`}>{t('setRole')}</span>
+            <span className={`w-[130px] flex-none ${th}`}>{t('actions')}</span>
+          </div>
+          {all.map((p) => (
+            <div
+              key={p.id}
+              className="box-border flex min-w-[760px] items-center gap-2 border-t border-navy/[0.08] px-[14px] py-2 transition-colors hover:bg-white/35"
+            >
+              <span className="min-w-0 flex-[1.2] truncate text-[13px] font-bold text-navy">
+                {p.full_name ?? '—'}
+              </span>
+              <span className="min-w-0 flex-[1.4] truncate text-xs font-semibold text-grey-mid">
+                {p.email}
+              </span>
+              <span className="flex-1 whitespace-nowrap text-[12.5px] font-bold text-navy">
+                {tr(p.role)}
+              </span>
+              <span className="flex-[1.6]">
+                <form action={setUserRole} className="flex items-center gap-1.5">
+                  <input type="hidden" name="userId" value={p.id} />
+                  <select name="role" defaultValue={p.role} className={selectSm}>
+                    {ROLES.map((r) => (
+                      <option key={r} value={r}>
+                        {tr(r)}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="submit" className={navyBtnSm}>
+                    {t('setRole')}
+                  </button>
+                </form>
+              </span>
+              <span className="flex w-[130px] flex-none gap-1.5">
+                {p.id !== me.id ? (
+                  <>
+                    <form action={disableUser}>
                       <input type="hidden" name="userId" value={p.id} />
-                      <select name="role" defaultValue={p.role} className={inputCls} style={{width: 'auto'}}>
-                        {ROLES.map((r) => (
-                          <option key={r} value={r}>
-                            {tr(r)}
-                          </option>
-                        ))}
-                      </select>
-                      <button type="submit" className={btnCls}>
-                        {t('setRole')}
+                      <button type="submit" className={outlineBtnSm}>
+                        {t('disable')}
                       </button>
                     </form>
-                  </td>
-                  <td className="px-2 py-1.5">
-                    {p.id !== me.id ? (
-                      <div className="flex gap-1">
-                        <form action={disableUser}>
-                          <input type="hidden" name="userId" value={p.id} />
-                          <button
-                            type="submit"
-                            className="rounded-md border border-grey-line px-2 py-1.5 text-xs font-bold text-navy hover:border-navy"
-                          >
-                            {t('disable')}
-                          </button>
-                        </form>
-                        <form action={deleteUser}>
-                          <input type="hidden" name="userId" value={p.id} />
-                          <ConfirmButton
-                            message={t('confirmDelete')}
-                            className="rounded-md bg-status-bad px-2 py-1.5 text-xs font-bold text-white hover:opacity-90"
-                          >
-                            {t('delete')}
-                          </ConfirmButton>
-                        </form>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-grey-mid">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <form action={deleteUser}>
+                      <input type="hidden" name="userId" value={p.id} />
+                      <ConfirmButton message={t('confirmDelete')} className={dangerBtnSm}>
+                        {t('delete')}
+                      </ConfirmButton>
+                    </form>
+                  </>
+                ) : (
+                  <span className="text-xs text-grey-mid">{t('none')}</span>
+                )}
+              </span>
+            </div>
+          ))}
         </div>
       </section>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      {/* Tạo cơ sở · Tạo lớp · Mời người dùng · Phân công GVCN · Mời phụ huynh */}
+      <div className="grid items-start gap-4 [grid-template-columns:repeat(auto-fit,minmax(340px,1fr))]">
         {/* Tạo cơ sở + danh sách */}
-        <section className={cardCls}>
-          <h2 className="mb-3 font-heading font-extrabold text-navy">{t('createCampus')}</h2>
+        <section className="glass rounded-[20px] p-[18px]">
+          <div className={cardTitle}>{t('createCampus')}</div>
           <form action={createCampus} className="flex flex-wrap items-center gap-2">
-            <input name="name" placeholder={t('name')} className={inputCls} style={{maxWidth: '12rem'}} required />
-            <input name="code" placeholder={t('code')} className={inputCls} style={{maxWidth: '7rem'}} required />
-            <button type="submit" className={btnCls}>
+            <input
+              name="name"
+              placeholder={t('name')}
+              required
+              className="min-w-[140px] flex-1 rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white"
+            />
+            <input
+              name="code"
+              placeholder={t('code')}
+              required
+              className="w-[90px] rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white"
+            />
+            <button type="submit" className={goldBtn}>
               + {t('createCampus')}
             </button>
           </form>
-          <div className="mt-4">
-            <div className="mb-1 text-xs font-bold uppercase text-grey-mid">
-              {t('campuses')} ({(campuses ?? []).length})
-            </div>
-            <ul className="divide-y divide-grey-line rounded-md border border-grey-line">
-              {(campuses ?? []).map((c) => (
-                <li key={c.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                  <span className="font-medium text-ink">{c.name}</span>
-                  <span className="text-grey-mid">{c.code}</span>
-                </li>
-              ))}
-              {(campuses ?? []).length === 0 && (
-                <li className="px-3 py-2 text-sm text-grey-mid">{t('none')}</li>
-              )}
-            </ul>
+          <div className="mb-1.5 mt-3.5 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+            {t('campuses')} ({(campuses ?? []).length})
+          </div>
+          <div className="rounded-[12px] border-[1.5px] border-navy/10">
+            {(campuses ?? []).map((c, i) => (
+              <div
+                key={c.id}
+                className={`flex justify-between px-[13px] py-[9px] text-[13px] ${
+                  i > 0 ? 'border-t border-navy/[0.08]' : ''
+                }`}
+              >
+                <span className="font-bold text-navy">{c.name}</span>
+                <span className="font-semibold text-grey-mid">{c.code}</span>
+              </div>
+            ))}
+            {(campuses ?? []).length === 0 && (
+              <div className="px-[13px] py-[9px] text-[13px] text-grey-mid">{t('none')}</div>
+            )}
           </div>
         </section>
 
         {/* Tạo lớp */}
-        <section className={cardCls}>
-          <h2 className="mb-3 font-heading font-extrabold text-navy">{t('createClass')}</h2>
-          <form action={createClass} className="space-y-2">
+        <section className="glass rounded-[20px] p-[18px]">
+          <div className={cardTitle}>{t('createClass')}</div>
+          <form action={createClass} className="flex flex-col gap-2">
             <div className="flex gap-2">
-              <input name="name" placeholder={t('name')} className={inputCls} required />
-              <input name="grade" placeholder={t('grade')} className={inputCls} style={{maxWidth: '6rem'}} />
+              <input name="name" placeholder={t('name')} required className={inputCls} />
+              <input
+                name="grade"
+                placeholder={t('grade')}
+                className="w-20 rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white"
+              />
             </div>
-            <input name="school_year" defaultValue={defaultYear} placeholder={t('schoolYear')} className={inputCls} required />
-            <select name="campus_id" className={inputCls} required defaultValue="">
+            <input
+              name="school_year"
+              defaultValue={defaultYear}
+              placeholder={t('schoolYear')}
+              required
+              className={inputCls}
+            />
+            <select name="campus_id" required defaultValue="" className={`cursor-pointer ${inputCls}`}>
               <option value="" disabled>
                 — {t('campus')} —
               </option>
@@ -212,68 +245,32 @@ export default async function AdminPage({
                 </option>
               ))}
             </select>
-            <select name="homeroom_teacher_id" className={inputCls} defaultValue="">
-              <option value="">— {t('gvcn')} ({t('none')}) —</option>
+            <select
+              name="homeroom_teacher_id"
+              defaultValue=""
+              className={`cursor-pointer ${inputCls}`}
+            >
+              <option value="">
+                — {t('gvcn')} ({t('none')}) —
+              </option>
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.full_name ?? s.email}
                 </option>
               ))}
             </select>
-            <button type="submit" className={btnCls}>
+            <button type="submit" className={goldBtn}>
               + {t('createClass')}
             </button>
           </form>
         </section>
-      </div>
 
-      {/* Danh sách lớp đầy đủ */}
-      <section className={cardCls}>
-        <h2 className="mb-3 font-heading font-extrabold text-navy">
-          {t('classes')} ({(classes ?? []).length})
-        </h2>
-        <div className="overflow-x-auto rounded-md border border-grey-line">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-grey-light text-navy">
-                <th className="px-2 py-2 text-left">{t('name')}</th>
-                <th className="px-2 py-2 text-left">{t('grade')}</th>
-                <th className="px-2 py-2 text-left">{t('schoolYear')}</th>
-                <th className="px-2 py-2 text-left">{t('campus')}</th>
-                <th className="px-2 py-2 text-left">{t('gvcn')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(classes ?? []).map((c) => (
-                <tr key={c.id} className="border-t border-grey-line">
-                  <td className="px-2 py-1.5 font-medium text-ink">{c.name}</td>
-                  <td className="px-2 py-1.5 text-grey-mid">{c.grade ?? '—'}</td>
-                  <td className="px-2 py-1.5 text-grey-mid">{c.school_year}</td>
-                  <td className="px-2 py-1.5 text-grey-mid">{campusName.get(c.campus_id) ?? '—'}</td>
-                  <td className="px-2 py-1.5 text-grey-mid">
-                    {c.homeroom_teacher_id ? personName.get(c.homeroom_teacher_id) ?? '—' : t('none')}
-                  </td>
-                </tr>
-              ))}
-              {(classes ?? []).length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-2 py-2 text-grey-mid">
-                    {t('none')}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <div className="grid gap-6 md:grid-cols-2">
         {/* Mời người dùng mới */}
-        <section className={cardCls}>
-          <h2 className="mb-3 font-heading font-extrabold text-navy">{t('inviteUser')}</h2>
-          <form action={inviteUser} className="space-y-2">
-            <input name="email" type="email" placeholder={t('email')} className={inputCls} required />
-            <select name="role" className={inputCls} required defaultValue="">
+        <section className="glass rounded-[20px] p-[18px]">
+          <div className={cardTitle}>{t('inviteUser')}</div>
+          <form action={inviteUser} className="flex flex-col gap-2">
+            <input name="email" type="email" placeholder={t('email')} required className={inputCls} />
+            <select name="role" required defaultValue="" className={`cursor-pointer ${inputCls}`}>
               <option value="" disabled>
                 — {t('selectRole')} —
               </option>
@@ -283,26 +280,28 @@ export default async function AdminPage({
                 </option>
               ))}
             </select>
-            <select name="class_id" className={inputCls} defaultValue="">
-              <option value="">— {t('selectClass')} ({t('none')}) —</option>
+            <select name="class_id" defaultValue="" className={`cursor-pointer ${inputCls}`}>
+              <option value="">
+                — {t('selectClass')} ({t('none')}) —
+              </option>
               {(classes ?? []).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} · {c.school_year}
                 </option>
               ))}
             </select>
-            <button type="submit" className={btnCls}>
+            <button type="submit" className={goldBtn}>
               + {t('inviteUser')}
             </button>
+            <div className="text-[10.5px] font-semibold italic text-grey-mid">{t('applyNote')}</div>
           </form>
-          <p className="mt-2 text-xs italic text-grey-mid">{t('applyNote')}</p>
         </section>
 
         {/* Phân công GVCN */}
-        <section className={cardCls}>
-          <h2 className="mb-3 font-heading font-extrabold text-navy">{t('assignGvcn')}</h2>
-          <form action={assignGvcn} className="space-y-2">
-            <select name="userId" className={inputCls} required defaultValue="">
+        <section className="glass rounded-[20px] p-[18px]">
+          <div className={cardTitle}>{t('assignGvcn')}</div>
+          <form action={assignGvcn} className="flex flex-col gap-2">
+            <select name="userId" required defaultValue="" className={`cursor-pointer ${inputCls}`}>
               <option value="" disabled>
                 — {t('selectUser')} —
               </option>
@@ -312,7 +311,7 @@ export default async function AdminPage({
                 </option>
               ))}
             </select>
-            <select name="class_id" className={inputCls} required defaultValue="">
+            <select name="class_id" required defaultValue="" className={`cursor-pointer ${inputCls}`}>
               <option value="" disabled>
                 — {t('selectClass')} —
               </option>
@@ -322,65 +321,122 @@ export default async function AdminPage({
                 </option>
               ))}
             </select>
-            <button type="submit" className={btnCls}>
+            <button type="submit" className={goldBtn}>
               {t('assignGvcn')}
+            </button>
+          </form>
+        </section>
+
+        {/* Mời phụ huynh */}
+        <section className="glass rounded-[20px] p-[18px]">
+          <div className={cardTitle}>{t('inviteParent')}</div>
+          <form action={inviteParent} className="flex flex-wrap items-center gap-2">
+            <input
+              name="email"
+              type="email"
+              placeholder={t('email')}
+              required
+              className="min-w-[160px] flex-1 rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white"
+            />
+            <select
+              name="student_id"
+              required
+              defaultValue=""
+              className="w-[170px] cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white"
+            >
+              <option value="" disabled>
+                — {t('student')} —
+              </option>
+              {students.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.full_name ?? s.email}
+                </option>
+              ))}
+            </select>
+            <button type="submit" className={goldBtn}>
+              {t('invite')}
             </button>
           </form>
         </section>
       </div>
 
+      {/* Danh sách lớp đầy đủ */}
+      <section className="glass rounded-[20px] p-[18px]">
+        <div className={cardTitle}>
+          {t('classes')} ({(classes ?? []).length})
+        </div>
+        <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
+          <div className="box-border flex min-w-[640px] items-center gap-2 bg-white/45 px-[14px] py-[9px]">
+            <span className={`flex-1 ${th}`}>{t('name')}</span>
+            <span className={`w-[70px] flex-none ${th}`}>{t('grade')}</span>
+            <span className={`flex-1 ${th}`}>{t('schoolYear')}</span>
+            <span className={`flex-1 ${th}`}>{t('campus')}</span>
+            <span className={`flex-1 ${th}`}>{t('gvcn')}</span>
+          </div>
+          {(classes ?? []).map((c) => (
+            <div
+              key={c.id}
+              className="box-border flex min-w-[640px] items-center gap-2 border-t border-navy/[0.08] px-[14px] py-[9px] transition-colors hover:bg-white/35"
+            >
+              <span className="flex-1 text-[13px] font-bold text-navy">{c.name}</span>
+              <span className="w-[70px] flex-none text-[12.5px] font-semibold text-grey-mid">
+                {c.grade ?? '—'}
+              </span>
+              <span className="flex-1 text-[12.5px] font-semibold text-grey-mid">
+                {c.school_year}
+              </span>
+              <span className="flex-1 text-[12.5px] font-semibold text-grey-mid">
+                {campusName.get(c.campus_id) ?? '—'}
+              </span>
+              <span className="flex-1 text-[12.5px] font-semibold text-grey-mid">
+                {c.homeroom_teacher_id ? personName.get(c.homeroom_teacher_id) ?? '—' : t('none')}
+              </span>
+            </div>
+          ))}
+          {(classes ?? []).length === 0 && (
+            <div className="border-t border-navy/[0.08] px-[14px] py-[9px] text-[13px] text-grey-mid">
+              {t('none')}
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Lời mời đang chờ */}
       {pendingInvites.length > 0 && (
-        <section className={cardCls}>
-          <h2 className="mb-3 font-heading font-extrabold text-navy">
+        <section className="glass rounded-[20px] p-[18px]">
+          <div className={cardTitle}>
             {t('pending')} ({pendingInvites.length})
-          </h2>
-          <ul className="divide-y divide-grey-line rounded-md border border-grey-line">
+          </div>
+          <div className="rounded-[12px] border-[1.5px] border-navy/10">
             {pendingInvites.map((p, i) => (
-              <li key={`${p.email}-${i}`} className="flex items-center justify-between px-3 py-2 text-sm">
-                <span className="font-medium text-ink">{p.email}</span>
-                <span className="text-grey-mid">{p.detail}</span>
-              </li>
+              <div
+                key={`${p.email}-${i}`}
+                className={`flex items-center justify-between px-[13px] py-[9px] text-[13px] ${
+                  i > 0 ? 'border-t border-navy/[0.08]' : ''
+                }`}
+              >
+                <span className="font-bold text-navy">{p.email}</span>
+                <span className="font-semibold text-grey-mid">{p.detail}</span>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
       )}
 
-      {/* Mời phụ huynh */}
-      <section className={cardCls}>
-        <h2 className="mb-3 font-heading font-extrabold text-navy">{t('inviteParent')}</h2>
-        <form action={inviteParent} className="flex flex-wrap items-center gap-2">
-          <input name="email" type="email" placeholder={t('email')} className={inputCls} style={{maxWidth: '16rem'}} required />
-          <select name="student_id" className={inputCls} style={{width: 'auto'}} required defaultValue="">
-            <option value="" disabled>
-              — {t('student')} —
-            </option>
-            {students.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.full_name ?? s.email}
-              </option>
-            ))}
-          </select>
-          <button type="submit" className={btnCls}>
-            {t('invite')}
-          </button>
-        </form>
-      </section>
-
       {/* Giao diện mẫu — mở mọi màn hình */}
-      <section className={cardCls}>
-        <h2 className="mb-1 font-heading font-extrabold text-navy">{t('screensTitle')}</h2>
+      <section className="glass rounded-[20px] p-[18px]">
+        <div className="mb-1 font-display text-[15px] font-bold text-navy">{t('screensTitle')}</div>
         <p className="mb-3 text-xs text-grey-mid">{t('screensHint')}</p>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {screens.map((s) => (
             <Link
               key={s.href}
               href={s.href}
-              className="rounded-xl border border-grey-line p-3 transition-colors hover:border-navy hover:bg-grey-light"
+              className="glass glass-hover block cursor-pointer rounded-[14px] p-3.5"
             >
               <div className="flex items-center justify-between">
-                <span className="font-heading font-extrabold text-navy">{s.label}</span>
-                <span className="text-shadow-dark text-xs font-bold text-gold">{tcommon('open')} →</span>
+                <span className="font-display text-[15px] font-bold text-navy">{s.label}</span>
+                <span className="text-xs font-extrabold text-gold-deep">{tcommon('open')} →</span>
               </div>
               <p className="mt-1 text-xs text-grey-mid">{s.desc}</p>
               <code className="mt-1 block text-[11px] text-grey-mid">{s.href}</code>

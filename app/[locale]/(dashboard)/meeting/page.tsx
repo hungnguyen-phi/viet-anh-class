@@ -37,8 +37,8 @@ export default async function MeetingPage({
 
   if (!myClass) {
     return (
-      <div className="rounded-xl border border-grey-line bg-white p-8 text-center">
-        <p className="text-sm text-grey-mid">{tc('noClass')}</p>
+      <div className="glass rounded-[20px] p-8 text-center">
+        <p className="text-sm font-semibold text-grey-mid">{tc('noClass')}</p>
       </div>
     );
   }
@@ -52,46 +52,54 @@ export default async function MeetingPage({
   const meetings = (meetingsData ?? []) as Meeting[];
   const defaultWeek = isoWeekLabel(new Date());
 
-  const inputCls = 'w-full rounded-md border border-grey-line bg-white px-2 py-1.5 text-sm';
-  const taCls = `${inputCls} min-h-[60px]`;
+  const fieldLabelCls =
+    'mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
+  const inputCls =
+    'rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white';
+  const taCls = `${inputCls} w-full min-h-[64px] resize-y`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-heading text-xl font-black text-navy">
+        <h1 className="font-display text-[22px] font-bold text-navy">
           {t('title')} · {myClass.name}
         </h1>
         {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
       </div>
 
       {flash && (
-        <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-2 text-sm font-semibold text-success">
+        <div className="rounded-[14px] border border-success/25 bg-success/10 px-4 py-2.5 text-sm font-semibold text-success">
           {flash}
         </div>
       )}
 
-      <section className="rounded-xl border border-grey-line bg-white p-4">
-        <form action={saveMeeting} className="space-y-3">
+      <section className="glass rounded-[20px] p-[18px]">
+        <form action={saveMeeting} className="flex flex-col gap-3">
           <input type="hidden" name="class_id" value={myClass.id} />
           <div>
-            <label className="text-xs font-bold uppercase text-grey-mid">{t('week')}</label>
-            <input name="week_label" defaultValue={defaultWeek} className={inputCls} required />
+            <span className={fieldLabelCls}>{t('week')}</span>
+            <input
+              name="week_label"
+              defaultValue={defaultWeek}
+              required
+              className={`${inputCls} w-[200px] max-w-full`}
+            />
           </div>
           <div>
-            <label className="text-xs font-bold uppercase text-grey-mid">{t('reflection')}</label>
+            <span className={fieldLabelCls}>{t('reflection')}</span>
             <textarea name="results" className={taCls} />
           </div>
           <div>
-            <label className="text-xs font-bold uppercase text-grey-mid">{t('commitments')}</label>
+            <span className={fieldLabelCls}>{t('commitments')}</span>
             <textarea name="commitments" className={taCls} />
           </div>
           <div>
-            <label className="text-xs font-bold uppercase text-grey-mid">{t('nextActions')}</label>
+            <span className={fieldLabelCls}>{t('nextActions')}</span>
             <textarea name="next_actions" className={taCls} />
           </div>
           <button
             type="submit"
-            className="rounded-lg bg-navy px-5 py-2 font-heading font-bold text-white hover:bg-navy-dark"
+            className="btn-gold h-10 cursor-pointer self-start rounded-[12px] px-[18px] font-display text-sm font-bold"
           >
             {t('save')}
           </button>
@@ -99,30 +107,30 @@ export default async function MeetingPage({
       </section>
 
       <section>
-        <h2 className="mb-2 font-heading text-sm font-extrabold uppercase tracking-wide text-navy">
-          {t('history')}
-        </h2>
+        <h2 className="mb-2.5 font-display text-[15px] font-bold text-navy">{t('history')}</h2>
         {meetings.length === 0 ? (
-          <p className="text-sm italic text-grey-mid">{t('noMeetings')}</p>
+          <div className="rounded-[20px] border-[1.5px] border-dashed border-navy/20 bg-white/30 p-5 text-center text-[12.5px] font-semibold italic text-grey-mid backdrop-blur-md">
+            {t('noMeetings')}
+          </div>
         ) : (
-          <div className="space-y-3">
+          <div className="flex flex-col gap-2.5">
             {meetings.map((m) => (
-              <div key={m.id} className="rounded-xl border border-grey-line bg-white p-4">
-                <div className="font-heading font-extrabold text-navy">{m.week_label}</div>
+              <div key={m.id} className="glass rounded-[20px] px-[18px] py-4">
+                <div className="font-display text-[15px] font-bold text-navy">{m.week_label}</div>
                 {m.results && (
-                  <p className="mt-2 text-sm">
+                  <p className="mt-1.5 text-[13px] font-semibold text-navy">
                     <span className="font-bold text-grey-mid">{t('reflection')}: </span>
                     {m.results}
                   </p>
                 )}
                 {m.commitments && (
-                  <p className="mt-1 text-sm">
+                  <p className="mt-1 text-[13px] font-semibold text-navy">
                     <span className="font-bold text-grey-mid">{t('commitments')}: </span>
                     {m.commitments}
                   </p>
                 )}
                 {m.next_actions && (
-                  <p className="mt-1 text-sm">
+                  <p className="mt-1 text-[13px] font-semibold text-navy">
                     <span className="font-bold text-grey-mid">{t('nextActions')}: </span>
                     {m.next_actions}
                   </p>
