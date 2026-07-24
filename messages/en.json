@@ -161,7 +161,18 @@
     "createYear": "Create yearly WIGs",
     "createWeek": "Create this week's WIGs (1 tap)",
     "weekHint": "Quickly generate weekly WIGs + lead measures for all 4 areas so the student can start ticking daily.",
-    "weekDone": "Week {label} WIGs are ready."
+    "weekDone": "Week {label} WIGs are ready.",
+    "manageTitle": "Manage personal WIGs (teacher)",
+    "manageHint": "Edit target/unit, delete WIG/lead, remove wrong ticks — no dead-ends for the student.",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "label": "Period label",
+    "yearTag": "Year",
+    "weekTag": "Week",
+    "removeTick": "Remove tick",
+    "confirmDeleteLead": "Delete this lead measure and all its ticks? Cannot be undone.",
+    "confirmDeleteWig": "Delete this personal WIG (incl. its weekly WIGs/leads)? Cannot be undone."
   },
   "admin": {
     "title": "System administration",
@@ -304,7 +315,11 @@
     "nextActions": "Next week WIG & lead measures",
     "save": "Save minutes",
     "history": "Saved minutes",
-    "noMeetings": "No minutes yet."
+    "noMeetings": "No minutes yet.",
+    "scoreThisWeek": "This week's board",
+    "leadDone": "Leads done",
+    "noWeekData": "No WIG data for this week yet.",
+    "confirmDeleteMeeting": "Delete these minutes? Cannot be undone."
   },
   "report": {
     "title": "Parent report",
@@ -385,7 +400,20 @@
     "saveMeeting": "Save minutes",
     "coach": "Coach",
     "noMeetings": "No personal meeting minutes yet.",
-    "meetingSaved": "Personal meeting minutes saved."
+    "meetingSaved": "Personal meeting minutes saved.",
+    "cancel": "Cancel",
+    "confirmDeleteMeeting": "Delete these minutes? Cannot be undone.",
+    "requestEdit": "Request edit",
+    "requestEditTitle": "Send an edit request to the teacher",
+    "requestEditGeneral": "General request (type below)",
+    "requestUndoTick": "Undo tick",
+    "requestEditPlaceholder": "e.g. I ticked by mistake yesterday, please remove it…",
+    "requestSend": "Send request",
+    "requestInbox": "Edit requests",
+    "requestUndoTickTag": "Undo tick",
+    "approveApply": "Approve & remove tick",
+    "approve": "Approve",
+    "reject": "Reject"
   },
   "campusReport": {
     "title": "Campus report",

@@ -1,5 +1,7 @@
 import {getTranslations} from 'next-intl/server';
 import {MessagesSquare, UserRound} from 'lucide-react';
+import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {deleteStudentMeeting} from '@/app/[locale]/(dashboard)/student/actions';
 import {StudentMeetingForm} from './StudentMeetingForm';
 
 export type StudentMeeting = {
@@ -59,6 +61,18 @@ export async function StudentMeetings({
                     <UserRound size={12} strokeWidth={2.5} />
                     {t('buddy')}: {m.buddy_name}
                   </span>
+                )}
+                {canManage && (
+                  <form action={deleteStudentMeeting} className="ml-auto">
+                    <input type="hidden" name="student_id" value={studentId} />
+                    <input type="hidden" name="meeting_id" value={m.id} />
+                    <ConfirmButton
+                      message={t('confirmDeleteMeeting')}
+                      className="grid h-7 w-7 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                    >
+                      ✕
+                    </ConfirmButton>
+                  </form>
                 )}
               </div>
               {m.results && (

@@ -11,7 +11,11 @@ import {
   type Classmate,
 } from '@/components/student/StudentMeetings';
 import {StudentWigSetup} from '@/components/student/StudentWigSetup';
-import {AREAS, buildAreaMeta, areaLabel, areaIcon} from '@/lib/areas';
+import {StudentWigManage, type ManageWig, type ManageLead} from '@/components/student/StudentWigManage';
+import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
+import {EditRequestButton} from '@/components/student/EditRequestButton';
+import {MeetingScoreboard} from '@/components/wig/MeetingScoreboard';
+import {AREAS, buildAreaMeta, areaLabel, areaIcon, type Area} from '@/lib/areas';
 
 // Màu/icon/nhãn môn lấy từ area_config (fallback = --color-subj-* cũ ⇒ parity).
 
@@ -52,6 +56,7 @@ export async function StudentScoreboard({
 }) {
   const t = await getTranslations('student');
   const tc = await getTranslations('class');
+  const tSW = await getTranslations('studentWig');
   const supabase = await createClient();
   const canManage = viewer.role === 'teacher' || viewer.role === 'admin';
   const canEditMood = viewer.id === studentId && viewer.role === 'student';
@@ -188,6 +193,57 @@ export async function StudentScoreboard({
     }));
   }
 
+  // GVCN/Admin: dữ liệu QUẢN LÝ WIG/lead/tick cá nhân + yêu cầu-sửa đang chờ (audit: hết ngõ cụt).
+  let manageWigs: ManageWig[] = [];
+  let manageLeads: ManageLead[] = [];
+  let requests: EditRequest[] = [];
+  if (canManage) {
+    const [{data: mWigs}, {data: mLeads}, {data: reqs}] = await Promise.all([
+      supabase
+        .from('wigs')
+        .select('id, area, period, period_label, target_value, unit')
+        .eq('student_id', studentId)
+        .eq('scope', 'student'),
+      weekIds.length > 0
+        ? supabase
+            .from('lead_measures')
+            .select('id, wig_id, title, target_value, unit, lead_progress(id, logged_date)')
+            .in('wig_id', weekIds)
+        : Promise.resolve({data: []}),
+      supabase
+        .from('edit_requests')
+        .select('id, kind, ref_id, message, created_at, requester:profiles!edit_requests_requester_id_fkey(full_name)')
+        .eq('student_id', studentId)
+        .eq('status', 'pending')
+        .order('created_at', {ascending: false}),
+    ]);
+    manageWigs = ((mWigs ?? []) as {id: string; area: string; period: string; period_label: string | null; target_value: number; unit: string}[]).map((w) => ({
+      id: w.id,
+      areaLabel: areaLabel(areaMeta[w.area as Area], locale),
+      periodLabel: (w.period === 'year' ? tSW('yearTag') : tSW('weekTag')) + (w.period_label ? ` · ${w.period_label}` : ''),
+      isYear: w.period === 'year',
+      target: Number(w.target_value),
+      unit: w.unit,
+      period_label: w.period_label,
+    }));
+    manageLeads = ((mLeads ?? []) as {id: string; wig_id: string; title: string; target_value: number; unit: string | null; lead_progress: {id: string; logged_date: string}[] | null}[]).map((l) => ({
+      id: l.id,
+      wigId: l.wig_id,
+      title: l.title,
+      target: Number(l.target_value),
+      unit: l.unit,
+      entries: (l.lead_progress ?? []).map((e) => ({id: e.id, date: e.logged_date})),
+    }));
+    requests = ((reqs ?? []) as unknown as {id: string; kind: string; ref_id: string | null; message: string | null; created_at: string; requester: {full_name: string | null} | null}[]).map((r) => ({
+      id: r.id,
+      kind: r.kind,
+      ref_id: r.ref_id,
+      message: r.message,
+      requesterName: r.requester?.full_name ?? null,
+      createdAt: r.created_at,
+    }));
+  }
+
   const canTick = viewer.id === studentId && viewer.role === 'student';
   const displayName = student.full_name ?? student.email;
   const hasWeek = weekRows.length > 0;
@@ -240,6 +296,10 @@ export async function StudentScoreboard({
         />
       )}
 
+      {/* GVCN/Admin: yêu cầu-sửa đang chờ + quản lý WIG/lead/tick cá nhân (hết ngõ cụt) */}
+      {canManage && <RequestInbox studentId={studentId} requests={requests} />}
+      {canManage && <StudentWigManage studentId={studentId} wigs={manageWigs} leads={manageLeads} />}
+
       {/* WIG năm — bento ring theo màu môn */}
       <section>
         <h2 className="font-display text-[17px] font-bold text-navy">{t('wigYear')}</h2>
@@ -288,6 +348,16 @@ export async function StudentScoreboard({
             <p className="text-sm italic text-grey-mid">{t('noLeads')}</p>
           ) : (
             <LeadTicker leads={tickerLeads} studentId={studentId} canTick={canTick} />
+          )}
+          {/* Học sinh: xin GVCN sửa (vd gỡ tick sai, đổi mục tiêu) — hết ngõ cụt phía HS */}
+          {canTick && classId && (
+            <div className="mt-3">
+              <EditRequestButton
+                studentId={studentId}
+                classId={classId}
+                leads={tickerLeads.map((l) => ({id: l.id, title: l.title}))}
+              />
+            </div>
           )}
         </section>
 
@@ -351,8 +421,10 @@ export async function StudentScoreboard({
             )}
           </section>
 
-          <section>
-            <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('meetings')}</h2>
+          <section className="flex flex-col gap-3">
+            <h2 className="font-display text-[17px] font-bold text-navy">{t('meetings')}</h2>
+            {/* PRD Màn 6: "cầm scoreboard mà họp" — panel WIG tuần/lead của em */}
+            {classId && <MeetingScoreboard classId={classId} studentId={studentId} weekLabel={isoWeekLabel(new Date())} />}
             <StudentMeetings
               studentId={studentId}
               classId={classId}

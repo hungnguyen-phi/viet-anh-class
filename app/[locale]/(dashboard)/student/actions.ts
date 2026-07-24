@@ -108,9 +108,22 @@ export async function saveStudentMeeting(
     next_actions: next_actions || null,
     coach_id: user?.id ?? null,
   };
-  const {error} = existing
-    ? await supabase.from('wig_meetings').update(payload).eq('id', existing.id)
-    : await supabase.from('wig_meetings').insert(payload);
+  // Idempotent/đồng thời: race 2 lần lưu 1 tuần → dính unique (HS,tuần) → tự chuyển update.
+  let error = null as {code?: string} | null;
+  if (existing) {
+    ({error} = await supabase.from('wig_meetings').update(payload).eq('id', existing.id));
+  } else {
+    const ins = await supabase.from('wig_meetings').insert(payload);
+    if (ins.error?.code === '23505') {
+      ({error} = await supabase
+        .from('wig_meetings')
+        .update(payload)
+        .eq('student_id', student_id)
+        .eq('week_label', week_label));
+    } else {
+      error = ins.error;
+    }
+  }
 
   if (error) return {ok: false, error: friendlyError(error), values};
 
@@ -217,4 +230,164 @@ export async function createStudentWeekWigs(formData: FormData) {
 
   revalidatePath(`/student/${student_id}`);
   back(`Đã tạo ${inserted.length} WIG tuần ${label} cho em`);
+}
+
+// ============================================================
+// Quản lý WIG/lead/tick CÁ NHÂN + yêu cầu-sửa (audit: hết ngõ cụt, idempotent)
+// GVCN/Admin sửa trực tiếp; .select() bắt no-op do RLS (báo đúng, không "thành công" giả).
+// ============================================================
+function backToStudent(studentId: string, msg: string): never {
+  redirect(`/student/${studentId}?flash=${encodeURIComponent(msg)}`);
+}
+
+export async function editStudentWig(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('wig_id') ?? '');
+  const target_value = Number(formData.get('target_value') ?? 0);
+  const unit = String(formData.get('unit') ?? '').trim();
+  const period_label = String(formData.get('period_label') ?? '').trim() || null;
+  if (!id || !Number.isFinite(target_value) || target_value <= 0 || !unit)
+    backToStudent(student_id, 'Thiếu mục tiêu/đơn vị hợp lệ.');
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('wigs')
+    .update({target_value, unit, period_label})
+    .eq('id', id)
+    .eq('scope', 'student')
+    .select('id');
+  revalidatePath(`/student/${student_id}`);
+  revalidatePath('/');
+  if (error) backToStudent(student_id, friendlyError(error));
+  if (!data || data.length === 0) backToStudent(student_id, 'Không sửa được (không có quyền hoặc đã xoá).');
+  backToStudent(student_id, 'Đã cập nhật WIG cá nhân');
+}
+
+export async function deleteStudentWig(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('wig_id') ?? '');
+  if (!id) backToStudent(student_id, 'Thiếu WIG');
+  const supabase = await createClient();
+  await supabase.from('wigs').delete().eq('parent_wig_id', id); // con tuần (nếu là WIG năm)
+  const {error} = await supabase.from('wigs').delete().eq('id', id).eq('scope', 'student');
+  revalidatePath(`/student/${student_id}`);
+  revalidatePath('/');
+  backToStudent(student_id, error ? friendlyError(error) : 'Đã xoá WIG cá nhân');
+}
+
+export async function editStudentLead(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('lead_measure_id') ?? '');
+  const title = String(formData.get('title') ?? '').trim();
+  const target_value = Number(formData.get('target_value') ?? 0);
+  const unit = String(formData.get('unit') ?? '').trim() || null;
+  if (!id || !title || !Number.isFinite(target_value) || target_value <= 0)
+    backToStudent(student_id, 'Thiếu tên/mục tiêu hợp lệ.');
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('lead_measures')
+    .update({title, target_value, unit})
+    .eq('id', id)
+    .select('id');
+  revalidatePath(`/student/${student_id}`);
+  revalidatePath('/');
+  if (error) backToStudent(student_id, friendlyError(error));
+  if (!data || data.length === 0) backToStudent(student_id, 'Không sửa được lead (không có quyền hoặc đã xoá).');
+  backToStudent(student_id, 'Đã cập nhật lead measure');
+}
+
+export async function deleteStudentLead(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('lead_measure_id') ?? '');
+  if (!id) backToStudent(student_id, 'Thiếu lead');
+  const supabase = await createClient();
+  const {error} = await supabase.from('lead_measures').delete().eq('id', id);
+  revalidatePath(`/student/${student_id}`);
+  revalidatePath('/');
+  backToStudent(student_id, error ? friendlyError(error) : 'Đã xoá lead measure');
+}
+
+// Gỡ 1 lượt tick sai của học sinh (RLS lp_staff_manage cho GVCN/Admin lớp).
+export async function removeLeadEntry(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const student_id = String(formData.get('student_id') ?? '');
+  const entry_id = String(formData.get('entry_id') ?? '');
+  if (!entry_id) backToStudent(student_id, 'Thiếu lượt tick');
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('lead_progress').delete().eq('id', entry_id).select('id');
+  revalidatePath(`/student/${student_id}`);
+  revalidatePath('/');
+  if (error) backToStudent(student_id, friendlyError(error));
+  backToStudent(student_id, data && data.length ? 'Đã gỡ lượt tick' : 'Không gỡ được (không có quyền hoặc đã xoá).');
+}
+
+export async function deleteStudentMeeting(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('meeting_id') ?? '');
+  if (!id) backToStudent(student_id, 'Thiếu biên bản');
+  const supabase = await createClient();
+  const {error} = await supabase.from('wig_meetings').delete().eq('id', id);
+  revalidatePath(`/student/${student_id}`);
+  backToStudent(student_id, error ? friendlyError(error) : 'Đã xoá biên bản');
+}
+
+// Học sinh (hoặc PH) gửi yêu cầu chỉnh sửa → GVCN duyệt. 23505 = đã có pending trùng.
+export async function createEditRequest(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect('/login');
+  const student_id = String(formData.get('student_id') ?? '');
+  const class_id = String(formData.get('class_id') ?? '');
+  const kind = String(formData.get('kind') ?? 'other');
+  const ref_id = String(formData.get('ref_id') ?? '') || null;
+  const message = String(formData.get('message') ?? '').trim();
+  const back = (m: string): never => redirect(`/student/${student_id}?flash=${encodeURIComponent(m)}`);
+  if (!student_id || !class_id) back('Thiếu thông tin yêu cầu');
+  const supabase = await createClient();
+  const {error} = await supabase.from('edit_requests').insert({
+    class_id,
+    student_id,
+    requester_id: profile.id,
+    kind,
+    ref_id,
+    message: message || null,
+  });
+  revalidatePath(`/student/${student_id}`);
+  if (error && error.code !== '23505') back(friendlyError(error));
+  back('Đã gửi yêu cầu chỉnh sửa cho giáo viên');
+}
+
+// GVCN/Admin duyệt/từ chối. IDEMPOTENT: chỉ đổi khi đang 'pending' → bấm 2 lần chỉ ăn 1.
+// apply=1 + kind='undo_tick' → duyệt & gỡ tick luôn.
+export async function resolveEditRequest(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('request_id') ?? '');
+  const decision = String(formData.get('decision') ?? '');
+  const apply = String(formData.get('apply') ?? '') === '1';
+  if (!id || (decision !== 'approved' && decision !== 'rejected'))
+    backToStudent(student_id, 'Thiếu thông tin duyệt');
+  const supabase = await createClient();
+  const {
+    data: {user},
+  } = await supabase.auth.getUser();
+  const {data, error} = await supabase
+    .from('edit_requests')
+    .update({status: decision, resolved_by: user?.id ?? null, resolved_at: new Date().toISOString()})
+    .eq('id', id)
+    .eq('status', 'pending')
+    .select('id, kind, ref_id, student_id');
+  revalidatePath(`/student/${student_id}`);
+  if (error) backToStudent(student_id, friendlyError(error));
+  if (!data || data.length === 0) backToStudent(student_id, 'Yêu cầu đã được xử lý trước đó.');
+  const r = data[0];
+  if (apply && decision === 'approved' && r.kind === 'undo_tick' && r.ref_id) {
+    await supabase.from('lead_progress').delete().eq('lead_measure_id', r.ref_id).eq('student_id', r.student_id);
+    revalidatePath('/');
+    backToStudent(student_id, 'Đã duyệt & gỡ tick');
+  }
+  backToStudent(student_id, decision === 'approved' ? 'Đã duyệt yêu cầu' : 'Đã từ chối yêu cầu');
 }

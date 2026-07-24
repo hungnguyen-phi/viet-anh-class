@@ -161,7 +161,18 @@
     "createYear": "Tạo WIG năm",
     "createWeek": "Tạo WIG tuần này (1 chạm)",
     "weekHint": "Sinh nhanh WIG tuần + lead measure cho cả 4 lĩnh vực để em bắt đầu tick hằng ngày.",
-    "weekDone": "Tuần {label} đã có WIG cho em."
+    "weekDone": "Tuần {label} đã có WIG cho em.",
+    "manageTitle": "Quản lý WIG cá nhân (GVCN)",
+    "manageHint": "Sửa mục tiêu/đơn vị, xoá WIG/lead, gỡ lượt tick sai — không để em bị kẹt.",
+    "save": "Lưu",
+    "cancel": "Huỷ",
+    "edit": "Sửa",
+    "label": "Nhãn kỳ",
+    "yearTag": "Năm",
+    "weekTag": "Tuần",
+    "removeTick": "Gỡ lượt tick",
+    "confirmDeleteLead": "Xoá lead measure này và toàn bộ lượt tick? Không thể hoàn tác.",
+    "confirmDeleteWig": "Xoá WIG cá nhân này (kèm WIG tuần/lead bên trong)? Không thể hoàn tác."
   },
   "admin": {
     "title": "Quản trị hệ thống",
@@ -304,7 +315,11 @@
     "nextActions": "WIG & Lead measure tuần sau",
     "save": "Lưu biên bản",
     "history": "Biên bản đã lưu",
-    "noMeetings": "Chưa có biên bản nào."
+    "noMeetings": "Chưa có biên bản nào.",
+    "scoreThisWeek": "Bảng tuần này",
+    "leadDone": "Lead hoàn thành",
+    "noWeekData": "Chưa có dữ liệu WIG tuần này.",
+    "confirmDeleteMeeting": "Xoá biên bản họp này? Không thể hoàn tác."
   },
   "report": {
     "title": "Báo cáo phụ huynh",
@@ -385,7 +400,20 @@
     "saveMeeting": "Lưu biên bản",
     "coach": "Coach",
     "noMeetings": "Chưa có biên bản họp cá nhân nào.",
-    "meetingSaved": "Đã lưu biên bản họp cá nhân."
+    "meetingSaved": "Đã lưu biên bản họp cá nhân.",
+    "cancel": "Huỷ",
+    "confirmDeleteMeeting": "Xoá biên bản họp này? Không thể hoàn tác.",
+    "requestEdit": "Xin sửa",
+    "requestEditTitle": "Gửi yêu cầu chỉnh sửa cho giáo viên",
+    "requestEditGeneral": "Yêu cầu chung (nhập nội dung bên dưới)",
+    "requestUndoTick": "Xin gỡ tick",
+    "requestEditPlaceholder": "Vd: em tick nhầm hôm qua, xin thầy/cô gỡ giúp…",
+    "requestSend": "Gửi yêu cầu",
+    "requestInbox": "Yêu cầu chỉnh sửa",
+    "requestUndoTickTag": "Xin gỡ tick",
+    "approveApply": "Duyệt & gỡ tick",
+    "approve": "Duyệt",
+    "reject": "Từ chối"
   },
   "campusReport": {
     "title": "Báo cáo cơ sở",

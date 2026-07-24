@@ -1,6 +1,7 @@
 'use server';
 
 import {revalidatePath} from 'next/cache';
+import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
@@ -52,12 +53,41 @@ export async function saveMeeting(_prev: MeetingState, formData: FormData): Prom
     next_actions: next_actions || null,
     coach_id: user?.id ?? null,
   };
-  const {error} = existing
-    ? await supabase.from('wig_meetings').update(payload).eq('id', existing.id)
-    : await supabase.from('wig_meetings').insert(payload);
+  // Idempotent/đồng thời: nếu chưa có thì insert; nếu 2 người cùng lưu 1 tuần → 1 người dính
+  // unique (23505) → tự chuyển sang update theo khoá (lớp,tuần) thay vì báo lỗi trùng.
+  let error = null as {code?: string} | null;
+  if (existing) {
+    ({error} = await supabase.from('wig_meetings').update(payload).eq('id', existing.id));
+  } else {
+    const ins = await supabase.from('wig_meetings').insert(payload);
+    if (ins.error?.code === '23505') {
+      ({error} = await supabase
+        .from('wig_meetings')
+        .update(payload)
+        .eq('class_id', class_id)
+        .eq('week_label', week_label)
+        .is('student_id', null));
+    } else {
+      error = ins.error;
+    }
+  }
 
   if (error) return {ok: false, error: friendlyError(error), values};
 
   revalidatePath('/meeting');
   return {ok: true, message: existing ? 'Đã cập nhật biên bản tuần này.' : 'Đã lưu biên bản.'};
+}
+
+// Xoá 1 biên bản họp lớp (sửa sai/tạo nhầm tuần).
+export async function deleteMeeting(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const id = String(formData.get('id') ?? '');
+  const classParam = String(formData.get('class') ?? '');
+  const supabase = await createClient();
+  const {error} = await supabase.from('wig_meetings').delete().eq('id', id);
+  revalidatePath('/meeting');
+  const q = new URLSearchParams();
+  if (classParam) q.set('class', classParam);
+  q.set('flash', error ? friendlyError(error) : 'Đã xoá biên bản');
+  redirect(`/meeting?${q.toString()}`);
 }

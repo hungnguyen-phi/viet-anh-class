@@ -1,6 +1,7 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
+import {Link} from '@/i18n/navigation';
 
 export default async function CampusPage({
   params,
@@ -66,8 +67,9 @@ export default async function CampusPage({
 
           {/* Rows */}
           {rows.map((r) => (
-            <div
+            <Link
               key={r.id}
+              href={{pathname: '/', query: {class: r.id}}}
               className="flex min-w-[560px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2.5 transition-colors hover:bg-navy/[0.03]"
             >
               <span
@@ -94,7 +96,7 @@ export default async function CampusPage({
               >
                 {r.att} {t('marked')}
               </span>
-            </div>
+            </Link>
           ))}
         </div>
       )}

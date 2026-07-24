@@ -4,7 +4,10 @@ import {createClient} from '@/lib/supabase/server';
 import {getAccessibleClasses, getMyClass} from '@/lib/queries';
 import {isoWeekLabel} from '@/lib/dates';
 import {ClassPicker} from '@/components/shell/ClassPicker';
+import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {MeetingScoreboard} from '@/components/wig/MeetingScoreboard';
 import {MeetingForm} from './MeetingForm';
+import {deleteMeeting} from './actions';
 
 type Meeting = {
   id: string;
@@ -61,6 +64,9 @@ export default async function MeetingPage({
         {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
       </div>
 
+      {/* PRD Màn 5: "cầm scoreboard mà họp" — WIG tuần/lead của lớp tuần này */}
+      <MeetingScoreboard classId={myClass.id} weekLabel={defaultWeek} />
+
       <section className="glass rounded-[20px] p-[18px]">
         <MeetingForm classId={myClass.id} defaultWeek={defaultWeek} />
       </section>
@@ -75,7 +81,19 @@ export default async function MeetingPage({
           <div className="flex flex-col gap-2.5">
             {meetings.map((m) => (
               <div key={m.id} className="glass rounded-[20px] px-[18px] py-4">
-                <div className="font-display text-[15px] font-bold text-navy">{m.week_label}</div>
+                <div className="flex items-center gap-2">
+                  <div className="font-display text-[15px] font-bold text-navy">{m.week_label}</div>
+                  <form action={deleteMeeting} className="ml-auto">
+                    <input type="hidden" name="id" value={m.id} />
+                    {classParam && <input type="hidden" name="class" value={classParam} />}
+                    <ConfirmButton
+                      message={t('confirmDeleteMeeting')}
+                      className="grid h-7 w-7 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                    >
+                      ✕
+                    </ConfirmButton>
+                  </form>
+                </div>
                 {m.results && (
                   <p className="mt-1.5 text-[13px] font-semibold text-navy">
                     <span className="font-bold text-grey-mid">{t('reflection')}: </span>
