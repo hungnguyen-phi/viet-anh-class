@@ -117,7 +117,14 @@ export async function createClass(_prev: ClassState, formData: FormData): Promis
 
   const supabase = await createClient();
   // Khối là thực thể (grade_id); vẫn ghi cột text 'grade' = tên khối để tương thích hiển thị cũ.
-  const grade = await gradeNameOf(supabase, grade_id || null);
+  // Audit #6: khối phải thuộc đúng cơ sở đã chọn (chống request giả/stale gán khối lệch cơ sở).
+  let grade: string | null = null;
+  if (grade_id) {
+    const g = await gradeInfo(supabase, grade_id);
+    if (!g || g.campus_id !== campus_id)
+      return {ok: false, fieldError: 'grade_id', error: 'Khối không thuộc cơ sở đã chọn.', values};
+    grade = g.name;
+  }
   const {error} = await supabase.from('classes').insert({
     name,
     grade,
@@ -231,14 +238,14 @@ export async function inviteParent(_prev: ParentState, formData: FormData): Prom
 // Tất cả dùng flash/redirect (giữ nhất quán với setUserRole/assignGvcn).
 // ============================================================
 
-// Tên khối (để đồng bộ cột text 'grade' — các bảng hiển thị cũ vẫn đọc c.grade).
-async function gradeNameOf(
+// Thông tin khối (tên + cơ sở) — để đồng bộ cột text 'grade' và kiểm khối thuộc đúng cơ sở.
+async function gradeInfo(
   supabase: Awaited<ReturnType<typeof createClient>>,
   gradeId: string | null,
-): Promise<string | null> {
+): Promise<{name: string; campus_id: string} | null> {
   if (!gradeId) return null;
-  const {data} = await supabase.from('grades').select('name').eq('id', gradeId).maybeSingle();
-  return data?.name ?? null;
+  const {data} = await supabase.from('grades').select('name, campus_id').eq('id', gradeId).maybeSingle();
+  return data ?? null;
 }
 
 // ---------- CƠ SỞ ----------
@@ -355,7 +362,13 @@ export async function updateClass(formData: FormData) {
   if (!id) flash('Thiếu lớp cần sửa');
   if (!name || !school_year || !campus_id) flash('Thiếu thông tin lớp (tên / năm học / cơ sở)');
   const supabase = await createClient();
-  const grade = await gradeNameOf(supabase, grade_id);
+  // Audit #6: khối phải thuộc đúng cơ sở đã chọn.
+  let grade: string | null = null;
+  if (grade_id) {
+    const g = await gradeInfo(supabase, grade_id);
+    if (!g || g.campus_id !== campus_id) flash('Khối không thuộc cơ sở đã chọn.');
+    grade = g!.name;
+  }
   const {error} = await supabase
     .from('classes')
     .update({name, school_year, campus_id, grade_id, grade, homeroom_teacher_id: teacher})

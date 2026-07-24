@@ -172,7 +172,9 @@ export async function editWig(formData: FormData) {
   if (!Number.isFinite(target_value) || target_value <= 0) flash('Mục tiêu phải lớn hơn 0.', class_id);
   if (!unit) flash('Thiếu đơn vị.', class_id);
   const supabase = await createClient();
-  const {error} = await supabase
+  // .select() để biết có dòng nào thực sự đổi không: RLS chặn (lớp khác) → 0 dòng, error=null.
+  // Không kiểm thì báo "thành công" sai (audit #5).
+  const {data, error} = await supabase
     .from('wigs')
     .update({
       target_value,
@@ -181,10 +183,13 @@ export async function editWig(formData: FormData) {
       ...(start_date ? {start_date} : {}),
       ...(end_date ? {end_date} : {}),
     })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
   revalidatePath('/wig');
   revalidatePath('/');
-  flash(error ? friendlyError(error) : 'Đã cập nhật WIG', class_id);
+  if (error) flash(friendlyError(error), class_id);
+  if (!data || data.length === 0) flash('Không sửa được WIG này (không có quyền hoặc đã bị xoá).', class_id);
+  flash('Đã cập nhật WIG', class_id);
 }
 
 // Sửa lead measure (tên / mục tiêu / đơn vị / phân loại).
@@ -199,13 +204,17 @@ export async function editLeadMeasure(formData: FormData) {
   if (!id || !title || !Number.isFinite(target_value)) flash('Thiếu tên/mục tiêu lead measure', class_id);
   if (target_value <= 0) flash('Mục tiêu phải lớn hơn 0.', class_id);
   const supabase = await createClient();
-  const {error} = await supabase
+  const {data, error} = await supabase
     .from('lead_measures')
     .update({title, target_value, unit, sub_category})
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
   revalidatePath('/wig');
   revalidatePath('/');
-  flash(error ? friendlyError(error) : 'Đã cập nhật lead measure', class_id);
+  if (error) flash(friendlyError(error), class_id);
+  if (!data || data.length === 0)
+    flash('Không sửa được lead measure này (không có quyền hoặc đã bị xoá).', class_id);
+  flash('Đã cập nhật lead measure', class_id);
 }
 
 export async function deleteLeadMeasure(formData: FormData) {
