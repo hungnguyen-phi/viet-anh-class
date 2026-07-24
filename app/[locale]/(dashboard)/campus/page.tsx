@@ -13,34 +13,16 @@ export default async function CampusPage({
   const t = await getTranslations('campusReport');
   const supabase = await createClient();
 
-  // Lớp trong phạm vi (RLS: BGH thấy campus mình; admin thấy tất cả).
-  const {data: classes} = await supabase
-    .from('classes')
-    .select('id, name, school_year')
-    .order('name');
-
-  const {data: todayVal} = await supabase.rpc('app_today');
-  const today = String(todayVal);
-
-  const rows = await Promise.all(
-    (classes ?? []).map(async (c) => {
-      const [{data: ranks}, {count}] = await Promise.all([
-        supabase.rpc('class_ranks', {c: c.id}),
-        supabase
-          .from('attendance_records')
-          .select('id', {count: 'exact', head: true})
-          .eq('class_id', c.id)
-          .eq('date', today),
-      ]);
-      return {
-        id: c.id,
-        name: c.name,
-        school_year: c.school_year,
-        score: ranks?.[0]?.score ?? 0,
-        att: count ?? 0,
-      };
-    }),
-  );
+  // 1 RPC gộp: điểm thi đua (tính 1 lần) + điểm danh hôm nay cho MỌI lớp trong phạm vi
+  // (BGH: campus mình; admin: tất cả). Thay cho N+1 class_ranks() trước đây.
+  const {data: ranksData} = await supabase.rpc('campus_ranks');
+  const rows = (ranksData ?? []).map((r) => ({
+    id: r.class_id,
+    name: r.name,
+    school_year: r.school_year,
+    score: Number(r.score),
+    att: Number(r.att_today),
+  }));
 
   await supabase.rpc('log_audit', {p_action: 'view_campus_report'});
 
@@ -55,7 +37,7 @@ export default async function CampusPage({
       ) : (
         <div className="glass overflow-x-auto rounded-[20px]">
           {/* Header */}
-          <div className="flex min-w-[560px] items-center gap-2 bg-white/40 px-[18px] py-2.5">
+          <div className="flex min-w-[560px] items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5">
             <span
               className="text-[11px] font-extrabold uppercase text-grey-mid"
               style={{flex: 1.3}}
@@ -86,7 +68,7 @@ export default async function CampusPage({
           {rows.map((r) => (
             <div
               key={r.id}
-              className="flex min-w-[560px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2.5 transition-colors hover:bg-white/35"
+              className="flex min-w-[560px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2.5 transition-colors hover:bg-navy/[0.03]"
             >
               <span
                 className="text-[13.5px] font-bold text-navy"

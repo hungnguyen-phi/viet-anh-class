@@ -1,8 +1,8 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
-import {Link} from '@/i18n/navigation';
 import {LocaleSwitcher} from '@/components/shell/LocaleSwitcher';
 import {LoginForm} from '@/components/auth/LoginForm';
 import {StudentCrowd} from '@/components/auth/StudentCrowd';
+import {SkyDecor} from '@/components/auth/SkyDecor';
 
 export default async function LoginPage({
   params,
@@ -15,38 +15,38 @@ export default async function LoginPage({
 
   return (
     <main
-      className="relative min-h-screen overflow-hidden"
-      style={{background: 'linear-gradient(180deg,#ffffff 0%,#fbfbfa 58%,#f2f3f1 100%)'}}
+      className="fixed inset-0 overflow-hidden"
+      style={{background: '#ffffff'}}
     >
+      {/* Nền trời: mây trôi + chim bay (sau đám đông) */}
+      <SkyDecor />
+
       {/* Nền: đám đông học sinh đi lại */}
       <StudentCrowd />
 
       {/* Đổi ngôn ngữ */}
-      <div className="absolute right-5 top-5 z-20 rounded-2xl bg-navy p-1 shadow-[0_10px_28px_rgba(38,39,93,0.28)]">
+      <div className="absolute right-4 top-4 z-20">
         <LocaleSwitcher />
       </div>
 
       {/* Nội dung */}
-      <div className="relative z-10 flex flex-col items-center px-5 pb-24 pt-[9vh]">
-        {/* Nhãn trường */}
-        <div className="inline-flex items-center gap-2.5 rounded-full border border-navy/15 bg-white/55 py-1.5 pl-1.5 pr-3.5 backdrop-blur-sm">
-          <span className="grid h-[26px] w-[26px] place-items-center overflow-hidden rounded-full bg-white">
+      <div className="relative z-10 flex flex-col items-center px-5 pb-4 pt-[6.5vh] sm:pb-24 sm:pt-[9vh]">
+        {/* Nhãn trường — chỉ logo, đã bỏ chữ */}
+        <div className="inline-flex items-center rounded-full border border-navy/15 bg-white/55 p-1.5 backdrop-blur-sm">
+          <span className="grid h-[52px] w-[52px] place-items-center overflow-hidden rounded-full bg-white">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-viet-anh.jpg"
               alt="Logo Trường Việt Anh"
-              className="h-[22px] w-[22px] rounded-full object-cover"
+              className="h-[44px] w-[44px] rounded-full object-cover"
             />
-          </span>
-          <span className="text-[11.5px] font-extrabold uppercase tracking-[0.16em] text-navy">
-            {t('brand')}
           </span>
         </div>
 
         {/* Tiêu đề lớn + gạch chân gold vẽ tay */}
-        <h1 className="mt-6 text-center font-display font-bold leading-[0.98] tracking-tight text-navy text-[clamp(2.75rem,9vw,5.5rem)]">
-          Việt Anh{' '}
-          <span className="relative inline-block">
+        <h1 className="mt-4 text-center font-display font-bold leading-[0.98] tracking-tight text-navy text-[clamp(2.15rem,8.5vw,5.5rem)] max-sm:text-[clamp(2.7rem,12.5vw,3.9rem)] sm:mt-6">
+          Viet Anh{' '}
+          <span className="relative inline-block text-gold">
             Class
             <svg
               viewBox="0 0 320 26"
@@ -67,22 +67,14 @@ export default async function LoginPage({
         </h1>
 
         {/* Slogan */}
-        <p className="mt-8 max-w-[560px] text-center text-[17px] font-semibold leading-[1.55] text-navy/75">
+        <p className="mt-5 max-w-[560px] text-center text-[14.5px] font-semibold leading-[1.5] text-navy/75 sm:mt-8 sm:text-[17px]">
           {t('hero')}
         </p>
 
         {/* Thẻ đăng nhập */}
-        <div className="mt-9 w-full max-w-[376px]">
+        <div className="mt-7 w-full max-w-[376px] sm:mt-9">
           <LoginForm />
         </div>
-
-        {/* Hướng dẫn */}
-        <Link
-          href="/guide"
-          className="mt-5 text-[13px] font-extrabold text-navy/60 underline underline-offset-4 transition-colors hover:text-navy"
-        >
-          {t('guide')}
-        </Link>
       </div>
     </main>
   );

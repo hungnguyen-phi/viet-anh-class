@@ -35,6 +35,7 @@ export function AttendanceTable({
   const [pending, setPending] = useState<Record<string, Status>>({});
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [saveError, setSaveError] = useState(0); // số em lưu thất bại (0 = không lỗi)
   const [supabase] = useState(() => createClient());
 
   // Realtime: nhận thay đổi từ thiết bị khác (chỉ áp cho HS không có thay đổi chưa lưu).
@@ -68,6 +69,7 @@ export function AttendanceTable({
     (studentId: string, status: Status) => {
       if (!canEdit) return;
       setSavedFlash(false);
+      setSaveError(0);
       setPending((prev) => ({...prev, [studentId]: status}));
     },
     [canEdit],
@@ -78,6 +80,7 @@ export function AttendanceTable({
     (status: Status) => {
       if (!canEdit) return;
       setSavedFlash(false);
+      setSaveError(0);
       setPending((prev) => {
         const next = {...prev};
         for (const st of students) next[st.id] = status;
@@ -92,20 +95,32 @@ export function AttendanceTable({
   const save = useCallback(async () => {
     if (!canEdit || dirtyCount === 0) return;
     setSaving(true);
+    setSaveError(0);
     const entries = Object.entries(pending);
-    await Promise.all(
+    // Đọc lỗi từng bản ghi: chỉ chuyển sang "đã lưu" những em thành công,
+    // GIỮ NGUYÊN pending cho em thất bại (không mất dữ liệu điểm danh âm thầm).
+    const results = await Promise.all(
       entries.map(([studentId, status]) =>
-        supabase.rpc('mark_attendance', {
-          p_class: classId,
-          p_student: studentId,
-          p_status: status,
-        }),
+        supabase
+          .rpc('mark_attendance_on', {p_class: classId, p_student: studentId, p_status: status, p_date: today})
+          .then(({error}) => ({studentId, status, ok: !error})),
       ),
     );
-    setSaved((prev) => ({...prev, ...pending}));
-    setPending({});
+    const okIds = new Set(results.filter((r) => r.ok).map((r) => r.studentId));
+    const failed = results.length - okIds.size;
+    setSaved((prev) => {
+      const next = {...prev};
+      for (const r of results) if (r.ok) next[r.studentId] = r.status;
+      return next;
+    });
+    setPending((prev) => {
+      const next: Record<string, Status> = {};
+      for (const [id, st] of Object.entries(prev)) if (!okIds.has(id)) next[id] = st;
+      return next;
+    });
     setSaving(false);
-    setSavedFlash(true);
+    if (failed > 0) setSaveError(failed);
+    else setSavedFlash(true);
   }, [canEdit, classId, dirtyCount, pending, supabase]);
 
   const display = (id: string): Status | undefined => pending[id] ?? saved[id];
@@ -127,7 +142,7 @@ export function AttendanceTable({
     <div className="space-y-3">
       <div className="glass overflow-x-auto rounded-[20px]">
         {/* Header row: HỌC SINH + 4 nhãn trạng thái tô màu theo trạng thái */}
-        <div className="flex min-w-[540px] items-center gap-2 bg-white/40 px-[18px] py-2.5">
+        <div className="flex min-w-[540px] items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5">
           <span className="flex-1 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
             {/* Không có key i18n riêng cho tiêu đề cột này — hardcode tiếng Việt */}
             Học sinh
@@ -145,7 +160,7 @@ export function AttendanceTable({
 
         {/* Chọn cả lớp → hàng nút tick-all */}
         {canEdit && (
-          <div className="flex min-w-[540px] items-center gap-2 border-t border-navy/[0.08] bg-white/25 px-[18px] py-2">
+          <div className="flex min-w-[540px] items-center gap-2 border-t border-navy/[0.08] bg-navy/[0.03] px-[18px] py-2">
             <span className="flex-1 text-right text-[11px] font-extrabold text-grey-mid">
               {t('tickAll')} →
             </span>
@@ -172,9 +187,9 @@ export function AttendanceTable({
           return (
             <div
               key={st.id}
-              className="flex min-w-[540px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2 transition-colors hover:bg-white/35"
+              className="flex min-w-[540px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2 transition-colors hover:bg-navy/[0.03]"
             >
-              <span className="w-5 flex-none text-[12px] font-bold" style={{color: '#a6abc4'}}>
+              <span className="w-5 flex-none text-[12px] font-bold text-grey-mid">
                 {i + 1}
               </span>
               <span className="flex min-w-0 flex-1 items-center gap-1.5 text-[13.5px] font-bold text-navy">
@@ -197,10 +212,10 @@ export function AttendanceTable({
                       onClick={() => setStatus(st.id, s.key)}
                       aria-pressed={active}
                       aria-label={t(s.key)}
-                      className={`grid h-[34px] w-[34px] place-items-center rounded-full border-[1.5px] transition-all ${
+                      className={`grid h-11 w-11 place-items-center rounded-full border-[1.5px] transition-all sm:h-[34px] sm:w-[34px] ${
                         active
                           ? 'text-white'
-                          : 'border-navy/20 bg-white/55 text-transparent hover:border-navy'
+                          : 'border-navy/20 bg-white text-transparent hover:border-navy'
                       } ${!canEdit ? 'cursor-default' : 'cursor-pointer'}`}
                       style={
                         active
@@ -223,10 +238,15 @@ export function AttendanceTable({
           {t('present')}: <b className="text-success">{presentCount}</b> / {students.length}
         </div>
         <span className="flex-1" />
-        {canEdit && savedFlash && dirtyCount === 0 && (
+        {canEdit && savedFlash && dirtyCount === 0 && saveError === 0 && (
           <span className="inline-flex flex-none items-center gap-1 text-[13px] font-extrabold text-success">
             <Check size={15} strokeWidth={3} />
             {t('savedAt')}
+          </span>
+        )}
+        {canEdit && saveError > 0 && (
+          <span className="inline-flex flex-none items-center gap-1 rounded-lg bg-status-bad/10 px-2.5 py-1 text-[12.5px] font-extrabold text-status-bad">
+            {t('saveFailed', {count: saveError})}
           </span>
         )}
         {canEdit && (

@@ -2,6 +2,7 @@ import {setRequestLocale} from 'next-intl/server';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {AppNav} from '@/components/shell/AppNav';
+import {IntroGuide} from '@/components/shell/IntroGuide';
 
 // Trang sau đăng nhập phụ thuộc session (cookie) → luôn render động, không cache tĩnh.
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,8 @@ export default async function DashboardLayout({
       <AppNav profile={profile} isAttendanceLeader={isAttendanceLeader} />
       {/* Nội dung căn giữa dưới top-nav; nền gradient nằm ở <body>. */}
       <main className="mx-auto max-w-[1160px] px-4 pb-10 pt-2 sm:px-6">{children}</main>
+      {/* Hướng dẫn onboarding — tự hiện lần đầu, mở lại từ nút Hướng dẫn trên nav. */}
+      <IntroGuide userId={profile.id} role={profile.role} introSeen={profile.intro_seen} />
     </div>
   );
 }

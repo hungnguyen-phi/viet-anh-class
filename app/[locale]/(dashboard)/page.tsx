@@ -12,14 +12,10 @@ import {
   Trophy,
   TrendingUp,
   Flame,
-  BookOpen,
-  Sparkles,
-  Languages,
-  Bike,
-  type LucideIcon,
 } from 'lucide-react';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {DonutRing} from '@/components/charts/DonutRing';
+import {AREAS, buildAreaMeta, areaLabel, areaIcon} from '@/lib/areas';
 
 type WigRow = {
   wig_id: string;
@@ -37,15 +33,7 @@ type LeadRow = {
   lead_progress: {value: number}[] | null;
 };
 
-const AREAS = ['knowledge', 'skills', 'english', 'physical'] as const;
-
-// Màu + icon môn học (design system v3) — chỉ ảnh hưởng trình bày.
-const SUBJ: Record<string, {hex: string; soft: string; Icon: LucideIcon}> = {
-  knowledge: {hex: '#3a62c9', soft: 'rgba(58,98,201,0.14)', Icon: BookOpen},
-  skills: {hex: '#557f3c', soft: 'rgba(85,127,60,0.14)', Icon: Sparkles},
-  english: {hex: '#0e7c86', soft: 'rgba(14,124,134,0.14)', Icon: Languages},
-  physical: {hex: '#cf5a42', soft: 'rgba(207,90,66,0.14)', Icon: Bike},
-};
+// AREAS + màu/icon/nhãn lĩnh vực ("Môn") lấy từ lib/areas (đọc area_config, fallback = giá trị cũ).
 
 // Meta trạng thái WIG (label lấy từ i18n, màu/nền theo design system v3).
 const STATUS_META: Record<string, {color: string; bg: string}> = {
@@ -70,10 +58,12 @@ export default async function ClassPage({
   const t = await getTranslations();
   const supabase = await createClient();
   // Hai truy vấn độc lập — chạy song song, tránh waterfall.
-  const [myClass, accessible] = await Promise.all([
+  const [myClass, accessible, {data: areaCfg}] = await Promise.all([
     getMyClass(supabase, profile, classParam),
     getAccessibleClasses(supabase, profile),
+    supabase.from('area_config').select('*').order('sort_order'),
   ]);
+  const areaMeta = buildAreaMeta(areaCfg);
 
   if (!myClass) {
     return (
@@ -216,7 +206,7 @@ export default async function ClassPage({
             {myClass.school_year}
           </span>
           {rank && (
-            <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-linear-to-b from-gold-soft to-gold px-3.5 py-1.5 text-[12px] font-extrabold text-navy shadow-[0_4px_12px_rgba(233,180,0,0.35)]">
+            <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-linear-to-b from-gold-soft to-gold px-3.5 py-1.5 text-[12px] font-extrabold text-navy shadow-[var(--shadow-gold)]">
               <Trophy size={13} strokeWidth={2.5} />
               {t('class.score')}: {Number(rank.score)}
             </span>
@@ -258,28 +248,31 @@ export default async function ClassPage({
 
       {/* WIG năm — 4 lĩnh vực */}
       <section>
-        <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
+        <h2 className="font-display text-[17px] font-bold text-navy">
           {t('class.wigYear')}
         </h2>
+        <p className="mb-3 mt-0.5 max-w-[640px] text-[12px] font-semibold leading-relaxed text-grey-mid">
+          {t('class.wigGloss')}
+        </p>
         <div
           className="grid gap-3.5"
           style={{gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))'}}
         >
           {AREAS.map((a) => {
             const w = wigByArea.get(a);
-            const subj = SUBJ[a];
+            const am = areaMeta[a];
             const meta = STATUS_META[w?.status ?? ''];
-            const Icon = subj.Icon;
+            const Icon = areaIcon(am);
             return (
               <div key={a} className="glass glass-hover rounded-[20px] p-4 text-center">
                 <div className="flex items-center justify-center gap-2 text-[13.5px] font-extrabold text-navy">
                   <span
                     className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg"
-                    style={{background: subj.soft, color: subj.hex}}
+                    style={{background: am.soft, color: am.hex}}
                   >
                     <Icon size={15} strokeWidth={2.5} />
                   </span>
-                  {t(`class.areas.${a}`)}
+                  {areaLabel(am, locale)}
                 </div>
                 {w ? (
                   <>
@@ -320,7 +313,7 @@ export default async function ClassPage({
             {AREAS.map((a, i) => {
               const weeks = weeksByArea.get(a) ?? [];
               const wins = weeks.filter((w) => Number(w.pct ?? 0) >= 1).length;
-              const subj = SUBJ[a];
+              const am = areaMeta[a];
               return (
                 <div
                   key={a}
@@ -330,10 +323,10 @@ export default async function ClassPage({
                 >
                   <span
                     className="h-[9px] w-[9px] shrink-0 rounded-full"
-                    style={{background: subj.hex}}
+                    style={{background: am.hex}}
                   />
                   <span className="text-[13px] font-extrabold text-navy">
-                    {t(`class.areas.${a}`)}
+                    {areaLabel(am, locale)}
                   </span>
                   <span className="flex-1" />
                   {weeks.length > 0 ? (
@@ -347,8 +340,8 @@ export default async function ClassPage({
                               title={w.period_label ?? ''}
                               className="grid h-[22px] w-[22px] place-items-center rounded-[7px]"
                               style={{
-                                background: won ? '#1e8a5a' : 'rgba(38,39,93,0.08)',
-                                color: won ? '#ffffff' : '#a6abc4',
+                                background: won ? 'var(--color-success)' : 'rgba(38,39,93,0.08)',
+                                color: won ? '#ffffff' : 'var(--color-grey-mid)',
                               }}
                             >
                               {won ? (
@@ -407,8 +400,8 @@ export default async function ClassPage({
                     <span
                       className="grid h-7 w-7 shrink-0 place-items-center rounded-full"
                       style={{
-                        background: l.done ? '#1e8a5a' : 'rgba(38,39,93,0.08)',
-                        color: l.done ? '#ffffff' : '#a6abc4',
+                        background: l.done ? 'var(--color-success)' : 'rgba(38,39,93,0.08)',
+                        color: l.done ? '#ffffff' : 'var(--color-grey-mid)',
                       }}
                     >
                       {l.done ? (

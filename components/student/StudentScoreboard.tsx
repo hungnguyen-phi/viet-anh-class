@@ -1,8 +1,7 @@
-import {getTranslations} from 'next-intl/server';
+import {getTranslations, getLocale} from 'next-intl/server';
 import {createClient} from '@/lib/supabase/server';
 import type {Profile} from '@/lib/auth';
 import {todayInVN, isoWeekLabel} from '@/lib/dates';
-import {BookOpen, Sparkles, Languages, Bike, type LucideIcon} from 'lucide-react';
 import {DonutRing} from '@/components/charts/DonutRing';
 import {MoodCheckin, type MoodKey} from '@/components/student/MoodCheckin';
 import {LeadTicker, type TickerLead} from '@/components/student/LeadTicker';
@@ -11,16 +10,10 @@ import {
   type StudentMeeting,
   type Classmate,
 } from '@/components/student/StudentMeetings';
+import {StudentWigSetup} from '@/components/student/StudentWigSetup';
+import {AREAS, buildAreaMeta, areaLabel, areaIcon} from '@/lib/areas';
 
-const AREAS = ['knowledge', 'skills', 'english', 'physical'] as const;
-
-// Màu môn (ring theo màu môn cho học sinh) + nền chip alpha + icon.
-const SUBJECTS: Record<string, {color: string; chip: string; Icon: LucideIcon}> = {
-  knowledge: {color: 'var(--color-subj-knowledge)', chip: 'rgba(58,98,201,0.14)', Icon: BookOpen},
-  skills: {color: 'var(--color-subj-skills)', chip: 'rgba(85,127,60,0.14)', Icon: Sparkles},
-  english: {color: 'var(--color-subj-english)', chip: 'rgba(14,124,134,0.14)', Icon: Languages},
-  physical: {color: 'var(--color-subj-physical)', chip: 'rgba(207,90,66,0.14)', Icon: Bike},
-};
+// Màu/icon/nhãn môn lấy từ area_config (fallback = --color-subj-* cũ ⇒ parity).
 
 type WigRow = {
   wig_id: string;
@@ -67,9 +60,17 @@ export async function StudentScoreboard({
   const {data: todayData} = await supabase.rpc('app_today');
   const today = (todayData as unknown as string) ?? todayInVN();
 
+  const locale = await getLocale();
+
   // Truy vấn song song — RLS tự giới hạn quyền xem.
-  const [{data: student}, {data: enr}, {data: wigRows}, {data: meetingRows}, {data: moodRow}] =
-    await Promise.all([
+  const [
+    {data: student},
+    {data: enr},
+    {data: wigRows},
+    {data: meetingRows},
+    {data: moodRow},
+    {data: areaCfg},
+  ] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email').eq('id', studentId).maybeSingle(),
       supabase
         .from('enrollments')
@@ -97,7 +98,9 @@ export async function StudentScoreboard({
         .eq('student_id', studentId)
         .eq('date', today)
         .maybeSingle(),
+      supabase.from('area_config').select('*').order('sort_order'),
     ]);
+  const areaMeta = buildAreaMeta(areaCfg);
 
   if (!student) {
     return (
@@ -188,6 +191,10 @@ export async function StudentScoreboard({
   const canTick = viewer.id === studentId && viewer.role === 'student';
   const displayName = student.full_name ?? student.email;
   const hasWeek = weekRows.length > 0;
+  // C6 — trạng thái WIG cá nhân để hiện bảng thiết lập cho GVCN.
+  const hasYear = yearRows.length > 0;
+  const thisWeekLabel = isoWeekLabel(new Date());
+  const hasThisWeek = weekRows.some((w) => w.period_label === thisWeekLabel);
 
   return (
     <div className="mt-4 flex flex-col gap-[22px]">
@@ -200,7 +207,7 @@ export async function StudentScoreboard({
       {/* Hero: chào mừng + mood check-in (2 cột glass) */}
       <div className="animate-rise grid grid-cols-1 overflow-hidden rounded-[26px] glass md:grid-cols-2">
         <div className="flex items-center gap-[18px] p-7">
-          <span className="animate-wiggle grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[22px] bg-linear-to-b from-gold-soft to-gold font-display text-[28px] font-bold text-navy shadow-[0_4px_12px_rgba(233,180,0,0.35)]">
+          <span className="animate-pop grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[22px] bg-linear-to-b from-gold-soft to-gold font-display text-[28px] font-bold text-navy shadow-[var(--shadow-gold)]">
             ★
           </span>
           <div className="min-w-0">
@@ -222,27 +229,42 @@ export async function StudentScoreboard({
         </div>
       </div>
 
+      {/* C6 — GVCN thiết lập WIG cá nhân (đặt WIG năm / tạo WIG tuần 1 chạm) */}
+      {canManage && classId && (
+        <StudentWigSetup
+          studentId={studentId}
+          classId={classId}
+          hasYear={hasYear}
+          hasThisWeek={hasThisWeek}
+          weekLabel={thisWeekLabel}
+        />
+      )}
+
       {/* WIG năm — bento ring theo màu môn */}
       <section>
-        <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('wigYear')}</h2>
+        <h2 className="font-display text-[17px] font-bold text-navy">{t('wigYear')}</h2>
+        <p className="mb-3 mt-0.5 max-w-[640px] text-[12px] font-semibold leading-relaxed text-grey-mid">
+          {tc('wigGloss')}
+        </p>
         <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
           {AREAS.map((a) => {
             const w = wigByArea.get(a);
-            const s = SUBJECTS[a];
+            const s = areaMeta[a];
+            const Icon = areaIcon(s);
             return (
               <div key={a} className="glass glass-hover rounded-[20px] p-4">
                 <div className="flex items-center gap-[7px] text-[13.5px] font-extrabold text-navy">
                   <span
                     className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg"
-                    style={{background: s.chip, color: s.color}}
+                    style={{background: s.soft, color: s.hex}}
                   >
-                    <s.Icon size={15} strokeWidth={2.5} />
+                    <Icon size={15} strokeWidth={2.5} />
                   </span>
-                  {tc(`areas.${a}`)}
+                  {areaLabel(s, locale)}
                 </div>
                 <div className="mt-3.5 flex justify-center">
                   {w ? (
-                    <DonutRing pct={Number(w.pct ?? 0)} color={s.color} />
+                    <DonutRing pct={Number(w.pct ?? 0)} color={s.hex} />
                   ) : (
                     <div className="grid h-[78px] place-items-center text-xs font-semibold text-grey-mid">
                       {tc('noWig')}
@@ -277,7 +299,7 @@ export async function StudentScoreboard({
                 {AREAS.map((a, i) => {
                   const weeks = weeksByArea.get(a) ?? [];
                   const wins = weeks.filter((w) => Number(w.pct ?? 0) >= 1).length;
-                  const s = SUBJECTS[a];
+                  const s = areaMeta[a];
                   return (
                     <div
                       key={a}
@@ -285,9 +307,9 @@ export async function StudentScoreboard({
                         i < AREAS.length - 1 ? 'border-b border-navy/[0.08]' : ''
                       }`}
                     >
-                      <span className="h-[9px] w-[9px] shrink-0 rounded-full" style={{background: s.color}} />
+                      <span className="h-[9px] w-[9px] shrink-0 rounded-full" style={{background: s.hex}} />
                       <span className="whitespace-nowrap text-[13px] font-extrabold text-navy">
-                        {tc(`areas.${a}`)}
+                        {areaLabel(s, locale)}
                       </span>
                       <span className="flex-1" />
                       <span className="flex gap-[3px]">
@@ -315,7 +337,7 @@ export async function StudentScoreboard({
                         )}
                       </span>
                       {weeks.length > 0 && (
-                        <span className="w-9 text-right font-display text-[15px] font-bold" style={{color: s.color}}>
+                        <span className="w-9 text-right font-display text-[15px] font-bold" style={{color: s.hex}}>
                           {wins}
                           <span className="text-[11.5px] text-grey-mid">/{weeks.length}</span>
                         </span>

@@ -1,6 +1,7 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {redirect} from 'next/navigation';
 import {Lock, CalendarDays, Users} from 'lucide-react';
+import {Link} from '@/i18n/navigation';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getAccessibleClasses, getMyClass} from '@/lib/queries';
@@ -20,12 +21,14 @@ export default async function AttendancePage({
   searchParams,
 }: {
   params: Promise<{locale: string}>;
-  searchParams: Promise<{class?: string}>;
+  searchParams: Promise<{class?: string; date?: string}>;
 }) {
   const {locale} = await params;
-  const {class: classParam} = await searchParams;
+  const {class: classParam, date: dateParam} = await searchParams;
   setRequestLocale(locale);
   const profile = await requireProfile();
+  // Phụ huynh không có việc gì ở trang điểm danh lớp → về báo cáo con mình.
+  if (profile.role === 'parent') redirect('/report');
   const t = await getTranslations('attendance');
   const tc = await getTranslations('class');
   const supabase = await createClient();
@@ -64,7 +67,18 @@ export default async function AttendancePage({
       .eq('class_id', myClass.id)
       .eq('is_active', true),
   ]);
-  const today = (todayData as unknown as string) ?? todayInVN();
+  const realToday = (todayData as unknown as string) ?? todayInVN();
+  // GVCN/admin xem & sửa 7 ngày gần nhất (backfill); học sinh (tổ trưởng) chỉ hôm nay.
+  const canBackfill = profile.role === 'teacher' || profile.role === 'admin';
+  const days: string[] = [];
+  const base = new Date(realToday + 'T00:00:00Z');
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(base);
+    d.setUTCDate(base.getUTCDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  // Ngày đang xem: theo ?date= nếu hợp lệ trong 7 ngày (chỉ GVCN/admin), ngược lại hôm nay.
+  const today = canBackfill && dateParam && days.includes(dateParam) ? dateParam : realToday;
 
   const students = ((enrolls ?? []) as unknown as EnrRow[])
     .map((e) => ({id: e.student_id, name: e.profiles?.full_name ?? e.student_id}))
@@ -105,22 +119,53 @@ export default async function AttendancePage({
         </div>
         <div className="flex items-center gap-2">
           {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold text-status-bad"
-            style={{backgroundColor: 'rgba(192,57,43,0.12)'}}
-          >
-            <Lock size={12} strokeWidth={2.5} />
-            {t('lockedPast')}
-          </span>
+          {!canBackfill && (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold text-status-bad"
+              style={{backgroundColor: 'rgba(192,57,43,0.12)'}}
+            >
+              <Lock size={12} strokeWidth={2.5} />
+              {t('lockedPast')}
+            </span>
+          )}
         </div>
       </div>
+
+      {/* GVCN/Admin: chọn ngày để bổ sung/sửa điểm danh trong 7 ngày gần nhất */}
+      {canBackfill && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {days.map((d) => {
+            const active = d === today;
+            const isToday = d === realToday;
+            const label = new Date(d + 'T00:00:00Z');
+            const dow = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][label.getUTCDay()];
+            return (
+              <Link
+                key={d}
+                href={{pathname: '/attendance', query: {...(classParam ? {class: classParam} : {}), date: d}}}
+                className={`inline-flex flex-col items-center rounded-[10px] px-2.5 py-1.5 text-[11px] font-extrabold leading-tight transition-all ${
+                  active
+                    ? 'btn-gold border border-transparent'
+                    : 'border-[1.5px] border-navy/15 bg-navy/[0.02] text-navy hover:border-navy'
+                }`}
+              >
+                <span>{isToday ? t('todayLabel') : dow}</span>
+                <span className="text-[10px] font-bold opacity-70">{d.slice(5)}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
       {!canEdit && (
         <p className="text-xs italic text-grey-mid">{t('readOnly')}</p>
       )}
       {canEdit && (
         <p className="text-xs italic text-grey-mid">{t('tickAllHint')}</p>
       )}
+      {/* key ép remount khi đổi lớp/ngày → xoá sạch state pending, tránh ghi
+          điểm danh của lớp này sang lớp khác (nhiễm chéo dữ liệu). */}
       <AttendanceTable
+        key={`${myClass.id}-${today}`}
         classId={myClass.id}
         today={today}
         students={students}

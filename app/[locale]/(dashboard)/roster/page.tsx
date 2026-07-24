@@ -4,7 +4,11 @@ import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getAccessibleClasses, getMyClass} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
-import {setAttendanceLeader} from './actions';
+import {ClassCoverUpload} from '@/components/shell/ClassCoverUpload';
+import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {ClassMoodBoard} from '@/components/student/ClassMoodBoard';
+import {EnrollForm} from './EnrollForm';
+import {setAttendanceLeader, removeStudent} from './actions';
 
 type EnrRow = {
   student_id: string;
@@ -17,10 +21,10 @@ export default async function RosterPage({
   searchParams,
 }: {
   params: Promise<{locale: string}>;
-  searchParams: Promise<{class?: string}>;
+  searchParams: Promise<{class?: string; flash?: string}>;
 }) {
   const {locale} = await params;
-  const {class: classParam} = await searchParams;
+  const {class: classParam, flash} = await searchParams;
   setRequestLocale(locale);
   const profile = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('roster');
@@ -40,15 +44,20 @@ export default async function RosterPage({
     );
   }
 
-  const {data: enrolls} = await supabase
-    .from('enrollments')
-    .select('student_id, is_attendance_leader, profiles!enrollments_student_id_fkey(full_name, email)')
-    .eq('class_id', myClass.id)
-    .eq('is_active', true);
+  const [{data: enrolls}, {data: todayVal}] = await Promise.all([
+    supabase
+      .from('enrollments')
+      .select('student_id, is_attendance_leader, profiles!enrollments_student_id_fkey(full_name, email)')
+      .eq('class_id', myClass.id)
+      .eq('is_active', true),
+    supabase.rpc('app_today'),
+  ]);
+  const today = String(todayVal);
 
   const rows = ((enrolls ?? []) as unknown as EnrRow[]).sort((a, b) =>
     (a.profiles?.full_name ?? '').localeCompare(b.profiles?.full_name ?? '', 'vi'),
   );
+  const moodStudents = rows.map((r) => ({id: r.student_id, name: r.profiles?.full_name ?? r.student_id}));
 
   return (
     <div className="space-y-4">
@@ -56,13 +65,25 @@ export default async function RosterPage({
         <h1 className="font-display text-[22px] font-bold text-navy">
           {t('title')} · {myClass.name}
         </h1>
-        {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
+        <div className="flex items-center gap-2">
+          <ClassCoverUpload classId={myClass.id} />
+          {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
+        </div>
       </div>
+
+      {flash && (
+        <div className="rounded-[12px] border border-success/30 bg-success/10 px-4 py-2 text-sm font-semibold text-success">
+          {flash}
+        </div>
+      )}
+
+      {/* Ghi danh / chuyển lớp: nhập email học sinh (đã có tài khoản) */}
+      <EnrollForm classId={myClass.id} />
       <p className="text-xs italic text-grey-mid">{t('leaderHint')}</p>
 
       <div className="glass overflow-x-auto rounded-[20px]">
         {/* Header */}
-        <div className="flex min-w-[560px] items-center gap-2 bg-white/40 px-[18px] py-[10px]">
+        <div className="flex min-w-[640px] items-center gap-2 bg-navy/[0.03] px-[18px] py-[10px]">
           <span className="w-[22px] flex-none text-[11px] font-extrabold text-grey-mid">#</span>
           <span className="flex-1 text-[11px] font-extrabold uppercase text-grey-mid">
             {t('name')}
@@ -73,13 +94,14 @@ export default async function RosterPage({
           <span className="w-[200px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid">
             {t('attendanceLeader')}
           </span>
+          <span className="w-[70px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid" />
         </div>
 
         {/* Rows */}
         {rows.map((r, i) => (
           <div
             key={r.student_id}
-            className="flex min-w-[560px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2 transition-colors hover:bg-white/35"
+            className="flex min-w-[640px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2 transition-colors hover:bg-navy/[0.03]"
           >
             <span className="w-[22px] flex-none text-[12px] font-bold text-grey-mid">{i + 1}</span>
             <span className="min-w-0 flex-1">
@@ -108,7 +130,7 @@ export default async function RosterPage({
                   className={`inline-flex h-8 cursor-pointer items-center gap-[5px] whitespace-nowrap rounded-[10px] px-3 text-[11.5px] font-extrabold text-navy transition-all ${
                     r.is_attendance_leader
                       ? 'btn-gold border-[1.5px] border-transparent'
-                      : 'border-[1.5px] border-navy/20 bg-white/65 hover:border-navy'
+                      : 'border-[1.5px] border-navy/20 bg-navy/[0.02] hover:border-navy'
                   }`}
                 >
                   <svg
@@ -129,9 +151,31 @@ export default async function RosterPage({
                 </button>
               </form>
             </span>
+            <span className="grid w-[70px] flex-none place-items-center">
+              <form action={removeStudent}>
+                <input type="hidden" name="classId" value={myClass.id} />
+                <input type="hidden" name="studentId" value={r.student_id} />
+                <ConfirmButton
+                  message={t('confirmRemove', {name: r.profiles?.full_name ?? r.student_id})}
+                  className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                >
+                  ✕
+                </ConfirmButton>
+              </form>
+            </span>
           </div>
         ))}
+        {rows.length === 0 && (
+          <div className="border-t border-navy/[0.08] px-[18px] py-8 text-center text-sm text-grey-mid">
+            {t('noStudents')}
+          </div>
+        )}
       </div>
+
+      {/* Tổng hợp cảm xúc lớp 7 ngày — cảnh báo sớm tâm lý cho GVCN */}
+      {moodStudents.length > 0 && (
+        <ClassMoodBoard classId={myClass.id} today={today} students={moodStudents} />
+      )}
     </div>
   );
 }

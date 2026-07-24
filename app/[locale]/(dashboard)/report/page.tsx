@@ -2,10 +2,10 @@ import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {Check, X, Trophy} from 'lucide-react';
+import {Link} from '@/i18n/navigation';
 import {DonutRing} from '@/components/charts/DonutRing';
 import {WeekPicker} from '@/components/report/WeekPicker';
-
-const AREAS = ['knowledge', 'skills', 'english', 'physical'] as const;
+import {AREAS, buildAreaMeta, areaLabel} from '@/lib/areas';
 
 type WeekReportRow = {
   area: string;
@@ -23,19 +23,28 @@ export default async function ReportPage({
   searchParams,
 }: {
   params: Promise<{locale: string}>;
-  searchParams: Promise<{week?: string}>;
+  searchParams: Promise<{week?: string; child?: string}>;
 }) {
   const {locale} = await params;
-  const {week: weekParam} = await searchParams;
+  const {week: weekParam, child: childParam} = await searchParams;
   setRequestLocale(locale);
-  await requireRole(['parent', 'admin']);
+  // Chỉ phụ huynh — admin đã có /admin và /student/[id], không xem báo cáo con ngẫu nhiên.
+  await requireRole(['parent']);
   const t = await getTranslations('report');
   const tArea = await getTranslations('class');
   const supabase = await createClient();
+  const {data: areaCfg} = await supabase.from('area_config').select('*').order('sort_order');
+  const areaMeta = buildAreaMeta(areaCfg);
 
-  // Con của phụ huynh (RLS pl_parent_self chỉ trả link của chính họ).
-  const {data: links} = await supabase.from('parent_links').select('student_id').limit(1);
-  const childId = links?.[0]?.student_id;
+  // TẤT CẢ con của phụ huynh (RLS pl_parent_self chỉ trả link của chính họ).
+  const {data: links} = await supabase
+    .from('parent_links')
+    .select('student_id, profiles!parent_links_student_id_fkey(full_name)');
+  const children = ((links ?? []) as unknown as {student_id: string; profiles: {full_name: string | null} | null}[])
+    .map((l) => ({id: l.student_id, name: l.profiles?.full_name ?? l.student_id}))
+    .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+  // Con đang xem: theo ?child= nếu hợp lệ (thuộc phụ huynh), ngược lại con đầu.
+  const childId = childParam && children.some((c) => c.id === childParam) ? childParam : children[0]?.id;
 
   if (!childId) {
     return (
@@ -130,6 +139,24 @@ export default async function ReportPage({
             )}
           </div>
           <div className="ml-auto flex flex-col items-end gap-2">
+            {/* Chọn con khi phụ huynh có nhiều hơn 1 con */}
+            {children.length > 1 && (
+              <div className="flex flex-wrap justify-end gap-1.5">
+                {children.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={{pathname: '/report', query: {child: c.id}}}
+                    className={`rounded-full border px-2.5 py-1 text-[11.5px] font-bold transition-colors ${
+                      c.id === childId
+                        ? 'border-navy bg-navy text-white'
+                        : 'border-navy/15 bg-navy/[0.02] text-navy hover:border-navy'
+                    }`}
+                  >
+                    {c.name}
+                  </Link>
+                ))}
+              </div>
+            )}
             {weeks.length > 0 && week && (
               <WeekPicker weeks={weeks} current={week} label={t('selectWeek')} />
             )}
@@ -171,7 +198,7 @@ export default async function ReportPage({
                 return (
                   <div key={a} className="glass rounded-[20px] p-4">
                     <div className="text-[13.5px] font-extrabold text-navy">
-                      {tArea(`areas.${a}`)}
+                      {areaLabel(areaMeta[a], locale)}
                     </div>
                     <p className="mt-3 text-xs italic text-grey-mid">{t('noWeekData')}</p>
                   </div>
@@ -181,13 +208,13 @@ export default async function ReportPage({
                 <div key={a} className="glass glass-hover rounded-[20px] p-4">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[13.5px] font-extrabold whitespace-nowrap text-navy">
-                      {tArea(`areas.${a}`)}
+                      {areaLabel(areaMeta[a], locale)}
                     </span>
                     <span
                       className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-extrabold"
                       style={{
                         background: r.wig_won ? 'rgba(30,138,90,0.12)' : 'rgba(192,57,43,0.12)',
-                        color: r.wig_won ? '#1e8a5a' : '#c0392b',
+                        color: r.wig_won ? 'var(--color-success-dark)' : '#c0392b',
                       }}
                     >
                       {r.wig_won ? (
@@ -241,7 +268,7 @@ export default async function ReportPage({
                   {meeting.next_actions && (
                     <div className="mt-3.5 border-t border-navy/[0.08] pt-3">
                       <div className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wide text-navy">
-                        <Trophy size={11} strokeWidth={2.5} style={{color: '#e3b400'}} />
+                        <Trophy size={11} strokeWidth={2.5} style={{color: 'var(--color-gold-mid)'}} />
                         {t('nextWeek')}
                       </div>
                       <p className="mt-1.5 text-[13px] leading-[1.7] font-semibold whitespace-pre-line text-txt">

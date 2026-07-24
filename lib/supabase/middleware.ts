@@ -4,7 +4,7 @@ import type {Database} from '@/lib/database.types';
 import {routing} from '@/i18n/routing';
 
 // Đường dẫn công khai (không cần đăng nhập).
-const PUBLIC_PATHS = ['/login', '/auth', '/unauthorized', '/guide'];
+const PUBLIC_PATHS = ['/login', '/auth', '/unauthorized'];
 
 function stripLocale(pathname: string): {locale: string; path: string} {
   const seg = pathname.split('/').filter(Boolean);
@@ -37,9 +37,11 @@ export async function updateSession(
     },
   );
 
-  const {
-    data: {user},
-  } = await supabase.auth.getUser();
+  // getClaims() thay cho getUser(): verify JWT cục bộ (không gọi mạng) khi bật
+  // asymmetric JWT keys. Vẫn refresh token qua getSession() nội bộ nên cookie
+  // phiên được làm mới bình thường; key đối xứng cũ thì tự fallback sang getUser().
+  const {data: claimsData} = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub ?? null;
 
   const {locale, path} = stripLocale(request.nextUrl.pathname);
   const isPublic = PUBLIC_PATHS.some(
@@ -49,14 +51,14 @@ export async function updateSession(
   const redirectTo = (p: string) =>
     NextResponse.redirect(new URL(`${prefix}${p}`, request.url));
 
-  if (!user) {
+  if (!userId) {
     return isPublic ? response : redirectTo('/login');
   }
 
   const {data: profile} = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', user.id)
+    .eq('id', userId)
     .maybeSingle();
   const role = profile?.role ?? 'pending';
 

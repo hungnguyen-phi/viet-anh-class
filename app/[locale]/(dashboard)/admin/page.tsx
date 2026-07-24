@@ -4,15 +4,26 @@ import {createClient} from '@/lib/supabase/server';
 import {schoolYearLabel} from '@/lib/dates';
 import {
   assignGvcn,
-  createCampus,
-  createClass,
   deleteUser,
   disableUser,
-  inviteParent,
   inviteUser,
   setUserRole,
+  setCampusActive,
+  setGradeActive,
+  setClassActive,
 } from './actions';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {SubmitButton} from '@/components/ui/SubmitButton';
+import {CampusForm} from './CampusForm';
+import {ClassForm} from './ClassForm';
+import {ParentForm} from './ParentForm';
+import {headers} from 'next/headers';
+import {CampusCard} from './CampusCard';
+import {ClassManager} from './ClassManager';
+import {AreaConfigForm} from './AreaConfigForm';
+import {SchoolNetworkManager} from './SchoolNetworkManager';
+import {AREAS, buildAreaMeta} from '@/lib/areas';
+import {clientIp} from '@/lib/ip';
 import {Link} from '@/i18n/navigation';
 
 const ROLES = ['admin', 'principal', 'teacher', 'student', 'parent', 'pending'] as const;
@@ -23,10 +34,10 @@ export default async function AdminPage({
   searchParams,
 }: {
   params: Promise<{locale: string}>;
-  searchParams: Promise<{flash?: string}>;
+  searchParams: Promise<{flash?: string; q?: string; upage?: string}>;
 }) {
   const {locale} = await params;
-  const {flash} = await searchParams;
+  const {flash, q: qRaw, upage: upageRaw} = await searchParams;
   setRequestLocale(locale);
   const me = await requireRole(['admin']);
   const t = await getTranslations('admin');
@@ -44,28 +55,102 @@ export default async function AdminPage({
     {href: '/report', label: tn('report'), desc: 'Báo cáo phụ huynh (chỉ con mình)'},
     {href: '/campus', label: tn('campus'), desc: 'Báo cáo cơ sở (BGH)'},
     {href: '/admin', label: tn('admin'), desc: 'Trang quản trị (màn hình này)'},
-    {href: '/guide', label: tcommon('guide'), desc: 'Hướng dẫn sử dụng app'},
     {href: '/login', label: tcommon('login'), desc: 'Màn hình đăng nhập (đăng xuất để xem)'},
   ];
 
-  const [{data: profiles}, {data: campuses}, {data: classes}, {data: grants}, {data: invites}] =
-    await Promise.all([
-      supabase.from('profiles').select('id, full_name, email, role').order('email'),
-      supabase.from('campuses').select('id, name, code').order('name'),
-      supabase
-        .from('classes')
-        .select('id, name, school_year, grade, campus_id, homeroom_teacher_id')
-        .order('name'),
-      supabase.from('pending_user_grants').select('email, role, class_id').order('created_at'),
-      supabase.from('parent_invitations').select('email, student_id, status').order('created_at'),
-    ]);
+  // Phân trang + tìm kiếm bảng người dùng (tránh load TOÀN BỘ PII trong 1 payload).
+  const PAGE = 50;
+  // Loại ký tự phá cú pháp filter PostgREST (,()*) để chống injection ở .or().
+  const q = (qRaw ?? '').replace(/[,()*%]/g, '').trim();
+  const upage = Math.max(1, Number(upageRaw) || 1);
+  const fromIdx = (upage - 1) * PAGE;
 
-  const all = profiles ?? [];
-  const staff = all.filter((p) => ['teacher', 'principal', 'admin'].includes(p.role));
-  const students = all.filter((p) => p.role === 'student');
-  const campusName = new Map((campuses ?? []).map((c) => [c.id, c.name]));
-  const personName = new Map(all.map((p) => [p.id, p.full_name ?? p.email]));
-  const className = new Map((classes ?? []).map((c) => [c.id, c.name]));
+  let usersQuery = supabase
+    .from('profiles')
+    .select('id, full_name, email, role', {count: 'exact'})
+    .order('email')
+    .range(fromIdx, fromIdx + PAGE - 1);
+  if (q) usersQuery = usersQuery.or(`email.ilike.%${q}%,full_name.ilike.%${q}%`);
+
+  const [
+    {data: pageUsers, count: usersTotal},
+    {data: staff},
+    {data: students},
+    {data: campuses},
+    {data: grades},
+    {data: classes},
+    {data: grants},
+    {data: invites},
+    {data: areaCfg},
+    {data: networks},
+  ] = await Promise.all([
+    usersQuery,
+    supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('role', ['teacher', 'principal', 'admin'])
+      .order('email')
+      .limit(500),
+    supabase.from('profiles').select('id, full_name, email').eq('role', 'student').order('email').limit(1000),
+    supabase.from('campuses').select('id, name, code, is_active').order('name'),
+    supabase.from('grades').select('id, name, campus_id, sort_order, is_active').order('sort_order'),
+    supabase
+      .from('classes')
+      .select('id, name, school_year, grade, grade_id, campus_id, homeroom_teacher_id, is_active')
+      .order('name'),
+    supabase.from('pending_user_grants').select('email, role, class_id').order('created_at'),
+    supabase.from('parent_invitations').select('email, student_id, status').order('created_at'),
+    supabase.from('area_config').select('*').order('sort_order'),
+    supabase.from('school_networks').select('id, label, cidr, campus_id, is_active').order('created_at'),
+  ]);
+  const currentIp = clientIp(await headers());
+
+  const rows = pageUsers ?? [];
+  const total = usersTotal ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE));
+  const staffList = staff ?? [];
+  const studentList = students ?? [];
+  const allCampuses = campuses ?? [];
+  const allGrades = grades ?? [];
+  const allClasses = classes ?? [];
+  const campusName = new Map(allCampuses.map((c) => [c.id, c.name]));
+  // Tên người: gộp từ staff + students + trang hiện tại (đủ cho hiển thị GVCN lớp & lời mời).
+  const personName = new Map(
+    [...staffList, ...studentList, ...rows].map((p) => [p.id, p.full_name ?? p.email]),
+  );
+  const className = new Map(allClasses.map((c) => [c.id, c.name]));
+
+  // Tách active / đã-lưu-trữ + gom khối theo cơ sở, đếm lớp theo cơ sở.
+  const activeCampuses = allCampuses.filter((c) => c.is_active);
+  const archivedCampuses = allCampuses.filter((c) => !c.is_active);
+  const activeGrades = allGrades.filter((g) => g.is_active);
+  const archivedGrades = allGrades.filter((g) => !g.is_active);
+  const activeClasses = allClasses.filter((c) => c.is_active);
+  const archivedClasses = allClasses.filter((c) => !c.is_active);
+  const gradesByCampus = new Map<string, typeof activeGrades>();
+  for (const g of activeGrades) {
+    const arr = gradesByCampus.get(g.campus_id) ?? [];
+    arr.push(g);
+    gradesByCampus.set(g.campus_id, arr);
+  }
+  const classCountByCampus = new Map<string, number>();
+  for (const c of activeClasses) {
+    classCountByCampus.set(c.campus_id, (classCountByCampus.get(c.campus_id) ?? 0) + 1);
+  }
+  // Options cho ClassForm/ClassManager (chỉ cơ sở & khối đang hoạt động).
+  const campusOptions = activeCampuses.map((c) => ({id: c.id, name: c.name}));
+  const gradeOptions = activeGrades.map((g) => ({id: g.id, name: g.name, campus_id: g.campus_id}));
+  // Cho form SỬA lớp: gồm cả khối đã lưu-trữ (kèm cờ is_active) để không âm thầm mất khối
+  // khi lớp đang gắn 1 khối đã archive (audit #3).
+  const allGradeOptions = allGrades.map((g) => ({
+    id: g.id,
+    name: g.name,
+    campus_id: g.campus_id,
+    is_active: g.is_active,
+  }));
+  // Cấu hình 4 lĩnh vực 4DX (Môn) — fallback = giá trị hiện tại nếu thiếu row.
+  const areaMeta = buildAreaMeta(areaCfg);
+  const areaRows = AREAS.map((a) => ({area: a, meta: areaMeta[a]}));
   const pendingInvites = [
     ...(grants ?? []).map((g) => ({
       email: g.email,
@@ -82,9 +167,9 @@ export default async function AdminPage({
 
   // Design system v3 — glass on gradient
   const inputCls =
-    'w-full rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white';
+    'w-full rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy';
   const goldBtn =
-    'btn-gold inline-flex h-[38px] cursor-pointer items-center self-start whitespace-nowrap rounded-[12px] px-3.5 text-[12.5px] font-extrabold transition-all';
+    'btn-gold inline-flex h-11 cursor-pointer items-center self-start whitespace-nowrap rounded-[12px] px-3.5 text-[12.5px] font-extrabold transition-all';
   const cardTitle = 'mb-3 font-display text-[15px] font-bold text-navy';
   const th = 'text-[11px] font-extrabold uppercase tracking-wide text-grey-mid';
   const selectSm =
@@ -108,21 +193,39 @@ export default async function AdminPage({
 
       {/* Người dùng + đổi vai trò */}
       <section className="glass rounded-[20px] p-[18px]">
-        <div className={cardTitle}>
-          {t('users')} ({all.length})
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="font-display text-[15px] font-bold text-navy">
+            {t('users')} ({total})
+          </div>
+          <form method="get" className="flex items-center gap-1.5">
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder={t('searchUser')}
+              className="h-10 w-[200px] rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 text-[12.5px] font-semibold text-navy outline-none focus:border-navy"
+            />
+            <button type="submit" className={`${navyBtnSm} h-10`}>
+              {t('search')}
+            </button>
+            {q && (
+              <Link href="/admin" className={outlineBtnSm}>
+                {t('clear')}
+              </Link>
+            )}
+          </form>
         </div>
         <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
-          <div className="box-border flex min-w-[760px] items-center gap-2 bg-white/45 px-[14px] py-[9px]">
+          <div className="box-border flex min-w-[760px] items-center gap-2 bg-navy/[0.03] px-[14px] py-[9px]">
             <span className={`flex-[1.2] ${th}`}>{t('name')}</span>
             <span className={`flex-[1.4] ${th}`}>{t('email')}</span>
             <span className={`flex-1 ${th}`}>{t('role')}</span>
             <span className={`flex-[1.6] ${th}`}>{t('setRole')}</span>
             <span className={`w-[130px] flex-none ${th}`}>{t('actions')}</span>
           </div>
-          {all.map((p) => (
+          {rows.map((p) => (
             <div
               key={p.id}
-              className="box-border flex min-w-[760px] items-center gap-2 border-t border-navy/[0.08] px-[14px] py-2 transition-colors hover:bg-white/35"
+              className="box-border flex min-w-[760px] items-center gap-2 border-t border-navy/[0.08] px-[14px] py-2 transition-colors hover:bg-navy/[0.03]"
             >
               <span className="min-w-0 flex-[1.2] truncate text-[13px] font-bold text-navy">
                 {p.full_name ?? '—'}
@@ -170,106 +273,69 @@ export default async function AdminPage({
               </span>
             </div>
           ))}
+          {rows.length === 0 && (
+            <div className="border-t border-navy/[0.08] px-[14px] py-3 text-[13px] text-grey-mid">
+              {t('none')}
+            </div>
+          )}
         </div>
+        {/* Phân trang */}
+        {totalPages > 1 && (
+          <div className="mt-3 flex items-center justify-center gap-2 text-[12.5px] font-bold text-navy">
+            {upage > 1 && (
+              <Link
+                href={{pathname: '/admin', query: {...(q ? {q} : {}), upage: upage - 1}}}
+                className={outlineBtnSm}
+              >
+                ← {t('prev')}
+              </Link>
+            )}
+            <span className="text-grey-mid">
+              {upage} / {totalPages}
+            </span>
+            {upage < totalPages && (
+              <Link
+                href={{pathname: '/admin', query: {...(q ? {q} : {}), upage: upage + 1}}}
+                className={outlineBtnSm}
+              >
+                {t('next')} →
+              </Link>
+            )}
+          </div>
+        )}
       </section>
 
       {/* Tạo cơ sở · Tạo lớp · Mời người dùng · Phân công GVCN · Mời phụ huynh */}
       <div className="grid items-start gap-4 [grid-template-columns:repeat(auto-fit,minmax(340px,1fr))]">
-        {/* Tạo cơ sở + danh sách */}
+        {/* Tạo cơ sở */}
         <section className="glass rounded-[20px] p-[18px]">
           <div className={cardTitle}>{t('createCampus')}</div>
-          <form action={createCampus} className="flex flex-wrap items-center gap-2">
-            <input
-              name="name"
-              placeholder={t('name')}
-              required
-              className="min-w-[140px] flex-1 rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white"
-            />
-            <input
-              name="code"
-              placeholder={t('code')}
-              required
-              className="w-[90px] rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white"
-            />
-            <button type="submit" className={goldBtn}>
-              + {t('createCampus')}
-            </button>
-          </form>
-          <div className="mb-1.5 mt-3.5 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
-            {t('campuses')} ({(campuses ?? []).length})
-          </div>
-          <div className="rounded-[12px] border-[1.5px] border-navy/10">
-            {(campuses ?? []).map((c, i) => (
-              <div
-                key={c.id}
-                className={`flex justify-between px-[13px] py-[9px] text-[13px] ${
-                  i > 0 ? 'border-t border-navy/[0.08]' : ''
-                }`}
-              >
-                <span className="font-bold text-navy">{c.name}</span>
-                <span className="font-semibold text-grey-mid">{c.code}</span>
-              </div>
-            ))}
-            {(campuses ?? []).length === 0 && (
-              <div className="px-[13px] py-[9px] text-[13px] text-grey-mid">{t('none')}</div>
-            )}
-          </div>
+          <CampusForm />
+          <p className="mt-2.5 text-[11px] font-semibold italic text-grey-mid">{t('manageBelowHint')}</p>
         </section>
 
         {/* Tạo lớp */}
         <section className="glass rounded-[20px] p-[18px]">
           <div className={cardTitle}>{t('createClass')}</div>
-          <form action={createClass} className="flex flex-col gap-2">
-            <div className="flex gap-2">
-              <input name="name" placeholder={t('name')} required className={inputCls} />
-              <input
-                name="grade"
-                placeholder={t('grade')}
-                className="w-20 rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white"
-              />
-            </div>
-            <input
-              name="school_year"
-              defaultValue={defaultYear}
-              placeholder={t('schoolYear')}
-              required
-              className={inputCls}
-            />
-            <select name="campus_id" required defaultValue="" className={`cursor-pointer ${inputCls}`}>
-              <option value="" disabled>
-                — {t('campus')} —
-              </option>
-              {(campuses ?? []).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <select
-              name="homeroom_teacher_id"
-              defaultValue=""
-              className={`cursor-pointer ${inputCls}`}
-            >
-              <option value="">
-                — {t('gvcn')} ({t('none')}) —
-              </option>
-              {staff.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.full_name ?? s.email}
-                </option>
-              ))}
-            </select>
-            <button type="submit" className={goldBtn}>
-              + {t('createClass')}
-            </button>
-          </form>
+          <ClassForm
+            campuses={campusOptions}
+            grades={gradeOptions}
+            teachers={staffList}
+            defaultYear={defaultYear}
+          />
         </section>
 
         {/* Mời người dùng mới */}
         <section className="glass rounded-[20px] p-[18px]">
           <div className={cardTitle}>{t('inviteUser')}</div>
           <form action={inviteUser} className="flex flex-col gap-2">
-            <input name="email" type="email" placeholder={t('email')} required className={inputCls} />
+            <textarea
+              name="email"
+              placeholder={t('emailsMulti')}
+              required
+              rows={2}
+              className={`${inputCls} min-h-[44px] resize-y`}
+            />
             <select name="role" required defaultValue="" className={`cursor-pointer ${inputCls}`}>
               <option value="" disabled>
                 — {t('selectRole')} —
@@ -284,15 +350,15 @@ export default async function AdminPage({
               <option value="">
                 — {t('selectClass')} ({t('none')}) —
               </option>
-              {(classes ?? []).map((c) => (
+              {activeClasses.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} · {c.school_year}
                 </option>
               ))}
             </select>
-            <button type="submit" className={goldBtn}>
+            <SubmitButton className={goldBtn} wrapClass="contents">
               + {t('inviteUser')}
-            </button>
+            </SubmitButton>
             <div className="text-[10.5px] font-semibold italic text-grey-mid">{t('applyNote')}</div>
           </form>
         </section>
@@ -305,9 +371,9 @@ export default async function AdminPage({
               <option value="" disabled>
                 — {t('selectUser')} —
               </option>
-              {all.map((p) => (
+              {staffList.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.full_name ?? p.email} ({tr(p.role)})
+                  {p.full_name ?? p.email}
                 </option>
               ))}
             </select>
@@ -315,90 +381,68 @@ export default async function AdminPage({
               <option value="" disabled>
                 — {t('selectClass')} —
               </option>
-              {(classes ?? []).map((c) => (
+              {activeClasses.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} · {c.school_year}
                 </option>
               ))}
             </select>
-            <button type="submit" className={goldBtn}>
+            <SubmitButton className={goldBtn} wrapClass="contents">
               {t('assignGvcn')}
-            </button>
+            </SubmitButton>
           </form>
         </section>
 
         {/* Mời phụ huynh */}
         <section className="glass rounded-[20px] p-[18px]">
           <div className={cardTitle}>{t('inviteParent')}</div>
-          <form action={inviteParent} className="flex flex-wrap items-center gap-2">
-            <input
-              name="email"
-              type="email"
-              placeholder={t('email')}
-              required
-              className="min-w-[160px] flex-1 rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white"
-            />
-            <select
-              name="student_id"
-              required
-              defaultValue=""
-              className="w-[170px] cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white"
-            >
-              <option value="" disabled>
-                — {t('student')} —
-              </option>
-              {students.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.full_name ?? s.email}
-                </option>
-              ))}
-            </select>
-            <button type="submit" className={goldBtn}>
-              {t('invite')}
-            </button>
-          </form>
+          <ParentForm students={studentList} />
         </section>
       </div>
 
-      {/* Danh sách lớp đầy đủ */}
+      {/* Cơ sở & Khối — quản lý sửa/lưu-trữ/xoá, khối lồng bên trong mỗi cơ sở */}
       <section className="glass rounded-[20px] p-[18px]">
         <div className={cardTitle}>
-          {t('classes')} ({(classes ?? []).length})
+          {t('manageCampusGrade')} ({activeCampuses.length})
         </div>
-        <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
-          <div className="box-border flex min-w-[640px] items-center gap-2 bg-white/45 px-[14px] py-[9px]">
-            <span className={`flex-1 ${th}`}>{t('name')}</span>
-            <span className={`w-[70px] flex-none ${th}`}>{t('grade')}</span>
-            <span className={`flex-1 ${th}`}>{t('schoolYear')}</span>
-            <span className={`flex-1 ${th}`}>{t('campus')}</span>
-            <span className={`flex-1 ${th}`}>{t('gvcn')}</span>
+        {activeCampuses.length === 0 ? (
+          <div className="rounded-[12px] border-[1.5px] border-navy/10 px-[13px] py-[9px] text-[13px] text-grey-mid">
+            {t('none')}
           </div>
-          {(classes ?? []).map((c) => (
-            <div
-              key={c.id}
-              className="box-border flex min-w-[640px] items-center gap-2 border-t border-navy/[0.08] px-[14px] py-[9px] transition-colors hover:bg-white/35"
-            >
-              <span className="flex-1 text-[13px] font-bold text-navy">{c.name}</span>
-              <span className="w-[70px] flex-none text-[12.5px] font-semibold text-grey-mid">
-                {c.grade ?? '—'}
-              </span>
-              <span className="flex-1 text-[12.5px] font-semibold text-grey-mid">
-                {c.school_year}
-              </span>
-              <span className="flex-1 text-[12.5px] font-semibold text-grey-mid">
-                {campusName.get(c.campus_id) ?? '—'}
-              </span>
-              <span className="flex-1 text-[12.5px] font-semibold text-grey-mid">
-                {c.homeroom_teacher_id ? personName.get(c.homeroom_teacher_id) ?? '—' : t('none')}
-              </span>
-            </div>
-          ))}
-          {(classes ?? []).length === 0 && (
-            <div className="border-t border-navy/[0.08] px-[14px] py-[9px] text-[13px] text-grey-mid">
-              {t('none')}
-            </div>
-          )}
-        </div>
+        ) : (
+          <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
+            {activeCampuses.map((c) => (
+              <CampusCard
+                key={c.id}
+                campus={{id: c.id, name: c.name, code: c.code}}
+                grades={(gradesByCampus.get(c.id) ?? []).map((g) => ({
+                  id: g.id,
+                  name: g.name,
+                  sort_order: g.sort_order,
+                }))}
+                classCount={classCountByCampus.get(c.id) ?? 0}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Lớp — quản lý sửa/lưu-trữ/xoá + mở trang chi tiết */}
+      <section className="glass rounded-[20px] p-[18px]">
+        <ClassManager
+          classes={activeClasses.map((c) => ({
+            id: c.id,
+            name: c.name,
+            grade_id: c.grade_id,
+            grade: c.grade,
+            school_year: c.school_year,
+            campus_id: c.campus_id,
+            homeroom_teacher_id: c.homeroom_teacher_id,
+          }))}
+          campuses={campusOptions}
+          grades={allGradeOptions}
+          teachers={staffList}
+        />
       </section>
 
       {/* Lời mời đang chờ */}
@@ -419,6 +463,63 @@ export default async function AdminPage({
                 <span className="font-semibold text-grey-mid">{p.detail}</span>
               </div>
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* Môn — cấu hình 4 lĩnh vực 4DX (nhãn/màu/icon/đơn vị) */}
+      <section className="glass rounded-[20px] p-[18px]">
+        <div className={cardTitle}>{t('manageAreas')}</div>
+        <p className="mb-3 text-xs text-grey-mid">{t('areasHint')}</p>
+        <AreaConfigForm rows={areaRows} />
+      </section>
+
+      {/* Điểm danh & Wifi trường — cổng IP cho check-in cảm xúc */}
+      <section className="glass rounded-[20px] p-[18px]">
+        <div className={cardTitle}>{t('networkTitle')}</div>
+        <SchoolNetworkManager
+          networks={networks ?? []}
+          campuses={campusOptions}
+          currentIp={currentIp}
+        />
+      </section>
+
+      {/* Đã lưu trữ — khôi phục Cơ sở / Khối / Lớp */}
+      {archivedCampuses.length + archivedGrades.length + archivedClasses.length > 0 && (
+        <section className="glass rounded-[20px] p-[18px]">
+          <div className={cardTitle}>
+            {t('archived')} ({archivedCampuses.length + archivedGrades.length + archivedClasses.length})
+          </div>
+          <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
+            <ArchivedCol
+              label={t('campuses')}
+              restoreLabel={t('restore')}
+              emptyLabel={t('none')}
+              rows={archivedCampuses.map((c) => ({id: c.id, label: c.name, sub: c.code}))}
+              action={setCampusActive}
+            />
+            <ArchivedCol
+              label={t('grades')}
+              restoreLabel={t('restore')}
+              emptyLabel={t('none')}
+              rows={archivedGrades.map((g) => ({
+                id: g.id,
+                label: g.name,
+                sub: campusName.get(g.campus_id) ?? '',
+              }))}
+              action={setGradeActive}
+            />
+            <ArchivedCol
+              label={t('classes')}
+              restoreLabel={t('restore')}
+              emptyLabel={t('none')}
+              rows={archivedClasses.map((c) => ({
+                id: c.id,
+                label: c.name,
+                sub: campusName.get(c.campus_id) ?? '',
+              }))}
+              action={setClassActive}
+            />
           </div>
         </section>
       )}
@@ -444,6 +545,55 @@ export default async function AdminPage({
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+// Cột "Đã lưu trữ" cho 1 loại (cơ sở/khối/lớp) — mỗi dòng có nút Khôi phục (server action).
+function ArchivedCol({
+  label,
+  restoreLabel,
+  emptyLabel,
+  rows,
+  action,
+}: {
+  label: string;
+  restoreLabel: string;
+  emptyLabel: string;
+  rows: {id: string; label: string; sub: string}[];
+  action: (formData: FormData) => void | Promise<void>;
+}) {
+  return (
+    <div>
+      <div className="mb-1.5 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+        {label} ({rows.length})
+      </div>
+      <div className="rounded-[12px] border-[1.5px] border-navy/10">
+        {rows.map((r, i) => (
+          <div
+            key={r.id}
+            className={`flex items-center justify-between gap-2 px-3 py-2 ${
+              i > 0 ? 'border-t border-navy/[0.08]' : ''
+            }`}
+          >
+            <div className="min-w-0">
+              <div className="truncate text-[13px] font-bold text-navy">{r.label}</div>
+              {r.sub && <div className="truncate text-[11px] font-semibold text-grey-mid">{r.sub}</div>}
+            </div>
+            <form action={action}>
+              <input type="hidden" name="id" value={r.id} />
+              <input type="hidden" name="active" value="true" />
+              <button
+                type="submit"
+                className="h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700"
+              >
+                {restoreLabel}
+              </button>
+            </form>
+          </div>
+        ))}
+        {rows.length === 0 && <div className="px-3 py-2 text-[12px] text-grey-mid">{emptyLabel}</div>}
+      </div>
     </div>
   );
 }

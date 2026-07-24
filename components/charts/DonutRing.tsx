@@ -23,6 +23,8 @@ export function DonutRing({
   const fontSize = Math.round(size * 0.22);
   return (
     <div
+      role="img"
+      aria-label={`Tiến độ ${percent}%`}
       className="relative mx-auto grid place-items-center rounded-full"
       style={{
         height: size,
@@ -31,7 +33,7 @@ export function DonutRing({
       }}
     >
       <div
-        className="absolute rounded-full bg-white/85"
+        className="absolute rounded-full bg-white"
         style={{inset}}
       />
       <span

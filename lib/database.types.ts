@@ -9,6 +9,18 @@
 export type Database = {
   public: {
     Tables: {
+      notifications: {
+        Row: { id: string; user_id: string; title: string; body: string | null; link: string | null; read: boolean; created_at: string }
+        Insert: { id?: string; user_id: string; title: string; body?: string | null; link?: string | null; read?: boolean; created_at?: string }
+        Update: { id?: string; user_id?: string; title?: string; body?: string | null; link?: string | null; read?: boolean; created_at?: string }
+        Relationships: []
+      }
+      timetable_slots: {
+        Row: { id: string; class_id: string; day_of_week: number; period_no: number; subject: string; room: string | null; created_at: string }
+        Insert: { id?: string; class_id: string; day_of_week: number; period_no: number; subject: string; room?: string | null; created_at?: string }
+        Update: { id?: string; class_id?: string; day_of_week?: number; period_no?: number; subject?: string; room?: string | null; created_at?: string }
+        Relationships: []
+      }
       attendance_records: {
         Row: {
           class_id: string
@@ -120,14 +132,87 @@ export type Database = {
         }
         Relationships: []
       }
+      area_config: {
+        Row: {
+          area: Database["public"]["Enums"]["wig_area"]
+          color_hex: string
+          default_unit: string | null
+          icon_name: string
+          label_en: string
+          label_vi: string
+          soft_rgba: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          area: Database["public"]["Enums"]["wig_area"]
+          color_hex: string
+          default_unit?: string | null
+          icon_name: string
+          label_en: string
+          label_vi: string
+          soft_rgba: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          area?: Database["public"]["Enums"]["wig_area"]
+          color_hex?: string
+          default_unit?: string | null
+          icon_name?: string
+          label_en?: string
+          label_vi?: string
+          soft_rgba?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      grades: {
+        Row: {
+          campus_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          campus_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          campus_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grades_campus_id_fkey"
+            columns: ["campus_id"]
+            isOneToOne: false
+            referencedRelation: "campuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           campus_id: string
           cover_image_url: string | null
           created_at: string
           grade: string | null
+          grade_id: string | null
           homeroom_teacher_id: string | null
           id: string
+          is_active: boolean
           name: string
           school_year: string
         }
@@ -136,8 +221,10 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           grade?: string | null
+          grade_id?: string | null
           homeroom_teacher_id?: string | null
           id?: string
+          is_active?: boolean
           name: string
           school_year: string
         }
@@ -146,8 +233,10 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           grade?: string | null
+          grade_id?: string | null
           homeroom_teacher_id?: string | null
           id?: string
+          is_active?: boolean
           name?: string
           school_year?: string
         }
@@ -157,6 +246,13 @@ export type Database = {
             columns: ["campus_id"]
             isOneToOne: false
             referencedRelation: "campuses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classes_grade_id_fkey"
+            columns: ["grade_id"]
+            isOneToOne: false
+            referencedRelation: "grades"
             referencedColumns: ["id"]
           },
           {
@@ -211,6 +307,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          sub_category: string | null
           target_value: number
           title: string
           unit: string | null
@@ -219,6 +316,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          sub_category?: string | null
           target_value: number
           title: string
           unit?: string | null
@@ -227,6 +325,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          sub_category?: string | null
           target_value?: number
           title?: string
           unit?: string | null
@@ -481,6 +580,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          intro_seen: boolean
           locale: string
           role: Database["public"]["Enums"]["user_role"]
         }
@@ -491,6 +591,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          intro_seen?: boolean
           locale?: string
           role?: Database["public"]["Enums"]["user_role"]
         }
@@ -501,6 +602,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          intro_seen?: boolean
           locale?: string
           role?: Database["public"]["Enums"]["user_role"]
         }
@@ -571,6 +673,50 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_networks: {
+        Row: {
+          campus_id: string | null
+          cidr: string
+          created_at: string
+          geo_lat: number | null
+          geo_lng: number | null
+          geo_radius_m: number | null
+          id: string
+          is_active: boolean
+          label: string
+        }
+        Insert: {
+          campus_id?: string | null
+          cidr: string
+          created_at?: string
+          geo_lat?: number | null
+          geo_lng?: number | null
+          geo_radius_m?: number | null
+          id?: string
+          is_active?: boolean
+          label: string
+        }
+        Update: {
+          campus_id?: string | null
+          cidr?: string
+          created_at?: string
+          geo_lat?: number | null
+          geo_lng?: number | null
+          geo_radius_m?: number | null
+          id?: string
+          is_active?: boolean
+          label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_networks_campus_id_fkey"
+            columns: ["campus_id"]
+            isOneToOne: false
+            referencedRelation: "campuses"
             referencedColumns: ["id"]
           },
         ]
@@ -814,6 +960,27 @@ export type Database = {
       }
     }
     Functions: {
+      admin_delete_user: { Args: { p_user: string }; Returns: undefined }
+      mark_attendance_on: {
+        Args: {
+          p_class: string
+          p_student: string
+          p_status: Database["public"]["Enums"]["attendance_status"]
+          p_date: string
+        }
+        Returns: undefined
+      }
+      current_school_year: { Args: never; Returns: string }
+      class_scoreboard: {
+        Args: { p_class: string }
+        Returns: { category: string; sub_category: string | null; points: number; lead_count: number }[]
+      }
+      campus_ranks: {
+        Args: never
+        Returns: { class_id: string; name: string; school_year: string; score: number; att_today: number }[]
+      }
+      enroll_student_by_email: { Args: { p_class: string; p_email: string }; Returns: string }
+      unenroll_student: { Args: { p_class: string; p_student: string }; Returns: undefined }
       app_today: { Args: never; Returns: string }
       auth_campus: { Args: never; Returns: string }
       auth_role: {
@@ -894,6 +1061,15 @@ export type Database = {
       set_my_mood: {
         Args: { p_mood: Database["public"]["Enums"]["mood_level"] }
         Returns: undefined
+      }
+      ip_allowed: { Args: { p_ip: string }; Returns: boolean }
+      student_checkin: {
+        Args: {
+          p_student: string
+          p_mood: Database["public"]["Enums"]["mood_level"]
+          p_ip: string
+        }
+        Returns: string
       }
       staff_can_manage_class: { Args: { c: string }; Returns: boolean }
       staff_can_read_class: { Args: { c: string }; Returns: boolean }

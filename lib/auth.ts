@@ -24,19 +24,24 @@ export function homeRouteForRole(role: Role): string {
 }
 
 // cache() theo request: layout + page cùng gọi requireProfile nhưng chỉ tốn
-// 1 lượt getUser + 1 lượt profiles cho mỗi request (trước đây nhân đôi).
+// 1 lượt xác thực + 1 lượt profiles cho mỗi request (trước đây nhân đôi).
+//
+// getClaims() thay cho getUser(): khi project bật asymmetric JWT keys, JWT được
+// verify CỤC BỘ bằng WebCrypto — KHÔNG gọi mạng tới Auth server mỗi lần chuyển
+// trang. Vẫn an toàn phiên vì getClaims gọi getSession() bên trong, tự refresh
+// token khi gần/hết hạn. Với key đối xứng cũ (HS256), getClaims tự fallback sang
+// getUser() nên hành vi không đổi (không hồi quy khi chưa bật toggle).
 export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
-  const {
-    data: {user},
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const {data} = await supabase
+  const {data} = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub;
+  if (!userId) return null;
+  const {data: profile} = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user.id)
+    .eq('id', userId)
     .maybeSingle();
-  return data ?? null;
+  return profile ?? null;
 });
 
 // Dùng trong layout/page server: bắt buộc đã đăng nhập + đã được cấp quyền.

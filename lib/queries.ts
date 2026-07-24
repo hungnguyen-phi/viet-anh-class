@@ -24,11 +24,12 @@ export async function getMyClass(
     if (data) return data;
   }
 
-  // 1) Lớp mình chủ nhiệm (đúng cho cả admin nếu được gán GVCN)
+  // 1) Lớp mình chủ nhiệm (đúng cho cả admin nếu được gán GVCN) — bỏ qua lớp đã lưu-trữ.
   const {data: owned} = await supabase
     .from('classes')
     .select('*')
     .eq('homeroom_teacher_id', profile.id)
+    .eq('is_active', true)
     .limit(1)
     .maybeSingle();
   if (owned) return owned;
@@ -51,11 +52,12 @@ export async function getMyClass(
     return cls ?? null;
   }
 
-  // 3) Admin/BGH → lớp đầu tiên truy cập được (RLS tự giới hạn phạm vi)
+  // 3) Admin/BGH → lớp đầu tiên truy cập được (RLS tự giới hạn phạm vi) — bỏ qua lớp đã lưu-trữ.
   if (profile.role === 'admin' || profile.role === 'principal') {
     const {data} = await supabase
       .from('classes')
       .select('*')
+      .eq('is_active', true)
       .order('name')
       .limit(1)
       .maybeSingle();
@@ -76,6 +78,7 @@ export async function getAccessibleClasses(
     const {data} = await supabase
       .from('classes')
       .select('id, name, school_year')
+      .eq('is_active', true)
       .order('name');
     return data ?? [];
   }
@@ -84,6 +87,7 @@ export async function getAccessibleClasses(
       .from('classes')
       .select('id, name, school_year')
       .eq('homeroom_teacher_id', profile.id)
+      .eq('is_active', true)
       .order('name');
     return data ?? [];
   }

@@ -1,6 +1,7 @@
 'use client';
 
 import {useRouter, usePathname} from '@/i18n/navigation';
+import {useSearchParams} from 'next/navigation';
 
 // Bộ lọc tuần cho báo cáo phụ huynh — đổi ?week= giữ nguyên trang.
 export function WeekPicker({
@@ -14,7 +15,14 @@ export function WeekPicker({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   if (weeks.length === 0) return null;
+
+  const goWeek = (w: string) => {
+    const q = new URLSearchParams(searchParams.toString());
+    q.set('week', w); // giữ ?child= và các tham số khác
+    router.push(`${pathname}?${q.toString()}`);
+  };
 
   return (
     <div className="flex flex-col items-end gap-2">
@@ -28,7 +36,7 @@ export function WeekPicker({
             <button
               key={w}
               type="button"
-              onClick={() => router.push(`${pathname}?week=${encodeURIComponent(w)}`)}
+              onClick={() => goWeek(w)}
               className={`inline-flex h-8 cursor-pointer items-center rounded-[10px] px-3 text-xs font-extrabold whitespace-nowrap text-navy transition-all ${
                 active
                   ? 'btn-gold border border-transparent'

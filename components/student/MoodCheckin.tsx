@@ -1,11 +1,12 @@
 'use client';
 
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTranslations} from 'next-intl';
 import {useRouter} from '@/i18n/navigation';
-import {Clock, Pencil, Loader2} from 'lucide-react';
-import {createClient} from '@/lib/supabase/client';
+import {Clock, Pencil, Loader2, WifiOff} from 'lucide-react';
+import {checkinMood} from '@/app/[locale]/(dashboard)/student/actions';
+import {useFocusTrap} from '@/lib/useFocusTrap';
 import type {Database} from '@/lib/database.types';
 
 export type MoodKey = Database['public']['Enums']['mood_level'];
@@ -46,11 +47,18 @@ export function MoodCheckin({
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<MoodKey | null>(initialMood);
   const [saving, setSaving] = useState(false);
-  const [supabase] = useState(() => createClient());
+  const [err, setErr] = useState<string | null>(null);
   const [now, setNow] = useState('');
   // Portal cần document → chỉ bật sau khi mount (tránh lệch SSR).
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  // Đóng popup → xoá thông báo lỗi cũ (mở lại không thấy lỗi thừa).
+  useEffect(() => {
+    if (!open) setErr(null);
+  }, [open]);
+  // Bẫy focus trong popup: đưa focus vào khi mở, giữ Tab, trả focus khi đóng.
+  const cardRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(open && canEdit && mounted, cardRef);
 
   // Đồng hồ HH:MM (giờ máy) — thông tin nhẹ, cập nhật mỗi phút.
   useEffect(() => {
@@ -66,17 +74,35 @@ export function MoodCheckin({
     if (canEdit && initialMood === null) setOpen(true);
   }, [canEdit, initialMood]);
 
+  // Đóng bằng phím Esc khi popup mở (không "kẹt" người dùng trong modal).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
   const byKey = useMemo(() => new Map(MOODS.map((m) => [m.key, m])), []);
 
   async function send() {
     if (!draft || saving) return;
     setSaving(true);
-    const {error} = await supabase.rpc('set_my_mood', {p_mood: draft});
+    setErr(null);
+    // Check-in = cảm xúc + điểm danh, có cổng IP mạng trường (kiểm ở server).
+    const res = await checkinMood(draft);
     setSaving(false);
-    if (!error) {
+    if (res.ok) {
       setMood(draft);
       setOpen(false);
       router.refresh();
+    } else if (res.blocked) {
+      setErr(t('moodBlocked'));
+    } else if (res.noClass) {
+      setErr(t('moodNoClass'));
+    } else {
+      setErr(t('moodError'));
     }
   }
 
@@ -143,9 +169,20 @@ export function MoodCheckin({
         canEdit &&
         mounted &&
         createPortal(
-          <div className="animate-fade fixed inset-0 z-50 flex items-center justify-center bg-navy/25 p-5 backdrop-blur-[10px]">
-          <div className="w-[440px] max-w-full rounded-[26px] bg-white/55 p-6 pb-5 shadow-pop ring-1 ring-white/75 backdrop-blur-[36px]">
-            <div className="text-center font-display text-[21px] font-bold text-navy">{t('mood')}</div>
+          <div
+            className="animate-fade fixed inset-0 z-50 flex items-center justify-center bg-navy/25 p-5 backdrop-blur-[10px]"
+            onClick={() => setOpen(false)}
+          >
+          <div
+            ref={cardRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mood-title"
+            className="w-[440px] max-w-full rounded-[26px] bg-white p-6 pb-5 shadow-pop outline-none ring-1 ring-navy/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div id="mood-title" className="text-center font-display text-[21px] font-bold text-navy">{t('mood')}</div>
             <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[14px] font-extrabold text-navy">
               <Clock size={14} strokeWidth={2.5} />
               {now}
@@ -180,11 +217,17 @@ export function MoodCheckin({
             {draft && (
               <div className="mt-3 text-center text-sm font-bold text-navy">{t(`levels.${draft}`)}</div>
             )}
+            {err && (
+              <div className="mt-3 flex items-center justify-center gap-1.5 rounded-[12px] border border-status-bad/30 bg-status-bad/[0.08] px-3 py-2 text-center text-[12.5px] font-bold text-status-bad">
+                <WifiOff size={14} strokeWidth={2.5} className="shrink-0" />
+                {err}
+              </div>
+            )}
             <button
               type="button"
               onClick={send}
               disabled={!draft || saving}
-              className="btn-gold mx-auto mt-4 flex h-10 cursor-pointer items-center gap-2 rounded-xl px-8 font-display text-[14px] font-bold disabled:opacity-45"
+              className="btn-gold mx-auto mt-4 flex h-11 cursor-pointer items-center gap-2 rounded-xl px-8 font-display text-[14px] font-bold disabled:opacity-45"
             >
               {saving && <Loader2 size={15} className="animate-spin" />}
               {draft ? t('moodSend') : t('moodPickFirst')}

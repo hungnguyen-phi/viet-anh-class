@@ -46,13 +46,36 @@ const WALK_KEYFRAMES = `
 const WK_R = ['va-wk-r', 'va-wk-r1', 'va-wk-r2'];
 const WK_L = ['va-wk-l', 'va-wk-l1', 'va-wk-l2'];
 
-type Row = {s: number; w: number; h: number; bottom: number; op: number; dur: [number, number]};
+// Chiều sâu bằng ĐỘ NHÒE (blur) + hơi sương (haze), KHÔNG bằng độ trong suốt —
+// để học sinh ở xa vẫn ĐẶC, không lộ lớp sau xuyên qua người phía trước.
+// Lớp gần (cuối) to nhất & nét; lớp xa nhỏ hơn, nhòe & hơi nhạt màu (như sương).
+type Row = {s: number; w: number; h: number; bottom: number; blur: number; haze: number; dur: [number, number]};
 const ROWS: Row[] = [
-  {s: 13, w: 6, h: 190, bottom: 72, op: 0.42, dur: [55, 75]},
-  {s: 13, w: 6, h: 200, bottom: 34, op: 0.72, dur: [40, 55]},
-  {s: 12, w: 5, h: 210, bottom: -12, op: 1, dur: [26, 40]},
+  {s: 7, w: 12, h: 176, bottom: 72, blur: 1.5, haze: 0.7, dur: [55, 75]},
+  {s: 8, w: 11, h: 206, bottom: 34, blur: 0.7, haze: 0.3, dur: [40, 55]},
+  {s: 7, w: 9, h: 238, bottom: -14, blur: 0, haze: 0, dur: [26, 40]},
 ];
 const SEED = 71;
+
+// Bộ lọc chiều sâu: nhòe + giảm bão hoà/tăng sáng nhẹ (sương mù không khí).
+function depthFilter(blur: number, haze: number): string {
+  const parts: string[] = [];
+  if (blur > 0) parts.push(`blur(${blur}px)`);
+  if (haze > 0)
+    parts.push(`saturate(${(1 - 0.16 * haze).toFixed(2)})`, `brightness(${(1 + 0.05 * haze).toFixed(2)})`);
+  return parts.length ? parts.join(' ') : 'none';
+}
+
+// Xáo trộn có seed (Fisher–Yates) → lấy tuần tự để KHÔNG trùng sprite;
+// chỉ khi vượt số ảnh mới lặp (đảm bảo ≤ 2 lần/sprite khi cần ≤ 2× kho).
+function shuffled<T>(arr: T[], rand: () => number): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 function rng(seed: number) {
   let s = seed >>> 0;
@@ -70,13 +93,14 @@ type Walker = {
   w: number;
   h: number;
   bottom: number;
-  op: number;
+  filter: string;
   kf: string;
   dur: number;
   delay: number;
   bob: number;
   bobDelay: number;
   flip: boolean;
+  hide: boolean; // true = ẩn trên mobile (giảm mật độ ~60%)
 };
 
 // Keyframe riêng cho 1 người đứng: đứng ở "home", thỉnh thoảng nhích ±vài vw rồi về.
@@ -96,6 +120,8 @@ function standKeyframe(name: string, home: number, rand: () => number): string {
 
 function buildCrowd(): {walkers: Walker[]; css: string} {
   const rand = rng(SEED);
+  const standPool = shuffled(STAND, rand);
+  const walkPool = shuffled(WALK, rand);
   let sp = 0;
   let wp = 0;
   const out: Walker[] = [];
@@ -104,7 +130,7 @@ function buildCrowd(): {walkers: Walker[]; css: string} {
   ROWS.forEach((L, li) => {
     // Người ĐỨNG — dàn đều "home" khắp 2..98vw + jitter, mỗi người 1 keyframe riêng.
     for (let i = 0; i < L.s; i++) {
-      const k = STAND[sp++ % STAND.length];
+      const k = standPool[sp++ % standPool.length];
       const home = 2 + ((i + 0.5) / L.s) * 96 + (rand() - 0.5) * 7;
       const name = `va-cs-${li}-${i}`;
       kfs.push(standKeyframe(name, home, rand));
@@ -116,18 +142,19 @@ function buildCrowd(): {walkers: Walker[]; css: string} {
         w,
         h,
         bottom: L.bottom + Math.round((rand() - 0.5) * 10),
-        op: L.op,
+        filter: depthFilter(L.blur, L.haze),
         kf: name,
         dur: +(90 + rand() * 70).toFixed(0), // chậm, chu kỳ dài → nhích thưa
         delay: +(-rand() * 90).toFixed(1), // pha ngẫu nhiên → không nhích cùng lúc
         bob: +(2.4 + rand() * 1.8).toFixed(2),
         bobDelay: +(-rand() * 3).toFixed(2),
         flip: rand() < 0.5,
+        hide: i % 5 >= 2, // mobile: giữ 2/5 người đứng
       });
     }
     // Người ĐI — đi ngang qua, 2 chiều xen kẽ, pha rải đều.
     for (let i = 0; i < L.w; i++) {
-      const k = WALK[wp++ % WALK.length];
+      const k = walkPool[wp++ % walkPool.length];
       const d = i % 2; // 0 = đi phải, 1 = đi trái
       const base = ((L.dur[0] + L.dur[1]) / 2) * (d ? 1.06 : 0.94);
       const dur = +(base * (1 + (rand() - 0.5) * 0.12)).toFixed(1);
@@ -139,18 +166,22 @@ function buildCrowd(): {walkers: Walker[]; css: string} {
         w: Math.round(L.h * (0.95 + rand() * 0.08) * k[1]),
         h: Math.round(L.h * (0.95 + rand() * 0.08)),
         bottom: L.bottom + 4,
-        op: L.op,
+        filter: depthFilter(L.blur, L.haze),
         kf: arr[Math.floor(rand() * arr.length)],
         dur,
         delay: +(-ph * dur).toFixed(1),
         bob: +(2.4 + rand() * 1.8).toFixed(2),
         bobDelay: +(-rand() * 3).toFixed(2),
         flip: d === 0, // sprite đi quay mặt trái → làn đi phải phải lật
+        hide: i % 5 >= 2, // mobile: giữ 2/5 người đi
       });
     }
   });
 
-  return {walkers: out, css: WALK_KEYFRAMES + kfs.join('')};
+  // Mobile: --cs 0.75 (to ~×1.5 so mức 0.5), --cb nâng cả crowd lên khỏi đáy (tránh cắt giày).
+  const mobileCss =
+    '@media(max-width:640px){.va-crowd{--cs:0.75;--cb:26px}.va-crowd .va-hide-sm{display:none}}';
+  return {walkers: out, css: WALK_KEYFRAMES + kfs.join('') + mobileCss};
 }
 
 export function StudentCrowd() {
@@ -161,11 +192,11 @@ export function StudentCrowd() {
       {walkers.map((wk) => (
         <div
           key={wk.key}
-          className="absolute left-0"
+          className={`absolute left-0${wk.hide ? ' va-hide-sm' : ''}`}
           style={{
-            bottom: wk.bottom,
-            marginLeft: -wk.w / 2,
-            opacity: wk.op,
+            bottom: `calc(${wk.bottom}px + var(--cb, 0px))`,
+            marginLeft: `calc(${-wk.w / 2}px * var(--cs, 1))`,
+            filter: wk.filter,
             animation: `${wk.kf} ${wk.dur}s linear infinite`,
             animationDelay: `${wk.delay}s`,
           }}
@@ -182,7 +213,16 @@ export function StudentCrowd() {
               alt=""
               width={wk.w}
               height={wk.h}
-              style={{display: 'block', transform: wk.flip ? 'scaleX(-1)' : undefined}}
+              style={{
+                display: 'block',
+                // Mobile thu nhỏ (var --cs) → sprite được DOWNSCALE thay vì phóng to → giảm hẳn răng cưa.
+                width: `calc(${wk.w}px * var(--cs, 1))`,
+                height: `calc(${wk.h}px * var(--cs, 1))`,
+                // Ép layer GPU + lấy mẫu ảnh chất lượng cao khi animate trên mobile DPR cao.
+                transform: `${wk.flip ? 'scaleX(-1) ' : ''}translateZ(0)`,
+                backfaceVisibility: 'hidden',
+                imageRendering: 'auto',
+              }}
             />
           </div>
         </div>

@@ -22,9 +22,9 @@ export function LocaleSwitcher() {
       onClick={() =>
         startTransition(() => router.replace(pathname, {locale: other}))
       }
-      className="glass-pill inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-extrabold text-navy transition-all hover:bg-white disabled:opacity-50"
+      className="glass-pill inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-extrabold text-navy ring-1 ring-navy/10 transition-colors hover:ring-navy/20 disabled:opacity-50"
     >
-      <Languages size={16} strokeWidth={2} />
+      <Languages size={15} strokeWidth={2.2} />
       {locale === 'vi' ? 'EN' : 'VI'}
     </button>
   );

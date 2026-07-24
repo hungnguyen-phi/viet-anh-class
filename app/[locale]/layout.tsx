@@ -1,6 +1,6 @@
 import type {Metadata} from 'next';
 import {NextIntlClientProvider, hasLocale} from 'next-intl';
-import {setRequestLocale} from 'next-intl/server';
+import {getMessages, setRequestLocale} from 'next-intl/server';
 import {notFound} from 'next/navigation';
 import {Baloo_2, Nunito} from 'next/font/google';
 import {routing} from '@/i18n/routing';
@@ -43,11 +43,14 @@ export default async function LocaleLayout({
     notFound();
   }
   setRequestLocale(locale);
+  // Truyền messages tường minh → prop được serialize kèm provider, client component
+  // luôn có context dù render server fallback (tránh lỗi "NextIntlClientProvider not found").
+  const messages = await getMessages();
 
   return (
     <html lang={locale} className={`${baloo.variable} ${nunito.variable}`}>
       <body className="min-h-screen font-body text-ink antialiased">
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
       </body>
     </html>
   );

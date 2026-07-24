@@ -9,7 +9,10 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const tokenHash = searchParams.get('token_hash');
   const type = searchParams.get('type') as EmailOtpType | null;
-  const next = searchParams.get('next');
+  // Chỉ nhận đường dẫn nội bộ bắt đầu bằng đúng MỘT dấu "/" (chặn open-redirect:
+  // "//evil.com", "/\evil.com", "https://evil.com", "@evil.com"... đều bị loại).
+  const nextParam = searchParams.get('next');
+  const next = nextParam && /^\/(?![/\\])/.test(nextParam) ? nextParam : null;
 
   const supabase = await createClient();
   let ok = false;

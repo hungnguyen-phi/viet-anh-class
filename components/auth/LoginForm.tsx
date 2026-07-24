@@ -6,9 +6,11 @@ import {Loader2, Check} from 'lucide-react';
 import {createClient} from '@/lib/supabase/client';
 
 // ============================================================
-// DEMO LOGIN (tạm — XOÁ khối này + seed tương ứng trước khi deploy production).
+// DEMO LOGIN — chỉ hiện khi NEXT_PUBLIC_ENABLE_DEMO='1' (bật ở .env.local để dev).
+// Production (Vercel) KHÔNG có cờ này → khối demo tự động biến mất khỏi UI.
 // Mật khẩu đặt trong supabase/seed.sql, chỉ tồn tại trên DB demo/local.
 // ============================================================
+const SHOW_DEMO = process.env.NEXT_PUBLIC_ENABLE_DEMO === '1';
 const DEMO_PASSWORD = 'demo1234';
 const DEMO_ACCOUNTS: {role: string; email: string; to: string; label?: string}[] = [
   {role: 'teacher', email: 'co.lan@truongvietanh.com', to: '/'},
@@ -74,7 +76,12 @@ export function LoginForm() {
     const supabase = createClient();
     const {error} = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {redirectTo: `${window.location.origin}/auth/callback`},
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        // Máy trường/thư viện dùng chung → luôn hiện chọn tài khoản, tránh đăng nhập nhầm
+        // vào phiên Google của người trước. Giới hạn miền thực thi ở server (hook + trigger).
+        queryParams: {prompt: 'select_account'},
+      },
     });
     if (error) {
       setError(t('errorGeneric'));
@@ -93,7 +100,12 @@ export function LoginForm() {
     const supabase = createClient();
     const {error} = await supabase.auth.signInWithOtp({
       email,
-      options: {emailRedirectTo: `${window.location.origin}/auth/callback`},
+      // Form phụ huynh chỉ dành cho tài khoản ĐÃ được admin mời → không tự tạo user mới
+      // (chặn kẻ lạ gõ email trường để cướp/phá lời mời GVCN/HS/phụ huynh).
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
     setLoading(false);
     if (error) setError(t('errorGeneric'));
@@ -188,7 +200,8 @@ export function LoginForm() {
         )}
       </div>
 
-      {/* DEMO — đăng nhập nhanh theo vai trò (xoá trước khi deploy production) */}
+      {/* DEMO — đăng nhập nhanh theo vai trò (chỉ hiện khi NEXT_PUBLIC_ENABLE_DEMO='1') */}
+      {SHOW_DEMO && (
       <div className="w-full">
         <div className="flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-wider text-navy/40">
           <span className="h-px flex-1 bg-navy/10" />
@@ -210,6 +223,7 @@ export function LoginForm() {
           ))}
         </div>
       </div>
+      )}
     </div>
   );
 }
