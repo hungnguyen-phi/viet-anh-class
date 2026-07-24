@@ -1,0 +1,39 @@
+# Cấu hình Supabase dạng code (Infrastructure-as-Code) cho Viet Anh Class.
+#
+# ⚠️  TÙY CHỌN — chỉ dùng nếu bạn quản lý project bằng Supabase CLI:
+#       supabase link --project-ref eagsageokobtidpmxucx
+#       supabase config push        # đẩy cấu hình [auth] này lên cloud
+#
+#     Cách CHÍNH THỐNG (khuyên dùng) để bật Google SSO là bấm trên Dashboard —
+#     xem docs/google-sso-setup.md. File này chỉ để lưu cấu hình dạng version-control.
+#
+# ⚠️  KHÔNG bao giờ ghi Client Secret trực tiếp vào đây. Dùng biến môi trường (env(...)).
+#     Đặt các biến trong .env (cạnh CLI) trước khi `config push`:
+#       SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=...
+#       SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=...
+
+project_id = "eagsageokobtidpmxucx"
+
+[auth]
+# Đổi site_url sang domain production khi deploy thật.
+site_url = "http://localhost:6868"
+additional_redirect_urls = [
+  "http://localhost:6868/**",
+  "http://localhost:3001/**",
+  "http://localhost:3000/**",
+  "https://viet-anh-class.vercel.app/**",
+]
+jwt_expiry = 3600
+enable_signup = true
+
+# Google SSO — secret lấy từ biến môi trường, KHÔNG hardcode.
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+
+# Hook chặn tạo tài khoản ngoài miền trường (hàm đã có ở migration 0005).
+# Nếu phiên bản CLI chưa hỗ trợ hook này, hãy bật bằng tay trên Dashboard (Bước 4 của runbook).
+[auth.hook.before_user_created]
+enabled = true
+uri = "pg-functions://postgres/public/restrict_signup_by_email_domain"
