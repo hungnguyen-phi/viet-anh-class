@@ -54,7 +54,9 @@ const LINKS: Record<string, NavItem[]> = {
   principal: [
     {href: '/campus', key: 'campus', Icon: Building2},
     {href: '/', key: 'scoreboard', Icon: LayoutDashboard},
+    {href: '/roster', key: 'roster', Icon: Users},
     {href: '/scoreboard', key: 'compete', Icon: Trophy},
+    {href: '/meeting', key: 'meeting', Icon: MessagesSquare},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
     {href: '/notifications', key: 'notifications', Icon: Bell},
   ],

@@ -26,7 +26,9 @@ export default async function RosterPage({
   const {locale} = await params;
   const {class: classParam, flash} = await searchParams;
   setRequestLocale(locale);
-  const profile = await requireRole(['teacher', 'admin']);
+  const profile = await requireRole(['teacher', 'admin', 'principal']);
+  // BGH chỉ XEM (danh sách + mở từng em); GVCN/Admin mới quản lý (ghi danh, tổ trưởng, xoá).
+  const canManage = profile.role === 'teacher' || profile.role === 'admin';
   const t = await getTranslations('roster');
   const tc = await getTranslations('class');
   const supabase = await createClient();
@@ -66,7 +68,7 @@ export default async function RosterPage({
           {t('title')} · {myClass.name}
         </h1>
         <div className="flex items-center gap-2">
-          <ClassCoverUpload classId={myClass.id} />
+          {canManage && <ClassCoverUpload classId={myClass.id} />}
           {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
         </div>
       </div>
@@ -77,9 +79,13 @@ export default async function RosterPage({
         </div>
       )}
 
-      {/* Ghi danh / chuyển lớp: nhập email học sinh (đã có tài khoản) */}
-      <EnrollForm classId={myClass.id} />
-      <p className="text-xs italic text-grey-mid">{t('leaderHint')}</p>
+      {/* Ghi danh / chuyển lớp: nhập email học sinh (đã có tài khoản) — chỉ GVCN/Admin */}
+      {canManage && (
+        <>
+          <EnrollForm classId={myClass.id} />
+          <p className="text-xs italic text-grey-mid">{t('leaderHint')}</p>
+        </>
+      )}
 
       <div className="glass overflow-x-auto rounded-[20px]">
         {/* Header */}
@@ -117,51 +123,61 @@ export default async function RosterPage({
               {r.profiles?.email}
             </span>
             <span className="grid w-[200px] flex-none place-items-center">
-              <form action={setAttendanceLeader}>
-                <input type="hidden" name="classId" value={myClass.id} />
-                <input type="hidden" name="studentId" value={r.student_id} />
-                <input
-                  type="hidden"
-                  name="value"
-                  value={(!r.is_attendance_leader).toString()}
-                />
-                <button
-                  type="submit"
-                  className={`inline-flex h-8 cursor-pointer items-center gap-[5px] whitespace-nowrap rounded-[10px] px-3 text-[11.5px] font-extrabold text-navy transition-all ${
-                    r.is_attendance_leader
-                      ? 'btn-gold border-[1.5px] border-transparent'
-                      : 'border-[1.5px] border-navy/20 bg-navy/[0.02] hover:border-navy'
-                  }`}
-                >
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    style={{
-                      fill: r.is_attendance_leader ? '#26275d' : 'transparent',
-                      stroke: 'currentColor',
-                      strokeWidth: 2,
-                      strokeLinecap: 'round',
-                      strokeLinejoin: 'round',
-                    }}
+              {canManage ? (
+                <form action={setAttendanceLeader}>
+                  <input type="hidden" name="classId" value={myClass.id} />
+                  <input type="hidden" name="studentId" value={r.student_id} />
+                  <input
+                    type="hidden"
+                    name="value"
+                    value={(!r.is_attendance_leader).toString()}
+                  />
+                  <button
+                    type="submit"
+                    className={`inline-flex h-8 cursor-pointer items-center gap-[5px] whitespace-nowrap rounded-[10px] px-3 text-[11.5px] font-extrabold text-navy transition-all ${
+                      r.is_attendance_leader
+                        ? 'btn-gold border-[1.5px] border-transparent'
+                        : 'border-[1.5px] border-navy/20 bg-navy/[0.02] hover:border-navy'
+                    }`}
                   >
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
-                  {r.is_attendance_leader ? t('attendanceLeader') : t('makeLeader')}
-                </button>
-              </form>
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      style={{
+                        fill: r.is_attendance_leader ? '#26275d' : 'transparent',
+                        stroke: 'currentColor',
+                        strokeWidth: 2,
+                        strokeLinecap: 'round',
+                        strokeLinejoin: 'round',
+                      }}
+                    >
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                    {r.is_attendance_leader ? t('attendanceLeader') : t('makeLeader')}
+                  </button>
+                </form>
+              ) : r.is_attendance_leader ? (
+                <span className="inline-flex h-8 items-center gap-[5px] rounded-[10px] bg-gold/15 px-3 text-[11.5px] font-extrabold text-navy">
+                  ★ {t('attendanceLeader')}
+                </span>
+              ) : (
+                <span className="text-[11px] text-grey-soft">—</span>
+              )}
             </span>
             <span className="grid w-[70px] flex-none place-items-center">
-              <form action={removeStudent}>
-                <input type="hidden" name="classId" value={myClass.id} />
-                <input type="hidden" name="studentId" value={r.student_id} />
-                <ConfirmButton
-                  message={t('confirmRemove', {name: r.profiles?.full_name ?? r.student_id})}
-                  className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
-                >
-                  ✕
-                </ConfirmButton>
-              </form>
+              {canManage && (
+                <form action={removeStudent}>
+                  <input type="hidden" name="classId" value={myClass.id} />
+                  <input type="hidden" name="studentId" value={r.student_id} />
+                  <ConfirmButton
+                    message={t('confirmRemove', {name: r.profiles?.full_name ?? r.student_id})}
+                    className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                  >
+                    ✕
+                  </ConfirmButton>
+                </form>
+              )}
             </span>
           </div>
         ))}

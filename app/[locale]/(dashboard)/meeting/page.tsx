@@ -28,7 +28,9 @@ export default async function MeetingPage({
   const {locale} = await params;
   const {class: classParam} = await searchParams;
   setRequestLocale(locale);
-  const profile = await requireRole(['teacher', 'admin']);
+  const profile = await requireRole(['teacher', 'admin', 'principal']);
+  // BGH chỉ XEM biên bản + panel; GVCN/Admin mới ghi/sửa/xoá.
+  const canManage = profile.role === 'teacher' || profile.role === 'admin';
   const t = await getTranslations('meeting');
   const tc = await getTranslations('class');
   const supabase = await createClient();
@@ -67,9 +69,11 @@ export default async function MeetingPage({
       {/* PRD Màn 5: "cầm scoreboard mà họp" — WIG tuần/lead của lớp tuần này */}
       <MeetingScoreboard classId={myClass.id} weekLabel={defaultWeek} />
 
-      <section className="glass rounded-[20px] p-[18px]">
-        <MeetingForm classId={myClass.id} defaultWeek={defaultWeek} />
-      </section>
+      {canManage && (
+        <section className="glass rounded-[20px] p-[18px]">
+          <MeetingForm classId={myClass.id} defaultWeek={defaultWeek} />
+        </section>
+      )}
 
       <section>
         <h2 className="mb-2.5 font-display text-[15px] font-bold text-navy">{t('history')}</h2>
@@ -83,16 +87,18 @@ export default async function MeetingPage({
               <div key={m.id} className="glass rounded-[20px] px-[18px] py-4">
                 <div className="flex items-center gap-2">
                   <div className="font-display text-[15px] font-bold text-navy">{m.week_label}</div>
-                  <form action={deleteMeeting} className="ml-auto">
-                    <input type="hidden" name="id" value={m.id} />
-                    {classParam && <input type="hidden" name="class" value={classParam} />}
-                    <ConfirmButton
-                      message={t('confirmDeleteMeeting')}
-                      className="grid h-7 w-7 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
-                    >
-                      ✕
-                    </ConfirmButton>
-                  </form>
+                  {canManage && (
+                    <form action={deleteMeeting} className="ml-auto">
+                      <input type="hidden" name="id" value={m.id} />
+                      {classParam && <input type="hidden" name="class" value={classParam} />}
+                      <ConfirmButton
+                        message={t('confirmDeleteMeeting')}
+                        className="grid h-7 w-7 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                      >
+                        ✕
+                      </ConfirmButton>
+                    </form>
+                  )}
                 </div>
                 {m.results && (
                   <p className="mt-1.5 text-[13px] font-semibold text-navy">
