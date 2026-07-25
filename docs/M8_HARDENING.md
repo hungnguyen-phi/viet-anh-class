@@ -30,10 +30,13 @@ Dùng cho cron nhắc điểm danh. Dời schema có thể làm hỏng `net.http
 review hạ tầng.
 
 ### 3. Bật trong Dashboard ([NGƯỜI])
-- **Authentication → Providers → Google** (đăng nhập GV/HS) + **Auth Hook "Before User Created"** → `restrict_signup_by_email_domain`.
-- **Authentication → Emails → Custom SMTP** (đăng nhập email + đã cấu hình cho reminder).
-- **Authentication → Policies → Leaked Password Protection**: bật (WARN advisor).
-- **Database → Backups → Point-in-Time Recovery**: bật (có thể cần gói trả phí).
+- **Authentication → Providers → Google** + **Auth Hook "Before User Created"** (`restrict_signup_by_email_domain`):
+  đã có cấu hình dạng IaC trong `supabase/config.toml` (`[auth.external.google]`, `[auth.hook.before_user_created]`)
+  — chạy `supabase config push` để áp (cần secret Google trong biến môi trường CLI, xem
+  `docs/google-sso-setup.md`). Vẫn có thể bật tay trên Dashboard nếu không dùng CLI.
+- **Authentication → Emails → Custom SMTP** (đăng nhập email + đã cấu hình cho reminder) — chưa có trong `config.toml`, vẫn cần bật tay.
+- **Authentication → Policies → Leaked Password Protection**: bật (WARN advisor) — chưa có trong `config.toml`, vẫn cần bật tay.
+- **Database → Backups → Point-in-Time Recovery**: bật (có thể cần gói trả phí) — chỉ bật được qua Dashboard.
 
 ### 4. Trước go-live
 - **Xoá dữ liệu seed giả** (lớp 6A1/8A2/7B1, HS demo, BGH/parent demo) trước khi nhập dữ liệu thật.

@@ -385,7 +385,21 @@ export async function resolveEditRequest(formData: FormData) {
   if (!data || data.length === 0) backToStudent(student_id, 'Yêu cầu đã được xử lý trước đó.');
   const r = data[0];
   if (apply && decision === 'approved' && r.kind === 'undo_tick' && r.ref_id) {
-    await supabase.from('lead_progress').delete().eq('lead_measure_id', r.ref_id).eq('student_id', r.student_id);
+    // Chỉ gỡ LƯỢT TICK GẦN NHẤT (không xoá cả lịch sử của lead measure) — khớp
+    // undo() tự-phục-vụ ở LeadTicker.tsx (luôn thao tác trên 1 lead_progress.id cụ thể).
+    const {data: target, error: findErr} = await supabase
+      .from('lead_progress')
+      .select('id')
+      .eq('lead_measure_id', r.ref_id)
+      .eq('student_id', r.student_id)
+      .order('created_at', {ascending: false})
+      .limit(1)
+      .maybeSingle();
+    if (findErr) backToStudent(student_id, friendlyError(findErr));
+    if (target) {
+      const {error: delErr} = await supabase.from('lead_progress').delete().eq('id', target.id);
+      if (delErr) backToStudent(student_id, friendlyError(delErr));
+    }
     revalidatePath('/');
     backToStudent(student_id, 'Đã duyệt & gỡ tick');
   }

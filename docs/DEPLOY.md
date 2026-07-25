@@ -4,10 +4,14 @@ Runbook cụ thể cho dự án này, bám theo `DEPLOY-PLAYBOOK.md` (build ở 
 File repo đã tạo sẵn: `Dockerfile`, `.dockerignore`, `.github/workflows/deploy.yml`,
 `app/api/health/route.ts`, và `output: 'standalone'` trong `next.config.ts`.
 
-> ⚠️ **CẢNH BÁO GO-LIVE (đã được chủ dự án chấp nhận, ghi lại để minh bạch).**
-> Ghi chú audit 2026-07-22 chấm production **35/100**: RLS còn **rò dữ liệu học sinh (trẻ em)**,
-> mất điểm danh, WIG cá nhân lỗi. Đây là lỗi **ứng dụng/DB**, KHÔNG do hạ tầng deploy dưới đây khắc phục.
-> Deploy production khi chưa vá = có nguy cơ lộ dữ liệu trẻ em. **Nên vá RLS trước khi mở cho phụ huynh/học sinh thật.**
+> ⚠️ **CẬP NHẬT GO-LIVE (2026-07-25).** Ghi chú audit 2026-07-22 chấm production **35/100**: RLS còn
+> rò dữ liệu học sinh (trẻ em), mất điểm danh, WIG cá nhân lỗi. **Đã viết xong migration
+> `supabase/migrations/0037_audit_fixes_100.sql` + fix code vá toàn bộ các lỗi cụ thể đã xác nhận**
+> (mất điểm danh do RPC `mark_attendance_on` drift chưa có migration, timezone `student_checkin()`
+> dùng `current_date` UTC thay vì `vn_today()`, storage `class-covers` không kiểm chủ sở hữu lớp,
+> "Duyệt & gỡ tick" xoá nhầm toàn bộ lịch sử tick thay vì 1 lượt, thiếu GRANT `pending_user_grants`).
+> **CHƯA áp migration này lên Supabase production** — cần tự chạy `supabase db push` (hoặc dán
+> `0037_audit_fixes_100.sql` vào SQL Editor) trước khi coi là đã khắc phục trên môi trường thật.
 
 ---
 
