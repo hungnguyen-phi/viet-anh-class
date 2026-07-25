@@ -422,7 +422,9 @@
     "score": "Score",
     "attToday": "Attendance today",
     "marked": "marks",
-    "noClasses": "No classes in this campus yet."
+    "noClasses": "No classes in this campus yet.",
+    "manageGrades": "Manage grades",
+    "createClass": "Create class"
   },
   "scoreboard": {
     "title": "Competition scoreboard",

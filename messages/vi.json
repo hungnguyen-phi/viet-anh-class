@@ -422,7 +422,9 @@
     "score": "Điểm thi đua",
     "attToday": "Điểm danh hôm nay",
     "marked": "lượt",
-    "noClasses": "Chưa có lớp nào trong cơ sở."
+    "noClasses": "Chưa có lớp nào trong cơ sở.",
+    "manageGrades": "Quản lý Khối",
+    "createClass": "Tạo lớp"
   },
   "scoreboard": {
     "title": "Bảng điểm thi đua",

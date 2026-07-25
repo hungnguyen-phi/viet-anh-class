@@ -24,7 +24,7 @@ export default async function ClassDetailPage({
 }) {
   const {locale, id} = await params;
   setRequestLocale(locale);
-  await requireRole(['admin']);
+  await requireRole(['admin', 'principal']); // BGH quản lý lớp trong campus mình (RLS gate)
   const t = await getTranslations('admin');
   const tn = await getTranslations('nav');
   const supabase = await createClient();

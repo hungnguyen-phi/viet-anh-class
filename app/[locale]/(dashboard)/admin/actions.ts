@@ -101,7 +101,7 @@ export type ClassState = {
 // initial state {ok:false} định nghĩa trong client form ('use server' chỉ export async function).
 
 export async function createClass(_prev: ClassState, formData: FormData): Promise<ClassState> {
-  await requireRole(['admin']);
+  await requireRole(['admin', 'principal']); // RLS class_principal_insert giới hạn campus
   const name = String(formData.get('name') ?? '').trim();
   const grade_id = String(formData.get('grade_id') ?? '');
   const school_year = String(formData.get('school_year') ?? '').trim();
@@ -294,7 +294,7 @@ export async function deleteCampus(formData: FormData) {
 
 // ---------- KHỐI ----------
 export async function createGrade(formData: FormData) {
-  await requireRole(['admin']);
+  await requireRole(['admin', 'principal']); // RLS grade_principal_manage giới hạn campus
   const campus_id = String(formData.get('campus_id') ?? '');
   const name = String(formData.get('name') ?? '').trim();
   const sort_order = Number(formData.get('sort_order') ?? 0) || 0;
@@ -307,7 +307,7 @@ export async function createGrade(formData: FormData) {
 }
 
 export async function updateGrade(formData: FormData) {
-  await requireRole(['admin']);
+  await requireRole(['admin', 'principal']);
   const id = String(formData.get('id') ?? '');
   const name = String(formData.get('name') ?? '').trim();
   const sort_order = Number(formData.get('sort_order') ?? 0) || 0;
@@ -324,7 +324,7 @@ export async function updateGrade(formData: FormData) {
 }
 
 export async function setGradeActive(formData: FormData) {
-  await requireRole(['admin']);
+  await requireRole(['admin', 'principal']);
   const id = String(formData.get('id') ?? '');
   const active = String(formData.get('active') ?? '') === 'true';
   if (!id) flash('Thiếu khối');
@@ -335,7 +335,7 @@ export async function setGradeActive(formData: FormData) {
 }
 
 export async function deleteGrade(formData: FormData) {
-  await requireRole(['admin']);
+  await requireRole(['admin', 'principal']);
   const id = String(formData.get('id') ?? '');
   if (!id) flash('Thiếu khối');
   const supabase = await createClient();
@@ -352,7 +352,7 @@ export async function deleteGrade(formData: FormData) {
 
 // ---------- LỚP ----------
 export async function updateClass(formData: FormData) {
-  await requireRole(['admin']);
+  await requireRole(['admin', 'principal']);
   const id = String(formData.get('id') ?? '');
   const name = String(formData.get('name') ?? '').trim();
   const school_year = String(formData.get('school_year') ?? '').trim();
@@ -380,7 +380,7 @@ export async function updateClass(formData: FormData) {
 }
 
 export async function setClassActive(formData: FormData) {
-  await requireRole(['admin']);
+  await requireRole(['admin', 'principal']);
   const id = String(formData.get('id') ?? '');
   const active = String(formData.get('active') ?? '') === 'true';
   if (!id) flash('Thiếu lớp');
@@ -394,7 +394,7 @@ export async function setClassActive(formData: FormData) {
 }
 
 export async function deleteClass(formData: FormData) {
-  await requireRole(['admin']);
+  await requireRole(['admin', 'principal']);
   const id = String(formData.get('id') ?? '');
   if (!id) flash('Thiếu lớp');
   const supabase = await createClient();
