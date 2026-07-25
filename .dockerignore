@@ -1,0 +1,36 @@
+# deps & build output — build lại trong image
+node_modules
+.next
+out
+build
+
+# vcs & ci
+.git
+.github
+
+# env & secrets — KHÔNG bao giờ bake vào image
+.env
+.env.*
+.vercel
+.vercelignore
+
+# supabase: giữ migrations/functions; bỏ state CLI cục bộ
+supabase/.branches
+supabase/.temp
+
+# tài liệu & tài sản dev (không cần lúc build/runtime)
+docs
+tests
+*.md
+/PRD_Viet_Anh_Class_v3.docx
+/Timeline_Viet_Anh_Class.xlsx
+/Timeline_Viet_Anh_Class_moi.xlsx
+/Wireframes_Viet_Anh_Class.html
+.impeccable
+_oxlintrc.json
+
+# misc
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+Thumbs.db

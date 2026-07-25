@@ -1,0 +1,61 @@
+name: build-and-deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=long
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64      # 1 kiến trúc (VPS amd64) — tránh build đa-arch chậm
+          provenance: false           # manifest ĐƠN → pull gọn
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha        # tái dùng layer giữa các lần build
+          cache-to: type=gha,mode=max
+          # NEXT_PUBLIC_* bị nội tuyến lúc build → phải truyền vào đây (xem Dockerfile).
+          # Giá trị public (URL + anon key); lưu ở Secrets để log CI không lộ, dù bản thân là public.
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    # Chỉ chạy khi đã dựng xong platform (Coolify) và bật cờ. Chưa set → chỉ build+push GHCR.
+    if: ${{ vars.DEPLOY_ON == 'true' }}
+    steps:
+      - run: |
+          curl -fsS -X POST \
+            "${{ secrets.DEPLOY_HOOK_URL }}/api/v1/deploy?uuid=${{ secrets.DEPLOY_APP_ID }}&force=true" \
+            -H "Authorization: Bearer ${{ secrets.DEPLOY_TOKEN }}"
