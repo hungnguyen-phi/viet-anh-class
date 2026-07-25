@@ -18,7 +18,7 @@ File repo đã tạo sẵn: `Dockerfile`, `.dockerignore`, `.github/workflows/de
 | `NEXT_PUBLIC_SUPABASE_URL` | public, **build-time** | GitHub **Secret** → build-arg (đã nối trong workflow) | `NEXT_PUBLIC_*` bị **nội tuyến lúc `next build`**, không đọc lúc chạy |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public, **build-time** | GitHub **Secret** → build-arg | như trên (anon key vốn public, RLS bảo vệ dữ liệu) |
 | `SUPABASE_SERVICE_ROLE_KEY` | **bí mật, runtime** | **Coolify → Environment variables** | server-only (cổng IP check-in). **KHÔNG** bake vào image, KHÔNG là build-arg |
-| `PORT` | runtime | Coolify (`3000`) | khớp `EXPOSE 3000` / healthcheck |
+| `PORT` | runtime | Coolify (`8080`) | khớp `EXPOSE 8080` / healthcheck |
 | `NEXT_PUBLIC_ENABLE_DEMO` | — | **KHÔNG set ở production** | có set = hiện khối demo login. Bỏ trống = ẩn |
 
 > Nên set **cả 3 biến Supabase** trong Coolify runtime (URL + anon + service_role) cho chắc, dù 2 biến
@@ -49,9 +49,9 @@ File repo đã tạo sẵn: `Dockerfile`, `.dockerignore`, `.github/workflows/de
 1. **+ New Resource → Docker Image** (KHÔNG phải "from Git" — để CI build, VPS chỉ pull).
 2. Image: `ghcr.io/<owner>/viet-anh-class:latest`. GHCR để Private → thêm **Registry Credential**
    (Personal Access Token quyền `read:packages`).
-3. **Environment variables** (mục §1): `SUPABASE_SERVICE_ROLE_KEY`, `PORT=3000`, và 2 biến
+3. **Environment variables** (mục §1): `SUPABASE_SERVICE_ROLE_KEY`, `PORT=8080`, và 2 biến
    `NEXT_PUBLIC_SUPABASE_*`. **KHÔNG** thêm `NEXT_PUBLIC_ENABLE_DEMO`.
-4. **Port**: app nghe `3000` (đã `EXPOSE`).
+4. **Port**: app nghe `8080` (đã `EXPOSE`).
 5. **Domain**: gắn `https://<your-domain>` (có `https://` để proxy sinh middleware đúng).
 6. **Healthcheck**: Dockerfile đã có (`/api/health`, `start-period=40s`) — đủ cho app boot.
 
