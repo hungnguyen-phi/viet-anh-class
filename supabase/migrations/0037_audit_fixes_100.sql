@@ -4,8 +4,9 @@
 set search_path = public;
 
 -- ============================================================
--- 1) mark_attendance_on — RPC app đang gọi (AttendanceTable.tsx) nhưng CHƯA từng có
---    migration (chỉ tồn tại "chui" trên DB production → drift). Khôi phục lại đây,
+-- 1) mark_attendance_on — RPC app đang gọi (AttendanceTable.tsx). Đính chính 2026-07-26:
+--    hàm này ĐÃ có migration 0027_attendance_backfill trên DB production, chỉ là file local
+--    chưa từng được commit (nay đã khôi phục). Giữ lại ở đây cho idempotent,
 --    SECURITY INVOKER để RLS att_teacher_*/att_admin_all quyết định quyền/khoảng ngày.
 -- ============================================================
 create or replace function mark_attendance_on(

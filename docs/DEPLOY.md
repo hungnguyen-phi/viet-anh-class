@@ -4,14 +4,21 @@ Runbook cụ thể cho dự án này, bám theo `DEPLOY-PLAYBOOK.md` (build ở 
 File repo đã tạo sẵn: `Dockerfile`, `.dockerignore`, `.github/workflows/deploy.yml`,
 `app/api/health/route.ts`, và `output: 'standalone'` trong `next.config.ts`.
 
-> ⚠️ **CẬP NHẬT GO-LIVE (2026-07-25).** Ghi chú audit 2026-07-22 chấm production **35/100**: RLS còn
-> rò dữ liệu học sinh (trẻ em), mất điểm danh, WIG cá nhân lỗi. **Đã viết xong migration
-> `supabase/migrations/0037_audit_fixes_100.sql` + fix code vá toàn bộ các lỗi cụ thể đã xác nhận**
-> (mất điểm danh do RPC `mark_attendance_on` drift chưa có migration, timezone `student_checkin()`
-> dùng `current_date` UTC thay vì `vn_today()`, storage `class-covers` không kiểm chủ sở hữu lớp,
-> "Duyệt & gỡ tick" xoá nhầm toàn bộ lịch sử tick thay vì 1 lượt, thiếu GRANT `pending_user_grants`).
-> **CHƯA áp migration này lên Supabase production** — cần tự chạy `supabase db push` (hoặc dán
-> `0037_audit_fixes_100.sql` vào SQL Editor) trước khi coi là đã khắc phục trên môi trường thật.
+> ✅ **CẬP NHẬT (2026-07-26) — 0037 ĐÃ ÁP LÊN PRODUCTION.** Migration
+> `supabase/migrations/0037_audit_fixes_100.sql` đã chạy trên project `eagsageokobtidpmxucx`
+> (ghi nhận trong lịch sử migration, version `20260726055553`) và đã verify lại trên DB thật:
+> `student_checkin()` dùng `vn_today()`, 3 policy storage `class-covers` kiểm `can_manage_class_cover(name)`,
+> `att_teacher_*` = cửa sổ 7 ngày (`vn_today()-6 … vn_today()`), `mark_attendance_on` + GRANT
+> `pending_user_grants` đầy đủ. Fix code "Duyệt & gỡ tick" nằm ở commit `c47f9b1`.
+>
+> 🩹 **Đã vá lệch lịch sử migration cùng ngày**: `0018`/`0019` đã chạy trên DB nhưng thiếu trong
+> `supabase_migrations.schema_migrations` → đã ghi nhận lại; `0026_wig_progress_lateral` /
+> `0027_attendance_backfill` đã áp trên DB nhưng **chưa từng có file trong git** → đã khôi phục file
+> từ DB. Lịch sử local ↔ remote giờ khớp 1-1 (`0001…0037`), `supabase db push` dùng lại được.
+>
+> ⚠️ **Còn tồn (chưa vá)**: `wig_actual(uuid)` là SECURITY DEFINER **không có guard** → ai có UUID của
+> một WIG đều đọc được số liệu tiến độ (kể cả `anon` qua `/rest/v1/rpc/wig_actual`); `log_audit()`
+> cho phép bất kỳ ai ghi dòng tuỳ ý vào `audit_log`. Xem mục 5 trong `docs/M8_HARDENING.md`.
 
 ---
 
