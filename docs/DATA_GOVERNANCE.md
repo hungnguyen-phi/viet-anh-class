@@ -46,6 +46,27 @@ Chỉ dùng **dữ liệu GIẢ** (seed). **Tuyệt đối không** nhập thôn
   kèm `buddy_note_model` để truy vết model đã dùng.
 - Giới hạn **1 lần/ngày/học sinh** (theo giờ VN) — vừa chặn chi phí vừa giảm lượng dữ liệu gửi ra.
 
+**Ghi chú hằng ngày (0043)** — sinh khi học sinh mở app, tối đa **1 lượt/ngày** và chỉ gọi LLM khi có
+tick mới kể từ ghi chú trước (không cron: em không dùng app thì không có dữ liệu nào bị gửi đi). Đầu vào
+là **lead measure** (tên việc do GVCN đặt, mục tiêu, đã đạt, hôm nay làm chưa) — vẫn không có PII học
+sinh. Đầu ra bị ép thành JSON `{note, action, focus}`: `action` phải thuộc 4 giá trị cố định, `focus` là
+**số thứ tự** trong danh sách gửi đi (không phải UUID), server kiểm lại và bỏ mọi thứ sai → model không
+đề xuất được việc mà app không có. Prompt cấm model viết con số (app tự hiện số liệu) nên cũng không có
+đường bịa số.
+
+**⚠️ Chat lúc họp (0043) — ngoại lệ DUY NHẤT có chữ do học sinh gõ đi ra ngoài.** Các lớp bảo vệ:
+- Chỉ mở được bởi **GVCN** (`wig_meetings.buddy_chat_open`, mặc định đóng) và chỉ trong buổi họp WIG →
+  **có người lớn ngồi cạnh**. Đây là lớp bảo vệ chính, mạnh hơn mọi bộ lọc từ khoá.
+- **GVCN đọc lại được toàn bộ hội thoại** (`bm_staff_read`); học sinh khác không đọc được
+  (`bm_student_read` giới hạn buổi họp của chính em).
+- Lượt của Buddy do **service_role** ghi → học sinh **không giả được lời Buddy** (`bm_student_insert`
+  chỉ cho `role='user'`).
+- Giới hạn **10 lượt/buổi họp**, mỗi tin ≤ 1000 ký tự. Prompt buộc Buddy từ chối chuyện ngoài mục tiêu
+  tuần, và nếu học sinh nói điều đáng lo về sức khoẻ/tinh thần thì hướng em nói với người lớn đang ở
+  cạnh, **không tự tư vấn tâm lý**.
+- UI hiển thị cảnh báo cho học sinh: đừng viết thông tin cá nhân, và GVCN đọc được đoạn này.
+
 **Còn phải làm trước khi bật cho học sinh thật:** xin đồng ý của nhà trường (và phụ huynh nếu trường
-yêu cầu); đọc chính sách lưu log/huấn luyện của OpenRouter + DeepSeek và ghi lại kết luận vào đây;
-cân nhắc bật "zero data retention" nếu gói OpenRouter cho phép.
+yêu cầu) — **riêng phần chat thì nên xin riêng**, vì nó khác hẳn về mức độ so với ghi chú hằng ngày;
+đọc chính sách lưu log/huấn luyện của OpenRouter + DeepSeek và ghi lại kết luận vào đây; cân nhắc bật
+"zero data retention" nếu gói OpenRouter cho phép.

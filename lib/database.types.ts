@@ -132,6 +132,39 @@ export type Database = {
         }
         Relationships: []
       }
+      // 0043 — hội thoại Buddy trong buổi họp. Lượt 'assistant' do service_role ghi.
+      buddy_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          meeting_id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          meeting_id: string
+          role: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buddy_messages_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "wig_meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       area_config: {
         Row: {
           area: Database["public"]["Enums"]["wig_area"]
@@ -810,6 +843,11 @@ export type Database = {
           buddy_note: string | null
           buddy_note_at: string | null
           buddy_note_model: string | null
+          // 0043 — "việc hôm nay" neo vào lead measure thật + công tắc chat lúc họp.
+          buddy_action: string | null
+          buddy_chat_open: boolean
+          buddy_focus_lead_id: string | null
+          buddy_tokens: number | null
           class_id: string
           coach_id: string | null
           commitments: string | null
@@ -825,6 +863,10 @@ export type Database = {
           buddy_note?: string | null
           buddy_note_at?: string | null
           buddy_note_model?: string | null
+          buddy_action?: string | null
+          buddy_chat_open?: boolean
+          buddy_focus_lead_id?: string | null
+          buddy_tokens?: number | null
           class_id: string
           coach_id?: string | null
           commitments?: string | null
@@ -840,6 +882,10 @@ export type Database = {
           buddy_note?: string | null
           buddy_note_at?: string | null
           buddy_note_model?: string | null
+          buddy_action?: string | null
+          buddy_chat_open?: boolean
+          buddy_focus_lead_id?: string | null
+          buddy_tokens?: number | null
           class_id?: string
           coach_id?: string | null
           commitments?: string | null

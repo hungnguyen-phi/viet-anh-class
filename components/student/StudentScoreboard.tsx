@@ -14,7 +14,7 @@ import {
 } from '@/components/student/StudentMeetings';
 import {StudentWigSetup} from '@/components/student/StudentWigSetup';
 import {MyRequests, type MyRequest} from '@/components/student/MyRequests';
-import {BuddyAsk} from '@/components/student/BuddyAsk';
+import {BuddyAuto} from '@/components/student/BuddyAuto';
 import {StudentWigManage, type ManageWig, type ManageLead} from '@/components/student/StudentWigManage';
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {EditRequestButton} from '@/components/student/EditRequestButton';
@@ -97,7 +97,7 @@ export async function StudentScoreboard({
       supabase
         .from('wig_meetings')
         .select(
-          'id, week_label, results, commitments, next_actions, buddy_note, created_at, buddy:profiles!wig_meetings_buddy_id_fkey(full_name)',
+          'id, week_label, results, commitments, next_actions, buddy_note, buddy_action, buddy_focus_lead_id, buddy_chat_open, created_at, buddy:profiles!wig_meetings_buddy_id_fkey(full_name), buddy_messages(id, role, content, created_at)',
         )
         .eq('student_id', studentId)
         .order('created_at', {ascending: false}),
@@ -145,8 +145,12 @@ export async function StudentScoreboard({
       commitments: string | null;
       next_actions: string | null;
       buddy_note: string | null;
+      buddy_action: string | null;
+      buddy_focus_lead_id: string | null;
+      buddy_chat_open: boolean | null;
       created_at: string;
       buddy: {full_name: string | null} | null;
+      buddy_messages: {id: string; role: string; content: string; created_at: string}[] | null;
     }[]
   ).map((m) => ({
     id: m.id,
@@ -155,9 +159,21 @@ export async function StudentScoreboard({
     commitments: m.commitments,
     next_actions: m.next_actions,
     buddy_note: m.buddy_note,
+    buddy_action: m.buddy_action,
+    // Tên lead measure sẽ được gán bên dưới, sau khi đã nạp tickerLeads.
+    buddy_focus_title: null,
+    buddy_chat_open: Boolean(m.buddy_chat_open),
+    buddy_messages: [...(m.buddy_messages ?? [])]
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map((x) => ({id: x.id, role: x.role, content: x.content})),
     created_at: m.created_at,
     buddy_name: m.buddy?.full_name ?? null,
   }));
+  const focusIdByMeeting = new Map(
+    (
+      (meetingRows ?? []) as unknown as {id: string; buddy_focus_lead_id: string | null}[]
+    ).map((m) => [m.id, m.buddy_focus_lead_id]),
+  );
 
   let classmates: Classmate[] = [];
   if (canManage && classId) {
@@ -262,6 +278,15 @@ export async function StudentScoreboard({
 
   const canTick = viewer.id === studentId && viewer.role === 'student';
 
+  // Tên lead measure theo id — dùng cho "việc hôm nay" của Buddy và cho nhãn yêu cầu-sửa.
+  const leadTitleById = new Map(tickerLeads.map((l) => [l.id, l.title]));
+  // Buddy chỉ trả về SỐ THỨ TỰ, server đã map thành id thật; ở đây đổi id → tên để hiển thị.
+  // Lead của tuần cũ không có trong tickerLeads → title null → dòng "việc hôm nay" tự ẩn.
+  for (const m of meetings) {
+    const fid = focusIdByMeeting.get(m.id);
+    if (fid) m.buddy_focus_title = leadTitleById.get(fid) ?? null;
+  }
+
   // Yêu cầu-sửa CỦA CHÍNH người đang xem còn 'pending' → cho sửa lời nhắn / rút lại (0040).
   // RLS er_requester_read đã giới hạn `requester_id = auth.uid()`, nhưng lọc luôn cho rõ ý.
   let myRequests: MyRequest[] = [];
@@ -272,7 +297,6 @@ export async function StudentScoreboard({
       .eq('requester_id', viewer.id)
       .eq('status', 'pending')
       .order('created_at', {ascending: false});
-    const leadTitleById = new Map(tickerLeads.map((l) => [l.id, l.title]));
     myRequests = ((mine ?? []) as {id: string; kind: string; ref_id: string | null; message: string | null}[]).map(
       (r) => ({...r, leadTitle: r.ref_id ? leadTitleById.get(r.ref_id) ?? null : null}),
     );
@@ -461,9 +485,10 @@ export async function StudentScoreboard({
             <h2 className="font-display text-[17px] font-bold text-navy">{t('meetings')}</h2>
             {/* PRD Màn 6: "cầm scoreboard mà họp" — panel WIG tuần/lead của em */}
             {classId && <MeetingScoreboard classId={classId} studentId={studentId} weekLabel={isoWeekLabel(new Date())} />}
-            {/* PRD §7 "ghi chú Buddy" — Buddy là LLM; server sinh ghi chú, hiện trong biên bản tuần */}
+            {/* PRD §7 "ghi chú Buddy" — Buddy là LLM. KHÔNG có nút: mở trang là tự sinh, server
+                chặn tối đa 1 lượt/ngày và chỉ gọi LLM khi có tick mới (0043). */}
             {canTick && (
-              <BuddyAsk
+              <BuddyAuto
                 hasNote={meetings.some(
                   (m) => m.week_label === isoWeekLabel(new Date()) && Boolean(m.buddy_note),
                 )}
@@ -475,6 +500,7 @@ export async function StudentScoreboard({
               meetings={meetings}
               classmates={classmates}
               canManage={canManage}
+              canChat={canTick}
               defaultWeek={isoWeekLabel(new Date())}
             />
           </section>

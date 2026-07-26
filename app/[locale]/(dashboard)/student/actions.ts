@@ -8,7 +8,7 @@ import {createAdminClient} from '@/lib/supabase/admin';
 import {getCurrentProfile, requireRole} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
-import {askBuddy, type BuddyFact} from '@/lib/buddy';
+import {buddyNote, buddyChat, type BuddyContext, type BuddyLead} from '@/lib/buddy';
 import {weekRangeVN, schoolYearRangeVN, todayInVN} from '@/lib/dates';
 import type {Database} from '@/lib/database.types';
 
@@ -367,15 +367,74 @@ export async function createEditRequest(formData: FormData) {
 // bằng service_role → học sinh KHÔNG tự bịa được nội dung Buddy, chỉ đọc.
 // Quyền riêng tư + hợp đồng "không gửi PII": xem lib/buddy.ts và migration 0042.
 // ============================================================
-export type BuddyAskResult = {
-  ok: boolean;
-  note?: string;
-  error?: 'forbidden' | 'no_class' | 'no_wig' | 'rate_limited' | 'no_key' | 'no_data' | 'api' | 'empty' | 'save';
-};
+type BuddyErrCode = 'forbidden' | 'no_class' | 'no_wig' | 'no_key' | 'no_data' | 'api' | 'empty' | 'save';
+export type BuddyAskResult = {ok: boolean; generated?: boolean; error?: BuddyErrCode};
 
-export async function askBuddyNote(): Promise<BuddyAskResult> {
+// Gom bối cảnh tuần này của 1 học sinh: các LEAD MEASURE (bề mặt hành động thật của app) +
+// số ngày còn lại + hôm nay đã check-in cảm xúc chưa. Dùng cho cả ghi chú hằng ngày và chat.
+// Truy vấn bằng client CỦA NGƯỜI GỌI → RLS tự giới hạn, không có đường đọc sang em khác.
+async function buddyContextFor(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  studentId: string,
+  weekLabel: string,
+): Promise<{ctx: BuddyContext; leadIds: string[]} | null> {
+  const {data: weekWigs} = await supabase
+    .from('wigs')
+    .select('id')
+    .eq('student_id', studentId)
+    .eq('scope', 'student')
+    .eq('period', 'week')
+    .eq('period_label', weekLabel);
+  const wigIds = (weekWigs ?? []).map((w) => w.id);
+  if (wigIds.length === 0) return null;
+
+  const {data: leadRows} = await supabase
+    .from('lead_measures')
+    .select('id, title, target_value, unit, lead_progress(value, logged_date)')
+    .in('wig_id', wigIds);
+  if (!leadRows || leadRows.length === 0) return null;
+
+  const todayVN = todayInVN();
+  const {end} = weekRangeVN();
+  const dayMs = 86_400_000;
+
+  const leads: BuddyLead[] = leadRows.map((l) => {
+    const entries = (l.lead_progress ?? []) as {value: number | null; logged_date: string}[];
+    return {
+      title: l.title,
+      target: Number(l.target_value ?? 0),
+      unit: l.unit,
+      actual: entries.reduce((s, e) => s + Number(e.value ?? 0), 0),
+      tickedToday: entries.some((e) => e.logged_date === todayVN),
+    };
+  });
+
+  const {data: mood} = await supabase
+    .from('mood_checkins')
+    .select('mood')
+    .eq('student_id', studentId)
+    .eq('date', todayVN)
+    .maybeSingle();
+
+  return {
+    ctx: {
+      leads,
+      daysLeft: Math.max(
+        0,
+        Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${todayVN}T00:00:00Z`)) / dayMs),
+      ),
+      moodMissing: !mood,
+    },
+    leadIds: leadRows.map((l) => l.id),
+  };
+}
+
+// Ghi chú hằng ngày. KHÔNG có nút bấm: client tự gọi 1 lần khi học sinh mở trang.
+// Chỉ gọi LLM khi (a) chưa có ghi chú tuần này, hoặc (b) ghi chú cũ hơn hôm nay VÀ có tick mới
+// kể từ lúc đó. Nghĩa là tối đa 1 lượt/ngày, và ngày nào không làm gì thì không tốn tiền.
+export async function refreshBuddyNote(): Promise<BuddyAskResult> {
   const profile = await getCurrentProfile();
-  // CHỈ chính em học sinh đó — không cho GVCN/PH bấm hộ (tránh sinh ghi chú thay mặt em).
+  // CHỈ chính em học sinh đó — GVCN/PH không sinh ghi chú thay mặt em.
   if (!profile || profile.role !== 'student') return {ok: false, error: 'forbidden'};
 
   const supabase = await createClient();
@@ -390,16 +449,6 @@ export async function askBuddyNote(): Promise<BuddyAskResult> {
     .maybeSingle();
   if (!enr?.class_id) return {ok: false, error: 'no_class'};
 
-  // Số liệu tuần này. wig_progress_v là security_invoker → RLS chỉ trả WIG của chính em.
-  const {data: rows} = await supabase
-    .from('wig_progress_v')
-    .select('area, target_value, unit, actual, end_date')
-    .eq('student_id', profile.id)
-    .eq('scope', 'student')
-    .eq('period', 'week')
-    .eq('period_label', weekLabel);
-  if (!rows || rows.length === 0) return {ok: false, error: 'no_wig'};
-
   const admin = createAdminClient();
   const todayVN = todayInVN();
 
@@ -410,43 +459,31 @@ export async function askBuddyNote(): Promise<BuddyAskResult> {
     .eq('week_label', weekLabel)
     .maybeSingle();
 
-  // Giới hạn 1 lần/ngày (giờ VN): chặn bấm liên tục làm tốn tiền API. Trả lại ghi chú cũ.
-  if (existing?.buddy_note_at) {
+  if (existing?.buddy_note && existing.buddy_note_at) {
     const lastVN = new Date(existing.buddy_note_at).toLocaleDateString('en-CA', {
       timeZone: 'Asia/Ho_Chi_Minh',
     });
-    if (lastVN === todayVN) {
-      return {ok: false, error: 'rate_limited', note: existing.buddy_note ?? undefined};
-    }
+    // Đã nhắn hôm nay → thôi.
+    if (lastVN === todayVN) return {ok: true, generated: false};
+
+    // Chưa nhắn hôm nay nhưng cũng CHƯA CÓ GÌ MỚI kể từ lần nhắn trước → thôi.
+    // (Ghi chú y hệt thì gọi LLM chỉ để tốn tiền.)
+    const {data: newer} = await supabase
+      .from('lead_progress')
+      .select('id')
+      .eq('student_id', profile.id)
+      .gt('created_at', existing.buddy_note_at)
+      .limit(1);
+    if (!newer || newer.length === 0) return {ok: true, generated: false};
   }
 
-  const {data: areaCfg} = await supabase.from('area_config').select('area, label_vi');
-  const labelByArea = new Map((areaCfg ?? []).map((a) => [a.area, a.label_vi]));
+  const built = await buddyContextFor(supabase, profile.id, weekLabel);
+  if (!built) return {ok: false, error: 'no_wig'};
 
-  const dayMs = 86_400_000;
-  // `area`/`end_date` của wig_progress_v là nullable ở tầng type (view) → bỏ qua dòng thiếu dữ liệu
-  // thay vì gửi "null" cho model.
-  const facts: BuddyFact[] = rows
-    .filter((r): r is typeof r & {area: NonNullable<typeof r.area>; end_date: string} =>
-      r.area !== null && r.end_date !== null,
-    )
-    .map((r) => ({
-      // Nhãn lĩnh vực từ area_config (không phải dữ liệu cá nhân); fallback là mã enum.
-      area: labelByArea.get(r.area) ?? String(r.area),
-      target: Number(r.target_value ?? 0),
-      unit: r.unit,
-      actual: Number(r.actual ?? 0),
-      daysLeft: Math.max(
-        0,
-        Math.round((Date.parse(`${r.end_date}T00:00:00Z`) - Date.parse(`${todayVN}T00:00:00Z`)) / dayMs),
-      ),
-    }));
-  if (facts.length === 0) return {ok: false, error: 'no_wig'};
-
-  const res = await askBuddy(facts);
-  if (!res.ok) {
-    // detail có thể chứa lý do thật (hết hạn mức, model sai, key sai) → chỉ log server, không trả ra UI.
-    if (res.detail) console.error('[buddy]', res.error, res.detail);
+  const res = await buddyNote(built.ctx);
+  if ('error' in res) {
+    // detail có thể chứa lý do thật (hết hạn mức, model sai, key sai) → chỉ log server, không ra UI.
+    if (res.detail) console.error('[buddy] note', res.error, res.detail);
     return {ok: false, error: res.error};
   }
 
@@ -454,6 +491,10 @@ export async function askBuddyNote(): Promise<BuddyAskResult> {
     buddy_note: res.note,
     buddy_note_model: res.model,
     buddy_note_at: new Date().toISOString(),
+    buddy_action: res.action,
+    buddy_tokens: res.tokens,
+    // focusIndex đã được lib/buddy.ts kiểm nằm trong danh sách gửi đi → map ra id thật an toàn.
+    buddy_focus_lead_id: res.focusIndex === null ? null : built.leadIds[res.focusIndex],
   };
   // Không dùng upsert: unique index wig_meetings_student_week_uidx (0035) là index BỘ PHẬN
   // (where student_id is not null) nên ON CONFLICT không suy ra được → select rồi update/insert.
@@ -469,7 +510,94 @@ export async function askBuddyNote(): Promise<BuddyAskResult> {
 
   revalidatePath('/student');
   revalidatePath(`/student/${profile.id}`);
-  return {ok: true, note: res.note};
+  return {ok: true, generated: true};
+}
+
+// GVCN/Admin mở hoặc đóng chat Buddy cho 1 buổi họp. Đây là công tắc giám sát: học sinh chỉ
+// chat được khi buổi họp đang diễn ra và có người lớn ngồi cạnh.
+export async function toggleBuddyChat(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const student_id = String(formData.get('student_id') ?? '');
+  const meeting_id = String(formData.get('meeting_id') ?? '');
+  const open = String(formData.get('open') ?? '') === '1';
+  if (!meeting_id) backToStudent(student_id, 'Thiếu buổi họp');
+  const supabase = await createClient();
+  // RLS wm_teacher_all/wm_admin_all chốt quyền; .select() để phân biệt no-op do không có quyền.
+  const {data, error} = await supabase
+    .from('wig_meetings')
+    .update({buddy_chat_open: open})
+    .eq('id', meeting_id)
+    .select('id');
+  revalidatePath(`/student/${student_id}`);
+  revalidatePath('/student');
+  if (error) backToStudent(student_id, friendlyError(error));
+  if (!data || data.length === 0) backToStudent(student_id, 'Không đổi được (không có quyền hoặc đã xoá).');
+  backToStudent(student_id, open ? 'Đã mở Buddy cho buổi họp' : 'Đã đóng Buddy');
+}
+
+// Số lượt học sinh được nói trong MỘT buổi họp. Chặn chi phí và giữ hội thoại đúng mục đích
+// (đây là buổi họp WIG, không phải chỗ chat giải trí).
+const BUDDY_CHAT_MAX_USER_TURNS = 10;
+
+export type BuddyChatResult = {ok: boolean; error?: BuddyErrCode | 'closed' | 'too_long' | 'limit'};
+
+// Học sinh gửi 1 lượt cho Buddy TRONG buổi họp. Chỉ chạy khi GVCN đã mở (buddy_chat_open) —
+// RLS bm_student_insert là chốt cuối, kiểm ở đây chỉ để trả thông báo tử tế.
+export async function sendBuddyMessage(meetingId: string, content: string): Promise<BuddyChatResult> {
+  const profile = await getCurrentProfile();
+  if (!profile || profile.role !== 'student') return {ok: false, error: 'forbidden'};
+  const text = content.trim();
+  if (!text || text.length > 1000) return {ok: false, error: 'too_long'};
+
+  const supabase = await createClient();
+  // RLS wm_student_select chỉ trả buổi họp của chính em.
+  const {data: meeting} = await supabase
+    .from('wig_meetings')
+    .select('id, week_label, buddy_chat_open, student_id')
+    .eq('id', meetingId)
+    .maybeSingle();
+  if (!meeting || meeting.student_id !== profile.id) return {ok: false, error: 'forbidden'};
+  if (!meeting.buddy_chat_open) return {ok: false, error: 'closed'};
+
+  const {data: history} = await supabase
+    .from('buddy_messages')
+    .select('role, content')
+    .eq('meeting_id', meetingId)
+    .order('created_at', {ascending: true});
+  const turns = (history ?? []).filter((m) => m.role === 'user').length;
+  if (turns >= BUDDY_CHAT_MAX_USER_TURNS) return {ok: false, error: 'limit'};
+
+  // Ghi lượt của học sinh bằng client CỦA EM → RLS bm_student_insert kiểm lại chat có đang mở.
+  const {error: insErr} = await supabase
+    .from('buddy_messages')
+    .insert({meeting_id: meetingId, role: 'user', content: text});
+  if (insErr) return {ok: false, error: 'save'};
+
+  const built = await buddyContextFor(supabase, profile.id, meeting.week_label);
+  if (!built) return {ok: false, error: 'no_wig'};
+
+  const res = await buddyChat(built.ctx, [
+    ...((history ?? []) as {role: 'user' | 'assistant'; content: string}[]),
+    {role: 'user', content: text},
+  ]);
+  if ('error' in res) {
+    if (res.detail) console.error('[buddy] chat', res.error, res.detail);
+    return {ok: false, error: res.error};
+  }
+
+  // Lời của Buddy ghi bằng service_role → học sinh không giả được (RLS chỉ cho em ghi role='user').
+  const admin = createAdminClient();
+  const {error: aErr} = await admin
+    .from('buddy_messages')
+    .insert({meeting_id: meetingId, role: 'assistant', content: res.reply});
+  if (aErr) {
+    console.error('[buddy] chat save', aErr.message);
+    return {ok: false, error: 'save'};
+  }
+
+  revalidatePath('/student');
+  revalidatePath(`/student/${profile.id}`);
+  return {ok: true};
 }
 
 // Học sinh/PH SỬA lời nhắn của yêu cầu MÌNH đã gửi, khi GVCN chưa xử lý.
