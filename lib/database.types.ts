@@ -1137,7 +1137,7 @@ export type Database = {
       }
       staff_can_manage_class: { Args: { c: string }; Returns: boolean }
       staff_can_read_class: { Args: { c: string }; Returns: boolean }
-      wig_actual: { Args: { w: string }; Returns: number }
+      // wig_actual đã chuyển sang schema `private` (migration 0038) → không còn RPC.
       wig_class: { Args: { w: string }; Returns: string }
     }
     Enums: {

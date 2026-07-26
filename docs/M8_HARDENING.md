@@ -14,10 +14,11 @@
 
 ## Còn lại — cần làm thủ công ([NGƯỜI]) hoặc refactor có chủ đích
 
-### 1. Cảnh báo "SECURITY DEFINER function executable" (đo lại 2026-07-26: 27 hàm anon + 31 hàm authenticated)
+### 1. Cảnh báo "SECURITY DEFINER function executable" (đo lại sau `0038`: 25 hàm anon + 30 hàm authenticated)
 Đây là các helper RLS (`auth_role`, `auth_campus`, `is_my_child`, `is_class_teacher`, `staff_can_*`,
-`wig_class`, `lead_class`, `wig_actual`, …) + các hàm app gọi qua RPC (`class_ranks`,
+`wig_class`, `lead_class`, …) + các hàm app gọi qua RPC (`class_ranks`,
 `child_class_progress`, `log_audit`, `app_today`). Tất cả **cần EXECUTE** nên không revoke được.
+(`wig_actual` đã rời danh sách này — xem §5.)
 - **Mức độ**: WARN (không phải lỗ hổng) cho **phần lớn** — chỉ trả về ngữ cảnh quyền của CHÍNH người gọi
   (boolean own-context) hoặc dữ liệu đã gated (`child_class_progress` chặn bằng `can_view_student`,
   `class_ranks`/`class_scoreboard` đã kiểm quan hệ lớp), RLS vẫn là cổng.
@@ -45,20 +46,38 @@ review hạ tầng.
 - **Vòng review RLS & phân quyền độc lập của IT trường** (§12.5) — cổng bắt buộc; đính kèm bằng chứng
   `tests/rls/rls_isolation.sql` (đã PASS).
 
-### 5. Hai hàm DEFINER **thiếu guard** — phát hiện 2026-07-26, CHƯA vá
-Khác với phần còn lại của §1, hai hàm này không có kiểm quan hệ nào bên trong:
+### 5. Hai hàm DEFINER thiếu guard — phát hiện 2026-07-26, ✅ **ĐÃ VÁ bằng `0038`**
 
-| Hàm | Vấn đề | Mức độ |
+| Hàm | Vấn đề (trước 0038) | Cách vá |
 |---|---|---|
-| `wig_actual(w uuid)` | DEFINER, **không guard**. Ai biết UUID của một WIG (kể cả WIG cá nhân của HS khác) đều đọc được tổng tiến độ, gọi thẳng `/rest/v1/rpc/wig_actual`. `anon` cũng gọi được. Ghi chú ở `0018_security_hardening.sql:37-39` nói view `wig_progress_v` đã che — **chỉ đúng khi đi qua view**, không đúng khi gọi RPC trực tiếp. | THẤP–TRUNG (rò số liệu, cần biết UUID; không phải PII) |
-| `log_audit(p_action, p_detail)` | DEFINER, không guard → mọi role ghi được dòng tuỳ ý vào `audit_log` (`anon` ghi với `actor_id = null`). Làm nhiễu/giả mạo nhật ký kiểm toán. | THẤP (không rò dữ liệu) |
+| `wig_actual(w uuid)` | DEFINER, **không guard**. Ai biết UUID của một WIG (kể cả WIG cá nhân của HS khác) đều đọc được tổng tiến độ, gọi thẳng `/rest/v1/rpc/wig_actual`; `anon` cũng gọi được. Ghi chú ở `0018_security_hardening.sql:37-39` nói view `wig_progress_v` đã che — **chỉ đúng khi đi qua view**. | Chuyển sang schema **`private`** (PostgREST chỉ expose `public` + `graphql_public`) → **không còn endpoint RPC**. `anon` không có USAGE trên `private` và không có EXECUTE → đóng 2 lớp. |
+| `log_audit(p_action, p_detail)` | DEFINER, không guard → mọi role ghi được dòng tuỳ ý vào `audit_log` (`anon` ghi với `actor_id = null`). | `revoke ... from public, anon` + thân hàm chỉ ghi `where auth.uid() is not null`, `left(p_action, 200)`. |
 
-**Không sửa được bằng cách revoke đơn thuần**: `wig_progress_v` là `security_invoker` nên người gọi
-**phải** có EXECUTE trên `wig_actual`. Hướng vá đúng:
-1. `revoke execute on function wig_actual(uuid) from anon;` — đóng ngay đường chưa đăng nhập (an toàn,
-   `anon` không dùng view này).
-2. Thêm guard trong thân hàm cho `authenticated`: cần bao đủ **cả 3 nhóm người đọc hợp lệ** (`staff_can_read_class`,
-   `is_class_student`, `is_parent_of_class`) vì `child_class_progress` gọi `wig_actual` thay mặt PHỤ HUYNH
-   — guard hẹp quá sẽ **làm hỏng báo cáo tuần của phụ huynh**. Cần test lại `child_class_progress` +
-   `wig_progress_v` sau khi thêm.
-3. `log_audit`: chặn `anon` (`revoke ... from anon`) và/hoặc whitelist `p_action`.
+> ⚠️ **Bẫy đã tránh — đừng thêm guard vào thân `wig_actual`.** `class_competition_scores()` dùng nó để
+> tính điểm thi đua của **MỌI lớp**, mà `class_ranks`/`campus_ranks` cho phép cả HS trong lớp gọi →
+> guard theo quan hệ lớp sẽ trả `0` cho các lớp khác và **làm sai bảng xếp hạng**. Cũng **không** revoke
+> được khỏi `authenticated`: `wig_progress_v` là `security_invoker` nên **người gọi** phải có EXECUTE.
+> Ẩn khỏi API là cách đóng đúng chỗ mà không đổi hành vi.
+
+**Đã kiểm chứng sau khi áp `0038`** (trên DB thật, mọi test bọc trong `begin … rollback`):
+- 27/27 WIG: `private.wig_actual` khớp **tuyệt đối** phép tính độc lập (tổng 307 = 307, 0 sai lệch).
+- `class_competition_scores()` vẫn ra điểm (6A1 = 62.3) → xếp hạng không chết.
+- `wig_progress_v` chạy được dưới role `authenticated` thật (RLS lọc còn 3 dòng, `actual` tính đủ) →
+  USAGE/EXECUTE trên `private` là đủ.
+- `child_class_progress` với phiên PHỤ HUYNH: 3 dòng, `status` hợp lệ → đường báo cáo phụ huynh còn nguyên.
+- `has_function_privilege('anon', …)` = **false** cho cả `log_audit` và `private.wig_actual`;
+  `public.wig_actual` đã không còn tồn tại; `log_audit` không có phiên → ghi **0** dòng, có phiên → ghi đúng 1 dòng.
+- Advisor bảo mật: **0 ERROR, 56 WARN** (trước 59).
+
+**Vá kèm**: `child_class_progress` còn dùng `current_date` (UTC) cho nhịp `on_track/mid/off_track` —
+`0026` đã sửa cho view nhưng bỏ sót hàm này → đã đổi sang `vn_today()`.
+
+**Phần còn tồn (đã cân nhắc, KHÔNG vá vì không khai thác được qua API):**
+- User **đã đăng nhập** vẫn ghi được dòng rác vào `audit_log` (luôn mang `actor_id` của chính họ, không
+  giả mạo được người khác). Muốn chặn hẳn thì cần rate-limit ở tầng app/gateway.
+- `anon`/`authenticated` có grant `TRUNCATE`/`REFERENCES`/`TRIGGER` trên các bảng `public` (mặc định của
+  Supabase). **`TRUNCATE` không chịu RLS** — nhưng PostgREST không phát lệnh `TRUNCATE`, mà kết nối
+  Postgres trực tiếp lại cần mật khẩu DB (JWT `anon` không dùng được) → không có đường khai thác.
+  Nếu muốn sạch: `revoke truncate, references, trigger on all tables in schema public from anon, authenticated;`
+- `can_manage_class_cover(text)` (thêm ở `0037`) vẫn để `anon` gọi được do grant mặc định của PostgreSQL;
+  trả `false` cho mọi phiên chưa đăng nhập nên vô hại.

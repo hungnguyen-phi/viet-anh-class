@@ -16,9 +16,10 @@ File repo đã tạo sẵn: `Dockerfile`, `.dockerignore`, `.github/workflows/de
 > `0027_attendance_backfill` đã áp trên DB nhưng **chưa từng có file trong git** → đã khôi phục file
 > từ DB. Lịch sử local ↔ remote giờ khớp 1-1 (`0001…0037`), `supabase db push` dùng lại được.
 >
-> ⚠️ **Còn tồn (chưa vá)**: `wig_actual(uuid)` là SECURITY DEFINER **không có guard** → ai có UUID của
-> một WIG đều đọc được số liệu tiến độ (kể cả `anon` qua `/rest/v1/rpc/wig_actual`); `log_audit()`
-> cho phép bất kỳ ai ghi dòng tuỳ ý vào `audit_log`. Xem mục 5 trong `docs/M8_HARDENING.md`.
+> ✅ **`0038` cũng đã áp (2026-07-26)**: `wig_actual` chuyển sang schema `private` → **không còn
+> endpoint `/rest/v1/rpc/wig_actual`**; `log_audit()` chặn `anon` và bỏ qua lệnh gọi không có phiên.
+> Đã kiểm chứng số liệu không đổi (27/27 WIG khớp phép tính độc lập) và bảng xếp hạng vẫn chạy.
+> Advisor bảo mật: **0 ERROR, 56 WARN** (trước 59). Chi tiết + phần còn tồn: `docs/M8_HARDENING.md` §5.
 
 ---
 
