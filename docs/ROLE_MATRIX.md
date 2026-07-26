@@ -23,9 +23,19 @@
 | Admin | `auth_role() = 'admin'` | mọi bảng (for all) |
 | BGH | `auth_role()='principal' AND <class>.campus_id = auth_campus()` | attendance, wigs, scoreboard… (select) |
 | GVCN | `is_class_teacher(class_id)` (attendance: + `date between vn_today()-6 and vn_today()`) | attendance, wigs, lead, meetings (for all) |
-| Học sinh | `is_class_student(class_id)`; tự sửa khi `student_id = auth.uid()` | wigs (read + self write), lead_progress (self, **khoá theo ngày: `logged_date = vn_today()`** — 0039) |
+| Học sinh | `is_class_student(class_id)`; tự ghi khi `student_id = auth.uid()` | wigs (**CHỈ read** — 0041 bỏ `wig_student_self_update`), lead_measures (chỉ read), lead_progress (self, **khoá theo ngày: `logged_date = vn_today()`** — 0039) |
 | Phụ huynh | `is_my_child(student_id)` | mọi bảng có `student_id` (select-only) |
 | Attendance leader | `is_attendance_leader(class_id) AND date = current_date` | attendance_records (write) |
+
+**Ai đặt WIG & lead measure** — **GVCN**, theo PRD §7 + §6.2 màn 5-6 (thiết lập WIG/LM tuần sau trong buổi
+họp Coach × Buddy). Đã chốt cả 3 tầng: UI (`StudentWigSetup` render dưới `canManage`), server action
+(`createStudentYearWigs` / `createStudentWeekWigs` / `editStudentWig` / `deleteStudentWig` đều
+`requireRole(['teacher','admin'])`), và RLS (`wig_manage` + `lm_manage` = `staff_can_manage_class`; 0041 bỏ
+`wig_student_self_update` vốn cho học sinh tự hạ `target_value` qua API). Học sinh chỉ **tick tiến độ**.
+
+> **Còn thiếu so với PRD §7:** dòng "Học sinh … **ghi chú Buddy**" chưa có đường thực hiện —
+> `wig_meetings` mới chỉ có `wm_student_select` (đọc), mọi thao tác ghi thuộc `wm_teacher_all`/`wm_admin_all`.
+> Cần thiết kế riêng: buddy được ghi vào trường nào, và chặn buddy sửa phần của GVCN.
 
 **Yêu cầu-sửa (`edit_requests`)** — GVCN/Admin là người **duyệt** (`er_staff_update`), giữ đúng cơ chế cam kết
 4DX: lead measure / WIG tuần chốt trong buổi họp Coach × Buddy, học sinh **không tự đổi target**. Người gửi
