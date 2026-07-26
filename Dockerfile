@@ -17,11 +17,14 @@ COPY . .
 #    lúc build qua --build-arg. Đây là giá trị PUBLIC (URL + anon key, dữ liệu được RLS bảo vệ),
 #    ship xuống trình duyệt là bình thường.
 #    TUYỆT ĐỐI KHÔNG truyền SUPABASE_SERVICE_ROLE_KEY vào đây — nó server-only, đặt ở env runtime.
-#    KHÔNG set NEXT_PUBLIC_ENABLE_DEMO ở production → khối demo login tự ẩn.
+#    NEXT_PUBLIC_ENABLE_DEMO: toggle nút demo, điều khiển bằng GitHub Variable (rỗng/0 = ẩn, 1 = hiện).
+#    ⚠️ Đặt về 0/xoá trước khi mở cho người dùng THẬT (image public + demo1234).
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_ENABLE_DEMO
 ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL} \
     NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY} \
+    NEXT_PUBLIC_ENABLE_DEMO=${NEXT_PUBLIC_ENABLE_DEMO} \
     NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
