@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...trừ file MẪU: không chứa giá trị thật, và người clone repo cần nó để biết phải set biến gì.
+# Trước đây `.env*` bắt luôn nó nên .env.example chưa bao giờ vào repo.
+!.env.example
 
 # vercel
 .vercel

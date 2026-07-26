@@ -1,5 +1,5 @@
 import {getTranslations} from 'next-intl/server';
-import {MessagesSquare, UserRound} from 'lucide-react';
+import {MessagesSquare, UserRound, Sparkles} from 'lucide-react';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {deleteStudentMeeting} from '@/app/[locale]/(dashboard)/student/actions';
 import {StudentMeetingForm} from './StudentMeetingForm';
@@ -11,6 +11,8 @@ export type StudentMeeting = {
   commitments: string | null;
   next_actions: string | null;
   buddy_name: string | null;
+  // Ghi chú Buddy do LLM sinh (0042). Ghi ở server bằng service_role — học sinh chỉ đọc.
+  buddy_note: string | null;
   created_at: string;
 };
 export type Classmate = {id: string; name: string};
@@ -91,6 +93,17 @@ export async function StudentMeetings({
                 <div className="mt-1.5 text-[13px] font-semibold text-navy">
                   <b className="text-grey-mid">{t('nextActions')}: </b>
                   <span className="whitespace-pre-line">{m.next_actions}</span>
+                </div>
+              )}
+              {m.buddy_note && (
+                <div className="mt-3 rounded-[14px] border-[1.5px] border-gold/40 bg-gold/[0.07] p-3">
+                  <div className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.04em] text-gold-deep">
+                    <Sparkles size={12} strokeWidth={2.5} />
+                    {t('buddyNote')}
+                  </div>
+                  <p className="mt-1 whitespace-pre-line text-[13px] font-semibold text-navy">
+                    {m.buddy_note}
+                  </p>
                 </div>
               )}
             </div>

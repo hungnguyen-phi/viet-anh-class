@@ -8,7 +8,8 @@ import {createAdminClient} from '@/lib/supabase/admin';
 import {getCurrentProfile, requireRole} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
-import {weekRangeVN, schoolYearRangeVN} from '@/lib/dates';
+import {askBuddy, type BuddyFact} from '@/lib/buddy';
+import {weekRangeVN, schoolYearRangeVN, todayInVN} from '@/lib/dates';
 import type {Database} from '@/lib/database.types';
 
 type Mood = Database['public']['Enums']['mood_level'];
@@ -358,6 +359,117 @@ export async function createEditRequest(formData: FormData) {
   revalidatePath(`/student/${student_id}`);
   if (error && error.code !== '23505') back(friendlyError(error));
   back('Đã gửi yêu cầu chỉnh sửa cho giáo viên');
+}
+
+// ============================================================
+// Buddy 4DX = LLM (DeepSeek qua OpenRouter) — PRD §7 cho học sinh "ghi chú Buddy" nhưng
+// wig_meetings chỉ cho GVCN ghi (wm_teacher_all). Cách giải: ghi chú do SERVER sinh rồi ghi
+// bằng service_role → học sinh KHÔNG tự bịa được nội dung Buddy, chỉ đọc.
+// Quyền riêng tư + hợp đồng "không gửi PII": xem lib/buddy.ts và migration 0042.
+// ============================================================
+export type BuddyAskResult = {
+  ok: boolean;
+  note?: string;
+  error?: 'forbidden' | 'no_class' | 'no_wig' | 'rate_limited' | 'no_key' | 'no_data' | 'api' | 'empty' | 'save';
+};
+
+export async function askBuddyNote(): Promise<BuddyAskResult> {
+  const profile = await getCurrentProfile();
+  // CHỈ chính em học sinh đó — không cho GVCN/PH bấm hộ (tránh sinh ghi chú thay mặt em).
+  if (!profile || profile.role !== 'student') return {ok: false, error: 'forbidden'};
+
+  const supabase = await createClient();
+  const {label: weekLabel} = weekRangeVN();
+
+  const {data: enr} = await supabase
+    .from('enrollments')
+    .select('class_id')
+    .eq('student_id', profile.id)
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
+  if (!enr?.class_id) return {ok: false, error: 'no_class'};
+
+  // Số liệu tuần này. wig_progress_v là security_invoker → RLS chỉ trả WIG của chính em.
+  const {data: rows} = await supabase
+    .from('wig_progress_v')
+    .select('area, target_value, unit, actual, end_date')
+    .eq('student_id', profile.id)
+    .eq('scope', 'student')
+    .eq('period', 'week')
+    .eq('period_label', weekLabel);
+  if (!rows || rows.length === 0) return {ok: false, error: 'no_wig'};
+
+  const admin = createAdminClient();
+  const todayVN = todayInVN();
+
+  const {data: existing} = await admin
+    .from('wig_meetings')
+    .select('id, buddy_note, buddy_note_at')
+    .eq('student_id', profile.id)
+    .eq('week_label', weekLabel)
+    .maybeSingle();
+
+  // Giới hạn 1 lần/ngày (giờ VN): chặn bấm liên tục làm tốn tiền API. Trả lại ghi chú cũ.
+  if (existing?.buddy_note_at) {
+    const lastVN = new Date(existing.buddy_note_at).toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+    });
+    if (lastVN === todayVN) {
+      return {ok: false, error: 'rate_limited', note: existing.buddy_note ?? undefined};
+    }
+  }
+
+  const {data: areaCfg} = await supabase.from('area_config').select('area, label_vi');
+  const labelByArea = new Map((areaCfg ?? []).map((a) => [a.area, a.label_vi]));
+
+  const dayMs = 86_400_000;
+  // `area`/`end_date` của wig_progress_v là nullable ở tầng type (view) → bỏ qua dòng thiếu dữ liệu
+  // thay vì gửi "null" cho model.
+  const facts: BuddyFact[] = rows
+    .filter((r): r is typeof r & {area: NonNullable<typeof r.area>; end_date: string} =>
+      r.area !== null && r.end_date !== null,
+    )
+    .map((r) => ({
+      // Nhãn lĩnh vực từ area_config (không phải dữ liệu cá nhân); fallback là mã enum.
+      area: labelByArea.get(r.area) ?? String(r.area),
+      target: Number(r.target_value ?? 0),
+      unit: r.unit,
+      actual: Number(r.actual ?? 0),
+      daysLeft: Math.max(
+        0,
+        Math.round((Date.parse(`${r.end_date}T00:00:00Z`) - Date.parse(`${todayVN}T00:00:00Z`)) / dayMs),
+      ),
+    }));
+  if (facts.length === 0) return {ok: false, error: 'no_wig'};
+
+  const res = await askBuddy(facts);
+  if (!res.ok) {
+    // detail có thể chứa lý do thật (hết hạn mức, model sai, key sai) → chỉ log server, không trả ra UI.
+    if (res.detail) console.error('[buddy]', res.error, res.detail);
+    return {ok: false, error: res.error};
+  }
+
+  const patch = {
+    buddy_note: res.note,
+    buddy_note_model: res.model,
+    buddy_note_at: new Date().toISOString(),
+  };
+  // Không dùng upsert: unique index wig_meetings_student_week_uidx (0035) là index BỘ PHẬN
+  // (where student_id is not null) nên ON CONFLICT không suy ra được → select rồi update/insert.
+  const {error} = existing?.id
+    ? await admin.from('wig_meetings').update(patch).eq('id', existing.id)
+    : await admin
+        .from('wig_meetings')
+        .insert({class_id: enr.class_id, student_id: profile.id, week_label: weekLabel, ...patch});
+  if (error) {
+    console.error('[buddy] save', error.message);
+    return {ok: false, error: 'save'};
+  }
+
+  revalidatePath('/student');
+  revalidatePath(`/student/${profile.id}`);
+  return {ok: true, note: res.note};
 }
 
 // Học sinh/PH SỬA lời nhắn của yêu cầu MÌNH đã gửi, khi GVCN chưa xử lý.

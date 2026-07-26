@@ -14,6 +14,7 @@ import {
 } from '@/components/student/StudentMeetings';
 import {StudentWigSetup} from '@/components/student/StudentWigSetup';
 import {MyRequests, type MyRequest} from '@/components/student/MyRequests';
+import {BuddyAsk} from '@/components/student/BuddyAsk';
 import {StudentWigManage, type ManageWig, type ManageLead} from '@/components/student/StudentWigManage';
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {EditRequestButton} from '@/components/student/EditRequestButton';
@@ -96,7 +97,7 @@ export async function StudentScoreboard({
       supabase
         .from('wig_meetings')
         .select(
-          'id, week_label, results, commitments, next_actions, created_at, buddy:profiles!wig_meetings_buddy_id_fkey(full_name)',
+          'id, week_label, results, commitments, next_actions, buddy_note, created_at, buddy:profiles!wig_meetings_buddy_id_fkey(full_name)',
         )
         .eq('student_id', studentId)
         .order('created_at', {ascending: false}),
@@ -143,6 +144,7 @@ export async function StudentScoreboard({
       results: string | null;
       commitments: string | null;
       next_actions: string | null;
+      buddy_note: string | null;
       created_at: string;
       buddy: {full_name: string | null} | null;
     }[]
@@ -152,6 +154,7 @@ export async function StudentScoreboard({
     results: m.results,
     commitments: m.commitments,
     next_actions: m.next_actions,
+    buddy_note: m.buddy_note,
     created_at: m.created_at,
     buddy_name: m.buddy?.full_name ?? null,
   }));
@@ -458,6 +461,14 @@ export async function StudentScoreboard({
             <h2 className="font-display text-[17px] font-bold text-navy">{t('meetings')}</h2>
             {/* PRD Màn 6: "cầm scoreboard mà họp" — panel WIG tuần/lead của em */}
             {classId && <MeetingScoreboard classId={classId} studentId={studentId} weekLabel={isoWeekLabel(new Date())} />}
+            {/* PRD §7 "ghi chú Buddy" — Buddy là LLM; server sinh ghi chú, hiện trong biên bản tuần */}
+            {canTick && (
+              <BuddyAsk
+                hasNote={meetings.some(
+                  (m) => m.week_label === isoWeekLabel(new Date()) && Boolean(m.buddy_note),
+                )}
+              />
+            )}
             <StudentMeetings
               studentId={studentId}
               classId={classId}

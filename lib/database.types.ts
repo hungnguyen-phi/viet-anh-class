@@ -806,6 +806,10 @@ export type Database = {
       wig_meetings: {
         Row: {
           buddy_id: string | null
+          // Ghi chú Buddy do LLM sinh (0042) — server action askBuddyNote ghi bằng service_role.
+          buddy_note: string | null
+          buddy_note_at: string | null
+          buddy_note_model: string | null
           class_id: string
           coach_id: string | null
           commitments: string | null
@@ -818,6 +822,9 @@ export type Database = {
         }
         Insert: {
           buddy_id?: string | null
+          buddy_note?: string | null
+          buddy_note_at?: string | null
+          buddy_note_model?: string | null
           class_id: string
           coach_id?: string | null
           commitments?: string | null
@@ -830,6 +837,9 @@ export type Database = {
         }
         Update: {
           buddy_id?: string | null
+          buddy_note?: string | null
+          buddy_note_at?: string | null
+          buddy_note_model?: string | null
           class_id?: string
           coach_id?: string | null
           commitments?: string | null

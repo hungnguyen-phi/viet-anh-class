@@ -32,6 +32,8 @@ File repo đã tạo sẵn: `Dockerfile`, `.dockerignore`, `.github/workflows/de
 | `SUPABASE_SERVICE_ROLE_KEY` | **bí mật, runtime** | **Coolify → Environment variables** | server-only (cổng IP check-in). **KHÔNG** bake vào image, KHÔNG là build-arg |
 | `PORT` | runtime | Coolify (`8080`) | khớp `EXPOSE 8080` / healthcheck |
 | `NEXT_PUBLIC_ENABLE_DEMO` | — | **KHÔNG set ở production** | có set = hiện khối demo login. Bỏ trống = ẩn |
+| `OPENROUTER_API_KEY` | **bí mật, runtime** | **Coolify → Environment variables** | Buddy 4DX = LLM. Server-only, **KHÔNG** build-arg, **KHÔNG** `NEXT_PUBLIC_*`. Thiếu → nút "Hỏi Buddy" báo chưa bật, app vẫn chạy |
+| `OPENROUTER_MODEL` | runtime, tuỳ chọn | Coolify | Đổi model không cần build lại. Mặc định `deepseek/deepseek-chat` |
 
 > Nên set **cả 3 biến Supabase** trong Coolify runtime (URL + anon + service_role) cho chắc, dù 2 biến
 > `NEXT_PUBLIC_*` đã bake lúc build — phòng khi có chỗ đọc `process.env` động phía server.
@@ -111,6 +113,9 @@ File repo đã tạo sẵn: `Dockerfile`, `.dockerignore`, `.github/workflows/de
 - [ ] Cloudflare A record + Proxy ON + SSL Full.
 - [ ] `/api/health` xanh; container healthy trong Coolify.
 - [ ] ⚠️ (Khuyến nghị) RLS/audit đã vá trước khi mở cho phụ huynh/học sinh thật.
+- [ ] Buddy LLM: `OPENROUTER_API_KEY` đặt ở **Coolify runtime** (không build-arg). **Trước khi bật trên
+      dữ liệu học sinh THẬT phải có đồng ý của nhà trường** — dữ liệu ra khỏi vành đai RLS, xem
+      `docs/DATA_GOVERNANCE.md` §7.
 
 ---
 

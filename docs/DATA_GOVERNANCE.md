@@ -26,3 +26,26 @@ Chỉ dùng **dữ liệu GIẢ** (seed). **Tuyệt đối không** nhập thôn
 ## 6. Cổng review độc lập & sở hữu (§12.5, To-Do #2)
 - **Trước go-live:** đội IT/kỹ thuật trường **review RLS & phân quyền độc lập** — cổng bắt buộc, không bỏ qua. Bằng chứng đính kèm = bộ test RLS PASS (xem PILOT_SUCCESS_METRICS §3).
 - **Sở hữu:** owner/billing Supabase + Vercel nên là **tài khoản IT trường**, không phải cá nhân.
+
+## 7. Bên thứ ba: Buddy 4DX là LLM (OpenRouter → DeepSeek)
+
+> ⚠️ **Đây là lần đầu dữ liệu đi RA KHỎI vành đai RLS.** Quyết định 2026-07-26: "Buddy" trong nhịp
+> 4DX không phải bạn cùng lớp mà là LLM gọi qua OpenRouter (model mặc định `deepseek/deepseek-chat`).
+> §2.1 nói "RLS là cổng duy nhất" — điều đó vẫn đúng với mọi truy cập *đọc/ghi dữ liệu*, nhưng một
+> lệnh gọi LLM thì gửi nội dung sang hạ tầng của nhà cung cấp khác. Nhà trường **cần biết và đồng ý**
+> trước khi bật trên dữ liệu học sinh THẬT.
+
+**Cách giảm rủi ro đã cài trong code** (`lib/buddy.ts`):
+- Hợp đồng kiểu dữ liệu `BuddyFact` **chỉ cho phép**: nhãn lĩnh vực, mục tiêu, số đã đạt, số ngày còn
+  lại. **Không** tên, **không** email, **không** UUID, **không** tên lớp/trường, **không** điểm danh,
+  **không** cảm xúc. Prompt cấm mô hình nhắc tới dữ liệu ngoài số liệu được cho.
+- `OPENROUTER_API_KEY` là **server-only** (không `NEXT_PUBLIC_*`), đặt ở env runtime của Coolify.
+  Thiếu key → tính năng tự tắt, phần còn lại của app không ảnh hưởng.
+- Ghi chú do **server** sinh và ghi bằng `service_role` (`askBuddyNote`) → học sinh không ghi trực tiếp
+  vào `wig_meetings`, không tự bịa nội dung Buddy. Lưu ở `wig_meetings.buddy_note` (migration 0042),
+  kèm `buddy_note_model` để truy vết model đã dùng.
+- Giới hạn **1 lần/ngày/học sinh** (theo giờ VN) — vừa chặn chi phí vừa giảm lượng dữ liệu gửi ra.
+
+**Còn phải làm trước khi bật cho học sinh thật:** xin đồng ý của nhà trường (và phụ huynh nếu trường
+yêu cầu); đọc chính sách lưu log/huấn luyện của OpenRouter + DeepSeek và ghi lại kết luận vào đây;
+cân nhắc bật "zero data retention" nếu gói OpenRouter cho phép.
