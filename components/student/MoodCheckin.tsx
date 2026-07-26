@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState, type RefObject} from 'react';
 import {createPortal} from 'react-dom';
 import {useTranslations} from 'next-intl';
 import {useRouter} from '@/i18n/navigation';
@@ -34,12 +34,173 @@ function Face({paths, size}: {paths: string[]; size: number}) {
   );
 }
 
+// Đồng hồ HH:MM (giờ máy) — thông tin nhẹ, cập nhật mỗi phút. Dùng chung popup Sửa + lớp chặn.
+function useClock() {
+  const [now, setNow] = useState('');
+  useEffect(() => {
+    const tick = () =>
+      setNow(new Intl.DateTimeFormat('vi-VN', {hour: '2-digit', minute: '2-digit', hour12: false}).format(new Date()));
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
+// Thẻ chọn cảm xúc — DÙNG CHUNG cho popup "Sửa" và lớp chặn bắt buộc check-in.
+// Giữ nguyên toàn bộ class/style cũ để không đổi giao diện.
+function MoodCard({
+  draft,
+  onPick,
+  onSend,
+  saving,
+  err,
+  now,
+  required,
+  cardRef,
+}: {
+  draft: MoodKey | null;
+  onPick: (k: MoodKey) => void;
+  onSend: () => void;
+  saving: boolean;
+  err: string | null;
+  now: string;
+  required?: boolean;
+  cardRef: RefObject<HTMLDivElement | null>;
+}) {
+  const t = useTranslations('student');
+  const byKey = useMemo(() => new Map(MOODS.map((m) => [m.key, m])), []);
+  return (
+    <div
+      ref={cardRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mood-title"
+      className="w-[440px] max-w-full rounded-[26px] bg-white p-6 pb-5 shadow-pop outline-none ring-1 ring-navy/10"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div id="mood-title" className="text-center font-display text-[21px] font-bold text-navy">{t('mood')}</div>
+      <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[14px] font-extrabold text-navy">
+        <Clock size={14} strokeWidth={2.5} />
+        {now}
+      </div>
+      {required && (
+        <div className="mt-2 text-center text-[12.5px] font-bold text-gold-deep">{t('moodRequired')}</div>
+      )}
+      <div className="mt-4 flex justify-center gap-2.5">
+        {DISPLAY.map((k) => {
+          const m = byKey.get(k)!;
+          const active = draft === k;
+          return (
+            <button
+              key={k}
+              type="button"
+              title={t(`levels.${k}`)}
+              aria-label={t(`levels.${k}`)}
+              onClick={() => onPick(k)}
+              className="grid h-[70px] w-[60px] cursor-pointer place-items-center rounded-[18px] transition-all"
+              style={{
+                background: m.bg,
+                color: m.fg,
+                opacity: draft === null || active ? 1 : 0.4,
+                transform: active ? 'scale(1.12)' : 'scale(1)',
+                boxShadow: active
+                  ? '0 0 0 3px #26275d, 0 8px 20px rgba(38,39,93,0.3)'
+                  : '0 4px 12px rgba(38,39,93,0.18)',
+              }}
+            >
+              <Face paths={m.paths} size={30} />
+            </button>
+          );
+        })}
+      </div>
+      {draft && (
+        <div className="mt-3 text-center text-sm font-bold text-navy">{t(`levels.${draft}`)}</div>
+      )}
+      {err && (
+        <div className="mt-3 flex items-center justify-center gap-1.5 rounded-[12px] border border-status-bad/30 bg-status-bad/[0.08] px-3 py-2 text-center text-[12.5px] font-bold text-status-bad">
+          <WifiOff size={14} strokeWidth={2.5} className="shrink-0" />
+          {err}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={onSend}
+        disabled={!draft || saving}
+        className="btn-gold mx-auto mt-4 flex h-11 cursor-pointer items-center gap-2 rounded-xl px-8 font-display text-[14px] font-bold disabled:opacity-45"
+      >
+        {saving && <Loader2 size={15} className="animate-spin" />}
+        {draft ? t('moodSend') : t('moodPickFirst')}
+      </button>
+    </div>
+  );
+}
+
+// ============================================================
+// Lớp CHẶN — bắt buộc check-in mới dùng tiếp.
+// Chỉ được render khi: chính em đó CHƯA check-in hôm nay VÀ đang ở trong mạng trường
+// (ngoài mạng trường thì student_checkin() trả 'blocked' → chặn sẽ khoá cứng em ở nhà,
+//  nên StudentScoreboard không render lớp này, cho xem read-only).
+//
+// KHÔNG dùng portal như popup "Sửa": portal cần `document` nên chỉ chạy sau khi hydrate
+// → trễ ~1s mới hiện. Ở đây render thẳng trong cây server (đặt NGOÀI hero vì hero có
+// backdrop-filter, vốn tạo containing block làm hỏng position:fixed) → có ngay trong HTML
+// đầu tiên. Không đóng được: không bắt Esc, không bắt click nền.
+// ============================================================
+export function MoodGate() {
+  const t = useTranslations('student');
+  const router = useRouter();
+  const now = useClock();
+  const [draft, setDraft] = useState<MoodKey | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(true, cardRef);
+
+  async function send() {
+    if (!draft || saving) return;
+    setSaving(true);
+    setErr(null);
+    const res = await checkinMood(draft);
+    setSaving(false);
+    if (res.ok) {
+      // Server render lại → mood đã có → lớp chặn tự biến mất.
+      router.refresh();
+    } else if (res.blocked) {
+      setErr(t('moodBlocked'));
+    } else if (res.noClass) {
+      setErr(t('moodNoClass'));
+    } else {
+      setErr(t('moodError'));
+    }
+  }
+
+  return (
+    <div className="animate-fade fixed inset-0 z-50 flex items-center justify-center bg-navy/25 p-5 backdrop-blur-[10px]">
+      <MoodCard
+        draft={draft}
+        onPick={setDraft}
+        onSend={send}
+        saving={saving}
+        err={err}
+        now={now}
+        required
+        cardRef={cardRef}
+      />
+    </div>
+  );
+}
+
 export function MoodCheckin({
   initialMood,
   canEdit,
+  gated = false,
 }: {
   initialMood: MoodKey | null;
   canEdit: boolean;
+  // true = <MoodGate> đang lo việc check-in lần đầu → đừng tự mở popup nữa (tránh 2 lớp phủ).
+  gated?: boolean;
 }) {
   const t = useTranslations('student');
   const router = useRouter();
@@ -48,7 +209,7 @@ export function MoodCheckin({
   const [draft, setDraft] = useState<MoodKey | null>(initialMood);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [now, setNow] = useState('');
+  const now = useClock();
   // Portal cần document → chỉ bật sau khi mount (tránh lệch SSR).
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -60,21 +221,14 @@ export function MoodCheckin({
   const cardRef = useRef<HTMLDivElement>(null);
   useFocusTrap(open && canEdit && mounted, cardRef);
 
-  // Đồng hồ HH:MM (giờ máy) — thông tin nhẹ, cập nhật mỗi phút.
-  useEffect(() => {
-    const tick = () =>
-      setNow(new Intl.DateTimeFormat('vi-VN', {hour: '2-digit', minute: '2-digit', hour12: false}).format(new Date()));
-    tick();
-    const id = setInterval(tick, 30_000);
-    return () => clearInterval(id);
-  }, []);
+  const byKey = useMemo(() => new Map(MOODS.map((m) => [m.key, m])), []);
 
-  // Tự mở popup lần đầu trong ngày nếu học sinh chưa check-in.
+  // Tự mở popup lần đầu trong ngày nếu học sinh chưa check-in — TRỪ khi <MoodGate> đã chặn.
   useEffect(() => {
-    if (canEdit && initialMood === null) setOpen(true);
-  }, [canEdit, initialMood]);
+    if (!gated && canEdit && initialMood === null) setOpen(true);
+  }, [gated, canEdit, initialMood]);
 
-  // Đóng bằng phím Esc khi popup mở (không "kẹt" người dùng trong modal).
+  // Đóng bằng phím Esc khi popup mở (popup "Sửa" là tự nguyện nên vẫn cho thoát).
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -83,8 +237,6 @@ export function MoodCheckin({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
-
-  const byKey = useMemo(() => new Map(MOODS.map((m) => [m.key, m])), []);
 
   async function send() {
     if (!draft || saving) return;
@@ -173,67 +325,16 @@ export function MoodCheckin({
             className="animate-fade fixed inset-0 z-50 flex items-center justify-center bg-navy/25 p-5 backdrop-blur-[10px]"
             onClick={() => setOpen(false)}
           >
-          <div
-            ref={cardRef}
-            tabIndex={-1}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="mood-title"
-            className="w-[440px] max-w-full rounded-[26px] bg-white p-6 pb-5 shadow-pop outline-none ring-1 ring-navy/10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div id="mood-title" className="text-center font-display text-[21px] font-bold text-navy">{t('mood')}</div>
-            <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[14px] font-extrabold text-navy">
-              <Clock size={14} strokeWidth={2.5} />
-              {now}
-            </div>
-            <div className="mt-4 flex justify-center gap-2.5">
-              {DISPLAY.map((k) => {
-                const m = byKey.get(k)!;
-                const active = draft === k;
-                return (
-                  <button
-                    key={k}
-                    type="button"
-                    title={t(`levels.${k}`)}
-                    aria-label={t(`levels.${k}`)}
-                    onClick={() => setDraft(k)}
-                    className="grid h-[70px] w-[60px] cursor-pointer place-items-center rounded-[18px] transition-all"
-                    style={{
-                      background: m.bg,
-                      color: m.fg,
-                      opacity: draft === null || active ? 1 : 0.4,
-                      transform: active ? 'scale(1.12)' : 'scale(1)',
-                      boxShadow: active
-                        ? '0 0 0 3px #26275d, 0 8px 20px rgba(38,39,93,0.3)'
-                        : '0 4px 12px rgba(38,39,93,0.18)',
-                    }}
-                  >
-                    <Face paths={m.paths} size={30} />
-                  </button>
-                );
-              })}
-            </div>
-            {draft && (
-              <div className="mt-3 text-center text-sm font-bold text-navy">{t(`levels.${draft}`)}</div>
-            )}
-            {err && (
-              <div className="mt-3 flex items-center justify-center gap-1.5 rounded-[12px] border border-status-bad/30 bg-status-bad/[0.08] px-3 py-2 text-center text-[12.5px] font-bold text-status-bad">
-                <WifiOff size={14} strokeWidth={2.5} className="shrink-0" />
-                {err}
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={send}
-              disabled={!draft || saving}
-              className="btn-gold mx-auto mt-4 flex h-11 cursor-pointer items-center gap-2 rounded-xl px-8 font-display text-[14px] font-bold disabled:opacity-45"
-            >
-              {saving && <Loader2 size={15} className="animate-spin" />}
-              {draft ? t('moodSend') : t('moodPickFirst')}
-            </button>
-          </div>
-        </div>,
+            <MoodCard
+              draft={draft}
+              onPick={setDraft}
+              onSend={send}
+              saving={saving}
+              err={err}
+              now={now}
+              cardRef={cardRef}
+            />
+          </div>,
           document.body,
         )}
     </>

@@ -1,9 +1,11 @@
 import {getTranslations, getLocale} from 'next-intl/server';
+import {headers} from 'next/headers';
 import {createClient} from '@/lib/supabase/server';
 import type {Profile} from '@/lib/auth';
+import {clientIp} from '@/lib/ip';
 import {todayInVN, isoWeekLabel} from '@/lib/dates';
 import {DonutRing} from '@/components/charts/DonutRing';
-import {MoodCheckin, type MoodKey} from '@/components/student/MoodCheckin';
+import {MoodCheckin, MoodGate, type MoodKey} from '@/components/student/MoodCheckin';
 import {LeadTicker, type TickerLead} from '@/components/student/LeadTicker';
 import {
   StudentMeetings,
@@ -122,6 +124,16 @@ export async function StudentScoreboard({
   const cls = enrRow?.classes;
   const classId = enrRow?.class_id ?? null;
   const mood = (moodRow?.mood ?? null) as MoodKey | null;
+
+  // BẮT BUỘC check-in: chỉ chặn khi CHÍNH em đó chưa check-in hôm nay VÀ đang ở trong mạng
+  // trường. Ngoài mạng trường (ở nhà/4G) student_checkin() trả 'blocked' → nếu vẫn chặn thì em
+  // bị khoá cứng không tự thoát được, nên cho vào xem read-only (quyết định 2026-07-26).
+  let mustCheckin = false;
+  if (canEditMood && mood === null) {
+    const ip = clientIp(await headers());
+    const {data: onSchoolNetwork} = await supabase.rpc('ip_allowed', {p_ip: ip ?? ''});
+    mustCheckin = onSchoolNetwork === true;
+  }
 
   const meetings: StudentMeeting[] = (
     (meetingRows ?? []) as unknown as {
@@ -254,6 +266,8 @@ export async function StudentScoreboard({
 
   return (
     <div className="mt-4 flex flex-col gap-[22px]">
+      {/* Lớp chặn bắt buộc check-in — đặt NGOÀI hero (hero có backdrop-filter, sẽ phá position:fixed) */}
+      {mustCheckin && <MoodGate />}
       {flash && (
         <div className="rounded-2xl border border-success/30 bg-success/10 px-4 py-2.5 text-sm font-bold text-success">
           {flash}
@@ -281,7 +295,7 @@ export async function StudentScoreboard({
           </div>
         </div>
         <div className="border-t border-navy/[0.08] p-6 md:border-l md:border-t-0">
-          <MoodCheckin initialMood={mood} canEdit={canEditMood} />
+          <MoodCheckin initialMood={mood} canEdit={canEditMood} gated={mustCheckin} />
         </div>
       </div>
 
@@ -347,7 +361,7 @@ export async function StudentScoreboard({
           {tickerLeads.length === 0 ? (
             <p className="text-sm italic text-grey-mid">{t('noLeads')}</p>
           ) : (
-            <LeadTicker leads={tickerLeads} studentId={studentId} canTick={canTick} />
+            <LeadTicker leads={tickerLeads} studentId={studentId} canTick={canTick} today={today} />
           )}
           {/* Học sinh: xin GVCN sửa (vd gỡ tick sai, đổi mục tiêu) — hết ngõ cụt phía HS */}
           {canTick && classId && (

@@ -18,10 +18,13 @@ export function LeadTicker({
   leads,
   studentId,
   canTick,
+  today,
 }: {
   leads: TickerLead[];
   studentId: string;
   canTick: boolean;
+  // Ngày hôm nay theo GIỜ VN (app_today() từ server) — mốc khoá tick, xem ghi chú ở `undoable`.
+  today: string;
 }) {
   const t = useTranslations('student');
   const router = useRouter();
@@ -57,7 +60,7 @@ export function LeadTicker({
     if (!canTick || busy) return;
     setBusy(entryId);
     setErr(null);
-    // RLS lp_student_delete chỉ cho xoá bản ghi của mình < 24h — DB là chốt cuối.
+    // RLS lp_student_delete chỉ cho xoá bản ghi của mình trong NGÀY HÔM NAY (giờ VN) — DB là chốt cuối.
     const {error} = await supabase.from('lead_progress').delete().eq('id', entryId);
     setBusy(null);
     if (error) {
@@ -76,9 +79,11 @@ export function LeadTicker({
           const done = l.target > 0 && actual >= l.target;
           // Hiển thị không vượt mục tiêu: 5/5 chứ không phải 6/5.
           const shown = l.target > 0 ? Math.min(actual, l.target) : actual;
-          // Bản ghi của mình còn trong cửa sổ 24h → được hoàn tác.
+          // Bản ghi của mình TRONG NGÀY HÔM NAY (giờ VN) → tick/bỏ tick thoải mái; qua 00:00 là khoá
+          // và mở lượt mới. Trước đây là "24h trượt tính từ lúc bấm" nên tick 21:00 vẫn bỏ được 08:00
+          // hôm sau — không khớp nhịp ngày. DB là chốt cuối (RLS lp_student_* dùng vn_today(), 0039).
           const undoable = l.entries
-            .filter((e) => e.mine && Date.now() - new Date(e.createdAt).getTime() < 24 * 3600_000)
+            .filter((e) => e.mine && e.loggedDate === today)
             .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
           const ticked = Boolean(undoable);
           const flashing = flash === l.id; // vừa bấm tick → nảy sao + tô gold

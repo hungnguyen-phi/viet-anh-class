@@ -23,7 +23,7 @@
 | Admin | `auth_role() = 'admin'` | mọi bảng (for all) |
 | BGH | `auth_role()='principal' AND <class>.campus_id = auth_campus()` | attendance, wigs, scoreboard… (select) |
 | GVCN | `is_class_teacher(class_id)` (attendance: + `date between vn_today()-6 and vn_today()`) | attendance, wigs, lead, meetings (for all) |
-| Học sinh | `is_class_student(class_id)`; tự sửa khi `student_id = auth.uid()` | wigs (read + self write), lead_progress (self, khoá 24h) |
+| Học sinh | `is_class_student(class_id)`; tự sửa khi `student_id = auth.uid()` | wigs (read + self write), lead_progress (self, **khoá theo ngày: `logged_date = vn_today()`** — 0039) |
 | Phụ huynh | `is_my_child(student_id)` | mọi bảng có `student_id` (select-only) |
 | Attendance leader | `is_attendance_leader(class_id) AND date = current_date` | attendance_records (write) |
 
