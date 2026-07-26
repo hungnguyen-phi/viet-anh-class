@@ -13,6 +13,7 @@ import {
   type Classmate,
 } from '@/components/student/StudentMeetings';
 import {StudentWigSetup} from '@/components/student/StudentWigSetup';
+import {MyRequests, type MyRequest} from '@/components/student/MyRequests';
 import {StudentWigManage, type ManageWig, type ManageLead} from '@/components/student/StudentWigManage';
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {EditRequestButton} from '@/components/student/EditRequestButton';
@@ -257,6 +258,22 @@ export async function StudentScoreboard({
   }
 
   const canTick = viewer.id === studentId && viewer.role === 'student';
+
+  // Yêu cầu-sửa CỦA CHÍNH người đang xem còn 'pending' → cho sửa lời nhắn / rút lại (0040).
+  // RLS er_requester_read đã giới hạn `requester_id = auth.uid()`, nhưng lọc luôn cho rõ ý.
+  let myRequests: MyRequest[] = [];
+  if (canTick) {
+    const {data: mine} = await supabase
+      .from('edit_requests')
+      .select('id, kind, ref_id, message')
+      .eq('requester_id', viewer.id)
+      .eq('status', 'pending')
+      .order('created_at', {ascending: false});
+    const leadTitleById = new Map(tickerLeads.map((l) => [l.id, l.title]));
+    myRequests = ((mine ?? []) as {id: string; kind: string; ref_id: string | null; message: string | null}[]).map(
+      (r) => ({...r, leadTitle: r.ref_id ? leadTitleById.get(r.ref_id) ?? null : null}),
+    );
+  }
   const displayName = student.full_name ?? student.email;
   const hasWeek = weekRows.length > 0;
   // C6 — trạng thái WIG cá nhân để hiện bảng thiết lập cho GVCN.
@@ -363,7 +380,7 @@ export async function StudentScoreboard({
           ) : (
             <LeadTicker leads={tickerLeads} studentId={studentId} canTick={canTick} today={today} />
           )}
-          {/* Học sinh: xin GVCN sửa (vd gỡ tick sai, đổi mục tiêu) — hết ngõ cụt phía HS */}
+          {/* Học sinh: xin GVCN sửa (vd gỡ tick của ngày đã qua, đổi mục tiêu) — hết ngõ cụt phía HS */}
           {canTick && classId && (
             <div className="mt-3">
               <EditRequestButton
@@ -373,6 +390,8 @@ export async function StudentScoreboard({
               />
             </div>
           )}
+          {/* Yêu cầu đã gửi mà GVCN chưa xử lý → còn sửa/rút lại được */}
+          {canTick && <MyRequests studentId={studentId} requests={myRequests} />}
         </section>
 
         <div className="flex flex-col gap-[22px]">

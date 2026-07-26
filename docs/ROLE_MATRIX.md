@@ -27,6 +27,12 @@
 | Phụ huynh | `is_my_child(student_id)` | mọi bảng có `student_id` (select-only) |
 | Attendance leader | `is_attendance_leader(class_id) AND date = current_date` | attendance_records (write) |
 
+**Yêu cầu-sửa (`edit_requests`)** — GVCN/Admin là người **duyệt** (`er_staff_update`), giữ đúng cơ chế cam kết
+4DX: lead measure / WIG tuần chốt trong buổi họp Coach × Buddy, học sinh **không tự đổi target**. Người gửi
+(HS/PH) chỉ được **sửa lời nhắn hoặc rút lại yêu cầu của mình khi còn `pending`** (`er_requester_update` /
+`er_requester_delete`, 0040) — `WITH CHECK` giữ `status = 'pending'` nên không thể tự duyệt. Rút lại giải
+phóng unique index `edit_requests_pending_uidx` (0035) để gửi lại yêu cầu mới.
+
 ## 3. Phụ huynh — danh sách trắng/đen trường dữ liệu (§7.2)
 
 - **ĐƯỢC thấy (về con mình):** họ tên con, lớp, tổng quan điểm danh (số vắng/trễ theo tuần/tháng), tiến độ WIG cá nhân 4 lĩnh vực, điểm thi đua cá nhân, nhận xét tổng hợp của GVCN, WIG/LM tuần sau.

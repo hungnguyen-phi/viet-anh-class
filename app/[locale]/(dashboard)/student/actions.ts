@@ -360,6 +360,60 @@ export async function createEditRequest(formData: FormData) {
   back('Đã gửi yêu cầu chỉnh sửa cho giáo viên');
 }
 
+// Học sinh/PH SỬA lời nhắn của yêu cầu MÌNH đã gửi, khi GVCN chưa xử lý.
+// RLS er_requester_update (0040) chốt: chỉ yêu cầu của mình + còn 'pending'; `.eq('status','pending')`
+// ở đây chỉ để phân biệt "GVCN vừa xử lý xong" → báo cho học sinh biết thay vì im lặng không đổi gì.
+export async function updateEditRequest(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect('/login');
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('request_id') ?? '');
+  const message = String(formData.get('message') ?? '').trim();
+  const back = (m: string): never => redirect(`/student/${student_id}?flash=${encodeURIComponent(m)}`);
+  if (!id) back('Thiếu yêu cầu');
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('edit_requests')
+    .update({message: message || null})
+    .eq('id', id)
+    .eq('status', 'pending')
+    .select('id');
+  revalidatePath(`/student/${student_id}`);
+  revalidatePath('/student');
+  if (error) back(friendlyError(error));
+  back(
+    data && data.length
+      ? 'Đã cập nhật yêu cầu'
+      : 'Không sửa được — GVCN đã xử lý yêu cầu này rồi.',
+  );
+}
+
+// Học sinh/PH RÚT LẠI yêu cầu của mình khi GVCN chưa xử lý (RLS er_requester_delete, 0040).
+// Rút lại giải phóng luôn unique index pending (0035) → gửi lại yêu cầu mới được ngay.
+export async function withdrawEditRequest(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect('/login');
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('request_id') ?? '');
+  const back = (m: string): never => redirect(`/student/${student_id}?flash=${encodeURIComponent(m)}`);
+  if (!id) back('Thiếu yêu cầu');
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('edit_requests')
+    .delete()
+    .eq('id', id)
+    .eq('status', 'pending')
+    .select('id');
+  revalidatePath(`/student/${student_id}`);
+  revalidatePath('/student');
+  if (error) back(friendlyError(error));
+  back(
+    data && data.length
+      ? 'Đã rút lại yêu cầu'
+      : 'Không rút được — GVCN đã xử lý yêu cầu này rồi.',
+  );
+}
+
 // GVCN/Admin duyệt/từ chối. IDEMPOTENT: chỉ đổi khi đang 'pending' → bấm 2 lần chỉ ăn 1.
 // apply=1 + kind='undo_tick' → duyệt & gỡ tick luôn.
 export async function resolveEditRequest(formData: FormData) {
