@@ -37,12 +37,15 @@ export function CampusCard({
       {edit ? (
         <form action={updateCampus} className="flex flex-wrap items-center gap-1.5">
           <input type="hidden" name="id" value={campus.id} />
-          <input name="name" defaultValue={campus.name} className={`${inp} flex-1`} required />
-          <input name="code" defaultValue={campus.code} className={`${inp} w-24`} required />
+          <input name="name"
+                aria-label={t('name')} defaultValue={campus.name} className={`${inp} flex-1`} required />
+          <input name="code"
+                aria-label={t('code')} defaultValue={campus.code} className={`${inp} w-24`} required />
           {/* Đổi cấp học sẽ SINH THÊM khối chuẩn của cấp mới (trigger campus_seed_grades).
               Khối cũ không bị xoá — lớp đang trỏ vào chúng vẫn nguyên. */}
           <select
             name="level"
+                aria-label={t('level')}
             defaultValue={campus.level ?? ''}
             className={`${inp} w-40 cursor-pointer`}
             title={t('levelHint')}

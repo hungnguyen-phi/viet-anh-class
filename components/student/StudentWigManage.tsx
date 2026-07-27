@@ -2,6 +2,7 @@
 
 import {useState} from 'react';
 import {useTranslations} from 'next-intl';
+import {inputInline, btnNavy, btnGhost} from '@/components/ui/Field';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {
   editStudentWig,
@@ -29,12 +30,11 @@ export type ManageLead = {
   entries: {id: string; date: string}[];
 };
 
-const inp =
-  'min-w-0 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
-const navyBtn =
-  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700';
-const ghost =
-  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/20 bg-white px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
+// Man hoc sinh -> dung bo dieu khien chung 44px: vua thang hang (truoc day o ~36px dung canh
+// nut h-8 = 32px), vua dat nguong vung cham cho tay tre con tren dien thoai.
+const inp = inputInline;
+const navyBtn = btnNavy;
+const ghost = btnGhost;
 const danger =
   'grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-[8px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]';
 
@@ -108,9 +108,10 @@ export function StudentWigManage({
                     >
                       <input type="hidden" name="student_id" value={studentId} />
                       <input type="hidden" name="lead_measure_id" value={l.id} />
-                      <input name="title" defaultValue={l.title} className={`${inp} min-w-[140px] flex-1`} required />
-                      <input name="target_value" type="number" step="any" min="0.01" defaultValue={l.target} className={`${inp} w-16`} required />
-                      <input name="unit" defaultValue={l.unit ?? ''} placeholder={t('unit')} className={`${inp} w-20`} />
+                      <input name="title"
+                aria-label={t('titleLabel')} defaultValue={l.title} className={`${inp} min-w-[140px] flex-1`} required />
+                      <input name="target_value" aria-label={t('target')} type="number" step="any" min="0.01" defaultValue={l.target} className={`${inp} w-20`} required />
+                      <input name="unit" defaultValue={l.unit ?? ''} placeholder={t('unit')} aria-label={t('unit')} className={`${inp} min-w-[112px] flex-1`} />
                       <button type="submit" className={navyBtn}>{t('save')}</button>
                       <button type="button" onClick={() => setEditLeadId(null)} className={ghost}>{t('cancel')}</button>
                     </form>
@@ -172,9 +173,9 @@ function WigRowEdit({
         <input type="hidden" name="student_id" value={studentId} />
         <input type="hidden" name="wig_id" value={w.id} />
         <span className="text-[12.5px] font-extrabold text-navy">{w.areaLabel}</span>
-        <input name="target_value" type="number" step="any" min="0.01" defaultValue={w.target} className={`${inp} w-20`} required />
-        <input name="unit" defaultValue={w.unit} placeholder={t('unit')} className={`${inp} w-20`} required />
-        <input name="period_label" defaultValue={w.period_label ?? ''} placeholder={t('label')} className={`${inp} w-28`} />
+        <input name="target_value" aria-label={t('target')} type="number" step="any" min="0.01" defaultValue={w.target} className={`${inp} w-20`} required />
+        <input name="unit" defaultValue={w.unit} placeholder={t('unit')} aria-label={t('unit')} className={`${inp} min-w-[112px] flex-1`} required />
+        <input name="period_label" defaultValue={w.period_label ?? ''} placeholder={t('label')} aria-label={t('label')} className={`${inp} w-28`} />
         <button type="submit" className={navyBtn}>{t('save')}</button>
         <button type="button" onClick={onCancel} className={ghost}>{t('cancel')}</button>
       </form>

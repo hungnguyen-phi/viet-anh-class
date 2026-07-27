@@ -51,16 +51,19 @@ export function ClassEditForm({
       <input type="hidden" name="id" value={row.id} />
       <label className={lbl}>
         {t('name')}
-        <input name="name" defaultValue={row.name} className={inp} required />
+        <input name="name"
+                aria-label={t('name')} defaultValue={row.name} className={inp} required />
       </label>
       <label className={lbl}>
         {t('schoolYear')}
-        <input name="school_year" defaultValue={row.school_year} className={inp} required />
+        <input name="school_year"
+                aria-label={t('schoolYear')} defaultValue={row.school_year} className={inp} required />
       </label>
       <label className={lbl}>
         {t('campus')}
         <select
           name="campus_id"
+                aria-label={t('campus')}
           value={campusId}
           onChange={(e) => {
             setCampusId(e.target.value);
@@ -79,6 +82,7 @@ export function ClassEditForm({
         {t('grade')}
         <select
           name="grade_id"
+                aria-label={t('grade')}
           value={gradeId}
           onChange={(e) => setGradeId(e.target.value)}
           className={`cursor-pointer ${inp}`}
@@ -96,6 +100,7 @@ export function ClassEditForm({
         {t('gvcn')}
         <select
           name="homeroom_teacher_id"
+                aria-label={t('gvcn')}
           defaultValue={row.homeroom_teacher_id ?? ''}
           className={`cursor-pointer ${inp}`}
         >

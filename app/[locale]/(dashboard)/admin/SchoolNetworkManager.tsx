@@ -61,7 +61,7 @@ export async function SchoolNetworkManager({
         {currentIp && (
           <form action={addCurrentSchoolIp} className="ml-auto flex items-center gap-2">
             <input type="hidden" name="label" value={t('thisDeviceIp')} />
-            <select name="campus_id" defaultValue="" className={`cursor-pointer ${inp} h-10`}>
+            <select name="campus_id" aria-label={t('campus')} defaultValue="" className={`cursor-pointer ${inp} h-10`}>
               <option value="">{t('allCampuses')}</option>
               {campuses.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -78,9 +78,9 @@ export async function SchoolNetworkManager({
 
       {/* Thêm dải IP thủ công */}
       <form action={addSchoolNetwork} className="flex flex-wrap items-end gap-2">
-        <input name="label" placeholder={t('networkLabel')} className={`${inp} min-w-[160px] flex-1`} required />
-        <input name="cidr" placeholder={t('networkCidr')} className={`${inp} w-[190px] font-mono`} required />
-        <select name="campus_id" defaultValue="" className={`cursor-pointer ${inp} h-10`}>
+        <input name="label" placeholder={t('networkLabel')} aria-label={t('networkLabel')} className={`${inp} min-w-[160px] flex-1`} required />
+        <input name="cidr" placeholder={t('networkCidr')} aria-label={t('networkCidr')} className={`${inp} w-[190px] font-mono`} required />
+        <select name="campus_id" aria-label={t('campus')} defaultValue="" className={`cursor-pointer ${inp} h-10`}>
           <option value="">{t('allCampuses')}</option>
           {campuses.map((c) => (
             <option key={c.id} value={c.id}>

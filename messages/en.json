@@ -160,7 +160,9 @@
     },
     "coverUpload": "Class cover",
     "coverUploading": "Uploading...",
-    "coverError": "Upload failed"
+    "coverError": "Upload failed",
+    "leaderLabel": "Attendance leader",
+    "coverLabel": "Class cover image"
   },
   "studentWig": {
     "setupTitle": "Set up personal WIGs",
@@ -181,7 +183,8 @@
     "weekTag": "Week",
     "removeTick": "Remove tick",
     "confirmDeleteLead": "Delete this lead measure and all its ticks? Cannot be undone.",
-    "confirmDeleteWig": "Delete this personal WIG (incl. its weekly WIGs/leads)? Cannot be undone."
+    "confirmDeleteWig": "Delete this personal WIG (incl. its weekly WIGs/leads)? Cannot be undone.",
+    "titleLabel": "Goal name"
   },
   "admin": {
     "title": "System administration",
@@ -338,7 +341,8 @@
     "periodWhich": "Period",
     "startDate": "Start date",
     "endDate": "End date",
-    "from": "From"
+    "from": "From",
+    "tickLockLabel": "Tick lock day"
   },
   "meeting": {
     "title": "Weekly WIG meeting",
@@ -502,7 +506,9 @@
     "requestUndoTickTag": "Undo tick",
     "approveApply": "Approve & remove tick",
     "approve": "Approve",
-    "reject": "Reject"
+    "reject": "Reject",
+    "results": "Last week results",
+    "message": "Message"
   },
   "campusReport": {
     "title": "Campus report",
@@ -574,6 +580,8 @@
     "ovNewPeriod": "Target period",
     "ovSubstitute": "Substitute teacher",
     "ovNote": "Note",
-    "ovRemove": "Remove"
+    "ovRemove": "Remove",
+    "kindLabel": "Lesson type",
+    "dayLabel": "Weekday"
   }
 }

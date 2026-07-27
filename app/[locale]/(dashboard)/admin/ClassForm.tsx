@@ -68,6 +68,7 @@ export function ClassForm({
     <form ref={formRef} action={formAction} onKeyDown={onKeyDown} className="flex flex-col gap-2" noValidate>
       <input
         name="name"
+                aria-label={t('name')}
         placeholder={t('name')}
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -78,6 +79,7 @@ export function ClassForm({
 
       <input
         name="school_year"
+                aria-label={t('schoolYear')}
         placeholder={t('schoolYear')}
         value={schoolYear}
         onChange={(e) => setSchoolYear(e.target.value)}
@@ -88,6 +90,7 @@ export function ClassForm({
 
       <select
         name="campus_id"
+                aria-label={t('campus')}
         value={campusId}
         onChange={(e) => {
           setCampusId(e.target.value);
@@ -110,6 +113,7 @@ export function ClassForm({
       {/* Khối — lọc theo cơ sở; rỗng nếu chưa chọn cơ sở hoặc cơ sở chưa có khối */}
       <select
         name="grade_id"
+                aria-label={t('grade')}
         value={gradeId}
         onChange={(e) => setGradeId(e.target.value)}
         disabled={!campusId}
@@ -127,6 +131,7 @@ export function ClassForm({
 
       <select
         name="homeroom_teacher_id"
+                aria-label={t('gvcn')}
         value={teacherId}
         onChange={(e) => setTeacherId(e.target.value)}
         className={`cursor-pointer ${inputBase} border-navy/15 focus:border-navy`}

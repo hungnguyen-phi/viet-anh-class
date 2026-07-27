@@ -59,10 +59,12 @@ export function GradeManager({
           !auto && editId === g.id ? (
             <form key={g.id} action={updateGrade} className="flex items-center gap-1.5">
               <input type="hidden" name="id" value={g.id} />
-              <input name="name" defaultValue={g.name} className={`${inp} flex-1`} required />
+              <input name="name" defaultValue={g.name}
+                aria-label={t('gradeName')} className={`${inp} flex-1`} required />
               <input
                 name="sort_order"
                 type="number"
+                aria-label={t('sortOrder')}
                 defaultValue={g.sort_order}
                 title={t('sortOrder')}
                 className={`${inp} w-16 text-center`}
@@ -112,11 +114,11 @@ export function GradeManager({
       {!auto && level != null && (
         <form action={createGrade} className="mt-1.5 flex items-center gap-1.5">
           <input type="hidden" name="campus_id" value={campusId} />
-          <input name="name" placeholder={t('gradeName')} className={`${inp} flex-1`} required />
+          <input name="name" placeholder={t('gradeName')} aria-label={t('gradeName')} className={`${inp} flex-1`} required />
           <input
             name="sort_order"
             type="number"
-            placeholder="#"
+            placeholder="#" aria-label={t('sortOrder')}
             defaultValue={grades.length}
             className={`${inp} w-16 text-center`}
           />

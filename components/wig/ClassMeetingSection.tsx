@@ -57,6 +57,7 @@ export async function ClassMeetingSection({
           <span className="text-[12.5px] font-extrabold text-navy">{t('lockDow')}</span>
           <select
             name="tick_lock_dow"
+                aria-label="Ngày chốt tick"
             defaultValue={String(tickLockDow)}
             className="cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 py-2 text-[13px] font-semibold text-navy outline-none focus:border-navy"
           >

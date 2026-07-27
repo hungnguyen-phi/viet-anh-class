@@ -4,7 +4,7 @@ import {createClient} from '@/lib/supabase/server';
 import {getAccessibleClasses, getMyClass} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
-import {Field, inputCls, btnGhost, btnGold} from '@/components/ui/Field';
+import {Field, inputCls, inputInline, btnGhost, btnGold} from '@/components/ui/Field';
 import {WigCreateForm} from './WigCreateForm';
 import {
   addLeadMeasure,
@@ -141,7 +141,9 @@ export default async function WigPage({
   // Ô nhập và nút DÙNG CHUNG chiều cao ctl-h (44px) từ components/ui/Field.
   // Trước đây ba thứ này cao 40 / 38 / 31px vì mỗi cái tự chế padding riêng — đứng cùng một
   // hàng `items-center` là lệch, đúng lỗi người dùng báo. Chiều cao tường minh thì tự thẳng.
-  const compactInput = inputCls;
+  // inputInline (KHONG kem w-full) vi cho nay tu dat be rong `w-20` — dung inputCls se co
+  // hai lop width da nhau, ket qua phu thuoc thu tu Tailwind sinh CSS.
+  const compactInput = inputInline;
   const ghostBtn = btnGhost;
   const logBtn = btnGold;
 

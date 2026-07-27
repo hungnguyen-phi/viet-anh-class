@@ -36,7 +36,7 @@ export function TeacherManager({teachers, invites}: {teachers: Teacher[]; invite
       <form action={inviteTeachers} className="flex flex-wrap items-center gap-1.5">
         <input
           name="email"
-          placeholder={t('inviteTeacherPlaceholder')}
+          placeholder={t('inviteTeacherPlaceholder')} aria-label={t('inviteTeacherPlaceholder')}
           className={`${inp} min-w-[220px] flex-1`}
           required
         />

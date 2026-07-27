@@ -51,7 +51,7 @@ export function ParentForm({students}: {students: Student[]}) {
       <input
         name="email"
         type="email"
-        placeholder={t('email')}
+        placeholder={t('email')} aria-label={t('email')}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         aria-invalid={state.fieldError === 'email'}
@@ -59,6 +59,7 @@ export function ParentForm({students}: {students: Student[]}) {
       />
       <select
         name="student_id"
+                aria-label={t('selectUser')}
         value={studentId}
         onChange={(e) => setStudentId(e.target.value)}
         className={studentCls}

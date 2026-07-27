@@ -23,7 +23,7 @@ export function CampusLevelPicker({level}: {level: SchoolLevel | null}) {
       <span className="text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
         {t('level')}
       </span>
-      <select name="level" defaultValue={level ?? ''} className={`${inp} w-44 cursor-pointer`} required>
+      <select name="level" aria-label={t('level')} defaultValue={level ?? ''} className={`${inp} w-44 cursor-pointer`} required>
         <option value="" disabled>
           — {t('level')} —
         </option>

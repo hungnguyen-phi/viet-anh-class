@@ -30,7 +30,8 @@ export function PeriodPicker({
     <div className="min-w-0">
       <label className={labelCls}>{label}</label>
       {/* selectCls: cùng chiều cao ctl-h với ô nhập và nút → đứng cùng hàng là thẳng */}
-      <select value={i} onChange={(e) => setI(Number(e.target.value))} className={selectCls}>
+      <select value={i}
+                aria-label={label} onChange={(e) => setI(Number(e.target.value))} className={selectCls}>
         {options.map((o, idx) => (
           <option key={o.label} value={idx}>
             {o.label}

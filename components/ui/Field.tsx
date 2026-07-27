@@ -15,19 +15,28 @@ import {AlertCircle} from 'lucide-react';
 // đây là sửa cấu trúc, không phải đổi phong cách.
 // ============================================================
 
-// Nền chung: bo góc, viền, chuyển động. Màu viền tách riêng để đổi sang đỏ khi lỗi.
+// Nền chung: bo góc, viền, chuyển động. KHÔNG chứa bề rộng — xem ghi chú ở inputInline.
 const CTL_BASE =
-  'ctl-h w-full min-w-0 rounded-[10px] border-[1.5px] bg-white px-3 text-sm font-semibold text-navy outline-none transition-colors';
+  'ctl-h min-w-0 rounded-[10px] border-[1.5px] bg-white px-3 text-sm font-semibold text-navy outline-none transition-colors';
 
 export const BORDER_OK = 'border-navy/15 focus:border-navy';
 export const BORDER_ERR = 'border-status-bad focus:border-status-bad';
 
-export const inputCls = `${CTL_BASE} ${BORDER_OK}`;
-export const selectCls = `${CTL_BASE} ${BORDER_OK} cursor-pointer`;
+// Dùng TRONG <Field> (ô chiếm trọn ô lưới).
+export const inputCls = `${CTL_BASE} w-full ${BORDER_OK}`;
+export const selectCls = `${CTL_BASE} w-full ${BORDER_OK} cursor-pointer`;
+
+// Dùng cho hàng inline, nơi người gọi TỰ đặt bề rộng (`w-20`, `flex-1`…).
+//
+// Vì sao phải tách: nếu base đã có `w-full` mà người gọi viết thêm `w-20` thì hai lớp width
+// cùng tồn tại, và cái nào thắng phụ thuộc thứ tự Tailwind sinh CSS chứ KHÔNG phải thứ tự
+// mình viết trong className — tức là kết quả không đoán trước được.
+export const inputInline = `${CTL_BASE} ${BORDER_OK}`;
+export const selectInline = `${CTL_BASE} ${BORDER_OK} cursor-pointer`;
 
 // Viền theo trạng thái lỗi — dùng khi form có validation inline (useActionState).
 export const ctlWithBorder = (hasError: boolean) =>
-  `${CTL_BASE} ${hasError ? BORDER_ERR : BORDER_OK}`;
+  `${CTL_BASE} w-full ${hasError ? BORDER_ERR : BORDER_OK}`;
 
 // ---- Nút ----
 // Cùng `ctl-h` với ô nhập → đứng cùng hàng là thẳng. `shrink-0` để nút không bị bóp méo khi

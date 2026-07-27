@@ -47,17 +47,20 @@ function AreaCard({area, meta}: {area: Area; meta: AreaMeta}) {
       <div className="flex flex-col gap-2">
         <label className={lbl}>
           {t('labelVi')}
-          <input name="label_vi" value={labelVi} onChange={(e) => setLabelVi(e.target.value)} className={inp} required />
+          <input name="label_vi"
+                aria-label={t('name') + ' (VI)'} value={labelVi} onChange={(e) => setLabelVi(e.target.value)} className={inp} required />
         </label>
         <label className={lbl}>
           {t('labelEn')}
-          <input name="label_en" defaultValue={meta.label_en} className={inp} required />
+          <input name="label_en"
+                aria-label={t('name') + ' (EN)'} defaultValue={meta.label_en} className={inp} required />
         </label>
         <div className="flex gap-2">
           <label className={`${lbl} w-[76px] shrink-0`}>
             {t('color')}
             <input
               name="color_hex"
+                aria-label="Màu"
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
@@ -66,7 +69,8 @@ function AreaCard({area, meta}: {area: Area; meta: AreaMeta}) {
           </label>
           <label className={`${lbl} flex-1`}>
             {t('icon')}
-            <select name="icon_name" value={icon} onChange={(e) => setIcon(e.target.value)} className={`cursor-pointer ${inp}`}>
+            <select name="icon_name"
+                aria-label="Biểu tượng" value={icon} onChange={(e) => setIcon(e.target.value)} className={`cursor-pointer ${inp}`}>
               {AREA_ICON_NAMES.map((n) => (
                 <option key={n} value={n}>
                   {n}
@@ -80,7 +84,7 @@ function AreaCard({area, meta}: {area: Area; meta: AreaMeta}) {
           <input
             name="default_unit"
             defaultValue={meta.default_unit ?? ''}
-            placeholder={t('unitPlaceholder')}
+            placeholder={t('unitPlaceholder')} aria-label={t('unitPlaceholder')}
             className={inp}
           />
         </label>

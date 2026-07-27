@@ -336,14 +336,14 @@ export default async function TimetablePage({
               </>
             ) : (
               <>
-                <select name="day_of_week" defaultValue="2" className={`${cellInput} w-24 cursor-pointer`}>
+                <select name="day_of_week" aria-label={t('dayLabel')} defaultValue="2" className={`${cellInput} w-24 cursor-pointer`}>
                   {DAYS.map((d) => (
                     <option key={d} value={d}>
                       {dayLabel(d)}
                     </option>
                   ))}
                 </select>
-                <select name="period_no" defaultValue="1" className={`${cellInput} w-24 cursor-pointer`}>
+                <select name="period_no" aria-label={t('period')} defaultValue="1" className={`${cellInput} w-24 cursor-pointer`}>
                   {PERIODS.map((p) => (
                     <option key={p} value={p}>
                       {t('period')} {p}
@@ -354,19 +354,19 @@ export default async function TimetablePage({
             )}
             <input
               name="subject"
-              placeholder={t('subject')}
+              placeholder={t('subject')} aria-label={t('subject')}
               defaultValue={editing?.subject ?? ''}
               className={`${cellInput} min-w-[130px] flex-1`}
               required
             />
-            <input name="room" placeholder={t('room')} defaultValue={editing?.room ?? ''} className={`${cellInput} w-24`} />
+            <input name="room" placeholder={t('room')} aria-label={t('room')} defaultValue={editing?.room ?? ''} className={`${cellInput} w-24`} />
             <input
               name="teacher_name"
-              placeholder={t('teacher')}
+              placeholder={t('teacher')} aria-label={t('teacher')}
               defaultValue={editing?.teacher_name ?? ''}
               className={`${cellInput} w-36`}
             />
-            <select name="kind" defaultValue={editing?.kind ?? 'regular'} className={`${cellInput} w-32 cursor-pointer`}>
+            <select name="kind" aria-label={t('kindLabel')} defaultValue={editing?.kind ?? 'regular'} className={`${cellInput} w-32 cursor-pointer`}>
               {(['regular', 'practice', 'exam'] as const).map((k) => (
                 <option key={k} value={k}>
                   {t(`kind_${k}`)}

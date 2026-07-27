@@ -48,7 +48,7 @@ export async function MyRequests({
                 name="message"
                 rows={2}
                 defaultValue={r.message ?? ''}
-                placeholder={t('requestEditPlaceholder')}
+                placeholder={t('requestEditPlaceholder')} aria-label={t('requestEditPlaceholder')}
                 className="min-h-[52px] min-w-0 flex-1 resize-y rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-[13px] font-semibold text-navy outline-none focus:border-navy"
               />
               <button

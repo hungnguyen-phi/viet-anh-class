@@ -95,6 +95,7 @@ export function BuddyChat({
       {turnsLeft > 0 && (
         <div className="mt-2.5 flex items-end gap-2">
           <textarea
+                aria-label={t('message')}
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={2}

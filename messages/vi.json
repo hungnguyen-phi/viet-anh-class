@@ -160,7 +160,9 @@
     },
     "coverUpload": "Ảnh bìa lớp",
     "coverUploading": "Đang tải...",
-    "coverError": "Lỗi tải ảnh"
+    "coverError": "Lỗi tải ảnh",
+    "leaderLabel": "Tổ trưởng điểm danh",
+    "coverLabel": "Ảnh bìa lớp"
   },
   "studentWig": {
     "setupTitle": "Thiết lập WIG cá nhân cho em",
@@ -181,7 +183,8 @@
     "weekTag": "Tuần",
     "removeTick": "Gỡ lượt tick",
     "confirmDeleteLead": "Xoá lead measure này và toàn bộ lượt tick? Không thể hoàn tác.",
-    "confirmDeleteWig": "Xoá WIG cá nhân này (kèm WIG tuần/lead bên trong)? Không thể hoàn tác."
+    "confirmDeleteWig": "Xoá WIG cá nhân này (kèm WIG tuần/lead bên trong)? Không thể hoàn tác.",
+    "titleLabel": "Tên mục tiêu"
   },
   "admin": {
     "title": "Quản trị hệ thống",
@@ -338,7 +341,8 @@
     "periodWhich": "Kỳ",
     "startDate": "Ngày bắt đầu",
     "endDate": "Ngày kết thúc",
-    "from": "Từ"
+    "from": "Từ",
+    "tickLockLabel": "Ngày chốt tick"
   },
   "meeting": {
     "title": "Họp WIG tuần",
@@ -502,7 +506,9 @@
     "requestUndoTickTag": "Xin gỡ tick",
     "approveApply": "Duyệt & gỡ tick",
     "approve": "Duyệt",
-    "reject": "Từ chối"
+    "reject": "Từ chối",
+    "results": "Kết quả tuần trước",
+    "message": "Nội dung"
   },
   "campusReport": {
     "title": "Báo cáo cơ sở",
@@ -574,6 +580,8 @@
     "ovNewPeriod": "Tiết đích",
     "ovSubstitute": "Người dạy thay",
     "ovNote": "Ghi chú",
-    "ovRemove": "Gỡ"
+    "ovRemove": "Gỡ",
+    "kindLabel": "Loại tiết",
+    "dayLabel": "Thứ"
   }
 }

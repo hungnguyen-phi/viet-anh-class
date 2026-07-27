@@ -53,7 +53,7 @@ export function CampusForm() {
     >
       <input
         name="name"
-        placeholder={t('name')}
+        placeholder={t('name')} aria-label={t('name')}
         value={name}
         onChange={(e) => setName(e.target.value)}
         aria-invalid={state.fieldError === 'name'}
@@ -61,7 +61,7 @@ export function CampusForm() {
       />
       <input
         name="code"
-        placeholder={t('code')}
+        placeholder={t('code')} aria-label={t('code')}
         value={code}
         onChange={(e) => setCode(e.target.value)}
         aria-invalid={state.fieldError === 'code'}
@@ -71,6 +71,7 @@ export function CampusForm() {
           phải gõ tên khối và số thứ tự bằng tay nữa. */}
       <select
         name="level"
+                aria-label={t('level')}
         value={level}
         onChange={(e) => setLevel(e.target.value as SchoolLevel | '')}
         aria-invalid={state.fieldError === 'level'}

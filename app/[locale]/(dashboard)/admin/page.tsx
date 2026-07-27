@@ -201,7 +201,7 @@ export default async function AdminPage({
             <input
               name="q"
               defaultValue={q}
-              placeholder={t('searchUser')}
+              placeholder={t('searchUser')} aria-label={t('searchUser')}
               className="h-10 w-[200px] rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 text-[12.5px] font-semibold text-navy outline-none focus:border-navy"
             />
             <button type="submit" className={`${navyBtnSm} h-10`}>
@@ -239,7 +239,7 @@ export default async function AdminPage({
               <span className="flex-[1.6]">
                 <form action={setUserRole} className="flex items-center gap-1.5">
                   <input type="hidden" name="userId" value={p.id} />
-                  <select name="role" defaultValue={p.role} className={selectSm}>
+                  <select name="role" aria-label={t('role')} defaultValue={p.role} className={selectSm}>
                     {ROLES.map((r) => (
                       <option key={r} value={r}>
                         {tr(r)}
@@ -331,12 +331,12 @@ export default async function AdminPage({
           <form action={inviteUser} className="flex flex-col gap-2">
             <textarea
               name="email"
-              placeholder={t('emailsMulti')}
+              placeholder={t('emailsMulti')} aria-label={t('emailsMulti')}
               required
               rows={2}
               className={`${inputCls} min-h-[44px] resize-y`}
             />
-            <select name="role" required defaultValue="" className={`cursor-pointer ${inputCls}`}>
+            <select name="role" aria-label={t('selectRole')} required defaultValue="" className={`cursor-pointer ${inputCls}`}>
               <option value="" disabled>
                 — {t('selectRole')} —
               </option>
@@ -346,7 +346,7 @@ export default async function AdminPage({
                 </option>
               ))}
             </select>
-            <select name="class_id" defaultValue="" className={`cursor-pointer ${inputCls}`}>
+            <select name="class_id" aria-label={t('selectClass')} defaultValue="" className={`cursor-pointer ${inputCls}`}>
               <option value="">
                 — {t('selectClass')} ({t('none')}) —
               </option>
@@ -367,7 +367,7 @@ export default async function AdminPage({
         <section className="glass rounded-[20px] p-[18px]">
           <div className={cardTitle}>{t('assignGvcn')}</div>
           <form action={assignGvcn} className="flex flex-col gap-2">
-            <select name="userId" required defaultValue="" className={`cursor-pointer ${inputCls}`}>
+            <select name="userId" aria-label={t('selectUser')} required defaultValue="" className={`cursor-pointer ${inputCls}`}>
               <option value="" disabled>
                 — {t('selectUser')} —
               </option>
@@ -377,7 +377,7 @@ export default async function AdminPage({
                 </option>
               ))}
             </select>
-            <select name="class_id" required defaultValue="" className={`cursor-pointer ${inputCls}`}>
+            <select name="class_id" aria-label={t('selectClass')} required defaultValue="" className={`cursor-pointer ${inputCls}`}>
               <option value="" disabled>
                 — {t('selectClass')} —
               </option>

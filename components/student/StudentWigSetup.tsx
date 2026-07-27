@@ -73,7 +73,7 @@ export async function StudentWigSetup({
                       name={`unit_${a}`}
                       defaultValue={areaMeta[a].default_unit ?? FALLBACK_UNIT[a]}
                       placeholder={t('unit')}
-                      className={`${input} w-24`}
+                      className={`${input} min-w-[112px] flex-1`}
                       aria-label={`${label} — ${t('unit')}`}
                     />
                   </div>

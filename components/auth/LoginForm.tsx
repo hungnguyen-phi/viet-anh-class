@@ -162,6 +162,7 @@ export function LoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t('emailPlaceholder')}
+                  aria-label={t('emailPlaceholder')}
                   autoFocus
                   className="h-11 min-w-0 flex-1 rounded-[12px] border border-navy/[0.18] bg-white px-[13px] text-[13.5px] font-bold text-navy outline-none transition-all focus:border-gold focus:shadow-[0_0_0_3px_rgba(249,221,14,0.22)]"
                 />

@@ -61,6 +61,7 @@ export function ClassManager({
           {t('classes')} ({classes.length})
         </div>
         <select
+          aria-label={t('campus')}
           value={campusFilter}
           onChange={(e) => setCampusFilter(e.target.value)}
           className={`cursor-pointer ${inp}`}
@@ -176,16 +177,19 @@ function ClassEditRow({
       <input type="hidden" name="id" value={row.id} />
       <label className="flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
         {t('name')}
-        <input name="name" defaultValue={row.name} className={inp} required />
+        <input name="name"
+                aria-label={t('name')} defaultValue={row.name} className={inp} required />
       </label>
       <label className="flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
         {t('schoolYear')}
-        <input name="school_year" defaultValue={row.school_year} className={inp} required />
+        <input name="school_year"
+                aria-label={t('schoolYear')} defaultValue={row.school_year} className={inp} required />
       </label>
       <label className="flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
         {t('campus')}
         <select
           name="campus_id"
+                aria-label={t('campus')}
           value={campusId}
           onChange={(e) => {
             setCampusId(e.target.value);
@@ -204,6 +208,7 @@ function ClassEditRow({
         {t('grade')}
         <select
           name="grade_id"
+                aria-label={t('grade')}
           value={gradeId}
           onChange={(e) => setGradeId(e.target.value)}
           className={`cursor-pointer ${inp}`}
@@ -221,6 +226,7 @@ function ClassEditRow({
         {t('gvcn')}
         <select
           name="homeroom_teacher_id"
+                aria-label={t('gvcn')}
           defaultValue={row.homeroom_teacher_id ?? ''}
           className={`cursor-pointer ${inp}`}
         >

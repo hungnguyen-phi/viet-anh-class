@@ -33,6 +33,7 @@ export function ClassPicker({
     <div className="relative inline-flex items-center">
       <select
         value={current ?? ''}
+                aria-label="Chọn lớp"
         onChange={(e) => router.push(`${pathname}?class=${e.target.value}`)}
         className="glass-pill cursor-pointer appearance-none rounded-full py-2 pl-4 pr-9 text-sm font-bold text-navy outline-none transition-all hover:bg-white/70 focus:border-navy"
       >
