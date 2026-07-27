@@ -7,6 +7,7 @@ import {createClient} from '@/lib/supabase/server';
 import {getAccessibleClasses, getMyClass} from '@/lib/queries';
 import {todayInVN} from '@/lib/dates';
 import {AttendanceTable} from '@/components/attendance/AttendanceTable';
+import {ClassMoodBoard} from '@/components/student/ClassMoodBoard';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import type {Database} from '@/lib/database.types';
 
@@ -172,6 +173,13 @@ export default async function AttendancePage({
         initial={initial}
         canEdit={canEdit}
       />
+
+      {/* Cảm xúc 7 ngày — dời từ trang Danh sách sang đây: check-in cảm xúc CHÍNH LÀ điểm danh
+          (student_checkin ghi cả mood_checkins lẫn attendance_records), nên phải đọc cùng chỗ.
+          KHÔNG hiện cho học sinh: tổ trưởng điểm danh không có việc gì với cảm xúc của bạn cùng lớp. */}
+      {profile.role !== 'student' && students.length > 0 && (
+        <ClassMoodBoard classId={myClass.id} today={realToday} students={students} />
+      )}
     </div>
   );
 }

@@ -6,22 +6,50 @@ import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
 
-// Bật/tắt cờ Attendance leader cho 1 học sinh trong lớp (RLS: chỉ GVCN lớp/admin).
-export async function setAttendanceLeader(formData: FormData) {
+// Đặt tổ trưởng điểm danh cho lớp. ĐỘC QUYỀN: mỗi lớp đúng 1 em.
+//
+// Bản cũ (setAttendanceLeader) chỉ bật/tắt cờ của MỘT em và không gỡ người cũ → lớp có thể có
+// nhiều tổ trưởng cùng lúc, mà cờ này mở RLS att_leader_insert/update cho em đó ghi điểm danh
+// cả lớp. Nay đặt em mới thì tự gỡ em cũ.
+//
+// studentId = null → gỡ hẳn, lớp không có tổ trưởng.
+// Trả về state thay vì redirect: client cần biết pending/lỗi để hiện spinner (trước đây bấm xong
+// im 5 giây, người dùng tưởng nút không ăn).
+export async function assignAttendanceLeader(
+  classId: string,
+  studentId: string | null,
+): Promise<{ok: boolean; error?: string}> {
   await requireRole(['teacher', 'admin']);
-  const classId = String(formData.get('classId'));
-  const studentId = String(formData.get('studentId'));
-  const value = formData.get('value') === 'true';
+  if (!classId) return {ok: false, error: 'Thiếu lớp'};
   const supabase = await createClient();
-  const {error} = await supabase
+
+  // Gỡ mọi người đang giữ cờ trong lớp trước. Không atomic với bước sau, nhưng cờ này chỉ ảnh
+  // hưởng link "Điểm danh" và RLS att_leader_* của HÔM NAY → khoảng trống vài trăm ms vô hại.
+  const clear = await supabase
     .from('enrollments')
-    .update({is_attendance_leader: value})
+    .update({is_attendance_leader: false})
     .eq('class_id', classId)
-    .eq('student_id', studentId);
-  revalidatePath('/roster');
-  if (error) {
-    redirect(`/roster?class=${encodeURIComponent(classId)}&flash=${encodeURIComponent(friendlyError(error))}`);
+    .eq('is_active', true)
+    .eq('is_attendance_leader', true);
+  if (clear.error) return {ok: false, error: friendlyError(clear.error)};
+
+  if (studentId) {
+    // .select() để phân biệt "RLS chặn / em đã rời lớp" với "đã đổi xong" — không báo thành công giả.
+    const {data, error} = await supabase
+      .from('enrollments')
+      .update({is_attendance_leader: true})
+      .eq('class_id', classId)
+      .eq('student_id', studentId)
+      .eq('is_active', true)
+      .select('student_id');
+    if (error) return {ok: false, error: friendlyError(error)};
+    if (!data || data.length === 0)
+      return {ok: false, error: 'Không đặt được — em này không còn trong lớp, hoặc bạn không có quyền.'};
   }
+
+  revalidatePath('/roster');
+  revalidatePath('/attendance');
+  return {ok: true};
 }
 
 function rosterFlash(classId: string, msg: string): never {
