@@ -496,6 +496,26 @@
     "hint": "Pick day + period, enter subject (and room), then Save. Re-entering the same cell overwrites it.",
     "delete": "Delete",
     "dayShort": "D",
-    "sat": "Sat"
+    "sat": "Sat",
+    "teacher": "Teacher",
+    "kind_regular": "Class",
+    "kind_practice": "Practical",
+    "kind_exam": "Exam / test",
+    "prevWeek": "‹ Prev week",
+    "thisWeek": "This week",
+    "nextWeek": "Next week ›",
+    "ovTitle": "Per-day schedule changes",
+    "ovHint": "Use this when one specific day differs from the usual schedule: cancelled, moved to another period, or covered by a substitute. The weekly template above stays unchanged — only that day changes.",
+    "ovSlot": "Slot",
+    "ovDate": "Date",
+    "ovStatus": "Change",
+    "ovCancelled": "Cancelled",
+    "ovMoved": "Moved",
+    "ovSubstituted": "Substitute",
+    "ovNewDate": "Move to date",
+    "ovNewPeriod": "Target period",
+    "ovSubstitute": "Substitute teacher",
+    "ovNote": "Note",
+    "ovRemove": "Remove"
   }
 }

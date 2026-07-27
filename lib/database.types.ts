@@ -15,11 +15,27 @@ export type Database = {
         Update: { id?: string; user_id?: string; title?: string; body?: string | null; link?: string | null; read?: boolean; created_at?: string }
         Relationships: []
       }
+      // 0044 — thêm teacher_name (TEXT, không FK: xem lý do trong migration) + kind cho màu ô.
       timetable_slots: {
-        Row: { id: string; class_id: string; day_of_week: number; period_no: number; subject: string; room: string | null; created_at: string }
-        Insert: { id?: string; class_id: string; day_of_week: number; period_no: number; subject: string; room?: string | null; created_at?: string }
-        Update: { id?: string; class_id?: string; day_of_week?: number; period_no?: number; subject?: string; room?: string | null; created_at?: string }
+        Row: { id: string; class_id: string; day_of_week: number; period_no: number; subject: string; room: string | null; teacher_name: string | null; kind: string; created_at: string }
+        Insert: { id?: string; class_id: string; day_of_week: number; period_no: number; subject: string; room?: string | null; teacher_name?: string | null; kind?: string; created_at?: string }
+        Update: { id?: string; class_id?: string; day_of_week?: number; period_no?: number; subject?: string; room?: string | null; teacher_name?: string | null; kind?: string; created_at?: string }
         Relationships: []
+      }
+      // 0044 — ngoại lệ THEO NGÀY của thời khoá biểu: huỷ / dời / dạy thay.
+      timetable_overrides: {
+        Row: { id: string; slot_id: string; date: string; status: string; new_date: string | null; new_period_no: number | null; substitute_name: string | null; note: string | null; created_at: string }
+        Insert: { id?: string; slot_id: string; date: string; status: string; new_date?: string | null; new_period_no?: number | null; substitute_name?: string | null; note?: string | null; created_at?: string }
+        Update: { id?: string; slot_id?: string; date?: string; status?: string; new_date?: string | null; new_period_no?: number | null; substitute_name?: string | null; note?: string | null; created_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: "timetable_overrides_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "timetable_slots"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       attendance_records: {
         Row: {

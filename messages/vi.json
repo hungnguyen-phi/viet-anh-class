@@ -496,6 +496,26 @@
     "hint": "Chọn thứ + tiết, nhập môn (và phòng nếu có) rồi Lưu. Nhập lại cùng ô sẽ ghi đè.",
     "delete": "Xoá",
     "dayShort": "T",
-    "sat": "T7"
+    "sat": "T7",
+    "teacher": "Giáo viên",
+    "kind_regular": "Học",
+    "kind_practice": "Thực hành",
+    "kind_exam": "Thi / kiểm tra",
+    "prevWeek": "‹ Tuần trước",
+    "thisWeek": "Tuần này",
+    "nextWeek": "Tuần sau ›",
+    "ovTitle": "Thay đổi lịch theo ngày",
+    "ovHint": "Dùng khi một buổi cụ thể khác lịch thường: huỷ, dời sang tiết khác, hoặc có người dạy thay. Mẫu tuần ở trên KHÔNG đổi, chỉ ngày đó đổi.",
+    "ovSlot": "Tiết",
+    "ovDate": "Ngày",
+    "ovStatus": "Thay đổi",
+    "ovCancelled": "Huỷ",
+    "ovMoved": "Dời",
+    "ovSubstituted": "Dạy thay",
+    "ovNewDate": "Dời tới ngày",
+    "ovNewPeriod": "Tiết đích",
+    "ovSubstitute": "Người dạy thay",
+    "ovNote": "Ghi chú",
+    "ovRemove": "Gỡ"
   }
 }
