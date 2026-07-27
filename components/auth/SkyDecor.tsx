@@ -1,3 +1,11 @@
+'use client';
+
+// 'use client' KHÔNG phải vì cần tương tác — component này thuần trang trí. Lý do: là server
+// component thì toàn bộ markup bị serialize HAI lần (một lần vào HTML, một lần vào RSC flight
+// payload) → trang login phình 151 KB, trong đó 92 KB là payload. Là client component thì payload
+// chỉ chứa tham chiếu module, HTML vẫn có sẵn nhờ SSR. An toàn vì RNG có seed → server/client
+// render giống hệt, không lệch hydrate.
+
 // Mây trôi + chim bay cho nền login. Thuần SVG/CSS, keyframes nhúng inline
 // (Tailwind v4 purge keyframes chỉ tham chiếu qua inline style). Deterministic
 // (RNG seed) → server & client render giống hệt. Nằm ở lớp trời phía trên, sau

@@ -1,3 +1,9 @@
+'use client';
+
+// 'use client' KHÔNG phải vì cần tương tác — xem ghi chú cùng lý do ở SkyDecor.tsx: là server
+// component thì markup trang trí bị serialize hai lần (HTML + RSC payload). An toàn vì RNG có
+// seed → server/client render giống hệt.
+
 // Đám đông học sinh đồng phục (màu) làm nền login — theo prototype (1).
 // Người ĐỨNG: mỗi người một vị trí "nhà" riêng (dàn đều khắp bề ngang), thỉnh
 // thoảng nhích tại chỗ vào thời điểm ngẫu nhiên → không ai dừng trùng chỗ/trùng lúc.

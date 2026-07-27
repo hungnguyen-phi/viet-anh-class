@@ -1,7 +1,15 @@
 'use client';
 
-import {useEffect, useState, useTransition, type ComponentType, type CSSProperties} from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ComponentType,
+  type CSSProperties,
+} from 'react';
 import {useTranslations, useLocale} from 'next-intl';
+import {useLinkStatus} from 'next/link';
 import {Link, usePathname, useRouter} from '@/i18n/navigation';
 import {signOut} from '@/lib/auth-actions';
 import type {Profile} from '@/lib/auth';
@@ -15,18 +23,32 @@ import {
   ShieldCheck,
   Building2,
   LineChart,
-  BookOpen,
   LogOut,
   Languages,
   Trophy,
   CalendarDays,
   Bell,
+  Settings,
+  Loader2,
   Menu,
   X,
 } from 'lucide-react';
 
 type IconType = ComponentType<{size?: number; strokeWidth?: number; className?: string}>;
 type NavItem = {href: string; key: string; Icon: IconType};
+
+// Icon của tab: đổi thành spinner trong lúc điều hướng chưa xong.
+// Trang dashboard là force-dynamic nên mỗi lần đổi trang server phải render lại (~1-2s) — không có
+// phản hồi gì thì người dùng tưởng nút không ăn rồi bấm lại. useLinkStatus phải được gọi TRONG
+// component con của <Link> mới nhận được trạng thái pending của chính link đó.
+function NavIcon({Icon, size}: {Icon: IconType; size: number}) {
+  const {pending} = useLinkStatus();
+  return pending ? (
+    <Loader2 size={size} strokeWidth={2} className="animate-spin" />
+  ) : (
+    <Icon size={size} strokeWidth={2} />
+  );
+}
 
 // Bộ link + quyền theo vai trò (giữ nguyên logic phân quyền cũ).
 const LINKS: Record<string, NavItem[]> = {
@@ -38,7 +60,6 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/scoreboard', key: 'compete', Icon: Trophy},
     {href: '/meeting', key: 'meeting', Icon: MessagesSquare},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
-    {href: '/notifications', key: 'notifications', Icon: Bell},
   ],
   admin: [
     {href: '/admin', key: 'admin', Icon: ShieldCheck},
@@ -49,7 +70,6 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/scoreboard', key: 'compete', Icon: Trophy},
     {href: '/meeting', key: 'meeting', Icon: MessagesSquare},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
-    {href: '/notifications', key: 'notifications', Icon: Bell},
   ],
   principal: [
     {href: '/campus', key: 'campus', Icon: Building2},
@@ -58,17 +78,14 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/scoreboard', key: 'compete', Icon: Trophy},
     {href: '/meeting', key: 'meeting', Icon: MessagesSquare},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
-    {href: '/notifications', key: 'notifications', Icon: Bell},
   ],
   parent: [
     {href: '/report', key: 'report', Icon: LineChart},
-    {href: '/notifications', key: 'notifications', Icon: Bell},
   ],
   // Học sinh thường chỉ thấy scoreboard cá nhân; tổ trưởng được thêm Điểm danh.
   student: [
     {href: '/student', key: 'myScoreboard', Icon: LayoutDashboard},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
-    {href: '/notifications', key: 'notifications', Icon: Bell},
   ],
 };
 
@@ -82,9 +99,12 @@ function initialsOf(name: string): string {
 export function AppNav({
   profile,
   isAttendanceLeader = false,
+  unreadCount = 0,
 }: {
   profile: Profile;
   isAttendanceLeader?: boolean;
+  // Số thông báo chưa đọc — hiện thành badge trên chuông (thay cho tab "Thông báo" cũ).
+  unreadCount?: number;
 }) {
   const t = useTranslations('nav');
   const tr = useTranslations('roles');
@@ -142,7 +162,7 @@ export function AppNav({
                     : 'text-white/75 hover:bg-white/10 hover:text-white'
                 }`}
               >
-                <Icon size={16} strokeWidth={2} />
+                <NavIcon Icon={Icon} size={16} />
                 {t(key)}
               </Link>
             );
@@ -171,34 +191,25 @@ export function AppNav({
             </span>
           </span>
 
-          {/* Hướng dẫn (mở lại intro) · đổi ngôn ngữ · đăng xuất */}
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new Event('va:open-intro'))}
-            aria-label={tc('guide')}
-            title={tc('guide')}
-            className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          >
-            <BookOpen size={17} strokeWidth={2} />
-          </button>
-          <LocaleToggle />
-          <form action={signOut} className="shrink-0">
-            <button
-              type="submit"
-              aria-label={tc('logout')}
-              title={tc('logout')}
-              className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <LogOut size={17} strokeWidth={2} />
-            </button>
-          </form>
+          {/* Chuông + Cài đặt. Trước đây "Thông báo" là một tab trong thanh nav, mà GVCN có 8 tab
+              nên chữ bị đè nhau; nay gom thành 2 icon ở góc, và ngôn ngữ/đăng xuất vào Cài đặt. */}
+          <BellLink href="/notifications" count={unreadCount} label={t('notifications')} active={isActive('/notifications')} />
+          <SettingsMenu />
         </div>
 
-        {/* Mobile (<lg): tên trang hiện tại + nút hamburger */}
+        {/* Mobile (<lg): tên trang hiện tại + chuông + hamburger.
+            Chuông phải nằm ngoài drawer vì "Thông báo" không còn là tab trong danh sách trang. */}
         <div className="flex flex-1 items-center gap-2 lg:hidden">
           <span className="min-w-0 flex-1 truncate font-display text-[15px] font-bold text-white sm:opacity-0">
             {activeItem ? t(activeItem.key) : ''}
           </span>
+          <BellLink
+            href="/notifications"
+            count={unreadCount}
+            label={t('notifications')}
+            active={isActive('/notifications')}
+            onNavigate={() => setOpen(false)}
+          />
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
@@ -250,26 +261,15 @@ export function AppNav({
                         : 'text-navy/60 hover:bg-white/50 hover:text-navy'
                     }`}
                   >
-                    <Icon size={18} strokeWidth={2} />
+                    <NavIcon Icon={Icon} size={18} />
                     {t(key)}
                   </Link>
                 );
               })}
             </nav>
 
-            {/* Tiện ích: hướng dẫn · ngôn ngữ · đăng xuất */}
+            {/* Tiện ích: ngôn ngữ · đăng xuất (đã bỏ nút Hướng dẫn theo yêu cầu) */}
             <div className="mt-2 flex items-center gap-1.5 border-t border-navy/[0.08] pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  window.dispatchEvent(new Event('va:open-intro'));
-                  setOpen(false);
-                }}
-                className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-[13px] font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy"
-              >
-                <BookOpen size={16} strokeWidth={2} />
-                {tc('guide')}
-              </button>
               <LocaleToggle className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-[13px] font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy disabled:opacity-50" />
               <form action={signOut} className="flex-1">
                 <button
@@ -288,7 +288,101 @@ export function AppNav({
   );
 }
 
-function LocaleToggle({className}: {className?: string}) {
+// Chuông thông báo + badge số chưa đọc. Dùng cả ở cụm phải desktop và thanh mobile.
+function BellLink({
+  href,
+  count,
+  label,
+  active,
+  onNavigate,
+}: {
+  href: string;
+  count: number;
+  label: string;
+  active: boolean;
+  onNavigate?: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      aria-label={count > 0 ? `${label} (${count})` : label}
+      title={label}
+      aria-current={active ? 'page' : undefined}
+      className={`relative grid h-9 w-9 shrink-0 place-items-center rounded-full transition-colors ${
+        active ? 'bg-white text-navy' : 'text-white/70 hover:bg-white/10 hover:text-white'
+      }`}
+    >
+      <Bell size={17} strokeWidth={2} />
+      {count > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 grid h-[17px] min-w-[17px] place-items-center rounded-full bg-gold px-1 font-display text-[10px] font-bold text-navy ring-2 ring-navy">
+          {count > 99 ? '99+' : count}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+// Cài đặt: gom đổi ngôn ngữ + đăng xuất vào một chỗ (trước đây là 3 icon rời trên thanh).
+function SettingsMenu() {
+  const tc = useTranslations('common');
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  // Bấm ra ngoài hoặc Esc thì đóng — menu này không phải modal nên không bẫy focus.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const item =
+    'flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-left text-[13px] font-extrabold text-navy/75 transition-colors hover:bg-navy/[0.06] hover:text-navy';
+
+  return (
+    <div ref={boxRef} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={tc('settings')}
+        title={tc('settings')}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className={`grid h-9 w-9 cursor-pointer place-items-center rounded-full transition-colors ${
+          open ? 'bg-white text-navy' : 'text-white/70 hover:bg-white/10 hover:text-white'
+        }`}
+      >
+        <Settings size={17} strokeWidth={2} />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-[calc(100%+8px)] z-30 w-[188px] rounded-[16px] bg-white p-1.5 shadow-pop ring-1 ring-navy/10"
+        >
+          <LocaleToggle className={item} withLabel />
+          <form action={signOut}>
+            <button type="submit" className={item} role="menuitem">
+              <LogOut size={16} strokeWidth={2} />
+              {tc('logout')}
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LocaleToggle({className, withLabel}: {className?: string; withLabel?: boolean}) {
   const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
@@ -307,7 +401,13 @@ function LocaleToggle({className}: {className?: string}) {
       }
     >
       <Languages size={16} strokeWidth={2} />
-      {locale === 'vi' ? 'EN' : 'VI'}
+      {/* Trong menu Cài đặt thì ghi rõ "Ngôn ngữ: EN"; trên thanh thì chỉ 2 chữ cho gọn. */}
+      {withLabel ? `${tcLabel(locale)}: ${locale === 'vi' ? 'EN' : 'VI'}` : locale === 'vi' ? 'EN' : 'VI'}
     </button>
   );
+}
+
+// Nhãn "Ngôn ngữ" theo locale đang dùng — tránh phải truyền thêm hook vào LocaleToggle.
+function tcLabel(locale: string): string {
+  return locale === 'vi' ? 'Ngôn ngữ' : 'Language';
 }
