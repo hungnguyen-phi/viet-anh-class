@@ -330,7 +330,10 @@
     "scoreThisWeek": "Bảng tuần này",
     "leadDone": "Lead hoàn thành",
     "noWeekData": "Chưa có dữ liệu WIG tuần này.",
-    "confirmDeleteMeeting": "Xoá biên bản họp này? Không thể hoàn tác."
+    "confirmDeleteMeeting": "Xoá biên bản họp này? Không thể hoàn tác.",
+    "lockDow": "Chốt tick tuần vào",
+    "lockSave": "Lưu",
+    "lockHint": "Học sinh tự tick / bỏ tick / tick bù cả tuần. Từ sau ngày này là khoá, để buổi họp đọc số liệu đã chốt. Đặt trước ngày lớp họp."
   },
   "report": {
     "title": "Báo cáo phụ huynh",
@@ -401,6 +404,11 @@
     "buddyErrRateLimited": "Hôm nay Buddy đã nhắn rồi — mai quay lại nhé.",
     "buddyErrNoKey": "Buddy chưa được bật. Nhờ nhà trường cấu hình giúp.",
     "buddyErrGeneric": "Buddy đang nghỉ, thử lại sau nhé.",
+    "requestRenameTitle": "Xin GVCN đổi tên việc cho đúng việc thật của em",
+    "requestNewName": "Tên mới",
+    "approveRename": "Duyệt & đổi tên",
+    "tickWeekOpen": "Trong tuần bạn tick / bỏ tick / tick bù các ngày thoải mái. Đến ngày chốt của lớp là khoá để chuẩn bị họp.",
+    "tickWeekLocked": "Tuần này đã chốt để họp — không sửa tick được nữa. Cần sửa thì nhờ GVCN.",
     "requestKind": "Loại yêu cầu",
     "requestWhich": "Việc nào",
     "requestKind_undo_tick": "Gỡ tick ngày đã qua",

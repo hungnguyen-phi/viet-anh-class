@@ -852,6 +852,24 @@ export async function resolveEditRequest(formData: FormData) {
   if (error) backToStudent(student_id, friendlyError(error));
   if (!data || data.length === 0) backToStudent(student_id, 'Yêu cầu đã được xử lý trước đó.');
   const r = data[0];
+  // rename_lead: `message` CHÍNH LÀ tên mới (0046) → duyệt là đổi tên luôn, GVCN không phải
+  // đọc rồi tự gõ lại. Lấy message từ chính hàng vừa duyệt để không tin dữ liệu từ form.
+  if (apply && decision === 'approved' && r.kind === 'rename_lead' && r.ref_id) {
+    const {data: req} = await supabase.from('edit_requests').select('message').eq('id', id).maybeSingle();
+    const newTitle = (req?.message ?? '').trim();
+    if (!newTitle) backToStudent(student_id, 'Đã duyệt, nhưng yêu cầu không ghi tên mới nên chưa đổi được.');
+    const {data: upd, error: upErr} = await supabase
+      .from('lead_measures')
+      .update({title: newTitle.slice(0, 200)})
+      .eq('id', r.ref_id)
+      .select('id');
+    if (upErr) backToStudent(student_id, friendlyError(upErr));
+    revalidatePath('/');
+    backToStudent(
+      student_id,
+      upd && upd.length ? 'Đã duyệt & đổi tên việc' : 'Đã duyệt, nhưng việc đó không còn tồn tại.',
+    );
+  }
   if (apply && decision === 'approved' && r.kind === 'undo_tick' && r.ref_id) {
     // Chỉ gỡ LƯỢT TICK GẦN NHẤT (không xoá cả lịch sử của lead measure) — khớp
     // undo() tự-phục-vụ ở LeadTicker.tsx (luôn thao tác trên 1 lead_progress.id cụ thể).

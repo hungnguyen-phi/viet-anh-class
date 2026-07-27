@@ -5,15 +5,15 @@ import {useTranslations} from 'next-intl';
 import {PencilLine} from 'lucide-react';
 import {createEditRequest} from '@/app/[locale]/(dashboard)/student/actions';
 
-// 5 loại yêu cầu (0045). 'other' không cần chọn việc cụ thể.
-const KINDS = ['undo_tick', 'add_tick', 'change_target', 'rename_lead', 'other'] as const;
-type Kind = (typeof KINDS)[number];
-const NEEDS_LEAD: Kind[] = ['undo_tick', 'add_tick', 'change_target', 'rename_lead'];
-
-// Học sinh (hoặc PH) gửi "Xin sửa" → GVCN duyệt.
-// Bản cũ nhồi mọi thứ vào MỘT dropdown nên mỗi dòng lặp lại "Xin gỡ tick: <tên việc>" —
-// đọc rất rối và cũng chỉ làm được đúng một loại yêu cầu. Nay tách hai select: LOẠI yêu cầu và
-// VIỆC nào, nên tên việc hiện trần, không lặp tiền tố.
+// CHỈ CÒN MỘT LOẠI yêu cầu (0046): xin đổi tên lead measure.
+//
+// Vì sao rút xuống 1: 0046 cho học sinh tự tick / gỡ tick / tick bù cả tuần, nên undo_tick và
+// add_tick thành vô nghĩa. change_target thì mục tiêu là cam kết chốt trong buổi họp WIG, sửa ở
+// đó chứ không qua đơn từ. Còn tên việc là thứ em muốn viết cho khớp việc thật của mình
+// ("Buổi học / tutor" → "Buổi tutor Toán") mà lead_measures chỉ có lm_manage nên tự sửa không được.
+//
+// `message` chính là TÊN MỚI — không phải ghi chú tự do. Nhờ vậy GVCN bấm duyệt là áp được luôn,
+// không phải đọc văn xuôi rồi tự gõ lại.
 export function EditRequestButton({
   studentId,
   classId,
@@ -25,13 +25,11 @@ export function EditRequestButton({
 }) {
   const t = useTranslations('student');
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<Kind>('undo_tick');
   const [leadId, setLeadId] = useState(leads[0]?.id ?? '');
+  const [newTitle, setNewTitle] = useState('');
 
-  const needsLead = NEEDS_LEAD.includes(kind) && leads.length > 0;
-  // Không chọn được việc (lớp chưa có lead measure tuần này) → gửi dạng 'other' cho khỏi
-  // tạo yêu cầu trỏ vào hư không.
-  const effectiveKind: Kind = NEEDS_LEAD.includes(kind) && leads.length === 0 ? 'other' : kind;
+  // Không có lead measure nào thì không có gì để đổi tên → không hiện nút.
+  if (leads.length === 0) return null;
 
   const selectCls =
     'cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 py-2 text-[13px] font-semibold text-navy outline-none focus:border-navy';
@@ -51,63 +49,45 @@ export function EditRequestButton({
         <form action={createEditRequest} className="glass flex flex-col gap-2 rounded-[16px] p-3.5">
           <input type="hidden" name="student_id" value={studentId} />
           <input type="hidden" name="class_id" value={classId} />
-          <input type="hidden" name="kind" value={effectiveKind} />
-          <input type="hidden" name="ref_id" value={needsLead ? leadId : ''} />
+          <input type="hidden" name="kind" value="rename_lead" />
+          <input type="hidden" name="ref_id" value={leadId} />
 
-          <div className="text-[12px] font-extrabold text-navy">{t('requestEditTitle')}</div>
+          <div className="text-[12px] font-extrabold text-navy">{t('requestRenameTitle')}</div>
 
           <div className="flex flex-wrap gap-2">
-            <label className="min-w-[150px] flex-1">
+            <label className="min-w-[170px] flex-1">
               <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
-                {t('requestKind')}
+                {t('requestWhich')}
               </span>
               <select
-                value={kind}
-                onChange={(e) => setKind(e.target.value as Kind)}
+                value={leadId}
+                onChange={(e) => setLeadId(e.target.value)}
                 className={`${selectCls} w-full`}
               >
-                {KINDS.map((k) => (
-                  <option key={k} value={k}>
-                    {t(`requestKind_${k}`)}
+                {leads.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.title}
                   </option>
                 ))}
               </select>
             </label>
 
-            {needsLead && (
-              <label className="min-w-[170px] flex-1">
-                <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
-                  {t('requestWhich')}
-                </span>
-                <select
-                  value={leadId}
-                  onChange={(e) => setLeadId(e.target.value)}
-                  className={`${selectCls} w-full`}
-                >
-                  {leads.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+            <label className="min-w-[170px] flex-1">
+              <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+                {t('requestNewName')}
+              </span>
+              {/* name="message" vì cột message CHÍNH LÀ tên mới (0046) → GVCN duyệt là áp thẳng */}
+              <input
+                name="message"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                required
+                maxLength={200}
+                placeholder={t('requestPh_rename_lead')}
+                className={`${selectCls} w-full`}
+              />
+            </label>
           </div>
-
-          <textarea
-            name="message"
-            rows={2}
-            placeholder={
-              kind === 'add_tick'
-                ? t('requestPh_add_tick')
-                : kind === 'rename_lead'
-                  ? t('requestPh_rename_lead')
-                  : kind === 'change_target'
-                    ? t('requestPh_change_target')
-                    : t('requestEditPlaceholder')
-            }
-            className="min-h-[52px] resize-y rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-[13px] font-semibold text-navy outline-none focus:border-navy"
-          />
 
           <div className="flex items-center gap-2">
             <button

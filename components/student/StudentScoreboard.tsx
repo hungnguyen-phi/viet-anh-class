@@ -85,7 +85,7 @@ export async function StudentScoreboard({
       supabase.from('profiles').select('id, full_name, email').eq('id', studentId).maybeSingle(),
       supabase
         .from('enrollments')
-        .select('class_id, classes(name, school_year)')
+        .select('class_id, classes(name, school_year, tick_lock_dow)')
         .eq('student_id', studentId)
         .eq('is_active', true)
         .limit(1)
@@ -123,7 +123,7 @@ export async function StudentScoreboard({
 
   const enrRow = enr as unknown as {
     class_id: string;
-    classes: {name: string; school_year: string} | null;
+    classes: {name: string; school_year: string; tick_lock_dow: number | null} | null;
   } | null;
   const cls = enrRow?.classes;
   const classId = enrRow?.class_id ?? null;
@@ -285,6 +285,19 @@ export async function StudentScoreboard({
 
   const canTick = viewer.id === studentId && viewer.role === 'student';
 
+  // 7 ngày của tuần hiện tại (Thứ Hai → Chủ Nhật) cho dải tick, và tuần còn mở hay đã chốt.
+  // Phải khớp luật RLS ở 0046: trong tuần, không quá hôm nay, và hôm nay chưa qua ngày chốt.
+  // Tính từ `today` (app_today, giờ VN) chứ không từ giờ máy chủ.
+  const weekMonday = new Date(`${today}T00:00:00Z`);
+  const isoDow = weekMonday.getUTCDay() === 0 ? 7 : weekMonday.getUTCDay();
+  weekMonday.setUTCDate(weekMonday.getUTCDate() - (isoDow - 1));
+  const weekDays = Array.from({length: 7}, (_, i) => {
+    const d = new Date(weekMonday);
+    d.setUTCDate(weekMonday.getUTCDate() + i);
+    return d.toISOString().slice(0, 10);
+  });
+  const tickOpen = isoDow <= (cls?.tick_lock_dow ?? 7);
+
   // Tên lead measure theo id — dùng cho "việc hôm nay" của Buddy và cho nhãn yêu cầu-sửa.
   const leadTitleById = new Map(tickerLeads.map((l) => [l.id, l.title]));
   // Buddy chỉ trả về SỐ THỨ TỰ, server đã map thành id thật; ở đây đổi id → tên để hiển thị.
@@ -412,7 +425,14 @@ export async function StudentScoreboard({
           {tickerLeads.length === 0 ? (
             <p className="text-sm italic text-grey-mid">{t('noLeads')}</p>
           ) : (
-            <LeadTicker leads={tickerLeads} studentId={studentId} canTick={canTick} today={today} />
+            <LeadTicker
+              leads={tickerLeads}
+              studentId={studentId}
+              canTick={canTick}
+              today={today}
+              weekDays={weekDays}
+              tickOpen={tickOpen}
+            />
           )}
           {/* Học sinh: xin GVCN sửa (vd gỡ tick của ngày đã qua, đổi mục tiêu) — hết ngõ cụt phía HS */}
           {canTick && classId && (

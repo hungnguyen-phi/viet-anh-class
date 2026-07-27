@@ -264,6 +264,8 @@ export type Database = {
           is_active: boolean
           name: string
           school_year: string
+          // 0046 — ISO dow (1=T2..7=CN): ngày CUỐI còn cho học sinh sửa tick của tuần.
+          tick_lock_dow: number
         }
         Insert: {
           campus_id: string
@@ -276,6 +278,7 @@ export type Database = {
           is_active?: boolean
           name: string
           school_year: string
+          tick_lock_dow?: number
         }
         Update: {
           campus_id?: string
@@ -288,6 +291,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           school_year?: string
+          tick_lock_dow?: number
         }
         Relationships: [
           {

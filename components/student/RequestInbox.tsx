@@ -54,16 +54,25 @@ export async function RequestInbox({
                   {kindLabel(t, r.kind)}
                 </span>
               </div>
-              {r.message && <div className="truncate text-[12px] font-semibold text-grey-mid">{r.message}</div>}
+              {/* Với rename_lead thì message là TÊN MỚI → hiện có mũi tên cho GVCN thấy rõ đang duyệt gì */}
+              {r.message && (
+                <div className="truncate text-[12px] font-semibold text-grey-mid">
+                  {r.kind === 'rename_lead' ? `→ ${r.message}` : r.message}
+                </div>
+              )}
             </div>
             <span className="flex items-center gap-1.5">
-              {r.kind === 'undo_tick' && r.ref_id && (
+              {/* rename_lead: duyệt là ĐỔI TÊN luôn (message chính là tên mới, 0046).
+                  undo_tick vẫn giữ nhánh apply cho các yêu cầu cũ còn tồn trong DB. */}
+              {(r.kind === 'rename_lead' || r.kind === 'undo_tick') && r.ref_id && (
                 <form action={resolveEditRequest}>
                   <input type="hidden" name="student_id" value={studentId} />
                   <input type="hidden" name="request_id" value={r.id} />
                   <input type="hidden" name="decision" value="approved" />
                   <input type="hidden" name="apply" value="1" />
-                  <button type="submit" className={`${btn} btn-gold`}>{t('approveApply')}</button>
+                  <button type="submit" className={`${btn} btn-gold`}>
+                    {r.kind === 'rename_lead' ? t('approveRename') : t('approveApply')}
+                  </button>
                 </form>
               )}
               <form action={resolveEditRequest}>

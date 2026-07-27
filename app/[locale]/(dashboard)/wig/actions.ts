@@ -18,6 +18,27 @@ function flash(msg: string, classId?: string): never {
   redirect(`/wig?${q.toString()}`);
 }
 
+// Ngày CHỐT tick của tuần (0046). Học sinh tự tick/gỡ/tick bù cả tuần, tới ngày này thì khoá để
+// buổi họp WIG đọc số liệu đã chốt. 1=T2 … 7=CN (mặc định 7 = mở suốt tuần).
+// Lớp họp thứ Bảy thì đặt 5 (thứ Sáu). RLS lp_student_* đọc cột này qua tick_open().
+export async function setTickLockDow(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const class_id = String(formData.get('class_id') ?? '');
+  const dow = Number(formData.get('tick_lock_dow') ?? 0);
+  if (!class_id || !Number.isInteger(dow) || dow < 1 || dow > 7) flash('Ngày chốt không hợp lệ', class_id);
+  const supabase = await createClient();
+  // .select() để phân biệt "RLS chặn" với "đã lưu" — không báo thành công giả.
+  const {data, error} = await supabase
+    .from('classes')
+    .update({tick_lock_dow: dow})
+    .eq('id', class_id)
+    .select('id');
+  revalidatePath('/wig');
+  revalidatePath('/student');
+  if (error) flash(friendlyError(error), class_id);
+  flash(data && data.length ? 'Đã lưu ngày chốt tuần' : 'Không lưu được (không có quyền).', class_id);
+}
+
 // State trả về cho useActionState → hiện lỗi/thành công INLINE (không redirect, giữ nguyên input).
 export type CreateWigState = {
   ok: boolean;

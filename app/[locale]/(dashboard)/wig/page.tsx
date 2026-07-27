@@ -334,6 +334,7 @@ export default async function WigPage({
         weekLabel={isoWeekLabel(new Date())}
         canManage /* trang này đã requireRole(['teacher','admin']) nên ai vào được cũng quản lý được */
         classParam={classParam}
+        tickLockDow={myClass.tick_lock_dow ?? 7}
       />
 
       <p className="text-xs font-semibold italic text-grey-mid">{t('leadHint')}</p>

@@ -330,7 +330,10 @@
     "scoreThisWeek": "This week's board",
     "leadDone": "Leads done",
     "noWeekData": "No WIG data for this week yet.",
-    "confirmDeleteMeeting": "Delete these minutes? Cannot be undone."
+    "confirmDeleteMeeting": "Delete these minutes? Cannot be undone.",
+    "lockDow": "Lock weekly ticks on",
+    "lockSave": "Save",
+    "lockHint": "Students tick, untick and back-fill freely all week. From the day after this, it locks so the meeting reads settled numbers. Set it before your meeting day."
   },
   "report": {
     "title": "Parent report",
@@ -401,6 +404,11 @@
     "buddyErrRateLimited": "Buddy already wrote to you today — come back tomorrow.",
     "buddyErrNoKey": "Buddy isn't enabled yet. Ask the school to configure it.",
     "buddyErrGeneric": "Buddy is unavailable, please try again later.",
+    "requestRenameTitle": "Ask your teacher to rename this item to match what you actually do",
+    "requestNewName": "New name",
+    "approveRename": "Approve & rename",
+    "tickWeekOpen": "During the week you can tick, untick and back-fill any day. It locks on your class's cut-off day to prepare for the meeting.",
+    "tickWeekLocked": "This week is locked for the meeting — ticks can't be changed. Ask your teacher if something needs fixing.",
     "requestKind": "Request type",
     "requestWhich": "Which item",
     "requestKind_undo_tick": "Remove a past tick",
