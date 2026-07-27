@@ -293,6 +293,8 @@
     "start": "Từ ngày",
     "end": "Đến ngày",
     "label": "Nhãn kỳ (vd 2026, 2026-09, W38-2026)",
+    "schoolYear": "Năm học",
+    "periodCurrent": "hiện tại",
     "leadMeasures": "Lead measures",
     "addLead": "Thêm lead measure",
     "leadTitle": "Tên lead measure",

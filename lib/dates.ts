@@ -72,3 +72,53 @@ export function schoolYearRangeVN(date: Date = new Date()): {start: string; end:
   const first = Number(label.split('-')[0]);
   return {start: `${first}-09-01`, end: `${first + 1}-05-31`, label};
 }
+
+// ============================================================
+// Danh sách KỲ để CHỌN — thay ô nhập "Nhãn kỳ" tự do.
+// Lý do phải làm: trên production, cột period_label của WIG năm đang có CẢ '2026' (3 dòng,
+// T1–T12) LẪN '2026-2027' (8 dòng, T6–T5) — hai quy ước lẫn nhau trong cùng một cột, đúng hậu
+// quả của việc để GVCN tự gõ. Sinh nhãn từ danh sách thì luôn đúng định dạng, và start/end
+// cũng tự khớp theo nhãn (trước đây nhập tay, gõ lệch là WIG không khớp kỳ nào).
+// ============================================================
+export type PeriodOption = {label: string; start: string; end: string};
+
+function ymd(y: number, m: number, d: number): string {
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+export function schoolYearOptions(count = 2, date: Date = new Date()): PeriodOption[] {
+  const first = Number(schoolYearLabel(date).split('-')[0]);
+  return Array.from({length: count}, (_, i) => {
+    const y = first + i;
+    return {label: `${y}-${y + 1}`, start: `${y}-09-01`, end: `${y + 1}-05-31`};
+  });
+}
+
+// Nhãn tháng dạng '2026-09', phạm vi = ngày 1 → ngày cuối tháng đó.
+export function monthOptions(back = 1, forward = 4, date: Date = new Date()): PeriodOption[] {
+  const {y, m} = vnParts(date);
+  const out: PeriodOption[] = [];
+  for (let i = -back; i <= forward; i++) {
+    const t = new Date(Date.UTC(y, m - 1 + i, 1));
+    const yy = t.getUTCFullYear();
+    const mm = t.getUTCMonth() + 1;
+    const last = new Date(Date.UTC(yy, mm, 0)).getUTCDate(); // ngày 0 của tháng sau = ngày cuối
+    out.push({label: `${yy}-${String(mm).padStart(2, '0')}`, start: ymd(yy, mm, 1), end: ymd(yy, mm, last)});
+  }
+  return out;
+}
+
+// Nhãn tuần ISO dạng 'W38-2026', phạm vi Thứ Hai → Chủ Nhật.
+export function weekOptions(back = 2, forward = 4, date: Date = new Date()): PeriodOption[] {
+  const out: PeriodOption[] = [];
+  for (let i = -back; i <= forward; i++) {
+    out.push(weekRangeVN(new Date(date.getTime() + i * 7 * 86_400_000)));
+  }
+  return out;
+}
+
+export function periodOptions(period: 'year' | 'month' | 'week'): PeriodOption[] {
+  if (period === 'year') return schoolYearOptions();
+  if (period === 'month') return monthOptions();
+  return weekOptions();
+}

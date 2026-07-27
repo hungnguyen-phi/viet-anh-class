@@ -15,8 +15,9 @@ import {
   editLeadMeasure,
 } from './actions';
 import {Link} from '@/i18n/navigation';
-import {isoWeekLabel} from '@/lib/dates';
+import {isoWeekLabel, schoolYearOptions, weekOptions, monthOptions} from '@/lib/dates';
 import {ClassMeetingSection} from '@/components/wig/ClassMeetingSection';
+import {ChildPeriodFields} from '@/components/wig/ChildPeriodFields';
 import {AREAS, buildAreaMeta, areaLabel, type Area} from '@/lib/areas';
 
 type Wig = {
@@ -117,6 +118,11 @@ export default async function WigPage({
 
   // Options lĩnh vực (đã dịch) truyền xuống form tạo WIG năm (client component).
   const areaOptions = AREAS.map((a) => ({value: a, label: areaLabel(areaMeta[a], locale)}));
+  // Tính Ở SERVER rồi truyền xuống client component: nếu client tự gọi new Date() thì lúc
+  // hydrate có thể lệch (qua nửa đêm / qua mốc tháng 6 của năm học) → cảnh báo hydration.
+  // weekOptions(back=2) → chỉ số 2 là tuần hiện tại; monthOptions(back=1) → chỉ số 1.
+  const weekOpts = weekOptions();
+  const monthOpts = monthOptions();
 
   // Chế độ sửa qua ?editWig / ?editLead — panel hiện ở đầu trang (server-rendered, không cần client state).
   const editingWig = editWigId ? wigs.find((w) => w.id === editWigId) : undefined;
@@ -191,19 +197,20 @@ export default async function WigPage({
       <input type="hidden" name="class_id" value={myClass.id} />
       <input type="hidden" name="parent_wig_id" value={parentId} />
       <input type="hidden" name="area" value={area} />
-      {allowMonth ? (
-        <select name="period" defaultValue="week" className={`${compactInput} w-[100px] cursor-pointer`}>
-          <option value="week">{t('week')}</option>
-          <option value="month">{t('month')}</option>
-        </select>
-      ) : (
-        <input type="hidden" name="period" value="week" />
-      )}
       <input name="target_value" type="number" step="any" min="0.01" placeholder={t('target')} className={`${compactInput} w-[100px]`} required />
       <input name="unit" placeholder={t('unit')} className={`${compactInput} w-[100px]`} defaultValue={unit} required />
-      <input name="period_label" placeholder={t('label')} className={`${compactInput} w-[150px]`} />
-      <input name="start_date" type="date" className={compactInput} required />
-      <input name="end_date" type="date" className={compactInput} required />
+      {/* Chọn kỳ thật (tuần/tháng) → tự sinh nhãn + ngày đầu/cuối, thay 3 ô nhập tay */}
+      <ChildPeriodFields
+        weekOpts={weekOpts}
+        monthOpts={monthOpts}
+        weekDefault={2}
+        monthDefault={1}
+        allowMonth={allowMonth}
+        inputCls={compactInput}
+        weekLabel={t('week')}
+        monthLabel={t('month')}
+        currentTag={t('periodCurrent')}
+      />
       <button type="submit" className={ghostBtn}>+ {t('createWeek')}</button>
     </form>
   );
@@ -334,7 +341,7 @@ export default async function WigPage({
       {/* Bước 1: Tạo WIG năm */}
       <section className="glass rounded-[20px] p-[18px]">
         <div className="mb-3 font-display text-[15px] font-bold text-navy">1 · {t('createYear')}</div>
-        <WigCreateForm classId={myClass.id} areas={areaOptions} />
+        <WigCreateForm classId={myClass.id} areas={areaOptions} periods={schoolYearOptions()} />
       </section>
 
       {/* Danh sách WIG năm → WIG tuần → lead */}

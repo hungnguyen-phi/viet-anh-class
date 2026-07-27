@@ -293,6 +293,8 @@
     "start": "Start date",
     "end": "End date",
     "label": "Period label (e.g. 2026, 2026-09, W38-2026)",
+    "schoolYear": "School year",
+    "periodCurrent": "current",
     "leadMeasures": "Lead measures",
     "addLead": "Add lead measure",
     "leadTitle": "Lead measure name",

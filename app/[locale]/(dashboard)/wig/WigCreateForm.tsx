@@ -4,6 +4,8 @@ import {useActionState, useEffect, useRef, useState, type KeyboardEvent} from 'r
 import {useTranslations} from 'next-intl';
 import {CheckCircle2, AlertCircle} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
+import {PeriodPicker} from '@/components/wig/PeriodPicker';
+import type {PeriodOption} from '@/lib/dates';
 import {createYearWig} from './actions';
 
 const fieldLabel = 'mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
@@ -17,9 +19,13 @@ const goldBtn = 'btn-gold cursor-pointer rounded-[12px] px-4 h-11 text-sm font-e
 export function WigCreateForm({
   classId,
   areas,
+  periods,
 }: {
   classId: string;
   areas: {value: string; label: string}[];
+  // Danh sách năm học để CHỌN (tính ở server để không lệch hydrate) — thay 3 ô
+  // "Nhãn kỳ / Bắt đầu / Kết thúc" nhập tay.
+  periods: PeriodOption[];
 }) {
   const t = useTranslations('wig');
   const [state, formAction] = useActionState(createYearWig, {ok: false});
@@ -29,18 +35,13 @@ export function WigCreateForm({
   const [area, setArea] = useState('');
   const [target, setTarget] = useState('');
   const [unit, setUnit] = useState('');
-  const [label, setLabel] = useState('2026');
-  const [start, setStart] = useState('');
-  const [end, setEnd] = useState('');
 
-  // Tạo thành công → xoá các ô (giữ nhãn kỳ cho tiện tạo WIG năm khác cùng năm).
+  // Tạo thành công → xoá các ô (giữ kỳ đang chọn cho tiện tạo WIG lĩnh vực khác cùng năm học).
   useEffect(() => {
     if (state.ok) {
       setArea('');
       setTarget('');
       setUnit('');
-      setStart('');
-      setEnd('');
     }
   }, [state]);
 
@@ -121,49 +122,11 @@ export function WigCreateForm({
         />
         {err('unit') && <FieldError msg={err('unit')!} />}
       </div>
-      <div>
-        <label className={fieldLabel} htmlFor="wig-label">
-          {t('label')}
-        </label>
-        <input
-          id="wig-label"
-          name="period_label"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder={t('label')}
-          className={`${fieldInputBase} border-navy/15 focus:border-navy`}
-        />
-      </div>
-      <div>
-        <label className={fieldLabel} htmlFor="wig-start">
-          {t('start')}
-        </label>
-        <input
-          id="wig-start"
-          name="start_date"
-          type="date"
-          value={start}
-          onChange={(e) => setStart(e.target.value)}
-          aria-invalid={state.fieldError === 'start_date'}
-          className={`${fieldInputBase} ${borderFor('start_date')}`}
-        />
-        {err('start_date') && <FieldError msg={err('start_date')!} />}
-      </div>
-      <div>
-        <label className={fieldLabel} htmlFor="wig-end">
-          {t('end')}
-        </label>
-        <input
-          id="wig-end"
-          name="end_date"
-          type="date"
-          value={end}
-          onChange={(e) => setEnd(e.target.value)}
-          aria-invalid={state.fieldError === 'end_date'}
-          className={`${fieldInputBase} ${borderFor('end_date')}`}
-        />
-        {err('end_date') && <FieldError msg={err('end_date')!} />}
-      </div>
+      {/* 1 select thay 3 ô (nhãn kỳ + ngày đầu + ngày cuối) — chọn năm học là app tự khớp hết */}
+      <PeriodPicker options={periods} label={t('schoolYear')} />
+      {(err('start_date') || err('end_date')) && (
+        <FieldError msg={err('start_date') ?? err('end_date')!} />
+      )}
       <div className="flex items-end">
         <SubmitButton className={goldBtn} wrapClass="contents">
           + {t('createYear')}
