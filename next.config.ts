@@ -33,12 +33,37 @@ const nextConfig: NextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
           },
+          // CSP ở chế độ REPORT-ONLY: trình duyệt chỉ ghi log vi phạm, KHÔNG chặn gì.
+          // Cố ý chưa bật chế độ chặn — CSP sai một dòng là chặn luôn Google OAuth
+          // (accounts.google.com) hoặc Supabase (REST + WSS realtime), mà lỗi chỉ lộ ra lúc
+          // người thật dùng. Cách chuyển sang chặn: mở DevTools → Console vài ngày với các
+          // luồng thật (đăng nhập Google, check-in, realtime điểm danh, upload ảnh bìa), hết
+          // cảnh báo thì đổi key thành 'Content-Security-Policy'.
+          //
+          // 'unsafe-inline' cho script là BẮT BUỘC với Next App Router: RSC payload nằm trong
+          // thẻ <script> inline. Muốn bỏ thì phải làm nonce qua middleware — việc riêng.
+          {
+            key: 'Content-Security-Policy-Report-Only',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline'",
+              // Ảnh: Supabase Storage (bìa lớp, avatar) + data/blob cho preview lúc upload.
+              "img-src 'self' data: blob: https://*.supabase.co",
+              "font-src 'self' data:",
+              // Supabase REST/Auth + realtime (wss), và OpenRouter thì gọi từ SERVER nên
+              // KHÔNG cần khai ở đây.
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+              // Google OAuth redirect đi ra ngoài chứ không nhúng iframe → form-action.
+              "form-action 'self' https://accounts.google.com",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "object-src 'none'",
+            ].join('; '),
+          },
         ],
       },
     ];
-    // CHƯA thêm Content-Security-Policy ở đây: CSP sai một dòng là chặn luôn Google OAuth
-    // (accounts.google.com) hoặc Supabase (WSS realtime + REST), và lỗi chỉ hiện lúc chạy thật.
-    // Cần làm riêng, bật Report-Only trước rồi đọc report vài ngày mới siết.
   },
 };
 

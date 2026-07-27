@@ -1,4 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
+import {SITE_URL, SCHOOL} from '@/lib/site';
 import {LocaleSwitcher} from '@/components/shell/LocaleSwitcher';
 import {LoginForm} from '@/components/auth/LoginForm';
 import {StudentCrowd} from '@/components/auth/StudentCrowd';
@@ -18,6 +19,29 @@ export default async function LoginPage({
       className="fixed inset-0 overflow-hidden"
       style={{background: '#ffffff'}}
     >
+      {/* JSON-LD EducationalOrganization — chỉ đặt ở trang CÔNG KHAI này; các trang sau đăng nhập
+          đã bị chặn ở robots.ts nên không cần (và không nên) mô tả cho máy tìm kiếm. */}
+      <script
+        type="application/ld+json"
+        // Nội dung tĩnh do mình viết, không có dữ liệu người dùng → không có nguy cơ injection.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'EducationalOrganization',
+            name: SCHOOL.name,
+            url: SCHOOL.url,
+            logo: `${SITE_URL}/logo-viet-anh.jpg`,
+            subOrganization: {
+              '@type': 'WebApplication',
+              name: SCHOOL.appName,
+              url: `${SITE_URL}/vi`,
+              applicationCategory: 'EducationalApplication',
+              inLanguage: ['vi', 'en'],
+            },
+          }),
+        }}
+      />
+
       {/* Nền trời: mây trôi + chim bay (sau đám đông) */}
       <SkyDecor />
 

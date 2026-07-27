@@ -46,10 +46,10 @@ export default async function TimetablePage({
   searchParams,
 }: {
   params: Promise<{locale: string}>;
-  searchParams: Promise<{class?: string; flash?: string; week?: string}>;
+  searchParams: Promise<{class?: string; flash?: string; week?: string; editSlot?: string}>;
 }) {
   const {locale} = await params;
-  const {class: classParam, flash, week: weekParam} = await searchParams;
+  const {class: classParam, flash, week: weekParam, editSlot: editSlotId} = await searchParams;
   setRequestLocale(locale);
   const profile = await requireProfile();
   const t = await getTranslations('timetable');
@@ -109,6 +109,10 @@ export default async function TimetablePage({
   // (người dùng có thể quản nhiều lớp).
   const overrides = ((overData ?? []) as Override[]).filter((o) => slotById.has(o.slot_id));
   const overByKey = new Map(overrides.map((o) => [`${o.slot_id}|${o.date}`, o]));
+
+  // Ô đang sửa (?editSlot=) — theo đúng lối ?editWig= của /wig: điền sẵn panel bên dưới thay vì
+  // dựng 48 form inline trên lưới.
+  const editing = editSlotId ? slotById.get(editSlotId) ?? null : null;
 
   const dayLabel = (d: number) => (d === 7 ? t('sat') : `${t('dayShort')}${d}`);
   const cellInput =
@@ -210,13 +214,32 @@ export default async function TimetablePage({
                           ov?.status === 'cancelled' ? 'opacity-55' : ''
                         }`}
                       >
-                        <div
-                          className={`truncate text-[12.5px] font-bold text-navy ${
-                            ov?.status === 'cancelled' ? 'line-through' : ''
-                          }`}
-                        >
-                          {s.subject}
-                        </div>
+                        {/* Bấm tên môn để sửa ô ngay (điền sẵn panel bên dưới) */}
+                        {canManage ? (
+                          <Link
+                            href={{
+                              pathname: '/timetable',
+                              query: {
+                                ...(classParam ? {class: classParam} : {}),
+                                ...(weekParam ? {week: weekParam} : {}),
+                                editSlot: s.id,
+                              },
+                            }}
+                            className={`block truncate text-[12.5px] font-bold text-navy underline-offset-2 hover:underline ${
+                              ov?.status === 'cancelled' ? 'line-through' : ''
+                            }`}
+                          >
+                            {s.subject}
+                          </Link>
+                        ) : (
+                          <div
+                            className={`truncate text-[12.5px] font-bold text-navy ${
+                              ov?.status === 'cancelled' ? 'line-through' : ''
+                            }`}
+                          >
+                            {s.subject}
+                          </div>
+                        )}
                         {(s.room || s.teacher_name) && (
                           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10.5px] font-semibold text-grey-mid">
                             {s.room && (
@@ -282,27 +305,68 @@ export default async function TimetablePage({
       {/* GVCN/Admin: thêm hoặc sửa 1 ô của MẪU TUẦN */}
       {canManage && (
         <div className="glass rounded-[20px] p-4">
-          <div className="mb-2 font-display text-[15px] font-bold text-navy">{t('addSlot')}</div>
-          <form action={saveSlot} className="flex flex-wrap items-end gap-2">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span className="font-display text-[15px] font-bold text-navy">
+              {editing ? `${t('editSlot')} · ${dayLabel(editing.day_of_week)} · ${t('period')} ${editing.period_no}` : t('addSlot')}
+            </span>
+            {editing && (
+              <Link
+                href={{
+                  pathname: '/timetable',
+                  query: {
+                    ...(classParam ? {class: classParam} : {}),
+                    ...(weekParam ? {week: weekParam} : {}),
+                  },
+                }}
+                className="text-[11.5px] font-extrabold text-gold-deep underline underline-offset-2"
+              >
+                {t('editCancel')}
+              </Link>
+            )}
+          </div>
+          {/* key ép remount khi đổi ô đang sửa → defaultValue nạp lại đúng ô mới */}
+          <form key={editing?.id ?? 'new'} action={saveSlot} className="flex flex-wrap items-end gap-2">
             <input type="hidden" name="class_id" value={myClass.id} />
-            <select name="day_of_week" defaultValue="2" className={`${cellInput} w-24 cursor-pointer`}>
-              {DAYS.map((d) => (
-                <option key={d} value={d}>
-                  {dayLabel(d)}
-                </option>
-              ))}
-            </select>
-            <select name="period_no" defaultValue="1" className={`${cellInput} w-24 cursor-pointer`}>
-              {PERIODS.map((p) => (
-                <option key={p} value={p}>
-                  {t('period')} {p}
-                </option>
-              ))}
-            </select>
-            <input name="subject" placeholder={t('subject')} className={`${cellInput} min-w-[130px] flex-1`} required />
-            <input name="room" placeholder={t('room')} className={`${cellInput} w-24`} />
-            <input name="teacher_name" placeholder={t('teacher')} className={`${cellInput} w-36`} />
-            <select name="kind" defaultValue="regular" className={`${cellInput} w-32 cursor-pointer`}>
+            {editing ? (
+              // Đang sửa: KHOÁ thứ/tiết. saveSlot upsert theo (class, day, period) nên đổi hai ô
+              // này sẽ tạo ô MỚI chứ không "dời" ô cũ — dời lịch là việc của ngoại lệ theo ngày.
+              <>
+                <input type="hidden" name="day_of_week" value={editing.day_of_week} />
+                <input type="hidden" name="period_no" value={editing.period_no} />
+              </>
+            ) : (
+              <>
+                <select name="day_of_week" defaultValue="2" className={`${cellInput} w-24 cursor-pointer`}>
+                  {DAYS.map((d) => (
+                    <option key={d} value={d}>
+                      {dayLabel(d)}
+                    </option>
+                  ))}
+                </select>
+                <select name="period_no" defaultValue="1" className={`${cellInput} w-24 cursor-pointer`}>
+                  {PERIODS.map((p) => (
+                    <option key={p} value={p}>
+                      {t('period')} {p}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+            <input
+              name="subject"
+              placeholder={t('subject')}
+              defaultValue={editing?.subject ?? ''}
+              className={`${cellInput} min-w-[130px] flex-1`}
+              required
+            />
+            <input name="room" placeholder={t('room')} defaultValue={editing?.room ?? ''} className={`${cellInput} w-24`} />
+            <input
+              name="teacher_name"
+              placeholder={t('teacher')}
+              defaultValue={editing?.teacher_name ?? ''}
+              className={`${cellInput} w-36`}
+            />
+            <select name="kind" defaultValue={editing?.kind ?? 'regular'} className={`${cellInput} w-32 cursor-pointer`}>
               {(['regular', 'practice', 'exam'] as const).map((k) => (
                 <option key={k} value={k}>
                   {t(`kind_${k}`)}
@@ -313,7 +377,7 @@ export default async function TimetablePage({
               {t('save')}
             </SubmitButton>
           </form>
-          <p className="mt-1.5 text-[11px] italic text-grey-mid">{t('hint')}</p>
+          <p className="mt-1.5 text-[11px] italic text-grey-mid">{editing ? t('editHint') : t('hint')}</p>
         </div>
       )}
 

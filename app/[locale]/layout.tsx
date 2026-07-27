@@ -4,6 +4,7 @@ import {getMessages, setRequestLocale} from 'next-intl/server';
 import {notFound} from 'next/navigation';
 import {Baloo_2, Nunito} from 'next/font/google';
 import {routing} from '@/i18n/routing';
+import {SITE_URL, SCHOOL} from '@/lib/site';
 import '../globals.css';
 
 // Design system v3: Baloo 2 (display, bo tròn, có tiếng Việt) + Nunito (body).
@@ -22,9 +23,43 @@ const nunito = Nunito({
   display: 'swap',
 });
 
+const DESCRIPTION = 'App lãnh đạo lớp học theo khung 4DX — Trường Việt Anh';
+
 export const metadata: Metadata = {
-  title: 'Viet Anh Class',
-  description: 'App lãnh đạo lớp học theo khung 4DX — Trường Việt Anh',
+  // metadataBase để canonical/OG sinh URL tuyệt đối; thiếu nó Next chỉ ra đường dẫn tương đối.
+  metadataBase: new URL(SITE_URL),
+  title: {default: SCHOOL.appName, template: `%s · ${SCHOOL.appName}`},
+  description: DESCRIPTION,
+  applicationName: SCHOOL.appName,
+  // Bản vi là canonical; khai cả hai ngôn ngữ để không bị coi là trùng nội dung.
+  alternates: {
+    canonical: '/vi',
+    languages: {vi: '/vi', en: '/en'},
+  },
+  openGraph: {
+    type: 'website',
+    siteName: SCHOOL.appName,
+    title: `${SCHOOL.appName} — ${SCHOOL.name}`,
+    description: DESCRIPTION,
+    url: '/vi',
+    locale: 'vi_VN',
+    alternateLocale: ['en_US'],
+    images: [{url: '/logo-viet-anh.jpg', alt: `Logo ${SCHOOL.name}`}],
+  },
+  twitter: {card: 'summary', title: SCHOOL.appName, description: DESCRIPTION},
+  icons: {
+    icon: [
+      {url: '/favicon.ico', sizes: '48x48'},
+      {url: '/favicon.svg', type: 'image/svg+xml'},
+    ],
+    // CHƯA có apple-touch-icon.png thật trong public/ → dùng tạm .jpg. iOS muốn icon đẹp khi
+    // "Add to Home Screen" thì cần PNG 180x180; xuất từ logo gốc rồi thay đường dẫn này.
+    apple: [{url: '/logo-viet-anh.jpg'}],
+  },
+  manifest: '/manifest.webmanifest',
+  // Sau đăng nhập là dữ liệu trẻ em → không mời bot. robots.ts chặn theo đường dẫn, còn đây là
+  // lớp thứ hai ở cấp thẻ meta.
+  robots: {index: true, follow: true},
 };
 
 export function generateStaticParams() {

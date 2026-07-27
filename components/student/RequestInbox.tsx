@@ -2,6 +2,12 @@ import {getTranslations} from 'next-intl/server';
 import {Inbox} from 'lucide-react';
 import {resolveEditRequest} from '@/app/[locale]/(dashboard)/student/actions';
 
+// next-intl NÉM LỖI khi key không tồn tại → map tường minh, mã lạ thì về "việc khác".
+const KIND_KEYS = ['undo_tick', 'add_tick', 'change_target', 'rename_lead', 'other'] as const;
+export function kindLabel(t: (k: string) => string, kind: string): string {
+  return t(`requestKind_${(KIND_KEYS as readonly string[]).includes(kind) ? kind : 'other'}`);
+}
+
 export type EditRequest = {
   id: string;
   kind: string;
@@ -37,11 +43,16 @@ export async function RequestInbox({
             <div className="min-w-0 flex-1">
               <div className="text-[12.5px] font-bold text-navy">
                 {r.requesterName ?? '—'}
-                {r.kind === 'undo_tick' && (
-                  <span className="ml-1.5 rounded-full bg-status-bad/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-status-bad">
-                    {t('requestUndoTickTag')}
-                  </span>
-                )}
+                {/* Nhãn theo loại yêu cầu (0045 có 5 loại). undo_tick tô đỏ vì nó XOÁ dữ liệu. */}
+                <span
+                  className={`ml-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${
+                    r.kind === 'undo_tick'
+                      ? 'bg-status-bad/[0.12] text-status-bad'
+                      : 'bg-navy/[0.08] text-navy'
+                  }`}
+                >
+                  {kindLabel(t, r.kind)}
+                </span>
               </div>
               {r.message && <div className="truncate text-[12px] font-semibold text-grey-mid">{r.message}</div>}
             </div>

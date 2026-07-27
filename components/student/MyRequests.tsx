@@ -2,6 +2,7 @@ import {getTranslations} from 'next-intl/server';
 import {Clock3} from 'lucide-react';
 import {updateEditRequest, withdrawEditRequest} from '@/app/[locale]/(dashboard)/student/actions';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {kindLabel} from './RequestInbox';
 
 export type MyRequest = {
   id: string;
@@ -35,7 +36,7 @@ export async function MyRequests({
         {requests.map((r) => (
           <div key={r.id} className="rounded-[12px] border-[1.5px] border-navy/10 bg-white/50 p-2.5">
             <div className="text-[12.5px] font-bold text-navy">
-              {r.kind === 'undo_tick' ? t('requestUndoTickTag') : t('requestEditGeneral')}
+              {kindLabel(t, r.kind)}
               {r.leadTitle && (
                 <span className="ml-1.5 font-semibold text-grey-mid">· {r.leadTitle}</span>
               )}
