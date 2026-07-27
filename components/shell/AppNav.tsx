@@ -56,9 +56,9 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/', key: 'scoreboard', Icon: LayoutDashboard},
     {href: '/roster', key: 'roster', Icon: Users},
     {href: '/attendance', key: 'attendance', Icon: ClipboardCheck},
+    // "Họp WIG" đã gộp vào /wig (ClassMeetingSection) → bớt 1 tab cho GVCN.
     {href: '/wig', key: 'wig', Icon: Target},
     {href: '/scoreboard', key: 'compete', Icon: Trophy},
-    {href: '/meeting', key: 'meeting', Icon: MessagesSquare},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
   ],
   admin: [
@@ -68,9 +68,10 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/attendance', key: 'attendance', Icon: ClipboardCheck},
     {href: '/wig', key: 'wig', Icon: Target},
     {href: '/scoreboard', key: 'compete', Icon: Trophy},
-    {href: '/meeting', key: 'meeting', Icon: MessagesSquare},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
   ],
+  // BGH GIỮ tab "Họp WIG": họ xem biên bản read-only nhưng KHÔNG vào được /wig
+  // (trang đó requireRole teacher|admin) → bỏ tab là mất quyền xem.
   principal: [
     {href: '/campus', key: 'campus', Icon: Building2},
     {href: '/', key: 'scoreboard', Icon: LayoutDashboard},

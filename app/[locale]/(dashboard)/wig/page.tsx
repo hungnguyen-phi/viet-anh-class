@@ -15,6 +15,8 @@ import {
   editLeadMeasure,
 } from './actions';
 import {Link} from '@/i18n/navigation';
+import {isoWeekLabel} from '@/lib/dates';
+import {ClassMeetingSection} from '@/components/wig/ClassMeetingSection';
 import {AREAS, buildAreaMeta, areaLabel, type Area} from '@/lib/areas';
 
 type Wig = {
@@ -317,6 +319,15 @@ export default async function WigPage({
       {/* Panel sửa (WIG hoặc lead) — hiện khi có ?editWig / ?editLead */}
       {editingWig && wigEditPanel(editingWig)}
       {editingLead && leadEditPanel(editingLead)}
+
+      {/* Họp WIG lớp — gộp từ trang /meeting cũ vào đây, đặt NGAY TRÊN (không chôn ở đáy trang)
+          vì nhịp họp tuần là thứ GVCN dùng thường xuyên nhất trong 4DX. */}
+      <ClassMeetingSection
+        classId={myClass.id}
+        weekLabel={isoWeekLabel(new Date())}
+        canManage /* trang này đã requireRole(['teacher','admin']) nên ai vào được cũng quản lý được */
+        classParam={classParam}
+      />
 
       <p className="text-xs font-semibold italic text-grey-mid">{t('leadHint')}</p>
 

@@ -53,6 +53,19 @@ export function weekRangeVN(date: Date = new Date()): {start: string; end: strin
   return {start: fmt(monday), end: fmt(sunday), label: isoWeekLabel(date)};
 }
 
+// Tuần KẾ TIẾP theo giờ VN — dùng cho "Kế hoạch tuần sau" trong buổi họp WIG, để GVCN không
+// phải tự gõ nhãn kỳ (gõ sai định dạng là WIG không khớp tuần nào).
+export function nextWeekRangeVN(date: Date = new Date()): {start: string; end: string; label: string} {
+  return weekRangeVN(new Date(date.getTime() + 7 * 86_400_000));
+}
+
+// N nhãn tuần gần nhất (mới → cũ) cho ô CHỌN tuần, thay ô nhập text tự do.
+export function recentWeekLabels(count = 6, date: Date = new Date()): string[] {
+  return Array.from({length: count}, (_, i) =>
+    isoWeekLabel(new Date(date.getTime() - i * 7 * 86_400_000)),
+  );
+}
+
 // Phạm vi năm học VN (01/09 → 31/05 năm sau) chứa ngày cho trước.
 export function schoolYearRangeVN(date: Date = new Date()): {start: string; end: string; label: string} {
   const label = schoolYearLabel(date); // '2026-2027'

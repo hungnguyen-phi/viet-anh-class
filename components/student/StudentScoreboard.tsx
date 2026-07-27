@@ -3,7 +3,7 @@ import {headers} from 'next/headers';
 import {createClient} from '@/lib/supabase/server';
 import type {Profile} from '@/lib/auth';
 import {clientIp} from '@/lib/ip';
-import {todayInVN, isoWeekLabel} from '@/lib/dates';
+import {todayInVN, isoWeekLabel, nextWeekRangeVN, recentWeekLabels} from '@/lib/dates';
 import {DonutRing} from '@/components/charts/DonutRing';
 import {MoodCheckin, MoodGate, type MoodKey} from '@/components/student/MoodCheckin';
 import {LeadTicker, type TickerLead} from '@/components/student/LeadTicker';
@@ -29,6 +29,8 @@ type WigRow = {
   period: string;
   period_label: string | null;
   end_date: string;
+  // unit của WIG năm → dùng làm đơn vị mặc định cho form kế hoạch tuần sau.
+  unit: string | null;
   pct: number | null;
   status: string | null;
 };
@@ -90,7 +92,7 @@ export async function StudentScoreboard({
         .maybeSingle(),
       supabase
         .from('wig_progress_v')
-        .select('wig_id, area, period, period_label, end_date, pct, status')
+        .select('wig_id, area, period, period_label, end_date, unit, pct, status')
         .eq('student_id', studentId)
         .eq('scope', 'student')
         .in('period', ['year', 'week']),
@@ -507,6 +509,14 @@ export async function StudentScoreboard({
               canManage={canManage}
               canChat={canTick}
               defaultWeek={isoWeekLabel(new Date())}
+              weekOptions={recentWeekLabels(6)}
+              // Chỉ lĩnh vực đã có WIG NĂM: WIG tuần bắt buộc có parent_wig_id trỏ về WIG năm.
+              planAreas={yearRows.map((r) => ({
+                value: r.area,
+                label: areaLabel(areaMeta[r.area as Area], locale),
+                unit: r.unit,
+              }))}
+              nextWeekLabel={nextWeekRangeVN().label}
             />
           </section>
         </div>

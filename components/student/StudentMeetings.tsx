@@ -2,7 +2,7 @@ import {getTranslations} from 'next-intl/server';
 import {MessagesSquare, UserRound, Sparkles, Target, Lock, Unlock} from 'lucide-react';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {deleteStudentMeeting, toggleBuddyChat} from '@/app/[locale]/(dashboard)/student/actions';
-import {StudentMeetingForm} from './StudentMeetingForm';
+import {StudentMeetingForm, type PlanArea} from './StudentMeetingForm';
 import {BuddyChat, type BuddyMessage} from './BuddyChat';
 
 // Số lượt học sinh được nói mỗi buổi họp — phải khớp BUDDY_CHAT_MAX_USER_TURNS ở server action.
@@ -34,6 +34,9 @@ export async function StudentMeetings({
   canManage,
   canChat,
   defaultWeek,
+  weekOptions,
+  planAreas,
+  nextWeekLabel,
 }: {
   studentId: string;
   classId: string | null;
@@ -43,6 +46,9 @@ export async function StudentMeetings({
   // true = chính em học sinh đó đang xem → được chat khi GVCN mở.
   canChat: boolean;
   defaultWeek: string;
+  weekOptions: string[];
+  planAreas: PlanArea[];
+  nextWeekLabel: string;
 }) {
   const t = await getTranslations('student');
 
@@ -53,7 +59,10 @@ export async function StudentMeetings({
           studentId={studentId}
           classId={classId}
           defaultWeek={defaultWeek}
+          weekOptions={weekOptions}
           classmates={classmates}
+          planAreas={planAreas}
+          nextWeekLabel={nextWeekLabel}
         />
       )}
 

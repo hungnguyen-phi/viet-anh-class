@@ -9,7 +9,7 @@ import {getCurrentProfile, requireRole} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
 import {buddyNote, buddyChat, type BuddyContext, type BuddyLead} from '@/lib/buddy';
-import {weekRangeVN, schoolYearRangeVN, todayInVN} from '@/lib/dates';
+import {weekRangeVN, nextWeekRangeVN, schoolYearRangeVN, todayInVN} from '@/lib/dates';
 import type {Database} from '@/lib/database.types';
 
 type Mood = Database['public']['Enums']['mood_level'];
@@ -78,18 +78,36 @@ export async function saveStudentMeeting(
   const results = String(formData.get('results') ?? '').trim();
   const commitments = String(formData.get('commitments') ?? '').trim();
   const next_actions = String(formData.get('next_actions') ?? '').trim();
+  // Kế hoạch tuần sau ở dạng CÓ CẤU TRÚC (JSON từ form nhiều dòng), thay ô chữ tự do cũ.
+  const planRows = parsePlan(String(formData.get('plan') ?? ''));
   // Giữ lại input để trả về khi có lỗi (không mất nội dung đã gõ).
   const values = {week_label, buddy_id, results, commitments, next_actions};
 
   if (!student_id || !class_id) return {ok: false, error: friendlyError(null), values};
-  if (!week_label) return {ok: false, fieldError: 'week_label', error: 'Hãy nhập nhãn tuần (vd W38-2026).', values};
-  if (!results && !commitments && !next_actions)
-    return {ok: false, fieldError: 'results', error: 'Nhập ít nhất một nội dung: chiêm nghiệm, cam kết hoặc việc tuần sau.', values};
+  if (!week_label) return {ok: false, fieldError: 'week_label', error: 'Hãy chọn tuần.', values};
+  if (!results && !commitments && !next_actions && planRows.length === 0)
+    return {
+      ok: false,
+      fieldError: 'results',
+      error: 'Nhập ít nhất một nội dung: chiêm nghiệm, cam kết, hoặc kế hoạch tuần sau.',
+      values,
+    };
 
   const supabase = await createClient();
   const {
     data: {user},
   } = await supabase.auth.getUser();
+
+  // Sinh WIG tuần sau TRƯỚC khi lưu biên bản: nếu bước này lỗi (vd chưa có WIG năm) thì không
+  // lưu một biên bản nói rằng đã có kế hoạch trong khi thực tế chưa tạo được gì.
+  let planMsg = '';
+  let planSummary = '';
+  if (planRows.length > 0) {
+    const applied = await applyNextWeekPlan(supabase, student_id, class_id, planRows);
+    if (applied.error) return {ok: false, error: applied.error, values};
+    planSummary = applied.summary ?? '';
+    planMsg = `Đã tạo kế hoạch tuần ${nextWeekRangeVN().label} (${planRows.length} việc).`;
+  }
 
   // 1 biên bản / (học sinh, tuần): đã có thì SỬA (cho phép sửa lại), chưa có thì tạo.
   const {data: existing} = await supabase
@@ -106,7 +124,9 @@ export async function saveStudentMeeting(
     buddy_id: buddy_id || null,
     results: results || null,
     commitments: commitments || null,
-    next_actions: next_actions || null,
+    // Vẫn ghi next_actions dạng chữ, sinh TỪ kế hoạch có cấu trúc — để báo cáo phụ huynh và
+    // mục Họp WIG của học sinh đọc được câu tự nhiên mà không phải sửa gì ở hai chỗ đó.
+    next_actions: planSummary || next_actions || null,
     coach_id: user?.id ?? null,
   };
   // Idempotent/đồng thời: race 2 lần lưu 1 tuần → dính unique (HS,tuần) → tự chuyển update.
@@ -129,7 +149,161 @@ export async function saveStudentMeeting(
   if (error) return {ok: false, error: friendlyError(error), values};
 
   revalidatePath(`/student/${student_id}`);
-  return {ok: true, message: existing ? 'Đã cập nhật biên bản họp cá nhân.' : 'Đã lưu biên bản họp cá nhân.'};
+  revalidatePath('/student');
+  revalidatePath('/');
+  return {
+    ok: true,
+    message:
+      (existing ? 'Đã cập nhật biên bản họp cá nhân.' : 'Đã lưu biên bản họp cá nhân.') +
+      (planMsg ? ` ${planMsg}` : ''),
+  };
+}
+
+// ============================================================
+// Kế hoạch tuần sau: biến cam kết trong buổi họp thành DỮ LIỆU THẬT.
+//
+// Trước đây có hai nửa rời nhau: ô "WIG & Lead measure tuần sau" trong biên bản chỉ là CHỮ (học
+// sinh đọc được, không tick được, không tính điểm), còn nút "Tạo WIG tuần" thì tạo bản ghi thật
+// nhưng bằng giá trị CỨNG — target_value 5 cho mọi lĩnh vực, đúng 1 lead measure mỗi lĩnh vực với
+// tên lấy từ bảng DEFAULT_LEAD_TITLE. Nên GVCN không nói được tuần này em cam kết gì.
+// Nay GVCN điền form có cấu trúc một lần, app sinh đúng thứ đó.
+//
+// "Tự tạo" = APP tạo bản ghi từ thứ GVCN vừa nhập, lúc GVCN bấm Lưu. Không phải AI, không phải
+// học sinh. Luôn nhắm TUẦN SAU tính từ hôm nay → tuần đó chưa thể có tiến độ, nên ghi đè an toàn.
+// ============================================================
+// area phải là 1 trong 4 lĩnh vực cố định (enum wig_area) — không nhận chuỗi tuỳ ý từ client.
+export type PlanRow = {area: (typeof AREAS)[number]; title: string; target: number; unit: string};
+
+function parsePlan(raw: string): PlanRow[] {
+  if (!raw.trim()) return [];
+  let arr: unknown;
+  try {
+    arr = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .map((r) => {
+      const o = r as Record<string, unknown>;
+      return {
+        area: String(o.area ?? '').trim() as (typeof AREAS)[number],
+        title: String(o.title ?? '').trim().slice(0, 200),
+        target: Number(o.target ?? 0),
+        unit: String(o.unit ?? '').trim().slice(0, 40),
+      };
+    })
+    .filter(
+      (r) =>
+        (AREAS as readonly string[]).includes(r.area) &&
+        r.title &&
+        Number.isFinite(r.target) &&
+        r.target > 0,
+    );
+}
+
+async function applyNextWeekPlan(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  student_id: string,
+  class_id: string,
+  rows: PlanRow[],
+): Promise<{error?: string; summary?: string}> {
+  if (rows.length === 0) return {};
+
+  // WIG tuần BẮT BUỘC có parent_wig_id trỏ về WIG năm cùng lĩnh vực → thiếu là không tạo được.
+  const {data: yearWigs, error: yErr} = await supabase
+    .from('wigs')
+    .select('id, area')
+    .eq('student_id', student_id)
+    .eq('scope', 'student')
+    .eq('period', 'year');
+  if (yErr) return {error: friendlyError(yErr)};
+  const parentByArea = new Map((yearWigs ?? []).map((y) => [y.area as string, y.id]));
+
+  const missing = [...new Set(rows.map((r) => r.area))].filter((a) => !parentByArea.has(a));
+  if (missing.length > 0)
+    return {error: `Chưa có WIG năm ở lĩnh vực: ${missing.join(', ')} — đặt WIG năm trước đã.`};
+
+  const {label, start, end} = nextWeekRangeVN();
+
+  // Gom theo lĩnh vực: mỗi lĩnh vực 1 WIG tuần, trong đó n lead measure.
+  const byArea = new Map<PlanRow['area'], PlanRow[]>();
+  for (const r of rows) byArea.set(r.area, [...(byArea.get(r.area) ?? []), r]);
+
+  for (const [area, list] of byArea) {
+    // Mục tiêu WIG tuần = TỔNG mục tiêu các lead measure của nó → khỏi nhập 2 lần, khỏi lệch.
+    const target = list.reduce((s, r) => s + r.target, 0);
+    // wigs.unit là NOT NULL → luôn có giá trị, mặc định "lần" nếu GVCN để trống.
+    const unit = list[0].unit || 'lần';
+
+    const {data: found, error: fErr} = await supabase
+      .from('wigs')
+      .select('id')
+      .eq('student_id', student_id)
+      .eq('scope', 'student')
+      .eq('period', 'week')
+      .eq('period_label', label)
+      .eq('area', area)
+      .maybeSingle();
+    if (fErr) return {error: friendlyError(fErr)};
+
+    let wigId = found?.id ?? null;
+    if (wigId) {
+      const {error} = await supabase
+        .from('wigs')
+        .update({target_value: target, unit, start_date: start, end_date: end, parent_wig_id: parentByArea.get(area)})
+        .eq('id', wigId);
+      if (error) return {error: friendlyError(error)};
+    } else {
+      const {data, error} = await supabase
+        .from('wigs')
+        .insert({
+          class_id,
+          student_id,
+          scope: 'student' as const,
+          area,
+          period: 'week' as const,
+          period_label: label,
+          parent_wig_id: parentByArea.get(area),
+          target_value: target,
+          unit,
+          start_date: start,
+          end_date: end,
+        })
+        .select('id')
+        .single();
+      if (error || !data) return {error: friendlyError(error)};
+      wigId = data.id;
+    }
+
+    // Thay lead measure của WIG tuần đó. Tuần sau chưa thể có tiến độ, nhưng vẫn kiểm cho chắc:
+    // có tiến độ thì KHÔNG xoá (mất tick của học sinh là hỏng dữ liệu thật).
+    const {data: olds, error: oErr} = await supabase
+      .from('lead_measures')
+      .select('id, lead_progress(id)')
+      .eq('wig_id', wigId);
+    if (oErr) return {error: friendlyError(oErr)};
+    const hasProgress = (olds ?? []).some(
+      (l) => ((l as {lead_progress: unknown[] | null}).lead_progress ?? []).length > 0,
+    );
+    if (hasProgress)
+      return {error: `Tuần ${label} đã có tiến độ của học sinh — không ghi đè. Sửa trực tiếp ở trang WIG.`};
+
+    if ((olds ?? []).length > 0) {
+      const {error} = await supabase
+        .from('lead_measures')
+        .delete()
+        .in('id', (olds ?? []).map((l) => l.id));
+      if (error) return {error: friendlyError(error)};
+    }
+    const {error: insErr} = await supabase.from('lead_measures').insert(
+      list.map((r) => ({wig_id: wigId!, title: r.title, target_value: r.target, unit: r.unit || null})),
+    );
+    if (insErr) return {error: friendlyError(insErr)};
+  }
+
+  const summary = rows.map((r) => `${r.title} — ${r.target} ${r.unit}`.trim()).join('; ');
+  return {summary};
 }
 
 // C6 — GVCN đặt WIG NĂM cá nhân 4 lĩnh vực cho 1 học sinh (làm 1 lần đầu năm).
