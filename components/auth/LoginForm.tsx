@@ -25,6 +25,23 @@ const DEMO_ACCOUNTS: {role: string; email: string; to: string; label?: string}[]
   {role: 'parent', email: 'phuhuynh.an@gmail.com', to: '/report'},
 ];
 
+// ============================================================
+// TÀI KHOẢN ĐỢT THỬ NGHIỆM — 3 người thử × 3 vai.
+// Tạo bằng docs/test-accounts.sql. Nhãn ghi rõ ai đóng vai gì để người thử bấm đúng nút.
+// GỠ CẢ KHỐI NÀY (và chạy phần dọn dẹp cuối docs/test-accounts.sql) khi đợt thử kết thúc.
+// ============================================================
+const TEST_ACCOUNTS: {role: string; email: string; to: string; label: string}[] = [
+  {role: 'teacher',   email: 'test1.gvcn@truongvietanh.com',       to: '/',        label: 'N1 · Giáo viên chủ nhiệm 7B1'},
+  {role: 'student',   email: 'test1.hs@student.truongvietanh.com', to: '/student', label: 'N1 · Học sinh 7B1 (tổ trưởng)'},
+  {role: 'parent',    email: 'test1.ph@truongvietanh.com',         to: '/report',  label: 'N1 · Phụ huynh'},
+  {role: 'principal', email: 'test2.bgh@truongvietanh.com',        to: '/campus',  label: 'N2 · Ban giám hiệu Quận 2'},
+  {role: 'student',   email: 'test2.hs@student.truongvietanh.com', to: '/student', label: 'N2 · Học sinh 7B1'},
+  {role: 'parent',    email: 'test2.ph@truongvietanh.com',         to: '/report',  label: 'N2 · Phụ huynh'},
+  {role: 'admin',     email: 'test3.admin@truongvietanh.com',      to: '/admin',   label: 'N3 · Quản trị viên'},
+  {role: 'teacher',   email: 'test3.gvcn@truongvietanh.com',       to: '/',        label: 'N3 · Giáo viên chủ nhiệm 6A2'},
+  {role: 'student',   email: 'test3.hs@student.truongvietanh.com', to: '/student', label: 'N3 · Học sinh 6A2'},
+];
+
 function GoogleIcon() {
   return (
     <svg width="19" height="19" viewBox="0 0 48 48" aria-hidden="true">
@@ -224,6 +241,28 @@ export function LoginForm() {
             >
               {loading === acc.email && <Loader2 size={11} className="animate-spin" />}
               {acc.label ?? tr(acc.role)}
+            </button>
+          ))}
+        </div>
+
+        {/* Nhóm riêng cho đợt thử nghiệm — tách khỏi nhóm demo cũ để người thử khỏi bấm nhầm.
+            Nút rộng hơn vì nhãn dài ("N1 · Giáo viên chủ nhiệm 7B1"). */}
+        <div className="mt-3 flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-wider text-gold-deep">
+          <span className="h-px flex-1 bg-gold/40" />
+          <span>Đợt thử nghiệm</span>
+          <span className="h-px flex-1 bg-gold/40" />
+        </div>
+        <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+          {TEST_ACCOUNTS.map((acc) => (
+            <button
+              key={acc.email}
+              type="button"
+              onClick={() => signInDemo(acc)}
+              disabled={loading !== false}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gold-mid/50 bg-gold/[0.12] px-2.5 py-1 text-[11px] font-bold text-navy transition-colors hover:border-gold-deep hover:bg-gold/25 disabled:opacity-50"
+            >
+              {loading === acc.email && <Loader2 size={11} className="animate-spin" />}
+              {acc.label}
             </button>
           ))}
         </div>
