@@ -203,7 +203,12 @@ export async function StudentScoreboard({
     weeksByArea.set(w.area, arr);
   }
 
-  const weekIds = weekRows.map((w) => w.wig_id);
+  // Bảng "tick hằng ngày" chỉ được chứa lead measure của WIG TUẦN NÀY.
+  // Trước đây lấy mọi WIG tuần (W29, W30, W31…) nên cùng một việc hiện nhiều dòng với số đếm
+  // khác nhau — học sinh không biết dòng nào của tuần nào. Dãy pip "WIG tuần của em" thì vẫn
+  // dùng weekRows (mọi tuần) vì nó cố tình thể hiện lịch sử thắng/thua.
+  const currentWeekLabel = isoWeekLabel(new Date());
+  const weekIds = weekRows.filter((w) => w.period_label === currentWeekLabel).map((w) => w.wig_id);
   let tickerLeads: TickerLead[] = [];
   if (weekIds.length > 0) {
     const {data: leadData} = await supabase
