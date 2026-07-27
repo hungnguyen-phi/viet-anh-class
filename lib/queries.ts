@@ -67,9 +67,41 @@ export async function getMyClass(
   return null;
 }
 
-export type ClassOption = {id: string; name: string; school_year: string};
+export type ClassOption = {
+  id: string;
+  name: string;
+  school_year: string;
+  grade_name: string;
+  grade_sort: number;
+};
+
+// Chuẩn hoá 1 dòng `classes` có kèm khối nhúng thành ClassOption.
+// Lớp chưa gán khối rơi vào nhóm '—' và bị đẩy xuống cuối (sort 9999) thay vì trộn lẫn.
+type RawClass = {
+  id: string;
+  name: string;
+  school_year: string;
+  grade: string | null;
+  grades: {name: string; sort_order: number} | null;
+};
+function toOption(c: RawClass): ClassOption {
+  return {
+    id: c.id,
+    name: c.name,
+    school_year: c.school_year,
+    grade_name: c.grades?.name ?? c.grade ?? '—',
+    grade_sort: c.grades?.sort_order ?? 9999,
+  };
+}
+function sortByGradeThenName(a: ClassOption, b: ClassOption): number {
+  return a.grade_sort - b.grade_sort || a.name.localeCompare(b.name, 'vi');
+}
 
 // Danh sách lớp người dùng được phép duyệt (admin: tất cả · BGH: campus · GVCN: lớp mình).
+// Kèm KHỐI để bộ chọn lớp gom nhóm được — BGH có vài chục lớp thì danh sách phẳng là không
+// dùng nổi, phải thấy khối trước rồi mới tới lớp.
+const CLASS_SELECT = 'id, name, school_year, grade, grades(name, sort_order)';
+
 export async function getAccessibleClasses(
   supabase: SB,
   profile: Profile,
@@ -77,19 +109,19 @@ export async function getAccessibleClasses(
   if (profile.role === 'admin' || profile.role === 'principal') {
     const {data} = await supabase
       .from('classes')
-      .select('id, name, school_year')
+      .select(CLASS_SELECT)
       .eq('is_active', true)
       .order('name');
-    return data ?? [];
+    return ((data ?? []) as unknown as RawClass[]).map(toOption).sort(sortByGradeThenName);
   }
   if (profile.role === 'teacher') {
     const {data} = await supabase
       .from('classes')
-      .select('id, name, school_year')
+      .select(CLASS_SELECT)
       .eq('homeroom_teacher_id', profile.id)
       .eq('is_active', true)
       .order('name');
-    return data ?? [];
+    return ((data ?? []) as unknown as RawClass[]).map(toOption).sort(sortByGradeThenName);
   }
   return [];
 }

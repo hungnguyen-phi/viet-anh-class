@@ -3,6 +3,8 @@
 import {useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {SubmitButton} from '@/components/ui/SubmitButton';
+import {SCHOOL_LEVELS, GRADE_NUMBERS, type SchoolLevel} from '@/lib/levels';
 import {updateCampus, setCampusActive, deleteCampus} from './actions';
 import {GradeManager} from './GradeManager';
 
@@ -17,13 +19,13 @@ const ghost =
 const danger =
   'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-[rgba(192,57,43,0.12)] px-2.5 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-[rgba(192,57,43,0.22)]';
 
-// 1 thẻ Cơ sở: sửa tên/mã (toggle) · lưu-trữ · xoá (khi rỗng) + quản lý Khối bên trong.
+// 1 thẻ Cơ sở: sửa tên/mã/cấp học (toggle) · lưu-trữ · xoá (khi rỗng) + quản lý Khối bên trong.
 export function CampusCard({
   campus,
   grades,
   classCount,
 }: {
-  campus: {id: string; name: string; code: string};
+  campus: {id: string; name: string; code: string; level: SchoolLevel | null};
   grades: Grade[];
   classCount: number;
 }) {
@@ -37,9 +39,24 @@ export function CampusCard({
           <input type="hidden" name="id" value={campus.id} />
           <input name="name" defaultValue={campus.name} className={`${inp} flex-1`} required />
           <input name="code" defaultValue={campus.code} className={`${inp} w-24`} required />
-          <button type="submit" className={navyBtn}>
+          {/* Đổi cấp học sẽ SINH THÊM khối chuẩn của cấp mới (trigger campus_seed_grades).
+              Khối cũ không bị xoá — lớp đang trỏ vào chúng vẫn nguyên. */}
+          <select
+            name="level"
+            defaultValue={campus.level ?? ''}
+            className={`${inp} w-40 cursor-pointer`}
+            title={t('levelHint')}
+          >
+            <option value="">— {t('level')} —</option>
+            {SCHOOL_LEVELS.map((lv) => (
+              <option key={lv} value={lv}>
+                {t(`level_${lv}`)}
+              </option>
+            ))}
+          </select>
+          <SubmitButton className={navyBtn} wrapClass="contents">
             {t('save')}
-          </button>
+          </SubmitButton>
           <button type="button" onClick={() => setEdit(false)} className={ghost}>
             {t('cancel')}
           </button>
@@ -50,6 +67,17 @@ export function CampusCard({
           <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[11px] font-bold text-grey-mid">
             {campus.code}
           </span>
+          {campus.level ? (
+            <span className="rounded-full bg-gold/[0.18] px-2 py-0.5 text-[11px] font-bold text-navy">
+              {t(`level_${campus.level}`)}
+              {GRADE_NUMBERS[campus.level] && ` · ${t('grades')} ${GRADE_NUMBERS[campus.level]!.join(', ')}`}
+            </span>
+          ) : (
+            // Chưa khai cấp học thì chưa sinh được khối nào → nói thẳng việc cần làm.
+            <span className="rounded-full bg-status-bad/[0.10] px-2 py-0.5 text-[11px] font-bold text-status-bad">
+              {t('noLevel')}
+            </span>
+          )}
           <span className="text-[11px] font-semibold text-grey-mid">
             · {classCount} {t('classesShort')}
           </span>
@@ -60,9 +88,9 @@ export function CampusCard({
             <form action={setCampusActive}>
               <input type="hidden" name="id" value={campus.id} />
               <input type="hidden" name="active" value="false" />
-              <button type="submit" className={ghost}>
+              <SubmitButton className={ghost} wrapClass="contents">
                 {t('archive')}
-              </button>
+              </SubmitButton>
             </form>
             <form action={deleteCampus}>
               <input type="hidden" name="id" value={campus.id} />
@@ -74,7 +102,7 @@ export function CampusCard({
         </div>
       )}
 
-      <GradeManager campusId={campus.id} grades={grades} />
+      <GradeManager campusId={campus.id} grades={grades} level={campus.level} />
     </div>
   );
 }

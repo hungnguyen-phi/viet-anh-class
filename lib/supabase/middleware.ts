@@ -23,6 +23,24 @@ export async function updateSession(
 ): Promise<NextResponse> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return response;
 
+  const {locale: earlyLocale, path: earlyPath} = stripLocale(request.nextUrl.pathname);
+  const earlyPublic = PUBLIC_PATHS.some(
+    (p) => earlyPath === p || earlyPath.startsWith(p + '/'),
+  );
+
+  // ĐƯỜNG TẮT KHÁCH VÃNG LAI: không có cookie phiên Supabase nào thì chắc chắn chưa đăng nhập —
+  // khỏi dựng client và gọi getClaims(). Trang login (trang đông người lạ vào nhất) nhờ vậy
+  // không tốn chút việc Supabase nào. An toàn tuyệt đối: không cookie thì cũng không có phiên
+  // để làm mới, và nhánh này chỉ dẫn tới đúng kết quả mà nhánh đầy đủ trả về cho userId = null.
+  const hasAuthCookie = request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'));
+  if (!hasAuthCookie) {
+    if (earlyPublic) return response;
+    const prefix = earlyLocale === routing.defaultLocale ? '' : `/${earlyLocale}`;
+    return NextResponse.redirect(new URL(`${prefix}/login`, request.url));
+  }
+
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -53,6 +71,15 @@ export async function updateSession(
 
   if (!userId) {
     return isPublic ? response : redirectTo('/login');
+  }
+
+  // Next tự PREFETCH các <Link> khi rê chuột / lọt vào khung nhìn. Mỗi lượt prefetch trước đây
+  // kéo theo một query `profiles` tới Supabase — một trang có 8 link là 8 vòng mạng thừa, làm
+  // chậm chính lượt bấm thật. Bỏ qua guard ở prefetch KHÔNG hở quyền: prefetch chỉ hâm nóng
+  // cache, mà nội dung trả về vẫn do layout (dashboard) render — nơi requireProfile() vẫn kiểm
+  // tra DB và đá 'pending' sang /unauthorized như thường.
+  if (request.headers.get('next-router-prefetch') && path !== '/login') {
+    return response;
   }
 
   const {data: profile} = await supabase

@@ -63,6 +63,26 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // ---- Cache tài nguyên tĩnh ----
+      // Next phục vụ file trong public/ với `Cache-Control: public, max-age=0` (vì file có thể
+      // đổi giữa các bản build). Hệ quả: mỗi lần mở lại trang login là 54 request kiểm tra lại
+      // sprite đám đông — 54 vòng mạng chỉ để nhận 304. Các file dưới đây là tài sản tĩnh KHÔNG
+      // bao giờ đổi nội dung, nên cho cache vĩnh viễn.
+      //
+      // ĐÁNH ĐỔI: đã `immutable` thì trình duyệt sẽ KHÔNG lấy lại dù file có đổi. Muốn thay ảnh
+      // thì phải ĐỔI TÊN FILE (vd a01.webp -> a01-v2.webp), sửa nội dung file cũ sẽ không ăn.
+      {
+        source: '/students/:path*',
+        headers: [{key: 'Cache-Control', value: 'public, max-age=31536000, immutable'}],
+      },
+      {
+        // Logo/icon: cache 30 ngày, sau đó dùng bản cũ trong lúc ngầm tải bản mới
+        // (stale-while-revalidate) — không immutable để còn đổi được logo mà không đổi tên.
+        source: '/:file(logo-viet-anh-128.webp|logo-viet-anh.jpg|icons.svg|favicon.svg)',
+        headers: [
+          {key: 'Cache-Control', value: 'public, max-age=2592000, stale-while-revalidate=86400'},
+        ],
+      },
     ];
   },
 };

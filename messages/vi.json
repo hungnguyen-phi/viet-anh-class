@@ -273,7 +273,18 @@
     "color": "Màu",
     "icon": "Icon",
     "defaultUnit": "Đơn vị mặc định",
-    "unitPlaceholder": "vd điểm, buổi, lần"
+    "unitPlaceholder": "vd điểm, buổi, lần",
+    "level": "Cấp học",
+    "level_mam_non": "Mầm non",
+    "level_tieu_hoc": "Tiểu học",
+    "level_thcs": "THCS",
+    "level_thpt": "THPT",
+    "levelHint": "Đổi cấp học sẽ sinh thêm bộ khối chuẩn của cấp mới (khối cũ giữ nguyên)",
+    "noLevel": "Chưa chọn cấp học",
+    "gradesAuto": "Tự sinh theo cấp học",
+    "pickLevelFirst": "Chọn cấp học để hệ thống sinh khối",
+    "willSeed": "Sẽ tạo",
+    "manualGradeHint": "Mầm non không đánh số khối — hãy thêm bằng tay (Nhà trẻ, Mầm, Chồi, Lá…)"
   },
   "dashboard": {
     "welcome": "Xin chào",
@@ -491,7 +502,22 @@
     "marked": "lượt",
     "noClasses": "Chưa có lớp nào trong cơ sở.",
     "manageGrades": "Quản lý Khối",
-    "createClass": "Tạo lớp"
+    "createClass": "Tạo lớp",
+    "students": "Sĩ số",
+    "classesShort": "lớp",
+    "wholeSchool": "Toàn trường",
+    "manageTeachers": "Quản lý giáo viên",
+    "inviteTeacher": "Mời giáo viên",
+    "inviteTeacherPlaceholder": "Email giáo viên (nhiều email cách nhau bởi dấu phẩy)",
+    "inviteTeacherHint": "Giáo viên sẽ vào đúng cơ sở này với vai trò GVCN ngay khi đăng nhập Google lần đầu.",
+    "pendingInvites": "Lời mời chưa dùng",
+    "cancelInvite": "Huỷ lời mời",
+    "teachers": "Giáo viên",
+    "noTeacher": "Chưa có giáo viên nào trong cơ sở",
+    "homeroomOf": "GVCN",
+    "disable": "Vô hiệu",
+    "restore": "Khôi phục",
+    "confirmDisable": "Vô hiệu giáo viên này? Họ sẽ không vào được app nữa, nhưng dữ liệu đã ghi vẫn giữ nguyên."
   },
   "scoreboard": {
     "title": "Bảng điểm thi đua",

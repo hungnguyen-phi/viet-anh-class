@@ -3,7 +3,11 @@
 import {useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {Loader2, Check} from 'lucide-react';
-import {createClient} from '@/lib/supabase/client';
+
+// Thư viện Supabase (~256 KB chưa nén) NẠP LƯỜI: trang login chỉ cần nó khi người dùng thật sự
+// bấm một nút đăng nhập, nên để nó trong bundle đầu là bắt cả người mới mở trang phải tải.
+// Nạp lúc bấm không thấy chậm vì mọi nhánh gọi hàm này đều đã bật spinner trước đó.
+const getSupabase = async () => (await import('@/lib/supabase/client')).createClient();
 
 // ============================================================
 // DEMO LOGIN — chỉ hiện khi NEXT_PUBLIC_ENABLE_DEMO='1' (bật ở .env.local để dev).
@@ -57,7 +61,7 @@ export function LoginForm() {
   async function signInDemo(acc: (typeof DEMO_ACCOUNTS)[number]) {
     setError(null);
     setLoading(acc.email);
-    const supabase = createClient();
+    const supabase = await getSupabase();
     const {error} = await supabase.auth.signInWithPassword({
       email: acc.email,
       password: DEMO_PASSWORD,
@@ -73,7 +77,7 @@ export function LoginForm() {
   async function signInGoogle() {
     setError(null);
     setLoading('google');
-    const supabase = createClient();
+    const supabase = await getSupabase();
     const {error} = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -97,7 +101,7 @@ export function LoginForm() {
       return;
     }
     setLoading('magic');
-    const supabase = createClient();
+    const supabase = await getSupabase();
     const {error} = await supabase.auth.signInWithOtp({
       email,
       // Form phụ huynh chỉ dành cho tài khoản ĐÃ được admin mời → không tự tạo user mới

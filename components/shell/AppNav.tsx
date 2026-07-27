@@ -19,7 +19,6 @@ import {
   Users,
   ClipboardCheck,
   Target,
-  MessagesSquare,
   ShieldCheck,
   Building2,
   LineChart,
@@ -70,14 +69,21 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/scoreboard', key: 'compete', Icon: Trophy},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
   ],
-  // BGH GIỮ tab "Họp WIG": họ xem biên bản read-only nhưng KHÔNG vào được /wig
-  // (trang đó requireRole teacher|admin) → bỏ tab là mất quyền xem.
+  // BGH làm việc ở CẤP TRƯỜNG, không phải cấp lớp.
+  //
+  // Trước đây menu này có 6 mục thì 5 mục là view của ĐÚNG MỘT LỚP — lớp đầu tiên sắp theo tên,
+  // do getMyClass() chọn hộ. Hiệu trưởng bấm "Thi đua" ra bảng của một lớp ngẫu nhiên trong cơ
+  // sở, hoàn toàn vô nghĩa ở cấp quản lý.
+  //
+  // Nay /campus là bảng TỔNG HỢP toàn trường (khối → lớp → tổng), và muốn xem một lớp cụ thể thì
+  // bấm thẳng dòng lớp đó. Vì vậy bỏ khỏi menu: "/" và "/scoreboard" (đều là bảng điểm 1 lớp,
+  // nay nằm trong bảng tổng hợp) và "/meeting" (biên bản họp WIG là nghi thức 4DX CẤP LỚP).
+  //
+  // GIỮ /roster và /timetable vì hai trang này nhận ?class= nên vẫn là đích hợp lệ khi đi sâu
+  // vào một lớp, và chúng tự hiện ClassPicker khi có nhiều lớp.
   principal: [
     {href: '/campus', key: 'campus', Icon: Building2},
-    {href: '/', key: 'scoreboard', Icon: LayoutDashboard},
     {href: '/roster', key: 'roster', Icon: Users},
-    {href: '/scoreboard', key: 'compete', Icon: Trophy},
-    {href: '/meeting', key: 'meeting', Icon: MessagesSquare},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
   ],
   parent: [

@@ -273,7 +273,18 @@
     "color": "Color",
     "icon": "Icon",
     "defaultUnit": "Default unit",
-    "unitPlaceholder": "e.g. points, sessions"
+    "unitPlaceholder": "e.g. points, sessions",
+    "level": "School level",
+    "level_mam_non": "Preschool",
+    "level_tieu_hoc": "Primary",
+    "level_thcs": "Lower secondary",
+    "level_thpt": "Upper secondary",
+    "levelHint": "Changing the level seeds the standard grades of the new level (existing grades are kept)",
+    "noLevel": "No level set",
+    "gradesAuto": "Seeded from school level",
+    "pickLevelFirst": "Pick a school level to seed grades",
+    "willSeed": "Will create",
+    "manualGradeHint": "Preschool grades are not numbered — add them manually"
   },
   "dashboard": {
     "welcome": "Hello",
@@ -491,7 +502,22 @@
     "marked": "marks",
     "noClasses": "No classes in this campus yet.",
     "manageGrades": "Manage grades",
-    "createClass": "Create class"
+    "createClass": "Create class",
+    "students": "Students",
+    "classesShort": "classes",
+    "wholeSchool": "Whole school",
+    "manageTeachers": "Manage teachers",
+    "inviteTeacher": "Invite teacher",
+    "inviteTeacherPlaceholder": "Teacher email (separate several with commas)",
+    "inviteTeacherHint": "They join this campus as a homeroom teacher the first time they sign in with Google.",
+    "pendingInvites": "Unused invitations",
+    "cancelInvite": "Cancel",
+    "teachers": "Teachers",
+    "noTeacher": "No teachers in this campus yet",
+    "homeroomOf": "Homeroom",
+    "disable": "Disable",
+    "restore": "Restore",
+    "confirmDisable": "Disable this teacher? They lose access, but everything they recorded is kept."
   },
   "scoreboard": {
     "title": "Competition scoreboard",

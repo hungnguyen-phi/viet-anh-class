@@ -5,6 +5,7 @@ import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
+import {SCHOOL_LEVELS, GRADE_NUMBERS, hasNumberedGrades, type SchoolLevel} from '@/lib/levels';
 import type {Database} from '@/lib/database.types';
 
 type Role = Database['public']['Enums']['user_role'];
@@ -76,18 +77,30 @@ export async function createCampus(_prev: CampusState, formData: FormData): Prom
   await requireRole(['admin']);
   const name = String(formData.get('name') ?? '').trim();
   const code = String(formData.get('code') ?? '').trim();
+  const level = (String(formData.get('level') ?? '') || null) as SchoolLevel | null;
   // Giữ lại input để trả về khi có lỗi (không mất nội dung đã gõ).
   const values = {name, code};
 
   if (!name) return {ok: false, fieldError: 'name', error: 'Thiếu tên hoặc mã cơ sở', values};
   if (!code) return {ok: false, fieldError: 'code', error: 'Thiếu tên hoặc mã cơ sở', values};
+  // Bắt buộc chọn cấp học: thiếu nó thì cơ sở không sinh được khối nào, và người dùng lại rơi
+  // vào cảnh gõ tay tên khối — đúng thứ đang đi sửa.
+  if (!level || !SCHOOL_LEVELS.includes(level))
+    return {ok: false, fieldError: 'level', error: 'Hãy chọn cấp học của cơ sở', values};
 
   const supabase = await createClient();
-  const {error} = await supabase.from('campuses').insert({name, code});
+  const {error} = await supabase.from('campuses').insert({name, code, level});
   if (error) return {ok: false, error: friendlyError(error), values};
 
+  // Trigger campus_seed_grades đã sinh khối chuẩn theo cấp — báo luôn để khỏi đi tìm.
+  const nums = GRADE_NUMBERS[level];
   revalidatePath('/admin');
-  return {ok: true, message: `Đã tạo cơ sở "${name}"`};
+  return {
+    ok: true,
+    message: nums
+      ? `Đã tạo cơ sở "${name}" và ${nums.length} khối (${nums.map((n) => `Khối ${n}`).join(', ')})`
+      : `Đã tạo cơ sở "${name}". Cấp mầm non: hãy thêm khối bằng tay.`,
+  };
 }
 
 export type ClassState = {
@@ -254,12 +267,18 @@ export async function updateCampus(formData: FormData) {
   const id = String(formData.get('id') ?? '');
   const name = String(formData.get('name') ?? '').trim();
   const code = String(formData.get('code') ?? '').trim();
+  const rawLevel = String(formData.get('level') ?? '');
+  const level = (rawLevel || null) as SchoolLevel | null;
   if (!id) flash('Thiếu cơ sở cần sửa');
   if (!name || !code) flash('Thiếu tên hoặc mã cơ sở');
+  if (level && !SCHOOL_LEVELS.includes(level)) flash('Cấp học không hợp lệ');
   const supabase = await createClient();
-  const {error} = await supabase.from('campuses').update({name, code}).eq('id', id);
-  if (!error) await supabase.rpc('log_audit', {p_action: 'update_campus', p_detail: {campus: id, name, code}});
+  // Đổi cấp học → trigger campus_seed_grades sinh thêm khối chuẩn của cấp mới. KHÔNG xoá khối
+  // cũ (lớp có thể đang trỏ vào) — dọn là việc có ý thức của người quản trị.
+  const {error} = await supabase.from('campuses').update({name, code, level}).eq('id', id);
+  if (!error) await supabase.rpc('log_audit', {p_action: 'update_campus', p_detail: {campus: id, name, code, level}});
   revalidatePath('/admin');
+  revalidatePath('/campus');
   flash(error ? friendlyError(error) : `Đã cập nhật cơ sở "${name}"`);
 }
 
@@ -300,6 +319,11 @@ export async function createGrade(formData: FormData) {
   const sort_order = Number(formData.get('sort_order') ?? 0) || 0;
   if (!campus_id || !name) flash('Thiếu cơ sở hoặc tên khối');
   const supabase = await createClient();
+  // Chặn ở SERVER chứ không chỉ giấu nút: cấp phổ thông có bộ khối cố định do DB sinh, thêm tay
+  // là cách dữ liệu rác ("7", "k", "Khối"…) lọt vào lần trước.
+  const {data: campus} = await supabase.from('campuses').select('level').eq('id', campus_id).maybeSingle();
+  if (hasNumberedGrades(campus?.level))
+    flash('Cấp học này đã có bộ khối chuẩn do hệ thống sinh — không thêm khối bằng tay.');
   const {error} = await supabase.from('grades').insert({campus_id, name, sort_order});
   if (!error) await supabase.rpc('log_audit', {p_action: 'create_grade', p_detail: {campus: campus_id, name}});
   revalidatePath('/admin');

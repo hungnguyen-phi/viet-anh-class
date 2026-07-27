@@ -130,6 +130,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          level: Database["public"]["Enums"]["school_level"] | null
           name: string
         }
         Insert: {
@@ -137,6 +138,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          level?: Database["public"]["Enums"]["school_level"] | null
           name: string
         }
         Update: {
@@ -144,6 +146,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          level?: Database["public"]["Enums"]["school_level"] | null
           name?: string
         }
         Relationships: []
@@ -642,6 +645,7 @@ export type Database = {
       }
       pending_user_grants: {
         Row: {
+          campus_id: string | null
           class_id: string | null
           created_at: string
           email: string
@@ -650,6 +654,7 @@ export type Database = {
           student_id: string | null
         }
         Insert: {
+          campus_id?: string | null
           class_id?: string | null
           created_at?: string
           email: string
@@ -658,6 +663,7 @@ export type Database = {
           student_id?: string | null
         }
         Update: {
+          campus_id?: string | null
           class_id?: string | null
           created_at?: string
           email?: string
@@ -1119,6 +1125,28 @@ export type Database = {
         Args: never
         Returns: { class_id: string; name: string; school_year: string; score: number; att_today: number }[]
       }
+      // 0049 — mọi lớp trong phạm vi kèm KHỐI, cho bảng tổng hợp toàn trường.
+      campus_rollup: {
+        Args: never
+        Returns: {
+          class_id: string
+          class_name: string
+          school_year: string
+          grade_id: string | null
+          grade_name: string
+          grade_sort: number
+          score: number
+          att_today: number
+          student_count: number
+        }[]
+      }
+      // 0047 — sinh Khối chuẩn theo cấp học của cơ sở.
+      seed_grades_for_campus: { Args: { p_campus: string }; Returns: number }
+      // 0050 — HT tự khai cấp học cho cơ sở mình (trả về số khối vừa sinh).
+      set_my_campus_level: {
+        Args: { p_level: Database["public"]["Enums"]["school_level"] }
+        Returns: number
+      }
       enroll_student_by_email: { Args: { p_class: string; p_email: string }; Returns: string }
       unenroll_student: { Args: { p_class: string; p_student: string }; Returns: undefined }
       app_today: { Args: never; Returns: string }
@@ -1219,6 +1247,7 @@ export type Database = {
     Enums: {
       attendance_status: "present" | "absent" | "late" | "excused"
       mood_level: "great" | "good" | "ok" | "low" | "bad"
+      school_level: "mam_non" | "tieu_hoc" | "thcs" | "thpt"
       score_category: "knowledge" | "skills" | "english" | "physical"
       user_role:
         | "admin"
@@ -1359,6 +1388,7 @@ export const Constants = {
     Enums: {
       attendance_status: ["present", "absent", "late", "excused"],
       mood_level: ["great", "good", "ok", "low", "bad"],
+      school_level: ["mam_non", "tieu_hoc", "thcs", "thpt"],
       score_category: ["knowledge", "skills", "english", "physical"],
       user_role: [
         "admin",

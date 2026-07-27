@@ -58,10 +58,16 @@ export default async function LoginPage({
         {/* Nhãn trường — chỉ logo, đã bỏ chữ */}
         <div className="inline-flex items-center rounded-full border border-navy/15 bg-white/55 p-1.5 backdrop-blur-sm">
           <span className="grid h-[52px] w-[52px] place-items-center overflow-hidden rounded-full bg-white">
+            {/* Bản 128px: logo gốc là JPEG 900x900 (72 KB) nhưng ô này chỉ 44x44 — bản webp
+                128px (2.8 KB) vẫn dư nét ở màn hình 2x. File .jpg gốc GIỮ NGUYÊN vì metadata
+                (OG image, apple-touch-icon) cần ảnh lớn. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo-viet-anh.jpg"
+              src="/logo-viet-anh-128.webp"
               alt="Logo Trường Việt Anh"
+              width={44}
+              height={44}
+              fetchPriority="high"
               className="h-[44px] w-[44px] rounded-full object-cover"
             />
           </span>

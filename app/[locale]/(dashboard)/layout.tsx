@@ -21,26 +21,31 @@ export default async function DashboardLayout({
 
   const supabase = await createClient();
 
-  // Học sinh chỉ thấy link "Điểm danh" nếu là tổ trưởng điểm danh (PRD §6.2 màn 3).
-  let isAttendanceLeader = false;
-  if (profile.role === 'student') {
-    const {data} = await supabase
-      .from('enrollments')
-      .select('is_attendance_leader')
-      .eq('student_id', profile.id)
-      .eq('is_active', true)
-      .eq('is_attendance_leader', true)
-      .limit(1)
-      .maybeSingle();
-    isAttendanceLeader = Boolean(data);
-  }
+  // Hai query dưới đây ĐỘC LẬP nhau → chạy song song. Trước đây `await` nối tiếp nên mỗi lần
+  // chuyển trang phải chờ 2 vòng mạng tới Supabase xếp hàng; giờ chỉ tốn thời gian của query
+  // chậm hơn. Layout này nằm trên MỌI trang sau đăng nhập nên tiết kiệm ở đây có mặt khắp nơi.
+  const [leaderRes, unreadRes] = await Promise.all([
+    // Học sinh chỉ thấy link "Điểm danh" nếu là tổ trưởng điểm danh (PRD §6.2 màn 3).
+    profile.role === 'student'
+      ? supabase
+          .from('enrollments')
+          .select('is_attendance_leader')
+          .eq('student_id', profile.id)
+          .eq('is_active', true)
+          .eq('is_attendance_leader', true)
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({data: null}),
+    // Số thông báo chưa đọc cho badge trên chuông. head:true → chỉ lấy count, không tải hàng.
+    // RLS notif_own_read đã giới hạn user_id = auth.uid().
+    supabase
+      .from('notifications')
+      .select('id', {count: 'exact', head: true})
+      .eq('read', false),
+  ]);
 
-  // Số thông báo chưa đọc cho badge trên chuông. head:true → chỉ lấy count, không tải hàng.
-  // RLS notif_own_read đã giới hạn user_id = auth.uid().
-  const {count: unreadCount} = await supabase
-    .from('notifications')
-    .select('id', {count: 'exact', head: true})
-    .eq('read', false);
+  const isAttendanceLeader = Boolean(leaderRes.data);
+  const unreadCount = unreadRes.count;
 
   return (
     <div className="min-h-screen">

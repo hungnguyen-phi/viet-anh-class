@@ -13,30 +13,30 @@
 // các keyframes chỉ tham chiếu qua inline style).
 
 const STAND: [string, number][] = [
-  ['/students/a01.png', 0.417], ['/students/a02.png', 0.352], ['/students/a03.png', 0.409],
-  ['/students/a04.png', 0.339], ['/students/a05.png', 0.413], ['/students/a06.png', 0.379],
-  ['/students/a07.png', 0.469], ['/students/a08.png', 0.415], ['/students/a09.png', 0.342],
-  ['/students/a10.png', 0.361], ['/students/a11.png', 0.332], ['/students/a12.png', 0.479],
-  ['/students/a13.png', 0.362], ['/students/a14.png', 0.339], ['/students/a15.png', 0.414],
-  ['/students/a16.png', 0.359], ['/students/a17.png', 0.331], ['/students/a18.png', 0.409],
-  ['/students/a19.png', 0.386], ['/students/a20.png', 0.322], ['/students/a21.png', 0.425],
-  ['/students/a22.png', 0.332], ['/students/b01.png', 0.359], ['/students/b02.png', 0.322],
-  ['/students/b03.png', 0.4], ['/students/b04.png', 0.456], ['/students/b05.png', 0.359],
-  ['/students/b06.png', 0.324], ['/students/b07.png', 0.373], ['/students/b08.png', 0.375],
-  ['/students/b09.png', 0.327], ['/students/b10.png', 0.392], ['/students/b11.png', 0.398],
-  ['/students/b12.png', 0.325], ['/students/b13.png', 0.382], ['/students/b14.png', 0.396],
-  ['/students/b15.png', 0.4], ['/students/b16.png', 0.37], ['/students/b17.png', 0.349],
-  ['/students/b18.png', 0.358], ['/students/b19.png', 0.481], ['/students/b20.png', 0.327],
-  ['/students/b21.png', 0.335],
+  ['/students/a01.webp', 0.417], ['/students/a02.webp', 0.352], ['/students/a03.webp', 0.409],
+  ['/students/a04.webp', 0.339], ['/students/a05.webp', 0.413], ['/students/a06.webp', 0.379],
+  ['/students/a07.webp', 0.469], ['/students/a08.webp', 0.415], ['/students/a09.webp', 0.342],
+  ['/students/a10.webp', 0.361], ['/students/a11.webp', 0.332], ['/students/a12.webp', 0.479],
+  ['/students/a13.webp', 0.362], ['/students/a14.webp', 0.339], ['/students/a15.webp', 0.414],
+  ['/students/a16.webp', 0.359], ['/students/a17.webp', 0.331], ['/students/a18.webp', 0.409],
+  ['/students/a19.webp', 0.386], ['/students/a20.webp', 0.322], ['/students/a21.webp', 0.425],
+  ['/students/a22.webp', 0.332], ['/students/b01.webp', 0.359], ['/students/b02.webp', 0.322],
+  ['/students/b03.webp', 0.4], ['/students/b04.webp', 0.456], ['/students/b05.webp', 0.359],
+  ['/students/b06.webp', 0.324], ['/students/b07.webp', 0.373], ['/students/b08.webp', 0.375],
+  ['/students/b09.webp', 0.327], ['/students/b10.webp', 0.392], ['/students/b11.webp', 0.398],
+  ['/students/b12.webp', 0.325], ['/students/b13.webp', 0.382], ['/students/b14.webp', 0.396],
+  ['/students/b15.webp', 0.4], ['/students/b16.webp', 0.37], ['/students/b17.webp', 0.349],
+  ['/students/b18.webp', 0.358], ['/students/b19.webp', 0.481], ['/students/b20.webp', 0.327],
+  ['/students/b21.webp', 0.335],
 ];
 const WALK: [string, number][] = [
-  ['/students/w01.png', 0.476], ['/students/w02.png', 0.493], ['/students/w03.png', 0.514],
-  ['/students/w04.png', 0.635], ['/students/w05.png', 0.474], ['/students/w06.png', 0.471],
-  ['/students/w07.png', 0.514], ['/students/w08.png', 0.807], ['/students/w09.png', 0.716],
-  ['/students/w10.png', 0.427], ['/students/w11.png', 0.493], ['/students/w12.png', 0.507],
-  ['/students/w13.png', 0.477], ['/students/w14.png', 0.778], ['/students/w15.png', 0.6],
-  ['/students/w16.png', 0.512], ['/students/w17.png', 0.507], ['/students/w18.png', 0.596],
-  ['/students/w19.png', 0.459], ['/students/w20.png', 0.769], ['/students/w21.png', 0.424],
+  ['/students/w01.webp', 0.476], ['/students/w02.webp', 0.493], ['/students/w03.webp', 0.514],
+  ['/students/w04.webp', 0.635], ['/students/w05.webp', 0.474], ['/students/w06.webp', 0.471],
+  ['/students/w07.webp', 0.514], ['/students/w08.webp', 0.807], ['/students/w09.webp', 0.716],
+  ['/students/w10.webp', 0.427], ['/students/w11.webp', 0.493], ['/students/w12.webp', 0.507],
+  ['/students/w13.webp', 0.477], ['/students/w14.webp', 0.778], ['/students/w15.webp', 0.6],
+  ['/students/w16.webp', 0.512], ['/students/w17.webp', 0.507], ['/students/w18.webp', 0.596],
+  ['/students/w19.webp', 0.459], ['/students/w20.webp', 0.769], ['/students/w21.webp', 0.424],
 ];
 
 // Keyframe đi ngang (dùng chung cho người ĐI) + nhún nhẹ. vw → responsive.
@@ -219,6 +219,11 @@ export function StudentCrowd() {
               alt=""
               width={wk.w}
               height={wk.h}
+              // Đám đông là TRANG TRÍ: hạ ưu tiên tải để 54 sprite không tranh băng thông với
+              // font + CSS + JS của thẻ đăng nhập (thứ người dùng thật sự chờ). Giải mã ảnh
+              // chạy off-thread để không chặn lần vẽ đầu.
+              fetchPriority="low"
+              decoding="async"
               style={{
                 display: 'block',
                 // Mobile thu nhỏ (var --cs) → sprite được DOWNSCALE thay vì phóng to → giảm hẳn răng cưa.

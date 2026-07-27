@@ -92,7 +92,7 @@ export default async function AdminPage({
       .order('email')
       .limit(500),
     supabase.from('profiles').select('id, full_name, email').eq('role', 'student').order('email').limit(1000),
-    supabase.from('campuses').select('id, name, code, is_active').order('name'),
+    supabase.from('campuses').select('id, name, code, is_active, level').order('name'),
     supabase.from('grades').select('id, name, campus_id, sort_order, is_active').order('sort_order'),
     supabase
       .from('classes')
@@ -414,7 +414,7 @@ export default async function AdminPage({
             {activeCampuses.map((c) => (
               <CampusCard
                 key={c.id}
-                campus={{id: c.id, name: c.name, code: c.code}}
+                campus={{id: c.id, name: c.name, code: c.code, level: c.level}}
                 grades={(gradesByCampus.get(c.id) ?? []).map((g) => ({
                   id: g.id,
                   name: g.name,
