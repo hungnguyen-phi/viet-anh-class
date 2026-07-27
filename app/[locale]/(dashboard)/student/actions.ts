@@ -46,6 +46,17 @@ export async function checkinMood(mood: Mood): Promise<CheckinResult> {
 const AREAS = ['knowledge', 'skills', 'english', 'physical'] as const;
 
 // Tiêu đề lead measure mặc định theo lĩnh vực (GVCN có thể đổi sau).
+// Tên WIG cá nhân mặc định theo lĩnh vực.
+// WIG cá nhân được sinh HÀNG LOẠT (4 lĩnh vực một lượt, hoặc 1 chạm cho cả tuần), nên bắt GVCN
+// gõ 4 cái tên mỗi lần là không thực tế. Nhưng để trống thì màn hình của em lại hiện ra một con
+// số trần không rõ là gì — đúng lỗi đang đi sửa. Đặt tên mặc định đọc được, GVCN sửa sau nếu muốn.
+const DEFAULT_WIG_TITLE: Record<(typeof AREAS)[number], string> = {
+  knowledge: 'Tiến bộ kiến thức',
+  skills: 'Rèn kỹ năng & hành vi',
+  english: 'Tiến bộ tiếng Anh',
+  physical: 'Rèn luyện thể chất',
+};
+
 const DEFAULT_LEAD_TITLE: Record<(typeof AREAS)[number], string> = {
   knowledge: 'Buổi học / tutor',
   skills: 'Hành vi văn hoá tốt',
@@ -261,6 +272,7 @@ async function applyNextWeekPlan(
           class_id,
           student_id,
           scope: 'student' as const,
+          title: DEFAULT_WIG_TITLE[area as (typeof AREAS)[number]] ?? 'Mục tiêu tuần',
           area,
           period: 'week' as const,
           period_label: label,
@@ -329,6 +341,7 @@ export async function createStudentYearWigs(formData: FormData) {
       class_id,
       student_id,
       scope: 'student' as const,
+      title: DEFAULT_WIG_TITLE[r.area] ?? 'Mục tiêu năm',
       area: r.area,
       period: 'year' as const,
       period_label: label,
@@ -381,6 +394,7 @@ export async function createStudentWeekWigs(formData: FormData) {
         class_id,
         student_id,
         scope: 'student' as const,
+        title: DEFAULT_WIG_TITLE[y.area as (typeof AREAS)[number]] ?? 'Mục tiêu tuần',
         area: y.area,
         period: 'week' as const,
         period_label: label,

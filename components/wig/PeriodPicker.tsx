@@ -2,6 +2,7 @@
 
 import {useState} from 'react';
 import {useTranslations} from 'next-intl';
+import {selectCls, labelCls} from '@/components/ui/Field';
 import type {PeriodOption} from '@/lib/dates';
 
 // Chọn KỲ thay vì gõ nhãn kỳ. Một select duy nhất thay 3 ô (nhãn kỳ + ngày bắt đầu + ngày kết
@@ -26,15 +27,10 @@ export function PeriodPicker({
   const cur = options[i];
 
   return (
-    <div>
-      <label className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
-        {label}
-      </label>
-      <select
-        value={i}
-        onChange={(e) => setI(Number(e.target.value))}
-        className="w-full cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy"
-      >
+    <div className="min-w-0">
+      <label className={labelCls}>{label}</label>
+      {/* selectCls: cùng chiều cao ctl-h với ô nhập và nút → đứng cùng hàng là thẳng */}
+      <select value={i} onChange={(e) => setI(Number(e.target.value))} className={selectCls}>
         {options.map((o, idx) => (
           <option key={o.label} value={idx}>
             {o.label}

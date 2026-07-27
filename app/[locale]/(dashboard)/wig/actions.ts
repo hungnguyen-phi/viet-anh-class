@@ -55,7 +55,9 @@ export type CreateWigState = {
 export async function createYearWig(_prev: CreateWigState, formData: FormData): Promise<CreateWigState> {
   await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '');
+  const title = String(formData.get('title') ?? '').trim();
   const area = String(formData.get('area') ?? '') as Area;
+  const baseline_raw = String(formData.get('baseline') ?? '').trim();
   const target_raw = String(formData.get('target_value') ?? '').trim();
   const target_value = Number(target_raw);
   const unit = String(formData.get('unit') ?? '').trim();
@@ -66,9 +68,25 @@ export async function createYearWig(_prev: CreateWigState, formData: FormData): 
   const values = {area, target_value: target_raw, unit, period_label, start_date, end_date};
 
   if (!class_id) return {ok: false, error: friendlyError(null), values};
+  // Tên là BẮT BUỘC ở tầng ứng dụng (cột DB để nullable cho các WIG cũ). Một WIG không tên thì
+  // mọi màn hình sau đó chỉ hiện được con số trần, không ai biết nó là mục tiêu gì.
+  if (!title) return {ok: false, fieldError: 'title', error: 'Hãy đặt tên cho mục tiêu.', values};
+  if (title.length > 160)
+    return {ok: false, fieldError: 'title', error: 'Tên mục tiêu tối đa 160 ký tự.', values};
   if (!area) return {ok: false, fieldError: 'area', error: 'Hãy chọn lĩnh vực.', values};
   if (!target_raw || !Number.isFinite(target_value) || target_value <= 0)
     return {ok: false, fieldError: 'target_value', error: 'Mục tiêu phải là số lớn hơn 0.', values};
+  // "Từ" được phép bỏ trống (chưa đo được mốc đầu), nhưng gõ rồi thì phải là số hợp lệ.
+  const baseline = baseline_raw === '' ? null : Number(baseline_raw);
+  if (baseline !== null && (!Number.isFinite(baseline) || baseline < 0))
+    return {ok: false, fieldError: 'baseline', error: 'Mốc xuất phát phải là số từ 0 trở lên.', values};
+  if (baseline !== null && baseline >= target_value)
+    return {
+      ok: false,
+      fieldError: 'baseline',
+      error: 'Mốc xuất phát phải nhỏ hơn mục tiêu — nếu không thì không còn gì để cải thiện.',
+      values,
+    };
   if (!unit) return {ok: false, fieldError: 'unit', error: 'Hãy nhập đơn vị (vd điểm, buổi, lần).', values};
   if (!start_date) return {ok: false, fieldError: 'start_date', error: 'Hãy chọn ngày bắt đầu.', values};
   if (!end_date) return {ok: false, fieldError: 'end_date', error: 'Hãy chọn ngày kết thúc.', values};
@@ -77,6 +95,8 @@ export async function createYearWig(_prev: CreateWigState, formData: FormData): 
   const {error} = await supabase.from('wigs').insert({
     class_id,
     scope: 'class',
+    title,
+    baseline,
     area,
     period: 'year' as Period,
     period_label: period_label || null,
@@ -96,8 +116,10 @@ export async function createYearWig(_prev: CreateWigState, formData: FormData): 
 export async function createWig(formData: FormData) {
   await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '');
+  const title = String(formData.get('title') ?? '').trim();
   const area = String(formData.get('area') ?? '') as Area;
   const period = String(formData.get('period') ?? '') as Period;
+  const baseline_raw = String(formData.get('baseline') ?? '').trim();
   const target_value = Number(formData.get('target_value') ?? 0);
   const unit = String(formData.get('unit') ?? '').trim();
   const start_date = String(formData.get('start_date') ?? '');
@@ -107,7 +129,15 @@ export async function createWig(formData: FormData) {
   if (!class_id || !area || !period || !target_value || !unit || !start_date || !end_date) {
     flash('Thiếu thông tin WIG (lĩnh vực / kỳ / mục tiêu / đơn vị / ngày).', class_id);
   }
+  if (!title) flash('Hãy đặt tên cho mục tiêu tuần/tháng.', class_id);
   if (target_value <= 0) flash('Mục tiêu phải lớn hơn 0.', class_id);
+  const baseline = baseline_raw === '' ? null : Number(baseline_raw);
+  if (baseline !== null && (!Number.isFinite(baseline) || baseline < 0)) {
+    flash('Mốc xuất phát phải là số từ 0 trở lên.', class_id);
+  }
+  if (baseline !== null && baseline >= target_value) {
+    flash('Mốc xuất phát phải nhỏ hơn mục tiêu.', class_id);
+  }
   if ((period === 'week' || period === 'month') && !parent_wig_id) {
     flash('WIG tuần/tháng phải liên kết với 1 WIG cha.', class_id);
   }
@@ -115,6 +145,8 @@ export async function createWig(formData: FormData) {
   const {error} = await supabase.from('wigs').insert({
     class_id,
     scope: 'class',
+    title,
+    baseline,
     area,
     period,
     period_label,
@@ -184,13 +216,23 @@ export async function editWig(formData: FormData) {
   await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '') || undefined;
   const id = String(formData.get('wig_id') ?? '');
+  const title = String(formData.get('title') ?? '').trim();
+  const baseline_raw = String(formData.get('baseline') ?? '').trim();
   const target_value = Number(formData.get('target_value') ?? 0);
   const unit = String(formData.get('unit') ?? '').trim();
   const period_label = String(formData.get('period_label') ?? '').trim() || null;
   const start_date = String(formData.get('start_date') ?? '');
   const end_date = String(formData.get('end_date') ?? '');
   if (!id) flash('Thiếu WIG cần sửa', class_id);
+  if (!title) flash('Hãy đặt tên cho mục tiêu.', class_id);
   if (!Number.isFinite(target_value) || target_value <= 0) flash('Mục tiêu phải lớn hơn 0.', class_id);
+  const baseline = baseline_raw === '' ? null : Number(baseline_raw);
+  if (baseline !== null && (!Number.isFinite(baseline) || baseline < 0)) {
+    flash('Mốc xuất phát phải là số từ 0 trở lên.', class_id);
+  }
+  if (baseline !== null && baseline >= target_value) {
+    flash('Mốc xuất phát phải nhỏ hơn mục tiêu.', class_id);
+  }
   if (!unit) flash('Thiếu đơn vị.', class_id);
   const supabase = await createClient();
   // .select() để biết có dòng nào thực sự đổi không: RLS chặn (lớp khác) → 0 dòng, error=null.
@@ -198,6 +240,8 @@ export async function editWig(formData: FormData) {
   const {data, error} = await supabase
     .from('wigs')
     .update({
+      title,
+      baseline,
       target_value,
       unit,
       period_label,

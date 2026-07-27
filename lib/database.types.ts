@@ -956,6 +956,7 @@ export type Database = {
       wigs: {
         Row: {
           area: Database["public"]["Enums"]["wig_area"]
+          baseline: number | null
           class_id: string
           created_at: string
           end_date: string
@@ -968,10 +969,12 @@ export type Database = {
           start_date: string
           student_id: string | null
           target_value: number
+          title: string | null
           unit: string
         }
         Insert: {
           area: Database["public"]["Enums"]["wig_area"]
+          baseline?: number | null
           class_id: string
           created_at?: string
           end_date: string
@@ -984,10 +987,12 @@ export type Database = {
           start_date: string
           student_id?: string | null
           target_value: number
+          title?: string | null
           unit: string
         }
         Update: {
           area?: Database["public"]["Enums"]["wig_area"]
+          baseline?: number | null
           class_id?: string
           created_at?: string
           end_date?: string
@@ -1000,6 +1005,7 @@ export type Database = {
           start_date?: string
           student_id?: string | null
           target_value?: number
+          title?: string | null
           unit?: string
         }
         Relationships: [

@@ -4,6 +4,7 @@ import {createClient} from '@/lib/supabase/server';
 import {getAccessibleClasses, getMyClass} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {Field, inputCls, btnGhost, btnGold} from '@/components/ui/Field';
 import {WigCreateForm} from './WigCreateForm';
 import {
   addLeadMeasure,
@@ -22,6 +23,8 @@ import {AREAS, buildAreaMeta, areaLabel, type Area} from '@/lib/areas';
 
 type Wig = {
   id: string;
+  title: string | null;   // 0051 — nullable cho các WIG tạo trước khi có cột này
+  baseline: number | null; // 0051 — mốc X trong "Từ X lên Y"
   area: string;
   period: string;
   period_label: string | null;
@@ -81,7 +84,7 @@ export default async function WigPage({
   const [{data: wigsData}, {data: progData}] = await Promise.all([
     supabase
       .from('wigs')
-      .select('id, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date')
+      .select('id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date')
       .eq('class_id', myClass.id)
       .eq('scope', 'class'),
     supabase
@@ -135,11 +138,12 @@ export default async function WigPage({
   const editLinkCls =
     'cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-[11px] font-extrabold text-navy transition-all hover:border-navy';
 
-  const compactInput =
-    'rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
-  const ghostBtn =
-    'cursor-pointer rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3.5 py-2 text-xs font-extrabold text-navy transition-all hover:border-navy hover:bg-white';
-  const logBtn = 'btn-gold cursor-pointer rounded-[10px] px-3 py-1.5 text-xs font-extrabold';
+  // Ô nhập và nút DÙNG CHUNG chiều cao ctl-h (44px) từ components/ui/Field.
+  // Trước đây ba thứ này cao 40 / 38 / 31px vì mỗi cái tự chế padding riêng — đứng cùng một
+  // hàng `items-center` là lệch, đúng lỗi người dùng báo. Chiều cao tường minh thì tự thẳng.
+  const compactInput = inputCls;
+  const ghostBtn = btnGhost;
+  const logBtn = btnGold;
 
   const bar = (p?: Prog) => {
     const pct = Math.round(Number(p?.pct ?? 0) * 100);
@@ -160,16 +164,45 @@ export default async function WigPage({
         {t('editWig')} · {areaLabel(areaMeta[w.area as Area], locale)}
         {w.period_label ? ` · ${w.period_label}` : ''}
       </div>
-      <form action={editWig} className="flex flex-wrap items-end gap-2">
+      <form action={editWig} className="flex flex-col gap-3">
         <input type="hidden" name="class_id" value={myClass.id} />
         <input type="hidden" name="wig_id" value={w.id} />
-        <input name="target_value" type="number" step="any" min="0.01" defaultValue={w.target_value} placeholder={t('target')} className={`${compactInput} w-[110px]`} required />
-        <input name="unit" defaultValue={w.unit} placeholder={t('unit')} className={`${compactInput} w-[110px]`} required />
-        <input name="period_label" defaultValue={w.period_label ?? ''} placeholder={t('label')} className={`${compactInput} w-[160px]`} />
-        <input name="start_date" type="date" defaultValue={w.start_date} className={compactInput} />
-        <input name="end_date" type="date" defaultValue={w.end_date} className={compactInput} />
-        <button type="submit" className={logBtn}>{t('save')}</button>
-        <Link href={backHref} className={ghostBtn}>{t('cancel')}</Link>
+
+        <Field label={t('wigTitle')}>
+          <input name="title" defaultValue={w.title ?? ''} placeholder={t('wigTitlePlaceholder')} className={inputCls} required />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_1.4fr]">
+          <Field label={t('baseline')}>
+            <input name="baseline" type="number" step="any" min="0" inputMode="decimal" defaultValue={w.baseline ?? ''} placeholder="0" className={inputCls} />
+          </Field>
+          <Field label={t('targetTo')}>
+            <input name="target_value" type="number" step="any" min="0.01" inputMode="decimal" defaultValue={w.target_value} className={inputCls} required />
+          </Field>
+          <Field label={t('unit')} className="col-span-2 sm:col-span-1">
+            <input name="unit" defaultValue={w.unit} placeholder={t('unitPlaceholder')} className={inputCls} required />
+          </Field>
+        </div>
+
+        {/* Nhãn kỳ + hai ngày: trước đây ô nhãn rộng 160px trong khi placeholder của nó là
+            "Nhãn kỳ (vd 2026, 2026-09, W38-2026)" — dài gấp ba lần chỗ chứa. Nay có nhãn thật
+            bên ngoài nên ô không phải gánh việc giải thích chính nó. */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1.4fr_1fr_1fr]">
+          <Field label={t('label')} className="col-span-2 sm:col-span-1">
+            <input name="period_label" defaultValue={w.period_label ?? ''} className={inputCls} />
+          </Field>
+          <Field label={t('startDate')}>
+            <input name="start_date" type="date" defaultValue={w.start_date} className={inputCls} />
+          </Field>
+          <Field label={t('endDate')}>
+            <input name="end_date" type="date" defaultValue={w.end_date} className={inputCls} />
+          </Field>
+        </div>
+
+        <div className="flex flex-wrap justify-end gap-2">
+          <Link href={backHref} className={ghostBtn}>{t('cancel')}</Link>
+          <button type="submit" className={logBtn}>{t('save')}</button>
+        </div>
       </form>
     </section>
   );
@@ -178,40 +211,77 @@ export default async function WigPage({
   const leadEditPanel = (l: Lead) => (
     <section className="glass animate-rise rounded-[20px] p-[18px] ring-2 ring-gold/60">
       <div className="mb-2.5 font-display text-[15px] font-bold text-navy">{t('editLead')}</div>
-      <form action={editLeadMeasure} className="flex flex-wrap items-end gap-2">
+      <form action={editLeadMeasure} className="flex flex-col gap-3">
         <input type="hidden" name="class_id" value={myClass.id} />
         <input type="hidden" name="lead_measure_id" value={l.id} />
-        <input name="title" defaultValue={l.title} placeholder={t('leadTitle')} className={`${compactInput} min-w-[200px] flex-1`} required />
-        <input name="target_value" type="number" step="any" min="0.01" defaultValue={l.target_value} placeholder={t('target')} className={`${compactInput} w-24`} required />
-        <input name="unit" defaultValue={l.unit ?? ''} placeholder={t('unit')} className={`${compactInput} w-24`} />
-        <input name="sub_category" defaultValue={l.sub_category ?? ''} placeholder={t('subCat')} className={`${compactInput} w-28`} />
-        <button type="submit" className={logBtn}>{t('save')}</button>
-        <Link href={backHref} className={ghostBtn}>{t('cancel')}</Link>
+        <Field label={t('leadTitle')}>
+          <input name="title" defaultValue={l.title} className={inputCls} required />
+        </Field>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <Field label={t('target')}>
+            <input name="target_value" type="number" step="any" min="0.01" inputMode="decimal" defaultValue={l.target_value} className={inputCls} required />
+          </Field>
+          <Field label={t('unit')}>
+            <input name="unit" defaultValue={l.unit ?? ''} placeholder={t('unitPlaceholder')} className={inputCls} />
+          </Field>
+          <Field label={t('subCat')} className="col-span-2 sm:col-span-1">
+            <input name="sub_category" defaultValue={l.sub_category ?? ''} className={inputCls} />
+          </Field>
+        </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Link href={backHref} className={ghostBtn}>{t('cancel')}</Link>
+          <button type="submit" className={logBtn}>{t('save')}</button>
+        </div>
       </form>
     </section>
   );
 
   // Form tạo WIG con (tuần/tháng). allowMonth=true dưới WIG năm; false dưới WIG tháng.
+  // Form tao WIG con (tuan/thang). allowMonth=true duoi WIG nam; false duoi WIG thang.
+  //
+  // Dung lai 2026-07-27: truoc day day la MOT hang flex nhet 5 dieu khien khong nhan, o muc tieu
+  // rong 100px va o don vi 100px - khong du cho "buoi luyen noi" (don vi dai nhat dang dung
+  // that). Nay xep thanh hang co nhan, va them o TEN + o TU de mot WIG tuan doc duoc thanh cau.
   const createChildForm = (parentId: string, area: string, unit: string, allowMonth: boolean) => (
-    <form action={createWig} className="flex flex-wrap items-center gap-2">
+    <form action={createWig} className="flex flex-col gap-3">
       <input type="hidden" name="class_id" value={myClass.id} />
       <input type="hidden" name="parent_wig_id" value={parentId} />
       <input type="hidden" name="area" value={area} />
-      <input name="target_value" type="number" step="any" min="0.01" placeholder={t('target')} className={`${compactInput} w-[100px]`} required />
-      <input name="unit" placeholder={t('unit')} className={`${compactInput} w-[100px]`} defaultValue={unit} required />
-      {/* Chọn kỳ thật (tuần/tháng) → tự sinh nhãn + ngày đầu/cuối, thay 3 ô nhập tay */}
+
+      <Field label={t('wigTitle')} hint={t('wigTitleHint')}>
+        <input name="title" placeholder={t('wigTitlePlaceholder')} className={inputCls} required />
+      </Field>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_1.4fr]">
+        <Field label={t('baseline')}>
+          <input name="baseline" type="number" step="any" min="0" inputMode="decimal" placeholder="0" className={inputCls} />
+        </Field>
+        <Field label={t('targetTo')}>
+          <input name="target_value" type="number" step="any" min="0.01" inputMode="decimal" className={inputCls} required />
+        </Field>
+        <Field label={t('unit')} className="col-span-2 sm:col-span-1">
+          <input name="unit" placeholder={t('unitPlaceholder')} className={inputCls} defaultValue={unit} required />
+        </Field>
+      </div>
+
       <ChildPeriodFields
         weekOpts={weekOpts}
         monthOpts={monthOpts}
         weekDefault={2}
         monthDefault={1}
         allowMonth={allowMonth}
-        inputCls={compactInput}
         weekLabel={t('week')}
         monthLabel={t('month')}
         currentTag={t('periodCurrent')}
+        typeFieldLabel={t('periodType')}
+        periodFieldLabel={t('periodWhich')}
       />
-      <button type="submit" className={ghostBtn}>+ {t('createWeek')}</button>
+
+      {/* Nut rieng mot dong, canh phai - nhet chung hang voi o chon ky thi bi keo lech theo
+          dong ghi chu ngay nam duoi o do. */}
+      <div className="flex justify-end">
+        <button type="submit" className={ghostBtn}>+ {t('createWeek')}</button>
+      </div>
     </form>
   );
 
@@ -221,16 +291,32 @@ export default async function WigPage({
     const wleads = leadsByWig.get(ww.id) ?? [];
     return (
       <div key={ww.id} className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-        <div className="flex flex-wrap items-baseline gap-2">
-          <span className="font-display text-[14px] font-bold text-navy">
-            {t('week')} {ww.period_label ? `· ${ww.period_label}` : ''}
+        {/* TÊN mục tiêu là dòng đầu, không phải "Tuần · Tuần 31".
+            Trước đây khối này mở đầu bằng nhãn kỳ nên đọc xong vẫn không biết mục tiêu là gì —
+            người dùng chỉ thấy "Tuần 31 — 0/5 lần" và phải tự đoán 5 lần đó là 5 lần nào. */}
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="font-display text-[14.5px] font-bold text-navy">
+            {ww.title ?? t('week')}
           </span>
-          <span className="ml-auto text-[11.5px] font-bold text-grey-mid">
-            {Number(wprog?.actual ?? 0)} / {ww.target_value} {ww.unit}
-          </span>
-          <Link href={editHref({editWig: ww.id})} className={editLinkCls}>
+          <Link href={editHref({editWig: ww.id})} className={`${editLinkCls} ml-auto`}>
             {t('edit')}
           </Link>
+        </div>
+        <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[11.5px] font-semibold text-grey-mid">
+          <span>
+            {t('week')}
+            {ww.period_label ? ` · ${ww.period_label}` : ''}
+          </span>
+          {/* "Từ X → Y" chỉ hiện khi có mốc xuất phát; WIG cũ chưa có thì bỏ qua, không hiện số 0
+              giả để tránh nói sai là lớp bắt đầu từ con số không. */}
+          {ww.baseline != null && (
+            <span className="font-bold text-navy/70">
+              · {t('from')} {Number(ww.baseline)} → {ww.target_value} {ww.unit}
+            </span>
+          )}
+          <span className="ml-auto font-bold">
+            {Number(wprog?.actual ?? 0)} / {ww.target_value} {ww.unit}
+          </span>
         </div>
         <div className="mt-2">{bar(wprog)}</div>
         <ul className="mt-2.5 flex flex-col">
@@ -245,10 +331,22 @@ export default async function WigPage({
                   ({l.target_value} {l.unit ?? ''})
                 </span>
               </span>
+              {/* w-14 (56px) trước đây trừ padding 24px và cặp mũi tên spinner ~17px chỉ còn
+                  ~15px cho con số — không đủ cho hai chữ số. Spinner đã bỏ ở globals.css, và
+                  w-20 cho chỗ thoải mái. aria-label vì ô này không có nhãn nhìn thấy được. */}
               <form action={logProgress} className="ml-auto flex items-center gap-1.5">
                 <input type="hidden" name="class_id" value={myClass.id} />
                 <input type="hidden" name="lead_measure_id" value={l.id} />
-                <input name="value" type="number" step="any" min="0.01" defaultValue={1} className={`${compactInput} w-14 text-center`} />
+                <input
+                  name="value"
+                  type="number"
+                  step="any"
+                  min="0.01"
+                  inputMode="decimal"
+                  defaultValue={1}
+                  aria-label={`${t('log')} — ${l.title}`}
+                  className={`${compactInput} w-20 text-center`}
+                />
                 <button type="submit" className={logBtn}>{t('log')}</button>
               </form>
               <Link href={editHref({editLead: l.id})} className={editLinkCls}>
@@ -264,14 +362,29 @@ export default async function WigPage({
             </li>
           ))}
         </ul>
-        <form action={addLeadMeasure} className="mt-2 flex flex-wrap items-center gap-2">
+        {/* Thêm lead measure. Trước đây 4 ô + 1 nút chen trong một hàng flex, các ô rộng 96px
+            và 112px trong khi nhãn của chúng là "Mục tiêu (số)" và "Nhóm (Kỹ năng)" — placeholder
+            bị cắt cụt nên không đọc được ô nào là ô nào. Nay dùng lưới có nhãn thật. */}
+        <form action={addLeadMeasure} className="mt-3 flex flex-col gap-3 border-t border-navy/[0.08] pt-3">
           <input type="hidden" name="class_id" value={myClass.id} />
           <input type="hidden" name="wig_id" value={ww.id} />
-          <input name="title" placeholder={`3 · ${t('leadTitle')}`} className={`${compactInput} min-w-[180px] flex-1`} required />
-          <input name="target_value" type="number" step="any" placeholder={t('target')} className={`${compactInput} w-24`} required />
-          <input name="unit" placeholder={t('unit')} className={`${compactInput} w-24`} />
-          <input name="sub_category" placeholder={t('subCat')} className={`${compactInput} w-28`} />
-          <button type="submit" className={ghostBtn}>+ {t('addLead')}</button>
+          <Field label={t('leadTitle')} hint={t('leadHint')}>
+            <input name="title" className={inputCls} required />
+          </Field>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <Field label={t('target')}>
+              <input name="target_value" type="number" step="any" min="0.01" inputMode="decimal" className={inputCls} required />
+            </Field>
+            <Field label={t('unit')}>
+              <input name="unit" placeholder={t('unitPlaceholder')} className={inputCls} />
+            </Field>
+            <Field label={t('subCat')} className="col-span-2 sm:col-span-1">
+              <input name="sub_category" className={inputCls} />
+            </Field>
+          </div>
+          <div className="flex justify-end">
+            <button type="submit" className={ghostBtn}>+ {t('addLead')}</button>
+          </div>
         </form>
       </div>
     );
@@ -283,14 +396,11 @@ export default async function WigPage({
     const mweeks = childrenOf(mw.id, 'week');
     return (
       <div key={mw.id} className="rounded-[14px] border-[1.5px] border-navy/15 bg-navy/[0.02] p-3">
-        <div className="flex flex-wrap items-baseline gap-2">
-          <span className="font-display text-[14px] font-bold text-navy">
-            {t('month')} {mw.period_label ? `· ${mw.period_label}` : ''}
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="font-display text-[14.5px] font-bold text-navy">
+            {mw.title ?? t('month')}
           </span>
-          <span className="ml-auto text-[11.5px] font-bold text-grey-mid">
-            {Number(mprog?.actual ?? 0)} / {mw.target_value} {mw.unit}
-          </span>
-          <Link href={editHref({editWig: mw.id})} className={editLinkCls}>
+          <Link href={editHref({editWig: mw.id})} className={`${editLinkCls} ml-auto`}>
             {t('edit')}
           </Link>
           <form action={deleteWig}>
@@ -300,6 +410,20 @@ export default async function WigPage({
               ✕
             </ConfirmButton>
           </form>
+        </div>
+        <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[11.5px] font-semibold text-grey-mid">
+          <span>
+            {t('month')}
+            {mw.period_label ? ` · ${mw.period_label}` : ''}
+          </span>
+          {mw.baseline != null && (
+            <span className="font-bold text-navy/70">
+              · {t('from')} {Number(mw.baseline)} → {mw.target_value} {mw.unit}
+            </span>
+          )}
+          <span className="ml-auto font-bold">
+            {Number(mprog?.actual ?? 0)} / {mw.target_value} {mw.unit}
+          </span>
         </div>
         <div className="mt-2">{bar(mprog)}</div>
         <div className="mt-2.5">{createChildForm(mw.id, mw.area, mw.unit, false)}</div>
@@ -356,14 +480,12 @@ export default async function WigPage({
           return (
             <section key={yw.id} className="glass rounded-[20px] p-[18px]">
               <div className="flex flex-wrap items-baseline gap-2">
+                {/* Dòng 1 = TÊN mục tiêu. Lĩnh vực và kỳ lùi xuống dòng phụ ngay bên dưới:
+                    chúng là thuộc tính của mục tiêu, không phải tên của nó. */}
                 <span className="font-display text-[16px] font-bold text-navy">
-                  {areaLabel(areaMeta[yw.area as Area], locale)} · {t('year')}
-                  {yw.period_label ? ` (${yw.period_label})` : ''}
+                  {yw.title ?? areaLabel(areaMeta[yw.area as Area], locale)}
                 </span>
-                <span className="ml-auto text-[12.5px] font-bold text-grey-mid">
-                  {Number(yprog?.actual ?? 0)} / {yw.target_value} {yw.unit}
-                </span>
-                <Link href={editHref({editWig: yw.id})} className={editLinkCls}>
+                <Link href={editHref({editWig: yw.id})} className={`${editLinkCls} ml-auto`}>
                   {t('edit')}
                 </Link>
                 <form action={deleteWig}>
@@ -376,6 +498,29 @@ export default async function WigPage({
                     {t('delete')}
                   </ConfirmButton>
                 </form>
+              </div>
+              <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[12px] font-semibold text-grey-mid">
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold"
+                  style={{
+                    background: areaMeta[yw.area as Area].soft,
+                    color: areaMeta[yw.area as Area].hex,
+                  }}
+                >
+                  {areaLabel(areaMeta[yw.area as Area], locale)}
+                </span>
+                <span>
+                  {t('year')}
+                  {yw.period_label ? ` · ${yw.period_label}` : ''}
+                </span>
+                {yw.baseline != null && (
+                  <span className="font-bold text-navy/70">
+                    · {t('from')} {Number(yw.baseline)} → {yw.target_value} {yw.unit}
+                  </span>
+                )}
+                <span className="ml-auto text-[12.5px] font-bold">
+                  {Number(yprog?.actual ?? 0)} / {yw.target_value} {yw.unit}
+                </span>
               </div>
               <div className="mt-2.5">{bar(yprog)}</div>
               <p className="mt-1.5 text-[10.5px] font-semibold italic text-grey-mid">{t('yearRollup')}</p>

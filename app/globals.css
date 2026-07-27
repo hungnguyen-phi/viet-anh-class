@@ -361,3 +361,31 @@ textarea,
 /* Keyframes đám đông login (va-wk, va-st, va-bob2) đặt inline trong
    components/auth/StudentCrowd.tsx qua thẻ style — vì Tailwind v4 purge
    các keyframes chỉ được tham chiếu bởi inline style, không qua @utility. */
+
+/* ============================================================
+   Điều khiển form — sửa 2026-07-27 (audit giao diện)
+   ============================================================ */
+
+/* Bỏ nút tăng/giảm của <input type="number">.
+   Lý do: mục tiêu 4DX là con số được GÕ một lần (25 bài, 200 buổi), không phải thứ người ta
+   bấm lên từng nấc. Cặp mũi tên đó chiếm ~17px bề ngang — trong ô rộng 96px thì nó ăn mất
+   một phần tư chỗ vốn đã không đủ cho chữ. Vẫn giữ type="number" để điện thoại bật bàn phím
+   số và trình duyệt tự kiểm tra kiểu dữ liệu. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Chiều cao chuẩn cho MỌI điều khiển đứng cùng một hàng.
+   Trước đây mỗi file tự chế class riêng: ô nhập py-2 (~40px), nút ghost py-2 (~38px), nút gold
+   py-1.5 (~31px) — ba chiều cao khác nhau cạnh nhau, nên hàng nào cũng trông lệch. Dùng chiều
+   cao TƯỜNG MINH thay vì để padding + cỡ chữ quyết định thì mọi thứ tự thẳng hàng.
+   44px = ngưỡng vùng chạm WCAG 2.5.5. */
+@utility ctl-h {
+  height: 2.75rem; /* 44px */
+}
