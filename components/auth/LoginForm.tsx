@@ -9,38 +9,12 @@ import {Loader2, Check} from 'lucide-react';
 // Nạp lúc bấm không thấy chậm vì mọi nhánh gọi hàm này đều đã bật spinner trước đó.
 const getSupabase = async () => (await import('@/lib/supabase/client')).createClient();
 
-// ============================================================
-// DEMO LOGIN — chỉ hiện khi NEXT_PUBLIC_ENABLE_DEMO='1' (bật ở .env.local để dev).
-// Production (Vercel) KHÔNG có cờ này → khối demo tự động biến mất khỏi UI.
-// Mật khẩu đặt trong supabase/seed.sql, chỉ tồn tại trên DB demo/local.
-// ============================================================
-const SHOW_DEMO = process.env.NEXT_PUBLIC_ENABLE_DEMO === '1';
-const DEMO_PASSWORD = 'demo1234';
-const DEMO_ACCOUNTS: {role: string; email: string; to: string; label?: string}[] = [
-  {role: 'teacher', email: 'co.lan@truongvietanh.com', to: '/'},
-  {role: 'student', email: 'hs02@student.truongvietanh.com', to: '/'},
-  {role: 'student', email: 'hs01@student.truongvietanh.com', to: '/attendance', label: 'Tổ trưởng ĐD'},
-  {role: 'admin', email: 'admin@truongvietanh.com', to: '/admin'},
-  {role: 'principal', email: 'bgh@truongvietanh.com', to: '/campus'},
-  {role: 'parent', email: 'phuhuynh.an@gmail.com', to: '/report'},
-];
-
-// ============================================================
-// TÀI KHOẢN ĐỢT THỬ NGHIỆM — 3 người thử × 3 vai.
-// Tạo bằng docs/test-accounts.sql. Nhãn ghi rõ ai đóng vai gì để người thử bấm đúng nút.
-// GỠ CẢ KHỐI NÀY (và chạy phần dọn dẹp cuối docs/test-accounts.sql) khi đợt thử kết thúc.
-// ============================================================
-const TEST_ACCOUNTS: {role: string; email: string; to: string; label: string}[] = [
-  {role: 'teacher',   email: 'test1.gvcn@truongvietanh.com',       to: '/',        label: 'N1 · Giáo viên chủ nhiệm 7B1'},
-  {role: 'student',   email: 'test1.hs@student.truongvietanh.com', to: '/student', label: 'N1 · Học sinh 7B1 (tổ trưởng)'},
-  {role: 'parent',    email: 'test1.ph@truongvietanh.com',         to: '/report',  label: 'N1 · Phụ huynh'},
-  {role: 'principal', email: 'test2.bgh@truongvietanh.com',        to: '/campus',  label: 'N2 · Ban giám hiệu Quận 2'},
-  {role: 'student',   email: 'test2.hs@student.truongvietanh.com', to: '/student', label: 'N2 · Học sinh 7B1'},
-  {role: 'parent',    email: 'test2.ph@truongvietanh.com',         to: '/report',  label: 'N2 · Phụ huynh'},
-  {role: 'admin',     email: 'test3.admin@truongvietanh.com',      to: '/admin',   label: 'N3 · Quản trị viên'},
-  {role: 'teacher',   email: 'test3.gvcn@truongvietanh.com',       to: '/',        label: 'N3 · Giáo viên chủ nhiệm 6A2'},
-  {role: 'student',   email: 'test3.hs@student.truongvietanh.com', to: '/student', label: 'N3 · Học sinh 6A2'},
-];
+// Cho phep dang nhap bang MAT KHAU. Bat bang NEXT_PUBLIC_ENABLE_DEMO='1'.
+// Vi sao van dat sau mot co: nguoi dung that cua truong dang nhap bang Google (khong ai co
+// mat khau), nen o mo mat khau chi phuc vu doi thu nghiem. Dat co ve 0 truoc khi mo cho ca
+// truong thi o nay bien mat, chi con Google + lien ket phu huynh.
+// Muon giu vinh vien: doi dong duoi thanh `const SHOW_PASSWORD = true;`
+const SHOW_PASSWORD = process.env.NEXT_PUBLIC_ENABLE_DEMO === '1';
 
 function GoogleIcon() {
   return (
@@ -65,29 +39,44 @@ function GoogleIcon() {
   );
 }
 
+// Cùng dáng với ô email phụ huynh sẵn có bên dưới — không tạo kiểu ô mới cho trang này.
+const inputCls =
+  'h-11 w-full min-w-0 rounded-[12px] border border-navy/[0.18] bg-white px-[13px] text-[13.5px] font-bold text-navy outline-none transition-all placeholder:font-semibold placeholder:text-navy/35 focus:border-gold focus:shadow-[0_0_0_3px_rgba(249,221,14,0.22)]';
+
 export function LoginForm() {
   const t = useTranslations('login');
-  const tr = useTranslations('roles');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [sent, setSent] = useState(false);
   const [showParent, setShowParent] = useState(false);
   const [loading, setLoading] = useState<false | string>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // DEMO — đăng nhập nhanh bằng mật khẩu seed (xoá cùng khối DEMO_ACCOUNTS).
-  async function signInDemo(acc: (typeof DEMO_ACCOUNTS)[number]) {
+  // Dang nhap bang email + mat khau go tay.
+  //
+  // Sau khi vao duoc, dieu huong ve /login chu KHONG ve '/' — middleware thay nguoi da dang
+  // nhap dang o /login se tu day ve trang chu dung voi vai (admin -> /admin, BGH -> /campus,
+  // phu huynh -> /report...). Nho vay o day khong phai biet vai cua nguoi vua dang nhap.
+  async function signInPassword(e: React.FormEvent) {
+    e.preventDefault();
     setError(null);
-    setLoading(acc.email);
+    if (!email.trim() || !password) {
+      setError(t('errorMissing'));
+      return;
+    }
+    setLoading('password');
     const supabase = await getSupabase();
     const {error} = await supabase.auth.signInWithPassword({
-      email: acc.email,
-      password: DEMO_PASSWORD,
+      email: email.trim().toLowerCase(),
+      password,
     });
     if (error) {
-      setError(t('errorGeneric'));
+      // Khong phan biet "email khong ton tai" voi "sai mat khau" — noi ro cai nao la chi cho
+      // nguoi la biet email nao co that trong he thong.
+      setError(t('errorCredentials'));
       setLoading(false);
     } else {
-      window.location.assign(acc.to);
+      window.location.assign('/login');
     }
   }
 
@@ -159,6 +148,64 @@ export function LoginForm() {
           {t('googleHint')}
         </div>
 
+        {/* Đăng nhập bằng email + mật khẩu — gõ tay, không có nút gợi ý tài khoản nào. */}
+        {SHOW_PASSWORD && (
+          <>
+            <div className="mt-3.5 flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-wider text-navy/35">
+              <span className="h-px flex-1 bg-navy/10" />
+              <span>{t('orDivider')}</span>
+              <span className="h-px flex-1 bg-navy/10" />
+            </div>
+
+            <form onSubmit={signInPassword} className="mt-3 flex flex-col gap-2.5">
+              <div>
+                <label
+                  htmlFor="login-email"
+                  className="mb-1 block text-[10.5px] font-extrabold uppercase tracking-wide text-navy/55"
+                >
+                  {t('emailLabel')}
+                </label>
+                <input
+                  id="login-email"
+                  type="email"
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t('emailPh')}
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="login-password"
+                  className="mb-1 block text-[10.5px] font-extrabold uppercase tracking-wide text-navy/55"
+                >
+                  {t('passwordLabel')}
+                </label>
+                <input
+                  id="login-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t('passwordPh')}
+                  className={inputCls}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading !== false}
+                className="btn-gold mt-0.5 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[12px] text-[13.5px] font-extrabold disabled:opacity-60"
+              >
+                {loading === 'password' && <Loader2 size={15} className="animate-spin" />}
+                {t('signIn')}
+              </button>
+            </form>
+          </>
+        )}
+
         {/* Phụ huynh: link mở ra ô email */}
         {!showParent && !sent && (
           <button
@@ -221,53 +268,6 @@ export function LoginForm() {
           </p>
         )}
       </div>
-
-      {/* DEMO — đăng nhập nhanh theo vai trò (chỉ hiện khi NEXT_PUBLIC_ENABLE_DEMO='1') */}
-      {SHOW_DEMO && (
-      <div className="w-full">
-        <div className="flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-wider text-navy/40">
-          <span className="h-px flex-1 bg-navy/10" />
-          <span>Demo</span>
-          <span className="h-px flex-1 bg-navy/10" />
-        </div>
-        <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-          {DEMO_ACCOUNTS.map((acc) => (
-            <button
-              key={acc.email}
-              type="button"
-              onClick={() => signInDemo(acc)}
-              disabled={loading !== false}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-navy/15 bg-white/60 px-2.5 py-1 text-[11px] font-bold text-navy transition-colors hover:border-navy hover:bg-white disabled:opacity-50"
-            >
-              {loading === acc.email && <Loader2 size={11} className="animate-spin" />}
-              {acc.label ?? tr(acc.role)}
-            </button>
-          ))}
-        </div>
-
-        {/* Nhóm riêng cho đợt thử nghiệm — tách khỏi nhóm demo cũ để người thử khỏi bấm nhầm.
-            Nút rộng hơn vì nhãn dài ("N1 · Giáo viên chủ nhiệm 7B1"). */}
-        <div className="mt-3 flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-wider text-gold-deep">
-          <span className="h-px flex-1 bg-gold/40" />
-          <span>Đợt thử nghiệm</span>
-          <span className="h-px flex-1 bg-gold/40" />
-        </div>
-        <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-          {TEST_ACCOUNTS.map((acc) => (
-            <button
-              key={acc.email}
-              type="button"
-              onClick={() => signInDemo(acc)}
-              disabled={loading !== false}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gold-mid/50 bg-gold/[0.12] px-2.5 py-1 text-[11px] font-bold text-navy transition-colors hover:border-gold-deep hover:bg-gold/25 disabled:opacity-50"
-            >
-              {loading === acc.email && <Loader2 size={11} className="animate-spin" />}
-              {acc.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      )}
     </div>
   );
 }
