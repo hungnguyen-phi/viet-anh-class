@@ -54,6 +54,7 @@ jobs:
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
             NEXT_PUBLIC_ENABLE_DEMO=${{ vars.NEXT_PUBLIC_ENABLE_DEMO }}
             NEXT_PUBLIC_GOOGLE_SSO_ENABLED=${{ vars.NEXT_PUBLIC_GOOGLE_SSO_ENABLED }}
+            NEXT_PUBLIC_GIT_SHA=${{ github.sha }}
 
   deploy:
     needs: build-and-push
@@ -61,7 +62,13 @@ jobs:
     # Chỉ chạy khi đã dựng xong platform (Coolify) và bật cờ. Chưa set → chỉ build+push GHCR.
     if: ${{ vars.DEPLOY_ON == 'true' }}
     steps:
+      # --retry: webhook này ĐÃ từng trả 520 một lần (lỗi chớp nhoáng phía Coolify/Cloudflare).
+      # Hậu quả im lặng và nguy hiểm: job build vẫn xanh, ảnh mới đã nằm trên GHCR, nhưng
+      # Coolify không được báo để kéo về → production lặng lẽ chạy tiếp bản CŨ mà không có dấu
+      # hiệu gì. Thử lại 5 lần cách nhau 10 giây để một cú nấc không bỏ lỡ cả bản deploy.
+      # (Kiểm chứng bản đang chạy: mở /api/health, trường `commit`.)
       - run: |
           curl -fsS -X POST \
+            --retry 5 --retry-delay 10 --retry-all-errors --max-time 120 \
             "${{ secrets.DEPLOY_HOOK_URL }}/api/v1/deploy?uuid=${{ secrets.DEPLOY_APP_ID }}&force=true" \
             -H "Authorization: Bearer ${{ secrets.DEPLOY_TOKEN }}"
