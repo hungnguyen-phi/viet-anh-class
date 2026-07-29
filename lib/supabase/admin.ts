@@ -1,7 +1,6 @@
 import 'server-only';
 import {createClient as createSbClient} from '@supabase/supabase-js';
 import type {Database} from '@/lib/database.types';
-import {supabaseFetch} from '@/lib/supabase/fetch';
 
 // Client service_role — BỎ QUA RLS. CHỈ dùng trong server action đã kiểm quyền + IP.
 // 'server-only' đảm bảo file này không bao giờ bị bundle vào client (rò khoá).
@@ -11,7 +10,5 @@ export function createAdminClient() {
   if (!key) throw new Error('Thiếu SUPABASE_SERVICE_ROLE_KEY trong môi trường server.');
   return createSbClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
     auth: {autoRefreshToken: false, persistSession: false},
-    // Dùng chung bể kết nối giữ-sống với client thường — xem lib/supabase/fetch.ts.
-    global: {fetch: supabaseFetch},
   });
 }
