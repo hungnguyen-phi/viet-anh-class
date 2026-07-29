@@ -4,6 +4,10 @@ import {createClient} from '@/lib/supabase/server';
 import {getAccessibleClasses, getMyClass} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
+// SubmitButton thay <button type="submit"> trần ở mọi form của trang này. Người thử báo bấm
+// "Ghi +" và "Tạo WIG tuần" xong không thấy dấu hiệu gì nên tưởng hỏng, bấm lại nhiều lần —
+// nút này khoá + hiện spinner ngay khi bấm, và chặn luôn double-submit.
+import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, inputCls, inputInline, btnGhost, btnGold} from '@/components/ui/Field';
 import {WigCreateForm} from './WigCreateForm';
 import {
@@ -203,7 +207,7 @@ export default async function WigPage({
 
         <div className="flex flex-wrap justify-end gap-2">
           <Link href={backHref} className={ghostBtn}>{t('cancel')}</Link>
-          <button type="submit" className={logBtn}>{t('save')}</button>
+          <SubmitButton className={logBtn}>{t('save')}</SubmitButton>
         </div>
       </form>
     </section>
@@ -232,7 +236,7 @@ export default async function WigPage({
         </div>
         <div className="flex flex-wrap justify-end gap-2">
           <Link href={backHref} className={ghostBtn}>{t('cancel')}</Link>
-          <button type="submit" className={logBtn}>{t('save')}</button>
+          <SubmitButton className={logBtn}>{t('save')}</SubmitButton>
         </div>
       </form>
     </section>
@@ -282,7 +286,7 @@ export default async function WigPage({
       {/* Nut rieng mot dong, canh phai - nhet chung hang voi o chon ky thi bi keo lech theo
           dong ghi chu ngay nam duoi o do. */}
       <div className="flex justify-end">
-        <button type="submit" className={ghostBtn}>+ {t('createWeek')}</button>
+        <SubmitButton className={ghostBtn}>+ {t('createWeek')}</SubmitButton>
       </div>
     </form>
   );
@@ -349,7 +353,7 @@ export default async function WigPage({
                   aria-label={`${t('log')} — ${l.title}`}
                   className={`${compactInput} w-20 text-center`}
                 />
-                <button type="submit" className={logBtn}>{t('log')}</button>
+                <SubmitButton className={logBtn}>{t('log')}</SubmitButton>
               </form>
               <Link href={editHref({editLead: l.id})} className={editLinkCls}>
                 {t('edit')}
@@ -385,7 +389,7 @@ export default async function WigPage({
             </Field>
           </div>
           <div className="flex justify-end">
-            <button type="submit" className={ghostBtn}>+ {t('addLead')}</button>
+            <SubmitButton className={ghostBtn}>+ {t('addLead')}</SubmitButton>
           </div>
         </form>
       </div>

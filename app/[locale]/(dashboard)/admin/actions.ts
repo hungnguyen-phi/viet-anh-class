@@ -15,18 +15,21 @@ function flash(msg: string): never {
   redirect(`/admin?flash=${encodeURIComponent(msg)}`);
 }
 
+// Vì sao các action dưới đây KHÔNG gọi supabase.auth.getUser() nữa:
+// requireRole() vừa trả về đúng hồ sơ của người đang thao tác (có sẵn .id), trong khi getUser()
+// là một vòng mạng THẬT tới Supabase Auth. Gọi thêm nó chỉ để lấy lại chính cái id đó là bắt
+// người dùng chờ thêm một lượt đi-về cho mỗi lần bấm — đây là một phần lý do màn Quản trị bị
+// than "bấm xong không thấy gì, tưởng treo".
+
 export async function setUserRole(formData: FormData) {
-  await requireRole(['admin']);
+  const me = await requireRole(['admin']);
   const userId = String(formData.get('userId'));
   const role = String(formData.get('role')) as Role;
-  const supabase = await createClient();
-  const {
-    data: {user},
-  } = await supabase.auth.getUser();
   // Chặn admin tự đổi vai trò của chính mình (tránh tự khoá quyền admin).
-  if (user && user.id === userId) {
+  if (me.id === userId) {
     flash('Không thể tự đổi vai trò của chính mình (tránh tự khoá quyền admin). Hãy nhờ một admin khác.');
   }
+  const supabase = await createClient();
   const {error} = await supabase.from('profiles').update({role}).eq('id', userId);
   if (!error) {
     await supabase.rpc('log_audit', {
@@ -39,11 +42,10 @@ export async function setUserRole(formData: FormData) {
 }
 
 export async function disableUser(formData: FormData) {
-  await requireRole(['admin']);
+  const me = await requireRole(['admin']);
   const userId = String(formData.get('userId') ?? '');
+  if (me.id === userId) flash('Không thể tự vô hiệu chính mình.');
   const supabase = await createClient();
-  const {data: {user}} = await supabase.auth.getUser();
-  if (user && user.id === userId) flash('Không thể tự vô hiệu chính mình.');
   const {error} = await supabase.from('profiles').update({role: 'pending'}).eq('id', userId);
   if (!error) await supabase.rpc('log_audit', {p_action: 'disable_user', p_detail: {target_user: userId}});
   revalidatePath('/admin');
@@ -51,11 +53,10 @@ export async function disableUser(formData: FormData) {
 }
 
 export async function deleteUser(formData: FormData) {
-  await requireRole(['admin']);
+  const me = await requireRole(['admin']);
   const userId = String(formData.get('userId') ?? '');
+  if (me.id === userId) flash('Không thể xoá chính mình.');
   const supabase = await createClient();
-  const {data: {user}} = await supabase.auth.getUser();
-  if (user && user.id === userId) flash('Không thể xoá chính mình.');
   const {error} = await supabase.rpc('admin_delete_user', {p_user: userId});
   if (!error) await supabase.rpc('log_audit', {p_action: 'delete_user', p_detail: {target_user: userId}});
   revalidatePath('/admin');
@@ -157,7 +158,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Mời NHIỀU người mới cùng lúc theo email (mỗi dòng/ngăn cách bởi dấu phẩy) + vai trò
 // (+ lớp cho GVCN/HS). Áp dụng khi họ đăng nhập lần đầu.
 export async function inviteUser(formData: FormData) {
-  await requireRole(['admin']);
+  const me = await requireRole(['admin']);
   const raw = String(formData.get('email') ?? '');
   const role = String(formData.get('role') ?? '') as Role;
   const classId = String(formData.get('class_id') ?? '') || null;
@@ -176,11 +177,8 @@ export async function inviteUser(formData: FormData) {
   if (valid.length === 0) flash('Không có email hợp lệ (định dạng: ten@example.com).');
 
   const supabase = await createClient();
-  const {
-    data: {user},
-  } = await supabase.auth.getUser();
   const class_id = role === 'teacher' || role === 'student' ? classId : null;
-  const rows = valid.map((email) => ({email, role, class_id, invited_by: user?.id ?? null}));
+  const rows = valid.map((email) => ({email, role, class_id, invited_by: me.id}));
   const {error} = await supabase.from('pending_user_grants').upsert(rows, {onConflict: 'email'});
   if (!error) {
     await supabase.rpc('log_audit', {

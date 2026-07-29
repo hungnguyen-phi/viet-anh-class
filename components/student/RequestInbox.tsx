@@ -1,6 +1,7 @@
 import {getTranslations} from 'next-intl/server';
 import {Inbox} from 'lucide-react';
 import {resolveEditRequest} from '@/app/[locale]/(dashboard)/student/actions';
+import {SubmitButton} from '@/components/ui/SubmitButton';
 
 // next-intl NÉM LỖI khi key không tồn tại → map tường minh, mã lạ thì về "việc khác".
 const KIND_KEYS = ['undo_tick', 'add_tick', 'change_target', 'rename_lead', 'other'] as const;
@@ -70,22 +71,22 @@ export async function RequestInbox({
                   <input type="hidden" name="request_id" value={r.id} />
                   <input type="hidden" name="decision" value="approved" />
                   <input type="hidden" name="apply" value="1" />
-                  <button type="submit" className={`${btn} btn-gold`}>
+                  <SubmitButton className={`${btn} btn-gold`}>
                     {r.kind === 'rename_lead' ? t('approveRename') : t('approveApply')}
-                  </button>
+                  </SubmitButton>
                 </form>
               )}
               <form action={resolveEditRequest}>
                 <input type="hidden" name="student_id" value={studentId} />
                 <input type="hidden" name="request_id" value={r.id} />
                 <input type="hidden" name="decision" value="approved" />
-                <button type="submit" className={`${btn} bg-navy text-white hover:bg-navy-700`}>{t('approve')}</button>
+                <SubmitButton className={`${btn} bg-navy text-white hover:bg-navy-700`}>{t('approve')}</SubmitButton>
               </form>
               <form action={resolveEditRequest}>
                 <input type="hidden" name="student_id" value={studentId} />
                 <input type="hidden" name="request_id" value={r.id} />
                 <input type="hidden" name="decision" value="rejected" />
-                <button type="submit" className={`${btn} border-[1.5px] border-navy/20 bg-white text-navy hover:border-navy`}>{t('reject')}</button>
+                <SubmitButton className={`${btn} border-[1.5px] border-navy/20 bg-white text-navy hover:border-navy`}>{t('reject')}</SubmitButton>
               </form>
             </span>
           </div>

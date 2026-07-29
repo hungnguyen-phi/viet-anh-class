@@ -16,6 +16,13 @@ const getSupabase = async () => (await import('@/lib/supabase/client')).createCl
 // Muon giu vinh vien: doi dong duoi thanh `const SHOW_PASSWORD = true;`
 const SHOW_PASSWORD = process.env.NEXT_PUBLIC_ENABLE_DEMO === '1';
 
+// Cong tat nut Google. MAC DINH HIEN — SSO da cam xong (xem docs/google-sso-setup.md).
+// Dat NEXT_PUBLIC_GOOGLE_SSO_ENABLED='0' de an khan cap khi Google/Supabase Auth truc trac,
+// khong phai sua code roi build lai.
+// Vi sao mac dinh HIEN chu khong phai an: bien NEXT_PUBLIC_* noi tuyen luc build, neu mac dinh
+// an thi chi can quen dat bien tren CI mot lan la nut dang nhap bien mat khoi production.
+const SHOW_GOOGLE = process.env.NEXT_PUBLIC_GOOGLE_SSO_ENABLED !== '0';
+
 function GoogleIcon() {
   return (
     <svg width="19" height="19" viewBox="0 0 48 48" aria-hidden="true">
@@ -135,27 +142,33 @@ export function LoginForm() {
             'inset 0 1px 0 rgba(255,255,255,0.9), 0 26px 60px -20px rgba(38,39,93,0.35)',
         }}
       >
-        <button
-          type="button"
-          onClick={signInGoogle}
-          disabled={loading !== false}
-          className="flex h-[50px] w-full cursor-pointer items-center justify-center gap-[11px] rounded-[14px] border border-navy/[0.16] bg-white font-display text-[14.5px] font-bold text-navy shadow-[0_8px_20px_-8px_rgba(38,39,93,0.28)] transition-all hover:brightness-[0.98] active:translate-y-px disabled:opacity-60"
-        >
-          {loading === 'google' ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
-          {t('googleButton')}
-        </button>
-        <div className="mt-2 text-center text-[11px] font-semibold text-navy/55">
-          {t('googleHint')}
-        </div>
+        {SHOW_GOOGLE && (
+          <>
+            <button
+              type="button"
+              onClick={signInGoogle}
+              disabled={loading !== false}
+              className="flex h-[50px] w-full cursor-pointer items-center justify-center gap-[11px] rounded-[14px] border border-navy/[0.16] bg-white font-display text-[14.5px] font-bold text-navy shadow-[0_8px_20px_-8px_rgba(38,39,93,0.28)] transition-all hover:brightness-[0.98] active:translate-y-px disabled:opacity-60"
+            >
+              {loading === 'google' ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
+              {t('googleButton')}
+            </button>
+            <div className="mt-2 text-center text-[11px] font-semibold text-navy/55">
+              {t('googleHint')}
+            </div>
+          </>
+        )}
 
         {/* Đăng nhập bằng email + mật khẩu — gõ tay, không có nút gợi ý tài khoản nào. */}
         {SHOW_PASSWORD && (
           <>
-            <div className="mt-3.5 flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-wider text-navy/35">
-              <span className="h-px flex-1 bg-navy/10" />
-              <span>{t('orDivider')}</span>
-              <span className="h-px flex-1 bg-navy/10" />
-            </div>
+            {SHOW_GOOGLE && (
+              <div className="mt-3.5 flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-wider text-navy/35">
+                <span className="h-px flex-1 bg-navy/10" />
+                <span>{t('orDivider')}</span>
+                <span className="h-px flex-1 bg-navy/10" />
+              </div>
+            )}
 
             <form onSubmit={signInPassword} className="mt-3 flex flex-col gap-2.5">
               <div>

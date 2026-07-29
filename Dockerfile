@@ -19,12 +19,16 @@ COPY . .
 #    TUYỆT ĐỐI KHÔNG truyền SUPABASE_SERVICE_ROLE_KEY vào đây — nó server-only, đặt ở env runtime.
 #    NEXT_PUBLIC_ENABLE_DEMO: toggle nút demo, điều khiển bằng GitHub Variable (rỗng/0 = ẩn, 1 = hiện).
 #    ⚠️ Đặt về 0/xoá trước khi mở cho người dùng THẬT (image public + demo1234).
+#    NEXT_PUBLIC_GOOGLE_SSO_ENABLED: hiện nút "Đăng nhập với Google" — chỉ bật (=1) SAU KHI đã
+#    cắm xong OAuth Client + Supabase Dashboard (xem docs/google-sso-setup.md).
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ARG NEXT_PUBLIC_ENABLE_DEMO
+ARG NEXT_PUBLIC_GOOGLE_SSO_ENABLED
 ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL} \
     NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY} \
     NEXT_PUBLIC_ENABLE_DEMO=${NEXT_PUBLIC_ENABLE_DEMO} \
+    NEXT_PUBLIC_GOOGLE_SSO_ENABLED=${NEXT_PUBLIC_GOOGLE_SSO_ENABLED} \
     NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build

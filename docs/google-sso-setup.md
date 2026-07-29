@@ -28,7 +28,13 @@ Tài liệu này là các bước **cắm** cuối cùng — chỉ cần làm 1 
 
 1. Vào https://console.cloud.google.com → chọn/tạo project của trường.
 2. **APIs & Services → OAuth consent screen**:
-   - User type: **Internal** (nếu trường dùng Google Workspace `truongvietanh.com` → chỉ người trong tổ chức đăng nhập được, an toàn nhất). Nếu học sinh ở miền `student.truongvietanh.com` là Workspace khác thì chọn **External** và thêm cả 2 miền vào test users / publish.
+   - User type: **Internal** — ĐÃ CHỌN, vì `truongvietanh.com` và `student.truongvietanh.com` là 2 miền
+     email cùng chung MỘT tổ chức Google Workspace của trường.
+     ⚠️ **Điều kiện bắt buộc để Internal chạy đúng**: cả 2 miền phải nằm trong CÙNG một Workspace
+     (kiểm ở Google Admin Console → Domains → Manage domains — cả hai phải cùng liệt kê ở đó).
+     Nếu khi đăng nhập bằng `@student.truongvietanh.com` mà Google báo "app này không dành cho bạn"
+     → nghĩa là 2 miền KHÔNG chung Workspace, phải đổi User type sang **External** (hàng rào domain
+     phía server ở Bước 4 vẫn chặn được người lạ, nên External vẫn an toàn).
    - Điền tên app, email hỗ trợ, logo (tùy chọn).
 3. **APIs & Services → Credentials → Create Credentials → OAuth client ID**:
    - Application type: **Web application**
@@ -49,15 +55,19 @@ Tài liệu này là các bước **cắm** cuối cùng — chỉ cần làm 1 
 ## Bước 3 — Khai báo Redirect URLs (nơi được phép quay về sau đăng nhập)
 
 Dashboard → **Authentication → URL Configuration**:
-- **Site URL**: URL production (ví dụ `https://viet-anh-class.vercel.app`). Khi dev cứ để localhost cũng được.
+- **Site URL**: `https://class.vietanh.org` (domain production thật của app).
 - **Redirect URLs** → thêm (mỗi dòng một URL, có `/**` để khớp mọi path):
   ```
+  https://class.vietanh.org/**
   http://localhost:6868/**
   http://localhost:3001/**
   http://localhost:3000/**
   https://viet-anh-class.vercel.app/**
   ```
-  (Đổi domain production cho đúng khi deploy thật.)
+  ⚠️ Đây là nguyên nhân trực tiếp của lỗi "đăng nhập Google báo lỗi" đã gặp khi thử nghiệm: Site URL
+  trên Dashboard đang là `localhost`, không khớp domain thật `class.vietanh.org` → Supabase từ chối
+  redirect. Phải sửa TRÊN DASHBOARD (không phải chỉ sửa file `supabase/config.toml` trong repo — file
+  đó chỉ lên cloud nếu bạn chạy `supabase config push`).
 
 ## Bước 4 — Bật hook chặn miền email (QUAN TRỌNG — an toàn dữ liệu)
 
@@ -70,9 +80,19 @@ Dashboard → **Authentication → Hooks (Auth Hooks)** → **Before User Create
 > Nếu không thấy mục "Before User Created": lớp dự phòng `handle_new_user` (trigger, đã bật sẵn) vẫn gán
 > vai trò đúng theo miền — nhưng nên bật hook này để **chặn hẳn** email lạ ngay từ đầu.
 
-## Bước 5 — Kiểm thử end-to-end
+## Bước 5 — Bật nút Google trên giao diện (sau khi đã xong Bước 1-4)
 
-1. Mở app (`http://localhost:6868` hoặc production) → bấm **Đăng nhập với Google**.
+Nút "Đăng nhập với Google" chỉ hiện khi biến `NEXT_PUBLIC_GOOGLE_SSO_ENABLED=1` được set —
+tránh người dùng bấm vào lúc chưa cấu hình xong, gặp màn lỗi chung chung.
+
+- **Deploy qua GitHub Actions (Coolify)**: vào repo → Settings → Secrets and variables → Actions →
+  tab **Variables** → thêm `NEXT_PUBLIC_GOOGLE_SSO_ENABLED` = `1` → chạy lại workflow `build-and-deploy`
+  (biến này nội tuyến lúc build, phải build lại mới có tác dụng — xem `Dockerfile`, `.github/workflows/deploy.yml`).
+- **Dev/local**: thêm `NEXT_PUBLIC_GOOGLE_SSO_ENABLED=1` vào `.env.local` rồi chạy lại `npm run dev`.
+
+## Bước 6 — Kiểm thử end-to-end
+
+1. Mở app (`http://localhost:6868` hoặc `https://class.vietanh.org`) → bấm **Đăng nhập với Google**.
 2. Đăng nhập bằng email `@truongvietanh.com` → phải vào được, hồ sơ tạo với role `pending`
    (admin nâng quyền sau ở `/admin`), hoặc `@student.truongvietanh.com` → role `student`.
 3. Thử email Gmail cá nhân bất kỳ → phải **bị từ chối** (nếu đã bật hook Bước 4).

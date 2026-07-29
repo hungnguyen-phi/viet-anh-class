@@ -2,6 +2,7 @@ import {createServerClient} from '@supabase/ssr';
 import {NextResponse, type NextRequest} from 'next/server';
 import type {Database} from '@/lib/database.types';
 import {routing} from '@/i18n/routing';
+import {SITE_URL} from '@/lib/site';
 
 // Đường dẫn công khai (không cần đăng nhập).
 const PUBLIC_PATHS = ['/login', '/auth', '/unauthorized'];
@@ -38,7 +39,7 @@ export async function updateSession(
   if (!hasAuthCookie) {
     if (earlyPublic) return response;
     const prefix = earlyLocale === routing.defaultLocale ? '' : `/${earlyLocale}`;
-    return NextResponse.redirect(new URL(`${prefix}/login`, request.url));
+    return NextResponse.redirect(new URL(`${prefix}/login`, SITE_URL));
   }
 
   const supabase = createServerClient<Database>(
@@ -66,19 +67,26 @@ export async function updateSession(
     (p) => path === p || path.startsWith(p + '/'),
   );
   const prefix = locale === routing.defaultLocale ? '' : `/${locale}`;
+  // SITE_URL, KHÔNG request.url: sau Coolify/Cloudflare, request.url là địa chỉ nội bộ
+  // container (vd http://0.0.0.0:8080) — xem ghi chú ở auth/callback/route.ts.
   const redirectTo = (p: string) =>
-    NextResponse.redirect(new URL(`${prefix}${p}`, request.url));
+    NextResponse.redirect(new URL(`${prefix}${p}`, SITE_URL));
 
   if (!userId) {
     return isPublic ? response : redirectTo('/login');
   }
 
-  // Next tự PREFETCH các <Link> khi rê chuột / lọt vào khung nhìn. Mỗi lượt prefetch trước đây
-  // kéo theo một query `profiles` tới Supabase — một trang có 8 link là 8 vòng mạng thừa, làm
-  // chậm chính lượt bấm thật. Bỏ qua guard ở prefetch KHÔNG hở quyền: prefetch chỉ hâm nóng
-  // cache, mà nội dung trả về vẫn do layout (dashboard) render — nơi requireProfile() vẫn kiểm
-  // tra DB và đá 'pending' sang /unauthorized như thường.
-  if (request.headers.get('next-router-prefetch') && path !== '/login') {
+  // KHÔNG query `profiles` ở đây nữa cho các trang thường.
+  //
+  // Vì sao bỏ được mà không hở quyền: MỌI trang sau đăng nhập đều nằm dưới layout
+  // app/[locale]/(dashboard)/layout.tsx, và layout đó gọi requireProfile() — nơi đã đá người
+  // chưa đăng nhập về /login và người 'pending' sang /unauthorized. Middleware kiểm lại lần nữa
+  // chỉ là làm đúng việc đó HAI LẦN, mà lần ở đây tốn nguyên một vòng mạng tới Supabase trên
+  // MỌI lượt chuyển trang — chính là thứ khiến người dùng thấy "bấm tab nào cũng chờ".
+  //
+  // Chỗ DUY NHẤT còn cần biết vai trò là /login: người đã đăng nhập mà mở lại /login thì phải
+  // đẩy thẳng về trang chủ theo vai. Trang này hiếm khi mở nên trả một vòng mạng ở đây là đáng.
+  if (path !== '/login') {
     return response;
   }
 
@@ -90,21 +98,16 @@ export async function updateSession(
   const role = profile?.role ?? 'pending';
 
   if (role === 'pending') {
-    return path === '/unauthorized' ? response : redirectTo('/unauthorized');
+    return redirectTo('/unauthorized');
   }
 
-  // Đã đăng nhập + có quyền: nếu đang ở trang login → đẩy về trang theo vai trò.
-  if (path === '/login') {
-    const home =
-      role === 'admin'
-        ? '/admin'
-        : role === 'principal'
-          ? '/campus'
-          : role === 'parent'
-            ? '/report'
-            : '/';
-    return redirectTo(home);
-  }
-
-  return response;
+  const home =
+    role === 'admin'
+      ? '/admin'
+      : role === 'principal'
+        ? '/campus'
+        : role === 'parent'
+          ? '/report'
+          : '/';
+  return redirectTo(home);
 }

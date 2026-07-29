@@ -36,6 +36,11 @@ import {
 type IconType = ComponentType<{size?: number; strokeWidth?: number; className?: string}>;
 type NavItem = {href: string; key: string; Icon: IconType};
 
+// Link ở đây lấy từ @/i18n/navigation — bản bọc đã TẮT prefetch mặc định (xem lý do trong file
+// đó). Thanh nav hưởng lợi nhiều nhất: nó luôn hiện trên màn, nên trước đây mở bất kỳ trang nào
+// cũng bắn đồng loạt một lượt prefetch cho TẤT CẢ tab, mỗi lượt bắt server render lại layout
+// dashboard kèm truy vấn Supabase — tranh tài nguyên với đúng trang người dùng đang chờ.
+
 // Icon của tab: đổi thành spinner trong lúc điều hướng chưa xong.
 // Trang dashboard là force-dynamic nên mỗi lần đổi trang server phải render lại (~1-2s) — không có
 // phản hồi gì thì người dùng tưởng nút không ăn rồi bấm lại. useLinkStatus phải được gọi TRONG

@@ -3,6 +3,7 @@
 import {useMemo, useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {updateClass} from './actions';
+import {SubmitButton} from '@/components/ui/SubmitButton';
 
 type ClassRow = {
   id: string;
@@ -113,9 +114,9 @@ export function ClassEditForm({
         </select>
       </label>
       <div className="flex items-end">
-        <button type="submit" className={navyBtn}>
+        <SubmitButton className={navyBtn}>
           {t('save')}
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );

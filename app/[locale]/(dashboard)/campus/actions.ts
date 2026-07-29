@@ -24,16 +24,23 @@ function flash(msg: string): never {
 }
 
 // Cơ sở của chính người đang đăng nhập — HT không được tự chọn cơ sở khác.
+//
+// Trả về CẢ hồ sơ chứ không riêng campus_id: các action bên dưới cần biết mình là ai (để ghi
+// invited_by, để chặn tự vô hiệu chính mình). Trước đây chúng gọi thêm supabase.auth.getUser()
+// cho việc đó — mà getUser() là một vòng mạng THẬT tới Supabase Auth mỗi lần gọi, trong khi
+// requireRole() vừa lấy xong đúng thông tin ấy. Lấy sẵn ở đây là bớt hẳn một vòng chờ cho mỗi
+// lần mời giáo viên / vô hiệu giáo viên.
 async function myCampus() {
   const profile = await requireRole(['principal', 'admin']);
   if (!profile.campus_id) flash('Tài khoản của bạn chưa được gán cơ sở. Nhờ quản trị viên gán trước.');
-  return profile.campus_id;
+  return profile;
 }
 
 // Mời giáo viên: tạo lời mời theo email; vai trò + cơ sở được áp khi họ đăng nhập lần đầu
 // (handle_new_user). Nhận nhiều email một lượt cho đỡ nhọc đầu năm học.
 export async function inviteTeachers(formData: FormData) {
-  const campus_id = await myCampus();
+  const me = await myCampus();
+  const campus_id = me.campus_id;
   const raw = String(formData.get('email') ?? '');
   const all = Array.from(
     new Set(
@@ -49,14 +56,11 @@ export async function inviteTeachers(formData: FormData) {
   if (valid.length === 0) flash('Không có email hợp lệ (định dạng: ten@example.com).');
 
   const supabase = await createClient();
-  const {
-    data: {user},
-  } = await supabase.auth.getUser();
   const rows = valid.map((email) => ({
     email,
     role: 'teacher' as const,
     campus_id,
-    invited_by: user?.id ?? null,
+    invited_by: me.id,
   }));
   const {error} = await supabase.from('pending_user_grants').upsert(rows, {onConflict: 'email'});
   if (!error) {
@@ -87,16 +91,13 @@ export async function cancelInvite(formData: FormData) {
 // Vô hiệu / khôi phục giáo viên. 'pending' = còn tài khoản nhưng không vào được gì —
 // giữ nguyên lịch sử điểm danh, WIG… nên KHÔNG dùng xoá.
 export async function setTeacherActive(formData: FormData) {
-  await myCampus();
+  const me = await myCampus();
   const userId = String(formData.get('userId') ?? '');
   const active = String(formData.get('active') ?? '') === 'true';
   if (!userId) flash('Thiếu giáo viên');
-  const supabase = await createClient();
-  const {
-    data: {user},
-  } = await supabase.auth.getUser();
-  if (user && user.id === userId) flash('Không thể tự vô hiệu chính mình.');
+  if (me.id === userId) flash('Không thể tự vô hiệu chính mình.');
 
+  const supabase = await createClient();
   const {error} = await supabase
     .from('profiles')
     .update({role: active ? 'teacher' : 'pending'})

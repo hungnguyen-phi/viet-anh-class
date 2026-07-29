@@ -15,9 +15,12 @@
 project_id = "eagsageokobtidpmxucx"
 
 [auth]
-# Đổi site_url sang domain production khi deploy thật.
-site_url = "http://localhost:6868"
+# site_url thật để Supabase Auth redirect về sau khi đăng nhập. File này chỉ áp dụng khi bạn
+# `supabase config push` — nếu bật/sửa qua Dashboard (khuyên dùng, xem docs/google-sso-setup.md)
+# thì phải SỬA TRỰC TIẾP trên Dashboard, sửa ở đây không tự động lên cloud.
+site_url = "https://class.vietanh.org"
 additional_redirect_urls = [
+  "https://class.vietanh.org/**",
   "http://localhost:6868/**",
   "http://localhost:3001/**",
   "http://localhost:3000/**",

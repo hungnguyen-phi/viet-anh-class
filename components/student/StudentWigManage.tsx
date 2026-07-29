@@ -4,6 +4,7 @@ import {useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {inputInline, btnNavy, btnGhost} from '@/components/ui/Field';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {SubmitButton} from '@/components/ui/SubmitButton';
 import {
   editStudentWig,
   deleteStudentWig,
@@ -112,7 +113,7 @@ export function StudentWigManage({
                 aria-label={t('titleLabel')} defaultValue={l.title} className={`${inp} min-w-[140px] flex-1`} required />
                       <input name="target_value" aria-label={t('target')} type="number" step="any" min="0.01" defaultValue={l.target} className={`${inp} w-20`} required />
                       <input name="unit" defaultValue={l.unit ?? ''} placeholder={t('unit')} aria-label={t('unit')} className={`${inp} min-w-[112px] flex-1`} />
-                      <button type="submit" className={navyBtn}>{t('save')}</button>
+                      <SubmitButton className={navyBtn}>{t('save')}</SubmitButton>
                       <button type="button" onClick={() => setEditLeadId(null)} className={ghost}>{t('cancel')}</button>
                     </form>
                   ) : (
@@ -176,7 +177,7 @@ function WigRowEdit({
         <input name="target_value" aria-label={t('target')} type="number" step="any" min="0.01" defaultValue={w.target} className={`${inp} w-20`} required />
         <input name="unit" defaultValue={w.unit} placeholder={t('unit')} aria-label={t('unit')} className={`${inp} min-w-[112px] flex-1`} required />
         <input name="period_label" defaultValue={w.period_label ?? ''} placeholder={t('label')} aria-label={t('label')} className={`${inp} w-28`} />
-        <button type="submit" className={navyBtn}>{t('save')}</button>
+        <SubmitButton className={navyBtn}>{t('save')}</SubmitButton>
         <button type="button" onClick={onCancel} className={ghost}>{t('cancel')}</button>
       </form>
     );

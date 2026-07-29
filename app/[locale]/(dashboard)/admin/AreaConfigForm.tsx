@@ -3,6 +3,7 @@
 import {useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {updateArea} from './area-actions';
+import {SubmitButton} from '@/components/ui/SubmitButton';
 import {AREA_ICON_MAP, AREA_ICON_NAMES, type AreaMeta, type Area} from '@/lib/areas';
 
 const inp =
@@ -88,9 +89,9 @@ function AreaCard({area, meta}: {area: Area; meta: AreaMeta}) {
             className={inp}
           />
         </label>
-        <button type="submit" className={`${navyBtn} mt-0.5 self-start`}>
+        <SubmitButton className={`${navyBtn} mt-0.5 self-start`}>
           {t('save')}
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );

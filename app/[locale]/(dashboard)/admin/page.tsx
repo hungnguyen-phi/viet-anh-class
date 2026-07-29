@@ -204,9 +204,9 @@ export default async function AdminPage({
               placeholder={t('searchUser')} aria-label={t('searchUser')}
               className="h-10 w-[200px] rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 text-[12.5px] font-semibold text-navy outline-none focus:border-navy"
             />
-            <button type="submit" className={`${navyBtnSm} h-10`}>
+            <SubmitButton className={`${navyBtnSm} h-10`}>
               {t('search')}
-            </button>
+            </SubmitButton>
             {q && (
               <Link href="/admin" className={outlineBtnSm}>
                 {t('clear')}
@@ -246,9 +246,11 @@ export default async function AdminPage({
                       </option>
                     ))}
                   </select>
-                  <button type="submit" className={navyBtnSm}>
-                    {t('setRole')}
-                  </button>
+                  {/* SubmitButton (không phải <button> trần): đổi vai trò là thao tác chạm DB
+                      rồi tải lại cả trang, mất một khoảng thấy rõ. Nút trần không báo gì trong
+                      lúc đó nên người thử tưởng "bấm không ăn / bị treo" rồi bấm lại nhiều lần.
+                      SubmitButton khoá nút + hiện spinner ngay khi bấm. */}
+                  <SubmitButton className={navyBtnSm}>{t('setRole')}</SubmitButton>
                 </form>
               </span>
               <span className="flex w-[130px] flex-none gap-1.5">
@@ -256,9 +258,7 @@ export default async function AdminPage({
                   <>
                     <form action={disableUser}>
                       <input type="hidden" name="userId" value={p.id} />
-                      <button type="submit" className={outlineBtnSm}>
-                        {t('disable')}
-                      </button>
+                      <SubmitButton className={outlineBtnSm}>{t('disable')}</SubmitButton>
                     </form>
                     <form action={deleteUser}>
                       <input type="hidden" name="userId" value={p.id} />

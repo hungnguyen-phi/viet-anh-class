@@ -1,6 +1,7 @@
 import {getTranslations} from 'next-intl/server';
 import {Wifi, MapPin, Trash2} from 'lucide-react';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {SubmitButton} from '@/components/ui/SubmitButton';
 import {
   addSchoolNetwork,
   addCurrentSchoolIp,
@@ -69,9 +70,9 @@ export async function SchoolNetworkManager({
                 </option>
               ))}
             </select>
-            <button type="submit" className={gold}>
+            <SubmitButton className={gold}>
               + {t('addThisIp')}
-            </button>
+            </SubmitButton>
           </form>
         )}
       </div>
@@ -88,9 +89,9 @@ export async function SchoolNetworkManager({
             </option>
           ))}
         </select>
-        <button type="submit" className={navyBtn}>
+        <SubmitButton className={navyBtn}>
           + {t('addNetwork')}
-        </button>
+        </SubmitButton>
       </form>
 
       {/* Danh sách */}

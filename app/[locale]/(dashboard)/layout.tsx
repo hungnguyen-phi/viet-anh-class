@@ -16,16 +16,32 @@ export default async function DashboardLayout({
 }) {
   const {locale} = await params;
   setRequestLocale(locale);
-  // Bắt buộc đã đăng nhập + đã được cấp quyền (không 'pending').
-  const profile = await requireProfile();
 
   const supabase = await createClient();
 
-  // Hai query dưới đây ĐỘC LẬP nhau → chạy song song. Trước đây `await` nối tiếp nên mỗi lần
-  // chuyển trang phải chờ 2 vòng mạng tới Supabase xếp hàng; giờ chỉ tốn thời gian của query
-  // chậm hơn. Layout này nằm trên MỌI trang sau đăng nhập nên tiết kiệm ở đây có mặt khắp nơi.
-  const [leaderRes, unreadRes] = await Promise.all([
-    // Học sinh chỉ thấy link "Điểm danh" nếu là tổ trưởng điểm danh (PRD §6.2 màn 3).
+  // Đếm thông báo chưa đọc KHÔNG cần biết người dùng là ai (RLS notif_own_read đã tự giới hạn
+  // user_id = auth.uid()) → phóng đi NGAY, chạy chồng lên lượt lấy hồ sơ bên dưới thay vì xếp
+  // hàng sau nó. Layout này nằm trên MỌI trang sau đăng nhập nên mỗi vòng mạng cắt được ở đây
+  // là cắt trên toàn app.
+  //
+  // Phải gọi .then() mới thật sự bắn request: builder của supabase-js là "thenable" LƯỜI —
+  // chỉ dựng câu query mà chưa gửi đi cho tới khi có ai đó await/then nó. Nhánh lỗi trả về
+  // count rỗng để một sự cố mạng ở cái chuông không làm sập cả layout.
+  const unreadPromise = supabase
+    .from('notifications')
+    .select('id', {count: 'exact', head: true})
+    .eq('read', false)
+    .then(
+      (r) => r.count,
+      () => null,
+    );
+
+  // Bắt buộc đã đăng nhập + đã được cấp quyền (không 'pending').
+  const profile = await requireProfile();
+
+  // Học sinh chỉ thấy link "Điểm danh" nếu là tổ trưởng điểm danh (PRD §6.2 màn 3).
+  // Chỉ học sinh mới tốn query này; các vai khác không mất vòng mạng nào.
+  const leaderPromise =
     profile.role === 'student'
       ? supabase
           .from('enrollments')
@@ -35,17 +51,13 @@ export default async function DashboardLayout({
           .eq('is_attendance_leader', true)
           .limit(1)
           .maybeSingle()
-      : Promise.resolve({data: null}),
-    // Số thông báo chưa đọc cho badge trên chuông. head:true → chỉ lấy count, không tải hàng.
-    // RLS notif_own_read đã giới hạn user_id = auth.uid().
-    supabase
-      .from('notifications')
-      .select('id', {count: 'exact', head: true})
-      .eq('read', false),
-  ]);
+          .then(
+            (r) => Boolean(r.data),
+            () => false,
+          )
+      : Promise.resolve(false);
 
-  const isAttendanceLeader = Boolean(leaderRes.data);
-  const unreadCount = unreadRes.count;
+  const [isAttendanceLeader, unreadCount] = await Promise.all([leaderPromise, unreadPromise]);
 
   return (
     <div className="min-h-screen">

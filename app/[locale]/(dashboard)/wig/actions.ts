@@ -178,19 +178,18 @@ export async function addLeadMeasure(formData: FormData) {
 }
 
 export async function logProgress(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
+  // requireRole đã trả về hồ sơ người đang ghi → dùng luôn me.id thay vì gọi thêm
+  // supabase.auth.getUser() (một vòng mạng nữa tới Supabase Auth chỉ để lấy lại đúng id đó).
+  const me = await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '') || undefined;
   const lead_measure_id = String(formData.get('lead_measure_id') ?? '');
   const value = Number(formData.get('value') || 1);
   if (!lead_measure_id) flash('Thiếu lead measure', class_id);
   if (!Number.isFinite(value) || value <= 0) flash('Giá trị ghi phải lớn hơn 0.', class_id);
   const supabase = await createClient();
-  const {
-    data: {user},
-  } = await supabase.auth.getUser();
   const {error} = await supabase
     .from('lead_progress')
-    .insert({lead_measure_id, value, logged_by: user?.id ?? null});
+    .insert({lead_measure_id, value, logged_by: me.id});
   revalidatePath('/wig');
   revalidatePath('/');
   flash(error ? friendlyError(error) : `Đã ghi +${value}`, class_id);

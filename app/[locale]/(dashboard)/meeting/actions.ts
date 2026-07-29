@@ -18,7 +18,7 @@ export type MeetingState = {
 // initial state {ok:false} định nghĩa trong client form ('use server' chỉ export async function).
 
 export async function saveMeeting(_prev: MeetingState, formData: FormData): Promise<MeetingState> {
-  await requireRole(['teacher', 'admin']);
+  const me = await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '');
   const week_label = String(formData.get('week_label') ?? '').trim();
   const results = String(formData.get('results') ?? '').trim();
@@ -33,9 +33,6 @@ export async function saveMeeting(_prev: MeetingState, formData: FormData): Prom
     return {ok: false, fieldError: 'results', error: 'Nhập ít nhất một nội dung: chiêm nghiệm, cam kết hoặc việc tuần sau.', values};
 
   const supabase = await createClient();
-  const {
-    data: {user},
-  } = await supabase.auth.getUser();
   // 1 biên bản / (lớp, tuần): đã có thì SỬA, chưa có thì tạo (cho phép sửa lại nội dung).
   const {data: existing} = await supabase
     .from('wig_meetings')
@@ -51,7 +48,7 @@ export async function saveMeeting(_prev: MeetingState, formData: FormData): Prom
     results: results || null,
     commitments: commitments || null,
     next_actions: next_actions || null,
-    coach_id: user?.id ?? null,
+    coach_id: me.id,
   };
   // Idempotent/đồng thời: nếu chưa có thì insert; nếu 2 người cùng lưu 1 tuần → 1 người dính
   // unique (23505) → tự chuyển sang update theo khoá (lớp,tuần) thay vì báo lỗi trùng.

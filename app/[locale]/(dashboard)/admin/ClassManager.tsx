@@ -5,6 +5,7 @@ import {useTranslations} from 'next-intl';
 import {Link} from '@/i18n/navigation';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {updateClass, setClassActive, deleteClass} from './actions';
+import {SubmitButton} from '@/components/ui/SubmitButton';
 
 type ClassRow = {
   id: string;
@@ -111,9 +112,9 @@ export function ClassManager({
                 <form action={setClassActive}>
                   <input type="hidden" name="id" value={c.id} />
                   <input type="hidden" name="active" value="false" />
-                  <button type="submit" className={ghost}>
+                  <SubmitButton className={ghost}>
                     {t('archive')}
-                  </button>
+                  </SubmitButton>
                 </form>
                 <form action={deleteClass}>
                   <input type="hidden" name="id" value={c.id} />
@@ -239,9 +240,9 @@ function ClassEditRow({
         </select>
       </label>
       <div className="flex items-end gap-1.5">
-        <button type="submit" className={navyBtn}>
+        <SubmitButton className={navyBtn}>
           {t('save')}
-        </button>
+        </SubmitButton>
         <button type="button" onClick={onDone} className={ghost}>
           {t('cancel')}
         </button>

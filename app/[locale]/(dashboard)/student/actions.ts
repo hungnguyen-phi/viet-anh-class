@@ -81,7 +81,7 @@ export async function saveStudentMeeting(
   _prev: StudentMeetingState,
   formData: FormData,
 ): Promise<StudentMeetingState> {
-  await requireRole(['teacher', 'admin']);
+  const me = await requireRole(['teacher', 'admin']);
   const student_id = String(formData.get('student_id') ?? '');
   const class_id = String(formData.get('class_id') ?? '');
   const week_label = String(formData.get('week_label') ?? '').trim();
@@ -105,9 +105,6 @@ export async function saveStudentMeeting(
     };
 
   const supabase = await createClient();
-  const {
-    data: {user},
-  } = await supabase.auth.getUser();
 
   // Sinh WIG tuần sau TRƯỚC khi lưu biên bản: nếu bước này lỗi (vd chưa có WIG năm) thì không
   // lưu một biên bản nói rằng đã có kế hoạch trong khi thực tế chưa tạo được gì.
@@ -138,7 +135,7 @@ export async function saveStudentMeeting(
     // Vẫn ghi next_actions dạng chữ, sinh TỪ kế hoạch có cấu trúc — để báo cáo phụ huynh và
     // mục Họp WIG của học sinh đọc được câu tự nhiên mà không phải sửa gì ở hai chỗ đó.
     next_actions: planSummary || next_actions || null,
-    coach_id: user?.id ?? null,
+    coach_id: me.id,
   };
   // Idempotent/đồng thời: race 2 lần lưu 1 tuần → dính unique (HS,tuần) → tự chuyển update.
   let error = null as {code?: string} | null;
@@ -845,7 +842,7 @@ export async function withdrawEditRequest(formData: FormData) {
 // GVCN/Admin duyệt/từ chối. IDEMPOTENT: chỉ đổi khi đang 'pending' → bấm 2 lần chỉ ăn 1.
 // apply=1 + kind='undo_tick' → duyệt & gỡ tick luôn.
 export async function resolveEditRequest(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
+  const me = await requireRole(['teacher', 'admin']);
   const student_id = String(formData.get('student_id') ?? '');
   const id = String(formData.get('request_id') ?? '');
   const decision = String(formData.get('decision') ?? '');
@@ -853,12 +850,9 @@ export async function resolveEditRequest(formData: FormData) {
   if (!id || (decision !== 'approved' && decision !== 'rejected'))
     backToStudent(student_id, 'Thiếu thông tin duyệt');
   const supabase = await createClient();
-  const {
-    data: {user},
-  } = await supabase.auth.getUser();
   const {data, error} = await supabase
     .from('edit_requests')
-    .update({status: decision, resolved_by: user?.id ?? null, resolved_at: new Date().toISOString()})
+    .update({status: decision, resolved_by: me.id, resolved_at: new Date().toISOString()})
     .eq('id', id)
     .eq('status', 'pending')
     .select('id, kind, ref_id, student_id');
