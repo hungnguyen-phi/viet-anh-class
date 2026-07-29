@@ -132,7 +132,54 @@ async function networkPhases() {
       ),
     );
   }
-  return {host, dns_ms: dnsMs, tcp_connect_ms: tcpMs, tls_handshake_ms: tlsMs};
+  return {host, dns_ms: dnsMs, tcp_connect_ms: tcpMs, tls_handshake_ms: tlsMs, tcp: await tcpLoss()};
+}
+
+// TỈ LỆ TRUYỀN LẠI TCP + gói rơi ở card mạng — bằng chứng cuối cùng cho "mất gói".
+//
+// Vì sao là chỉ số quyết định: bắt tay TCP lúc 8ms lúc 627ms tới CÙNG một máy chủ chỉ có hai
+// cách giải thích — hoặc gói tin bị rơi và phải truyền lại (mỗi lần chờ tính bằng trăm ms),
+// hoặc máy đang nghẽn. retrans_pct nói thẳng cái nào:
+//   < 0.5%  → đường truyền sạch, phải tìm nguyên nhân khác.
+//   > 1%    → mất gói thật sự; tối ưu code không cứu được, phải xử lý ở tầng hạ tầng/nhà mạng.
+// rx_drop/tx_drop là gói bị chính card mạng vứt bỏ (thường do hàng đợi đầy vì quá tải băng thông).
+async function tcpLoss() {
+  const read = async (p: string) => (await readFile(p, 'utf-8').catch(() => null)) ?? '';
+
+  // /proc/net/snmp: hai dòng "Tcp:" — dòng đầu là TÊN cột, dòng sau là GIÁ TRỊ.
+  const snmp = (await read('/proc/net/snmp')).split('\n').filter((l) => l.startsWith('Tcp:'));
+  let outSegs: number | null = null;
+  let retransSegs: number | null = null;
+  if (snmp.length >= 2) {
+    const keys = snmp[0].split(/\s+/);
+    const vals = snmp[1].split(/\s+/);
+    const get = (k: string) => {
+      const i = keys.indexOf(k);
+      return i > 0 ? Number(vals[i]) : null;
+    };
+    outSegs = get('OutSegs');
+    retransSegs = get('RetransSegs');
+  }
+
+  // /proc/net/dev: gói rơi ở từng card mạng (bỏ lo — loopback).
+  const ifaces: Record<string, {rx_drop: number; tx_drop: number; rx_err: number; tx_err: number}> = {};
+  for (const line of (await read('/proc/net/dev')).split('\n').slice(2)) {
+    const [rawName, rest] = line.split(':');
+    const name = rawName?.trim();
+    if (!name || name === 'lo' || !rest) continue;
+    const f = rest.trim().split(/\s+/).map(Number);
+    // cột: rx bytes packets errs drop ... (8 cột rx) rồi tx bytes packets errs drop
+    ifaces[name] = {rx_err: f[2], rx_drop: f[3], tx_err: f[10], tx_drop: f[11]};
+  }
+
+  return {
+    out_segs: outSegs,
+    retrans_segs: retransSegs,
+    // Tích luỹ từ lúc container khởi động — đọc là ra bức tranh tổng, không cần lấy hiệu.
+    retrans_pct:
+      outSegs && retransSegs != null ? Math.round((retransSegs / outSegs) * 10000) / 100 : null,
+    interfaces: ifaces,
+  };
 }
 
 // Sức khoẻ của chính container — phần quyết định để phân biệt "Supabase chậm" với "container
