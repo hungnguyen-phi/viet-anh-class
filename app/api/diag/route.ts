@@ -68,7 +68,71 @@ export async function GET() {
       auth_health_ms: {samples: authPing, median: med(authPing)},
     },
     container: await containerHealth(),
+    network: await networkPhases(),
   });
+}
+
+// Tách ĐỘ TRỄ MẠNG tới Supabase thành từng chặng: DNS → bắt tay TCP → bắt tay TLS.
+//
+// Vì sao cần: các số đo trước cho thấy CPU rảnh 90%, steal 0%, container không bị giới hạn —
+// tức app KHÔNG đói CPU. Nhưng một truy vấn Supabase vẫn dao động 48ms–2.3s. Nếu chặng chậm là
+// DNS thì sửa bằng cách đổi resolver; nếu là TCP/TLS thì là mất gói trên đường truyền của VPS
+// (phải đổi nhà mạng/vùng); nếu cả ba đều nhanh mà tổng vẫn chậm thì lỗi nằm ở phía Supabase xử lý.
+async function networkPhases() {
+  const {promises: dns} = await import('node:dns');
+  const net = await import('node:net');
+  const tls = await import('node:tls');
+  const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://x').hostname;
+
+  const time = async (fn: () => Promise<void>) => {
+    const t0 = performance.now();
+    try {
+      await fn();
+    } catch {
+      return -1;
+    }
+    return Math.round(performance.now() - t0);
+  };
+
+  const dnsMs: number[] = [];
+  const tcpMs: number[] = [];
+  const tlsMs: number[] = [];
+  for (let i = 0; i < 4; i++) {
+    dnsMs.push(await time(async () => void (await dns.lookup(host))));
+    tcpMs.push(
+      await time(
+        () =>
+          new Promise<void>((res, rej) => {
+            const s = net.connect({host, port: 443}, () => {
+              s.destroy();
+              res();
+            });
+            s.on('error', rej);
+            s.setTimeout(10_000, () => {
+              s.destroy();
+              rej(new Error('timeout'));
+            });
+          }),
+      ),
+    );
+    tlsMs.push(
+      await time(
+        () =>
+          new Promise<void>((res, rej) => {
+            const s = tls.connect({host, port: 443, servername: host}, () => {
+              s.destroy();
+              res();
+            });
+            s.on('error', rej);
+            s.setTimeout(10_000, () => {
+              s.destroy();
+              rej(new Error('timeout'));
+            });
+          }),
+      ),
+    );
+  }
+  return {host, dns_ms: dnsMs, tcp_connect_ms: tcpMs, tls_handshake_ms: tlsMs};
 }
 
 // Sức khoẻ của chính container — phần quyết định để phân biệt "Supabase chậm" với "container
