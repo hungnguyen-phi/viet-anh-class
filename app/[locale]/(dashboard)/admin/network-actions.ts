@@ -35,7 +35,7 @@ export async function addSchoolNetwork(formData: FormData) {
     .from('school_networks')
     .upsert({label, cidr, campus_id, is_active: true}, {onConflict: 'campus_id,cidr'});
   if (!error) await supabase.rpc('log_audit', {p_action: 'add_school_network', p_detail: {label, cidr}});
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   flash(error ? friendlyError(error) : `Đã thêm mạng "${label}"`);
 }
 
@@ -52,7 +52,7 @@ export async function addCurrentSchoolIp(formData: FormData) {
     .from('school_networks')
     .upsert({label, cidr, campus_id, is_active: true}, {onConflict: 'campus_id,cidr'});
   if (!error) await supabase.rpc('log_audit', {p_action: 'add_current_ip', p_detail: {cidr}});
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   flash(error ? friendlyError(error) : `Đã thêm IP hiện tại: ${ip}`);
 }
 
@@ -63,7 +63,7 @@ export async function setSchoolNetworkActive(formData: FormData) {
   if (!id) flash('Thiếu mạng');
   const supabase = await createClient();
   const {error} = await supabase.from('school_networks').update({is_active: active}).eq('id', id);
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   flash(error ? friendlyError(error) : active ? 'Đã bật mạng' : 'Đã tắt mạng');
 }
 
@@ -73,6 +73,6 @@ export async function deleteSchoolNetwork(formData: FormData) {
   if (!id) flash('Thiếu mạng');
   const supabase = await createClient();
   const {error} = await supabase.from('school_networks').delete().eq('id', id);
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   flash(error ? friendlyError(error) : 'Đã xoá mạng');
 }

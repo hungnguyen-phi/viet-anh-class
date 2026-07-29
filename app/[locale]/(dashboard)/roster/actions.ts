@@ -47,8 +47,8 @@ export async function assignAttendanceLeader(
       return {ok: false, error: 'Không đặt được — em này không còn trong lớp, hoặc bạn không có quyền.'};
   }
 
-  revalidatePath('/roster');
-  revalidatePath('/attendance');
+  revalidatePath('/[locale]/roster', 'page');
+  revalidatePath('/[locale]/attendance', 'page');
   return {ok: true};
 }
 
@@ -86,15 +86,48 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('enroll_student_by_email', {p_class: classId, p_email: email});
   if (error) return {ok: false, error: friendlyError(error), values};
-  if (data === 'not_found')
+
+  // Chưa có tài khoản → KHÔNG còn là ngõ cụt.
+  //
+  // Trước đây chỗ này chỉ báo "không tìm thấy… yêu cầu em đăng nhập trước" rồi dừng, khiến giáo
+  // viên phải chờ từng em tự đăng nhập mới lập được danh sách lớp — luồng ngược hẳn với thực tế
+  // đầu năm học. Nay ghi một lời mời: em đó đăng nhập lần đầu là trigger handle_new_user tự gán
+  // vai học sinh và ĐƯA THẲNG vào đúng lớp này, giáo viên không phải quay lại làm gì thêm.
+  if (data === 'not_found') {
+    const {data: inv, error: invErr} = await supabase.rpc('invite_student_to_class', {
+      p_class: classId,
+      p_email: email,
+    });
+    if (invErr) return {ok: false, error: friendlyError(invErr), values};
+    if (inv === 'invited') {
+      revalidatePath('/[locale]/roster', 'page');
+      return {
+        ok: true,
+        message: `${email} chưa có tài khoản — đã lưu lời mời vào lớp này. Em chỉ cần đăng nhập lần đầu là tự động có tên trong danh sách.`,
+      };
+    }
+    if (inv === 'other_role')
+      return {
+        ok: false,
+        fieldError: 'email',
+        error: `${email} đang được mời với một vai khác (giáo viên/phụ huynh…). Nhờ quản trị viên xử lý trước để tránh gán nhầm vai.`,
+        values,
+      };
+    if (inv === 'forbidden')
+      return {
+        ok: false,
+        error: 'Bạn không phải giáo viên chủ nhiệm của lớp này nên không mời được học sinh vào đây.',
+        values,
+      };
     return {
       ok: false,
       fieldError: 'email',
-      error: `Không tìm thấy học sinh với email ${email}. Kiểm tra lại email, hoặc yêu cầu em đăng nhập tạo tài khoản học sinh trước.`,
+      error: `Email ${email} không hợp lệ.`,
       values,
     };
+  }
 
-  revalidatePath('/roster');
+  revalidatePath('/[locale]/roster', 'page');
   return {ok: true, message: `Đã ghi danh ${email} vào lớp`};
 }
 
@@ -106,6 +139,6 @@ export async function removeStudent(formData: FormData) {
   if (!classId || !studentId) rosterFlash(classId, 'Thiếu thông tin');
   const supabase = await createClient();
   const {error} = await supabase.rpc('unenroll_student', {p_class: classId, p_student: studentId});
-  revalidatePath('/roster');
+  revalidatePath('/[locale]/roster', 'page');
   rosterFlash(classId, error ? friendlyError(error) : 'Đã cho học sinh rời lớp');
 }

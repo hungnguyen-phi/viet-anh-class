@@ -13,6 +13,6 @@ export async function markAllRead() {
   const me = await requireProfile();
   const supabase = await createClient();
   await supabase.from('notifications').update({read: true}).eq('user_id', me.id).eq('read', false);
-  revalidatePath('/notifications');
+  revalidatePath('/[locale]/notifications', 'page');
   redirect('/notifications');
 }

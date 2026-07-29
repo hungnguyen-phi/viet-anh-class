@@ -34,8 +34,17 @@ export function TeacherManager({teachers, invites}: {teachers: Teacher[]; invite
     <div className="flex flex-col gap-3">
       {/* Mời giáo viên */}
       <form action={inviteTeachers} className="flex flex-wrap items-center gap-1.5">
+        {/* type="email" + pattern: trình duyệt CHẶN NGAY tại ô, ngay khi bấm gửi.
+            Server vẫn kiểm lại bằng EMAIL_RE (đây chỉ là lớp phản hồi nhanh, không phải lớp
+            an toàn). Trước đây ô này là input trần: gõ "abcxyz" vẫn bấm được, server từ chối
+            rồi tải lại cả trang kèm một dòng thông báo dễ trôi qua — nên người thử kết luận
+            "vẫn mời được email không tồn tại". */}
         <input
           name="email"
+          type="email"
+          multiple
+          pattern="[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+(\s*[,;]\s*[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+)*"
+          title="Nhập email dạng ten@truongvietanh.com. Nhiều email thì ngăn cách bằng dấu phẩy."
           placeholder={t('inviteTeacherPlaceholder')} aria-label={t('inviteTeacherPlaceholder')}
           className={`${inp} min-w-[220px] flex-1`}
           required

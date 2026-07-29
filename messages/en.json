@@ -113,7 +113,9 @@
       "skills": "Skills",
       "english": "English",
       "physical": "Physical"
-    }
+    },
+    "grade": "Grade",
+    "campus": "Campus"
   },
   "attendance": {
     "title": "Attendance",

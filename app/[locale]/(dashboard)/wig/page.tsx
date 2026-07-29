@@ -22,6 +22,7 @@ import {
 import {Link} from '@/i18n/navigation';
 import {isoWeekLabel, schoolYearOptions, weekOptions, monthOptions} from '@/lib/dates';
 import {ClassMeetingSection} from '@/components/wig/ClassMeetingSection';
+import {ClassStudentWigSetup} from '@/components/wig/ClassStudentWigSetup';
 import {ChildPeriodFields} from '@/components/wig/ChildPeriodFields';
 import {AREAS, buildAreaMeta, areaLabel, type Area} from '@/lib/areas';
 
@@ -85,7 +86,10 @@ export default async function WigPage({
   }
 
   // WIG + tiến độ chỉ phụ thuộc myClass.id — chạy song song.
-  const [{data: wigsData}, {data: progData}] = await Promise.all([
+  // Kèm hai truy vấn cho khối "việc hằng ngày của học sinh": sĩ số đang học, và số em ĐÃ có WIG
+  // cá nhân của tuần này. Gộp vào đây thay vì để component tự lấy → không thêm lượt chờ nào.
+  const thisWeekLabel = isoWeekLabel(new Date());
+  const [{data: wigsData}, {data: progData}, {data: enrolled}, {data: readyWigs}] = await Promise.all([
     supabase
       .from('wigs')
       .select('id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date')
@@ -96,7 +100,21 @@ export default async function WigPage({
       .select('wig_id, actual, pct, status')
       .eq('class_id', myClass.id)
       .eq('scope', 'class'),
+    supabase
+      .from('enrollments')
+      .select('student_id')
+      .eq('class_id', myClass.id)
+      .eq('is_active', true),
+    supabase
+      .from('wigs')
+      .select('student_id')
+      .eq('class_id', myClass.id)
+      .eq('scope', 'student')
+      .eq('period', 'week')
+      .eq('period_label', thisWeekLabel),
   ]);
+  const studentCount = (enrolled ?? []).length;
+  const readyCount = new Set((readyWigs ?? []).map((w) => w.student_id)).size;
   const wigs = (wigsData ?? []) as Wig[];
   const progByWig = new Map((progData ?? []).map((p) => [p.wig_id, p as unknown as Prog]));
 
@@ -465,6 +483,15 @@ export default async function WigPage({
         canManage /* trang này đã requireRole(['teacher','admin']) nên ai vào được cũng quản lý được */
         classParam={classParam}
         tickLockDow={myClass.tick_lock_dow ?? 7}
+      />
+
+      {/* Việc hằng ngày của HỌC SINH. Đặt ngay đây (không chôn trong trang từng em) vì thiếu nó
+          thì màn hình của các em trống trơn — đúng lỗi cả ba người thử đều gặp. */}
+      <ClassStudentWigSetup
+        classId={myClass.id}
+        weekLabel={thisWeekLabel}
+        studentCount={studentCount}
+        readyCount={readyCount}
       />
 
       <p className="text-xs font-semibold italic text-grey-mid">{t('leadHint')}</p>

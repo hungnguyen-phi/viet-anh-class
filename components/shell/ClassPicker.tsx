@@ -56,7 +56,7 @@ export function ClassPicker({
       <ChevronDown
         size={16}
         strokeWidth={2.5}
-        className="pointer-events-none absolute right-3 text-navy/60"
+        className="pointer-events-none absolute right-3 text-navy/70"
       />
     </div>
   );

@@ -113,9 +113,20 @@ export default async function CampusPage({
         campus_id: c.campus_id,
         homeroom_teacher_id: c.homeroom_teacher_id,
       })),
+      // Gồm CẢ người còn ở vai 'chờ cấp quyền' (vừa đăng nhập lần đầu, chưa được nâng vai).
+      // Trước đây lọc cứng role='teacher' nên hiệu trưởng vừa mời giáo viên xong, người đó đăng
+      // nhập rồi mà vẫn không chọn được làm GVCN — đúng lỗi "không gõ được tên chủ nhiệm mới".
+      // Chọn xong thì createClass/updateClass tự nâng vai họ lên 'teacher'.
       teachers: staffList
-        .filter((s) => s.role === 'teacher')
-        .map((s) => ({id: s.id, full_name: s.full_name, email: s.email})),
+        .filter((s) => s.role === 'teacher' || s.role === 'pending')
+        .map((s) => ({
+          id: s.id,
+          full_name:
+            s.role === 'pending'
+              ? `${s.full_name ?? s.email} — chưa cấp quyền, chọn là cấp luôn`
+              : s.full_name,
+          email: s.email,
+        })),
       // Ghép sẵn tên lớp chủ nhiệm — dữ liệu đã có trong `classes`, không cần truy vấn thêm.
       staff: staffList.map((s) => ({
         id: s.id,

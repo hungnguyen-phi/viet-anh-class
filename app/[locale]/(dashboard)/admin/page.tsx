@@ -21,6 +21,7 @@ import {headers} from 'next/headers';
 import {CampusCard} from './CampusCard';
 import {ClassManager} from './ClassManager';
 import {AreaConfigForm} from './AreaConfigForm';
+import {InviteEmailsField} from './InviteEmailsField';
 import {SchoolNetworkManager} from './SchoolNetworkManager';
 import {AREAS, buildAreaMeta} from '@/lib/areas';
 import {clientIp} from '@/lib/ip';
@@ -329,11 +330,14 @@ export default async function AdminPage({
         <section className="glass rounded-[20px] p-[18px]">
           <div className={cardTitle}>{t('inviteUser')}</div>
           <form action={inviteUser} className="flex flex-col gap-2">
-            <textarea
+            {/* <textarea> không có kiểm tra định dạng sẵn của trình duyệt, mà ô này nhận NHIỀU
+                email nên cũng không đổi sang <input type="email"> được. Dùng pattern qua
+                InviteEmailsField (client) để báo lỗi ngay tại ô thay vì phải gửi lên server rồi
+                tải lại cả trang mới biết sai. */}
+            <InviteEmailsField
               name="email"
-              placeholder={t('emailsMulti')} aria-label={t('emailsMulti')}
-              required
-              rows={2}
+              placeholder={t('emailsMulti')}
+              ariaLabel={t('emailsMulti')}
               className={`${inputCls} min-h-[44px] resize-y`}
             />
             <select name="role" aria-label={t('selectRole')} required defaultValue="" className={`cursor-pointer ${inputCls}`}>

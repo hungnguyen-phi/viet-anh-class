@@ -78,8 +78,32 @@ export default async function AttendancePage({
     d.setUTCDate(base.getUTCDate() - i);
     days.push(d.toISOString().slice(0, 10));
   }
-  // Ngày đang xem: theo ?date= nếu hợp lệ trong 7 ngày (chỉ GVCN/admin), ngược lại hôm nay.
-  const today = canBackfill && dateParam && days.includes(dateParam) ? dateParam : realToday;
+  // Quản trị viên được sửa điểm danh của BẤT KỲ ngày nào trong quá khứ — RLS
+  // (rls_all_attendance_records) vốn đã cho phép, nhưng giao diện trước đây chỉ dựng đúng 7 nút
+  // ngày nên không có cách nào đi xa hơn. Người thử vai quản trị đã báo đúng chỗ này: "bấm vào
+  // ngày trước đó nhưng không mở được gì".
+  const canPickAnyDate = profile.role === 'admin';
+
+  // Ngày đang xem + LÝ DO nếu không nhận được ?date=.
+  // Trước đây ngày ngoài phạm vi bị âm thầm thay bằng hôm nay: người dùng thấy màn hình đổi về
+  // hôm nay mà không hiểu vì sao, tưởng tính năng hỏng. Nay nói rõ.
+  let today = realToday;
+  let dateNotice: string | null = null;
+  if (dateParam) {
+    const looksLikeDate = /^\d{4}-\d{2}-\d{2}$/.test(dateParam);
+    if (!looksLikeDate) {
+      dateNotice = 'Ngày không hợp lệ — đang hiển thị hôm nay.';
+    } else if (dateParam > realToday) {
+      dateNotice = 'Không điểm danh cho ngày trong tương lai — đang hiển thị hôm nay.';
+    } else if (canPickAnyDate || days.includes(dateParam)) {
+      today = dateParam;
+    } else if (canBackfill) {
+      dateNotice =
+        'Giáo viên chỉ sửa được điểm danh trong 7 ngày gần nhất. Ngày cũ hơn cần quản trị viên — đang hiển thị hôm nay.';
+    } else {
+      dateNotice = 'Bạn chỉ điểm danh được ngày hôm nay — đang hiển thị hôm nay.';
+    }
+  }
 
   const students = ((enrolls ?? []) as unknown as EnrRow[])
     .map((e) => ({id: e.student_id, name: e.profiles?.full_name ?? e.student_id}))
@@ -155,7 +179,41 @@ export default async function AttendancePage({
               </Link>
             );
           })}
+
+          {/* Quản trị viên: chọn ngày bất kỳ. Form GET → chỉ đổi ?date= trên URL, không cần
+              server action. Giữ luôn ?class= để không nhảy sang lớp khác khi đang xem một lớp. */}
+          {canPickAnyDate && (
+            <form method="get" className="ml-1 flex items-center gap-1.5">
+              {classParam && <input type="hidden" name="class" value={classParam} />}
+              <label
+                htmlFor="pick-date"
+                className="text-[11px] font-extrabold uppercase tracking-wide text-navy/70"
+              >
+                Ngày khác
+              </label>
+              <input
+                id="pick-date"
+                type="date"
+                name="date"
+                defaultValue={today}
+                max={realToday}
+                className="h-9 rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2 text-[12.5px] font-bold text-navy outline-none focus:border-navy"
+              />
+              <button
+                type="submit"
+                className="h-9 cursor-pointer rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12px] font-extrabold text-navy transition-colors hover:border-navy"
+              >
+                Xem
+              </button>
+            </form>
+          )}
         </div>
+      )}
+
+      {dateNotice && (
+        <p className="rounded-[10px] bg-gold/15 px-3 py-2 text-[12.5px] font-semibold text-gold-deep">
+          {dateNotice}
+        </p>
       )}
       {!canEdit && (
         <p className="text-xs italic text-grey-mid">{t('readOnly')}</p>

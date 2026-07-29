@@ -71,7 +71,7 @@ export async function saveMeeting(_prev: MeetingState, formData: FormData): Prom
 
   if (error) return {ok: false, error: friendlyError(error), values};
 
-  revalidatePath('/meeting');
+  revalidatePath('/[locale]/meeting', 'page');
   return {ok: true, message: existing ? 'Đã cập nhật biên bản tuần này.' : 'Đã lưu biên bản.'};
 }
 
@@ -82,7 +82,7 @@ export async function deleteMeeting(formData: FormData) {
   const classParam = String(formData.get('class') ?? '');
   const supabase = await createClient();
   const {error} = await supabase.from('wig_meetings').delete().eq('id', id);
-  revalidatePath('/meeting');
+  revalidatePath('/[locale]/meeting', 'page');
   const q = new URLSearchParams();
   if (classParam) q.set('class', classParam);
   q.set('flash', error ? friendlyError(error) : 'Đã xoá biên bản');

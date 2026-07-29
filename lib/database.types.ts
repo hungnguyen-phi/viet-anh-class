@@ -1154,6 +1154,8 @@ export type Database = {
         Returns: number
       }
       enroll_student_by_email: { Args: { p_class: string; p_email: string }; Returns: string }
+      // 'invited' | 'exists' | 'other_role' | 'forbidden' | 'bad_email' (migration 0056)
+      invite_student_to_class: { Args: { p_class: string; p_email: string }; Returns: string }
       unenroll_student: { Args: { p_class: string; p_student: string }; Returns: undefined }
       app_today: { Args: never; Returns: string }
       auth_campus: { Args: never; Returns: string }

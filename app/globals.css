@@ -21,10 +21,19 @@
   /* Bề mặt & mực */
   --color-canvas: #ebf0ec; /* nền cơ sở dưới lớp gradient */
   --color-surface: #ffffff;
+  /* Chữ phụ đậm lên một nấc so với bản đầu.
+     Lý do: cả hai người thử vai giáo viên và ban giám hiệu đều báo "màu chữ mờ, khó nhìn, màu
+     nền và chữ chưa có sự khác biệt rõ rệt". Đo lại đúng là vậy — grey-soft cũ (#8288a6) chỉ
+     đạt 3.49:1 trên nền trắng, dưới ngưỡng WCAG AA (4.5:1); mà phần lớn chữ trong app lại nằm
+     trên thẻ kính trắng-mờ phủ gradient nên tương phản thực tế còn thấp hơn con số đo trên nền
+     trắng tinh. Giá trị mới giữ nguyên tông navy (không đổi bản sắc màu), chỉ tối hơn:
+       txt        #4a4e6e → 8.06:1
+       grey-mid   #575c7d → 6.50:1
+       grey-soft  #6b7093 → 4.81:1  (vừa qua ngưỡng AA) */
   --color-ink: #26275d; /* chữ chính = navy */
-  --color-txt: #5d6180; /* chữ phụ */
-  --color-grey-mid: #6b7093; /* chữ phụ mờ — đã đậm lên đạt WCAG AA (~4.8:1 trên trắng) */
-  --color-grey-soft: #8288a6; /* rất mờ (số thứ tự) — đậm nhẹ để bớt trôi trên trắng */
+  --color-txt: #4a4e6e; /* chữ phụ */
+  --color-grey-mid: #575c7d; /* chữ phụ mờ */
+  --color-grey-soft: #6b7093; /* rất mờ (số thứ tự, chú thích) */
 
   /* Trạng thái 4DX (PRD §6.1) */
   --color-success: #1e8a5a;

@@ -113,7 +113,9 @@
       "skills": "Kỹ năng",
       "english": "Tiếng Anh",
       "physical": "Thể chất"
-    }
+    },
+    "grade": "Khối",
+    "campus": "Cơ sở"
   },
   "attendance": {
     "title": "Điểm danh",

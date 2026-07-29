@@ -12,6 +12,8 @@ import {
   Trophy,
   TrendingUp,
   Flame,
+  Layers,
+  Building2,
 } from 'lucide-react';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {DonutRing} from '@/components/charts/DonutRing';
@@ -78,9 +80,13 @@ export default async function ClassPage({
 
   const gvcnName = profile.role === 'teacher' ? profile.full_name : null;
 
-  // 3 truy vấn chỉ phụ thuộc myClass.id — chạy song song:
-  // sĩ số (GVCN) + tiến độ WIG năm & tuần + thứ hạng thi đua.
-  const [rosterRes, {data: wigRows}, {data: ranksData}] = await Promise.all([
+  // 4 truy vấn chỉ phụ thuộc myClass.id — chạy song song:
+  // sĩ số (GVCN) + tiến độ WIG năm & tuần + thứ hạng thi đua + tên khối/cơ sở.
+  //
+  // Tên khối/cơ sở: người thử báo "chỗ khối, cấp, campus hiện #1/1 không hiểu là gì". Thực ra
+  // #1/1 là huy hiệu XẾP HẠNG (hạng 1 trong 1 lớp), còn TÊN khối và cơ sở thì trước nay không
+  // được hiện ở đâu cả — nên nhãn "Khối" đứng cạnh "#1/1" bị đọc thành "khối = #1/1".
+  const [rosterRes, {data: wigRows}, {data: ranksData}, {data: classMeta}] = await Promise.all([
     profile.role === 'teacher'
       ? supabase
           .from('enrollments')
@@ -95,8 +101,17 @@ export default async function ClassPage({
       .eq('scope', 'class')
       .in('period', ['year', 'week']),
     supabase.rpc('class_ranks', {c: myClass.id}),
+    supabase
+      .from('classes')
+      .select('grade, grades(name), campuses(name)')
+      .eq('id', myClass.id)
+      .maybeSingle(),
   ]);
   const rosterCount: number | null = rosterRes ? (rosterRes.count ?? 0) : null;
+  // grades(name) là khối đã khai chuẩn; cột `grade` (text) là bản gõ tay thời chưa có bảng khối.
+  const gradeName =
+    (classMeta as {grades?: {name?: string} | null} | null)?.grades?.name ?? myClass.grade ?? null;
+  const campusName = (classMeta as {campuses?: {name?: string} | null} | null)?.campuses?.name ?? null;
 
   const rows = (wigRows ?? []) as WigRow[];
   const yearRows = rows.filter((r) => r.period === 'year');
@@ -213,8 +228,20 @@ export default async function ClassPage({
           )}
         </div>
 
-        {(gvcnName || rosterCount !== null) && (
+        {(gradeName || campusName || gvcnName || rosterCount !== null) && (
           <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-[13px] font-bold text-txt">
+            {gradeName && (
+              <span className="inline-flex items-center gap-1.5">
+                <Layers size={15} strokeWidth={2} className="text-gold-deep" />
+                {t('class.grade')}: <b className="text-navy">{gradeName}</b>
+              </span>
+            )}
+            {campusName && (
+              <span className="inline-flex items-center gap-1.5">
+                <Building2 size={15} strokeWidth={2} className="text-gold-deep" />
+                {t('class.campus')}: <b className="text-navy">{campusName}</b>
+              </span>
+            )}
             {gvcnName && (
               <span className="inline-flex items-center gap-1.5">
                 <GraduationCap size={16} strokeWidth={2} className="text-gold-deep" />

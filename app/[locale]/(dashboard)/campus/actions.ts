@@ -69,7 +69,7 @@ export async function inviteTeachers(formData: FormData) {
       p_detail: {count: valid.length, campus: campus_id},
     });
   }
-  revalidatePath('/campus');
+  revalidatePath('/[locale]/campus', 'page');
   const msg =
     valid.length === 1
       ? `Đã mời ${valid[0]}. Vai trò giáo viên được gán khi họ đăng nhập lần đầu.`
@@ -84,7 +84,7 @@ export async function cancelInvite(formData: FormData) {
   const supabase = await createClient();
   // RLS giới hạn đúng cơ sở HT → không cần (và không nên) tự lọc campus ở đây.
   const {error} = await supabase.from('pending_user_grants').delete().eq('email', email);
-  revalidatePath('/campus');
+  revalidatePath('/[locale]/campus', 'page');
   flash(error ? friendlyError(error) : `Đã huỷ lời mời ${email}`);
 }
 
@@ -108,7 +108,7 @@ export async function setTeacherActive(formData: FormData) {
       p_detail: {target_user: userId},
     });
   }
-  revalidatePath('/campus');
+  revalidatePath('/[locale]/campus', 'page');
   flash(
     error
       ? friendlyError(error)
@@ -127,7 +127,7 @@ export async function setCampusLevel(formData: FormData) {
   if (!SCHOOL_LEVELS.includes(level as SchoolLevel)) flash('Cấp học không hợp lệ');
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('set_my_campus_level', {p_level: level as SchoolLevel});
-  revalidatePath('/campus');
+  revalidatePath('/[locale]/campus', 'page');
   if (error) flash(friendlyError(error));
   const nums = GRADE_NUMBERS[level as SchoolLevel];
   flash(
@@ -154,6 +154,6 @@ export async function assignHomeroom(formData: FormData) {
       p_detail: {class: classId, teacher: userId},
     });
   }
-  revalidatePath('/campus');
+  revalidatePath('/[locale]/campus', 'page');
   flash(error ? friendlyError(error) : userId ? 'Đã phân công GVCN' : 'Đã bỏ phân công GVCN');
 }

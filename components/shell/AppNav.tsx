@@ -270,7 +270,7 @@ export function AppNav({
                     className={`animate-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] font-extrabold transition-colors ${
                       active
                         ? 'bg-white/70 text-navy shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_12px_rgba(38,39,93,0.10)]'
-                        : 'text-navy/60 hover:bg-white/50 hover:text-navy'
+                        : 'text-navy/70 hover:bg-white/50 hover:text-navy'
                     }`}
                   >
                     <NavIcon Icon={Icon} size={18} />

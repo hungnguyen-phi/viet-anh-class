@@ -37,7 +37,7 @@ export async function setUserRole(formData: FormData) {
       p_detail: {target_user: userId, new_role: role},
     });
   }
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   flash(error ? friendlyError(error) : 'Đã đổi vai trò');
 }
 
@@ -48,7 +48,7 @@ export async function disableUser(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.from('profiles').update({role: 'pending'}).eq('id', userId);
   if (!error) await supabase.rpc('log_audit', {p_action: 'disable_user', p_detail: {target_user: userId}});
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   flash(error ? friendlyError(error) : 'Đã vô hiệu (chuyển về "chờ cấp quyền")');
 }
 
@@ -59,7 +59,7 @@ export async function deleteUser(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.rpc('admin_delete_user', {p_user: userId});
   if (!error) await supabase.rpc('log_audit', {p_action: 'delete_user', p_detail: {target_user: userId}});
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   flash(error ? friendlyError(error) : 'Đã xoá người dùng');
 }
 
@@ -95,7 +95,7 @@ export async function createCampus(_prev: CampusState, formData: FormData): Prom
 
   // Trigger campus_seed_grades đã sinh khối chuẩn theo cấp — báo luôn để khỏi đi tìm.
   const nums = GRADE_NUMBERS[level];
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   return {
     ok: true,
     message: nums
@@ -149,8 +149,25 @@ export async function createClass(_prev: ClassState, formData: FormData): Promis
   });
   if (error) return {ok: false, error: friendlyError(error), values};
 
-  revalidatePath('/admin');
+  // Giao chủ nhiệm cho người còn ở vai 'chờ cấp quyền' thì NÂNG VAI luôn.
+  // Danh sách chọn GVCN nay có cả người vừa đăng nhập lần đầu (còn 'pending') — trước đây họ bị
+  // lọc ra nên hiệu trưởng vừa mời giáo viên xong lại không chọn được, đúng như phản ánh "không
+  // gõ được tên chủ nhiệm mới". Không nâng vai thì lớp có tên GVCN nhưng người đó vẫn không vào
+  // được lớp — một trạng thái nửa vời còn khó hiểu hơn.
+  if (teacher) await promoteToTeacher(supabase, teacher);
+
+  revalidatePath('/[locale]/admin', 'page');
+  revalidatePath('/[locale]/campus', 'page');
   return {ok: true, message: `Đã tạo lớp "${name}"`};
+}
+
+// Nâng 'pending' → 'teacher'. Chỉ đụng đúng người đang ở vai 'pending' (điều kiện .eq('role',...)),
+// nên không bao giờ hạ vai một admin/hiệu trưởng xuống giáo viên do gán nhầm.
+async function promoteToTeacher(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<void> {
+  await supabase.from('profiles').update({role: 'teacher'}).eq('id', userId).eq('role', 'pending');
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -186,7 +203,7 @@ export async function inviteUser(formData: FormData) {
       p_detail: {count: valid.length, role, class_id},
     });
   }
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   const okMsg =
     valid.length === 1
       ? `Đã mời ${valid[0]}. Vai trò sẽ được gán khi họ đăng nhập lần đầu.`
@@ -207,7 +224,7 @@ export async function assignGvcn(formData: FormData) {
     .from('classes')
     .update({homeroom_teacher_id: userId})
     .eq('id', classId);
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   flash(e1 || e2 ? friendlyError(e1 || e2) : 'Đã phân công GVCN');
 }
 
@@ -240,7 +257,7 @@ export async function inviteParent(_prev: ParentState, formData: FormData): Prom
   } catch {
     // ignore — lời mời đã tạo.
   }
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   return {ok: true, message: `Đã mời phụ huynh ${email}`};
 }
 
@@ -275,8 +292,8 @@ export async function updateCampus(formData: FormData) {
   // cũ (lớp có thể đang trỏ vào) — dọn là việc có ý thức của người quản trị.
   const {error} = await supabase.from('campuses').update({name, code, level}).eq('id', id);
   if (!error) await supabase.rpc('log_audit', {p_action: 'update_campus', p_detail: {campus: id, name, code, level}});
-  revalidatePath('/admin');
-  revalidatePath('/campus');
+  revalidatePath('/[locale]/admin', 'page');
+  revalidatePath('/[locale]/campus', 'page');
   flash(error ? friendlyError(error) : `Đã cập nhật cơ sở "${name}"`);
 }
 
@@ -289,7 +306,7 @@ export async function setCampusActive(formData: FormData) {
   const {error} = await supabase.from('campuses').update({is_active: active}).eq('id', id);
   if (!error)
     await supabase.rpc('log_audit', {p_action: active ? 'restore_campus' : 'archive_campus', p_detail: {campus: id}});
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   flash(error ? friendlyError(error) : active ? 'Đã khôi phục cơ sở' : 'Đã lưu trữ cơ sở');
 }
 
@@ -305,7 +322,7 @@ export async function deleteCampus(formData: FormData) {
   if ((count ?? 0) > 0) flash('Không thể xoá: cơ sở còn lớp. Hãy chuyển/lưu-trữ lớp trước, hoặc dùng Lưu trữ.');
   const {error} = await supabase.from('campuses').delete().eq('id', id); // grades cascade
   if (!error) await supabase.rpc('log_audit', {p_action: 'delete_campus', p_detail: {campus: id}});
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   flash(error ? friendlyError(error) : 'Đã xoá cơ sở (rỗng)');
 }
 
@@ -324,7 +341,7 @@ export async function createGrade(formData: FormData) {
     flash('Cấp học này đã có bộ khối chuẩn do hệ thống sinh — không thêm khối bằng tay.');
   const {error} = await supabase.from('grades').insert({campus_id, name, sort_order});
   if (!error) await supabase.rpc('log_audit', {p_action: 'create_grade', p_detail: {campus: campus_id, name}});
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   flash(error ? friendlyError(error) : `Đã tạo khối "${name}"`);
 }
 
@@ -341,7 +358,7 @@ export async function updateGrade(formData: FormData) {
   if (!error && old && old.name !== name) {
     await supabase.from('classes').update({grade: name}).eq('grade_id', id);
   }
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   flash(error ? friendlyError(error) : 'Đã cập nhật khối');
 }
 
@@ -352,7 +369,7 @@ export async function setGradeActive(formData: FormData) {
   if (!id) flash('Thiếu khối');
   const supabase = await createClient();
   const {error} = await supabase.from('grades').update({is_active: active}).eq('id', id);
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   flash(error ? friendlyError(error) : active ? 'Đã khôi phục khối' : 'Đã lưu trữ khối');
 }
 
@@ -368,7 +385,7 @@ export async function deleteGrade(formData: FormData) {
   if ((count ?? 0) > 0) flash('Không thể xoá: còn lớp thuộc khối. Hãy đổi khối cho các lớp trước, hoặc dùng Lưu trữ.');
   const {error} = await supabase.from('grades').delete().eq('id', id);
   if (!error) await supabase.rpc('log_audit', {p_action: 'delete_grade', p_detail: {grade: id}});
-  revalidatePath('/admin');
+  revalidatePath('/[locale]/admin', 'page');
   flash(error ? friendlyError(error) : 'Đã xoá khối (rỗng)');
 }
 
@@ -396,8 +413,11 @@ export async function updateClass(formData: FormData) {
     .update({name, school_year, campus_id, grade_id, grade, homeroom_teacher_id: teacher})
     .eq('id', id);
   if (!error) await supabase.rpc('log_audit', {p_action: 'update_class', p_detail: {class: id, name}});
-  revalidatePath('/admin');
-  revalidatePath('/');
+  // Gán GVCN cho người còn 'chờ cấp quyền' thì nâng vai luôn — xem ghi chú ở createClass.
+  if (!error && teacher) await promoteToTeacher(supabase, teacher);
+  revalidatePath('/[locale]/admin', 'page');
+  revalidatePath('/[locale]/campus', 'page');
+  revalidatePath('/[locale]', 'page');
   flash(error ? friendlyError(error) : `Đã cập nhật lớp "${name}"`);
 }
 
@@ -410,8 +430,8 @@ export async function setClassActive(formData: FormData) {
   const {error} = await supabase.from('classes').update({is_active: active}).eq('id', id);
   if (!error)
     await supabase.rpc('log_audit', {p_action: active ? 'restore_class' : 'archive_class', p_detail: {class: id}});
-  revalidatePath('/admin');
-  revalidatePath('/');
+  revalidatePath('/[locale]/admin', 'page');
+  revalidatePath('/[locale]', 'page');
   flash(error ? friendlyError(error) : active ? 'Đã khôi phục lớp' : 'Đã lưu trữ lớp');
 }
 
@@ -428,7 +448,7 @@ export async function deleteClass(formData: FormData) {
     flash('Không thể xoá: lớp còn học sinh hoặc WIG. Hãy dùng Lưu trữ để giữ dữ liệu.');
   const {error} = await supabase.from('classes').delete().eq('id', id);
   if (!error) await supabase.rpc('log_audit', {p_action: 'delete_class', p_detail: {class: id}});
-  revalidatePath('/admin');
-  revalidatePath('/');
+  revalidatePath('/[locale]/admin', 'page');
+  revalidatePath('/[locale]', 'page');
   flash(error ? friendlyError(error) : 'Đã xoá lớp (rỗng)');
 }

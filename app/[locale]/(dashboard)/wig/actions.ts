@@ -33,8 +33,8 @@ export async function setTickLockDow(formData: FormData) {
     .update({tick_lock_dow: dow})
     .eq('id', class_id)
     .select('id');
-  revalidatePath('/wig');
-  revalidatePath('/student');
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]/student', 'page');
   if (error) flash(friendlyError(error), class_id);
   flash(data && data.length ? 'Đã lưu ngày chốt tuần' : 'Không lưu được (không có quyền).', class_id);
 }
@@ -108,8 +108,8 @@ export async function createYearWig(_prev: CreateWigState, formData: FormData): 
   });
   if (error) return {ok: false, error: friendlyError(error), values};
 
-  revalidatePath('/wig');
-  revalidatePath('/');
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]', 'page');
   return {ok: true, message: 'Đã tạo WIG năm'};
 }
 
@@ -156,8 +156,8 @@ export async function createWig(formData: FormData) {
     end_date,
     parent_wig_id,
   });
-  revalidatePath('/wig');
-  revalidatePath('/');
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]', 'page');
   flash(error ? friendlyError(error) : 'Đã tạo WIG', class_id);
 }
 
@@ -173,7 +173,7 @@ export async function addLeadMeasure(formData: FormData) {
   if (target_value <= 0) flash('Mục tiêu phải lớn hơn 0.', class_id);
   const supabase = await createClient();
   const {error} = await supabase.from('lead_measures').insert({wig_id, title, target_value, unit, sub_category});
-  revalidatePath('/wig');
+  revalidatePath('/[locale]/wig', 'page');
   flash(error ? friendlyError(error) : 'Đã thêm lead measure', class_id);
 }
 
@@ -190,8 +190,8 @@ export async function logProgress(formData: FormData) {
   const {error} = await supabase
     .from('lead_progress')
     .insert({lead_measure_id, value, logged_by: me.id});
-  revalidatePath('/wig');
-  revalidatePath('/');
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]', 'page');
   flash(error ? friendlyError(error) : `Đã ghi +${value}`, class_id);
 }
 
@@ -205,8 +205,8 @@ export async function deleteWig(formData: FormData) {
   const supabase = await createClient();
   await supabase.from('wigs').delete().eq('parent_wig_id', wig_id); // WIG con (nếu là WIG năm)
   const {error} = await supabase.from('wigs').delete().eq('id', wig_id);
-  revalidatePath('/wig');
-  revalidatePath('/');
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]', 'page');
   flash(error ? friendlyError(error) : 'Đã xoá WIG', class_id);
 }
 
@@ -249,8 +249,8 @@ export async function editWig(formData: FormData) {
     })
     .eq('id', id)
     .select('id');
-  revalidatePath('/wig');
-  revalidatePath('/');
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]', 'page');
   if (error) flash(friendlyError(error), class_id);
   if (!data || data.length === 0) flash('Không sửa được WIG này (không có quyền hoặc đã bị xoá).', class_id);
   flash('Đã cập nhật WIG', class_id);
@@ -273,8 +273,8 @@ export async function editLeadMeasure(formData: FormData) {
     .update({title, target_value, unit, sub_category})
     .eq('id', id)
     .select('id');
-  revalidatePath('/wig');
-  revalidatePath('/');
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]', 'page');
   if (error) flash(friendlyError(error), class_id);
   if (!data || data.length === 0)
     flash('Không sửa được lead measure này (không có quyền hoặc đã bị xoá).', class_id);
@@ -288,7 +288,7 @@ export async function deleteLeadMeasure(formData: FormData) {
   if (!id) flash('Thiếu lead measure cần xoá', class_id);
   const supabase = await createClient();
   const {error} = await supabase.from('lead_measures').delete().eq('id', id);
-  revalidatePath('/wig');
-  revalidatePath('/');
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]', 'page');
   flash(error ? friendlyError(error) : 'Đã xoá lead measure', class_id);
 }

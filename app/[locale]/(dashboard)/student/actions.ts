@@ -37,9 +37,9 @@ export async function checkinMood(mood: Mood): Promise<CheckinResult> {
   if (data === 'blocked') return {ok: false, blocked: true};
   if (data === 'no_class') return {ok: false, noClass: true};
 
-  revalidatePath('/student');
-  revalidatePath(`/student/${profile.id}`);
-  revalidatePath('/attendance');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/attendance', 'page');
   return {ok: true};
 }
 
@@ -156,9 +156,9 @@ export async function saveStudentMeeting(
 
   if (error) return {ok: false, error: friendlyError(error), values};
 
-  revalidatePath(`/student/${student_id}`);
-  revalidatePath('/student');
-  revalidatePath('/');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]', 'page');
   return {
     ok: true,
     message:
@@ -348,7 +348,7 @@ export async function createStudentYearWigs(formData: FormData) {
       end_date: end,
     })),
   );
-  revalidatePath(`/student/${student_id}`);
+  revalidatePath('/[locale]/student/[id]', 'page');
   back(error ? friendlyError(error) : `Đã tạo ${rows.length} WIG năm cá nhân`);
 }
 
@@ -414,7 +414,7 @@ export async function createStudentWeekWigs(formData: FormData) {
     })),
   );
 
-  revalidatePath(`/student/${student_id}`);
+  revalidatePath('/[locale]/student/[id]', 'page');
   back(`Đã tạo ${inserted.length} WIG tuần ${label} cho em`);
 }
 
@@ -442,8 +442,8 @@ export async function editStudentWig(formData: FormData) {
     .eq('id', id)
     .eq('scope', 'student')
     .select('id');
-  revalidatePath(`/student/${student_id}`);
-  revalidatePath('/');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]', 'page');
   if (error) backToStudent(student_id, friendlyError(error));
   if (!data || data.length === 0) backToStudent(student_id, 'Không sửa được (không có quyền hoặc đã xoá).');
   backToStudent(student_id, 'Đã cập nhật WIG cá nhân');
@@ -457,8 +457,8 @@ export async function deleteStudentWig(formData: FormData) {
   const supabase = await createClient();
   await supabase.from('wigs').delete().eq('parent_wig_id', id); // con tuần (nếu là WIG năm)
   const {error} = await supabase.from('wigs').delete().eq('id', id).eq('scope', 'student');
-  revalidatePath(`/student/${student_id}`);
-  revalidatePath('/');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]', 'page');
   backToStudent(student_id, error ? friendlyError(error) : 'Đã xoá WIG cá nhân');
 }
 
@@ -477,8 +477,8 @@ export async function editStudentLead(formData: FormData) {
     .update({title, target_value, unit})
     .eq('id', id)
     .select('id');
-  revalidatePath(`/student/${student_id}`);
-  revalidatePath('/');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]', 'page');
   if (error) backToStudent(student_id, friendlyError(error));
   if (!data || data.length === 0) backToStudent(student_id, 'Không sửa được lead (không có quyền hoặc đã xoá).');
   backToStudent(student_id, 'Đã cập nhật lead measure');
@@ -491,8 +491,8 @@ export async function deleteStudentLead(formData: FormData) {
   if (!id) backToStudent(student_id, 'Thiếu lead');
   const supabase = await createClient();
   const {error} = await supabase.from('lead_measures').delete().eq('id', id);
-  revalidatePath(`/student/${student_id}`);
-  revalidatePath('/');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]', 'page');
   backToStudent(student_id, error ? friendlyError(error) : 'Đã xoá lead measure');
 }
 
@@ -504,8 +504,8 @@ export async function removeLeadEntry(formData: FormData) {
   if (!entry_id) backToStudent(student_id, 'Thiếu lượt tick');
   const supabase = await createClient();
   const {data, error} = await supabase.from('lead_progress').delete().eq('id', entry_id).select('id');
-  revalidatePath(`/student/${student_id}`);
-  revalidatePath('/');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]', 'page');
   if (error) backToStudent(student_id, friendlyError(error));
   backToStudent(student_id, data && data.length ? 'Đã gỡ lượt tick' : 'Không gỡ được (không có quyền hoặc đã xoá).');
 }
@@ -517,7 +517,7 @@ export async function deleteStudentMeeting(formData: FormData) {
   if (!id) backToStudent(student_id, 'Thiếu biên bản');
   const supabase = await createClient();
   const {error} = await supabase.from('wig_meetings').delete().eq('id', id);
-  revalidatePath(`/student/${student_id}`);
+  revalidatePath('/[locale]/student/[id]', 'page');
   backToStudent(student_id, error ? friendlyError(error) : 'Đã xoá biên bản');
 }
 
@@ -541,7 +541,7 @@ export async function createEditRequest(formData: FormData) {
     ref_id,
     message: message || null,
   });
-  revalidatePath(`/student/${student_id}`);
+  revalidatePath('/[locale]/student/[id]', 'page');
   if (error && error.code !== '23505') back(friendlyError(error));
   back('Đã gửi yêu cầu chỉnh sửa cho giáo viên');
 }
@@ -693,8 +693,8 @@ export async function refreshBuddyNote(): Promise<BuddyAskResult> {
     return {ok: false, error: 'save'};
   }
 
-  revalidatePath('/student');
-  revalidatePath(`/student/${profile.id}`);
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
   return {ok: true, generated: true};
 }
 
@@ -713,8 +713,8 @@ export async function toggleBuddyChat(formData: FormData) {
     .update({buddy_chat_open: open})
     .eq('id', meeting_id)
     .select('id');
-  revalidatePath(`/student/${student_id}`);
-  revalidatePath('/student');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/student', 'page');
   if (error) backToStudent(student_id, friendlyError(error));
   if (!data || data.length === 0) backToStudent(student_id, 'Không đổi được (không có quyền hoặc đã xoá).');
   backToStudent(student_id, open ? 'Đã mở Buddy cho buổi họp' : 'Đã đóng Buddy');
@@ -780,8 +780,8 @@ export async function sendBuddyMessage(meetingId: string, content: string): Prom
     return {ok: false, error: 'save'};
   }
 
-  revalidatePath('/student');
-  revalidatePath(`/student/${profile.id}`);
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
   return {ok: true};
 }
 
@@ -803,8 +803,8 @@ export async function updateEditRequest(formData: FormData) {
     .eq('id', id)
     .eq('status', 'pending')
     .select('id');
-  revalidatePath(`/student/${student_id}`);
-  revalidatePath('/student');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/student', 'page');
   if (error) back(friendlyError(error));
   back(
     data && data.length
@@ -829,8 +829,8 @@ export async function withdrawEditRequest(formData: FormData) {
     .eq('id', id)
     .eq('status', 'pending')
     .select('id');
-  revalidatePath(`/student/${student_id}`);
-  revalidatePath('/student');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/student', 'page');
   if (error) back(friendlyError(error));
   back(
     data && data.length
@@ -856,7 +856,7 @@ export async function resolveEditRequest(formData: FormData) {
     .eq('id', id)
     .eq('status', 'pending')
     .select('id, kind, ref_id, student_id');
-  revalidatePath(`/student/${student_id}`);
+  revalidatePath('/[locale]/student/[id]', 'page');
   if (error) backToStudent(student_id, friendlyError(error));
   if (!data || data.length === 0) backToStudent(student_id, 'Yêu cầu đã được xử lý trước đó.');
   const r = data[0];
@@ -872,7 +872,7 @@ export async function resolveEditRequest(formData: FormData) {
       .eq('id', r.ref_id)
       .select('id');
     if (upErr) backToStudent(student_id, friendlyError(upErr));
-    revalidatePath('/');
+    revalidatePath('/[locale]', 'page');
     backToStudent(
       student_id,
       upd && upd.length ? 'Đã duyệt & đổi tên việc' : 'Đã duyệt, nhưng việc đó không còn tồn tại.',
@@ -894,8 +894,153 @@ export async function resolveEditRequest(formData: FormData) {
       const {error: delErr} = await supabase.from('lead_progress').delete().eq('id', target.id);
       if (delErr) backToStudent(student_id, friendlyError(delErr));
     }
-    revalidatePath('/');
+    revalidatePath('/[locale]', 'page');
     backToStudent(student_id, 'Đã duyệt & gỡ tick');
   }
   backToStudent(student_id, decision === 'approved' ? 'Đã duyệt yêu cầu' : 'Đã từ chối yêu cầu');
+}
+
+// ============================================================
+// C6 — Tạo WIG CÁ NHÂN cho CẢ LỚP một lượt.
+//
+// VÌ SAO PHẢI CÓ HÀM NÀY (lỗi cả 3 người thử đều gặp):
+// Màn hình của học sinh chỉ hiện việc để tick khi em đó có WIG cá nhân (scope='student') của
+// ĐÚNG tuần này. Nhưng trước đây chỉ có một đường tạo ra chúng: mở trang chi tiết TỪNG em
+// (/student/<id>) rồi bấm hai lần. Trang WIG chính — nơi giáo viên thực sự làm việc — chỉ tạo
+// WIG của LỚP, không tạo WIG cá nhân. Giáo viên đi theo đường tự nhiên đó thì không em nào có
+// WIG cá nhân, nên màn hình học sinh luôn trống và không có gì để tick.
+//
+// Hàm này gom cả lớp vào ~6 vòng truy vấn CỐ ĐỊNH (không nhân theo sĩ số): lấy danh sách em →
+// đọc WIG năm đã có → chèn WIG năm còn thiếu → đọc WIG tuần đã có → chèn WIG tuần → chèn lead
+// measure. Lớp 40 em cũng chỉ tốn chừng đó vòng.
+//
+// Idempotent: chạy lại chỉ bù phần còn thiếu, không đẻ trùng.
+export async function createClassStudentWigs(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const class_id = String(formData.get('class_id') ?? '');
+  // Chú thích kiểu TƯỜNG MINH trên biến (không chỉ trên hàm mũi tên): TypeScript chỉ chịu coi
+  // một lời gọi là "không bao giờ trả về" — để thu hẹp kiểu ở các dòng sau — khi chính BIẾN được
+  // khai báo kiểu. Thiếu nó thì sau `if (!x) back(...)` TS vẫn nghĩ code chạy tiếp.
+  const back: (m: string) => never = (m) =>
+    redirect(`/wig?class=${class_id}&flash=${encodeURIComponent(m)}`);
+  if (!class_id) back('Thiếu lớp');
+
+  // Mục tiêu + đơn vị cho từng lĩnh vực, áp chung cho cả lớp; GVCN sửa riêng từng em sau.
+  const areaRows = AREAS.map((area) => ({
+    area,
+    target: Number(formData.get(`target_${area}`) ?? 0),
+    unit: String(formData.get(`unit_${area}`) ?? '').trim(),
+  })).filter((r) => r.target > 0 && r.unit);
+  if (areaRows.length === 0) back('Nhập mục tiêu + đơn vị cho ít nhất 1 lĩnh vực');
+
+  const supabase = await createClient();
+  const year = schoolYearRangeVN();
+  const week = weekRangeVN();
+
+  const {data: enr} = await supabase
+    .from('enrollments')
+    .select('student_id')
+    .eq('class_id', class_id)
+    .eq('is_active', true);
+  const studentIds = (enr ?? []).map((e) => e.student_id);
+  if (studentIds.length === 0) back('Lớp chưa có học sinh nào đang học');
+
+  // ---- WIG NĂM: chỉ tạo cho (em, lĩnh vực) chưa có ----
+  const {data: haveYear} = await supabase
+    .from('wigs')
+    .select('student_id, area')
+    .eq('scope', 'student')
+    .eq('period', 'year')
+    .eq('period_label', year.label)
+    .in('student_id', studentIds);
+  const yearDone = new Set((haveYear ?? []).map((w) => `${w.student_id}|${w.area}`));
+
+  const yearRows = studentIds.flatMap((sid) =>
+    areaRows
+      .filter((r) => !yearDone.has(`${sid}|${r.area}`))
+      .map((r) => ({
+        class_id,
+        student_id: sid,
+        scope: 'student' as const,
+        title: DEFAULT_WIG_TITLE[r.area] ?? 'Mục tiêu năm',
+        area: r.area,
+        period: 'year' as const,
+        period_label: year.label,
+        target_value: r.target,
+        unit: r.unit,
+        start_date: year.start,
+        end_date: year.end,
+      })),
+  );
+  if (yearRows.length > 0) {
+    const {error} = await supabase.from('wigs').insert(yearRows);
+    if (error) back(friendlyError(error));
+  }
+
+  // ---- WIG TUẦN: mỗi WIG năm sinh ra một WIG tuần, bỏ qua tuần đã có ----
+  const {data: allYear} = await supabase
+    .from('wigs')
+    .select('id, student_id, area, unit')
+    .eq('scope', 'student')
+    .eq('period', 'year')
+    .eq('period_label', year.label)
+    .in('student_id', studentIds);
+
+  const {data: haveWeek} = await supabase
+    .from('wigs')
+    .select('student_id, area')
+    .eq('scope', 'student')
+    .eq('period', 'week')
+    .eq('period_label', week.label)
+    .in('student_id', studentIds);
+  const weekDone = new Set((haveWeek ?? []).map((w) => `${w.student_id}|${w.area}`));
+
+  const weekTarget = Number(formData.get('week_target') ?? 5) || 5;
+  const weekRows = (allYear ?? [])
+    .filter((y) => !weekDone.has(`${y.student_id}|${y.area}`))
+    .map((y) => ({
+      class_id,
+      student_id: y.student_id,
+      scope: 'student' as const,
+      title: DEFAULT_WIG_TITLE[y.area as (typeof AREAS)[number]] ?? 'Mục tiêu tuần',
+      area: y.area,
+      period: 'week' as const,
+      period_label: week.label,
+      parent_wig_id: y.id,
+      target_value: weekTarget,
+      unit: y.unit,
+      start_date: week.start,
+      end_date: week.end,
+    }));
+
+  if (weekRows.length === 0) {
+    revalidatePath('/[locale]/wig', 'page');
+    back(`Tuần ${week.label} đã có đủ WIG cá nhân cho cả lớp`);
+  }
+
+  const {data: insertedRaw, error: wErr} = await supabase
+    .from('wigs')
+    .insert(weekRows)
+    .select('id, area, unit');
+  if (wErr || !insertedRaw) back(friendlyError(wErr));
+  const inserted = insertedRaw;
+
+  // Lead measure là thứ học sinh THẤY và TICK — thiếu nó thì WIG tuần vẫn vô hình với các em.
+  const {error: lErr} = await supabase.from('lead_measures').insert(
+    inserted.map((w) => ({
+      wig_id: w.id,
+      title: DEFAULT_LEAD_TITLE[w.area as (typeof AREAS)[number]] ?? 'Tiến độ tuần',
+      target_value: weekTarget,
+      unit: w.unit,
+    })),
+  );
+  if (lErr) back(friendlyError(lErr));
+
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  back(
+    `Đã tạo WIG cá nhân tuần ${week.label} cho ${studentIds.length} em ` +
+      `(${inserted.length} mục tiêu). Các em vào "Bảng điểm của tôi" là tick được ngay.`,
+  );
 }

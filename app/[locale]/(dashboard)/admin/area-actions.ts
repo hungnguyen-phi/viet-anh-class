@@ -42,8 +42,8 @@ export async function updateArea(formData: FormData) {
     .eq('area', area);
   if (!error) await supabase.rpc('log_audit', {p_action: 'update_area', p_detail: {area}});
   // Lĩnh vực hiển thị ở scoreboard lớp (/) và trang WIG.
-  revalidatePath('/admin');
-  revalidatePath('/');
-  revalidatePath('/wig');
+  revalidatePath('/[locale]/admin', 'page');
+  revalidatePath('/[locale]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
   flash(error ? friendlyError(error) : 'Đã cập nhật lĩnh vực');
 }

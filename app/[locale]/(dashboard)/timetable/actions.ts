@@ -32,7 +32,7 @@ export async function saveSlot(formData: FormData) {
       {class_id, day_of_week, period_no, subject, room, teacher_name, kind},
       {onConflict: 'class_id,day_of_week,period_no'},
     );
-  revalidatePath('/timetable');
+  revalidatePath('/[locale]/timetable', 'page');
   flash(class_id, error ? friendlyError(error) : 'Đã lưu ô thời khoá biểu');
 }
 
@@ -76,7 +76,7 @@ export async function saveOverride(formData: FormData) {
     },
     {onConflict: 'slot_id,date'},
   );
-  revalidatePath('/timetable');
+  revalidatePath('/[locale]/timetable', 'page');
   flash(class_id, error ? friendlyError(error) : 'Đã lưu thay đổi lịch');
 }
 
@@ -86,7 +86,7 @@ export async function deleteOverride(formData: FormData) {
   const id = String(formData.get('id') ?? '');
   const supabase = await createClient();
   const {error} = await supabase.from('timetable_overrides').delete().eq('id', id);
-  revalidatePath('/timetable');
+  revalidatePath('/[locale]/timetable', 'page');
   flash(class_id, error ? friendlyError(error) : 'Đã gỡ thay đổi, tiết trở lại bình thường');
 }
 
@@ -96,6 +96,6 @@ export async function deleteSlot(formData: FormData) {
   const id = String(formData.get('id') ?? '');
   const supabase = await createClient();
   const {error} = await supabase.from('timetable_slots').delete().eq('id', id);
-  revalidatePath('/timetable');
+  revalidatePath('/[locale]/timetable', 'page');
   flash(class_id, error ? friendlyError(error) : 'Đã xoá ô');
 }

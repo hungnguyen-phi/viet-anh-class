@@ -48,7 +48,7 @@ function GoogleIcon() {
 
 // Cùng dáng với ô email phụ huynh sẵn có bên dưới — không tạo kiểu ô mới cho trang này.
 const inputCls =
-  'h-11 w-full min-w-0 rounded-[12px] border border-navy/[0.18] bg-white px-[13px] text-[13.5px] font-bold text-navy outline-none transition-all placeholder:font-semibold placeholder:text-navy/35 focus:border-gold focus:shadow-[0_0_0_3px_rgba(249,221,14,0.22)]';
+  'h-11 w-full min-w-0 rounded-[12px] border border-navy/[0.18] bg-white px-[13px] text-[13.5px] font-bold text-navy outline-none transition-all placeholder:font-semibold placeholder:text-navy/70 focus:border-gold focus:shadow-[0_0_0_3px_rgba(249,221,14,0.22)]';
 
 export function LoginForm() {
   const t = useTranslations('login');
@@ -153,7 +153,7 @@ export function LoginForm() {
               {loading === 'google' ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
               {t('googleButton')}
             </button>
-            <div className="mt-2 text-center text-[11px] font-semibold text-navy/55">
+            <div className="mt-2 text-center text-[11px] font-semibold text-navy/70">
               {t('googleHint')}
             </div>
           </>
@@ -163,7 +163,7 @@ export function LoginForm() {
         {SHOW_PASSWORD && (
           <>
             {SHOW_GOOGLE && (
-              <div className="mt-3.5 flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-wider text-navy/35">
+              <div className="mt-3.5 flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-wider text-navy/70">
                 <span className="h-px flex-1 bg-navy/10" />
                 <span>{t('orDivider')}</span>
                 <span className="h-px flex-1 bg-navy/10" />
@@ -174,7 +174,7 @@ export function LoginForm() {
               <div>
                 <label
                   htmlFor="login-email"
-                  className="mb-1 block text-[10.5px] font-extrabold uppercase tracking-wide text-navy/55"
+                  className="mb-1 block text-[10.5px] font-extrabold uppercase tracking-wide text-navy/70"
                 >
                   {t('emailLabel')}
                 </label>
@@ -192,7 +192,7 @@ export function LoginForm() {
               <div>
                 <label
                   htmlFor="login-password"
-                  className="mb-1 block text-[10.5px] font-extrabold uppercase tracking-wide text-navy/55"
+                  className="mb-1 block text-[10.5px] font-extrabold uppercase tracking-wide text-navy/70"
                 >
                   {t('passwordLabel')}
                 </label>
