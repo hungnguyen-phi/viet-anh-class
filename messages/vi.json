@@ -536,7 +536,7 @@
     "manageTeachers": "Quản lý giáo viên",
     "inviteTeacher": "Mời giáo viên",
     "inviteTeacherPlaceholder": "Email giáo viên (nhiều email cách nhau bởi dấu phẩy)",
-    "inviteTeacherHint": "Giáo viên sẽ vào đúng cơ sở này với vai trò GVCN ngay khi đăng nhập Google lần đầu.",
+    "inviteTeacherHint": "⚠ App KHÔNG tự gửi email mời. Hãy tự báo cho người được mời tự vào class.vietanh.org đăng nhập bằng Google — vai trò và lớp sẽ tự gán ở lần đăng nhập đầu tiên.",
     "pendingInvites": "Lời mời chưa dùng",
     "cancelInvite": "Huỷ lời mời",
     "teachers": "Giáo viên",

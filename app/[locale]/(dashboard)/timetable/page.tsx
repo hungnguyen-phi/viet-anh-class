@@ -68,7 +68,9 @@ export default async function TimetablePage({
     );
   }
 
-  const canManage = profile.role === 'teacher' || profile.role === 'admin';
+  // Hiệu trưởng cũng quản lý được TKB của cơ sở mình (xem migration 0057).
+  const canManage =
+    profile.role === 'teacher' || profile.role === 'admin' || profile.role === 'principal';
 
   // ===== Tuần đang xem =====
   // TKB là mẫu tuần lặp, nhưng huỷ/dời/dạy thay là chuyện của NGÀY cụ thể → phải có ngữ cảnh tuần.

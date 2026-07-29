@@ -536,7 +536,7 @@
     "manageTeachers": "Manage teachers",
     "inviteTeacher": "Invite teacher",
     "inviteTeacherPlaceholder": "Teacher email (separate several with commas)",
-    "inviteTeacherHint": "They join this campus as a homeroom teacher the first time they sign in with Google.",
+    "inviteTeacherHint": "⚠ The app does NOT send invitation emails. Tell the invited person to sign in at class.vietanh.org with Google — their role and class are assigned on first sign-in.",
     "pendingInvites": "Unused invitations",
     "cancelInvite": "Cancel",
     "teachers": "Teachers",

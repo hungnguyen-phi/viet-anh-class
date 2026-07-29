@@ -10,11 +10,14 @@ function flash(classId: string, msg: string): never {
   redirect(`/timetable?class=${encodeURIComponent(classId)}&flash=${encodeURIComponent(msg)}`);
 }
 
+// Hiệu trưởng nằm trong danh sách: ở trường thật, THỜI KHOÁ BIỂU do ban giám hiệu xếp, giáo
+// viên chỉ đổi ngoại lệ (thi, thực hành, dạy thay). RLS ở migration 0057 giới hạn họ đúng các
+// lớp trong cơ sở mình.
 const KINDS = ['regular', 'practice', 'exam'] as const;
 
 // Lưu (tạo/sửa) 1 ô thời khoá biểu. RLS tt_manage: chỉ GVCN lớp/admin.
 export async function saveSlot(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
+  await requireRole(['teacher', 'admin', 'principal']);
   const class_id = String(formData.get('class_id') ?? '');
   const day_of_week = Number(formData.get('day_of_week') ?? 0);
   const period_no = Number(formData.get('period_no') ?? 0);
@@ -42,7 +45,7 @@ export async function saveSlot(formData: FormData) {
 // phải ghi riêng theo ngày, nếu không sẽ phá cả các tuần khác.
 // ============================================================
 export async function saveOverride(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
+  await requireRole(['teacher', 'admin', 'principal']);
   const class_id = String(formData.get('class_id') ?? '');
   const slot_id = String(formData.get('slot_id') ?? '');
   const date = String(formData.get('date') ?? '');
@@ -81,7 +84,7 @@ export async function saveOverride(formData: FormData) {
 }
 
 export async function deleteOverride(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
+  await requireRole(['teacher', 'admin', 'principal']);
   const class_id = String(formData.get('class_id') ?? '');
   const id = String(formData.get('id') ?? '');
   const supabase = await createClient();
@@ -91,7 +94,7 @@ export async function deleteOverride(formData: FormData) {
 }
 
 export async function deleteSlot(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
+  await requireRole(['teacher', 'admin', 'principal']);
   const class_id = String(formData.get('class_id') ?? '');
   const id = String(formData.get('id') ?? '');
   const supabase = await createClient();

@@ -41,7 +41,9 @@ export async function SchoolRollup({rows}: {rows: RollupRow[]}) {
     list.length ? Math.round(sum(list, (r) => Number(r.score)) / list.length) : 0;
 
   const colClass = {flex: 1.4};
-  const colNum = {flex: 1};
+  // Cột số CĂN GIỮA (trước đây căn phải). Ban giám hiệu phản ánh ở vòng 2: sĩ số một chữ số
+// bị dạt hẳn sang mép, nhìn lệch so với dòng trên dưới nên khó dò theo hàng.
+const colNum = {flex: 1};
 
   return (
     <div className="glass overflow-x-auto rounded-[20px]">
@@ -50,13 +52,13 @@ export async function SchoolRollup({rows}: {rows: RollupRow[]}) {
         <span className="text-[11px] font-extrabold uppercase text-grey-mid" style={colClass}>
           {t('class')}
         </span>
-        <span className="text-right text-[11px] font-extrabold uppercase text-grey-mid" style={colNum}>
+        <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid" style={colNum}>
           {t('students')}
         </span>
-        <span className="text-right text-[11px] font-extrabold uppercase text-grey-mid" style={colNum}>
+        <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid" style={colNum}>
           {t('score')}
         </span>
-        <span className="text-right text-[11px] font-extrabold uppercase text-grey-mid" style={colNum}>
+        <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid" style={colNum}>
           {t('attToday')}
         </span>
       </div>
@@ -71,13 +73,13 @@ export async function SchoolRollup({rows}: {rows: RollupRow[]}) {
                 · {list.length} {t('classesShort')}
               </span>
             </span>
-            <span className="text-right text-[12.5px] font-bold text-navy" style={colNum}>
+            <span className="text-center text-[12.5px] font-bold text-navy" style={colNum}>
               {sum(list, (r) => Number(r.student_count))}
             </span>
-            <span className="text-right font-display text-[14px] font-bold text-navy" style={colNum}>
+            <span className="text-center font-display text-[14px] font-bold text-navy" style={colNum}>
               {avgScore(list)}
             </span>
-            <span className="text-right text-[12.5px] font-bold text-navy" style={colNum}>
+            <span className="text-center text-[12.5px] font-bold text-navy" style={colNum}>
               {sum(list, (r) => Number(r.att_today))}
             </span>
           </div>
@@ -92,13 +94,13 @@ export async function SchoolRollup({rows}: {rows: RollupRow[]}) {
               <span className="pl-3 text-[13.5px] font-bold text-navy" style={colClass}>
                 {r.class_name}
               </span>
-              <span className="text-right text-[12.5px] font-semibold text-grey-mid" style={colNum}>
+              <span className="text-center text-[12.5px] font-semibold text-grey-mid" style={colNum}>
                 {r.student_count}
               </span>
-              <span className="text-right font-display text-[15px] text-navy" style={colNum}>
+              <span className="text-center font-display text-[15px] text-navy" style={colNum}>
                 {Number(r.score)}
               </span>
-              <span className="text-right text-[12.5px] font-semibold text-grey-mid" style={colNum}>
+              <span className="text-center text-[12.5px] font-semibold text-grey-mid" style={colNum}>
                 {r.att_today}/{r.student_count}
               </span>
             </Link>
@@ -114,13 +116,13 @@ export async function SchoolRollup({rows}: {rows: RollupRow[]}) {
             · {rows.length} {t('classesShort')}
           </span>
         </span>
-        <span className="text-right text-[13px] font-extrabold text-navy" style={colNum}>
+        <span className="text-center text-[13px] font-extrabold text-navy" style={colNum}>
           {sum(rows, (r) => Number(r.student_count))}
         </span>
-        <span className="text-right font-display text-[15px] font-extrabold text-navy" style={colNum}>
+        <span className="text-center font-display text-[15px] font-extrabold text-navy" style={colNum}>
           {avgScore(rows)}
         </span>
-        <span className="text-right text-[13px] font-extrabold text-navy" style={colNum}>
+        <span className="text-center text-[13px] font-extrabold text-navy" style={colNum}>
           {sum(rows, (r) => Number(r.att_today))}/{sum(rows, (r) => Number(r.student_count))}
         </span>
       </div>
