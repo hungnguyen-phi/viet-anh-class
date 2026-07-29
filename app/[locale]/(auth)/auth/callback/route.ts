@@ -2,17 +2,16 @@ import {NextResponse} from 'next/server';
 import type {EmailOtpType} from '@supabase/supabase-js';
 import {createClient} from '@/lib/supabase/server';
 import {homeRouteForRole} from '@/lib/auth';
-import {SITE_URL} from '@/lib/site';
+import {publicOrigin} from '@/lib/public-origin';
 
 // Đổi code OAuth / verify magic-link OTP → đặt session → đẩy về trang theo vai trò.
 //
-// Dùng SITE_URL (cố định, KHÔNG dùng `new URL(request.url).origin`): sau Coolify/Cloudflare,
-// request.url là địa chỉ NỘI BỘ container (vd http://0.0.0.0:8080) — dùng nhầm nó thì mọi
-// redirect sau đăng nhập Google đều rơi về localhost/0.0.0.0, trình duyệt người dùng không
-// bao giờ vào được (lỗi chỉ lộ ra khi chạy sau proxy thật, máy dev không bao giờ thấy).
+// origin lấy từ publicOrigin(request), KHÔNG phải `new URL(request.url).origin`: sau
+// Coolify/Cloudflare, request.url là địa chỉ NỘI BỘ container (http://0.0.0.0:8080) — dùng nhầm
+// nó thì người dùng vừa đăng nhập Google xong bị đẩy tới một địa chỉ không tồn tại.
 export async function GET(request: Request) {
   const {searchParams} = new URL(request.url);
-  const origin = SITE_URL;
+  const origin = publicOrigin(request);
   const code = searchParams.get('code');
   const tokenHash = searchParams.get('token_hash');
   const type = searchParams.get('type') as EmailOtpType | null;

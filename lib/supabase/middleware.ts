@@ -2,7 +2,7 @@ import {createServerClient} from '@supabase/ssr';
 import {NextResponse, type NextRequest} from 'next/server';
 import type {Database} from '@/lib/database.types';
 import {routing} from '@/i18n/routing';
-import {SITE_URL} from '@/lib/site';
+import {publicOrigin} from '@/lib/public-origin';
 
 // Đường dẫn công khai (không cần đăng nhập).
 const PUBLIC_PATHS = ['/login', '/auth', '/unauthorized'];
@@ -39,7 +39,7 @@ export async function updateSession(
   if (!hasAuthCookie) {
     if (earlyPublic) return response;
     const prefix = earlyLocale === routing.defaultLocale ? '' : `/${earlyLocale}`;
-    return NextResponse.redirect(new URL(`${prefix}/login`, SITE_URL));
+    return NextResponse.redirect(new URL(`${prefix}/login`, publicOrigin(request)));
   }
 
   const supabase = createServerClient<Database>(
@@ -67,10 +67,10 @@ export async function updateSession(
     (p) => path === p || path.startsWith(p + '/'),
   );
   const prefix = locale === routing.defaultLocale ? '' : `/${locale}`;
-  // SITE_URL, KHÔNG request.url: sau Coolify/Cloudflare, request.url là địa chỉ nội bộ
-  // container (vd http://0.0.0.0:8080) — xem ghi chú ở auth/callback/route.ts.
+  // publicOrigin(request), KHÔNG request.url: sau Coolify/Cloudflare, request.url là địa chỉ
+  // nội bộ container (http://0.0.0.0:8080) — xem lib/public-origin.ts.
   const redirectTo = (p: string) =>
-    NextResponse.redirect(new URL(`${prefix}${p}`, SITE_URL));
+    NextResponse.redirect(new URL(`${prefix}${p}`, publicOrigin(request)));
 
   if (!userId) {
     return isPublic ? response : redirectTo('/login');
