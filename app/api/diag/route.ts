@@ -100,10 +100,40 @@ async function containerHealth() {
     effectiveCpus = q === 'max' ? 'max' : Math.round((Number(q) / Number(p)) * 100) / 100;
   }
 
+  // STEAL TIME — chỉ số phân biệt hai nguyên nhân hoàn toàn khác nhau của "load cao":
+  //   steal thấp  → CPU bị chính các workload TRÊN MÁY NÀY ăn hết (tắt bớt/tách ra là xong).
+  //   steal cao   → hypervisor của NHÀ CUNG CẤP đang cắt CPU đưa cho máy ảo khác ("hàng xóm ồn
+  //                 ào"). Lúc đó dọn container của mình không cứu được gì, phải đổi gói/nhà cung cấp.
+  // Cách đo: đọc /proc/stat hai lần cách nhau 1 giây rồi lấy hiệu — giá trị trong file là tổng
+  // tích luỹ từ lúc khởi động, đọc một lần thì vô nghĩa.
+  const cpuLine = async () => {
+    const s = await read('/proc/stat');
+    const l = s?.split('\n')[0]?.split(/\s+/).slice(1).map(Number);
+    return l ?? null;
+  };
+  const c1 = await cpuLine();
+  await new Promise((r) => setTimeout(r, 1000));
+  const c2 = await cpuLine();
+  let cpuBreakdown: Record<string, number> | null = null;
+  if (c1 && c2) {
+    const d = c2.map((v, i) => v - (c1[i] ?? 0));
+    const total = d.reduce((a, b) => a + b, 0) || 1;
+    const pct = (i: number) => Math.round(((d[i] ?? 0) / total) * 1000) / 10;
+    // Thứ tự cột: user nice system idle iowait irq softirq steal guest guest_nice
+    cpuBreakdown = {
+      user_pct: pct(0),
+      system_pct: pct(2),
+      idle_pct: pct(3),
+      iowait_pct: pct(4),
+      steal_pct: pct(7),
+    };
+  }
+
   return {
     host_cpus: os.cpus().length,
     cpu_quota_raw: cpuMax,
     effective_cpus: effectiveCpus,
+    cpu_breakdown: cpuBreakdown,
     memory_limit_mb: memMax && memMax !== 'max' ? Math.round(Number(memMax) / 1048576) : memMax,
     memory_used_mb: memCur ? Math.round(Number(memCur) / 1048576) : null,
     load_avg_1m: os.loadavg()[0],
