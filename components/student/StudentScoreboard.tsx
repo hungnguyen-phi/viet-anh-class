@@ -135,7 +135,13 @@ export async function StudentScoreboard({
   let mustCheckin = false;
   if (canEditMood && mood === null) {
     const ip = clientIp(await headers());
-    const {data: onSchoolNetwork} = await supabase.rpc('ip_allowed', {p_ip: ip ?? ''});
+    // PHẢI gọi bằng service_role: migration 0031 đã revoke ip_allowed khỏi vai 'authenticated'
+    // (để học sinh không dò được cấu hình mạng trường). Bản trước gọi bằng client thường nên
+    // Supabase trả 403 ở MỌI lần học sinh mở trang — thấy rõ trong log API. Lỗi này im lặng:
+    // data về undefined → mustCheckin=false → cổng không bao giờ chặn, mà mỗi lượt vẫn tốn một
+    // vòng mạng hỏng.
+    const {createAdminClient} = await import('@/lib/supabase/admin');
+    const {data: onSchoolNetwork} = await createAdminClient().rpc('ip_allowed', {p_ip: ip ?? ''});
     mustCheckin = onSchoolNetwork === true;
   }
 

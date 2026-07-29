@@ -1,9 +1,9 @@
 import {getLocale} from 'next-intl/server';
 import {Users, Sparkles} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {createClient} from '@/lib/supabase/server';
 import {createClassStudentWigs} from '@/app/[locale]/(dashboard)/student/actions';
-import {AREAS, buildAreaMeta, areaLabel, type Area} from '@/lib/areas';
+import {AREAS, areaLabel, type Area} from '@/lib/areas';
+import {getAreaMeta} from '@/lib/area-config';
 
 // Đơn vị mặc định khi admin chưa cấu hình area_config — khớp với StudentWigSetup (từng em).
 const FALLBACK_UNIT: Record<Area, string> = {
@@ -32,9 +32,7 @@ export async function ClassStudentWigSetup({
   readyCount: number;
 }) {
   const locale = await getLocale();
-  const supabase = await createClient();
-  const {data: areaCfg} = await supabase.from('area_config').select('*').order('sort_order');
-  const areaMeta = buildAreaMeta(areaCfg);
+  const areaMeta = await getAreaMeta();
 
   const input =
     'h-11 w-full rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 text-[13px] font-bold text-navy outline-none transition-all focus:border-navy';
