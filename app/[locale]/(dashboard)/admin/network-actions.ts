@@ -28,7 +28,12 @@ export async function addSchoolNetwork(formData: FormData) {
   const campus_id = String(formData.get('campus_id') ?? '') || null;
   if (!label || !cidr) flash('Thiếu nhãn hoặc IP/dải IP');
   const supabase = await createClient();
-  const {error} = await supabase.from('school_networks').insert({label, cidr, campus_id});
+  // upsert theo (campus_id, cidr): bấm lại cùng một dải thì CẬP NHẬT chứ không đẻ thêm dòng.
+  // Bảng thật đang có 21 dòng mà chỉ là 3 dải khác nhau — mỗi lần bấm lại là một bản sao,
+  // khiến danh sách không đọc được và không biết cái nào đang có hiệu lực.
+  const {error} = await supabase
+    .from('school_networks')
+    .upsert({label, cidr, campus_id, is_active: true}, {onConflict: 'campus_id,cidr'});
   if (!error) await supabase.rpc('log_audit', {p_action: 'add_school_network', p_detail: {label, cidr}});
   revalidatePath('/admin');
   flash(error ? friendlyError(error) : `Đã thêm mạng "${label}"`);
@@ -43,7 +48,9 @@ export async function addCurrentSchoolIp(formData: FormData) {
   if (!ip) flash('Không đọc được IP hiện tại (thử lại hoặc nhập tay).');
   const cidr = ip.includes(':') ? `${ip}/128` : `${ip}/32`;
   const supabase = await createClient();
-  const {error} = await supabase.from('school_networks').insert({label, cidr, campus_id});
+  const {error} = await supabase
+    .from('school_networks')
+    .upsert({label, cidr, campus_id, is_active: true}, {onConflict: 'campus_id,cidr'});
   if (!error) await supabase.rpc('log_audit', {p_action: 'add_current_ip', p_detail: {cidr}});
   revalidatePath('/admin');
   flash(error ? friendlyError(error) : `Đã thêm IP hiện tại: ${ip}`);
