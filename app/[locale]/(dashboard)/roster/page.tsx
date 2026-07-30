@@ -63,20 +63,37 @@ export default async function RosterPage({
     );
   }
 
-  // Ba truy vấn độc lập → chạy song song.
-  // student_details chỉ GVCN của lớp + admin đọc được (RLS, migration 0058); hiệu trưởng gọi
-  // vẫn hợp lệ nhưng nhận về rỗng — nên các cột thông tin thêm tự động trống với họ.
-  const [{data: enrolls}, {data: invited}, {data: details}] = await Promise.all([
+  // Hai nguồn của danh sách lớp — độc lập, chạy song song.
+  const [{data: enrolls}, {data: invited}] = await Promise.all([
     supabase
       .from('enrollments')
       .select('student_id, is_attendance_leader, profiles!enrollments_student_id_fkey(full_name, email)')
       .eq('class_id', myClass.id)
       .eq('is_active', true),
     supabase.from('pending_user_grants').select('email').eq('class_id', myClass.id).eq('role', 'student'),
-    supabase
-      .from('student_details')
-      .select('email, full_name, student_code, date_of_birth, parent_phone, note'),
   ]);
+
+  // Thông tin nhận diện: hỏi ĐÚNG các email của lớp này, không quét cả bảng.
+  // Phải chờ hai truy vấn trên xong mới biết hỏi email nào (thêm một chặng mạng) — đổi lại,
+  // quản trị viên không tải về ngày sinh + số điện thoại của TOÀN TRƯỜNG mỗi lần mở một lớp.
+  // Chuẩn "tối thiểu hoá" trong docs/DATA_GOVERNANCE.md, và cũng nhẹ hơn hẳn khi trường đông.
+  //
+  // student_details chỉ GVCN của lớp + quản trị viên đọc được (RLS, migration 0058); hiệu trưởng
+  // gọi vẫn hợp lệ nhưng nhận về rỗng — nên các cột thông tin thêm tự động trống với họ.
+  const wanted = [
+    ...((enrolls ?? []) as unknown as EnrRow[]).map((r) => r.profiles?.email),
+    ...(invited ?? []).map((g) => g.email),
+  ]
+    .filter((e): e is string => !!e)
+    .map((e) => e.toLowerCase());
+
+  // Lớp trống thì bỏ hẳn truy vấn — `.in('email', [])` vẫn là một chặng mạng vô ích.
+  const {data: details} = wanted.length
+    ? await supabase
+        .from('student_details')
+        .select('email, full_name, student_code, date_of_birth, parent_phone, note')
+        .in('email', [...new Set(wanted)])
+    : {data: []};
 
   const byEmail = new Map(
     (details ?? []).map((d) => [d.email.toLowerCase(), d] as const),
