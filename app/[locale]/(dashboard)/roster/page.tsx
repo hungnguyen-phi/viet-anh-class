@@ -137,6 +137,14 @@ export default async function RosterPage({
       };
     });
 
+  // Postgres trả yyyy-mm-dd; trường học Việt Nam đọc ngày/tháng/năm — hiện đúng cách người dùng
+  // vừa gõ vào ba ô ở form trên, để họ soát lại được.
+  const ngayVN = (iso: string | null) => {
+    if (!iso) return '—';
+    const [y, m, d] = iso.split('-');
+    return d && m && y ? `${d}/${m}/${y}` : iso;
+  };
+
   const byName = (a: Row, b: Row) => a.name.localeCompare(b.name, 'vi');
   // Em đang học lên trước, em chưa đăng nhập xuống dưới — đọc danh sách lớp thật là phần trên.
   const rows = [...enrolled.sort(byName), ...pending.sort(byName)];
@@ -242,7 +250,7 @@ export default async function RosterPage({
               {r.email}
             </span>
             <span className="w-[100px] flex-none text-[12.5px] font-semibold text-grey-mid">
-              {r.dob ?? '—'}
+              {ngayVN(r.dob)}
             </span>
             <span className="w-[110px] flex-none truncate text-[12.5px] font-semibold text-grey-mid">
               {r.phone ?? '—'}

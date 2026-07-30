@@ -1,6 +1,6 @@
 'use client';
 
-import {useActionState, useEffect, useState, type KeyboardEvent} from 'react';
+import {useActionState, useEffect, useRef, useState, type KeyboardEvent} from 'react';
 import {useTranslations} from 'next-intl';
 import {CheckCircle2, AlertCircle} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
@@ -10,7 +10,9 @@ const EMPTY = {
   email: '',
   full_name: '',
   student_code: '',
-  date_of_birth: '',
+  dob_day: '',
+  dob_month: '',
+  dob_year: '',
   parent_phone: '',
   note: '',
 };
@@ -33,6 +35,30 @@ export function EnrollForm({classId}: {classId: string}) {
   const set = (k: keyof typeof EMPTY) => (e: {target: {value: string}}) =>
     setV((p) => ({...p, [k]: e.target.value}));
 
+  // Ba ô ngày sinh: gõ đủ số thì tự nhảy sang ô kế — nhập 30 em một lượt không phải bấm chuột.
+  const oThang = useRef<HTMLInputElement>(null);
+  const oNam = useRef<HTMLInputElement>(null);
+
+  // Chỉ nhận chữ số. Dán/gõ cả "25/11/2013" vào ô Ngày thì tự chia ra ba ô — dán từ danh sách
+  // Excel là việc giáo viên làm nhiều nhất, không nên bắt họ tách tay.
+  const onNgay = (e: {target: {value: string}}) => {
+    const so = e.target.value.replace(/\D/g, '');
+    if (so.length > 2) {
+      setV((p) => ({...p, dob_day: so.slice(0, 2), dob_month: so.slice(2, 4), dob_year: so.slice(4, 8)}));
+      oNam.current?.focus();
+      return;
+    }
+    setV((p) => ({...p, dob_day: so}));
+    if (so.length === 2) oThang.current?.focus();
+  };
+  const onThang = (e: {target: {value: string}}) => {
+    const so = e.target.value.replace(/\D/g, '').slice(0, 2);
+    setV((p) => ({...p, dob_month: so}));
+    if (so.length === 2) oNam.current?.focus();
+  };
+  const onNam = (e: {target: {value: string}}) =>
+    setV((p) => ({...p, dob_year: e.target.value.replace(/\D/g, '').slice(0, 4)}));
+
   // Ghi danh thành công → xoá sạch form cho em tiếp theo.
   useEffect(() => {
     if (state.ok) setV(EMPTY);
@@ -47,13 +73,21 @@ export function EnrollForm({classId}: {classId: string}) {
   };
 
   const lbl = 'mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
-  const inp =
-    'w-full rounded-[10px] border-[1.5px] bg-white px-3 py-2 text-sm font-semibold text-navy outline-none';
+  // Tách phần KHÔNG có chiều rộng ra riêng: ba ô ngày sinh tự đặt chiều rộng, không được dính
+  // w-full (hai lớp width cùng độ ưu tiên thì thứ tự thắng thua phụ thuộc thứ tự trong file CSS).
+  const inpBase =
+    'rounded-[10px] border-[1.5px] bg-white py-2 text-sm font-semibold text-navy outline-none';
+  const inp = `w-full px-3 ${inpBase}`;
+  const inpDob = `px-2 ${inpBase}`;
   const emailBorder =
     state.fieldError === 'email'
       ? 'border-status-bad focus:border-status-bad'
       : 'border-navy/15 focus:border-navy';
   const plain = 'border-navy/15 focus:border-navy';
+  const dobBorder =
+    state.fieldError === 'date_of_birth'
+      ? 'border-status-bad focus:border-status-bad'
+      : 'border-navy/15 focus:border-navy';
 
   return (
     <form action={formAction} onKeyDown={onKeyDown} className="glass rounded-[16px] p-3" noValidate>
@@ -110,18 +144,65 @@ export function EnrollForm({classId}: {classId: string}) {
           />
         </div>
 
-        <div>
-          <label className={lbl} htmlFor="enroll-dob">
+        {/* Ngày sinh: BA ô rời, không dùng <input type="date"> — ô đó hiện thứ tự theo ngôn ngữ
+            của trình duyệt (máy tiếng Anh ra mm/dd/yyyy), nên 09/03 dễ bị nhập thành mùng 3
+            tháng 9. Ba ô có nhãn thì không nhầm được, ở bất kỳ máy nào. */}
+        <div role="group" aria-labelledby="enroll-dob-label">
+          <span className={lbl} id="enroll-dob-label">
             Ngày sinh
-          </label>
-          <input
-            id="enroll-dob"
-            name="date_of_birth"
-            type="date"
-            value={v.date_of_birth}
-            onChange={set('date_of_birth')}
-            className={`${inp} ${plain}`}
-          />
+          </span>
+          <div className="flex items-center gap-1.5">
+            <input
+              id="enroll-dob-day"
+              name="dob_day"
+              aria-label="Ngày sinh — ngày"
+              aria-invalid={state.fieldError === 'date_of_birth'}
+              inputMode="numeric"
+              maxLength={2}
+              placeholder="Ngày"
+              value={v.dob_day}
+              onChange={onNgay}
+              className={`${inpDob} ${dobBorder} w-20 flex-none text-center`}
+            />
+            <span aria-hidden className="text-sm font-bold text-grey-soft">
+              /
+            </span>
+            <input
+              id="enroll-dob-month"
+              name="dob_month"
+              ref={oThang}
+              aria-label="Ngày sinh — tháng"
+              aria-invalid={state.fieldError === 'date_of_birth'}
+              inputMode="numeric"
+              maxLength={2}
+              placeholder="Tháng"
+              value={v.dob_month}
+              onChange={onThang}
+              className={`${inpDob} ${dobBorder} w-20 flex-none text-center`}
+            />
+            <span aria-hidden className="text-sm font-bold text-grey-soft">
+              /
+            </span>
+            <input
+              id="enroll-dob-year"
+              name="dob_year"
+              ref={oNam}
+              aria-label="Ngày sinh — năm"
+              aria-invalid={state.fieldError === 'date_of_birth'}
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="Năm"
+              value={v.dob_year}
+              onChange={onNam}
+              className={`${inpDob} ${dobBorder} min-w-0 flex-1 text-center`}
+            />
+          </div>
+          {state.fieldError === 'date_of_birth' && state.error && (
+            <p className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-status-bad">
+              <AlertCircle size={12} strokeWidth={2.5} />
+              {state.error}
+            </p>
+          )}
         </div>
 
         <div>

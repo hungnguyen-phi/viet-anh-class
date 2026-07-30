@@ -5,6 +5,7 @@ import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
+import {parseDob} from '@/lib/dob';
 
 // Đặt tổ trưởng điểm danh cho lớp. ĐỘC QUYỀN: mỗi lớp đúng 1 em.
 //
@@ -67,11 +68,15 @@ export type EnrollState = {
 
 // Thông tin nhận diện học sinh, điền ngay lúc ghi danh (bảng student_details, migration 0058).
 // Chỉ `email` bắt buộc — phần còn lại điền được tới đâu thì tới, bổ sung sau vẫn được.
+//
+// Ngày sinh nhận vào dưới dạng BA Ô RỜI (ngày / tháng / năm), không phải một chuỗi.
 export type StudentFields = {
   email: string;
   full_name?: string;
   student_code?: string;
-  date_of_birth?: string;
+  dob_day?: string;
+  dob_month?: string;
+  dob_year?: string;
   parent_phone?: string;
   note?: string;
 };
@@ -82,7 +87,9 @@ function readStudentFields(formData: FormData): StudentFields {
     email: s('email'),
     full_name: s('full_name'),
     student_code: s('student_code'),
-    date_of_birth: s('date_of_birth'),
+    dob_day: s('dob_day'),
+    dob_month: s('dob_month'),
+    dob_year: s('dob_year'),
     parent_phone: s('parent_phone'),
     note: s('note'),
   };
@@ -94,15 +101,16 @@ function readStudentFields(formData: FormData): StudentFields {
 async function saveStudentDetails(
   supabase: Awaited<ReturnType<typeof createClient>>,
   f: StudentFields,
+  dobIso: string | null,
   meId: string,
 ): Promise<void> {
-  if (!f.full_name && !f.student_code && !f.date_of_birth && !f.parent_phone && !f.note) return;
+  if (!f.full_name && !f.student_code && !dobIso && !f.parent_phone && !f.note) return;
   await supabase.from('student_details').upsert(
     {
       email: f.email.toLowerCase(),
       full_name: f.full_name || null,
       student_code: f.student_code || null,
-      date_of_birth: f.date_of_birth || null,
+      date_of_birth: dobIso,
       parent_phone: f.parent_phone || null,
       note: f.note || null,
       created_by: meId,
@@ -131,6 +139,11 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
   if (!EMAIL_RE.test(email))
     return {ok: false, fieldError: 'email', error: 'Email không hợp lệ (vd hs01@student.truongvietanh.com).', values};
 
+  // Chặn ngày sinh sai TRƯỚC khi ghi danh: nếu để lọt xuống dưới thì em vẫn vào lớp nhưng ngày
+  // sinh bị bỏ trắng lặng lẽ, giáo viên không biết mà điền lại.
+  const dob = parseDob({day: fields.dob_day, month: fields.dob_month, year: fields.dob_year});
+  if (dob.error) return {ok: false, fieldError: 'date_of_birth', error: dob.error, values};
+
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('enroll_student_by_email', {p_class: classId, p_email: email});
   if (error) return {ok: false, error: friendlyError(error), values};
@@ -150,7 +163,7 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
     if (inv === 'invited') {
       // Lưu thông tin SAU khi có lời mời: RLS của student_details cho phép GVCN ghi khi email đó
       // đã được mời vào lớp mình — nên thứ tự này bắt buộc, đảo lại là bị chặn.
-      await saveStudentDetails(supabase, fields, me.id);
+      await saveStudentDetails(supabase, fields, dob.iso, me.id);
       revalidatePath('/[locale]/roster', 'page');
       return {
         ok: true,
@@ -178,7 +191,7 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
     };
   }
 
-  await saveStudentDetails(supabase, fields, me.id);
+  await saveStudentDetails(supabase, fields, dob.iso, me.id);
   revalidatePath('/[locale]/roster', 'page');
   return {ok: true, message: `Đã ghi danh ${fields.full_name || email} vào lớp`};
 }
