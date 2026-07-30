@@ -82,9 +82,23 @@ from (values
 where not exists (select 1 from auth.users u where u.email = s.em);
 
 -- Đặt mật khẩu chung + đánh dấu email đã xác nhận (bỏ bước xác nhận qua hộp thư).
+--
+-- ⚠️ CÁC CỘT TOKEN PHẢI LÀ CHUỖI RỖNG, KHÔNG ĐƯỢC ĐỂ NULL.
+-- Supabase Auth viết bằng Go và đọc mấy cột này vào kiểu `string` (không phải con trỏ). Gặp
+-- NULL là nó lỗi ngay khi đăng nhập, trả về `unexpected_failure` — mà app chỉ biết dịch thành
+-- "Email hoặc mật khẩu không đúng", nên rất dễ tưởng là gõ sai mật khẩu và đi tìm nhầm hướng.
+-- Lệnh `insert into auth.users` để trống thì các cột này mặc định NULL, nên phải ép về ''.
 update auth.users
-set encrypted_password = extensions.crypt('demo1234', extensions.gen_salt('bf')),
-    email_confirmed_at = coalesce(email_confirmed_at, now())
+set encrypted_password         = extensions.crypt('demo1234', extensions.gen_salt('bf')),
+    email_confirmed_at         = coalesce(email_confirmed_at, now()),
+    confirmation_token         = coalesce(confirmation_token, ''),
+    recovery_token             = coalesce(recovery_token, ''),
+    email_change               = coalesce(email_change, ''),
+    email_change_token_new     = coalesce(email_change_token_new, ''),
+    email_change_token_current = coalesce(email_change_token_current, ''),
+    phone_change               = coalesce(phone_change, ''),
+    phone_change_token         = coalesce(phone_change_token, ''),
+    reauthentication_token     = coalesce(reauthentication_token, '')
 where email like 'test_.%@truongvietanh.com'
    or email like 'test_.%@student.truongvietanh.com';
 
@@ -173,9 +187,17 @@ with tk as (
     coalesce(u.raw_user_meta_data->>'full_name', '—')                       as ten_hien_thi,
     p.role::text                                                            as vai,
     coalesce(cam.code, '—')                                                 as co_so,
-    -- đăng nhập được chưa
-    case when u.encrypted_password is not null and u.email_confirmed_at is not null
-         then 'OK' else 'THIEU MAT KHAU/XAC NHAN' end                       as dang_nhap,
+    -- đăng nhập được chưa: đủ mật khẩu, đã xác nhận email, VÀ không cột token nào còn NULL
+    -- (cột token NULL làm Supabase Auth lỗi `unexpected_failure` — xem ghi chú ở PHẦN 2)
+    case
+      when u.encrypted_password is null or u.email_confirmed_at is null then 'THIEU MAT KHAU/XAC NHAN'
+      when u.confirmation_token is null or u.recovery_token is null
+        or u.email_change is null or u.email_change_token_new is null
+        or u.email_change_token_current is null or u.phone_change is null
+        or u.phone_change_token is null or u.reauthentication_token is null
+        then 'TOKEN CON NULL - SE LOI KHI DANG NHAP'
+      else 'OK'
+    end                                                                     as dang_nhap,
     -- vai đã đúng chưa (không còn pending)
     case when p.role::text = 'pending' then 'CON PENDING - BI CHAN' else 'OK' end as vai_ok,
     -- gắn lớp

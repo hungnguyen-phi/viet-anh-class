@@ -27,6 +27,9 @@ import {
   Trophy,
   CalendarDays,
   Bell,
+  BookOpen,
+  GraduationCap,
+  MessageCircle,
   Settings,
   Loader2,
   Menu,
@@ -55,11 +58,19 @@ function NavIcon({Icon, size}: {Icon: IconType; size: number}) {
 }
 
 // Bộ link + quyền theo vai trò (giữ nguyên logic phân quyền cũ).
+//
+// NGÂN SÁCH CHỖ — đọc docs/NAV_IA.md trước khi thêm tab. Thanh nav là overflow-x-auto với thanh
+// cuộn ẨN: quá chỗ thì tab bị đẩy ra ngoài màn hình mà không có dấu hiệu nào. Chuyện này đã xảy
+// ra một lần (xem comment ở cụm phải, chỗ chuông thông báo). Đo trên máy 1366px thì chỉ còn chỗ
+// cho khoảng hai tab nữa. Nên đợt 7 tính năng này chỉ được thêm ĐÚNG hai tab; "Liên lạc" xuống
+// làm icon, "Thực đơn" và "Hình ảnh" vào thẳng trang liên quan.
 const LINKS: Record<string, NavItem[]> = {
   teacher: [
     {href: '/', key: 'scoreboard', Icon: LayoutDashboard},
     {href: '/roster', key: 'roster', Icon: Users},
     {href: '/attendance', key: 'attendance', Icon: ClipboardCheck},
+    {href: '/homework', key: 'homework', Icon: BookOpen},
+    {href: '/grades', key: 'grades', Icon: GraduationCap},
     // "Họp WIG" đã gộp vào /wig (ClassMeetingSection) → bớt 1 tab cho GVCN.
     {href: '/wig', key: 'wig', Icon: Target},
     {href: '/scoreboard', key: 'compete', Icon: Trophy},
@@ -70,6 +81,8 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/', key: 'scoreboard', Icon: LayoutDashboard},
     {href: '/roster', key: 'roster', Icon: Users},
     {href: '/attendance', key: 'attendance', Icon: ClipboardCheck},
+    {href: '/homework', key: 'homework', Icon: BookOpen},
+    {href: '/grades', key: 'grades', Icon: GraduationCap},
     {href: '/wig', key: 'wig', Icon: Target},
     {href: '/scoreboard', key: 'compete', Icon: Trophy},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
@@ -86,20 +99,38 @@ const LINKS: Record<string, NavItem[]> = {
   //
   // GIỮ /roster và /timetable vì hai trang này nhận ?class= nên vẫn là đích hợp lệ khi đi sâu
   // vào một lớp, và chúng tự hiện ClassPicker khi có nhiều lớp.
+  // Thêm "Học bạ": ban giám hiệu tự xin — "biết các thông tin về điểm số, rèn luyện của học
+  // sinh". Họ chỉ XEM, RLS chặn mọi đường ghi.
   principal: [
     {href: '/campus', key: 'campus', Icon: Building2},
     {href: '/roster', key: 'roster', Icon: Users},
+    {href: '/grades', key: 'grades', Icon: GraduationCap},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
   ],
+  // Phụ huynh trước đây chỉ có ĐÚNG MỘT mục, và cả ba người thử đều nói trang đó thiếu thứ họ
+  // cần. Nay bốn mục — đúng bốn thứ họ liệt kê: báo bài, điểm số, thời khoá biểu, và Báo cáo cũ.
+  // (Thời khoá biểu vốn đã đọc được về mặt quyền, chỉ chưa có link — xem lib/queries.ts.)
   parent: [
     {href: '/report', key: 'report', Icon: LineChart},
+    {href: '/homework', key: 'homework', Icon: BookOpen},
+    {href: '/grades', key: 'grades', Icon: GraduationCap},
+    {href: '/timetable', key: 'schedule', Icon: CalendarDays},
   ],
   // Học sinh thường chỉ thấy scoreboard cá nhân; tổ trưởng được thêm Điểm danh.
   student: [
     {href: '/student', key: 'myScoreboard', Icon: LayoutDashboard},
+    {href: '/homework', key: 'homework', Icon: BookOpen},
+    {href: '/grades', key: 'grades', Icon: GraduationCap},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
   ],
 };
+
+// Ai có icon "Liên lạc" ở cụm phải.
+//
+// CHỈ hai vai này, cố ý: kênh tin nhắn là chuyện riêng giữa gia đình và giáo viên chủ nhiệm của
+// đúng đứa trẻ đó. Quản trị viên và hiệu trưởng KHÔNG đọc được nội dung (RLS chặn, xem migration
+// 0065), nên vẽ icon cho họ là vẽ một cái cửa mở ra phòng trống.
+const CO_LIEN_LAC = new Set(['teacher', 'parent']);
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -112,11 +143,14 @@ export function AppNav({
   profile,
   isAttendanceLeader = false,
   unreadCount = 0,
+  unreadMessages = 0,
 }: {
   profile: Profile;
   isAttendanceLeader?: boolean;
   // Số thông báo chưa đọc — hiện thành badge trên chuông (thay cho tab "Thông báo" cũ).
   unreadCount?: number;
+  // Số tin nhắn phụ huynh↔giáo viên chưa đọc — badge trên icon phong bì.
+  unreadMessages?: number;
 }) {
   const t = useTranslations('nav');
   const tr = useTranslations('roles');
@@ -210,6 +244,15 @@ export function AppNav({
 
           {/* Chuông + Cài đặt. Trước đây "Thông báo" là một tab trong thanh nav, mà GVCN có 8 tab
               nên chữ bị đè nhau; nay gom thành 2 icon ở góc, và ngôn ngữ/đăng xuất vào Cài đặt. */}
+          {CO_LIEN_LAC.has(role) && (
+            <BellLink
+              href="/inbox"
+              count={unreadMessages}
+              label={t('inbox')}
+              active={isActive('/inbox')}
+              Icon={MessageCircle}
+            />
+          )}
           <BellLink href="/notifications" count={unreadCount} label={t('notifications')} active={isActive('/notifications')} />
           <SettingsMenu />
         </div>
@@ -220,6 +263,16 @@ export function AppNav({
           <span className="min-w-0 flex-1 truncate font-display text-[15px] font-bold text-white sm:opacity-0">
             {activeItem ? t(activeItem.key) : ''}
           </span>
+          {CO_LIEN_LAC.has(role) && (
+            <BellLink
+              href="/inbox"
+              count={unreadMessages}
+              label={t('inbox')}
+              active={isActive('/inbox')}
+              onNavigate={() => setOpen(false)}
+              Icon={MessageCircle}
+            />
+          )}
           <BellLink
             href="/notifications"
             count={unreadCount}
@@ -306,18 +359,26 @@ export function AppNav({
 }
 
 // Chuông thông báo + badge số chưa đọc. Dùng cả ở cụm phải desktop và thanh mobile.
+// Icon tròn ở cụm phải, có chấm số chưa đọc. Dùng cho cả Thông báo (chuông) và Liên lạc (phong bì).
+//
+// Vì sao "Liên lạc" là icon chứ không phải tab: một tab chữ tiếng Việt tốn ~110px, icon tốn ~40px.
+// Ngân sách chỗ trên thanh nav chỉ còn khoảng hai tab (docs/NAV_IA.md), mà "Báo bài" và "Học bạ"
+// cần hơn — chúng là danh sách phải quét mắt hằng ngày. Tin nhắn thì thứ người dùng cần biết chỉ
+// là "có gì mới không", đúng thứ một chấm đỏ trả lời được. Cùng họ với chuông nên đặt cạnh chuông.
 function BellLink({
   href,
   count,
   label,
   active,
   onNavigate,
+  Icon = Bell,
 }: {
   href: string;
   count: number;
   label: string;
   active: boolean;
   onNavigate?: () => void;
+  Icon?: IconType;
 }) {
   return (
     <Link
@@ -330,7 +391,7 @@ function BellLink({
         active ? 'bg-white text-navy' : 'text-white/70 hover:bg-white/10 hover:text-white'
       }`}
     >
-      <Bell size={17} strokeWidth={2} />
+      <Icon size={17} strokeWidth={2} />
       {count > 0 && (
         <span className="absolute -right-0.5 -top-0.5 grid h-[17px] min-w-[17px] place-items-center rounded-full bg-gold px-1 font-display text-[10px] font-bold text-navy ring-2 ring-navy">
           {count > 99 ? '99+' : count}

@@ -1,5 +1,6 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {Link} from '@/i18n/navigation';
+import {Images} from 'lucide-react';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getAccessibleClasses, getMyClass} from '@/lib/queries';
@@ -160,6 +161,16 @@ export default async function RosterPage({
           {t('title')} · {myClass.name}
         </h1>
         <div className="flex items-center gap-2">
+          {/* Album ảnh lớp vào đây thay vì thành một tab riêng: thanh menu chỉ còn chỗ cho khoảng
+              hai tab nữa (docs/NAV_IA.md), mà xem ảnh là việc thỉnh thoảng. Đặt cạnh "Ảnh bìa
+              lớp" vì cùng là việc với hình ảnh của lớp này. */}
+          <Link
+            href={`/gallery?class=${myClass.id}`}
+            className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy"
+          >
+            <Images size={14} strokeWidth={2.2} />
+            Hình ảnh
+          </Link>
           {canManage && <ClassCoverUpload classId={myClass.id} />}
           {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
         </div>

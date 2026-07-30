@@ -11,6 +11,7 @@ import {SchoolRollup, type RollupRow} from './SchoolRollup';
 import {TeacherManager} from './TeacherManager';
 import {CampusLevelPicker} from './CampusLevelPicker';
 import {FlashToast} from '@/components/ui/FlashToast';
+import {MessageHealthCard} from '@/components/inbox/MessageHealthCard';
 
 export default async function CampusPage({
   params,
@@ -157,6 +158,12 @@ export default async function CampusPage({
       ) : (
         <SchoolRollup rows={rows} />
       )}
+
+      {/* Kênh liên lạc phụ huynh ↔ GVCN: ban giám hiệu chỉ nhận SỐ, không nhận CHỮ.
+          Đặt ở đây vì đây là màn hình cấp trường của họ, và "lớp nào để phụ huynh chờ lâu" là
+          việc đôn đốc cùng loại với các con số phía trên. Nội dung tin nhắn thì RLS của 0065
+          không cho họ đọc, cố ý. */}
+      <MessageHealthCard />
 
       {mgmt && (
         <>

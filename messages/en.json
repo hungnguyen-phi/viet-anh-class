@@ -78,7 +78,12 @@
     "campus": "Campus",
     "wig": "WIG",
     "compete": "Compete",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "homework": "Homework",
+    "grades": "Grades",
+    "inbox": "Messages",
+    "menu": "Meal menu",
+    "gallery": "Photos"
   },
   "class": {
     "gvcn": "Homeroom teacher",

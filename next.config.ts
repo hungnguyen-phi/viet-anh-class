@@ -14,6 +14,29 @@ const nextConfig: NextConfig = {
     // Cho phép ảnh từ Supabase Storage (ảnh bìa lớp, avatar). Host sẽ thêm sau khi tạo project.
     remotePatterns: [{protocol: 'https', hostname: '*.supabase.co'}],
   },
+  async redirects() {
+    return [
+      // /messages → /inbox.
+      //
+      // Trigger pt_after_message() trong migration 0065 ghi notifications.link =
+      // '/messages?t=<id>', nhưng màn hình liên lạc lại nằm ở /inbox. Bấm thông báo là rơi vào
+      // trang không tồn tại.
+      //
+      // KHÔNG sửa chuỗi trong migration: thông báo ĐÃ SINH RA vẫn mang '/messages', sửa migration
+      // chỉ chữa cho tin mới còn tin cũ hỏng vĩnh viễn.
+      //
+      // VÌ SAO Ở ĐÂY chứ không phải một page gọi redirect(): đã thử cách đó và đo được là nó
+      // KHÔNG sạch. Layout (dashboard) dựng AppNav và bắt đầu stream trước khi page kịp ném
+      // redirect, nên status khoá ở 200 và Next phải nhét lệnh chuyển hướng vào body — người dùng
+      // thấy nháy qua khung dashboard rồi mới nhảy. redirects() của Next chạy TRƯỚC mọi render
+      // nên trả 308 thật, không nháy.
+      //
+      // permanent: false (307/308 tạm) — nếu sau này đổi ý gộp hai đường dẫn thì trình duyệt
+      // không cache vĩnh viễn hướng cũ.
+      {source: '/messages', destination: '/inbox', permanent: false},
+      {source: '/:locale(vi|en)/messages', destination: '/:locale/inbox', permanent: false},
+    ];
+  },
   async headers() {
     return [
       {

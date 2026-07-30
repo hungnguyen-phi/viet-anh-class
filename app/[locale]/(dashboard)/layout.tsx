@@ -3,6 +3,7 @@ import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {AppNav} from '@/components/shell/AppNav';
 import {IntroGuide} from '@/components/shell/IntroGuide';
+import {getInboxUnreadCount} from '@/components/inbox/unread';
 
 // Trang sau đăng nhập phụ thuộc session (cookie) → luôn render động, không cache tĩnh.
 export const dynamic = 'force-dynamic';
@@ -57,7 +58,20 @@ export default async function DashboardLayout({
           )
       : Promise.resolve(false);
 
-  const [isAttendanceLeader, unreadCount] = await Promise.all([leaderPromise, unreadPromise]);
+  // Tin nhắn phụ huynh↔giáo viên chưa đọc — badge trên icon phong bì.
+  //
+  // Chỉ hai vai này mới có kênh đó (migration 0065 chặn admin/hiệu trưởng đọc nội dung), nên các
+  // vai khác không tốn vòng mạng nào — layout này chạy trên MỌI trang sau đăng nhập.
+  const msgPromise =
+    profile.role === 'teacher' || profile.role === 'parent'
+      ? getInboxUnreadCount(supabase)
+      : Promise.resolve(0);
+
+  const [isAttendanceLeader, unreadCount, unreadMessages] = await Promise.all([
+    leaderPromise,
+    unreadPromise,
+    msgPromise,
+  ]);
 
   return (
     <div className="min-h-screen">
@@ -65,6 +79,7 @@ export default async function DashboardLayout({
         profile={profile}
         isAttendanceLeader={isAttendanceLeader}
         unreadCount={unreadCount ?? 0}
+        unreadMessages={unreadMessages}
       />
       {/* Nội dung căn giữa dưới top-nav; nền gradient nằm ở <body>. */}
       <main className="mx-auto max-w-[1160px] px-4 pb-10 pt-2 sm:px-6">{children}</main>

@@ -1,7 +1,8 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {Check, X, Trophy} from 'lucide-react';
+import {Check, X, Trophy, Images, ChevronRight} from 'lucide-react';
+import {TodayMenuCard} from '@/components/menu/TodayMenuCard';
 import {Link} from '@/i18n/navigation';
 import {DonutRing} from '@/components/charts/DonutRing';
 import {WeekPicker} from '@/components/report/WeekPicker';
@@ -308,6 +309,30 @@ export default async function ReportPage({
           </div>
         </section>
       </div>
+
+      {/* Thực đơn hôm nay + ảnh lớp.
+          Hai thứ này phụ huynh xin, nhưng là thứ LIẾC MỘT CÁI chứ không phải đọc kỹ mỗi ngày —
+          nên nằm ở đây thay vì chiếm một tab trên thanh menu vốn đã chật (docs/NAV_IA.md).
+          Thẻ thực đơn tự suy ra cơ sở của người xem, không cần truyền gì. */}
+      <TodayMenuCard />
+
+      <Link
+        href="/gallery"
+        className="glass glass-hover flex items-center gap-3 rounded-[20px] p-[18px] transition-all"
+      >
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold/20 text-gold-deep">
+          <Images size={18} strokeWidth={2.2} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-display text-[15px] font-bold text-navy">
+            Hình ảnh lớp
+          </span>
+          <span className="block text-[12.5px] font-semibold text-grey-mid">
+            Ảnh học tập và sự kiện do giáo viên chủ nhiệm đăng
+          </span>
+        </span>
+        <ChevronRight size={18} strokeWidth={2.2} className="shrink-0 text-grey-mid" />
+      </Link>
     </div>
   );
 }
