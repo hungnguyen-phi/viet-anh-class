@@ -8,6 +8,7 @@ export type ClassRow = Database['public']['Tables']['classes']['Row'];
 // Lớp "của tôi":
 //  - Bất kỳ ai là GVCN của lớp → lớp đó.
 //  - Học sinh → lớp đang học.
+//  - Phụ huynh → lớp của con (con đang chọn, hoặc con đầu nếu có nhiều con).
 //  - Admin/BGH (xem/quản trị) → lớp đầu tiên trong phạm vi (để preview scoreboard/điểm danh).
 export async function getMyClass(
   supabase: SB,
@@ -40,6 +41,35 @@ export async function getMyClass(
       .from('enrollments')
       .select('class_id')
       .eq('student_id', profile.id)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle();
+    if (!enr) return null;
+    const {data: cls} = await supabase
+      .from('classes')
+      .select('*')
+      .eq('id', enr.class_id)
+      .maybeSingle();
+    return cls ?? null;
+  }
+
+  // 2b) Phụ huynh → lớp của con.
+  //
+  // Trước đây rơi thẳng xuống `return null`, nên phụ huynh mở /timetable là thấy "Chưa có lớp" —
+  // dù RLS của timetable_slots ĐÃ cho họ đọc (is_parent_of_class). Nghĩa là dữ liệu vẫn đúng
+  // quyền, chỉ là không có đường nào tìm ra lớp để hỏi. Ban giám hiệu xin "bổ sung thêm TKB cho
+  // PH dễ theo dõi" — chính là lỗ này.
+  //
+  // Nhiều con thì lấy con đầu theo tên; trang gọi hàm này truyền preferredClassId khi phụ huynh
+  // đổi con (nhánh 0 ở trên đã xử lý, và RLS chặn nếu đó không phải lớp của con họ).
+  if (profile.role === 'parent') {
+    const {data: links} = await supabase.from('parent_links').select('student_id');
+    const ids = (links ?? []).map((l) => l.student_id);
+    if (ids.length === 0) return null;
+    const {data: enr} = await supabase
+      .from('enrollments')
+      .select('class_id')
+      .in('student_id', ids)
       .eq('is_active', true)
       .limit(1)
       .maybeSingle();
