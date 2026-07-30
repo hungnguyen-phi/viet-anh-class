@@ -15,12 +15,15 @@ const LOAI = [
   {value: 'exam', label: 'Kiểm tra (phải ôn)'},
 ];
 
-const RONG = {date: '', subject: '', content: '', due_date: '', kind: 'assignment'};
+const RONG = {date: '', subject_id: '', content: '', due_date: '', kind: 'assignment'};
 
 export type PostForEdit = {
   id: string;
   date: string;
-  subject: string;
+  // Bài cũ (trước 0069) chưa có môn trong danh mục → null, ô chọn để trống và phải chọn lại.
+  subject_id: string | null;
+  // Tên môn CHỈ để hiện ở tiêu đề panel sửa; cái được gửi đi vẫn là subject_id.
+  subjectName: string;
   content: string;
   due_date: string | null;
   kind: string;
@@ -31,13 +34,19 @@ export type PostForEdit = {
 //
 // `today` tính Ở SERVER rồi truyền xuống: client tự new Date() sẽ lệch khi qua nửa đêm (máy chủ
 // chạy UTC, sớm hơn giờ VN 7 tiếng) và gây cảnh báo hydration.
+//
+// `subjects` là chương trình của lớp (class_subjects), cũng lấy ở server: ô Môn là ô CHỌN, không
+// còn gõ tay — gõ tay chính là thứ làm "Ngữ văn"/"Ngữ Văn" thành hai môn và làm sai luôn tiêu đề
+// thông báo đẩy gửi cho cả lớp lẫn phụ huynh.
 export function HomeworkForm({
   classId,
   today,
+  subjects,
   post,
 }: {
   classId: string;
   today: string;
+  subjects: {id: string; name: string}[];
   post?: PostForEdit | null;
 }) {
   const router = useRouter();
@@ -46,7 +55,7 @@ export function HomeworkForm({
   // Input CONTROLLED → React không xoá nội dung khi submit; giữ nguyên khi có lỗi.
   const [v, setV] = useState({
     date: post?.date ?? today,
-    subject: post?.subject ?? '',
+    subject_id: post?.subject_id ?? '',
     content: post?.content ?? '',
     due_date: post?.due_date ?? '',
     kind: post?.kind ?? 'assignment',
@@ -67,7 +76,7 @@ export function HomeworkForm({
     }
     // ĐĂNG xong thì dọn form cho bài kế tiếp, nhưng GIỮ NGUYÊN ngày và môn: giáo viên thường
     // báo mấy môn liền trong cùng một buổi, bắt chọn lại ngày mỗi lần là thừa thao tác.
-    setV((p) => ({...RONG, date: p.date, subject: p.subject}));
+    setV((p) => ({...RONG, date: p.date, subject_id: p.subject_id}));
   }, [state, post, router, dsHref]);
 
   // Ctrl/⌘+Enter gửi nhanh (form nhiều ô, và ô nội dung là textarea nên Enter thường là xuống dòng).
@@ -103,7 +112,7 @@ export function HomeworkForm({
 
       {post && (
         <div className="mb-2.5 font-display text-[15px] font-bold text-navy">
-          Sửa bài đã đăng · {post.subject}
+          Sửa bài đã đăng · {post.subjectName}
         </div>
       )}
 
@@ -121,16 +130,27 @@ export function HomeworkForm({
           />
         </Field>
 
-        <Field label="Môn" htmlFor="hw-subject" error={loi('subject')}>
-          <input
+        {/* MÔN: chọn từ chương trình của lớp, không gõ tay nữa. Tên môn ở đây còn chui vào TIÊU ĐỀ
+            THÔNG BÁO ĐẨY gửi cả lớp lẫn phụ huynh (trigger notify_homework_post), nên gõ sai một
+            chữ là hàng chục người cùng nhận. Dùng ctlWithBorder + cursor-pointer chứ không
+            `selectCls + BORDER_ERR`: hai lớp viền chồng nhau thì cái nào thắng phụ thuộc thứ tự
+            Tailwind sinh CSS. */}
+        <Field label="Môn" htmlFor="hw-subject" error={loi('subject_id')}>
+          <select
             id="hw-subject"
-            name="subject"
-            value={v.subject}
-            onChange={set('subject')}
-            placeholder="Toán"
-            aria-invalid={state.fieldError === 'subject'}
-            className={ctlWithBorder(state.fieldError === 'subject')}
-          />
+            name="subject_id"
+            value={v.subject_id}
+            onChange={set('subject_id')}
+            aria-invalid={state.fieldError === 'subject_id'}
+            className={`${ctlWithBorder(state.fieldError === 'subject_id')} cursor-pointer`}
+          >
+            <option value="">— Chọn môn —</option>
+            {subjects.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
         </Field>
 
         <Field label="Loại" htmlFor="hw-kind">

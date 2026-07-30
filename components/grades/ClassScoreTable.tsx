@@ -7,9 +7,15 @@ export type ScoreTableRow = {
   /** Phiếu còn đây nhưng em đã rời lớp giữa đợt — không sửa/công bố thêm được (RLS). */
   daRoiLop: boolean;
   conduct: Conduct | null;
-  /** môn → trung bình CÓ HỆ SỐ, lấy nguyên từ view subject_term_summary_v. */
+  /**
+   * ID MÔN → trung bình CÓ HỆ SỐ, lấy nguyên từ view subject_term_summary_v.
+   * Khoá là id chứ không phải tên: trước 0069 gom theo tên nên "Ngữ văn" và "Ngữ Văn" ra hai cột.
+   */
   tb: Record<string, number | null>;
 };
+
+/** Một cột môn của bảng. `shortName` để hiện trong ô hẹp, `name` để chú thích đầy đủ. */
+export type MonCot = {id: string; name: string; short_name: string};
 
 /**
  * Bảng điểm cả lớp trong một đợt: hàng = học sinh, cột = môn, ô = trung bình có hệ số.
@@ -29,13 +35,13 @@ export function ClassScoreTable({
   subjects,
   rows,
 }: {
-  subjects: string[];
+  subjects: MonCot[];
   rows: ScoreTableRow[];
 }) {
   const minWidth = 470 + subjects.length * 88;
 
-  const tbLop = (mon: string): number | null => {
-    const co = rows.map((r) => r.tb[mon]).filter((v): v is number => typeof v === 'number');
+  const tbLop = (monId: string): number | null => {
+    const co = rows.map((r) => r.tb[monId]).filter((v): v is number => typeof v === 'number');
     if (co.length === 0) return null;
     return co.reduce((a, b) => a + b, 0) / co.length;
   };
@@ -50,13 +56,16 @@ export function ClassScoreTable({
         <span className="flex-[1.4] text-[11px] font-extrabold uppercase text-grey-mid">
           Học sinh
         </span>
+        {/* Ô tiêu đề rộng 80px: hiện MÃ NGẮN của môn (cột short_name có sẵn trong danh mục, đặt
+            ra đúng cho ô hẹp), tên đầy đủ để trong title. Trước 0069 chỗ này hiện tên đầy đủ và
+            "Khoa học tự nhiên" bị cắt thành "Khoa học t…". */}
         {subjects.map((s) => (
           <span
-            key={s}
-            title={s}
+            key={s.id}
+            title={s.name}
             className="w-[80px] flex-none truncate text-center text-[11px] font-extrabold uppercase text-grey-mid"
           >
-            {s}
+            {s.short_name}
           </span>
         ))}
         <span className="w-[104px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid">
@@ -87,12 +96,12 @@ export function ClassScoreTable({
           </span>
           {subjects.map((s) => (
             <span
-              key={s}
+              key={s.id}
               className={`w-[80px] flex-none text-center text-[13px] font-bold ${
-                typeof r.tb[s] === 'number' ? 'text-navy' : 'text-navy/25'
+                typeof r.tb[s.id] === 'number' ? 'text-navy' : 'text-navy/25'
               }`}
             >
-              {soVN(r.tb[s])}
+              {soVN(r.tb[s.id])}
             </span>
           ))}
           <span className="grid w-[104px] flex-none place-items-center">
@@ -135,10 +144,10 @@ export function ClassScoreTable({
           </span>
           {subjects.map((s) => (
             <span
-              key={s}
+              key={s.id}
               className="w-[80px] flex-none text-center text-[13px] font-extrabold text-navy"
             >
-              {soVN(tbLop(s))}
+              {soVN(tbLop(s.id))}
             </span>
           ))}
           <span className="w-[104px] flex-none" />

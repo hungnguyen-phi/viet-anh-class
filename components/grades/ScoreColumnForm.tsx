@@ -17,7 +17,8 @@ export type ScoreCell = {reviewId: string; name: string; current: string};
 export function ScoreColumnForm({
   classId,
   termId,
-  subject,
+  subjectId,
+  subjectName,
   kind,
   ordinal,
   weight,
@@ -25,7 +26,10 @@ export function ScoreColumnForm({
 }: {
   classId: string;
   termId: string;
-  subject: string;
+  /** ID trong danh mục môn — thứ DUY NHẤT gửi lên máy chủ. */
+  subjectId: string;
+  /** Tên môn — CHỈ để hiện ra. Gửi tên đi là quay lại đúng cái bệnh 0069 đang chữa. */
+  subjectName: string;
   kind: ScoreKind;
   ordinal: number;
   weight: number;
@@ -35,7 +39,7 @@ export function ScoreColumnForm({
     <form action={saveScoreColumn} className="glass rounded-[20px] p-4">
       <input type="hidden" name="class_id" value={classId} />
       <input type="hidden" name="term_id" value={termId} />
-      <input type="hidden" name="subject" value={subject} />
+      <input type="hidden" name="subject_id" value={subjectId} />
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="ordinal" value={ordinal} />
       {/* Danh sách phiếu gửi kèm để server biết phải đọc những ô nào — cũng là cách phân biệt
@@ -45,7 +49,7 @@ export function ScoreColumnForm({
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <div className="font-display text-[15px] font-bold text-navy">
-            Nhập điểm cả lớp · {tenCot(subject, kind, ordinal)}
+            Nhập điểm cả lớp · {tenCot(subjectName, kind, ordinal)}
           </div>
           <p className="mt-0.5 text-[11px] italic text-grey-mid">
             Nhập từ trên xuống rồi bấm Lưu một lần. Ô để trống nghĩa là xoá con điểm đó của em ấy.

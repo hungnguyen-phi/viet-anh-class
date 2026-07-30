@@ -8,6 +8,11 @@ import {friendlyError} from '@/lib/errors';
 import {CONDUCTS, SCORE_KINDS, TERM_KINDS, TERM_KIND_LABEL} from '@/components/grades/labels';
 import type {Conduct, ScoreKind, TermKind} from '@/components/grades/labels';
 
+// Môn giờ là một dòng trong danh mục (0069), nên mọi chỗ nhắc tới môn đều là UUID — cả ô ẩn
+// trong form lẫn ?subject= trên địa chỉ. Kiểm hình dạng trước khi gửi xuống DB để không phải
+// dịch lỗi 22P02 ("invalid input syntax for type uuid") thành câu tiếng Việt.
+const LA_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // ── Ngữ cảnh đang xem ────────────────────────────────────────────────────────
 // Trang này có tới năm tham số cùng lúc (lớp / đợt / môn / loại điểm / lần thứ mấy). Bỏ sót một
 // cái khi quay về là giáo viên bị ném sang lớp khác hoặc mất đúng cột vừa nhập dở — chính là
@@ -16,6 +21,7 @@ import type {Conduct, ScoreKind, TermKind} from '@/components/grades/labels';
 type Ctx = {
   class?: string;
   term?: string;
+  /** ID môn trong danh mục. Tên tham số trên địa chỉ vẫn là `subject`, nhưng GIÁ TRỊ là uuid. */
   subject?: string;
   kind?: string;
   ordinal?: string;
@@ -29,7 +35,7 @@ function readCtx(formData: FormData): Ctx {
   return {
     class: s('class_id'),
     term: s('term_id'),
-    subject: s('subject'),
+    subject: s('subject_id'),
     kind: s('kind'),
     ordinal: s('ordinal'),
   };
@@ -72,21 +78,26 @@ export async function openTermForClass(formData: FormData) {
 
 // ── Lưu MỘT CỘT điểm cho cả lớp ──────────────────────────────────────────────
 // Một lần bấm = một cột (môn + loại điểm + lần thứ mấy) của TOÀN LỚP, đúng bộ khoá tự nhiên
-// (review, subject, kind, ordinal) của bảng subject_scores. Nhờ trùng khớp với khoá đó nên chỉ
-// cần MỘT lượt upsert cho các em có điểm và MỘT lượt delete cho các ô bị xoá trắng — 30 em vẫn
-// là hai chặng mạng, không phải sáu mươi.
+// (review_id, subject_id, kind, ordinal) của bảng subject_scores. Nhờ trùng khớp với khoá đó nên
+// chỉ cần MỘT lượt upsert cho các em có điểm và MỘT lượt delete cho các ô bị xoá trắng — 30 em
+// vẫn là hai chặng mạng, không phải sáu mươi.
+//
+// AI GỌI ĐƯỢC: giáo viên chủ nhiệm (policy cũ của 0064) VÀ giáo viên bộ môn được phân công đúng
+// môn đó ở đúng lớp đó (policy mới của 0069). Cả hai đều là vai 'teacher' nên requireRole không
+// phân biệt được — và cũng KHÔNG nên cố phân biệt ở đây: chốt thật nằm ở RLS
+// can_write_subject_score(review, subject), hỏi QUAN HỆ chứ không hỏi vai trò. Ở đây chỉ chặn
+// người không có việc gì ở màn hình này.
 export async function saveScoreColumn(formData: FormData) {
   const me = await requireRole(['teacher', 'admin']);
   const ctx = readCtx(formData);
   if (!ctx.class || !ctx.term) gradesFlash(ctx, 'Thiếu lớp hoặc đợt đánh giá');
 
-  // btrim ngay ở đây cho khớp ràng buộc subject_scores_subject_check (subject = btrim(subject)):
-  // để lọt dấu cách cuối tên môn thì DB trả 23514 và giáo viên chỉ thấy "Giá trị nhập không hợp lệ".
-  const subject = (ctx.subject ?? '').trim();
+  const subjectId = ctx.subject ?? '';
   const kind = (ctx.kind ?? '') as ScoreKind;
   const ordinal = Number(ctx.ordinal ?? 1);
-  if (!subject) gradesFlash(ctx, 'Hãy chọn môn trước khi nhập điểm');
-  if (subject.length > 60) gradesFlash(ctx, 'Tên môn dài quá 60 ký tự');
+  if (!subjectId) gradesFlash(ctx, 'Hãy chọn môn trước khi nhập điểm');
+  if (!LA_UUID.test(subjectId))
+    gradesFlash(ctx, 'Môn học không hợp lệ — hãy chọn lại trong ô Môn học');
   if (!SCORE_KINDS.includes(kind)) gradesFlash(ctx, 'Loại điểm không hợp lệ');
   if (!Number.isInteger(ordinal) || ordinal < 1 || ordinal > 20)
     gradesFlash(ctx, 'Cột điểm phải từ 1 đến 20');
@@ -102,16 +113,27 @@ export async function saveScoreColumn(formData: FormData) {
   // Migration 0064 đặt default_score_weight() làm nguồn duy nhất đúng vì hệ số lệch giữa màn hình
   // cô và màn hình phụ huynh là loại lỗi phụ huynh phát hiện trước nhà trường.
   const wRaw = Number(String(formData.get('weight') ?? '').trim());
-  let weight: number | null =
+  const wChon: number | null =
     Number.isFinite(wRaw) && wRaw >= 1 && wRaw <= 5 ? Math.round(wRaw) : null;
-  if (weight === null) {
-    const {data: dw} = await supabase.rpc('default_score_weight', {k: kind});
-    weight = Number(dw ?? 1);
-  }
+
+  // Hai câu hỏi độc lập, hỏi một lượt: hệ số mặc định, và TÊN môn để câu thông báo cuối cùng đọc
+  // được. Không tra tên thì thông báo in ra một chuỗi uuid — thứ không giáo viên nào hiểu.
+  const [weight, tenMon] = await Promise.all([
+    wChon === null
+      ? supabase.rpc('default_score_weight', {k: kind}).then((r) => Number(r.data ?? 1))
+      : Promise.resolve(wChon),
+    supabase
+      .from('subjects')
+      .select('name')
+      .eq('id', subjectId)
+      .maybeSingle()
+      .then((r) => r.data?.name ?? null),
+  ]);
+  const nhanMon = tenMon ? ` môn ${tenMon}` : '';
 
   const rows: {
     review_id: string;
-    subject: string;
+    subject_id: string;
     kind: ScoreKind;
     ordinal: number;
     score: number;
@@ -137,7 +159,9 @@ export async function saveScoreColumn(formData: FormData) {
     }
     rows.push({
       review_id: id,
-      subject,
+      // CHỈ ghi subject_id. Cột chữ `subject` vẫn còn trong bảng nhưng cố ý không đụng tới: ghi
+      // cả hai là dựng lại đúng cái "hai nguồn sự thật" mà 0069 vừa dỡ bỏ.
+      subject_id: subjectId,
       kind,
       ordinal,
       // numeric(4,2) ở DB — cắt sẵn 2 chữ số để 8.333 không bị Postgres làm tròn theo cách khác.
@@ -155,15 +179,22 @@ export async function saveScoreColumn(formData: FormData) {
     gradesFlash(ctx, `Có ${soLoi} ô điểm không hợp lệ (điểm phải từ 0 đến 10). Chưa lưu gì cả.`);
 
   if (rows.length > 0) {
+    // onConflict PHẢI đi cùng khoá unique thật của bảng. 0069 đã đổi khoá đó sang
+    // (review_id, subject_id, kind, ordinal); để nguyên chuỗi cũ là PostgREST trả 42P10
+    // "no unique constraint matching the ON CONFLICT specification" và không lưu được gì.
+    //
     // .select() để phân biệt "RLS chặn / đợt đã chốt sổ" với "đã ghi xong" — không báo thành công giả.
     const {data, error} = await supabase
       .from('subject_scores')
-      .upsert(rows, {onConflict: 'review_id,subject,kind,ordinal'})
+      .upsert(rows, {onConflict: 'review_id,subject_id,kind,ordinal'})
       .select('id');
     revalidatePath('/[locale]/grades', 'page');
     if (error) gradesFlash(ctx, friendlyError(error));
     if ((data ?? []).length === 0)
-      gradesFlash(ctx, 'Không lưu được — đợt có thể đã chốt sổ, hoặc bạn không chủ nhiệm lớp này.');
+      gradesFlash(
+        ctx,
+        'Không lưu được — đợt có thể đã chốt sổ, hoặc bạn không phụ trách môn này ở lớp này.',
+      );
   }
 
   // Xoá trắng một ô = xoá con điểm đó. Nghiệp vụ thật: gõ 9 thành 90 rồi phải bỏ hẳn (0064 nói
@@ -172,7 +203,7 @@ export async function saveScoreColumn(formData: FormData) {
     const {error} = await supabase
       .from('subject_scores')
       .delete()
-      .eq('subject', subject)
+      .eq('subject_id', subjectId)
       .eq('kind', kind)
       .eq('ordinal', ordinal)
       .in('review_id', empty);
@@ -186,8 +217,33 @@ export async function saveScoreColumn(formData: FormData) {
   gradesFlash(
     ctx,
     rows.length > 0
-      ? `Đã lưu ${rows.length} con điểm môn ${subject}`
-      : `Đã xoá điểm môn ${subject} của cột này`,
+      ? `Đã lưu ${rows.length} con điểm${nhanMon}`
+      : `Đã xoá điểm${nhanMon} của cột này`,
+  );
+}
+
+// ── Gieo chương trình môn cho lớp ────────────────────────────────────────────
+// Lớp chưa khai môn nào thì ô chọn môn rỗng và cả màn hình nhập điểm là ngõ cụt. RPC
+// seed_class_subjects() gắn cả bộ môn đang dùng của cơ sở vào lớp trong một cú bấm — gọi lại
+// nhiều lần vẫn an toàn (on conflict do nothing).
+//
+// Ai được gọi thì chính hàm trong DB quyết (GVCN lớp / ban giám hiệu cơ sở / quản trị viên), ở
+// đây không đoán lại: đoán sai theo hướng chặt là khoá nhầm người, đoán sai theo hướng lỏng là
+// vẽ ra cái nút bấm vào chỉ để nhận thông báo bị từ chối.
+export async function seedClassSubjects(formData: FormData) {
+  await requireRole(['teacher', 'principal', 'admin']);
+  const ctx = readCtx(formData);
+  if (!ctx.class) gradesFlash(ctx, 'Thiếu lớp');
+
+  const supabase = await createClient();
+  const {data, error} = await supabase.rpc('seed_class_subjects', {p_class: ctx.class});
+  revalidatePath('/[locale]/grades', 'page');
+  if (error) gradesFlash(ctx, friendlyError(error));
+  gradesFlash(
+    ctx,
+    data && data > 0
+      ? `Đã thêm ${data} môn vào chương trình của lớp`
+      : 'Lớp đã có đủ các môn đang dùng của cơ sở',
   );
 }
 

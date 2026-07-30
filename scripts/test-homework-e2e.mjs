@@ -74,12 +74,22 @@ async function goiAction(path, cookie, moc, fields) {
 const kq = [];
 const check = (nhan, dat, ct = '') => kq.push(`${dat ? 'OK  ' : 'SAI '} ${nhan}${ct ? ' — ' + ct : ''}`);
 
-const MON = 'E2E-Toán';
-const NOIDUNG = 'E2E-BTVN-trang-42-' + MON;
+// Môn lấy từ DANH MỤC (migration 0069), không còn gõ tay. Dùng Toán — môn chắc chắn có.
+const NOIDUNG = 'E2E-BTVN-trang-42-khong-trung-gi';
 const CLASS = (await admin.from('classes').select('id').eq('name', '7B1').single()).data.id;
+const MON_ID = (
+  await admin.from('subjects').select('id').eq('code', 'TOAN').is('campus_id', null).single()
+).data.id;
+const MON = (await admin.from('subjects').select('name').eq('id', MON_ID).single()).data.name;
+
+// Lớp phải HỌC môn đó thì ô chọn mới hiện nó (bảng class_subjects).
+await admin.from('class_subjects').upsert(
+  {class_id: CLASS, subject_id: MON_ID},
+  {onConflict: 'class_id,subject_id'},
+);
 
 // Dọn dấu vết lần chạy trước
-await admin.from('homework_posts').delete().eq('subject', MON);
+await admin.from('homework_posts').delete().eq('content', NOIDUNG);
 await admin.from('notifications').delete().like('title', '%' + MON + '%');
 
 const ckGv = await ck('test1.gvcn@truongvietanh.com');
@@ -94,7 +104,7 @@ const homNay = new Intl.DateTimeFormat('en-CA', {timeZone: 'Asia/Ho_Chi_Minh'}).
 const dang = await goiAction(`/homework?class=${CLASS}`, ckGv, 'name="content"', {
   class_id: CLASS,
   date: homNay,
-  subject: MON,
+  subject_id: MON_ID,
   kind: 'assignment',
   due_date: '',
   content: NOIDUNG,
@@ -107,8 +117,8 @@ check(
 
 const {data: post} = await admin
   .from('homework_posts')
-  .select('id, class_id, subject, content')
-  .eq('subject', MON)
+  .select('id, class_id, subject_id, content')
+  .eq('content', NOIDUNG)
   .maybeSingle();
 check('Bài được ghi vào CSDL', !!post && post.class_id === CLASS);
 
@@ -168,9 +178,9 @@ if (post) {
 }
 
 // ── 8. Dọn ──
-await admin.from('homework_posts').delete().eq('subject', MON);
+await admin.from('homework_posts').delete().eq('content', NOIDUNG);
 await admin.from('notifications').delete().like('title', '%' + MON + '%');
-const {data: con} = await admin.from('homework_posts').select('id').eq('subject', MON);
+const {data: con} = await admin.from('homework_posts').select('id').eq('content', NOIDUNG);
 check('Đã dọn dữ liệu thử', (con ?? []).length === 0);
 
 console.log(kq.join('\n'));

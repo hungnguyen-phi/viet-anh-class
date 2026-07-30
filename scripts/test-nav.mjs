@@ -41,6 +41,11 @@ duongDan.teacher.push('/inbox');
 duongDan.parent.push('/inbox');
 // Trang tổ trưởng điểm danh (thêm động cho học sinh).
 duongDan.student.push('/attendance');
+// Danh mục môn: vào từ trang Quản trị và trang Cơ sở, không phải tab (docs/NAV_IA.md).
+duongDan.admin.push('/subjects');
+duongDan.principal.push('/subjects');
+// Thực đơn: quản trị soạn ở trang riêng, mở từ trang Quản trị.
+duongDan.admin.push('/menu');
 // /messages là trang CHUYỂN HƯỚNG sang /inbox (chuông thông báo của migration 0065 trỏ vào đó).
 // Ở đây 307 mới là đúng, nên tách ra kiểm riêng bên dưới.
 const CHUYEN_HUONG = [['/messages?t=abc', '/inbox']];

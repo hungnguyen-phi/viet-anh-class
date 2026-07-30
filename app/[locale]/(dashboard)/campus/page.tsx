@@ -12,6 +12,8 @@ import {TeacherManager} from './TeacherManager';
 import {CampusLevelPicker} from './CampusLevelPicker';
 import {FlashToast} from '@/components/ui/FlashToast';
 import {MessageHealthCard} from '@/components/inbox/MessageHealthCard';
+import {Link} from '@/i18n/navigation';
+import {BookMarked} from 'lucide-react';
 
 export default async function CampusPage({
   params,
@@ -163,6 +165,26 @@ export default async function CampusPage({
           Đặt ở đây vì đây là màn hình cấp trường của họ, và "lớp nào để phụ huynh chờ lâu" là
           việc đôn đốc cùng loại với các con số phía trên. Nội dung tin nhắn thì RLS của 0065
           không cho họ đọc, cố ý. */}
+      {/* Môn riêng của cơ sở + phân công giáo viên bộ môn cho từng lớp.
+          Hiệu trưởng sửa được môn RIÊNG của cơ sở mình và phân công giáo viên; môn dùng chung
+          toàn trường thì chỉ quản trị viên đổi (RLS 0069, cố ý — đổi tên "Ngữ văn" ở một cơ sở là
+          đổi cho cả bốn, và mọi con điểm Ngữ văn toàn trường đổi nhãn theo). */}
+      <section className="glass rounded-[20px] p-[18px]">
+        <div className="mb-3 font-display text-[15px] font-bold text-navy">
+          Môn học &amp; phân công giáo viên bộ môn
+        </div>
+        <p className="mb-3 text-xs text-grey-mid">
+          Xem danh mục môn của trường, thêm môn riêng của cơ sở, và chọn ai dạy môn gì ở từng lớp.
+        </p>
+        <Link
+          href="/subjects"
+          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy"
+        >
+          <BookMarked size={14} strokeWidth={2.2} />
+          Mở danh mục môn
+        </Link>
+      </section>
+
       <MessageHealthCard />
 
       {mgmt && (

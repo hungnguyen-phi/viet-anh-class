@@ -31,13 +31,19 @@ type PhieuRow = {
 };
 
 type ConDiem = {
-  subject: string;
+  subject_id: string | null;
+  /** Cột chữ CŨ (trước 0069). Chỉ dùng để cứu những dòng chưa kịp gắn subject_id — không bao giờ ghi. */
+  subject: string | null;
   kind: ScoreKind;
   ordinal: number;
   score: number;
   weight: number;
   taken_on: string | null;
+  subjects: {name: string; sort_order: number} | null;
 };
+
+/** Một môn trong bảng của gia đình: gom theo ID, chỉ hiện TÊN. */
+type MonGom = {khoa: string; ten: string; thuTu: number; diem: ConDiem[]};
 
 /**
  * Bảng điểm gửi GIA ĐÌNH — dùng chung cho phụ huynh và cho chính học sinh.
@@ -128,38 +134,57 @@ export async function FamilyReport({
   let tbMon = new Map<string, number | null>();
   if (chon) {
     const [{data: scoreData}, {data: sumData}] = await Promise.all([
+      // Tên môn lấy từ DANH MỤC qua subject_id (0069), không đọc cột chữ cũ nữa — trừ khi dòng
+      // điểm đó có từ trước migration và chưa gắn được môn nào.
       supabase
         .from('subject_scores')
-        .select('subject, kind, ordinal, score, weight, taken_on')
+        .select('subject_id, subject, kind, ordinal, score, weight, taken_on, subjects(name, sort_order)')
         .eq('review_id', chon.id),
       // Trung bình có hệ số LẤY TỪ VIEW, không tự nhân chia lại ở đây — hệ số lệch giữa màn hình
       // cô và màn hình phụ huynh là lỗi phụ huynh phát hiện trước nhà trường (0064).
       supabase
         .from('subject_term_summary_v')
-        .select('subject, diem_trung_binh')
+        .select('subject_id, diem_trung_binh')
         .eq('review_id', chon.id),
     ]);
-    diem = (scoreData ?? []) as ConDiem[];
+    diem = (scoreData ?? []) as unknown as ConDiem[];
     tbMon = new Map(
-      (sumData ?? []).map((s) => [
-        s.subject ?? '',
-        s.diem_trung_binh === null ? null : Number(s.diem_trung_binh),
-      ]),
+      (sumData ?? [])
+        .filter((s) => s.subject_id !== null)
+        .map((s) => [
+          s.subject_id as string,
+          s.diem_trung_binh === null ? null : Number(s.diem_trung_binh),
+        ]),
     );
   }
 
-  // Gom con điểm theo môn, trong môn thì xếp theo loại điểm (miệng → cuối kỳ) rồi tới lần thứ mấy
-  // — đúng thứ tự sổ điểm giấy, để phụ huynh dò theo được.
-  const theoMon = new Map<string, ConDiem[]>();
+  // Gom con điểm theo MÔN (theo id, không theo tên — gom theo tên là cách "Ngữ văn"/"Ngữ Văn"
+  // thành hai dòng), trong môn thì xếp theo loại điểm (miệng → cuối kỳ) rồi tới lần thứ mấy —
+  // đúng thứ tự sổ điểm giấy, để phụ huynh dò theo được.
+  const theoMon = new Map<string, MonGom>();
   for (const d of diem) {
-    const list = theoMon.get(d.subject);
-    if (list) list.push(d);
-    else theoMon.set(d.subject, [d]);
+    // Dòng cũ chưa gắn môn thì gom tạm theo chữ cũ, để điểm đã nhập không biến mất khỏi màn hình
+    // của gia đình. Những dòng này không có trong view tổng kết nên cột trung bình sẽ là "—".
+    const khoa = d.subject_id ?? `cu:${(d.subject ?? '').toLowerCase()}`;
+    const nhom = theoMon.get(khoa);
+    if (nhom) nhom.diem.push(d);
+    else
+      theoMon.set(khoa, {
+        khoa,
+        ten: d.subjects?.name ?? d.subject ?? 'Môn chưa rõ',
+        // Môn trong danh mục xếp theo thứ tự của trường; dòng cũ chưa gắn môn dồn xuống cuối.
+        thuTu: d.subjects?.sort_order ?? 9999,
+        diem: [d],
+      });
   }
-  for (const list of theoMon.values()) {
-    list.sort((a, b) => SCORE_KINDS.indexOf(a.kind) - SCORE_KINDS.indexOf(b.kind) || a.ordinal - b.ordinal);
+  for (const nhom of theoMon.values()) {
+    nhom.diem.sort(
+      (a, b) => SCORE_KINDS.indexOf(a.kind) - SCORE_KINDS.indexOf(b.kind) || a.ordinal - b.ordinal,
+    );
   }
-  const monList = [...theoMon.keys()].sort((a, b) => a.localeCompare(b, 'vi'));
+  const monList = [...theoMon.values()].sort(
+    (a, b) => a.thuTu - b.thuTu || a.ten.localeCompare(b.ten, 'vi'),
+  );
 
   const linkDot = (termId: string) => ({
     pathname: '/grades' as const,
@@ -267,14 +292,17 @@ export async function FamilyReport({
                 </div>
                 {monList.map((mon) => (
                   <div
-                    key={mon}
+                    key={mon.khoa}
                     className="flex min-w-[640px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2.5"
                   >
-                    <span className="w-[140px] flex-none truncate text-[13.5px] font-bold text-navy">
-                      {mon}
+                    <span
+                      title={mon.ten}
+                      className="w-[140px] flex-none truncate text-[13.5px] font-bold text-navy"
+                    >
+                      {mon.ten}
                     </span>
                     <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-                      {(theoMon.get(mon) ?? []).map((d) => (
+                      {mon.diem.map((d) => (
                         <span
                           key={`${d.kind}-${d.ordinal}`}
                           title={`${SCORE_KIND_LABEL[d.kind]} lần ${d.ordinal} · hệ số ${d.weight}`}
@@ -287,7 +315,7 @@ export async function FamilyReport({
                       ))}
                     </span>
                     <span className="w-[90px] flex-none text-center font-display text-[16px] font-bold text-navy">
-                      {soVN(tbMon.get(mon))}
+                      {soVN(tbMon.get(mon.khoa))}
                     </span>
                   </div>
                 ))}

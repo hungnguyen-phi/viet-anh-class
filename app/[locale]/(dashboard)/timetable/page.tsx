@@ -8,7 +8,7 @@ import {todayInVN, weekRangeVN} from '@/lib/dates';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {OverrideForm} from './OverrideForm';
-import {saveSlot, deleteSlot, deleteOverride} from './actions';
+import {saveSlot, deleteSlot, deleteOverride, seedSubjects} from './actions';
 import {FlashToast} from '@/components/ui/FlashToast';
 
 const DAYS = [2, 3, 4, 5, 6, 7]; // T2..T7 (tuần học VN)
@@ -18,11 +18,18 @@ type Slot = {
   id: string;
   day_of_week: number;
   period_no: number;
-  subject: string;
+  // Cột chữ CŨ (trước 0069 là ô gõ tay). Giữ lại CHỈ để hiện những dòng cũ chưa có subject_id —
+  // không dòng mã nào ghi vào đây nữa, xem quyết định E của migration 0069.
+  subject: string | null;
+  subject_id: string | null;
+  // Tên môn lấy thẳng từ danh mục qua khoá ngoại. Đây mới là nguồn sự thật.
+  subjects: {name: string; short_name: string} | null;
   room: string | null;
   teacher_name: string | null;
   kind: string;
 };
+// Một môn trong chương trình của lớp (class_subjects → subjects).
+type MonHoc = {id: string; name: string; short_name: string; sort_order: number; is_active: boolean};
 type Override = {
   id: string;
   slot_id: string;
@@ -93,10 +100,12 @@ export default async function TimetablePage({
   const weekDates = DAYS.map(dateOf);
   const rangeLabel = `${weekDates[0].slice(5)} → ${weekDates[weekDates.length - 1].slice(5)}`;
 
-  const [{data: slotData}, {data: overData}] = await Promise.all([
+  const [{data: slotData}, {data: overData}, {data: monData}] = await Promise.all([
     supabase
       .from('timetable_slots')
-      .select('id, day_of_week, period_no, subject, room, teacher_name, kind')
+      // Nhặt luôn tên môn từ danh mục trong CÙNG một truy vấn — hỏi riêng bảng subjects là thêm
+      // một chặng mạng mà chẳng biết thêm gì.
+      .select('id, day_of_week, period_no, subject, subject_id, room, teacher_name, kind, subjects(name, short_name)')
       .eq('class_id', myClass.id),
     // Ngoại lệ của TUẦN ĐANG XEM. Lọc theo dải ngày → không tải cả năm.
     supabase
@@ -104,8 +113,24 @@ export default async function TimetablePage({
       .select('id, slot_id, date, status, new_date, new_period_no, substitute_name, note')
       .gte('date', weekDates[0])
       .lte('date', weekDates[weekDates.length - 1]),
+    // Chương trình của lớp = nguồn DUY NHẤT cho ô chọn môn (0069 mục B). Chỉ hỏi khi người xem
+    // có quyền sửa: học sinh và phụ huynh không thấy form nào, hỏi thêm là tốn một chặng mạng
+    // cho không (đúng bài học ở roster/page.tsx:91).
+    canManage
+      ? supabase
+          .from('class_subjects')
+          .select('subjects(id, name, short_name, sort_order, is_active)')
+          .eq('class_id', myClass.id)
+          .eq('is_active', true)
+      : Promise.resolve({data: null}),
   ]);
-  const slots = (slotData ?? []) as Slot[];
+  const slots = (slotData ?? []) as unknown as Slot[];
+  // Môn đã ngừng dùng (is_active = false) vẫn còn trong chương trình lớp nhưng KHÔNG được chọn
+  // tiếp — DB cũng chặn ở subject_fits_class, chặn sẵn ở đây để khỏi báo lỗi khó hiểu.
+  const monLop = ((monData ?? []) as unknown as {subjects: MonHoc | null}[])
+    .map((r) => r.subjects)
+    .filter((m): m is MonHoc => !!m && m.is_active)
+    .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'vi'));
   const slotById = new Map(slots.map((s) => [s.id, s]));
   const byKey = new Map(slots.map((s) => [`${s.day_of_week}-${s.period_no}`, s]));
   // RLS tto_read đã giới hạn theo lớp, nhưng lọc lại theo slot của lớp đang xem cho chắc
@@ -121,12 +146,19 @@ export default async function TimetablePage({
   const cellInput =
     'w-full rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy';
 
+  // TÊN MÔN ĐỂ HIỆN. Đọc từ danh mục; dòng cũ còn subject_id NULL thì hiện tạm chữ cũ — chỉ để
+  // không mất dữ liệu đang có, KHÔNG phải để ghi tiếp vào cột đó.
+  const tenMon = (s: Slot) => s.subjects?.name ?? s.subject ?? '—';
+  // Bản NGẮN cho ô lưới: ô một tiết rộng chưa tới 90px nên "Giáo dục kinh tế và pháp luật" bị CSS
+  // cắt cụt. Cột short_name sinh ra chính vì lý do đó (xem comment trong migration 0069).
+  const tenMonNgan = (s: Slot) => s.subjects?.short_name ?? s.subject ?? '—';
+
   const slotOptions = slots
     .slice()
     .sort((a, b) => a.day_of_week - b.day_of_week || a.period_no - b.period_no)
     .map((s) => ({
       id: s.id,
-      label: `${dayLabel(s.day_of_week)} · ${t('period')} ${s.period_no} · ${s.subject}`,
+      label: `${dayLabel(s.day_of_week)} · ${t('period')} ${s.period_no} · ${tenMon(s)}`,
       date: dateOf(s.day_of_week),
     }));
 
@@ -234,19 +266,21 @@ export default async function TimetablePage({
                                 editSlot: s.id,
                               },
                             }}
+                            title={tenMon(s)}
                             className={`block truncate text-[12.5px] font-bold text-navy underline-offset-2 hover:underline ${
                               ov?.status === 'cancelled' ? 'line-through' : ''
                             }`}
                           >
-                            {s.subject}
+                            {tenMonNgan(s)}
                           </Link>
                         ) : (
                           <div
+                            title={tenMon(s)}
                             className={`truncate text-[12.5px] font-bold text-navy ${
                               ov?.status === 'cancelled' ? 'line-through' : ''
                             }`}
                           >
-                            {s.subject}
+                            {tenMonNgan(s)}
                           </div>
                         )}
                         {(s.room || s.teacher_name) && (
@@ -333,60 +367,99 @@ export default async function TimetablePage({
               </Link>
             )}
           </div>
-          {/* key ép remount khi đổi ô đang sửa → defaultValue nạp lại đúng ô mới */}
-          <form key={editing?.id ?? 'new'} action={saveSlot} className="flex flex-wrap items-end gap-2">
-            <input type="hidden" name="class_id" value={myClass.id} />
-            {editing ? (
-              // Đang sửa: KHOÁ thứ/tiết. saveSlot upsert theo (class, day, period) nên đổi hai ô
-              // này sẽ tạo ô MỚI chứ không "dời" ô cũ — dời lịch là việc của ngoại lệ theo ngày.
-              <>
-                <input type="hidden" name="day_of_week" value={editing.day_of_week} />
-                <input type="hidden" name="period_no" value={editing.period_no} />
-              </>
-            ) : (
-              <>
-                <select name="day_of_week" aria-label={t('dayLabel')} defaultValue="2" className={`${cellInput} w-24 cursor-pointer`}>
-                  {DAYS.map((d) => (
-                    <option key={d} value={d}>
-                      {dayLabel(d)}
+          {monLop.length === 0 ? (
+            /* Lớp CHƯA khai môn nào → ô chọn sẽ rỗng. Đừng để giáo viên nhìn một ô trống rồi
+               đoán: nói thẳng phải làm gì, và đặt sẵn nút làm hộ. RPC seed_class_subjects gieo cả
+               bộ môn đang dùng của cơ sở, gọi lại bao nhiêu lần cũng an toàn. */
+            <div className="flex flex-wrap items-center gap-2.5">
+              <p className="min-w-[240px] flex-1 text-[12.5px] font-semibold leading-[1.55] text-txt">
+                Lớp này chưa khai môn nào nên chưa chọn được môn cho ô thời khoá biểu. Bấm nút bên
+                cạnh để thêm cả bộ môn của cơ sở vào chương trình lớp, rồi xếp lịch như thường.
+              </p>
+              <form action={seedSubjects}>
+                <input type="hidden" name="class_id" value={myClass.id} />
+                <SubmitButton
+                  className="btn-gold h-11 cursor-pointer rounded-[10px] px-4 text-sm font-extrabold"
+                  wrapClass="contents"
+                >
+                  Thêm bộ môn cho lớp
+                </SubmitButton>
+              </form>
+            </div>
+          ) : (
+            <>
+              {/* key ép remount khi đổi ô đang sửa → defaultValue nạp lại đúng ô mới */}
+              <form key={editing?.id ?? 'new'} action={saveSlot} className="flex flex-wrap items-end gap-2">
+                <input type="hidden" name="class_id" value={myClass.id} />
+                {editing ? (
+                  // Đang sửa: KHOÁ thứ/tiết. saveSlot upsert theo (class, day, period) nên đổi hai ô
+                  // này sẽ tạo ô MỚI chứ không "dời" ô cũ — dời lịch là việc của ngoại lệ theo ngày.
+                  <>
+                    <input type="hidden" name="day_of_week" value={editing.day_of_week} />
+                    <input type="hidden" name="period_no" value={editing.period_no} />
+                  </>
+                ) : (
+                  <>
+                    <select name="day_of_week" aria-label={t('dayLabel')} defaultValue="2" className={`${cellInput} w-24 cursor-pointer`}>
+                      {DAYS.map((d) => (
+                        <option key={d} value={d}>
+                          {dayLabel(d)}
+                        </option>
+                      ))}
+                    </select>
+                    <select name="period_no" aria-label={t('period')} defaultValue="1" className={`${cellInput} w-24 cursor-pointer`}>
+                      {PERIODS.map((p) => (
+                        <option key={p} value={p}>
+                          {t('period')} {p}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
+                {/* MÔN: chọn từ danh mục, không gõ tay nữa. Trước 0069 hai lớp gõ "Ngữ văn"/"Ngữ Văn"
+                    thành hai môn khác nhau, và thời khoá biểu không nối được với bảng điểm. */}
+                <select
+                  name="subject_id"
+                  aria-label={t('subject')}
+                  defaultValue={editing?.subject_id ?? ''}
+                  className={`${cellInput} min-w-[130px] flex-1 cursor-pointer`}
+                  required
+                >
+                  {/* Bắt buộc chọn: bỏ trống thì trình duyệt chặn ngay, không phải chờ máy chủ trả lỗi. */}
+                  <option value="">— {t('subject')} —</option>
+                  {monLop.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
                     </option>
                   ))}
                 </select>
-                <select name="period_no" aria-label={t('period')} defaultValue="1" className={`${cellInput} w-24 cursor-pointer`}>
-                  {PERIODS.map((p) => (
-                    <option key={p} value={p}>
-                      {t('period')} {p}
+                <input name="room" placeholder={t('room')} aria-label={t('room')} defaultValue={editing?.room ?? ''} className={`${cellInput} w-24`} />
+                <input
+                  name="teacher_name"
+                  placeholder={t('teacher')} aria-label={t('teacher')}
+                  defaultValue={editing?.teacher_name ?? ''}
+                  className={`${cellInput} w-36`}
+                />
+                <select name="kind" aria-label={t('kindLabel')} defaultValue={editing?.kind ?? 'regular'} className={`${cellInput} w-32 cursor-pointer`}>
+                  {(['regular', 'practice', 'exam'] as const).map((k) => (
+                    <option key={k} value={k}>
+                      {t(`kind_${k}`)}
                     </option>
                   ))}
                 </select>
-              </>
-            )}
-            <input
-              name="subject"
-              placeholder={t('subject')} aria-label={t('subject')}
-              defaultValue={editing?.subject ?? ''}
-              className={`${cellInput} min-w-[130px] flex-1`}
-              required
-            />
-            <input name="room" placeholder={t('room')} aria-label={t('room')} defaultValue={editing?.room ?? ''} className={`${cellInput} w-24`} />
-            <input
-              name="teacher_name"
-              placeholder={t('teacher')} aria-label={t('teacher')}
-              defaultValue={editing?.teacher_name ?? ''}
-              className={`${cellInput} w-36`}
-            />
-            <select name="kind" aria-label={t('kindLabel')} defaultValue={editing?.kind ?? 'regular'} className={`${cellInput} w-32 cursor-pointer`}>
-              {(['regular', 'practice', 'exam'] as const).map((k) => (
-                <option key={k} value={k}>
-                  {t(`kind_${k}`)}
-                </option>
-              ))}
-            </select>
-            <SubmitButton className="btn-gold h-11 cursor-pointer rounded-[10px] px-4 text-sm font-extrabold" wrapClass="contents">
-              {t('save')}
-            </SubmitButton>
-          </form>
-          <p className="mt-1.5 text-[11px] italic text-grey-mid">{editing ? t('editHint') : t('hint')}</p>
+                <SubmitButton className="btn-gold h-11 cursor-pointer rounded-[10px] px-4 text-sm font-extrabold" wrapClass="contents">
+                  {t('save')}
+                </SubmitButton>
+              </form>
+              {/* Câu hướng dẫn thêm ô viết thẳng tiếng Việt: khoá cũ trong messages/*.json còn ghi
+                  "nhập môn", nay là CHỌN môn trong danh mục — để nguyên là chỉ đường sai. */}
+              <p className="mt-1.5 text-[11px] italic text-grey-mid">
+                {editing
+                  ? t('editHint')
+                  : 'Chọn thứ + tiết, chọn môn trong danh mục của lớp (và phòng nếu có) rồi Lưu. Lưu lại cùng một ô sẽ ghi đè.'}
+              </p>
+            </>
+          )}
         </div>
       )}
 
@@ -427,7 +500,7 @@ export default async function TimetablePage({
                     <div key={o.id} className="flex flex-wrap items-center gap-2 text-[12px] font-semibold text-navy">
                       <span className="font-extrabold">{o.date.slice(5)}</span>
                       <span className="text-grey-mid">
-                        {s ? `${s.subject} · ${t('period')} ${s.period_no}` : '—'}
+                        {s ? `${tenMon(s)} · ${t('period')} ${s.period_no}` : '—'}
                       </span>
                       <span className="rounded-full bg-navy/[0.08] px-2 py-0.5 text-[10.5px] font-extrabold">
                         {o.status === 'cancelled'

@@ -15,28 +15,54 @@ function flash(classId: string, msg: string): never {
 // lớp trong cơ sở mình.
 const KINDS = ['regular', 'practice', 'exam'] as const;
 
+// Ô môn giờ gửi lên id của danh mục. Kiểm dạng uuid ngay tại đây để câu lỗi là tiếng Việt dễ
+// hiểu, thay vì để Postgres trả 22P02 rồi friendlyError chỉ nói được "Đã xảy ra lỗi".
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Lưu (tạo/sửa) 1 ô thời khoá biểu. RLS tt_manage: chỉ GVCN lớp/admin.
 export async function saveSlot(formData: FormData) {
   await requireRole(['teacher', 'admin', 'principal']);
   const class_id = String(formData.get('class_id') ?? '');
   const day_of_week = Number(formData.get('day_of_week') ?? 0);
   const period_no = Number(formData.get('period_no') ?? 0);
-  const subject = String(formData.get('subject') ?? '').trim();
+  const subject_id = String(formData.get('subject_id') ?? '').trim();
   const room = String(formData.get('room') ?? '').trim() || null;
   const teacher_name = String(formData.get('teacher_name') ?? '').trim() || null;
   const kindRaw = String(formData.get('kind') ?? 'regular');
   // Giá trị lạ từ form → về 'regular' cho khỏi dính CHECK ở DB rồi báo lỗi khó hiểu.
   const kind = (KINDS as readonly string[]).includes(kindRaw) ? kindRaw : 'regular';
-  if (!class_id || !day_of_week || !period_no || !subject) flash(class_id, 'Thiếu thông tin ô thời khoá biểu');
+  if (!class_id || !day_of_week || !period_no) flash(class_id, 'Thiếu thông tin ô thời khoá biểu');
+  if (!UUID.test(subject_id)) flash(class_id, 'Hãy chọn môn cho ô này');
   const supabase = await createClient();
   const {error} = await supabase
     .from('timetable_slots')
+    // CHỈ ghi subject_id. Cột chữ `subject` cũ cố ý KHÔNG đụng tới: ghi cả hai là dựng lại đúng
+    // hai nguồn sự thật mà 0069 vừa dẹp. onConflict giữ nguyên (class, thứ, tiết) — cột môn
+    // không nằm trong khoá nên đổi môn của một ô vẫn là SỬA ô đó, không đẻ ô mới.
     .upsert(
-      {class_id, day_of_week, period_no, subject, room, teacher_name, kind},
+      {class_id, day_of_week, period_no, subject_id, room, teacher_name, kind},
       {onConflict: 'class_id,day_of_week,period_no'},
     );
   revalidatePath('/[locale]/timetable', 'page');
   flash(class_id, error ? friendlyError(error) : 'Đã lưu ô thời khoá biểu');
+}
+
+// Gieo cả bộ môn của cơ sở vào chương trình lớp (class_subjects), để ô chọn môn thôi rỗng.
+//
+// Không tự làm ngầm khi mở trang: đây là một thao tác GHI, và người bấm phải là người chịu trách
+// nhiệm về chương trình của lớp. RPC tự kiểm quyền (GVCN lớp / hiệu trưởng cùng cơ sở / admin) và
+// tự bỏ qua môn đã có, nên bấm nhầm hai lần cũng không sao.
+export async function seedSubjects(formData: FormData) {
+  await requireRole(['teacher', 'admin', 'principal']);
+  const class_id = String(formData.get('class_id') ?? '');
+  if (!class_id) flash(class_id, 'Thiếu thông tin lớp');
+  const supabase = await createClient();
+  const {data, error} = await supabase.rpc('seed_class_subjects', {p_class: class_id});
+  revalidatePath('/[locale]/timetable', 'page');
+  flash(
+    class_id,
+    error ? friendlyError(error) : `Đã thêm ${data ?? 0} môn vào chương trình của lớp`,
+  );
 }
 
 // ============================================================

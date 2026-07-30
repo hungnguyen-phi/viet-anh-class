@@ -19,6 +19,10 @@ const TEN_LOAI: Record<Kind, string> = {
 
 const NGAY_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
+// Ô Môn giờ gửi lên id của danh mục. Kiểm dạng uuid ngay tại đây để câu lỗi là tiếng Việt dễ
+// hiểu, thay vì để Postgres trả 22P02 rồi friendlyError chỉ nói được "Đã xảy ra lỗi".
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // yyyy-mm-dd → dd/mm. Trường học Việt Nam đọc ngày trước tháng; chỉ dùng trong câu thông báo
 // ngắn nên bỏ năm cho gọn.
 function ngayNgan(iso: string): string {
@@ -37,7 +41,8 @@ function homeworkFlash(classId: string, msg: string): never {
 // tập vừa gõ tay, mất là phải gõ lại từ đầu.
 export type HomeworkFields = {
   date: string;
-  subject: string;
+  // ID môn trong danh mục, KHÔNG phải tên môn gõ tay nữa (0069).
+  subject_id: string;
   content: string;
   due_date: string;
   kind: string;
@@ -55,7 +60,7 @@ function readFields(formData: FormData): HomeworkFields {
   const s = (k: string) => String(formData.get(k) ?? '').trim();
   return {
     date: s('date'),
-    subject: s('subject'),
+    subject_id: s('subject_id'),
     content: s('content'),
     due_date: s('due_date'),
     kind: s('kind'),
@@ -87,7 +92,8 @@ export async function savePost(
   if (!classId) return {ok: false, error: friendlyError(null), values};
   if (!NGAY_ISO.test(f.date))
     return {ok: false, fieldError: 'date', error: 'Hãy chọn ngày báo bài.', values};
-  if (!f.subject) return {ok: false, fieldError: 'subject', error: 'Hãy nhập tên môn.', values};
+  if (!UUID.test(f.subject_id))
+    return {ok: false, fieldError: 'subject_id', error: 'Hãy chọn môn học.', values};
   if (!f.content)
     return {ok: false, fieldError: 'content', error: 'Hãy nhập nội dung báo bài.', values};
   if (f.due_date && !NGAY_ISO.test(f.due_date))
@@ -107,18 +113,20 @@ export async function savePost(
 
   if (postId) {
     // KHÔNG cho đổi class_id: sửa bài là sửa nội dung, chuyển bài sang lớp khác không phải là
-    // việc có thật. .select() để phân biệt "RLS chặn / bài đã bị xoá" với "đã lưu xong".
+    // việc có thật. .select() để phân biệt "RLS chặn / bài đã bị xoá" với "đã lưu xong", và tiện
+    // lấy luôn TÊN môn từ danh mục để báo lại cho đúng — mã mới không giữ tên môn trong tay.
+    // CHỈ ghi subject_id; cột chữ `subject` cũ cố ý không đụng tới (quyết định E của 0069).
     const {data, error} = await supabase
       .from('homework_posts')
       .update({
         date: f.date,
-        subject: f.subject,
+        subject_id: f.subject_id,
         content: f.content,
         due_date: f.due_date || null,
         kind,
       })
       .eq('id', postId)
-      .select('id');
+      .select('id, subjects(name)');
     if (error) return {ok: false, error: friendlyError(error), values};
     if (!data || data.length === 0)
       return {
@@ -126,8 +134,12 @@ export async function savePost(
         error: 'Không sửa được — bài này không còn, hoặc bạn không phải giáo viên chủ nhiệm của lớp.',
         values,
       };
+    const tenMon = data[0]?.subjects?.name;
     revalidatePath('/[locale]/homework', 'page');
-    return {ok: true, message: `Đã cập nhật ${TEN_LOAI[kind]} môn ${f.subject}`};
+    return {
+      ok: true,
+      message: `Đã cập nhật ${TEN_LOAI[kind]}${tenMon ? ` môn ${tenMon}` : ''}`,
+    };
   }
 
   const {data, error} = await supabase
@@ -135,13 +147,13 @@ export async function savePost(
     .insert({
       class_id: classId,
       date: f.date,
-      subject: f.subject,
+      subject_id: f.subject_id,
       content: f.content,
       due_date: f.due_date || null,
       kind,
       created_by: me.id,
     })
-    .select('id');
+    .select('id, subjects(name)');
   if (error) return {ok: false, error: friendlyError(error), values};
   // Phòng xa: RLS chặn insert thì thường trả 42501 ở nhánh trên, nhưng không báo thành công giả.
   if (!data || data.length === 0)
@@ -151,11 +163,30 @@ export async function savePost(
       values,
     };
 
+  const tenMon = data[0]?.subjects?.name;
   revalidatePath('/[locale]/homework', 'page');
   return {
     ok: true,
-    message: `Đã đăng ${TEN_LOAI[kind]} môn ${f.subject} cho ngày ${ngayNgan(f.date)}`,
+    message: `Đã đăng ${TEN_LOAI[kind]}${tenMon ? ` môn ${tenMon}` : ''} cho ngày ${ngayNgan(f.date)}`,
   };
+}
+
+// Gieo cả bộ môn của cơ sở vào chương trình lớp (class_subjects), để ô chọn môn thôi rỗng.
+//
+// Không tự làm ngầm khi mở trang: đây là một thao tác GHI, và người bấm phải là người chịu trách
+// nhiệm về chương trình của lớp. RPC tự kiểm quyền (GVCN lớp / hiệu trưởng cùng cơ sở / admin) và
+// tự bỏ qua môn đã có, nên bấm nhầm hai lần cũng không sao.
+export async function seedSubjects(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const classId = String(formData.get('class_id') ?? '');
+  if (!classId) homeworkFlash(classId, 'Thiếu thông tin lớp');
+  const supabase = await createClient();
+  const {data, error} = await supabase.rpc('seed_class_subjects', {p_class: classId});
+  revalidatePath('/[locale]/homework', 'page');
+  homeworkFlash(
+    classId,
+    error ? friendlyError(error) : `Đã thêm ${data ?? 0} môn vào chương trình của lớp`,
+  );
 }
 
 // Xoá hẳn một bài báo. homework_done tham chiếu post_id với on delete cascade → tick của các em

@@ -72,6 +72,12 @@ const CASES = [
   ['principal', '/campus', ['Liên lạc'], []],
   ['admin', '/admin', ['Thực đơn bữa ăn'], []],
   ['teacher', '/roster', ['Hình ảnh'], []],
+
+  // Danh mục môn — 14 môn của trường, và 4 môn chưa khai lớp PHẢI nổi bật để chủ trường bổ sung.
+  ['admin', '/subjects', ['Oxford English', 'Khoa học tự nhiên', 'chưa khai lớp'], []],
+  ['principal', '/subjects', ['Oxford English'], []],
+  ['admin', '/admin', ['Mở danh mục môn'], []],
+  ['principal', '/campus', ['Mở danh mục môn'], []],
 ];
 
 const kq = [];

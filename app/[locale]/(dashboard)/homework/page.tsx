@@ -11,18 +11,25 @@ import {SubmitButton} from '@/components/ui/SubmitButton';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {btnGold, btnGhost} from '@/components/ui/Field';
 import {HomeworkForm} from './HomeworkForm';
-import {deletePost, toggleDone} from './actions';
+import {deletePost, toggleDone, seedSubjects} from './actions';
 import type {Database} from '@/lib/database.types';
 
 type Kind = Database['public']['Enums']['homework_kind'];
 type Post = {
   id: string;
   date: string;
-  subject: string;
+  // Cột chữ CŨ (trước 0069 là ô gõ tay). Giữ lại CHỈ để hiện những bài cũ chưa có subject_id —
+  // không dòng mã nào ghi vào đây nữa, xem quyết định E của migration 0069.
+  subject: string | null;
+  subject_id: string | null;
+  // Tên môn lấy thẳng từ danh mục qua khoá ngoại. Đây mới là nguồn sự thật.
+  subjects: {name: string} | null;
   content: string;
   due_date: string | null;
   kind: Kind;
 };
+// Một môn trong chương trình của lớp (class_subjects → subjects).
+type MonHoc = {id: string; name: string; sort_order: number; is_active: boolean};
 type Con = {id: string; name: string; classId: string; className: string};
 
 // Nhãn + màu chip theo loại. Dùng token brand có sẵn, không màu tự phát:
@@ -131,19 +138,42 @@ export default async function HomeworkPage({
   const laHocSinh = profile.role === 'student';
   const laPhuHuynh = profile.role === 'parent';
 
-  const [{data: todayData}, {data: postData}] = await Promise.all([
+  const [{data: todayData}, {data: postData}, {data: monData}] = await Promise.all([
     supabase.rpc('app_today'),
     supabase
       .from('homework_posts')
-      .select('id, date, subject, content, due_date, kind')
+      // Nhặt luôn tên môn từ danh mục trong CÙNG một truy vấn — hỏi riêng bảng subjects là thêm
+      // một chặng mạng mà chẳng biết thêm gì.
+      .select('id, date, subject, subject_id, content, due_date, kind, subjects(name)')
       .eq('class_id', myClass.id)
       .order('date', {ascending: false})
       .order('created_at', {ascending: false})
       .limit(SO_BAI_TAI),
+    // Chương trình của lớp = nguồn DUY NHẤT cho ô chọn môn (0069 mục B). Chỉ hỏi khi người xem
+    // đăng được bài: học sinh, phụ huynh và hiệu trưởng không có form nào, hỏi thêm là tốn một
+    // chặng mạng cho không (đúng bài học ở roster/page.tsx:91).
+    canManage
+      ? supabase
+          .from('class_subjects')
+          .select('subjects(id, name, sort_order, is_active)')
+          .eq('class_id', myClass.id)
+          .eq('is_active', true)
+      : Promise.resolve({data: null}),
   ]);
   const today = (todayData as unknown as string) ?? todayInVN();
-  const posts = (postData ?? []) as Post[];
+  const posts = (postData ?? []) as unknown as Post[];
   const postIds = posts.map((p) => p.id);
+  // Môn đã ngừng dùng (is_active = false) vẫn còn trong chương trình lớp nhưng KHÔNG được chọn
+  // tiếp — DB cũng chặn ở subject_fits_class, chặn sẵn ở đây để khỏi báo lỗi khó hiểu.
+  const monLop = ((monData ?? []) as unknown as {subjects: MonHoc | null}[])
+    .map((r) => r.subjects)
+    .filter((m): m is MonHoc => !!m && m.is_active)
+    .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'vi'))
+    .map((m) => ({id: m.id, name: m.name}));
+
+  // TÊN MÔN ĐỂ HIỆN. Đọc từ danh mục; bài cũ còn subject_id NULL thì hiện tạm chữ cũ — chỉ để
+  // không mất dữ liệu đang có, KHÔNG phải để ghi tiếp vào cột đó.
+  const tenMon = (p: Post) => p.subjects?.name ?? p.subject ?? '—';
 
   // ===== Ai đã tự đánh dấu =====
   // Đọc homework_done theo ĐÚNG vai (policy ở 0061):
@@ -259,14 +289,46 @@ export default async function HomeworkPage({
 
       {/* GVCN/Admin: đăng bài mới, hoặc sửa bài đang chọn.
           key ép remount khi đổi bài đang sửa → form nạp lại đúng nội dung bài mới. */}
-      {canManage && (
-        <HomeworkForm
-          key={editing?.id ?? 'new'}
-          classId={myClass.id}
-          today={today}
-          post={editing}
-        />
-      )}
+      {canManage &&
+        (monLop.length === 0 ? (
+          /* Lớp CHƯA khai môn nào → ô chọn môn sẽ rỗng, mà rỗng thì không đăng nổi bài nào. Đừng
+             hiện form chết: nói thẳng phải làm gì, và đặt sẵn nút làm hộ. RPC seed_class_subjects
+             gieo cả bộ môn đang dùng của cơ sở, gọi lại bao nhiêu lần cũng an toàn. */
+          <div className="glass rounded-[16px] p-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <p className="min-w-[240px] flex-1 text-[12.5px] font-semibold leading-[1.55] text-txt">
+                Lớp này chưa khai môn nào nên chưa chọn được môn để báo bài. Bấm nút bên cạnh để
+                thêm cả bộ môn của cơ sở vào chương trình lớp, rồi đăng bài như thường.
+              </p>
+              <form action={seedSubjects}>
+                <input type="hidden" name="class_id" value={myClass.id} />
+                <SubmitButton className={btnGold} wrapClass="contents">
+                  Thêm bộ môn cho lớp
+                </SubmitButton>
+              </form>
+            </div>
+          </div>
+        ) : (
+          <HomeworkForm
+            key={editing?.id ?? 'new'}
+            classId={myClass.id}
+            today={today}
+            subjects={monLop}
+            post={
+              editing
+                ? {
+                    id: editing.id,
+                    date: editing.date,
+                    subject_id: editing.subject_id,
+                    subjectName: tenMon(editing),
+                    content: editing.content,
+                    due_date: editing.due_date,
+                    kind: editing.kind,
+                  }
+                : null
+            }
+          />
+        ))}
 
       {posts.length === 0 ? (
         <div className="glass rounded-[20px] p-8 text-center">
@@ -300,7 +362,7 @@ export default async function HomeworkPage({
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`${chipCls} ${LOAI[p.kind].chip}`}>{LOAI[p.kind].label}</span>
                       <span className="min-w-0 truncate text-[13.5px] font-bold text-navy">
-                        {p.subject}
+                        {tenMon(p)}
                       </span>
                       {p.due_date && (
                         <span className="inline-flex shrink-0 items-center gap-1 text-[11.5px] font-extrabold text-gold-deep">
@@ -317,7 +379,7 @@ export default async function HomeworkPage({
                             <input type="hidden" name="class_id" value={myClass.id} />
                             <input type="hidden" name="id" value={p.id} />
                             <ConfirmButton
-                              message={`Xoá ${LOAI[p.kind].label.toLowerCase()} môn ${p.subject} ngày ${ngayNgan(p.date)}?`}
+                              message={`Xoá ${LOAI[p.kind].label.toLowerCase()} môn ${tenMon(p)} ngày ${ngayNgan(p.date)}?`}
                               className={xoaCls}
                             >
                               Xoá

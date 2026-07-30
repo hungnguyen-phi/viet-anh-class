@@ -26,7 +26,7 @@ import {SchoolNetworkManager} from './SchoolNetworkManager';
 import {AREAS, buildAreaMeta} from '@/lib/areas';
 import {clientIp} from '@/lib/ip';
 import {Link} from '@/i18n/navigation';
-import {UtensilsCrossed} from 'lucide-react';
+import {UtensilsCrossed, BookMarked} from 'lucide-react';
 import {FlashToast} from '@/components/ui/FlashToast';
 
 const ROLES = ['admin', 'principal', 'teacher', 'student', 'parent', 'pending'] as const;
@@ -474,6 +474,25 @@ export default async function AdminPage({
         <div className={cardTitle}>{t('manageAreas')}</div>
         <p className="mb-3 text-xs text-grey-mid">{t('areasHint')}</p>
         <AreaConfigForm rows={areaRows} />
+      </section>
+
+      {/* Danh mục môn + phân công giáo viên bộ môn.
+          Cũng không làm tab: khai danh mục môn là việc vài lần một năm, còn thanh menu thì mọi
+          vai phải nhìn mỗi ngày (docs/NAV_IA.md). Đặt ở đây vì đây là nơi quản trị viên dựng nền
+          cho cả trường — cùng họ với tạo cơ sở, tạo lớp, phân công GVCN ở phía trên. */}
+      <section className="glass rounded-[20px] p-[18px]">
+        <div className={cardTitle}>Môn học &amp; phân công giáo viên bộ môn</div>
+        <p className="mb-3 text-xs text-grey-mid">
+          Danh mục môn dùng chung toàn trường, lớp nào học môn nào, và ai dạy môn gì ở lớp nào.
+          Giáo viên bộ môn chỉ nhập được điểm môn mình được phân công.
+        </p>
+        <Link
+          href="/subjects"
+          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy"
+        >
+          <BookMarked size={14} strokeWidth={2.2} />
+          Mở danh mục môn
+        </Link>
       </section>
 
       {/* Thực đơn bữa ăn — soạn ở trang riêng, không nhét vào đây.
