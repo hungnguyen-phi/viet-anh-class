@@ -478,8 +478,12 @@ export default async function AdminPage({
       {/* Điểm danh & Wifi trường — cổng IP cho check-in cảm xúc */}
       <section className="glass rounded-[20px] p-[18px]">
         <div className={cardTitle}>{t('networkTitle')}</div>
+        {/* cidr là kiểu `cidr` của Postgres, không có kiểu TS tương ứng nên bộ sinh
+            database.types.ts để `unknown`. PostgREST trả về nó dạng chuỗi ("10.0.0.0/24"),
+            nên ép kiểu ở đây là đúng thực tế — và phải làm ở chỗ dùng, vì file types là file
+            SINH TỰ ĐỘNG, sửa tay trong đó sẽ mất khi sinh lại. */}
         <SchoolNetworkManager
-          networks={networks ?? []}
+          networks={(networks ?? []).map((n) => ({...n, cidr: String(n.cidr)}))}
           campuses={campusOptions}
           currentIp={currentIp}
         />

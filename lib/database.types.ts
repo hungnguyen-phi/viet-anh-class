@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -7,32 +7,102 @@
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
-      notifications: {
-        Row: { id: string; user_id: string; title: string; body: string | null; link: string | null; read: boolean; created_at: string }
-        Insert: { id?: string; user_id: string; title: string; body?: string | null; link?: string | null; read?: boolean; created_at?: string }
-        Update: { id?: string; user_id?: string; title?: string; body?: string | null; link?: string | null; read?: boolean; created_at?: string }
+      area_config: {
+        Row: {
+          area: Database["public"]["Enums"]["wig_area"]
+          color_hex: string
+          default_unit: string | null
+          icon_name: string
+          label_en: string
+          label_vi: string
+          soft_rgba: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          area: Database["public"]["Enums"]["wig_area"]
+          color_hex: string
+          default_unit?: string | null
+          icon_name: string
+          label_en: string
+          label_vi: string
+          soft_rgba: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          area?: Database["public"]["Enums"]["wig_area"]
+          color_hex?: string
+          default_unit?: string | null
+          icon_name?: string
+          label_en?: string
+          label_vi?: string
+          soft_rgba?: string
+          sort_order?: number
+          updated_at?: string
+        }
         Relationships: []
       }
-      // 0044 — thêm teacher_name (TEXT, không FK: xem lý do trong migration) + kind cho màu ô.
-      timetable_slots: {
-        Row: { id: string; class_id: string; day_of_week: number; period_no: number; subject: string; room: string | null; teacher_name: string | null; kind: string; created_at: string }
-        Insert: { id?: string; class_id: string; day_of_week: number; period_no: number; subject: string; room?: string | null; teacher_name?: string | null; kind?: string; created_at?: string }
-        Update: { id?: string; class_id?: string; day_of_week?: number; period_no?: number; subject?: string; room?: string | null; teacher_name?: string | null; kind?: string; created_at?: string }
-        Relationships: []
-      }
-      // 0044 — ngoại lệ THEO NGÀY của thời khoá biểu: huỷ / dời / dạy thay.
-      timetable_overrides: {
-        Row: { id: string; slot_id: string; date: string; status: string; new_date: string | null; new_period_no: number | null; substitute_name: string | null; note: string | null; created_at: string }
-        Insert: { id?: string; slot_id: string; date: string; status: string; new_date?: string | null; new_period_no?: number | null; substitute_name?: string | null; note?: string | null; created_at?: string }
-        Update: { id?: string; slot_id?: string; date?: string; status?: string; new_date?: string | null; new_period_no?: number | null; substitute_name?: string | null; note?: string | null; created_at?: string }
+      assessment_terms: {
+        Row: {
+          campus_id: string
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          id: string
+          is_locked: boolean
+          kind: Database["public"]["Enums"]["assessment_term_kind"]
+          name: string
+          school_year: string
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          campus_id: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          is_locked?: boolean
+          kind: Database["public"]["Enums"]["assessment_term_kind"]
+          name: string
+          school_year?: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          campus_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          is_locked?: boolean
+          kind?: Database["public"]["Enums"]["assessment_term_kind"]
+          name?: string
+          school_year?: string
+          start_date?: string | null
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "timetable_overrides_slot_id_fkey"
-            columns: ["slot_id"]
+            foreignKeyName: "assessment_terms_campus_id_fkey"
+            columns: ["campus_id"]
             isOneToOne: false
-            referencedRelation: "timetable_slots"
+            referencedRelation: "campuses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_terms_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -124,34 +194,6 @@ export type Database = {
           },
         ]
       }
-      campuses: {
-        Row: {
-          code: string
-          created_at: string
-          id: string
-          is_active: boolean
-          level: Database["public"]["Enums"]["school_level"] | null
-          name: string
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          level?: Database["public"]["Enums"]["school_level"] | null
-          name: string
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          level?: Database["public"]["Enums"]["school_level"] | null
-          name?: string
-        }
-        Relationships: []
-      }
-      // 0043 — hội thoại Buddy trong buổi họp. Lượt 'assistant' do service_role ghi.
       buddy_messages: {
         Row: {
           content: string
@@ -184,73 +226,122 @@ export type Database = {
           },
         ]
       }
-      area_config: {
+      campuses: {
         Row: {
-          area: Database["public"]["Enums"]["wig_area"]
-          color_hex: string
-          default_unit: string | null
-          icon_name: string
-          label_en: string
-          label_vi: string
-          soft_rgba: string
-          sort_order: number
-          updated_at: string
-        }
-        Insert: {
-          area: Database["public"]["Enums"]["wig_area"]
-          color_hex: string
-          default_unit?: string | null
-          icon_name: string
-          label_en: string
-          label_vi: string
-          soft_rgba: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Update: {
-          area?: Database["public"]["Enums"]["wig_area"]
-          color_hex?: string
-          default_unit?: string | null
-          icon_name?: string
-          label_en?: string
-          label_vi?: string
-          soft_rgba?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      grades: {
-        Row: {
-          campus_id: string
+          code: string
           created_at: string
           id: string
           is_active: boolean
+          level: Database["public"]["Enums"]["school_level"] | null
           name: string
-          sort_order: number
         }
         Insert: {
-          campus_id: string
+          code: string
           created_at?: string
           id?: string
           is_active?: boolean
+          level?: Database["public"]["Enums"]["school_level"] | null
           name: string
-          sort_order?: number
         }
         Update: {
-          campus_id?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
+          level?: Database["public"]["Enums"]["school_level"] | null
           name?: string
-          sort_order?: number
+        }
+        Relationships: []
+      }
+      class_albums: {
+        Row: {
+          class_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          event_date: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_date?: string
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_date?: string
+          id?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "grades_campus_id_fkey"
-            columns: ["campus_id"]
+            foreignKeyName: "class_albums_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: "campuses"
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_albums_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_photos: {
+        Row: {
+          album_id: string
+          caption: string | null
+          created_at: string
+          id: string
+          sort_order: number
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          album_id: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          sort_order?: number
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          album_id?: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          sort_order?: number
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_photos_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "class_albums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_photos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -267,7 +358,6 @@ export type Database = {
           is_active: boolean
           name: string
           school_year: string
-          // 0046 — ISO dow (1=T2..7=CN): ngày CUỐI còn cho học sinh sửa tick của tuần.
           tick_lock_dow: number
         }
         Insert: {
@@ -376,6 +466,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "edit_requests_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "edit_requests_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
@@ -417,6 +514,128 @@ export type Database = {
           {
             foreignKeyName: "enrollments_student_id_fkey"
             columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grades: {
+        Row: {
+          campus_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          campus_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          campus_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grades_campus_id_fkey"
+            columns: ["campus_id"]
+            isOneToOne: false
+            referencedRelation: "campuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      homework_done: {
+        Row: {
+          done_at: string
+          post_id: string
+          student_id: string
+        }
+        Insert: {
+          done_at?: string
+          post_id: string
+          student_id: string
+        }
+        Update: {
+          done_at?: string
+          post_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homework_done_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "homework_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "homework_done_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      homework_posts: {
+        Row: {
+          class_id: string
+          content: string
+          created_at: string
+          created_by: string | null
+          date: string
+          due_date: string | null
+          id: string
+          kind: Database["public"]["Enums"]["homework_kind"]
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          class_id: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          due_date?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["homework_kind"]
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          due_date?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["homework_kind"]
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homework_posts_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "homework_posts_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -523,6 +742,54 @@ export type Database = {
           },
         ]
       }
+      meal_menus: {
+        Row: {
+          campus_id: string
+          created_at: string
+          date: string
+          items: string
+          meal: Database["public"]["Enums"]["meal_slot"]
+          note: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          campus_id: string
+          created_at?: string
+          date: string
+          items: string
+          meal: Database["public"]["Enums"]["meal_slot"]
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          campus_id?: string
+          created_at?: string
+          date?: string
+          items?: string
+          meal?: Database["public"]["Enums"]["meal_slot"]
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_menus_campus_id_fkey"
+            columns: ["campus_id"]
+            isOneToOne: false
+            referencedRelation: "campuses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_menus_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mood_checkins: {
         Row: {
           class_id: string | null
@@ -562,6 +829,44 @@ export type Database = {
           {
             foreignKeyName: "mood_checkins_student_id_fkey"
             columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          link: string | null
+          read: boolean
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read?: boolean
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read?: boolean
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -643,6 +948,136 @@ export type Database = {
           },
         ]
       }
+      parent_teacher_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_id: string | null
+          sender_role: Database["public"]["Enums"]["user_role"]
+          sender_side: string
+          thread_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_role: Database["public"]["Enums"]["user_role"]
+          sender_side: string
+          thread_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_role?: Database["public"]["Enums"]["user_role"]
+          sender_side?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_teacher_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_teacher_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "parent_teacher_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parent_teacher_reads: {
+        Row: {
+          last_read_at: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          last_read_at?: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          last_read_at?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_teacher_reads_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "parent_teacher_threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_teacher_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parent_teacher_threads: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          last_message_at: string | null
+          last_sender_side: string | null
+          opened_by: string | null
+          student_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_sender_side?: string | null
+          opened_by?: string | null
+          student_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_sender_side?: string | null
+          opened_by?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_teacher_threads_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_teacher_threads_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_teacher_threads_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_user_grants: {
         Row: {
           campus_id: string | null
@@ -672,6 +1107,13 @@ export type Database = {
           student_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pending_user_grants_campus_id_fkey"
+            columns: ["campus_id"]
+            isOneToOne: false
+            referencedRelation: "campuses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pending_user_grants_class_id_fkey"
             columns: ["class_id"]
@@ -732,6 +1174,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_campus_id_fkey"
+            columns: ["campus_id"]
+            isOneToOne: false
+            referencedRelation: "campuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_networks: {
+        Row: {
+          campus_id: string | null
+          cidr: unknown
+          created_at: string
+          geo_lat: number | null
+          geo_lng: number | null
+          geo_radius_m: number | null
+          id: string
+          is_active: boolean
+          label: string
+        }
+        Insert: {
+          campus_id?: string | null
+          cidr: unknown
+          created_at?: string
+          geo_lat?: number | null
+          geo_lng?: number | null
+          geo_radius_m?: number | null
+          id?: string
+          is_active?: boolean
+          label: string
+        }
+        Update: {
+          campus_id?: string | null
+          cidr?: unknown
+          created_at?: string
+          geo_lat?: number | null
+          geo_lng?: number | null
+          geo_radius_m?: number | null
+          id?: string
+          is_active?: boolean
+          label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_networks_campus_id_fkey"
             columns: ["campus_id"]
             isOneToOne: false
             referencedRelation: "campuses"
@@ -800,6 +1286,24 @@ export type Database = {
           },
         ]
       }
+      signup_email_domains: {
+        Row: {
+          created_at: string
+          default_role: Database["public"]["Enums"]["user_role"]
+          domain: string
+        }
+        Insert: {
+          created_at?: string
+          default_role: Database["public"]["Enums"]["user_role"]
+          domain: string
+        }
+        Update: {
+          created_at?: string
+          default_role?: Database["public"]["Enums"]["user_role"]
+          domain?: string
+        }
+        Relationships: []
+      }
       student_details: {
         Row: {
           created_at: string
@@ -837,81 +1341,261 @@ export type Database = {
           student_id?: string | null
           updated_at?: string
         }
-        Relationships: []
-      }
-      school_networks: {
-        Row: {
-          campus_id: string | null
-          cidr: string
-          created_at: string
-          geo_lat: number | null
-          geo_lng: number | null
-          geo_radius_m: number | null
-          id: string
-          is_active: boolean
-          label: string
-        }
-        Insert: {
-          campus_id?: string | null
-          cidr: string
-          created_at?: string
-          geo_lat?: number | null
-          geo_lng?: number | null
-          geo_radius_m?: number | null
-          id?: string
-          is_active?: boolean
-          label: string
-        }
-        Update: {
-          campus_id?: string | null
-          cidr?: string
-          created_at?: string
-          geo_lat?: number | null
-          geo_lng?: number | null
-          geo_radius_m?: number | null
-          id?: string
-          is_active?: boolean
-          label?: string
-        }
         Relationships: [
           {
-            foreignKeyName: "school_networks_campus_id_fkey"
-            columns: ["campus_id"]
+            foreignKeyName: "student_details_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "campuses"
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_details_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
       }
-      signup_email_domains: {
+      student_term_reviews: {
+        Row: {
+          class_id: string
+          comment: string | null
+          conduct: Database["public"]["Enums"]["conduct_rating"] | null
+          conduct_score: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          published_at: string | null
+          student_id: string
+          term_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          class_id: string
+          comment?: string | null
+          conduct?: Database["public"]["Enums"]["conduct_rating"] | null
+          conduct_score?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          published_at?: string | null
+          student_id: string
+          term_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          class_id?: string
+          comment?: string | null
+          conduct?: Database["public"]["Enums"]["conduct_rating"] | null
+          conduct_score?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          published_at?: string | null
+          student_id?: string
+          term_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_term_reviews_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_term_reviews_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_term_reviews_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_term_reviews_term_id_fkey"
+            columns: ["term_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_terms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_term_reviews_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subject_scores: {
         Row: {
           created_at: string
-          default_role: Database["public"]["Enums"]["user_role"]
-          domain: string
+          created_by: string | null
+          id: string
+          kind: Database["public"]["Enums"]["score_kind"]
+          note: string | null
+          ordinal: number
+          review_id: string
+          score: number
+          subject: string
+          taken_on: string | null
+          updated_at: string
+          weight: number
         }
         Insert: {
           created_at?: string
-          default_role: Database["public"]["Enums"]["user_role"]
-          domain: string
+          created_by?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["score_kind"]
+          note?: string | null
+          ordinal?: number
+          review_id: string
+          score: number
+          subject: string
+          taken_on?: string | null
+          updated_at?: string
+          weight: number
         }
         Update: {
           created_at?: string
-          default_role?: Database["public"]["Enums"]["user_role"]
-          domain?: string
+          created_by?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["score_kind"]
+          note?: string | null
+          ordinal?: number
+          review_id?: string
+          score?: number
+          subject?: string
+          taken_on?: string | null
+          updated_at?: string
+          weight?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subject_scores_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subject_scores_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "student_term_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timetable_overrides: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          new_date: string | null
+          new_period_no: number | null
+          note: string | null
+          slot_id: string
+          status: string
+          substitute_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          new_date?: string | null
+          new_period_no?: number | null
+          note?: string | null
+          slot_id: string
+          status: string
+          substitute_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          new_date?: string | null
+          new_period_no?: number | null
+          note?: string | null
+          slot_id?: string
+          status?: string
+          substitute_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timetable_overrides_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "timetable_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timetable_slots: {
+        Row: {
+          class_id: string
+          created_at: string
+          day_of_week: number
+          id: string
+          kind: string
+          period_no: number
+          room: string | null
+          subject: string
+          teacher_name: string | null
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          day_of_week: number
+          id?: string
+          kind?: string
+          period_no: number
+          room?: string | null
+          subject: string
+          teacher_name?: string | null
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          kind?: string
+          period_no?: number
+          room?: string | null
+          subject?: string
+          teacher_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timetable_slots_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wig_meetings: {
         Row: {
-          buddy_id: string | null
-          // Ghi chú Buddy do LLM sinh (0042) — server action askBuddyNote ghi bằng service_role.
-          buddy_note: string | null
-          buddy_note_at: string | null
-          buddy_note_model: string | null
-          // 0043 — "việc hôm nay" neo vào lead measure thật + công tắc chat lúc họp.
           buddy_action: string | null
           buddy_chat_open: boolean
           buddy_focus_lead_id: string | null
+          buddy_id: string | null
+          buddy_note: string | null
+          buddy_note_at: string | null
+          buddy_note_model: string | null
           buddy_tokens: number | null
           class_id: string
           coach_id: string | null
@@ -924,13 +1608,13 @@ export type Database = {
           week_label: string
         }
         Insert: {
+          buddy_action?: string | null
+          buddy_chat_open?: boolean
+          buddy_focus_lead_id?: string | null
           buddy_id?: string | null
           buddy_note?: string | null
           buddy_note_at?: string | null
           buddy_note_model?: string | null
-          buddy_action?: string | null
-          buddy_chat_open?: boolean
-          buddy_focus_lead_id?: string | null
           buddy_tokens?: number | null
           class_id: string
           coach_id?: string | null
@@ -943,13 +1627,13 @@ export type Database = {
           week_label: string
         }
         Update: {
+          buddy_action?: string | null
+          buddy_chat_open?: boolean
+          buddy_focus_lead_id?: string | null
           buddy_id?: string | null
           buddy_note?: string | null
           buddy_note_at?: string | null
           buddy_note_model?: string | null
-          buddy_action?: string | null
-          buddy_chat_open?: boolean
-          buddy_focus_lead_id?: string | null
           buddy_tokens?: number | null
           class_id?: string
           coach_id?: string | null
@@ -962,6 +1646,13 @@ export type Database = {
           week_label?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "wig_meetings_buddy_focus_lead_id_fkey"
+            columns: ["buddy_focus_lead_id"]
+            isOneToOne: false
+            referencedRelation: "lead_measures"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "wig_meetings_buddy_id_fkey"
             columns: ["buddy_id"]
@@ -1008,7 +1699,7 @@ export type Database = {
           start_date: string
           student_id: string | null
           target_value: number
-          title: string | null
+          title: string
           unit: string
         }
         Insert: {
@@ -1026,7 +1717,7 @@ export type Database = {
           start_date: string
           student_id?: string | null
           target_value: number
-          title?: string | null
+          title: string
           unit: string
         }
         Update: {
@@ -1044,7 +1735,7 @@ export type Database = {
           start_date?: string
           student_id?: string | null
           target_value?: number
-          title?: string | null
+          title?: string
           unit?: string
         }
         Relationships: [
@@ -1080,6 +1771,23 @@ export type Database = {
       }
     }
     Views: {
+      subject_term_summary_v: {
+        Row: {
+          diem_trung_binh: number | null
+          review_id: string | null
+          so_con_diem: number | null
+          subject: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subject_scores_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "student_term_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wig_progress_v: {
         Row: {
           actual: number | null
@@ -1097,40 +1805,6 @@ export type Database = {
           target_value: number | null
           unit: string | null
           wig_id: string | null
-        }
-        Insert: {
-          actual?: never
-          area?: Database["public"]["Enums"]["wig_area"] | null
-          class_id?: string | null
-          end_date?: string | null
-          expected_pct?: never
-          pct?: never
-          period?: Database["public"]["Enums"]["wig_period"] | null
-          period_label?: string | null
-          scope?: Database["public"]["Enums"]["wig_scope"] | null
-          start_date?: string | null
-          status?: never
-          student_id?: string | null
-          target_value?: number | null
-          unit?: string | null
-          wig_id?: string | null
-        }
-        Update: {
-          actual?: never
-          area?: Database["public"]["Enums"]["wig_area"] | null
-          class_id?: string | null
-          end_date?: string | null
-          expected_pct?: never
-          pct?: never
-          period?: Database["public"]["Enums"]["wig_period"] | null
-          period_label?: string | null
-          scope?: Database["public"]["Enums"]["wig_scope"] | null
-          start_date?: string | null
-          status?: never
-          student_id?: string | null
-          target_value?: number | null
-          unit?: string | null
-          wig_id?: string | null
         }
         Relationships: [
           {
@@ -1152,56 +1826,42 @@ export type Database = {
     }
     Functions: {
       admin_delete_user: { Args: { p_user: string }; Returns: undefined }
-      mark_attendance_on: {
-        Args: {
-          p_class: string
-          p_student: string
-          p_status: Database["public"]["Enums"]["attendance_status"]
-          p_date: string
-        }
-        Returns: undefined
-      }
-      current_school_year: { Args: never; Returns: string }
-      class_scoreboard: {
-        Args: { p_class: string }
-        Returns: { category: string; sub_category: string | null; points: number; lead_count: number }[]
-      }
-      campus_ranks: {
-        Args: never
-        Returns: { class_id: string; name: string; school_year: string; score: number; att_today: number }[]
-      }
-      // 0049 — mọi lớp trong phạm vi kèm KHỐI, cho bảng tổng hợp toàn trường.
-      campus_rollup: {
-        Args: never
-        Returns: {
-          class_id: string
-          class_name: string
-          school_year: string
-          grade_id: string | null
-          grade_name: string
-          grade_sort: number
-          score: number
-          att_today: number
-          student_count: number
-        }[]
-      }
-      // 0047 — sinh Khối chuẩn theo cấp học của cơ sở.
-      seed_grades_for_campus: { Args: { p_campus: string }; Returns: number }
-      // 0050 — HT tự khai cấp học cho cơ sở mình (trả về số khối vừa sinh).
-      set_my_campus_level: {
-        Args: { p_level: Database["public"]["Enums"]["school_level"] }
-        Returns: number
-      }
-      enroll_student_by_email: { Args: { p_class: string; p_email: string }; Returns: string }
-      // 'invited' | 'exists' | 'other_role' | 'forbidden' | 'bad_email' (migration 0056)
-      invite_student_to_class: { Args: { p_class: string; p_email: string }; Returns: string }
-      unenroll_student: { Args: { p_class: string; p_student: string }; Returns: undefined }
+      album_class: { Args: { a: string }; Returns: string }
       app_today: { Args: never; Returns: string }
       auth_campus: { Args: never; Returns: string }
       auth_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      campus_ranks: {
+        Args: never
+        Returns: {
+          att_today: number
+          class_id: string
+          name: string
+          school_year: string
+          score: number
+        }[]
+      }
+      campus_rollup: {
+        Args: never
+        Returns: {
+          att_today: number
+          class_id: string
+          class_name: string
+          grade_id: string
+          grade_name: string
+          grade_sort: number
+          school_year: string
+          score: number
+          student_count: number
+        }[]
+      }
+      can_manage_class_cover: { Args: { p_name: string }; Returns: boolean }
+      can_manage_class_photo: { Args: { p_name: string }; Returns: boolean }
+      can_manage_student_email: { Args: { p_email: string }; Returns: boolean }
+      can_read_class_photo: { Args: { p_name: string }; Returns: boolean }
+      can_view_student: { Args: { s: string }; Returns: boolean }
       child_class_progress: {
         Args: { s: string }
         Returns: {
@@ -1251,11 +1911,37 @@ export type Database = {
           score: number
         }[]
       }
+      class_scoreboard: {
+        Args: { p_class: string }
+        Returns: {
+          category: string
+          lead_count: number
+          points: number
+          sub_category: string
+        }[]
+      }
+      current_school_year: { Args: never; Returns: string }
+      default_score_weight: {
+        Args: { k: Database["public"]["Enums"]["score_kind"] }
+        Returns: number
+      }
+      enroll_student_by_email: {
+        Args: { p_class: string; p_email: string }
+        Returns: string
+      }
+      homework_class: { Args: { p: string }; Returns: string }
+      invite_student_to_class: {
+        Args: { p_class: string; p_email: string }
+        Returns: string
+      }
+      ip_allowed: { Args: { p_ip: string }; Returns: boolean }
       is_attendance_leader: { Args: { c: string }; Returns: boolean }
       is_campus_class: { Args: { c: string }; Returns: boolean }
       is_class_student: { Args: { c: string }; Returns: boolean }
       is_class_teacher: { Args: { c: string }; Returns: boolean }
       is_classmate_via_leader: { Args: { s: string }; Returns: boolean }
+      is_enrolled: { Args: { c: string; s: string }; Returns: boolean }
+      is_my_campus: { Args: { c: string }; Returns: boolean }
       is_my_child: { Args: { s: string }; Returns: boolean }
       is_my_student: { Args: { s: string }; Returns: boolean }
       is_parent_of_class: { Args: { c: string }; Returns: boolean }
@@ -1272,30 +1958,109 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_attendance_on: {
+        Args: {
+          p_class: string
+          p_date: string
+          p_status: Database["public"]["Enums"]["attendance_status"]
+          p_student: string
+        }
+        Returns: undefined
+      }
+      open_term_for_class: {
+        Args: { p_class: string; p_term: string }
+        Returns: number
+      }
+      pt_can_read_thread: { Args: { t: string }; Returns: boolean }
+      pt_can_write_thread: { Args: { t: string }; Returns: boolean }
+      pt_class_message_health: {
+        Args: never
+        Returns: {
+          class_id: string
+          class_name: string
+          oldest_waiting_hours: number
+          thread_count: number
+          waiting_count: number
+        }[]
+      }
+      pt_disclose_thread: {
+        Args: { p_actor: string; p_reason: string; p_thread: string }
+        Returns: {
+          body: string
+          created_at: string
+          sender_name: string
+          sender_side: string
+        }[]
+      }
+      pt_mark_read: { Args: { p_thread: string }; Returns: undefined }
+      pt_my_threads: {
+        Args: never
+        Returns: {
+          class_id: string
+          class_name: string
+          last_message_at: string
+          last_sender_side: string
+          student_id: string
+          student_name: string
+          thread_id: string
+          unread_count: number
+          waiting_for_school: boolean
+        }[]
+      }
+      pt_open_thread: { Args: { p_student: string }; Returns: string }
+      pt_student_in_class: { Args: { c: string; s: string }; Returns: boolean }
       restrict_signup_by_email_domain: { Args: { event: Json }; Returns: Json }
+      review_class: { Args: { r: string }; Returns: string }
+      review_is_editable: { Args: { r: string }; Returns: boolean }
+      review_visible_to_family: { Args: { r: string }; Returns: boolean }
+      seed_grades_for_campus: { Args: { p_campus: string }; Returns: number }
+      set_my_campus_level: {
+        Args: { p_level: Database["public"]["Enums"]["school_level"] }
+        Returns: number
+      }
       set_my_mood: {
         Args: { p_mood: Database["public"]["Enums"]["mood_level"] }
         Returns: undefined
       }
-      ip_allowed: { Args: { p_ip: string }; Returns: boolean }
+      staff_can_manage_class: { Args: { c: string }; Returns: boolean }
+      staff_can_read_class: { Args: { c: string }; Returns: boolean }
+      standard_grade_numbers: {
+        Args: { p_level: Database["public"]["Enums"]["school_level"] }
+        Returns: number[]
+      }
       student_checkin: {
         Args: {
-          p_student: string
-          p_mood: Database["public"]["Enums"]["mood_level"]
           p_ip: string
+          p_mood: Database["public"]["Enums"]["mood_level"]
+          p_student: string
         }
         Returns: string
       }
-      staff_can_manage_class: { Args: { c: string }; Returns: boolean }
-      staff_can_read_class: { Args: { c: string }; Returns: boolean }
-      // wig_actual đã chuyển sang schema `private` (migration 0038) → không còn RPC.
+      term_is_locked: { Args: { t: string }; Returns: boolean }
+      tick_open: { Args: { p_class: string }; Returns: boolean }
+      unenroll_student: {
+        Args: { p_class: string; p_student: string }
+        Returns: undefined
+      }
+      vn_today: { Args: never; Returns: string }
+      vn_week_start: { Args: { d?: string }; Returns: string }
       wig_class: { Args: { w: string }; Returns: string }
     }
     Enums: {
+      assessment_term_kind:
+        | "giua_ky_1"
+        | "hoc_ky_1"
+        | "giua_ky_2"
+        | "hoc_ky_2"
+        | "ca_nam"
       attendance_status: "present" | "absent" | "late" | "excused"
+      conduct_rating: "tot" | "kha" | "trung_binh" | "yeu"
+      homework_kind: "assignment" | "reminder" | "exam"
+      meal_slot: "breakfast" | "lunch" | "snack" | "dinner"
       mood_level: "great" | "good" | "ok" | "low" | "bad"
       school_level: "mam_non" | "tieu_hoc" | "thcs" | "thpt"
       score_category: "knowledge" | "skills" | "english" | "physical"
+      score_kind: "mieng" | "15p" | "1tiet" | "giua_ky" | "cuoi_ky"
       user_role:
         | "admin"
         | "principal"
@@ -1433,10 +2198,21 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      assessment_term_kind: [
+        "giua_ky_1",
+        "hoc_ky_1",
+        "giua_ky_2",
+        "hoc_ky_2",
+        "ca_nam",
+      ],
       attendance_status: ["present", "absent", "late", "excused"],
+      conduct_rating: ["tot", "kha", "trung_binh", "yeu"],
+      homework_kind: ["assignment", "reminder", "exam"],
+      meal_slot: ["breakfast", "lunch", "snack", "dinner"],
       mood_level: ["great", "good", "ok", "low", "bad"],
       school_level: ["mam_non", "tieu_hoc", "thcs", "thpt"],
       score_category: ["knowledge", "skills", "english", "physical"],
+      score_kind: ["mieng", "15p", "1tiet", "giua_ky", "cuoi_ky"],
       user_role: [
         "admin",
         "principal",
@@ -1451,4 +2227,3 @@ export const Constants = {
     },
   },
 } as const
-
