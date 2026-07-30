@@ -346,6 +346,55 @@ export type Database = {
           },
         ]
       }
+      class_subjects: {
+        Row: {
+          class_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          subject_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          subject_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_subjects_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_subjects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_subjects_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           campus_id: string
@@ -598,7 +647,8 @@ export type Database = {
           due_date: string | null
           id: string
           kind: Database["public"]["Enums"]["homework_kind"]
-          subject: string
+          subject: string | null
+          subject_id: string | null
           updated_at: string
         }
         Insert: {
@@ -610,7 +660,8 @@ export type Database = {
           due_date?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["homework_kind"]
-          subject: string
+          subject?: string | null
+          subject_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -622,7 +673,8 @@ export type Database = {
           due_date?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["homework_kind"]
-          subject?: string
+          subject?: string | null
+          subject_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -638,6 +690,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "homework_posts_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
         ]
@@ -1439,6 +1498,29 @@ export type Database = {
           },
         ]
       }
+      subject_grades: {
+        Row: {
+          grade_no: number
+          subject_id: string
+        }
+        Insert: {
+          grade_no: number
+          subject_id: string
+        }
+        Update: {
+          grade_no?: number
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subject_grades_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subject_scores: {
         Row: {
           created_at: string
@@ -1449,7 +1531,8 @@ export type Database = {
           ordinal: number
           review_id: string
           score: number
-          subject: string
+          subject: string | null
+          subject_id: string | null
           taken_on: string | null
           updated_at: string
           weight: number
@@ -1463,7 +1546,8 @@ export type Database = {
           ordinal?: number
           review_id: string
           score: number
-          subject: string
+          subject?: string | null
+          subject_id?: string | null
           taken_on?: string | null
           updated_at?: string
           weight: number
@@ -1477,7 +1561,8 @@ export type Database = {
           ordinal?: number
           review_id?: string
           score?: number
-          subject?: string
+          subject?: string | null
+          subject_id?: string | null
           taken_on?: string | null
           updated_at?: string
           weight?: number
@@ -1495,6 +1580,135 @@ export type Database = {
             columns: ["review_id"]
             isOneToOne: false
             referencedRelation: "student_term_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subject_scores_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subjects: {
+        Row: {
+          campus_id: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          is_scored: boolean
+          name: string
+          short_name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          campus_id?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_scored?: boolean
+          name: string
+          short_name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          campus_id?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_scored?: boolean
+          name?: string
+          short_name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subjects_campus_id_fkey"
+            columns: ["campus_id"]
+            isOneToOne: false
+            referencedRelation: "campuses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subjects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teaching_assignments: {
+        Row: {
+          class_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          note: string | null
+          subject_id: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          note?: string | null
+          subject_id: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          note?: string | null
+          subject_id?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teaching_assignments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teaching_assignments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teaching_assignments_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teaching_assignments_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1552,7 +1766,8 @@ export type Database = {
           kind: string
           period_no: number
           room: string | null
-          subject: string
+          subject: string | null
+          subject_id: string | null
           teacher_name: string | null
         }
         Insert: {
@@ -1563,7 +1778,8 @@ export type Database = {
           kind?: string
           period_no: number
           room?: string | null
-          subject: string
+          subject?: string | null
+          subject_id?: string | null
           teacher_name?: string | null
         }
         Update: {
@@ -1574,7 +1790,8 @@ export type Database = {
           kind?: string
           period_no?: number
           room?: string | null
-          subject?: string
+          subject?: string | null
+          subject_id?: string | null
           teacher_name?: string | null
         }
         Relationships: [
@@ -1583,6 +1800,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timetable_slots_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
         ]
@@ -1775,8 +1999,11 @@ export type Database = {
         Row: {
           diem_trung_binh: number | null
           review_id: string | null
+          short_name: string | null
           so_con_diem: number | null
+          sort_order: number | null
           subject: string | null
+          subject_id: string | null
         }
         Relationships: [
           {
@@ -1784,6 +2011,13 @@ export type Database = {
             columns: ["review_id"]
             isOneToOne: false
             referencedRelation: "student_term_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subject_scores_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
         ]
@@ -1861,7 +2095,15 @@ export type Database = {
       can_manage_class_photo: { Args: { p_name: string }; Returns: boolean }
       can_manage_student_email: { Args: { p_email: string }; Returns: boolean }
       can_read_class_photo: { Args: { p_name: string }; Returns: boolean }
+      can_read_subject_score: {
+        Args: { p_review: string; p_subject: string }
+        Returns: boolean
+      }
       can_view_student: { Args: { s: string }; Returns: boolean }
+      can_write_subject_score: {
+        Args: { p_review: string; p_subject: string }
+        Returns: boolean
+      }
       child_class_progress: {
         Args: { s: string }
         Returns: {
@@ -1887,6 +2129,7 @@ export type Database = {
           week_label: string
         }[]
       }
+      class_campus: { Args: { c: string }; Returns: string }
       class_competition_scores: {
         Args: never
         Returns: {
@@ -1944,7 +2187,9 @@ export type Database = {
       is_my_campus: { Args: { c: string }; Returns: boolean }
       is_my_child: { Args: { s: string }; Returns: boolean }
       is_my_student: { Args: { s: string }; Returns: boolean }
+      is_my_subject_student: { Args: { s: string }; Returns: boolean }
       is_parent_of_class: { Args: { c: string }; Returns: boolean }
+      is_subject_teacher_of_class: { Args: { c: string }; Returns: boolean }
       lead_class: { Args: { lm: string }; Returns: string }
       log_audit: {
         Args: { p_action: string; p_detail?: Json }
@@ -2013,6 +2258,7 @@ export type Database = {
       review_class: { Args: { r: string }; Returns: string }
       review_is_editable: { Args: { r: string }; Returns: boolean }
       review_visible_to_family: { Args: { r: string }; Returns: boolean }
+      seed_class_subjects: { Args: { p_class: string }; Returns: number }
       seed_grades_for_campus: { Args: { p_campus: string }; Returns: number }
       set_my_campus_level: {
         Args: { p_level: Database["public"]["Enums"]["school_level"] }
@@ -2035,6 +2281,23 @@ export type Database = {
           p_student: string
         }
         Returns: string
+      }
+      subject_fits_class: {
+        Args: { p_class: string; p_subject: string }
+        Returns: boolean
+      }
+      subject_fits_grade: {
+        Args: { p_class: string; p_subject: string }
+        Returns: boolean
+      }
+      subject_roster: {
+        Args: { p_class: string; p_term: string }
+        Returns: {
+          con_hoc: boolean
+          full_name: string
+          review_id: string
+          student_id: string
+        }[]
       }
       term_is_locked: { Args: { t: string }; Returns: boolean }
       tick_open: { Args: { p_class: string }; Returns: boolean }
