@@ -588,6 +588,7 @@
     "ovNote": "Ghi chú",
     "ovRemove": "Gỡ",
     "kindLabel": "Loại tiết",
-    "dayLabel": "Thứ"
+    "dayLabel": "Thứ",
+    "repeatNote": "Lưới dưới đây là thời khoá biểu cố định — lập một lần, tự lặp cho mọi tuần. Ô chọn tuần chỉ để xem ngày thật và đánh dấu thay đổi của riêng một buổi (huỷ, dời, dạy thay)."
   }
 }

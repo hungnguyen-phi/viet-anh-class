@@ -588,6 +588,7 @@
     "ovNote": "Note",
     "ovRemove": "Remove",
     "kindLabel": "Lesson type",
-    "dayLabel": "Weekday"
+    "dayLabel": "Weekday",
+    "repeatNote": "The grid below is a fixed timetable — set it once and it repeats every week. The week selector only shows real dates and marks changes to a single session (cancelled, moved, substitute)."
   }
 }
