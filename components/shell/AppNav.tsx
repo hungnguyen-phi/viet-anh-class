@@ -142,8 +142,13 @@ export function AppNav({
     setOpen(false);
   }, [pathname]);
 
+  // data-appnav trên khối dưới đây: FlashToast đo chiều cao nó lúc chạy để nổi ngay DƯỚI thanh
+  // menu, thay vì đoán một con số cố định (khối này cao khác nhau giữa điện thoại và máy tính).
   return (
-    <div className="sticky top-0 z-20 px-4 pb-2.5 pt-3.5 sm:px-6 [background:linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.85)_70%,rgba(255,255,255,0)_100%)]">
+    <div
+      data-appnav
+      className="sticky top-0 z-20 px-4 pb-2.5 pt-3.5 sm:px-6 [background:linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.85)_70%,rgba(255,255,255,0)_100%)]"
+    >
       {/* Bar full-width navy. Desktop (lg+): logo | tabs | cụm phải. Mobile (<lg): logo | tên trang | hamburger. */}
       <div className="flex w-full items-center gap-3 rounded-[24px] bg-[linear-gradient(180deg,#2f3170,#26275d)] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_10px_28px_-6px_rgba(38,39,93,0.5)] ring-1 ring-white/10">
         {/* Logo + tên */}

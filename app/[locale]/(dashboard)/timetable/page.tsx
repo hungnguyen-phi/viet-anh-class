@@ -9,6 +9,7 @@ import {ClassPicker} from '@/components/shell/ClassPicker';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {OverrideForm} from './OverrideForm';
 import {saveSlot, deleteSlot, deleteOverride} from './actions';
+import {FlashToast} from '@/components/ui/FlashToast';
 
 const DAYS = [2, 3, 4, 5, 6, 7]; // T2..T7 (tuần học VN)
 const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -138,11 +139,7 @@ export default async function TimetablePage({
         {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
       </div>
 
-      {flash && (
-        <div className="rounded-[12px] border border-success/30 bg-success/10 px-4 py-2 text-sm font-semibold text-success-dark">
-          {flash}
-        </div>
-      )}
+      {flash && <FlashToast message={flash} />}
 
       {/* Điều hướng tuần + chú thích màu */}
       <div className="flex flex-wrap items-center gap-2">

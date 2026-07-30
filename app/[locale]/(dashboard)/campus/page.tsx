@@ -10,6 +10,7 @@ import {ClassManager} from '@/app/[locale]/(dashboard)/admin/ClassManager';
 import {SchoolRollup, type RollupRow} from './SchoolRollup';
 import {TeacherManager} from './TeacherManager';
 import {CampusLevelPicker} from './CampusLevelPicker';
+import {FlashToast} from '@/components/ui/FlashToast';
 
 export default async function CampusPage({
   params,
@@ -149,11 +150,7 @@ export default async function CampusPage({
     <div className="flex flex-col gap-3.5">
       <h1 className="font-display text-[22px] font-bold text-navy">{t('title')}</h1>
 
-      {flash && (
-        <div className="rounded-[12px] border border-success/30 bg-success/10 px-4 py-2 text-sm font-semibold text-success-dark">
-          {flash}
-        </div>
-      )}
+      {flash && <FlashToast message={flash} />}
 
       {rows.length === 0 ? (
         <p className="text-sm italic text-grey-mid">{t('noClasses')}</p>

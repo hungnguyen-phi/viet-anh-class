@@ -25,6 +25,7 @@ import {ClassMeetingSection} from '@/components/wig/ClassMeetingSection';
 import {ClassStudentWigSetup} from '@/components/wig/ClassStudentWigSetup';
 import {ChildPeriodFields} from '@/components/wig/ChildPeriodFields';
 import {AREAS, buildAreaMeta, areaLabel, type Area} from '@/lib/areas';
+import {FlashToast} from '@/components/ui/FlashToast';
 
 type Wig = {
   id: string;
@@ -465,11 +466,7 @@ export default async function WigPage({
         {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
       </div>
 
-      {flash && (
-        <div className="rounded-[12px] border border-success/30 bg-success/10 px-4 py-2 text-sm font-semibold text-success">
-          {flash}
-        </div>
-      )}
+      {flash && <FlashToast message={flash} />}
 
       {/* Panel sửa (WIG hoặc lead) — hiện khi có ?editWig / ?editLead */}
       {editingWig && wigEditPanel(editingWig)}

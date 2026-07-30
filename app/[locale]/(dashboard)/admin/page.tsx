@@ -26,6 +26,7 @@ import {SchoolNetworkManager} from './SchoolNetworkManager';
 import {AREAS, buildAreaMeta} from '@/lib/areas';
 import {clientIp} from '@/lib/ip';
 import {Link} from '@/i18n/navigation';
+import {FlashToast} from '@/components/ui/FlashToast';
 
 const ROLES = ['admin', 'principal', 'teacher', 'student', 'parent', 'pending'] as const;
 const INVITE_ROLES = ['teacher', 'principal', 'admin', 'student'] as const;
@@ -186,11 +187,7 @@ export default async function AdminPage({
     <div className="flex flex-col gap-4">
       <h1 className="font-display text-[22px] font-bold text-navy">{t('title')}</h1>
 
-      {flash && (
-        <div className="rounded-[14px] border border-success/30 bg-success/10 px-4 py-2.5 text-sm font-bold text-success">
-          {flash}
-        </div>
-      )}
+      {flash && <FlashToast message={flash} />}
 
       {/* Người dùng + đổi vai trò */}
       <section className="glass rounded-[20px] p-[18px]">

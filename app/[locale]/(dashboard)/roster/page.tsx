@@ -9,6 +9,7 @@ import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {AttendanceLeaderPicker} from '@/components/roster/AttendanceLeaderPicker';
 import {EnrollForm} from './EnrollForm';
 import {removeStudent, cancelStudentInvite} from './actions';
+import {FlashToast} from '@/components/ui/FlashToast';
 
 type EnrRow = {
   student_id: string;
@@ -164,11 +165,7 @@ export default async function RosterPage({
         </div>
       </div>
 
-      {flash && (
-        <div className="rounded-[12px] border border-success/30 bg-success/10 px-4 py-2 text-sm font-semibold text-success">
-          {flash}
-        </div>
-      )}
+      {flash && <FlashToast message={flash} />}
 
       {/* Ghi danh / chuyển lớp: nhập email học sinh (đã có tài khoản) — chỉ GVCN/Admin */}
       {canManage && (
