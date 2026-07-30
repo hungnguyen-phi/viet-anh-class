@@ -800,6 +800,45 @@ export type Database = {
           },
         ]
       }
+      student_details: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date_of_birth: string | null
+          email: string
+          full_name: string | null
+          note: string | null
+          parent_phone: string | null
+          student_code: string | null
+          student_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          email: string
+          full_name?: string | null
+          note?: string | null
+          parent_phone?: string | null
+          student_code?: string | null
+          student_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          email?: string
+          full_name?: string | null
+          note?: string | null
+          parent_phone?: string | null
+          student_code?: string | null
+          student_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       school_networks: {
         Row: {
           campus_id: string | null

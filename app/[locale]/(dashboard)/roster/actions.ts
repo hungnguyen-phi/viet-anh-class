@@ -62,8 +62,55 @@ export type EnrollState = {
   message?: string; // báo thành công
   error?: string; // lỗi chung (server/DB)
   fieldError?: string; // tên field lỗi để tô đỏ + hiện dưới field
-  values?: {email: string};
+  values?: StudentFields;
 };
+
+// Thông tin nhận diện học sinh, điền ngay lúc ghi danh (bảng student_details, migration 0058).
+// Chỉ `email` bắt buộc — phần còn lại điền được tới đâu thì tới, bổ sung sau vẫn được.
+export type StudentFields = {
+  email: string;
+  full_name?: string;
+  student_code?: string;
+  date_of_birth?: string;
+  parent_phone?: string;
+  note?: string;
+};
+
+function readStudentFields(formData: FormData): StudentFields {
+  const s = (k: string) => String(formData.get(k) ?? '').trim();
+  return {
+    email: s('email'),
+    full_name: s('full_name'),
+    student_code: s('student_code'),
+    date_of_birth: s('date_of_birth'),
+    parent_phone: s('parent_phone'),
+    note: s('note'),
+  };
+}
+
+// Ghi/cập nhật thông tin nhận diện. Khoá theo email nên gọi được cả khi em CHƯA có tài khoản.
+// Chỉ ghi khi có ít nhất một trường ngoài email — tránh tạo dòng rỗng vô nghĩa.
+// Lỗi ở đây KHÔNG làm hỏng việc ghi danh: ghi danh mới là việc chính, thông tin thêm là phụ.
+async function saveStudentDetails(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  f: StudentFields,
+  meId: string,
+): Promise<void> {
+  if (!f.full_name && !f.student_code && !f.date_of_birth && !f.parent_phone && !f.note) return;
+  await supabase.from('student_details').upsert(
+    {
+      email: f.email.toLowerCase(),
+      full_name: f.full_name || null,
+      student_code: f.student_code || null,
+      date_of_birth: f.date_of_birth || null,
+      parent_phone: f.parent_phone || null,
+      note: f.note || null,
+      created_by: meId,
+      updated_at: new Date().toISOString(),
+    },
+    {onConflict: 'email'},
+  );
+}
 
 // initial state {ok:false} định nghĩa trong client form ('use server' chỉ export async function).
 
@@ -72,11 +119,12 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Ghi danh học sinh (theo email) vào lớp — cũng dùng để CHUYỂN LỚP (tắt lớp cũ).
 // INLINE validation (useActionState): lỗi hiện cạnh field, giữ nguyên email, báo thành công ngay.
 export async function enrollStudent(_prev: EnrollState, formData: FormData): Promise<EnrollState> {
-  await requireRole(['teacher', 'admin']);
+  const me = await requireRole(['teacher', 'admin']);
   const classId = String(formData.get('class_id') ?? '');
-  const email = String(formData.get('email') ?? '').trim();
-  // Giữ lại email để trả về khi có lỗi (không mất nội dung đã gõ).
-  const values = {email};
+  const fields = readStudentFields(formData);
+  const email = fields.email;
+  // Giữ lại MỌI ô đã gõ để trả về khi có lỗi (không mất công điền lại 6 trường).
+  const values = fields;
 
   if (!classId) return {ok: false, error: friendlyError(null), values};
   if (!email) return {ok: false, fieldError: 'email', error: 'Hãy nhập email học sinh.', values};
@@ -100,10 +148,13 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
     });
     if (invErr) return {ok: false, error: friendlyError(invErr), values};
     if (inv === 'invited') {
+      // Lưu thông tin SAU khi có lời mời: RLS của student_details cho phép GVCN ghi khi email đó
+      // đã được mời vào lớp mình — nên thứ tự này bắt buộc, đảo lại là bị chặn.
+      await saveStudentDetails(supabase, fields, me.id);
       revalidatePath('/[locale]/roster', 'page');
       return {
         ok: true,
-        message: `${email} chưa có tài khoản — đã lưu lời mời vào lớp này. Em chỉ cần đăng nhập lần đầu là tự động có tên trong danh sách.`,
+        message: `${email} chưa có tài khoản — đã lưu lời mời${fields.full_name ? ` cho ${fields.full_name}` : ''} vào lớp này. Em sẽ có tên trong danh sách ngay bây giờ, và tự vào lớp khi đăng nhập lần đầu.`,
       };
     }
     if (inv === 'other_role')
@@ -127,8 +178,41 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
     };
   }
 
+  await saveStudentDetails(supabase, fields, me.id);
   revalidatePath('/[locale]/roster', 'page');
-  return {ok: true, message: `Đã ghi danh ${email} vào lớp`};
+  return {ok: true, message: `Đã ghi danh ${fields.full_name || email} vào lớp`};
+}
+
+// Huỷ lời mời của em CHƯA đăng nhập lần nào.
+//
+// Khác removeStudent: em này chưa có tài khoản nên không có gì trong `enrollments` để tắt —
+// thứ cần xoá là hàng trong `pending_user_grants`. Không có nút này thì gõ sai một email là
+// dòng "chưa đăng nhập" đó nằm lại trong danh sách lớp vĩnh viễn.
+//
+// Thông tin đã điền (student_details) thì GIỮ LẠI, không xoá theo: nếu chỉ gõ sai lớp rồi mời
+// lại đúng lớp, giáo viên không phải điền lại 5 trường.
+export async function cancelStudentInvite(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const classId = String(formData.get('classId') ?? '');
+  const email = String(formData.get('email') ?? '').trim();
+  if (!classId || !email) rosterFlash(classId, 'Thiếu thông tin');
+  const supabase = await createClient();
+  // .select() để phân biệt "RLS chặn / không có dòng nào" với "đã xoá xong" — không báo
+  // thành công giả.
+  const {data, error} = await supabase
+    .from('pending_user_grants')
+    .delete()
+    .eq('class_id', classId)
+    .ilike('email', email)
+    .select('email');
+  revalidatePath('/[locale]/roster', 'page');
+  if (error) rosterFlash(classId, friendlyError(error));
+  rosterFlash(
+    classId,
+    (data ?? []).length > 0
+      ? `Đã huỷ lời mời ${email}`
+      : 'Không huỷ được — lời mời không còn, hoặc bạn không có quyền với lớp này.',
+  );
 }
 
 // Cho học sinh rời lớp (is_active=false) — không xoá dữ liệu.
