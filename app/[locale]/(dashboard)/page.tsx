@@ -153,16 +153,14 @@ export default async function ClassPage({
     off_track: t('class.offTrack'),
   };
 
-  // Thứ hạng thi đua (Khối / Cấp / Campus / Group).
+  // Chỉ còn lấy ĐIỂM thi đua từ class_ranks.
+  //
+  // Đã BỎ bốn huy hiệu thứ hạng "Khối #1/3 · Cấp #1/6 · Campus #1/2 · Group #1/6".
+  // Lý do: với một trường mới, gần như mọi lớp đều là #1/1 hoặc #1/2 nên con số không nói lên
+  // điều gì, mà lại đứng cạnh nhãn "Khối"/"Campus" khiến giáo viên đọc thành mã của khối/cơ sở —
+  // đúng như người thử đã hiểu nhầm ("để #1/1 không hiểu là gì"). Tên khối và cơ sở THẬT giờ đã
+  // hiện ngay dòng trên, nên bốn huy hiệu này chỉ còn gây rối.
   const rank = ranksData?.[0];
-  const rankItems = rank
-    ? [
-        [t('class.rankGrade'), rank.grade_rank, rank.grade_total] as const,
-        [t('class.rankLevel'), rank.level_rank, rank.level_total] as const,
-        [t('class.rankCampus'), rank.campus_rank, rank.campus_total] as const,
-        [t('class.rankGroup'), rank.global_rank, rank.global_total] as const,
-      ]
-    : [];
 
   return (
     <div className="flex flex-col gap-[22px]">
@@ -257,20 +255,6 @@ export default async function ClassPage({
           </div>
         )}
 
-        {rank && (
-          <div className="mt-3.5 flex flex-wrap gap-2">
-            {rankItems.map(([label, r, total]) => (
-              <span
-                key={label}
-                className="glass-pill rounded-full px-3.5 py-1.5 text-[11.5px] font-bold text-txt"
-              >
-                {label}{' '}
-                <b className="font-display text-[13px] font-bold text-navy">#{r}</b>
-                <span className="text-grey-soft">/{total}</span>
-              </span>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* WIG năm — 4 lĩnh vực */}
