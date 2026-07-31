@@ -3,7 +3,7 @@ import {CalendarDays, MapPin, UserRound, ArrowRight} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {getAccessibleClasses, getMyClass} from '@/lib/queries';
+import {getClassContext} from '@/lib/queries';
 import {todayInVN, weekRangeVN} from '@/lib/dates';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {SubmitButton} from '@/components/ui/SubmitButton';
@@ -64,10 +64,7 @@ export default async function TimetablePage({
   const tc = await getTranslations('class');
   const supabase = await createClient();
 
-  const [myClass, accessible] = await Promise.all([
-    getMyClass(supabase, profile, classParam),
-    getAccessibleClasses(supabase, profile),
-  ]);
+  const {myClass, classes: accessible} = await getClassContext(supabase, profile, classParam);
   if (!myClass) {
     return (
       <div className="glass rounded-[20px] p-8 text-center">

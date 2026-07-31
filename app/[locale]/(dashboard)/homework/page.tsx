@@ -3,7 +3,7 @@ import {CalendarClock, Check, Circle, Users} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {getAccessibleClasses, getMyClass} from '@/lib/queries';
+import {getClassContext} from '@/lib/queries';
 import {todayInVN} from '@/lib/dates';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {FlashToast} from '@/components/ui/FlashToast';
@@ -117,13 +117,10 @@ export default async function HomeworkPage({
   const conDangXem =
     (childParam ? children.find((c) => c.id === childParam) : undefined) ?? children[0] ?? null;
 
-  // Phụ huynh đổi con thì đổi luôn lớp — dùng lại nhánh preferredClassId của getMyClass
+  // Phụ huynh đổi con thì đổi luôn lớp — dùng lại nhánh preferredClassId của getClassContext
   // (RLS chặn nếu đó không phải lớp của con họ).
   const lopMuonXem = profile.role === 'parent' ? conDangXem?.classId : classParam;
-  const [myClass, accessible] = await Promise.all([
-    getMyClass(supabase, profile, lopMuonXem),
-    getAccessibleClasses(supabase, profile),
-  ]);
+  const {myClass, classes: accessible} = await getClassContext(supabase, profile, lopMuonXem);
 
   if (!myClass) {
     return (

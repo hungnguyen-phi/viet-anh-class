@@ -1,7 +1,7 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {getAccessibleClasses, getMyClass} from '@/lib/queries';
+import {getClassContext} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 // SubmitButton thay <button type="submit"> trần ở mọi form của trang này. Người thử báo bấm
@@ -71,9 +71,8 @@ export default async function WigPage({
   const tc = await getTranslations('class');
   const supabase = await createClient();
   // Truy vấn độc lập — chạy song song, tránh waterfall.
-  const [myClass, accessible, {data: areaCfg}] = await Promise.all([
-    getMyClass(supabase, profile, classParam),
-    getAccessibleClasses(supabase, profile),
+  const [{myClass, classes: accessible}, {data: areaCfg}] = await Promise.all([
+    getClassContext(supabase, profile, classParam),
     supabase.from('area_config').select('*').order('sort_order'),
   ]);
   const areaMeta = buildAreaMeta(areaCfg);
@@ -91,9 +90,15 @@ export default async function WigPage({
   // cá nhân của tuần này. Gộp vào đây thay vì để component tự lấy → không thêm lượt chờ nào.
   const thisWeekLabel = isoWeekLabel(new Date());
   const [{data: wigsData}, {data: progData}, {data: enrolled}, {data: readyWigs}] = await Promise.all([
+    // NHÚNG LUÔN lead_measures. Trước đây phải chờ câu này về mới biết id của các WIG tuần, rồi
+    // mới hỏi lead_measures được — một vòng mạng xếp hàng thuần tuý ở giữa. PostgREST nhúng được
+    // theo khoá ngoại wig_id, và RLS vẫn áp y như khi hỏi rời. Lead của WIG năm/tháng (nếu có)
+    // theo về cùng, đổi lại là bỏ hẳn một chặng.
     supabase
       .from('wigs')
-      .select('id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date')
+      .select(
+        'id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date, lead_measures(id, wig_id, title, target_value, unit, sub_category)',
+      )
       .eq('class_id', myClass.id)
       .eq('scope', 'class'),
     supabase
@@ -116,7 +121,8 @@ export default async function WigPage({
   ]);
   const studentCount = (enrolled ?? []).length;
   const readyCount = new Set((readyWigs ?? []).map((w) => w.student_id)).size;
-  const wigs = (wigsData ?? []) as Wig[];
+  const wigsKemLead = (wigsData ?? []) as unknown as (Wig & {lead_measures: Lead[] | null})[];
+  const wigs = wigsKemLead as Wig[];
   const progByWig = new Map((progData ?? []).map((p) => [p.wig_id, p as unknown as Prog]));
 
   const yearWigs = wigs.filter((w) => w.period === 'year').sort((a, b) => a.area.localeCompare(b.area));
@@ -126,15 +132,10 @@ export default async function WigPage({
       .filter((w) => w.parent_wig_id === pid && w.period === period)
       .sort((a, b) => (a.period_label ?? '').localeCompare(b.period_label ?? ''));
 
-  const weekIds = wigs.filter((w) => w.period === 'week').map((w) => w.id);
-  let leads: Lead[] = [];
-  if (weekIds.length > 0) {
-    const {data: leadData} = await supabase
-      .from('lead_measures')
-      .select('id, wig_id, title, target_value, unit, sub_category')
-      .in('wig_id', weekIds);
-    leads = (leadData ?? []) as Lead[];
-  }
+  // Chỉ lấy lead của WIG TUẦN, đúng như câu `.in('wig_id', weekIds)` cũ — nay lọc trong bộ nhớ.
+  const leads: Lead[] = wigsKemLead
+    .filter((w) => w.period === 'week')
+    .flatMap((w) => w.lead_measures ?? []);
   const leadsByWig = new Map<string, Lead[]>();
   for (const l of leads) {
     const arr = leadsByWig.get(l.wig_id) ?? [];

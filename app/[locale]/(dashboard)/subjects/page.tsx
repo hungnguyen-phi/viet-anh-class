@@ -1,7 +1,7 @@
 import {setRequestLocale} from 'next-intl/server';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {getAccessibleClasses, getMyClass} from '@/lib/queries';
+import {getClassContext} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {FlashToast} from '@/components/ui/FlashToast';
 import {SubjectCreateForm} from '@/components/subjects/SubjectCreateForm';
@@ -56,7 +56,7 @@ export default async function SubjectsPage({
   const supabase = await createClient();
 
   // Năm truy vấn độc lập — chạy song song, tránh waterfall.
-  const [{data: subjectsData}, {data: gradesData}, {data: campusesData}, accessible, myClass] =
+  const [{data: subjectsData}, {data: gradesData}, {data: campusesData}, lop, {data: gvData}] =
     await Promise.all([
       supabase
         .from('subjects')
@@ -65,9 +65,21 @@ export default async function SubjectsPage({
         .order('name'),
       supabase.from('subject_grades').select('subject_id, grade_no'),
       supabase.from('campuses').select('id, name'),
-      getAccessibleClasses(supabase, profile),
-      getMyClass(supabase, profile, classParam),
+      getClassContext(supabase, profile, classParam),
+      // DANH SÁCH GIÁO VIÊN — kéo từ khối phân công bên dưới lên đây. Nó lọc theo vai, không theo
+      // lớp, nên chẳng có lý do gì phải chờ biết lớp đang chọn rồi mới hỏi; và nó là câu chậm
+      // nhất của đợt dưới (tới 500 dòng profiles).
+      // Chỉ vai 'teacher': trigger teaching_assignment_guard từ chối mọi vai khác (hiệu trưởng
+      // KHÔNG được phân công dạy — nguyên tắc "ban giám hiệu không chạm một con điểm nào").
+      // Hiệu trưởng gọi câu này chỉ nhận về giáo viên cơ sở mình (RLS của profiles lo việc đó).
+      supabase
+        .from('profiles')
+        .select('id, full_name, email, campus_id')
+        .eq('role', 'teacher')
+        .order('full_name')
+        .limit(500),
     ]);
+  const {myClass, classes: accessible} = lop;
 
   const tenCoSo = new Map((campusesData ?? []).map((c) => [c.id, c.name] as const));
 
@@ -107,7 +119,7 @@ export default async function SubjectsPage({
   let giaoVien: GiaoVien[] = [];
 
   if (myClass) {
-    const [{data: csData}, {data: taData}, {data: gvData}] = await Promise.all([
+    const [{data: csData}, {data: taData}] = await Promise.all([
       supabase.from('class_subjects').select('subject_id').eq('class_id', myClass.id),
       // Chỉ phân công CÒN HIỆU LỰC. Dòng is_active=false vẫn nằm trong bảng để tra lại ai từng
       // dạy, nhưng người đó đã mất quyền nên không được hiện như đang dạy.
@@ -120,15 +132,6 @@ export default async function SubjectsPage({
         )
         .eq('class_id', myClass.id)
         .eq('is_active', true),
-      // Chỉ vai 'teacher': trigger teaching_assignment_guard từ chối mọi vai khác (hiệu trưởng
-      // KHÔNG được phân công dạy — nguyên tắc "ban giám hiệu không chạm một con điểm nào").
-      // Hiệu trưởng gọi câu này chỉ nhận về giáo viên cơ sở mình (RLS của profiles lo việc đó).
-      supabase
-        .from('profiles')
-        .select('id, full_name, email, campus_id')
-        .eq('role', 'teacher')
-        .order('full_name')
-        .limit(500),
     ]);
 
     // Tên + thứ tự môn lấy từ chính danh mục vừa đọc, không truy vấn lại.

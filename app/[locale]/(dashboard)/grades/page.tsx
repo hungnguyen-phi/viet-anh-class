@@ -2,7 +2,7 @@ import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {Lock, LockOpen, Plus} from 'lucide-react';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {getAccessibleClasses, getMyClass, type ClassOption} from '@/lib/queries';
+import {getClassContext, type ClassOption} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {FlashToast} from '@/components/ui/FlashToast';
 import {SubmitButton} from '@/components/ui/SubmitButton';
@@ -144,10 +144,9 @@ export default async function GradesPage({
 
   const tc = await getTranslations('class');
   const supabase = await createClient();
-  // Ba truy vấn độc lập — chạy song song, tránh waterfall.
-  const [myClassGoc, accessibleGoc, phanCong] = await Promise.all([
-    getMyClass(supabase, profile, classParam),
-    getAccessibleClasses(supabase, profile),
+  // Hai truy vấn độc lập — chạy song song, tránh waterfall.
+  const [{myClass: myClassGoc, classes: accessibleGoc}, phanCong] = await Promise.all([
+    getClassContext(supabase, profile, classParam),
     // PHÂN CÔNG DẠY BỘ MÔN CỦA CHÍNH TÔI. Đây là bảng CẤP QUYỀN của 0069: có một dòng ở đây thì
     // mới đọc/ghi được điểm môn đó ở lớp đó. RLS chỉ trả dòng của chính mình (hoặc của lớp mình
     // chủ nhiệm) nên không cần — và không nên — lọc thêm gì ngoài teacher_id.
@@ -162,7 +161,7 @@ export default async function GradesPage({
       : Promise.resolve([] as PhanCongRow[]),
   ]);
 
-  // Lớp mình DẠY BỘ MÔN không nằm trong getAccessibleClasses (hàm đó chỉ biết lớp CHỦ NHIỆM), nên
+  // Lớp mình DẠY BỘ MÔN không nằm trong getClassContext (hàm đó chỉ biết lớp CHỦ NHIỆM), nên
   // thiếu bước này thì giáo viên bộ môn mở /grades là thấy "chưa có lớp" — dù RLS đã cho họ vào.
   // Một chặng mạng thêm, và chỉ với người thật sự có phân công.
   let lopDay: LopKemKhoi[] = [];

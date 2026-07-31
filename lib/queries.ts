@@ -163,3 +163,76 @@ export async function getAccessibleClasses(
   }
   return [];
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// MỘT CÂU `classes` THAY VÌ HAI.
+//
+// 11 trang gọi getMyClass() và getAccessibleClasses() cạnh nhau trong cùng một Promise.all. Hai
+// hàm ấy hỏi CÙNG MỘT BẢNG, CÙNG MỘT BỘ LỌC (`is_active`, và với giáo viên là `homeroom_teacher_id
+// = tôi`) — chỉ khác ở chỗ một cái `.limit(1)`. Nghĩa là mỗi lần mở trang, app gửi hai lượt hỏi
+// classes gần như y hệt nhau tới Supabase.
+//
+// Chạy song song nên không dài thêm chuỗi chờ, nhưng vẫn là một gói tin nữa trên đường truyền
+// VPS↔Supabase — mà đường này mất khoảng 5% gói: gói nào rụng thì phải chờ TCP truyền lại, và
+// trang đứng im chừng ấy. Ít câu hỏi thì ít cơ hội rụng hơn.
+//
+// Hai hàm cũ VẪN GIỮ: /menu và TodayMenuCard chỉ cần lớp, /inbox chỉ cần danh sách.
+export type ClassContext = {
+  myClass: ClassRow | null;
+  /** Danh sách cho bộ chọn lớp — rỗng với học sinh/phụ huynh (họ chỉ có đúng lớp mình). */
+  classes: ClassOption[];
+};
+
+type ClassRowWithGrade = ClassRow & {grades: {name: string; sort_order: number} | null};
+
+export async function getClassContext(
+  supabase: SB,
+  profile: Profile,
+  preferredClassId?: string,
+): Promise<ClassContext> {
+  const laNhanSu =
+    profile.role === 'teacher' || profile.role === 'admin' || profile.role === 'principal';
+
+  // Học sinh/phụ huynh không có bộ chọn lớp (getAccessibleClasses trả [] mà không hỏi gì), nên
+  // ở đây cũng đúng một câu — dùng lại nguyên nhánh của getMyClass.
+  if (!laNhanSu) {
+    return {myClass: await getMyClass(supabase, profile, preferredClassId), classes: []};
+  }
+
+  // `*` chứ không phải CLASS_SELECT: myClass được các trang dùng như một dòng `classes` đầy đủ
+  // (campus_id, cover_image_url, tick_lock_dow...). Bảng có 11 cột, thêm vài cột rẻ hơn nhiều so
+  // với thêm một vòng mạng.
+  let q = supabase.from('classes').select('*, grades(name, sort_order)').eq('is_active', true);
+  if (profile.role === 'teacher') q = q.eq('homeroom_teacher_id', profile.id);
+  const {data} = await q.order('name');
+  const rows = (data ?? []) as unknown as ClassRowWithGrade[];
+
+  const classes = rows.map((r) => toOption(r as unknown as RawClass)).sort(sortByGradeThenName);
+
+  let myClass: ClassRow | null = null;
+  if (preferredClassId) {
+    myClass = rows.find((r) => r.id === preferredClassId) ?? null;
+    // Lớp NGOÀI danh sách vẫn có thể mở được: giáo viên bộ môn mở lớp mình dạy (không chủ nhiệm),
+    // hoặc phụ huynh đổi con. Chỉ khi ấy mới tốn câu thứ hai, và RLS vẫn là thứ quyết được/không.
+    if (!myClass) {
+      const {data: one} = await supabase
+        .from('classes')
+        .select('*')
+        .eq('id', preferredClassId)
+        .maybeSingle();
+      if (one) myClass = one;
+    }
+  }
+  if (!myClass) {
+    // Y hệt thứ tự cũ của getMyClass: lớp mình chủ nhiệm trước (admin kiêm GVCN là có thật), rồi
+    // mới tới lớp đầu tiên trong phạm vi. `rows` đã sắp theo tên nên "lớp đầu" là tất định —
+    // đúng cái lỗi .limit(1) không .order() đã sửa ở đợt trước.
+    const uuTienChuNhiem = profile.role === 'teacher' || profile.role === 'admin';
+    myClass =
+      (uuTienChuNhiem ? rows.find((r) => r.homeroom_teacher_id === profile.id) : undefined) ??
+      rows[0] ??
+      null;
+  }
+
+  return {myClass, classes};
+}

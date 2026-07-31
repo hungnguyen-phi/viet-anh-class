@@ -2,7 +2,7 @@ import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {redirect} from 'next/navigation';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {getAccessibleClasses, getMyClass} from '@/lib/queries';
+import {getClassContext} from '@/lib/queries';
 import {
   Check,
   X,
@@ -60,9 +60,8 @@ export default async function ClassPage({
   const t = await getTranslations();
   const supabase = await createClient();
   // Hai truy vấn độc lập — chạy song song, tránh waterfall.
-  const [myClass, accessible, {data: areaCfg}] = await Promise.all([
-    getMyClass(supabase, profile, classParam),
-    getAccessibleClasses(supabase, profile),
+  const [{myClass, classes: accessible}, {data: areaCfg}] = await Promise.all([
+    getClassContext(supabase, profile, classParam),
     supabase.from('area_config').select('*').order('sort_order'),
   ]);
   const areaMeta = buildAreaMeta(areaCfg);

@@ -4,7 +4,7 @@ import {Lock, CalendarDays, Users} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {getAccessibleClasses, getMyClass} from '@/lib/queries';
+import {getClassContext} from '@/lib/queries';
 import {todayInVN} from '@/lib/dates';
 import {AttendanceTable} from '@/components/attendance/AttendanceTable';
 import {ClassMoodBoard} from '@/components/student/ClassMoodBoard';
@@ -33,11 +33,7 @@ export default async function AttendancePage({
   const t = await getTranslations('attendance');
   const tc = await getTranslations('class');
   const supabase = await createClient();
-  // Hai truy vấn độc lập — chạy song song, tránh waterfall.
-  const [myClass, accessible] = await Promise.all([
-    getMyClass(supabase, profile, classParam),
-    getAccessibleClasses(supabase, profile),
-  ]);
+  const {myClass, classes: accessible} = await getClassContext(supabase, profile, classParam);
 
   if (!myClass) {
     return (

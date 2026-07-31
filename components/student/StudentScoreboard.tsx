@@ -36,6 +36,9 @@ type WigRow = {
 };
 type LeadRow = {
   id: string;
+  // wig_id chỉ khối quản lý dùng (gom việc theo từng WIG tuần) — có ở đây vì một câu
+  // lead_measures duy nhất nay phục vụ cả bảng tick lẫn khối quản lý.
+  wig_id: string;
   title: string;
   target_value: number;
   unit: string | null;
@@ -89,6 +92,8 @@ export async function StudentScoreboard({
     {data: moodRow},
     {data: areaCfg},
     {data: myRequestRows},
+    {data: mWigs},
+    {data: reqs},
   ] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email').eq('id', studentId).maybeSingle(),
       supabase
@@ -96,6 +101,10 @@ export async function StudentScoreboard({
         .select('class_id, classes(name, school_year, tick_lock_dow)')
         .eq('student_id', studentId)
         .eq('is_active', true)
+        // Có .order() rồi mới .limit(1) — em chuyển lớp giữa năm còn nhiều dòng ghi danh đang bật
+        // thì Postgres trả dòng nào tuỳ ý, và trang đổi lớp ngẫu nhiên giữa hai lần tải. Đúng lỗi
+        // đã sửa ở getMyClass đợt trước; chỗ này bị sót.
+        .order('class_id')
         .limit(1)
         .maybeSingle(),
       supabase
@@ -127,6 +136,25 @@ export async function StudentScoreboard({
             .from('edit_requests')
             .select('id, kind, ref_id, message')
             .eq('requester_id', viewer.id)
+            .eq('status', 'pending')
+            .order('created_at', {ascending: false})
+        : Promise.resolve({data: null}),
+      // HAI CÂU CỦA KHỐI QUẢN LÝ, kéo từ cuối hàm lên đây. Cả hai chỉ lọc theo `studentId` — thứ
+      // đã có trong tham số hàm trước khi chạm mạng lần nào. Trước đây chúng nằm trong một
+      // Promise.all riêng SAU khi lead_measures về, nên GVCN mở trang của một em phải chờ thêm
+      // trọn một vòng mạng mà chẳng để đợi dữ liệu gì.
+      canManage
+        ? supabase
+            .from('wigs')
+            .select('id, area, period, period_label, target_value, unit')
+            .eq('student_id', studentId)
+            .eq('scope', 'student')
+        : Promise.resolve({data: null}),
+      canManage
+        ? supabase
+            .from('edit_requests')
+            .select('id, kind, ref_id, message, created_at, requester:profiles!edit_requests_requester_id_fkey(full_name)')
+            .eq('student_id', studentId)
             .eq('status', 'pending')
             .order('created_at', {ascending: false})
         : Promise.resolve({data: null}),
@@ -203,21 +231,6 @@ export async function StudentScoreboard({
     ).map((m) => [m.id, m.buddy_focus_lead_id]),
   );
 
-  let classmates: Classmate[] = [];
-  if (canManage && classId) {
-    const {data: mates} = await supabase
-      .from('enrollments')
-      .select('student_id, profiles!enrollments_student_id_fkey(full_name)')
-      .eq('class_id', classId)
-      .eq('is_active', true)
-      .neq('student_id', studentId);
-    classmates = (
-      (mates ?? []) as unknown as {student_id: string; profiles: {full_name: string | null} | null}[]
-    )
-      .map((r) => ({id: r.student_id, name: r.profiles?.full_name ?? r.student_id}))
-      .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
-  }
-
   const rows = (wigRows ?? []) as WigRow[];
   const yearRows = rows.filter((r) => r.period === 'year');
   const weekRows = rows
@@ -237,51 +250,62 @@ export async function StudentScoreboard({
   // dùng weekRows (mọi tuần) vì nó cố tình thể hiện lịch sử thắng/thua.
   const currentWeekLabel = isoWeekLabel(new Date());
   const weekIds = weekRows.filter((w) => w.period_label === currentWeekLabel).map((w) => w.wig_id);
-  let tickerLeads: TickerLead[] = [];
-  if (weekIds.length > 0) {
-    const {data: leadData} = await supabase
-      .from('lead_measures')
-      .select('id, title, target_value, unit, lead_progress(id, value, logged_date, created_at, logged_by)')
-      .in('wig_id', weekIds);
-    tickerLeads = ((leadData ?? []) as LeadRow[]).map((l) => ({
-      id: l.id,
-      title: l.title,
-      target: Number(l.target_value),
-      unit: l.unit,
-      entries: (l.lead_progress ?? []).map((p) => ({
-        id: p.id,
-        value: Number(p.value ?? 0),
-        loggedDate: p.logged_date,
-        createdAt: p.created_at,
-        mine: p.logged_by === viewer.id,
-      })),
-    }));
-  }
+
+  // ĐỢT HAI — HAI CÂU CÒN LẠI, CHẠY CÙNG NHAU.
+  //
+  // Trước đây ba vòng mạng nối đuôi: bạn cùng lớp → chờ → lead_measures (bảng tick) → chờ →
+  // lead_measures (khối quản lý). Không câu nào cần kết quả của câu trước: bạn cùng lớp chỉ cần
+  // classId, hai câu lead chỉ cần weekIds — cả hai đã biết xong ngay sau đợt một.
+  //
+  // Và hai câu lead_measures ấy HỎI TRÙNG NHAU: cùng bảng, cùng `.in('wig_id', weekIds)`, chỉ
+  // khác bộ cột. Nay hỏi một lần với hợp của hai bộ (bảng tick cần value/created_at/logged_by,
+  // khối quản lý cần wig_id) rồi tách ở phía dưới. Ba vòng → một.
+  const [{data: mates}, {data: leadData}] = await Promise.all([
+    canManage && classId
+      ? supabase
+          .from('enrollments')
+          .select('student_id, profiles!enrollments_student_id_fkey(full_name)')
+          .eq('class_id', classId)
+          .eq('is_active', true)
+          .neq('student_id', studentId)
+      : Promise.resolve({data: null}),
+    weekIds.length > 0
+      ? supabase
+          .from('lead_measures')
+          .select(
+            'id, wig_id, title, target_value, unit, lead_progress(id, value, logged_date, created_at, logged_by)',
+          )
+          .in('wig_id', weekIds)
+      : Promise.resolve({data: null}),
+  ]);
+
+  const classmates: Classmate[] = (
+    (mates ?? []) as unknown as {student_id: string; profiles: {full_name: string | null} | null}[]
+  )
+    .map((r) => ({id: r.student_id, name: r.profiles?.full_name ?? r.student_id}))
+    .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+
+  const leadRows = (leadData ?? []) as unknown as LeadRow[];
+  const tickerLeads: TickerLead[] = leadRows.map((l) => ({
+    id: l.id,
+    title: l.title,
+    target: Number(l.target_value),
+    unit: l.unit,
+    entries: (l.lead_progress ?? []).map((p) => ({
+      id: p.id,
+      value: Number(p.value ?? 0),
+      loggedDate: p.logged_date,
+      createdAt: p.created_at,
+      mine: p.logged_by === viewer.id,
+    })),
+  }));
 
   // GVCN/Admin: dữ liệu QUẢN LÝ WIG/lead/tick cá nhân + yêu cầu-sửa đang chờ (audit: hết ngõ cụt).
   let manageWigs: ManageWig[] = [];
   let manageLeads: ManageLead[] = [];
   let requests: EditRequest[] = [];
   if (canManage) {
-    const [{data: mWigs}, {data: mLeads}, {data: reqs}] = await Promise.all([
-      supabase
-        .from('wigs')
-        .select('id, area, period, period_label, target_value, unit')
-        .eq('student_id', studentId)
-        .eq('scope', 'student'),
-      weekIds.length > 0
-        ? supabase
-            .from('lead_measures')
-            .select('id, wig_id, title, target_value, unit, lead_progress(id, logged_date)')
-            .in('wig_id', weekIds)
-        : Promise.resolve({data: []}),
-      supabase
-        .from('edit_requests')
-        .select('id, kind, ref_id, message, created_at, requester:profiles!edit_requests_requester_id_fkey(full_name)')
-        .eq('student_id', studentId)
-        .eq('status', 'pending')
-        .order('created_at', {ascending: false}),
-    ]);
+    // Không còn truy vấn nào ở đây: `mWigs`/`reqs` đã lấy từ đợt một, `leadRows` từ đợt hai.
     manageWigs = ((mWigs ?? []) as {id: string; area: string; period: string; period_label: string | null; target_value: number; unit: string}[]).map((w) => ({
       id: w.id,
       areaLabel: areaLabel(areaMeta[w.area as Area], locale),
@@ -291,7 +315,7 @@ export async function StudentScoreboard({
       unit: w.unit,
       period_label: w.period_label,
     }));
-    manageLeads = ((mLeads ?? []) as {id: string; wig_id: string; title: string; target_value: number; unit: string | null; lead_progress: {id: string; logged_date: string}[] | null}[]).map((l) => ({
+    manageLeads = leadRows.map((l) => ({
       id: l.id,
       wigId: l.wig_id,
       title: l.title,

@@ -1,7 +1,7 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {getAccessibleClasses, getMyClass} from '@/lib/queries';
+import {getClassContext} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {AREAS, buildAreaMeta, areaLabel, areaIcon} from '@/lib/areas';
 
@@ -26,9 +26,8 @@ export default async function ScoreboardPage({
   const tArea = await getTranslations('class');
   const supabase = await createClient();
 
-  const [myClass, accessible, {data: areaCfg}] = await Promise.all([
-    getMyClass(supabase, profile, classParam),
-    getAccessibleClasses(supabase, profile),
+  const [{myClass, classes: accessible}, {data: areaCfg}] = await Promise.all([
+    getClassContext(supabase, profile, classParam),
     supabase.from('area_config').select('*').order('sort_order'),
   ]);
   const areaMeta = buildAreaMeta(areaCfg);

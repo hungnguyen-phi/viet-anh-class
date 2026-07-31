@@ -3,7 +3,7 @@ import {Link} from '@/i18n/navigation';
 import {Images} from 'lucide-react';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {getAccessibleClasses, getMyClass} from '@/lib/queries';
+import {getClassContext} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {ClassCoverUpload} from '@/components/shell/ClassCoverUpload';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
@@ -51,11 +51,7 @@ export default async function RosterPage({
   const t = await getTranslations('roster');
   const tc = await getTranslations('class');
   const supabase = await createClient();
-  // Hai truy vấn độc lập — chạy song song, tránh waterfall.
-  const [myClass, accessible] = await Promise.all([
-    getMyClass(supabase, profile, classParam),
-    getAccessibleClasses(supabase, profile),
-  ]);
+  const {myClass, classes: accessible} = await getClassContext(supabase, profile, classParam);
 
   if (!myClass) {
     return (

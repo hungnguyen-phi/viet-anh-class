@@ -3,7 +3,7 @@ import {ArrowLeft, CalendarDays, Images} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {getAccessibleClasses, getMyClass} from '@/lib/queries';
+import {getClassContext} from '@/lib/queries';
 import {todayInVN} from '@/lib/dates';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {FlashToast} from '@/components/ui/FlashToast';
@@ -57,10 +57,7 @@ export default async function GalleryPage({
   const tc = await getTranslations('class');
   const supabase = await createClient();
 
-  const [myClass, accessible] = await Promise.all([
-    getMyClass(supabase, profile, classParam),
-    getAccessibleClasses(supabase, profile),
-  ]);
+  const {myClass, classes: accessible} = await getClassContext(supabase, profile, classParam);
 
   if (!myClass) {
     return (
