@@ -1,6 +1,7 @@
 'use client';
 
 import {useState} from 'react';
+import {useTranslations} from 'next-intl';
 import {ImageUp, Loader2, AlertCircle} from 'lucide-react';
 import {useRouter} from '@/i18n/navigation';
 import {createClient} from '@/lib/supabase/client';
@@ -31,6 +32,7 @@ export function PhotoUpload({
   // thay vì chen lên đầu.
   startOrder: number;
 }) {
+  const t = useTranslations('gallery');
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [caption, setCaption] = useState('');
@@ -53,11 +55,11 @@ export function PhotoUpload({
       setTienDo({i: i + 1, n: files.length});
 
       if (file.size > GIOI_HAN_BYTE) {
-        hong.push(`${file.name} (nặng quá 10 MB)`);
+        hong.push(t('errTooBig', {file: file.name}));
         continue;
       }
       if (file.type && !KIEU_CHO_PHEP.includes(file.type)) {
-        hong.push(`${file.name} (không phải ảnh JPG/PNG/WEBP/HEIC)`);
+        hong.push(t('errNotImage', {file: file.name}));
         continue;
       }
 
@@ -86,7 +88,7 @@ export function PhotoUpload({
         .from('class-photos')
         .upload(path, nho, {upsert: false, contentType: kieu});
       if (upErr) {
-        hong.push(`${file.name} (không tải lên được)`);
+        hong.push(t('errUpload', {file: file.name}));
         continue;
       }
 
@@ -102,7 +104,7 @@ export function PhotoUpload({
         // về hàng class_photos) nhưng vẫn chiếm chỗ trong bucket và không còn đường nào gỡ qua
         // giao diện. Dọn ngay tại đây.
         await supabase.storage.from('class-photos').remove([path]);
-        hong.push(`${file.name} (không lưu được vào album)`);
+        hong.push(t('errSave', {file: file.name}));
         continue;
       }
       dat++;
@@ -112,9 +114,9 @@ export function PhotoUpload({
     // Xoá giá trị input để chọn LẠI đúng tệp đó vẫn kích hoạt onChange (trình duyệt không bắn
     // sự kiện khi giá trị không đổi).
     input.value = '';
-    if (hong.length > 0) setLoi(`Bỏ qua ${hong.length} tệp: ${hong.join(', ')}`);
+    if (hong.length > 0) setLoi(t('skipped', {n: hong.length, list: hong.join(', ')}));
     if (dat > 0) {
-      setXong(`Đã tải lên ${dat} ảnh`);
+      setXong(t('uploaded', {n: dat}));
       setCaption('');
       router.refresh();
     }
@@ -126,16 +128,16 @@ export function PhotoUpload({
     <div className="glass rounded-[16px] p-3">
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-[1.6fr_auto]">
         <Field
-          label="Chú thích chung cho đợt ảnh này"
+          label={t('fCaption')}
           htmlFor="photo-caption"
-          hint="Không bắt buộc. Dùng luôn làm mô tả ảnh cho người dùng trình đọc màn hình."
+          hint={t('hCaption')}
         >
           <input
             id="photo-caption"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             disabled={dangTai}
-            placeholder="Hội thao — phần thi kéo co"
+            placeholder={t('phCaption')}
             className={inputCls}
           />
         </Field>
@@ -145,21 +147,20 @@ export function PhotoUpload({
             <input
               type="file"
               multiple
-              aria-label="Chọn ảnh để tải lên album"
+              aria-label={t('pickPhotosAria')}
               accept="image/jpeg,image/png,image/webp,image/heic,.heic"
               className="hidden"
               onChange={onChange}
               disabled={dangTai}
             />
             {dangTai ? <Loader2 size={14} className="animate-spin" /> : <ImageUp size={14} strokeWidth={2.2} />}
-            {dangTai ? `Đang tải ${tienDo.i}/${tienDo.n}…` : 'Chọn ảnh'}
+            {dangTai ? t('uploading', {i: tienDo.i, n: tienDo.n}) : t('pickPhotos')}
           </label>
         </div>
       </div>
 
       <p className="mt-2 text-[11px] italic text-grey-mid">
-        Chọn được nhiều ảnh một lúc. Mỗi tấm tối đa 10 MB, định dạng JPG / PNG / WEBP / HEIC. Ảnh chỉ
-        hiện với học sinh trong lớp, phụ huynh có con trong lớp và ban giám hiệu cơ sở.
+        {t('uploadHint')}
       </p>
 
       {loi && (

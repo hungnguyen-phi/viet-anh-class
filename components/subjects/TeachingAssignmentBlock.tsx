@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {useTranslations} from 'next-intl';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {btnGhost} from '@/components/ui/Field';
@@ -57,6 +58,7 @@ export function TeachingAssignmentBlock({
     theoMon.set(p.subjectId, arr);
   }
 
+  const t = useTranslations('subjects');
   const trongCoSo = giaoVien.filter((g) => g.cungCoSo);
   const ngoaiCoSo = giaoVien.filter((g) => !g.cungCoSo);
 
@@ -71,9 +73,7 @@ export function TeachingAssignmentBlock({
     const nhomNgoai = ngoaiCoSo.filter((g) => !daCo.has(g.id));
     if (nhomTrong.length + nhomNgoai.length === 0)
       return (
-        <span className="text-[11.5px] font-semibold text-grey-mid">
-          Mọi giáo viên đều đã được phân công môn này
-        </span>
+        <span className="text-[11.5px] font-semibold text-grey-mid">{t('allAssigned')}</span>
       );
 
     return (
@@ -82,13 +82,13 @@ export function TeachingAssignmentBlock({
         <input type="hidden" name="subject_id" value={m.subjectId} />
         <select
           name="teacher_id"
-          aria-label={`Chọn giáo viên dạy ${m.name} ở lớp ${tenLop}`}
+          aria-label={t('pickTeacherAria', {subject: m.name, class: tenLop})}
           defaultValue=""
           className={selectNho}
         >
-          <option value="">— chọn giáo viên —</option>
+          <option value="">{t('chooseTeacher')}</option>
           {nhomTrong.length > 0 && (
-            <optgroup label="Giáo viên của cơ sở này">
+            <optgroup label={t('optSameCampus')}>
               {nhomTrong.map((g) => (
                 <option key={g.id} value={g.id}>
                   {g.name}
@@ -97,7 +97,7 @@ export function TeachingAssignmentBlock({
             </optgroup>
           )}
           {nhomNgoai.length > 0 && (
-            <optgroup label="Cơ sở khác / chưa gán cơ sở">
+            <optgroup label={t('optOtherCampus')}>
               {nhomNgoai.map((g) => (
                 <option key={g.id} value={g.id}>
                   {g.name}
@@ -107,7 +107,7 @@ export function TeachingAssignmentBlock({
           )}
         </select>
         <SubmitButton className={nutNavy} wrapClass="contents">
-          + Thêm
+          {t('addShort')}
         </SubmitButton>
       </form>
     );
@@ -117,7 +117,7 @@ export function TeachingAssignmentBlock({
     <section className="flex flex-col gap-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-display text-[17px] font-bold text-navy">
-          Phân công giáo viên bộ môn · {tenLop}
+          {t('assignTitle', {class: tenLop})}
         </h2>
         <div className="flex flex-wrap items-center gap-2">
           {picker}
@@ -127,7 +127,7 @@ export function TeachingAssignmentBlock({
           <form action={seedClassSubjects}>
             <input type="hidden" name="class_id" value={classId} />
             <SubmitButton className={btnGhost} wrapClass="contents">
-              Bổ sung môn chuẩn cho lớp
+              {t('seedSubjects')}
             </SubmitButton>
           </form>
         </div>
@@ -136,11 +136,10 @@ export function TeachingAssignmentBlock({
       {monHoc.length === 0 ? (
         <div className="glass rounded-[20px] p-8 text-center">
           <p className="text-sm font-semibold text-txt">
-            Lớp {tenLop} chưa khai môn nào, nên chưa phân công được ai.
+            {t('noSubjectsTitle', {class: tenLop})}
           </p>
           <p className="mx-auto mt-1 max-w-[560px] text-[12.5px] text-grey-mid">
-            Bấm “Bổ sung môn chuẩn cho lớp” ở trên: hệ thống thêm một lượt toàn bộ môn đang dùng
-            của cơ sở này vào chương trình của lớp. Sau đó mới chọn được ai dạy môn nào.
+            {t('noSubjectsHint')}
           </p>
         </div>
       ) : (
@@ -148,12 +147,14 @@ export function TeachingAssignmentBlock({
           {/* Header */}
           <div className="flex min-w-[900px] items-center gap-2 bg-navy/[0.03] px-[18px] py-[10px]">
             <span className="w-[22px] flex-none text-[11px] font-extrabold text-grey-mid">#</span>
-            <span className="flex-[1.2] text-[11px] font-extrabold uppercase text-grey-mid">Môn</span>
+            <span className="flex-[1.2] text-[11px] font-extrabold uppercase text-grey-mid">
+              {t('thSubject')}
+            </span>
             <span className="flex-[2] text-[11px] font-extrabold uppercase text-grey-mid">
-              Giáo viên đang dạy
+              {t('thTeaching')}
             </span>
             <span className="w-[290px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
-              Thêm giáo viên
+              {t('thAddTeacher')}
             </span>
           </div>
 
@@ -171,7 +172,7 @@ export function TeachingAssignmentBlock({
                   <span className="truncate text-[13.5px] font-bold text-navy">{m.name}</span>
                   {!m.isActive && (
                     <span className="shrink-0 rounded-full bg-status-bad/[0.08] px-2 py-0.5 text-[10.5px] font-extrabold text-status-bad">
-                      môn đã tắt
+                      {t('subjectOffChip')}
                     </span>
                   )}
                 </span>
@@ -179,7 +180,7 @@ export function TeachingAssignmentBlock({
                 <span className="flex min-w-0 flex-[2] flex-wrap items-center gap-1.5">
                   {ds.length === 0 && (
                     <span className="text-[12.5px] font-semibold text-grey-mid">
-                      chưa có ai — điểm môn này chưa ai nhập được
+                      {t('nobodyTeaches')}
                     </span>
                   )}
                   {ds.map((p) => (
@@ -194,8 +195,13 @@ export function TeachingAssignmentBlock({
                         <input type="hidden" name="assignment_id" value={p.id} />
                         <input type="hidden" name="class_id" value={classId} />
                         <ConfirmButton
-                          message={`Gỡ ${p.teacherName} khỏi môn ${m.name} của lớp ${tenLop}?\n\nNgay sau khi gỡ, giáo viên này KHÔNG nhập hay sửa được điểm môn ${m.name} của lớp nữa. Điểm đã nhập vẫn giữ nguyên, và bản ghi phân công vẫn được lưu để tra lại ai từng dạy.`}
-                          className="grid h-[18px] w-[18px] cursor-pointer place-items-center rounded-full border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-[10px] font-extrabold leading-none text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                          message={t('confirmUnassign', {
+                            teacher: p.teacherName,
+                            subject: m.name,
+                            class: tenLop,
+                          })}
+                          label={t('unassign')}
+                          className="grid h-6 w-6 cursor-pointer place-items-center rounded-full border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-[10px] font-extrabold leading-none text-status-bad transition-all hover:bg-status-bad/[0.16]"
                         >
                           ✕
                         </ConfirmButton>
@@ -211,12 +217,12 @@ export function TeachingAssignmentBlock({
                   {m.isActive && giaoVien.length > 0 && oChonGiaoVien(m)}
                   {m.isActive && giaoVien.length === 0 && (
                     <span className="text-[11.5px] font-semibold text-grey-mid">
-                      Chưa có tài khoản giáo viên nào để chọn
+                      {t('noTeacherAccounts')}
                     </span>
                   )}
                   {!m.isActive && (
                     <span className="text-[11.5px] font-semibold text-grey-mid">
-                      Bật lại môn ở bảng trên rồi mới phân công được
+                      {t('subjectOffHint')}
                     </span>
                   )}
                 </span>
@@ -228,11 +234,7 @@ export function TeachingAssignmentBlock({
 
       {/* Hậu quả của nút ✕ nói ngay dưới bảng, không giấu trong hộp xác nhận: người bấm phải
           hiểu đây là thao tác CẤP/THU QUYỀN, không phải sửa một dòng danh sách. */}
-      <p className="text-[11px] italic text-grey-mid">
-        Thêm một giáo viên vào đây là CẤP QUYỀN nhập điểm môn đó cho lớp này, có hiệu lực ngay.
-        Bấm ✕ là gỡ: giáo viên đó mất quyền nhập và sửa điểm môn đó ngay lập tức. Bản ghi không bị
-        xoá — vẫn tra lại được ai từng dạy môn nào ở lớp nào.
-      </p>
+      <p className="text-[11px] italic text-grey-mid">{t('assignHint')}</p>
     </section>
   );
 }

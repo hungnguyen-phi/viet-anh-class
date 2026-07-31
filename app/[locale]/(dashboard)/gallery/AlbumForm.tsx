@@ -1,5 +1,6 @@
 'use client';
 
+import {useTranslations} from 'next-intl';
 import {useActionState, useEffect, useState, type KeyboardEvent} from 'react';
 import {CheckCircle2, AlertCircle} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
@@ -9,6 +10,7 @@ import {createAlbum, type AlbumState} from './actions';
 // Tạo album mới. `today` tính ở SERVER rồi truyền xuống — client tự new Date() sẽ lệch múi giờ
 // (máy chủ UTC vs giờ VN) và gây lệch hydration, đúng bẫy đã gặp ở WigCreateForm.
 export function AlbumForm({classId, today}: {classId: string; today: string}) {
+  const t = useTranslations('gallery');
   const [state, formAction] = useActionState<AlbumState, FormData>(createAlbum, {ok: false});
 
   // Input CONTROLLED → React không xoá nội dung khi submit; gõ xong mà lỗi vẫn còn nguyên chữ.
@@ -34,7 +36,7 @@ export function AlbumForm({classId, today}: {classId: string; today: string}) {
 
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-[1.4fr_auto_1.6fr_auto]">
         <Field
-          label="Tên album"
+          label={t('fTitle')}
           htmlFor="album-title"
           error={state.fieldError === 'title' ? state.error : null}
         >
@@ -43,7 +45,7 @@ export function AlbumForm({classId, today}: {classId: string; today: string}) {
             name="title"
             value={v.title}
             onChange={set('title')}
-            placeholder="Hội thao cuối năm"
+            placeholder={t('phTitle')}
             aria-invalid={state.fieldError === 'title'}
             className={ctlWithBorder(state.fieldError === 'title')}
           />
@@ -53,7 +55,7 @@ export function AlbumForm({classId, today}: {classId: string; today: string}) {
             duyệt, 09/03 dễ bị hiểu sai). Ngày sự kiện luôn nằm quanh hôm nay và người nhập tự đối
             chiếu được ngay, nên ô lịch của trình duyệt là lựa chọn tốt hơn ba ô rời. */}
         <Field
-          label="Ngày sự kiện"
+          label={t('fDate')}
           htmlFor="album-date"
           error={state.fieldError === 'event_date' ? state.error : null}
         >
@@ -68,20 +70,20 @@ export function AlbumForm({classId, today}: {classId: string; today: string}) {
           />
         </Field>
 
-        <Field label="Mô tả" htmlFor="album-desc">
+        <Field label={t('fDesc')} htmlFor="album-desc">
           <input
             id="album-desc"
             name="description"
             value={v.description}
             onChange={set('description')}
-            placeholder="Vài dòng cho phụ huynh biết hôm đó lớp làm gì"
+            placeholder={t('phDesc')}
             className={inputCls}
           />
         </Field>
 
         <div className="flex items-end">
           <SubmitButton className={btnGold} wrapClass="contents">
-            + Tạo album
+            {t('createAlbum')}
           </SubmitButton>
         </div>
       </div>
@@ -100,8 +102,7 @@ export function AlbumForm({classId, today}: {classId: string; today: string}) {
       )}
 
       <p className="mt-2 text-[11px] italic text-grey-mid">
-        Ngày sự kiện là ngày HÔM ĐÓ diễn ra, không phải hôm nay — phụ huynh tìm ảnh theo ngày sự
-        kiện.
+        {t('dateHint')}
       </p>
     </form>
   );

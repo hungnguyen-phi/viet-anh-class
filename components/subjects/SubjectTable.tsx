@@ -1,3 +1,4 @@
+import {useTranslations} from 'next-intl';
 import {Link} from '@/i18n/navigation';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
@@ -21,9 +22,12 @@ export type SubjectRow = {
 
 const LOP = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
-// "6,7,8,9,10,11,12" → "lớp 6–12"; "9,10,11,12 và 6,7" → "lớp 6–7, 9–12".
+// "6,7,8,9,10,11,12" → "6–12"; "9,10,11,12 và 6,7" → "6–7, 9–12".
 // Vì sao gom dải: cột này đứng cạnh 13 dòng khác, liệt kê đủ 7 số làm dòng vỡ và mắt phải tự
 // cộng trừ mới biết môn dạy tới lớp mấy.
+//
+// Chỉ trả về DÃY SỐ, không kèm chữ "lớp" — chữ đó nằm ở khoá dịch `gradesRange` để bản tiếng Anh
+// đặt được nó đúng chỗ ("grades 6–12"), thay vì ghép cứng tiếng Việt vào giữa hàm tính toán.
 export function moTaLop(nums: number[]): string {
   const xs = [...new Set(nums)].sort((a, b) => a - b);
   const doan: string[] = [];
@@ -34,7 +38,7 @@ export function moTaLop(nums: number[]): string {
     doan.push(j > i ? `${xs[i]}–${xs[j]}` : `${xs[i]}`);
     i = j + 1;
   }
-  return `lớp ${doan.join(', ')}`;
+  return doan.join(', ');
 }
 
 const chipXam = 'rounded-full bg-navy/[0.08] px-2 py-0.5 text-[10.5px] font-extrabold text-navy/70';
@@ -53,6 +57,8 @@ export function SubjectTable({
   classParam?: string;
   editingId?: string;
 }) {
+  const t = useTranslations('subjects');
+  const tCommon = useTranslations('common');
   // Giữ ?class= qua mọi đường dẫn của trang: khối phân công bên dưới sống bằng tham số đó.
   const keo = classParam ? `&class=${encodeURIComponent(classParam)}` : '';
   const veDanhSach = classParam ? `/subjects?class=${encodeURIComponent(classParam)}` : '/subjects';
@@ -65,13 +71,13 @@ export function SubjectTable({
       {isAdmin && editing && (
         <section className="glass animate-rise rounded-[20px] p-[18px] ring-2 ring-gold/60">
           <div className="mb-2.5 font-display text-[15px] font-bold text-navy">
-            {editing.name} · dạy những lớp nào
+            {t('editPanelTitle', {name: editing.name})}
           </div>
           <form action={saveSubjectGrades} className="flex flex-col gap-3">
             <input type="hidden" name="subject_id" value={editing.id} />
             {classParam && <input type="hidden" name="class_id" value={classParam} />}
             <fieldset className="min-w-0">
-              <legend className={labelCls}>Chọn lớp học môn này</legend>
+              <legend className={labelCls}>{t('pickGrades')}</legend>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 {LOP.map((n) => (
                   <label
@@ -85,21 +91,17 @@ export function SubjectTable({
                       defaultChecked={editing.grades.includes(n)}
                       className="h-4 w-4 accent-navy"
                     />
-                    Lớp {n}
+                    {t('gradeN', {n})}
                   </label>
                 ))}
               </div>
             </fieldset>
-            <p className="text-[11px] italic text-grey-mid">
-              Không tick ô nào = CHƯA KHAI, và môn chưa khai thì chọn được cho MỌI lớp. Đó là cách
-              hệ thống tránh chặn nhầm, không phải lỗi — nhưng nên khai đúng để ô chọn môn của
-              từng lớp gọn lại.
-            </p>
+            <p className="text-[11px] italic text-grey-mid">{t('gradesHint')}</p>
             <div className="flex flex-wrap justify-end gap-2">
               <Link href={veDanhSach} className={btnGhost}>
-                Huỷ
+                {tCommon('cancel')}
               </Link>
-              <SubmitButton className={btnGold}>Lưu lớp của môn</SubmitButton>
+              <SubmitButton className={btnGold}>{t('saveGrades')}</SubmitButton>
             </div>
           </form>
         </section>
@@ -110,19 +112,19 @@ export function SubjectTable({
         <div className="flex min-w-[980px] items-center gap-2 bg-navy/[0.03] px-[18px] py-[10px]">
           <span className="w-[22px] flex-none text-[11px] font-extrabold text-grey-mid">#</span>
           <span className="w-[86px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
-            Mã
+            {t('thCode')}
           </span>
           <span className="flex-[1.6] text-[11px] font-extrabold uppercase text-grey-mid">
-            Tên môn
+            {t('thName')}
           </span>
           <span className="w-[96px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
-            Mã ngắn
+            {t('thShort')}
           </span>
           <span className="flex-[1.6] text-[11px] font-extrabold uppercase text-grey-mid">
-            Lớp nào học
+            {t('thGrades')}
           </span>
           <span className="w-[92px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
-            Trạng thái
+            {t('thStatus')}
           </span>
           <span className="w-[160px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid" />
         </div>
@@ -143,16 +145,14 @@ export function SubjectTable({
               <span className="truncate text-[13.5px] font-bold text-navy">{s.name}</span>
               {/* Môn riêng của cơ sở: phải nhìn ra ngay, vì chỉ lớp của cơ sở đó chọn được. */}
               {s.campus_id && (
-                <span className={`${chipXam} shrink-0`} title="Môn riêng của một cơ sở">
-                  riêng{s.campusName ? ` · ${s.campusName}` : ''}
+                <span className={`${chipXam} shrink-0`} title={t('chipOwnTitle')}>
+                  {t('chipOwn')}
+                  {s.campusName ? ` · ${s.campusName}` : ''}
                 </span>
               )}
               {!s.is_scored && (
-                <span
-                  className={`${chipXam} shrink-0`}
-                  title="Môn đánh giá bằng nhận xét, không bằng điểm số"
-                >
-                  nhận xét
+                <span className={`${chipXam} shrink-0`} title={t('chipReviewTitle')}>
+                  {t('chipReview')}
                 </span>
               )}
             </span>
@@ -161,24 +161,24 @@ export function SubjectTable({
             </span>
             <span className="min-w-0 flex-[1.6] text-[12.5px] font-semibold text-grey-mid">
               {s.grades.length > 0 ? (
-                moTaLop(s.grades)
+                t('gradesRange', {list: moTaLop(s.grades)})
               ) : (
                 // KHÔNG ẩn cho gọn: bốn môn đang ở tình trạng này và nhà trường CẦN thấy để bổ
                 // sung. Chưa khai = chọn được cho mọi lớp, tức là ô chọn môn của lớp 6 vẫn hiện
                 // "Giáo dục kinh tế và pháp luật" — dễ nhập nhầm.
                 <span className="inline-flex items-center gap-1 rounded-full border-[1.5px] border-warn/40 bg-warn/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-warn">
-                  ⚠ chưa khai lớp · chọn được cho mọi lớp
+                  {t('gradesUndeclared')}
                 </span>
               )}
             </span>
             <span className="w-[92px] flex-none">
               {s.is_active ? (
                 <span className="rounded-full bg-success/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
-                  đang dùng
+                  {t('statusActive')}
                 </span>
               ) : (
                 <span className="rounded-full bg-status-bad/[0.08] px-2 py-0.5 text-[10.5px] font-extrabold text-status-bad">
-                  đã tắt
+                  {t('statusOff')}
                 </span>
               )}
             </span>
@@ -188,7 +188,7 @@ export function SubjectTable({
                   href={`/subjects?edit=${encodeURIComponent(s.id)}${keo}`}
                   className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-[11px] font-extrabold text-navy transition-all hover:border-navy"
                 >
-                  Sửa lớp
+                  {t('editGrades')}
                 </Link>
               )}
               {s.canEdit &&
@@ -198,10 +198,10 @@ export function SubjectTable({
                     <input type="hidden" name="active" value="false" />
                     {classParam && <input type="hidden" name="class_id" value={classParam} />}
                     <ConfirmButton
-                      message={`Tắt môn "${s.name}"? Môn sẽ biến khỏi mọi ô chọn từ giờ. Điểm cũ vẫn giữ nguyên và vẫn đọc được.`}
+                      message={t('confirmOff', {name: s.name})}
                       className="cursor-pointer rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-2 py-1 text-[11px] font-extrabold text-status-bad transition-all hover:bg-status-bad/[0.16]"
                     >
-                      Tắt
+                      {t('turnOff')}
                     </ConfirmButton>
                   </form>
                 ) : (
@@ -213,7 +213,7 @@ export function SubjectTable({
                       className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-[11px] font-extrabold text-navy transition-all hover:border-navy"
                       wrapClass="contents"
                     >
-                      Dùng lại
+                      {t('reuse')}
                     </SubmitButton>
                   </form>
                 ))}
@@ -222,18 +222,15 @@ export function SubjectTable({
         ))}
         {rows.length === 0 && (
           <div className="border-t border-navy/[0.08] px-[18px] py-8 text-center text-sm text-grey-mid">
-            Danh mục môn đang trống.
+            {t('emptyList')}
           </div>
         )}
       </div>
 
       {/* Nói thẳng vì sao không có nút xoá — nếu không, người dùng sẽ đi tìm và tưởng thiếu tính năng. */}
       <p className="text-[11px] italic text-grey-mid">
-        Không xoá môn, chỉ TẮT. Mỗi con điểm đã nhập đều trỏ về một môn trong danh mục này: xoá môn
-        là làm hỏng học bạ cũ, còn tắt thì môn biến khỏi các ô chọn mà điểm cũ vẫn đọc được nguyên
-        vẹn.
-        {!isAdmin &&
-          ' Môn dùng chung của cả trường và danh sách lớp của từng môn do quản trị viên giữ — bạn sửa được môn riêng của cơ sở mình.'}
+        {t('noDeleteHint')}
+        {!isAdmin && t('noDeleteHintPrincipal')}
       </p>
     </div>
   );

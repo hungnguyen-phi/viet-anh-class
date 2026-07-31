@@ -1,6 +1,7 @@
 'use client';
 
 import {useActionState, useEffect, useState, type KeyboardEvent} from 'react';
+import {useTranslations} from 'next-intl';
 import {CheckCircle2, AlertCircle} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, ctlWithBorder, btnGold} from '@/components/ui/Field';
@@ -25,6 +26,7 @@ export function SubjectCreateForm({
   scope: 'chung' | 'rieng';
   campusName?: string | null;
 }) {
+  const t = useTranslations('subjects');
   const [state, formAction] = useActionState(createSubject, {ok: false});
 
   // Input controlled → React không reset khi submit; giữ nội dung khi có lỗi.
@@ -48,23 +50,25 @@ export function SubjectCreateForm({
     <form action={formAction} onKeyDown={onKeyDown} className="glass rounded-[16px] p-3" noValidate>
       <div className="mb-2 font-display text-[15px] font-bold text-navy">
         {scope === 'chung'
-          ? 'Thêm môn dùng chung cho cả trường'
-          : `Thêm môn riêng của cơ sở${campusName ? ` ${campusName}` : ''}`}
+          ? t('createSharedTitle')
+          : campusName
+            ? t('createOwnTitleNamed', {campus: campusName})
+            : t('createOwnTitle')}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_2fr_1fr_1fr]">
         <Field
-          label="Mã môn *"
+          label={t('fCode')}
           htmlFor="subject-code"
           error={state.fieldError === 'code' ? state.error : null}
-          hint={state.fieldError === 'code' ? undefined : 'IN HOA, không dấu'}
+          hint={state.fieldError === 'code' ? undefined : t('hCode')}
         >
           <input
             id="subject-code"
             name="code"
             value={v.code}
             onChange={set('code')}
-            placeholder="TOAN"
+            placeholder={t('phCode')}
             maxLength={12}
             aria-invalid={state.fieldError === 'code'}
             className={ctlWithBorder(state.fieldError === 'code')}
@@ -72,7 +76,7 @@ export function SubjectCreateForm({
         </Field>
 
         <Field
-          label="Tên môn *"
+          label={t('fName')}
           htmlFor="subject-name"
           error={state.fieldError === 'name' ? state.error : null}
         >
@@ -81,7 +85,7 @@ export function SubjectCreateForm({
             name="name"
             value={v.name}
             onChange={set('name')}
-            placeholder="Ngữ văn"
+            placeholder={t('phName')}
             maxLength={80}
             aria-invalid={state.fieldError === 'name'}
             className={ctlWithBorder(state.fieldError === 'name')}
@@ -89,17 +93,17 @@ export function SubjectCreateForm({
         </Field>
 
         <Field
-          label="Mã ngắn"
+          label={t('fShort')}
           htmlFor="subject-short"
           error={state.fieldError === 'short_name' ? state.error : null}
-          hint={state.fieldError === 'short_name' ? undefined : 'hiện trong ô TKB'}
+          hint={state.fieldError === 'short_name' ? undefined : t('hShort')}
         >
           <input
             id="subject-short"
             name="short_name"
             value={v.short_name}
             onChange={set('short_name')}
-            placeholder="Văn"
+            placeholder={t('phShort')}
             maxLength={16}
             aria-invalid={state.fieldError === 'short_name'}
             className={ctlWithBorder(state.fieldError === 'short_name')}
@@ -107,10 +111,10 @@ export function SubjectCreateForm({
         </Field>
 
         <Field
-          label="Thứ tự"
+          label={t('fOrder')}
           htmlFor="subject-order"
           error={state.fieldError === 'sort_order' ? state.error : null}
-          hint={state.fieldError === 'sort_order' ? undefined : 'nhỏ hiện trước'}
+          hint={state.fieldError === 'sort_order' ? undefined : t('hOrder')}
         >
           <input
             id="subject-order"
@@ -118,7 +122,7 @@ export function SubjectCreateForm({
             inputMode="numeric"
             value={v.sort_order}
             onChange={set('sort_order')}
-            placeholder="500"
+            placeholder={t('phOrder')}
             aria-invalid={state.fieldError === 'sort_order'}
             className={ctlWithBorder(state.fieldError === 'sort_order')}
           />
@@ -135,19 +139,16 @@ export function SubjectCreateForm({
             onChange={(e) => setV((p) => ({...p, is_scored: e.target.checked}))}
             className="h-4 w-4 accent-navy"
           />
-          Chấm bằng điểm số
+          {t('scored')}
         </label>
         <SubmitButton className={btnGold} wrapClass="contents">
-          + Thêm môn
+          {t('addSubject')}
         </SubmitButton>
       </div>
 
       <p className="mt-2 text-[11px] italic text-grey-mid">
-        Bỏ tick “chấm bằng điểm số” cho môn đánh giá bằng nhận xét (Thể chất, Âm nhạc, Mĩ thuật,
-        Trải nghiệm…). Mã môn là mã MÁY đọc, không đổi về sau — tên hiển thị thì sửa lúc nào cũng
-        được.
-        {scope === 'rieng' &&
-          ' Môn riêng chỉ các lớp của cơ sở bạn chọn được; nếu trùng tên với môn dùng chung thì hệ thống sẽ báo và bạn hãy dùng môn chung.'}
+        {t('createHint')}
+        {scope === 'rieng' && t('createHintOwn')}
       </p>
 
       {state.error && !state.fieldError && (

@@ -1,4 +1,4 @@
-import {setRequestLocale} from 'next-intl/server';
+import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getClassContext} from '@/lib/queries';
@@ -53,6 +53,7 @@ export default async function SubjectsPage({
   // rls_write_teaching_assignments). Giáo viên vào đây cũng chỉ thấy nút không bấm được.
   const profile = await requireRole(['admin', 'principal']);
   const isAdmin = profile.role === 'admin';
+  const t = await getTranslations('subjects');
   const supabase = await createClient();
 
   // Năm truy vấn độc lập — chạy song song, tránh waterfall.
@@ -148,7 +149,7 @@ export default async function SubjectsPage({
       teacherId: r.teacher_id,
       // Không đọc được hồ sơ (giáo viên đã chuyển cơ sở khác) thì vẫn phải hiện dòng phân công —
       // giấu đi là giấu mất một người đang có quyền ghi điểm lớp này.
-      teacherName: r.profiles?.full_name || r.profiles?.email || 'giáo viên khác cơ sở',
+      teacherName: r.profiles?.full_name || r.profiles?.email || t('otherCampusTeacher'),
     }));
 
     giaoVien = ((gvData ?? []) as TeacherRow[]).map((g) => ({
@@ -163,15 +164,12 @@ export default async function SubjectsPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="font-display text-[22px] font-bold text-navy">Môn học và phân công</h1>
+      <h1 className="font-display text-[22px] font-bold text-navy">{t('title')}</h1>
 
       {flash && <FlashToast message={flash} />}
 
       {profile.role === 'principal' && !profile.campus_id ? (
-        <p className="text-[11px] italic text-grey-mid">
-          Tài khoản của bạn chưa được gán cơ sở nên chưa thêm được môn riêng. Nhờ quản trị viên gán
-          cơ sở trước.
-        </p>
+        <p className="text-[11px] italic text-grey-mid">{t('noCampus')}</p>
       ) : (
         <SubjectCreateForm
           scope={isAdmin ? 'chung' : 'rieng'}
@@ -192,9 +190,7 @@ export default async function SubjectsPage({
         />
       ) : (
         <div className="glass rounded-[20px] p-8 text-center">
-          <p className="text-sm text-txt">
-            Chưa có lớp nào trong phạm vi của bạn để phân công giáo viên bộ môn.
-          </p>
+          <p className="text-sm text-txt">{t('noClassForAssign')}</p>
         </div>
       )}
     </div>

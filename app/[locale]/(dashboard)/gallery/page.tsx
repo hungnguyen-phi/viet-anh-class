@@ -55,6 +55,7 @@ export default async function GalleryPage({
   // getAccessibleClasses cũng không đưa lớp ấy ra cho họ chọn.
   const profile = await requireProfile();
   const tc = await getTranslations('class');
+  const t = await getTranslations('gallery');
   const supabase = await createClient();
 
   const {myClass, classes: accessible} = await getClassContext(supabase, profile, classParam);
@@ -84,7 +85,7 @@ export default async function GalleryPage({
 
   const tieuDe = (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <h1 className="font-display text-[22px] font-bold text-navy">Ảnh lớp · {myClass.name}</h1>
+      <h1 className="font-display text-[22px] font-bold text-navy">{t('title', {class: myClass.name})}</h1>
       {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
     </div>
   );
@@ -118,7 +119,7 @@ export default async function GalleryPage({
             className="mb-2 inline-flex items-center gap-1 text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
           >
             <ArrowLeft size={12} strokeWidth={3} />
-            Tất cả album
+            {t('allAlbums')}
           </Link>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -128,17 +129,17 @@ export default async function GalleryPage({
               {ngayVN(openAlbum.event_date)}
             </span>
             <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[10.5px] font-extrabold text-navy">
-              {photos.length} ảnh
+              {t('photoCount', {n: photos.length})}
             </span>
             {canManage && (
               <form action={deleteAlbum} className="ml-auto">
                 <input type="hidden" name="class_id" value={myClass.id} />
                 <input type="hidden" name="album_id" value={openAlbum.id} />
                 <ConfirmButton
-                  message={`Xoá album “${openAlbum.title}” cùng toàn bộ ${photos.length} ảnh bên trong? Không khôi phục lại được.`}
+                  message={t('confirmDeleteAlbum', {title: openAlbum.title, n: photos.length})}
                   className="cursor-pointer rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-2 py-1 text-[11px] font-extrabold text-status-bad transition-all hover:bg-status-bad/[0.16]"
                 >
-                  Xoá album
+                  {t('deleteAlbum')}
                 </ConfirmButton>
               </form>
             )}
@@ -164,8 +165,8 @@ export default async function GalleryPage({
           <div className="glass rounded-[20px] p-8 text-center">
             <p className="text-sm text-grey-mid">
               {canManage
-                ? 'Album chưa có ảnh nào. Bấm “Chọn ảnh” ở trên để tải lên.'
-                : 'Album chưa có ảnh nào.'}
+                ? t('emptyAlbumManage')
+                : t('emptyAlbum')}
             </p>
           </div>
         ) : (
@@ -176,7 +177,7 @@ export default async function GalleryPage({
               // lớp. Cố ý KHÔNG mô tả người trong ảnh — ảnh trẻ em, không suy đoán danh tính.
               const alt =
                 p.caption ??
-                `Ảnh album ${openAlbum.title} — lớp ${myClass.name}, ngày ${ngayVN(openAlbum.event_date)}`;
+                t('photoAlt', {album: openAlbum.title, class: myClass.name, date: ngayVN(openAlbum.event_date)});
               return (
                 <figure
                   key={p.id}
@@ -190,7 +191,7 @@ export default async function GalleryPage({
                     />
                   ) : (
                     <div className="grid aspect-square w-full place-items-center rounded-[12px] bg-navy/[0.06] text-[11px] font-bold text-grey-mid">
-                      Không xem được ảnh này
+                      {t('photoBroken')}
                     </div>
                   )}
                   {p.caption && (
@@ -204,7 +205,8 @@ export default async function GalleryPage({
                       <input type="hidden" name="album_id" value={openAlbum.id} />
                       <input type="hidden" name="photo_id" value={p.id} />
                       <ConfirmButton
-                        message="Xoá ảnh này khỏi album?"
+                        message={t('confirmDeletePhoto')}
+                        label={t('deletePhoto')}
                         className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
                       >
                         ✕
@@ -250,10 +252,10 @@ export default async function GalleryPage({
 
       <p className="text-[12px] font-semibold leading-[1.55] text-grey-mid">
         {canManage
-          ? 'Ảnh trong đây chỉ hiện với học sinh của lớp, phụ huynh có con trong lớp và ban giám hiệu cơ sở — không ai ngoài trường mở được. Dù vậy, ảnh vẫn có thể bị chụp lại màn hình, nên cân nhắc trước khi đăng ảnh cận mặt.'
+          ? t('privacyManage')
           : chiXem
-            ? 'Bạn xem được ảnh của các lớp trong cơ sở mình. Việc đăng và xoá ảnh thuộc về giáo viên chủ nhiệm.'
-            : 'Ảnh do giáo viên chủ nhiệm đăng. Đây là ảnh riêng của lớp — mong phụ huynh không chia sẻ ra ngoài.'}
+            ? t('privacyPrincipal')
+            : t('privacyFamily')}
       </p>
 
       {canManage && <AlbumForm classId={myClass.id} today={todayInVN()} />}
@@ -262,8 +264,8 @@ export default async function GalleryPage({
         <div className="glass rounded-[20px] p-8 text-center">
           <p className="text-sm text-grey-mid">
             {canManage
-              ? 'Lớp chưa có album nào. Tạo album đầu tiên ở khung phía trên.'
-              : 'Lớp chưa có album ảnh nào.'}
+              ? t('noAlbumsManage')
+              : t('noAlbums')}
           </p>
         </div>
       ) : (
@@ -284,7 +286,7 @@ export default async function GalleryPage({
                 {url ? (
                   <PhotoImg
                     src={url}
-                    alt={`Ảnh bìa album ${a.title} — lớp ${myClass.name}`}
+                    alt={t('coverAlt', {album: a.title, class: myClass.name})}
                     className="aspect-[4/3] w-full rounded-[12px] object-cover"
                   />
                 ) : (
@@ -297,7 +299,7 @@ export default async function GalleryPage({
                     {a.title}
                   </span>
                   <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[10.5px] font-extrabold text-navy">
-                    {n} ảnh
+                    {t('photoCount', {n})}
                   </span>
                 </div>
                 <div className="mt-0.5 inline-flex items-center gap-1 text-[11.5px] font-bold text-grey-mid">
