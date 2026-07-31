@@ -46,3 +46,10 @@ supabase/.temp/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# đo hiệu năng (scripts/measure-query-waterfall.mjs) — nhật ký truy vấn ở máy local, không lên repo
+/.measure/
+# Bản instrumentation đo đạc chỉ tồn tại TRONG LÚC đo rồi bị script xoá. Chặn ở đây phòng khi
+# script bị Ctrl-C giữa chừng: file này bọc global.fetch, lọt lên production là hỏng đăng nhập.
+/instrumentation.ts
+/instrumentation-node.ts
