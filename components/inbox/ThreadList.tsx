@@ -1,3 +1,4 @@
+import {getTranslations} from 'next-intl/server';
 import {Link} from '@/i18n/navigation';
 import {khiNao, daCho, soGioCho} from './format';
 
@@ -41,7 +42,7 @@ export function xepHopThu(items: ThreadItem[], nhinTuNhaTruong: boolean): Thread
   });
 }
 
-export function ThreadList({
+export async function ThreadList({
   items,
   nhinTuNhaTruong,
 }: {
@@ -49,6 +50,7 @@ export function ThreadList({
   // true = GVCN đang xem hộp thư lớp mình; false = phụ huynh xem cuộc về con mình.
   nhinTuNhaTruong: boolean;
 }) {
+  const t = await getTranslations('inbox');
   const rows = xepHopThu(items, nhinTuNhaTruong);
 
   return (
@@ -71,13 +73,13 @@ export function ThreadList({
                 <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-gold-deep" />
               )}
               <span className="truncate text-[14px] font-bold text-navy">
-                {it.student_name ?? 'Học sinh'}
+                {it.student_name ?? t('aStudentCap')}
               </span>
               {it.class_name && (
                 <span className={`${chipBase} bg-navy/[0.08] text-navy/70`}>{it.class_name}</span>
               )}
               <span className="ml-auto shrink-0 text-[11px] font-semibold text-grey-mid">
-                {it.last_message_at ? khiNao(it.last_message_at) : 'Chưa có tin nào'}
+                {it.last_message_at ? khiNao(it.last_message_at, t) : t('noMessagesYet')}
               </span>
             </div>
 
@@ -96,16 +98,16 @@ export function ThreadList({
                         : 'bg-gold/20 text-gold-deep'
                     }`}
                   >
-                    Chờ trả lời · {daCho(it.last_message_at)}
+                    {t('waitingFor')} · {daCho(it.last_message_at, t)}
                   </span>
                 ) : (
                   <span className={`${chipBase} bg-navy/[0.08] text-grey-mid`}>
-                    Đang chờ giáo viên trả lời
+                    {t('waitingTeacher')}
                   </span>
                 ))}
               {!it.waiting_for_school && it.last_sender_side === 'school' && !chuaDoc && (
                 <span className={`${chipBase} bg-navy/[0.08] text-grey-mid`}>
-                  {nhinTuNhaTruong ? 'Bạn đã trả lời' : 'Giáo viên đã trả lời'}
+                  {nhinTuNhaTruong ? t('repliedYou') : t('repliedTeacher')}
                 </span>
               )}
             </div>

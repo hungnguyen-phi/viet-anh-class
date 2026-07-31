@@ -1,6 +1,7 @@
 'use client';
 
 import {useActionState, useEffect, useRef, useState, type KeyboardEvent} from 'react';
+import {useTranslations} from 'next-intl';
 import {AlertCircle, Send} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {GIOI_HAN_KY_TU} from '@/components/inbox/format';
@@ -17,6 +18,7 @@ const areaBase =
  * mạng thì đoạn vừa viết vẫn còn nguyên. Gửi xong mới xoá.
  */
 export function MessageForm({threadId, laPhuHuynh}: {threadId: string; laPhuHuynh: boolean}) {
+  const t = useTranslations('inbox');
   const [state, formAction] = useActionState(sendMessage, {ok: false});
   const formRef = useRef<HTMLFormElement>(null);
   const [body, setBody] = useState('');
@@ -51,7 +53,7 @@ export function MessageForm({threadId, laPhuHuynh}: {threadId: string; laPhuHuyn
       <input type="hidden" name="thread_id" value={threadId} />
 
       <label className={labelCls} htmlFor="pt-body">
-        {laPhuHuynh ? 'Nhắn cho giáo viên chủ nhiệm' : 'Trả lời phụ huynh'}
+        {laPhuHuynh ? t('composeParent') : t('composeTeacher')}
       </label>
       <textarea
         id="pt-body"
@@ -62,8 +64,8 @@ export function MessageForm({threadId, laPhuHuynh}: {threadId: string; laPhuHuyn
         aria-describedby="pt-body-hint"
         placeholder={
           laPhuHuynh
-            ? 'Ví dụ: Cháu dạo này ngủ muộn, cô xem ở lớp cháu có mệt không ạ?'
-            : 'Ví dụ: Hôm nay cháu tự giác làm bài, anh/chị khen cháu giúp em nhé.'
+            ? t('phParent')
+            : t('phTeacher')
         }
         className={`${areaBase} ${
           coLoi ? 'border-status-bad focus:border-status-bad' : 'border-navy/15 focus:border-navy'
@@ -73,7 +75,7 @@ export function MessageForm({threadId, laPhuHuynh}: {threadId: string; laPhuHuyn
       <p id="pt-body-hint" className="mt-1 text-[11px] font-semibold text-grey-mid">
         Tin đã gửi thì không sửa hay xoá được — cả hai bên đều xem lại được về sau.{' '}
         <span className={qua ? 'font-extrabold text-status-bad' : undefined}>
-          {qua ? `Thừa ${-conLai} ký tự.` : `Còn ${conLai} ký tự.`}
+          {qua ? t('charsOver', {n: -conLai}) : t('charsLeft', {n: conLai})}
         </span>
       </p>
 
@@ -90,7 +92,7 @@ export function MessageForm({threadId, laPhuHuynh}: {threadId: string; laPhuHuyn
           wrapClass="inline-flex items-center gap-1.5"
         >
           <Send size={15} strokeWidth={2.5} />
-          Gửi
+          {t('send')}
         </SubmitButton>
         <span className="text-[11px] font-semibold text-grey-mid">Ctrl/⌘ + Enter</span>
       </div>

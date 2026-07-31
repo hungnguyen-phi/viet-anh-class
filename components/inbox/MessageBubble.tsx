@@ -1,4 +1,8 @@
+import {getTranslations} from 'next-intl/server';
 import {khiNao} from './format';
+
+type Dich = (key: string, values?: Record<string, string | number>) => string;
+
 
 export type MessageRow = {
   id: string;
@@ -21,23 +25,24 @@ export type MessageRow = {
  * sender_role được chụp lại lúc gửi (xem comment cột trong 0065) nên tin cũ vẫn đọc đúng bối
  * cảnh: người từng là GVCN nay lên ban giám hiệu thì tin cũ vẫn ghi "Giáo viên chủ nhiệm".
  */
-export function tenNguoiGui(m: MessageRow, toiLaAi: string): string {
-  if (m.sender_id && m.sender_id === toiLaAi) return 'Bạn';
+export function tenNguoiGui(m: MessageRow, toiLaAi: string, t: Dich): string {
+  if (m.sender_id && m.sender_id === toiLaAi) return t('senderYou');
   if (m.sender_side === 'school') {
-    return m.sender_role === 'teacher' ? 'Giáo viên chủ nhiệm' : 'Nhà trường';
+    return m.sender_role === 'teacher' ? t('senderTeacher') : t('senderSchool');
   }
   // Cùng phía phụ huynh nhưng không phải mình: bố/mẹ còn lại cũng nhắn trong cùng một cuộc.
-  return 'Phụ huynh';
+  return t('senderParent');
 }
 
-export function MessageBubble({m, toiLaAi}: {m: MessageRow; toiLaAi: string}) {
+export async function MessageBubble({m, toiLaAi}: {m: MessageRow; toiLaAi: string}) {
+  const t = await getTranslations('inbox');
   const cuaToi = Boolean(m.sender_id) && m.sender_id === toiLaAi;
 
   return (
     <div className={`flex ${cuaToi ? 'justify-end' : 'justify-start'}`}>
       <div className={`min-w-0 max-w-[85%] ${cuaToi ? 'text-right' : 'text-left'}`}>
         <div className="mb-1 px-1 text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid">
-          {tenNguoiGui(m, toiLaAi)} · {khiNao(m.created_at)}
+          {tenNguoiGui(m, toiLaAi, t)} · {khiNao(m.created_at, t)}
         </div>
         {/* whitespace-pre-line: giữ lại các dòng người ta cố ý xuống hàng (danh sách, ký tên).
             break-words: một đường link dài không được kéo giãn khung trên điện thoại. */}

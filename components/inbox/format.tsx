@@ -40,18 +40,28 @@ const fmtNgayDayDu = new Intl.DateTimeFormat('vi-VN', {
 const fmtNgayISO = new Intl.DateTimeFormat('en-CA', {timeZone: TZ});
 
 /**
+ * Hàm dịch truyền từ ngoài vào.
+ *
+ * Hai hàm dưới đây trước kia ghép thẳng chữ tiếng Việt ("Hôm nay", "phút", "giờ", "ngày") vào
+ * chuỗi trả về, nên bản tiếng Anh vẫn ra tiếng Việt. Chúng là hàm THUẦN, không phải component,
+ * nên không gọi được useTranslations — cách đúng là nhận hàm dịch qua tham số, và nơi gọi (đều
+ * là component) truyền vào.
+ */
+type Dich = (key: string, values?: Record<string, string | number>) => string;
+
+/**
  * Mốc thời gian của một tin: 'Hôm nay 14:05' · '28/07 14:05' · '28/07/2025 14:05'.
  *
  * Bỏ năm khi cùng năm với hôm nay: hàng chục dòng trong một cuộc trao đổi, bốn chữ số lặp lại
  * chỉ làm chật mắt. Khác năm thì hiện đủ, vì lúc đó năm mới là thông tin.
  */
-export function khiNao(iso: string | null): string {
+export function khiNao(iso: string | null, t: Dich): string {
   if (!iso) return '—';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
   const ngay = fmtNgayISO.format(d);
   const homNay = todayInVN();
-  if (ngay === homNay) return `Hôm nay ${fmtGio.format(d)}`;
+  if (ngay === homNay) return t('todayAt', {time: fmtGio.format(d)});
   const cungNam = ngay.slice(0, 4) === homNay.slice(0, 4);
   return `${(cungNam ? fmtNgay : fmtNgayDayDu).format(d)} ${fmtGio.format(d)}`;
 }
@@ -63,15 +73,15 @@ export function khiNao(iso: string | null): string {
  * trừ hai mốc để ra một KHOẢNG, mà khoảng thì không phụ thuộc múi giờ. Chỉ khi cần biết "hôm nay
  * là ngày nào" mới phải đi qua giờ VN (xem khiNao ở trên).
  */
-export function daCho(iso: string | null): string {
+export function daCho(iso: string | null, t: Dich): string {
   if (!iso) return '—';
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return '—';
-  const phut = Math.max(0, Math.floor((Date.now() - t) / 60_000));
-  if (phut < 60) return `${phut} phút`;
+  const moc = new Date(iso).getTime();
+  if (Number.isNaN(moc)) return '—';
+  const phut = Math.max(0, Math.floor((Date.now() - moc) / 60_000));
+  if (phut < 60) return t('agoMinutes', {n: phut});
   const gio = Math.floor(phut / 60);
-  if (gio < 24) return `${gio} giờ`;
-  return `${Math.floor(gio / 24)} ngày`;
+  if (gio < 24) return t('agoHours', {n: gio});
+  return t('agoDays', {n: Math.floor(gio / 24)});
 }
 
 /** Số giờ đã chờ — để tô màu mức khẩn. Trả về 0 khi không có mốc. */

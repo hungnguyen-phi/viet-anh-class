@@ -1,5 +1,9 @@
+import {getTranslations} from 'next-intl/server';
 import {MessagesSquare, ShieldCheck} from 'lucide-react';
 import {createClient} from '@/lib/supabase/server';
+
+type Dich = (key: string, values?: Record<string, string | number>) => string;
+
 
 // ============================================================
 // SỨC KHOẺ KÊNH LIÊN LẠC — thẻ dành cho BAN GIÁM HIỆU / QUẢN TRỊ VIÊN.
@@ -28,11 +32,11 @@ type HealthRow = {
 
 // Chờ bao lâu — làm tròn cho dễ đọc. Quá 48 tiếng thì tính bằng NGÀY: "62 giờ" không nói lên
 // điều gì với người đang lướt bảng, "3 ngày" thì có.
-function choLau(h: number | null): string {
+function choLau(h: number | null, t: Dich): string {
   if (h == null) return '—';
-  if (h < 1) return 'dưới 1 giờ';
-  if (h < 48) return `${Math.round(h)} giờ`;
-  return `${Math.round(h / 24)} ngày`;
+  if (h < 1) return t('underAnHour');
+  if (h < 48) return t('agoHours', {n: Math.round(h)});
+  return t('agoDays', {n: Math.round(h / 24)});
 }
 
 // Ngưỡng màu: một ngày chưa trả lời là bắt đầu đáng nhắc, hai ngày là đã trễ.
@@ -44,6 +48,7 @@ function mauCho(h: number | null): string {
 }
 
 export async function MessageHealthCard() {
+  const t = await getTranslations('inbox');
   const supabase = await createClient();
   const {data} = await supabase.rpc('pt_class_message_health');
   const tatCa = (data ?? []) as unknown as HealthRow[];
@@ -59,7 +64,7 @@ export async function MessageHealthCard() {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="inline-flex items-center gap-2 font-display text-[15px] font-bold text-navy">
           <MessagesSquare size={17} strokeWidth={2.2} />
-          Liên lạc phụ huynh — lớp nào đang để phụ huynh chờ
+          {t('healthTitle')}
         </h2>
         {tongCho > 0 && (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-status-bad/[0.08] px-2.5 py-1 text-[11.5px] font-extrabold text-status-bad">
@@ -70,22 +75,22 @@ export async function MessageHealthCard() {
 
       {rows.length === 0 ? (
         <p className="text-[13px] italic text-grey-mid">
-          Chưa lớp nào có trao đổi với phụ huynh trong năm học này.
+          {t('healthEmpty')}
         </p>
       ) : (
         <div className="overflow-x-auto">
           <div className="flex min-w-[520px] items-center gap-2 bg-navy/[0.03] px-[18px] py-[10px]">
             <span className="flex-[1.4] text-[11px] font-extrabold uppercase text-grey-mid">
-              Lớp
+              {t('thClass')}
             </span>
             <span className="w-[110px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid">
-              Số cuộc
+              {t('thThreads')}
             </span>
             <span className="w-[110px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid">
-              Đang chờ
+              {t('thWaiting')}
             </span>
             <span className="w-[130px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid">
-              Chờ lâu nhất
+              {t('thLongest')}
             </span>
           </div>
           {rows.map((r) => (
@@ -111,7 +116,7 @@ export async function MessageHealthCard() {
                   r.oldest_waiting_hours,
                 )}`}
               >
-                {choLau(r.oldest_waiting_hours)}
+                {choLau(r.oldest_waiting_hours, t)}
               </span>
             </div>
           ))}
@@ -120,8 +125,7 @@ export async function MessageHealthCard() {
 
       <p className="mt-3 inline-flex items-start gap-1.5 text-[11px] italic text-grey-mid">
         <ShieldCheck size={13} strokeWidth={2.5} className="mt-px shrink-0" />
-        Chỉ là số liệu đôn đốc. Hệ thống không cho ban giám hiệu và quản trị viên đọc nội dung trao
-        đổi của các gia đình.
+        {t('healthFoot')}
       </p>
     </section>
   );

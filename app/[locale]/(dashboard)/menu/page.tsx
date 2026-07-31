@@ -1,4 +1,4 @@
-import {setRequestLocale} from 'next-intl/server';
+import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {CalendarDays, UtensilsCrossed} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {requireProfile} from '@/lib/auth';
@@ -11,8 +11,7 @@ import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {Field, selectInline, inputInline, btnGold} from '@/components/ui/Field';
 import {CampusPicker} from '@/components/menu/CampusPicker';
 import {
-  DAY_LABELS,
-  MEAL_LABEL,
+  DAY_KEYS,
   MEAL_SLOTS,
   isMealSlot,
   ngayVN,
@@ -54,6 +53,7 @@ export default async function MenuPage({
   // Mọi vai đăng nhập đều XEM được thực đơn cơ sở mình (policy rls_select_meal_menus) — kể cả
   // học sinh và phụ huynh, vốn là nhóm xin tính năng này.
   const profile = await requireProfile();
+  const t = await getTranslations('menu');
   const supabase = await createClient();
 
   const isAdmin = profile.role === 'admin';
@@ -87,8 +87,7 @@ export default async function MenuPage({
     return (
       <div className="glass rounded-[20px] p-8 text-center">
         <p className="text-sm text-grey-mid">
-          Chưa xác định được cơ sở của bạn nên chưa hiện được thực đơn. Nhờ quản trị viên gán cơ sở
-          cho tài khoản này, hoặc kiểm tra xem con bạn đã được xếp lớp chưa.
+          {t('noCampus')}
         </p>
       </div>
     );
@@ -108,7 +107,7 @@ export default async function MenuPage({
     return d.toISOString().slice(0, 10);
   };
   // 7 cột (T2→CN), khác /timetable chỉ có T2–T7: học sinh nội trú ăn ở trường cả cuối tuần.
-  const weekDates = DAY_LABELS.map((_, i) => dichNgay(i));
+  const weekDates = DAY_KEYS.map((_, i) => dichNgay(i));
   const rangeLabel = `${ngayVN(weekDates[0])} → ${ngayVN(weekDates[6])}`;
 
   const {data: rows} = await supabase
@@ -143,7 +142,7 @@ export default async function MenuPage({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="font-display text-[22px] font-bold text-navy">
-          Thực đơn bữa ăn{campusName ? ` · ${campusName}` : ''}
+          {campusName ? t('titleAt', {campus: campusName}) : t('title')}
         </h1>
         {isAdmin && <CampusPicker campuses={campuses} current={campusId} />}
       </div>
@@ -151,11 +150,10 @@ export default async function MenuPage({
       {flash && <FlashToast message={flash} />}
 
       <p className="text-[12px] font-semibold leading-[1.55] text-grey-mid">
-        Thực đơn tính theo CƠ SỞ, không theo lớp — cả trường ăn chung một thực đơn nên chỉ cần nhập
-        một lần mỗi ngày.
+        {t('intro')}
         {canManage
-          ? ' Bấm “Sửa” trong ô để nạp sẵn nội dung xuống khung soạn bên dưới.'
-          : ' Nếu thấy thiếu bữa nào, nhờ văn phòng cập nhật giúp.'}
+          ? t('introManage')
+          : t('introView')}
       </p>
 
       {/* Điều hướng tuần — dùng lại lối làm của /timetable để hai trang thao tác giống nhau */}
@@ -166,9 +164,9 @@ export default async function MenuPage({
         </span>
         <span className="flex items-center gap-1.5">
           {[
-            {d: -7, label: 'Tuần trước'},
-            {d: 0, label: 'Tuần này'},
-            {d: 7, label: 'Tuần sau'},
+            {d: -7, label: t('prevWeek')},
+            {d: 0, label: t('thisWeek')},
+            {d: 7, label: t('nextWeek')},
           ].map(({d, label}) => (
             <Link
               key={d}
@@ -192,11 +190,11 @@ export default async function MenuPage({
         <div className="min-w-[980px]">
           <div className="flex">
             <div className="w-[92px] shrink-0 px-2 py-2 text-[11px] font-extrabold uppercase text-grey-mid">
-              Bữa
+              {t('colMeal')}
             </div>
-            {DAY_LABELS.map((lb, i) => (
-              <div key={lb} className="flex-1 px-2 py-2 text-center">
-                <div className="text-[12px] font-extrabold text-navy">{lb}</div>
+            {DAY_KEYS.map((dk, i) => (
+              <div key={dk} className="flex-1 px-2 py-2 text-center">
+                <div className="text-[12px] font-extrabold text-navy">{t(`days.${dk}`)}</div>
                 <div
                   className={`text-[10.5px] font-bold ${
                     weekDates[i] === today ? 'text-gold-deep' : 'text-grey-mid'
@@ -211,7 +209,7 @@ export default async function MenuPage({
           {MEAL_SLOTS.map((meal) => (
             <div key={meal} className="flex border-t border-navy/[0.08]">
               <div className="flex w-[92px] shrink-0 items-center px-2 text-[12px] font-bold text-grey-mid">
-                {MEAL_LABEL[meal]}
+                {t(`meals.${meal}`)}
               </div>
               {weekDates.map((d) => {
                 const m = byKey.get(`${d}|${meal}`);
@@ -242,7 +240,7 @@ export default async function MenuPage({
                               <input type="hidden" name="date" value={d} />
                               <input type="hidden" name="meal" value={meal} />
                               <ConfirmButton
-                                message={`Xoá ${MEAL_LABEL[meal].toLowerCase()} ngày ${ngayVN(d)}?`}
+                                message={t('confirmDelete', {meal: t(`meals.${meal}`).toLowerCase(), date: ngayVN(d)})}
                                 className="cursor-pointer rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-2 py-1 text-[11px] font-extrabold text-status-bad transition-all hover:bg-status-bad/[0.16]"
                               >
                                 Xoá
@@ -254,7 +252,7 @@ export default async function MenuPage({
                     ) : canManage ? (
                       <Link
                         href={{pathname: '/menu', query: q({date: d, meal})}}
-                        aria-label={`Thêm ${MEAL_LABEL[meal].toLowerCase()} ngày ${ngayVN(d)}`}
+                        aria-label={t('addAria', {meal: t(`meals.${meal}`).toLowerCase(), date: ngayVN(d)})}
                         className="block rounded-[10px] border-[1.5px] border-dashed border-navy/15 py-2 text-center text-[11px] font-extrabold text-navy/40 transition-colors hover:border-navy hover:text-navy"
                       >
                         + Thêm
@@ -277,15 +275,15 @@ export default async function MenuPage({
             <span className="inline-flex items-center gap-1.5 font-display text-[15px] font-bold text-navy">
               <UtensilsCrossed size={15} strokeWidth={2.2} className="text-grey-mid" />
               {editing
-                ? `Sửa ${MEAL_LABEL[formMeal].toLowerCase()} · ${ngayVN(formDate)}`
-                : 'Soạn thực đơn'}
+                ? t('editTitle', {meal: t(`meals.${formMeal}`).toLowerCase(), date: ngayVN(formDate)})
+                : t('composeTitle')}
             </span>
             {editingDate && (
               <Link
                 href={{pathname: '/menu', query: q()}}
                 className="text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
               >
-                Bỏ chọn ô
+                {t('clearPick')}
               </Link>
             )}
           </div>
@@ -296,7 +294,7 @@ export default async function MenuPage({
             <input type="hidden" name="week" value={weekParam ?? ''} />
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_2fr]">
-              <Field label="Ngày" htmlFor="menu-date">
+              <Field label={t('fDate')} htmlFor="menu-date">
                 <select
                   id="menu-date"
                   name="date"
@@ -305,13 +303,13 @@ export default async function MenuPage({
                 >
                   {weekDates.map((d, i) => (
                     <option key={d} value={d}>
-                      {DAY_LABELS[i]} · {ngayVN(d)}
+                      {t(`days.${DAY_KEYS[i]}`)} · {ngayVN(d)}
                     </option>
                   ))}
                 </select>
               </Field>
 
-              <Field label="Bữa ăn" htmlFor="menu-meal">
+              <Field label={t('fMeal')} htmlFor="menu-meal">
                 <select
                   id="menu-meal"
                   name="meal"
@@ -320,16 +318,16 @@ export default async function MenuPage({
                 >
                   {MEAL_SLOTS.map((s) => (
                     <option key={s} value={s}>
-                      {MEAL_LABEL[s]}
+                      {t(`meals.${s}`)}
                     </option>
                   ))}
                 </select>
               </Field>
 
               <Field
-                label="Ghi chú chung"
+                label={t('fNote')}
                 htmlFor="menu-note"
-                hint="Đổi món đột xuất, món chay thay thế, lưu ý dị ứng…"
+                hint={t('hNote')}
               >
                 <input
                   id="menu-note"
@@ -341,9 +339,9 @@ export default async function MenuPage({
             </div>
 
             <Field
-              label="Các món"
+              label={t('fDishes')}
               htmlFor="menu-items"
-              hint="Mỗi món một dòng — phụ huynh đọc theo dòng."
+              hint={t('hDishes')}
             >
               <textarea
                 id="menu-items"
@@ -351,21 +349,20 @@ export default async function MenuPage({
                 rows={5}
                 required
                 defaultValue={editing?.items ?? ''}
-                placeholder={'Cơm trắng\nCanh cải thịt bằm\nThịt kho trứng\nDưa hấu'}
+                placeholder={t('phDishes')}
                 className={textareaCls}
               />
             </Field>
 
             <div>
               <SubmitButton className={btnGold} wrapClass="contents">
-                Lưu thực đơn
+                {t('save')}
               </SubmitButton>
             </div>
           </form>
 
           <p className="mt-1.5 text-[11px] italic text-grey-mid">
-            Lưu lại một bữa đã có sẽ ĐÈ lên nội dung cũ của đúng ngày và bữa đó, không tạo thêm dòng
-            mới.
+            {t('saveHint')}
           </p>
         </div>
       )}

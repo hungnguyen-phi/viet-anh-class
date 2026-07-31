@@ -1,5 +1,5 @@
 import {after} from 'next/server';
-import {setRequestLocale} from 'next-intl/server';
+import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {ArrowLeft, Lock, MessagesSquare, ShieldCheck} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {requireRole} from '@/lib/auth';
@@ -46,6 +46,7 @@ export default async function InboxPage({
   // Học sinh cũng không vào — đây là kênh giữa người lớn với nhau về em, không phải của em.
   const profile = await requireRole(['parent', 'teacher']);
   const laPhuHuynh = profile.role === 'parent';
+  const t = await getTranslations('inbox');
   const supabase = await createClient();
 
   const openId = threadParam && UUID_RE.test(threadParam) ? threadParam : null;
@@ -115,13 +116,13 @@ export default async function InboxPage({
     if (!vaoDuoc) {
       return (
         <div className="glass rounded-[20px] p-8 text-center">
-          <p className="text-sm font-bold text-navy">Không mở được cuộc trao đổi này.</p>
+          <p className="text-sm font-bold text-navy">{t('cannotOpen')}</p>
           <p className="mt-1 text-sm text-grey-mid">
-            Đường dẫn có thể đã cũ, hoặc cuộc trao đổi không thuộc về bạn.
+            {t('cannotOpenHint')}
           </p>
           <Link href="/inbox" className={`mt-4 ${backLinkCls}`}>
             <ArrowLeft size={14} strokeWidth={2.5} />
-            Về hộp thư
+            {t('backToInbox')}
           </Link>
         </div>
       );
@@ -141,18 +142,18 @@ export default async function InboxPage({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
             <h1 className="truncate font-display text-[22px] font-bold text-navy">
-              Trao đổi về em {tenCon ?? 'học sinh'}
+              {t('threadAbout', {name: tenCon ?? t('aStudent')})}
             </h1>
             {tenLop && (
               <p className="mt-0.5 text-[12.5px] font-bold text-grey-mid">
                 Lớp {tenLop} ·{' '}
-                {laPhuHuynh ? 'với giáo viên chủ nhiệm' : 'với phụ huynh của em'}
+                {laPhuHuynh ? t('withTeacher') : t('withParents')}
               </p>
             )}
           </div>
           <Link href="/inbox" className={backLinkCls}>
             <ArrowLeft size={14} strokeWidth={2.5} />
-            Tất cả cuộc trao đổi
+            {t('allThreads')}
           </Link>
         </div>
 
@@ -161,7 +162,7 @@ export default async function InboxPage({
         <div className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
           {messages.length === 0 ? (
             <p className="py-6 text-center text-sm text-grey-mid">
-              Chưa có tin nào. Bạn viết lời đầu tiên nhé.
+              {t('noMessagesYet')}
             </p>
           ) : (
             <>
@@ -183,7 +184,7 @@ export default async function InboxPage({
           <div className="glass rounded-[16px] p-3">
             <p className="inline-flex items-start gap-1.5 text-[13px] font-bold text-grey-mid">
               <Lock size={14} strokeWidth={2.5} className="mt-0.5 shrink-0" />
-              Cuộc trao đổi đã khoá vì em không còn học lớp này. Hai bên vẫn xem lại được toàn bộ
+              {t('lockedLeftClass')}
               nội dung cũ.
             </p>
           </div>
@@ -192,7 +193,7 @@ export default async function InboxPage({
         {laPhuHuynh && (
           <p className="inline-flex items-start gap-1.5 text-[11px] italic text-grey-mid">
             <ShieldCheck size={13} strokeWidth={2.5} className="mt-px shrink-0" />
-            Chỉ bạn và giáo viên chủ nhiệm đọc được nội dung này. Ban giám hiệu và quản trị viên
+            {t('privacyThread')}
             không xem được.
           </p>
         )}
@@ -219,7 +220,7 @@ export default async function InboxPage({
 
   if (laPhuHuynh) {
     const cacCon = ((childrenRes?.data ?? []) as unknown as LinkRow[])
-      .map((l) => ({id: l.student_id, name: l.profiles?.full_name ?? 'Con của bạn'}))
+      .map((l) => ({id: l.student_id, name: l.profiles?.full_name ?? t('yourChild')}))
       .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
     luaChonMoCuoc = cacCon.filter((c) => !daCoCuoc.has(c.id));
 
@@ -227,10 +228,10 @@ export default async function InboxPage({
       return (
         <div className="glass rounded-[20px] p-8 text-center">
           <h1 className="font-display text-[22px] font-bold text-navy">
-            Liên lạc với giáo viên chủ nhiệm
+            {t('noLinkTitle')}
           </h1>
           <p className="mt-2 text-sm text-grey-mid">
-            Tài khoản của bạn chưa được liên kết với học sinh nào, nên chưa có cuộc trao đổi nào để
+            {t('noLinkHint')}
             mở. Nhờ giáo viên chủ nhiệm hoặc quản trị viên liên kết giúp bạn với con.
           </p>
         </div>
@@ -256,7 +257,7 @@ export default async function InboxPage({
           id: e.student_id,
           // Nhiều lớp thì phải kèm tên lớp: hai em trùng tên ở hai lớp là chuyện thường.
           name:
-            (e.profiles?.full_name ?? e.profiles?.email ?? 'Học sinh') +
+            (e.profiles?.full_name ?? e.profiles?.email ?? t('aStudentCap')) +
             (lop.length > 1 ? ` — ${tenLop.get(e.class_id) ?? ''}` : ''),
         }))
         .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
@@ -268,7 +269,7 @@ export default async function InboxPage({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="inline-flex items-center gap-2 font-display text-[22px] font-bold text-navy">
           <MessagesSquare size={20} strokeWidth={2.2} />
-          {laPhuHuynh ? 'Liên lạc với giáo viên chủ nhiệm' : 'Liên lạc với phụ huynh'}
+          {laPhuHuynh ? t('titleParent') : t('titleTeacher')}
           {tongChuaDoc > 0 && (
             <span className="rounded-full bg-gold px-2 py-0.5 text-[12px] font-black text-navy">
               {tongChuaDoc}
@@ -288,8 +289,8 @@ export default async function InboxPage({
         <div className="glass rounded-[20px] p-8 text-center">
           <p className="text-sm text-grey-mid">
             {laPhuHuynh
-              ? 'Chưa có cuộc trao đổi nào. Bạn mở một cuộc để nhắn cho giáo viên chủ nhiệm nhé.'
-              : 'Chưa có phụ huynh nào nhắn cho bạn. Bạn cũng có thể chủ động mở lời trước.'}
+              ? t('emptyParent')
+              : t('emptyTeacher')}
           </p>
         </div>
       ) : (
@@ -300,23 +301,23 @@ export default async function InboxPage({
         options={luaChonMoCuoc}
         label={
           laPhuHuynh
-            ? 'Mở cuộc trao đổi mới về con'
-            : 'Mở cuộc trao đổi với gia đình một em trong lớp'
+            ? t('openLabelParent')
+            : t('openLabelTeacher')
         }
         hint={
           laPhuHuynh
-            ? 'Mỗi con một cuộc trao đổi, dùng suốt năm học — không phải mở lại mỗi lần nhắn.'
-            : 'Chỉ hiện những em CHƯA có cuộc trao đổi nào. Mở xong, phụ huynh của em sẽ nhận được thông báo.'
+            ? t('openHintParent')
+            : t('openHintTeacher')
         }
-        nutMotLuaChon={(ten) => `+ Mở cuộc trao đổi về em ${ten}`}
-        nutNhieuLuaChon="+ Mở cuộc trao đổi"
+        nutMotLuaChon={(ten) => t('openOneBtn', {name: ten})}
+        nutNhieuLuaChon={t('openManyBtn')}
       />
 
       <p className="inline-flex items-start gap-1.5 text-[11px] italic text-grey-mid">
         <ShieldCheck size={13} strokeWidth={2.5} className="mt-px shrink-0" />
         {laPhuHuynh
-          ? 'Nội dung trao đổi chỉ bạn và giáo viên chủ nhiệm đọc được. Ban giám hiệu và quản trị viên không xem được.'
-          : 'Nội dung trao đổi chỉ bạn và gia đình em đọc được. Ban giám hiệu chỉ thấy số cuộc đang chờ trả lời, không thấy nội dung.'}
+          ? t('privacyFootParent')
+          : t('privacyFootTeacher')}
       </p>
     </div>
   );

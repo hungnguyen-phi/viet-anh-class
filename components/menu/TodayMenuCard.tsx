@@ -1,10 +1,11 @@
+import {getTranslations} from 'next-intl/server';
 import {UtensilsCrossed} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {getCurrentProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getMyClass} from '@/lib/queries';
 import {todayInVN} from '@/lib/dates';
-import {MEAL_SLOTS, MEAL_LABEL, ngayVN, type MealSlot} from './MealMeta';
+import {MEAL_SLOTS, ngayVN, type MealSlot} from './MealMeta';
 
 // Thẻ "thực đơn hôm nay" — bản GỌN của trang /menu, để nhúng vào trang phụ huynh và trang học
 // sinh. Tự lo lấy dữ liệu (server component) nên nơi nhúng chỉ cần viết <TodayMenuCard />.
@@ -21,6 +22,7 @@ export async function TodayMenuCard({campusId}: {campusId?: string}) {
   const profile = await getCurrentProfile();
   if (!profile) return null;
 
+  const t = await getTranslations('menu');
   const supabase = await createClient();
   let cid = campusId ?? profile.campus_id ?? null;
   if (!cid) {
@@ -48,7 +50,7 @@ export async function TodayMenuCard({campusId}: {campusId?: string}) {
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <span className="inline-flex items-center gap-1.5 font-display text-[15px] font-bold text-navy">
           <UtensilsCrossed size={15} strokeWidth={2.2} className="text-grey-mid" />
-          Thực đơn hôm nay
+          {t('todayTitle')}
         </span>
         <span className="rounded-full bg-navy/[0.08] px-2 py-0.5 text-[10.5px] font-extrabold">
           {ngayVN(hom_nay)}
@@ -60,7 +62,7 @@ export async function TodayMenuCard({campusId}: {campusId?: string}) {
           rõ "nhà trường chưa cập nhật" với "app lỗi". */}
       {co.length === 0 ? (
         <p className="text-[12.5px] font-semibold text-grey-mid">
-          Nhà trường chưa cập nhật thực đơn hôm nay.
+          {t('todayEmpty')}
         </p>
       ) : (
         <div className="flex flex-col gap-2">
@@ -69,7 +71,7 @@ export async function TodayMenuCard({campusId}: {campusId?: string}) {
             return (
               <div key={s} className="flex gap-2">
                 <span className="w-[62px] shrink-0 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
-                  {MEAL_LABEL[s]}
+                  {t(`meals.${s}`)}
                 </span>
                 <div className="min-w-0 flex-1">
                   {/* items lưu dạng văn bản mỗi món một dòng (0062) → phải giữ xuống dòng */}
@@ -90,7 +92,7 @@ export async function TodayMenuCard({campusId}: {campusId?: string}) {
         href="/menu"
         className="mt-2 inline-block text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
       >
-        Xem thực đơn cả tuần
+        {t('seeWeek')}
       </Link>
     </div>
   );

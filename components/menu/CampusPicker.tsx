@@ -1,5 +1,6 @@
 'use client';
 
+import {useTranslations} from 'next-intl';
 import {ChevronDown} from 'lucide-react';
 import {useRouter, usePathname} from '@/i18n/navigation';
 
@@ -12,6 +13,7 @@ export function CampusPicker({
   campuses: {id: string; name: string}[];
   current?: string;
 }) {
+  const t = useTranslations('menu');
   const router = useRouter();
   const pathname = usePathname();
   // Một cơ sở thì ô chọn chỉ là nhiễu.
@@ -21,7 +23,7 @@ export function CampusPicker({
     <div className="relative inline-flex items-center">
       <select
         value={current ?? ''}
-        aria-label="Chọn cơ sở"
+        aria-label={t('pickCampusAria')}
         onChange={(e) => router.push(`${pathname}?campus=${e.target.value}`)}
         className="glass-pill cursor-pointer appearance-none rounded-full py-2 pl-4 pr-9 text-sm font-bold text-navy outline-none transition-all hover:bg-white/70 focus:border-navy"
       >
