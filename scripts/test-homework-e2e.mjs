@@ -159,10 +159,20 @@ if (post) {
   const ph = await get('/homework', ckPh);
   check('Phụ huynh thấy bài', ph.html.includes(NOIDUNG));
   const than = ph.html.slice(ph.html.indexOf('<main'));
+  // SOI MARKUP, KHÔNG SOI CHỮ.
+  //
+  // Trước đây phép kiểm này tìm chuỗi 'Em đã làm rồi' trong HTML. Nó đúng chừng nào chuỗi ấy còn
+  // được viết cứng trong mã và chỉ vẽ ra cho học sinh. Từ khi nhãn chuyển vào file dịch thì
+  // layout gửi TOÀN BỘ danh mục chuỗi xuống trình duyệt (NextIntlClientProvider messages={...}),
+  // nên câu đó nằm trong HTML của MỌI trang, kể cả trang phụ huynh không có nút nào — phép kiểm
+  // báo sai trong khi giao diện vẫn đúng.
+  //
+  // `name="done"` là ô ẩn CHỈ có trong form tick (xem homework/page.tsx, nhánh laHocSinh). Có nó
+  // nghĩa là form thật sự được vẽ ra, không phải chỉ có chữ trôi nổi đâu đó trong payload.
   check(
     'Phụ huynh KHÔNG có nút tick',
-    !/Em đã làm rồi|bấm để bỏ/.test(than),
-    'không thấy nút đánh dấu',
+    !/name="done"/.test(than),
+    'không thấy form đánh dấu',
   );
 
   // ── 7. GVCN thấy đếm ──
