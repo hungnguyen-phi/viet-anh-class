@@ -25,6 +25,30 @@ const nunito = Nunito({
 
 const DESCRIPTION = 'App lãnh đạo lớp học theo khung 4DX — Trường Việt Anh';
 
+// Namespace mà BUNDLE CLIENT cần (xem chỗ dùng ở dưới, và chốt chặn ở
+// scripts/test-client-namespaces.mjs). 18/27 — chín cái còn lại chỉ được đọc bằng
+// getTranslations() trong server component nên không phải gửi xuống trình duyệt.
+const NAMESPACE_CHO_CLIENT = [
+  'admin',
+  'attendance',
+  'campusReport',
+  'common',
+  'gallery',
+  'grades',
+  'homework',
+  'inbox',
+  'login',
+  'meeting',
+  'menu',
+  'nav',
+  'roles',
+  'roster',
+  'student',
+  'studentWig',
+  'subjects',
+  'wig',
+] as const;
+
 export const metadata: Metadata = {
   // metadataBase để canonical/OG sinh URL tuyệt đối; thiếu nó Next chỉ ra đường dẫn tương đối.
   metadataBase: new URL(SITE_URL),
@@ -80,7 +104,19 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
   // Truyền messages tường minh → prop được serialize kèm provider, client component
   // luôn có context dù render server fallback (tránh lỗi "NextIntlClientProvider not found").
-  const messages = await getMessages();
+  //
+  // CHỈ GỬI NHỮNG NAMESPACE CLIENT THẬT SỰ DÙNG. Cả danh mục là 44,8 KB và nó được nhúng vào
+  // MỌI trang — đo được 43% HTML thô của trang /report, trong khi phụ huynh ở đó không dùng một
+  // câu nào của `grades`/`subjects`/`student`. Server component đọc chuỗi qua getTranslations()
+  // (context phía máy chủ), không cần gói này; chỉ useTranslations() trong bundle client mới cần.
+  //
+  // Danh sách dưới đây KHÔNG được sửa bằng tay theo cảm tính: scripts/test-client-namespaces.mjs
+  // dựng lại nó từ đồ thị import (mọi file 'use client' rồi lan theo import) và báo SAI nếu thiếu
+  // — thiếu một namespace ở đây là lỗi lúc CHẠY, không phải lỗi lúc dịch, nên phải có chốt chặn.
+  const tatCa = await getMessages();
+  const messages = Object.fromEntries(
+    NAMESPACE_CHO_CLIENT.filter((n) => n in tatCa).map((n) => [n, tatCa[n as keyof typeof tatCa]]),
+  );
 
   return (
     <html lang={locale} className={`${baloo.variable} ${nunito.variable}`}>
