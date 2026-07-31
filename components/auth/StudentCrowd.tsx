@@ -109,6 +109,15 @@ type Walker = {
   hide: boolean; // true = ẩn trên mobile (giảm mật độ ~60%)
 };
 
+// Ảnh GIF trong suốt 1×1, dạng data: — KHÔNG phải ảnh giữ chỗ tạm bợ, mà là cách chặn tải.
+//
+// Người nào bị ẩn trên điện thoại thì <source media> trỏ vào đây. data: nằm ngay trong HTML nên
+// trình duyệt không phát sinh request nào: 0 byte, 0 vòng mạng. Và vì thẻ cha đã display:none
+// trên khổ đó, không ai nhìn thấy gì cả — đây thuần tuý là để trình duyệt có thứ hợp lệ để chọn
+// thay vì đi tải tệp thật rồi giấu đi.
+const ANH_TRONG =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
 // Keyframe riêng cho 1 người đứng: đứng ở "home", thỉnh thoảng nhích ±vài vw rồi về.
 function standKeyframe(name: string, home: number, rand: () => number): string {
   const dx = (rand() < 0.5 ? -1 : 1) * (3 + rand() * 6);
@@ -213,28 +222,38 @@ export function StudentCrowd() {
               animationDelay: `${wk.bobDelay}s`,
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={wk.src}
-              alt=""
-              width={wk.w}
-              height={wk.h}
-              // Đám đông là TRANG TRÍ: hạ ưu tiên tải để 54 sprite không tranh băng thông với
-              // font + CSS + JS của thẻ đăng nhập (thứ người dùng thật sự chờ). Giải mã ảnh
-              // chạy off-thread để không chặn lần vẽ đầu.
-              fetchPriority="low"
-              decoding="async"
-              style={{
-                display: 'block',
-                // Mobile thu nhỏ (var --cs) → sprite được DOWNSCALE thay vì phóng to → giảm hẳn răng cưa.
-                width: `calc(${wk.w}px * var(--cs, 1))`,
-                height: `calc(${wk.h}px * var(--cs, 1))`,
-                // Ép layer GPU + lấy mẫu ảnh chất lượng cao khi animate trên mobile DPR cao.
-                transform: `${wk.flip ? 'scaleX(-1) ' : ''}translateZ(0)`,
-                backfaceVisibility: 'hidden',
-                imageRendering: 'auto',
-              }}
-            />
+            {/* <picture> chứ không <img> trần, CHỈ với những người bị ẩn trên điện thoại.
+                CSS `display:none` KHÔNG chặn trình duyệt tải <img src> — nó vẫn kéo tệp về rồi
+                mới giấu đi. Đo trên production: 17 tệp = 110 KB tải trên điện thoại mà không bao
+                giờ hiện ra, trong khi đúng màn hình đó mới là chỗ đường truyền yếu nhất.
+                <source media> cho điện thoại trỏ vào một ảnh trong suốt 1×1 dạng data: — data URI
+                không phát sinh request nào, nên bằng 0 byte và 0 vòng mạng. Máy tính vẫn lấy tệp
+                thật ở <img src>. */}
+            <picture>
+              {wk.hide && <source media="(max-width: 640px)" srcSet={ANH_TRONG} />}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={wk.src}
+                alt=""
+                width={wk.w}
+                height={wk.h}
+                // Đám đông là TRANG TRÍ: hạ ưu tiên tải để 54 sprite không tranh băng thông với
+                // font + CSS + JS của thẻ đăng nhập (thứ người dùng thật sự chờ). Giải mã ảnh
+                // chạy off-thread để không chặn lần vẽ đầu.
+                fetchPriority="low"
+                decoding="async"
+                style={{
+                  display: 'block',
+                  // Mobile thu nhỏ (var --cs) → sprite được DOWNSCALE thay vì phóng to → giảm hẳn răng cưa.
+                  width: `calc(${wk.w}px * var(--cs, 1))`,
+                  height: `calc(${wk.h}px * var(--cs, 1))`,
+                  // Ép layer GPU + lấy mẫu ảnh chất lượng cao khi animate trên mobile DPR cao.
+                  transform: `${wk.flip ? 'scaleX(-1) ' : ''}translateZ(0)`,
+                  backfaceVisibility: 'hidden',
+                  imageRendering: 'auto',
+                }}
+              />
+            </picture>
           </div>
         </div>
       ))}

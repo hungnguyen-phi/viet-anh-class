@@ -32,12 +32,16 @@ type SB = Awaited<ReturnType<typeof createClient>>;
 export async function getInboxUnreadCount(client?: SB): Promise<number> {
   try {
     const supabase = client ?? (await createClient());
-    const {data, error} = await supabase.rpc('pt_my_threads');
-    if (error || !data) return 0;
-    return (data as {unread_count: number | null}[]).reduce(
-      (tong, r) => tong + Number(r.unread_count ?? 0),
-      0,
-    );
+    // Dùng pt_unread_total() (migration 0072), KHÔNG dùng pt_my_threads().
+    //
+    // Đo được: pt_my_threads là truy vấn LÂU NHẤT trên 15/27 lượt đo trang (158–470 ms), và nó
+    // chạy trên MỌI trang của giáo viên chủ nhiệm lẫn phụ huynh vì layout gọi hàm này. Nó trả về
+    // nguyên bảng cuộc trao đổi kèm join classes + join profiles + một subquery đếm cho từng
+    // cuộc — tất cả để lấy đúng một con số cho chấm đỏ. pt_unread_total làm một count(*) gộp,
+    // không join gì.
+    const {data, error} = await supabase.rpc('pt_unread_total');
+    if (error) return 0;
+    return Number(data ?? 0);
   } catch {
     return 0;
   }

@@ -138,8 +138,15 @@ export default async function HomeworkPage({
   const laHocSinh = profile.role === 'student';
   const laPhuHuynh = profile.role === 'parent';
 
-  const [{data: todayData}, {data: postData}, {data: monData}] = await Promise.all([
-    supabase.rpc('app_today'),
+  // Ngày hôm nay theo giờ VN — TÍNH TẠI CHỖ, không hỏi máy chủ CSDL.
+  //
+  // Trước đây gọi rpc('app_today'), tốn một vòng mạng (đo được 60–197 ms) chỉ để hỏi hôm nay là
+  // ngày mấy. Và chính mã này đã dùng todayInVN() làm phương án dự phòng ngay dòng dưới — tức là
+  // đã tin nó đúng rồi. lib/dates.ts tính bằng Intl với múi giờ Asia/Ho_Chi_Minh nên không phụ
+  // thuộc giờ máy chủ (máy chủ chạy UTC, lệch 7 tiếng).
+  const today = todayInVN();
+
+  const [{data: postData}, {data: monData}] = await Promise.all([
     supabase
       .from('homework_posts')
       // Nhặt luôn tên môn từ danh mục trong CÙNG một truy vấn — hỏi riêng bảng subjects là thêm
@@ -160,7 +167,6 @@ export default async function HomeworkPage({
           .eq('is_active', true)
       : Promise.resolve({data: null}),
   ]);
-  const today = (todayData as unknown as string) ?? todayInVN();
   const posts = (postData ?? []) as unknown as Post[];
   const postIds = posts.map((p) => p.id);
   // Môn đã ngừng dùng (is_active = false) vẫn còn trong chương trình lớp nhưng KHÔNG được chọn

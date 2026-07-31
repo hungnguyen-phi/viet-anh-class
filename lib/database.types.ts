@@ -2254,6 +2254,7 @@ export type Database = {
       }
       pt_open_thread: { Args: { p_student: string }; Returns: string }
       pt_student_in_class: { Args: { c: string; s: string }; Returns: boolean }
+      pt_unread_total: { Args: never; Returns: number }
       restrict_signup_by_email_domain: { Args: { event: Json }; Returns: Json }
       review_class: { Args: { r: string }; Returns: string }
       review_is_editable: { Args: { r: string }; Returns: boolean }

@@ -66,10 +66,17 @@ export async function StudentScoreboard({
   const supabase = await createClient();
   const canManage = viewer.role === 'teacher' || viewer.role === 'admin';
   const canEditMood = viewer.id === studentId && viewer.role === 'student';
+  // Chỉ phụ thuộc `viewer` và `studentId` — hai thứ đã có ngay từ tham số hàm. Tính ở đây để câu
+  // edit_requests bên dưới vào được cùng đợt Promise.all thay vì phải chờ tới cuối hàm.
+  const canTick = viewer.id === studentId && viewer.role === 'student';
 
-  // Ngày hôm nay (theo DB) để tra cứu cảm xúc đúng ngày.
-  const {data: todayData} = await supabase.rpc('app_today');
-  const today = (todayData as unknown as string) ?? todayInVN();
+  // Ngày hôm nay theo giờ VN — TÍNH TẠI CHỖ, không hỏi máy chủ CSDL.
+  //
+  // Trước đây gọi rpc('app_today'), tốn một vòng mạng (đo được 60–197 ms) chỉ để hỏi hôm nay là
+  // ngày mấy. Và chính mã này đã dùng todayInVN() làm phương án dự phòng ngay dòng dưới — tức là
+  // đã tin nó đúng rồi. lib/dates.ts tính bằng Intl với múi giờ Asia/Ho_Chi_Minh nên không phụ
+  // thuộc giờ máy chủ (máy chủ chạy UTC, lệch 7 tiếng).
+  const today = todayInVN();
 
   const locale = await getLocale();
 
@@ -81,6 +88,7 @@ export async function StudentScoreboard({
     {data: meetingRows},
     {data: moodRow},
     {data: areaCfg},
+    {data: myRequestRows},
   ] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email').eq('id', studentId).maybeSingle(),
       supabase
@@ -110,6 +118,18 @@ export async function StudentScoreboard({
         .eq('date', today)
         .maybeSingle(),
       supabase.from('area_config').select('*').order('sort_order'),
+      // Yêu-cầu-sửa của CHÍNH người đang xem. Trước đây nằm mãi cuối hàm, chạy SAU bốn đợt truy
+      // vấn khác — mà nó chỉ phụ thuộc viewer.id, thứ đã biết từ trước khi hàm chạy. Tức là một
+      // vòng mạng xếp hàng thuần tuý, không chờ gì cả. Kéo lên đây để chạy cùng đợt.
+      // RLS er_requester_read đã giới hạn requester_id = auth.uid(), lọc lại cho rõ ý.
+      canTick
+        ? supabase
+            .from('edit_requests')
+            .select('id, kind, ref_id, message')
+            .eq('requester_id', viewer.id)
+            .eq('status', 'pending')
+            .order('created_at', {ascending: false})
+        : Promise.resolve({data: null}),
     ]);
   const areaMeta = buildAreaMeta(areaCfg);
 
@@ -289,7 +309,6 @@ export async function StudentScoreboard({
     }));
   }
 
-  const canTick = viewer.id === studentId && viewer.role === 'student';
 
   // 7 ngày của tuần hiện tại (Thứ Hai → Chủ Nhật) cho dải tick, và tuần còn mở hay đã chốt.
   // Phải khớp luật RLS ở 0046: trong tuần, không quá hôm nay, và hôm nay chưa qua ngày chốt.
@@ -314,19 +333,12 @@ export async function StudentScoreboard({
   }
 
   // Yêu cầu-sửa CỦA CHÍNH người đang xem còn 'pending' → cho sửa lời nhắn / rút lại (0040).
-  // RLS er_requester_read đã giới hạn `requester_id = auth.uid()`, nhưng lọc luôn cho rõ ý.
-  let myRequests: MyRequest[] = [];
-  if (canTick) {
-    const {data: mine} = await supabase
-      .from('edit_requests')
-      .select('id, kind, ref_id, message')
-      .eq('requester_id', viewer.id)
-      .eq('status', 'pending')
-      .order('created_at', {ascending: false});
-    myRequests = ((mine ?? []) as {id: string; kind: string; ref_id: string | null; message: string | null}[]).map(
-      (r) => ({...r, leadTitle: r.ref_id ? leadTitleById.get(r.ref_id) ?? null : null}),
-    );
-  }
+  // Dữ liệu đã lấy từ Promise.all ở trên; ở đây chỉ ghép thêm tên việc, không chạm mạng nữa —
+  // leadTitleById mới có sau khi lead_measures về, nên phần GHÉP phải nằm dưới, còn phần HỎI thì
+  // không việc gì phải chờ.
+  const myRequests: MyRequest[] = (
+    (myRequestRows ?? []) as {id: string; kind: string; ref_id: string | null; message: string | null}[]
+  ).map((r) => ({...r, leadTitle: r.ref_id ? leadTitleById.get(r.ref_id) ?? null : null}));
   const displayName = student.full_name ?? student.email;
   const hasWeek = weekRows.length > 0;
   // C6 — trạng thái WIG cá nhân để hiện bảng thiết lập cho GVCN.

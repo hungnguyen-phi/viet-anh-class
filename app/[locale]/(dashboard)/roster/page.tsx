@@ -156,6 +156,27 @@ export default async function RosterPage({
 
   return (
     <div className="space-y-4">
+      {/* ẢNH BÌA LỚP.
+          Trước đây cột classes.cover_image_url được GHI ở đúng một chỗ (nút tải ảnh lên) và
+          KHÔNG ĐƯỢC ĐỌC RA Ở BẤT KỲ ĐÂU — grep cả repo chỉ thấy định nghĩa cột, kiểu TS, và chỗ
+          ghi. Nên kể cả khi upload chạy được thì người dùng vẫn thấy "chưa được", vì chẳng có gì
+          hiện ra. Đây là nửa thứ hai của lỗi chủ trường báo (nửa đầu ở migration 0071).
+
+          Dùng <img> chứ không next/image: đây là ảnh từ Supabase Storage với URL đã có sẵn kích
+          thước cố định, và bản thân ảnh ĐÃ được thu nhỏ về 1600px + nén webp ngay trên máy người
+          gửi trước khi tải lên (xem ClassCoverUpload). Cho next/image tối ưu lại lần nữa chỉ thêm
+          một chặng qua /_next/image mà không giảm được bao nhiêu. */}
+      {myClass.cover_image_url && (
+        <div className="overflow-hidden rounded-[20px]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={myClass.cover_image_url}
+            alt={`Ảnh bìa lớp ${myClass.name}`}
+            className="h-[160px] w-full object-cover sm:h-[200px]"
+          />
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-[22px] font-bold text-navy">
           {t('title')} · {myClass.name}

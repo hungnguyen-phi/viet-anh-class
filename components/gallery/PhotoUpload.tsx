@@ -5,6 +5,7 @@ import {ImageUp, Loader2, AlertCircle} from 'lucide-react';
 import {useRouter} from '@/i18n/navigation';
 import {createClient} from '@/lib/supabase/client';
 import {Field, inputCls} from '@/components/ui/Field';
+import {thuNhoAnh, tenTepSauNen, CO_ANH_ALBUM} from '@/lib/anh';
 
 // Khớp ĐÚNG cấu hình bucket trong 0063. Chặn ở client không phải để bảo mật (client là thứ dễ sửa
 // nhất trong hệ thống) mà để GVCN biết ngay tấm nào không hợp lệ, thay vì chờ tải xong 8 MB rồi
@@ -60,19 +61,30 @@ export function PhotoUpload({
         continue;
       }
 
+      // Thu nhỏ + nén NGAY TRÊN MÁY NGƯỜI GỬI trước khi tải lên.
+      //
+      // Không có bước này thì một album 12 ảnh × 4 MB là 48 MB, mà chỗ hiện chúng chỉ là 12 ô
+      // thumbnail nhỏ trong lưới. Mỗi phụ huynh mở album phải kéo về ngần ấy, qua đúng đường
+      // truyền vốn đã chậm — và họ mở đi mở lại. Người gửi chỉ chờ thêm vài trăm mili giây.
+      const nho = await thuNhoAnh(file, CO_ANH_ALBUM);
+      const daNen = nho !== file;
+
       // Tên tệp: bỏ dấu tiếng Việt và ký tự lạ (Storage chỉ nhận một tập ký tự hẹp), thêm mốc thời
       // gian + số thứ tự vì storage_path là UNIQUE — tải hai lần cùng một tấm sẽ đụng khoá.
-      const tenSach = file.name.replace(/[^\w.-]/g, '_').slice(-60);
+      const tenSach = tenTepSauNen(file.name, daNen).slice(-60);
       const path = `${classId}/${albumId}/${Date.now()}-${i}-${tenSach}`;
 
       // Ảnh chụp bằng iPhone: nhiều trình duyệt trả file.type RỖNG cho .heic. Để trống thì Storage
       // gán application/octet-stream, mà bucket chỉ nhận 4 kiểu ảnh (0063) → bị từ chối, GVCN chỉ
       // thấy "không tải lên được" mà không hiểu vì sao. Suy kiểu từ đuôi tệp cho đúng trường hợp này.
-      const kieu = file.type || (/\.heic$/i.test(file.name) ? 'image/heic' : undefined);
+      // Nén được thì kiểu luôn là image/webp — bucket có nhận webp (0063).
+      const kieu = daNen
+        ? 'image/webp'
+        : file.type || (/\.heic$/i.test(file.name) ? 'image/heic' : undefined);
 
       const {error: upErr} = await supabase.storage
         .from('class-photos')
-        .upload(path, file, {upsert: false, contentType: kieu});
+        .upload(path, nho, {upsert: false, contentType: kieu});
       if (upErr) {
         hong.push(`${file.name} (không tải lên được)`);
         continue;

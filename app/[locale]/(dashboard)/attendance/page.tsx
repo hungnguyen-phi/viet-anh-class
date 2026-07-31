@@ -59,16 +59,21 @@ export default async function AttendancePage({
     if (!myEnr?.is_attendance_leader) redirect('/student');
   }
 
-  // Đợt 1 (song song): ngày hôm nay + danh sách lớp.
-  const [{data: todayData}, {data: enrolls}] = await Promise.all([
-    supabase.rpc('app_today'),
+  // Ngày hôm nay theo giờ VN — TÍNH TẠI CHỖ, không hỏi máy chủ CSDL.
+  //
+  // Trước đây gọi rpc('app_today'), tốn một vòng mạng (đo được 60–197 ms) chỉ để hỏi hôm nay là
+  // ngày mấy. Và chính mã này đã dùng todayInVN() làm phương án dự phòng ngay dòng dưới — tức là
+  // đã tin nó đúng rồi. lib/dates.ts tính bằng Intl với múi giờ Asia/Ho_Chi_Minh nên không phụ
+  // thuộc giờ máy chủ (máy chủ chạy UTC, lệch 7 tiếng).
+  const realToday = todayInVN();
+
+  const [{data: enrolls}] = await Promise.all([
     supabase
       .from('enrollments')
       .select('student_id, profiles!enrollments_student_id_fkey(id, full_name)')
       .eq('class_id', myClass.id)
       .eq('is_active', true),
   ]);
-  const realToday = (todayData as unknown as string) ?? todayInVN();
   // GVCN/admin xem & sửa 7 ngày gần nhất (backfill); học sinh (tổ trưởng) chỉ hôm nay.
   const canBackfill = profile.role === 'teacher' || profile.role === 'admin';
   const days: string[] = [];

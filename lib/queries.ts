@@ -26,31 +26,34 @@ export async function getMyClass(
   }
 
   // 1) Lớp mình chủ nhiệm (đúng cho cả admin nếu được gán GVCN) — bỏ qua lớp đã lưu-trữ.
-  const {data: owned} = await supabase
-    .from('classes')
-    .select('*')
-    .eq('homeroom_teacher_id', profile.id)
-    .eq('is_active', true)
-    .limit(1)
-    .maybeSingle();
-  if (owned) return owned;
+  //
+  // CHỈ hỏi với vai CÓ THỂ là chủ nhiệm. Trước đây câu này chạy cho MỌI vai, kể cả học sinh và
+  // phụ huynh — mà học sinh thì không bao giờ chủ nhiệm lớp nào. Đo được trong log:
+  // `classes?homeroom_teacher_id=eq.<id học sinh>` trên mọi lượt mở trang của các em.
+  // Một vòng mạng vô ích, nhân với khoảng nửa số người dùng, nhân với mỗi lần chuyển trang.
+  if (profile.role === 'teacher' || profile.role === 'admin') {
+    const {data: owned} = await supabase
+      .from('classes')
+      .select('*')
+      .eq('homeroom_teacher_id', profile.id)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle();
+    if (owned) return owned;
+  }
 
-  // 2) Học sinh → lớp đang học
+  // 2) Học sinh → lớp đang học.
+  // Nhúng luôn `classes(*)` vào câu enrollments thay vì hỏi hai lượt nối tiếp. Khuôn này đã có
+  // sẵn trong repo (components/student/StudentScoreboard.tsx) — chỉ là getMyClass chưa dùng.
   if (profile.role === 'student') {
     const {data: enr} = await supabase
       .from('enrollments')
-      .select('class_id')
+      .select('classes(*)')
       .eq('student_id', profile.id)
       .eq('is_active', true)
       .limit(1)
       .maybeSingle();
-    if (!enr) return null;
-    const {data: cls} = await supabase
-      .from('classes')
-      .select('*')
-      .eq('id', enr.class_id)
-      .maybeSingle();
-    return cls ?? null;
+    return ((enr as unknown as {classes: ClassRow | null} | null)?.classes) ?? null;
   }
 
   // 2b) Phụ huynh → lớp của con.
@@ -62,24 +65,18 @@ export async function getMyClass(
   //
   // Nhiều con thì lấy con đầu theo tên; trang gọi hàm này truyền preferredClassId khi phụ huynh
   // đổi con (nhánh 0 ở trên đã xử lý, và RLS chặn nếu đó không phải lớp của con họ).
+  // MỘT truy vấn, không phải ba. Trước đây: parent_links → chờ → enrollments → chờ → classes.
+  // Bỏ được parent_links vì RLS của enrollments đã tự giới hạn phụ huynh chỉ thấy ghi danh của
+  // CON MÌNH (chính sách enr_parent_read) — hỏi parent_links trước chỉ là lặp lại điều RLS đã
+  // làm, bằng một vòng mạng nữa. Và nhúng classes(*) luôn để bỏ nốt lượt thứ ba.
   if (profile.role === 'parent') {
-    const {data: links} = await supabase.from('parent_links').select('student_id');
-    const ids = (links ?? []).map((l) => l.student_id);
-    if (ids.length === 0) return null;
     const {data: enr} = await supabase
       .from('enrollments')
-      .select('class_id')
-      .in('student_id', ids)
+      .select('classes(*)')
       .eq('is_active', true)
       .limit(1)
       .maybeSingle();
-    if (!enr) return null;
-    const {data: cls} = await supabase
-      .from('classes')
-      .select('*')
-      .eq('id', enr.class_id)
-      .maybeSingle();
-    return cls ?? null;
+    return ((enr as unknown as {classes: ClassRow | null} | null)?.classes) ?? null;
   }
 
   // 3) Admin/BGH → lớp đầu tiên truy cập được (RLS tự giới hạn phạm vi) — bỏ qua lớp đã lưu-trữ.

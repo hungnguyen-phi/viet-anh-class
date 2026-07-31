@@ -185,10 +185,17 @@ export function AppNav({
       <div className="flex w-full items-center gap-3 rounded-[24px] bg-[linear-gradient(180deg,#2f3170,#26275d)] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_10px_28px_-6px_rgba(38,39,93,0.5)] ring-1 ring-white/10">
         {/* Logo + tên */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5" onClick={() => setOpen(false)}>
+          {/* Dùng bản 128px (2,8 KB), KHÔNG dùng logo-viet-anh.jpg (900×900, 72 KB).
+              Ô này rộng 32 CSS px, tức là bản .jpg đang tải về gấp 25 lần dữ liệu cần thiết — và
+              nó nằm trên MỌI trang sau đăng nhập, nên cái giá đó phải trả lại ở từng lần chuyển
+              trang. Trang đăng nhập vốn đã dùng đúng bản 128px rồi; chỗ này bị sót.
+              width/height khai sẵn để trình duyệt chừa đúng chỗ, không giật layout lúc ảnh về. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo-viet-anh.jpg"
+            src="/logo-viet-anh-128.webp"
             alt="Logo Việt Anh"
+            width={32}
+            height={32}
             className="h-8 w-8 shrink-0 rounded-full border-[1.5px] border-white/90 bg-white object-cover shadow-[0_2px_8px_rgba(38,39,93,0.15)]"
           />
           <span className="hidden whitespace-nowrap font-display text-[16px] font-bold text-white sm:inline">
