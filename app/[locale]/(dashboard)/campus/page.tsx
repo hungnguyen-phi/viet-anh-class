@@ -31,8 +31,17 @@ export default async function CampusPage({
 
   // Bảng tổng hợp toàn trường: MỘT lượt RPC trả về mọi lớp trong phạm vi kèm khối, điểm, điểm
   // danh và sĩ số. RLS/định nghĩa hàm tự giới hạn: admin thấy tất cả, BGH chỉ cơ sở mình.
-  const {data: rollupData} = await supabase.rpc('campus_rollup');
-  const rows = (rollupData ?? []) as RollupRow[];
+  // KHÔNG await ở đây — phóng đi rồi chờ chung với khối truy vấn quản lý bên dưới.
+  //
+  // Trước đây await ngay dòng này, mà campus_rollup là truy vấn nặng nhất trang (đo được
+  // 228–835 ms) và KHÔNG câu nào trong đợt dưới cần kết quả của nó. Tức là cả trang đứng chờ nó
+  // xong rồi mới bắt đầu hỏi những thứ còn lại — hai đợt xếp hàng cho một việc có thể làm một đợt.
+  //
+  // Builder của supabase-js là "thenable" LƯỜI: phải gọi .then() mới thật sự bắn request đi.
+  const rollupPromise = supabase.rpc('campus_rollup').then(
+    (r) => (r.data ?? []) as RollupRow[],
+    () => [] as RollupRow[],
+  );
 
   // BGH quản lý Cơ sở mình (admin dùng /admin). Các truy vấn dưới đây độc lập → chạy song song.
   let mgmt: null | {
@@ -143,6 +152,9 @@ export default async function CampusPage({
       defaultYear: schoolYearLabel(new Date()),
     };
   }
+
+  // Giờ mới chờ bảng tổng hợp — nó đã chạy SONG SONG với cả khối quản lý ở trên.
+  const rows = await rollupPromise;
 
   // Nhật ký kiểm toán không nằm trên đường tới hạn — xem ghi chú ở lần sửa hiệu năng.
   after(() => {

@@ -1,3 +1,4 @@
+import {after} from 'next/server';
 import {Link} from '@/i18n/navigation';
 import {createClient} from '@/lib/supabase/server';
 import type {Profile} from '@/lib/auth';
@@ -123,10 +124,14 @@ export async function FamilyReport({
   // Ghi vết truy cập báo cáo nhạy cảm (DATA_GOVERNANCE §3) — giống hệt trang /report của phụ
   // huynh. Học sinh xem điểm của chính mình thì không ghi: em là chủ thể của dữ liệu, không phải
   // người ngoài truy cập.
+  // KHÔNG await — xem lý do ở report/page.tsx: ghi log là việc của hệ thống, gia đình không việc
+  // gì phải đứng chờ nó xong mới được xem điểm của con. after() chạy sau khi đã trả phản hồi.
   if (laPhuHuynh) {
-    await supabase.rpc('log_audit', {
-      p_action: 'view_child_grades',
-      p_detail: {student_id: childId, term_id: chon?.term_id ?? null},
+    after(() => {
+      void supabase.rpc('log_audit', {
+        p_action: 'view_child_grades',
+        p_detail: {student_id: childId, term_id: chon?.term_id ?? null},
+      });
     });
   }
 

@@ -1,3 +1,4 @@
+import {after} from 'next/server';
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
@@ -34,13 +35,15 @@ export default async function ReportPage({
   const t = await getTranslations('report');
   const tArea = await getTranslations('class');
   const supabase = await createClient();
-  const {data: areaCfg} = await supabase.from('area_config').select('*').order('sort_order');
-  const areaMeta = buildAreaMeta(areaCfg);
 
-  // TẤT CẢ con của phụ huynh (RLS pl_parent_self chỉ trả link của chính họ).
-  const {data: links} = await supabase
-    .from('parent_links')
-    .select('student_id, profiles!parent_links_student_id_fkey(full_name)');
+  // Hai câu này KHÔNG phụ thuộc nhau — trước đây await lần lượt, tức là hai vòng mạng xếp hàng
+  // cho không. Cấu hình lĩnh vực và danh sách con là hai thứ chẳng liên quan gì.
+  const [{data: areaCfg}, {data: links}] = await Promise.all([
+    supabase.from('area_config').select('*').order('sort_order'),
+    // TẤT CẢ con của phụ huynh (RLS pl_parent_self chỉ trả link của chính họ).
+    supabase.from('parent_links').select('student_id, profiles!parent_links_student_id_fkey(full_name)'),
+  ]);
+  const areaMeta = buildAreaMeta(areaCfg);
   const children = ((links ?? []) as unknown as {student_id: string; profiles: {full_name: string | null} | null}[])
     .map((l) => ({id: l.student_id, name: l.profiles?.full_name ?? l.student_id}))
     .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
@@ -115,9 +118,16 @@ export default async function ReportPage({
   };
 
   // Ghi audit truy cập báo cáo nhạy cảm (§12.4).
-  await supabase.rpc('log_audit', {
-    p_action: 'view_parent_report',
-    p_detail: {student_id: childId, week: week ?? null},
+  //
+  // KHÔNG await — ghi log là việc của hệ thống, người dùng không việc gì phải đứng chờ nó xong
+  // mới được xem báo cáo về con mình. Trước đây await ở đây chặn nguyên phần render, tốn thêm
+  // một vòng mạng vào đúng lúc người dùng đang chờ. after() của Next chạy nó SAU khi trả xong
+  // phản hồi. Trang /campus đã sửa đúng lỗi này rồi (campus/page.tsx) — chỗ này bị sót.
+  after(() => {
+    void supabase.rpc('log_audit', {
+      p_action: 'view_parent_report',
+      p_detail: {student_id: childId, week: week ?? null},
+    });
   });
 
   return (

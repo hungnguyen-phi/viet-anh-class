@@ -23,5 +23,13 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "supabase/functions"]
+  "exclude": [
+    "node_modules",
+    "supabase/functions",
+    // Mẫu của bộ đo hiệu năng: chỉ là VĂN BẢN sẽ được chép ra gốc dự án lúc chạy
+    // (scripts/measure-query-waterfall.mjs), rồi xoá. Chúng import lẫn nhau bằng đường dẫn ở GỐC
+    // dự án nên khi nằm trong scripts/ thì tsc báo thiếu module — đúng, và không phải lỗi.
+    "scripts/measure-instrumentation.template.ts",
+    "scripts/measure-instrumentation-node.template.ts"
+  ]
 }

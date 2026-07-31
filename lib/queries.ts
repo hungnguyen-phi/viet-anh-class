@@ -37,6 +37,11 @@ export async function getMyClass(
       .select('*')
       .eq('homeroom_teacher_id', profile.id)
       .eq('is_active', true)
+      // SẮP THEO TÊN rồi mới limit(1). Không có order thì Postgres trả lớp NÀO TUỲ Ý — cô chủ
+      // nhiệm hai lớp (ở đây: 7B1 và 7B2) sẽ thấy khi thì lớp này khi thì lớp kia giữa hai lần
+      // tải trang, mà không hiểu vì sao. Lỗi có sẵn, bộ kiểm nội dung vừa bắt được: trang Báo bài
+      // lúc hiện form, lúc hiện "lớp chưa khai môn nào".
+      .order('name')
       .limit(1)
       .maybeSingle();
     if (owned) return owned;
@@ -51,6 +56,9 @@ export async function getMyClass(
       .select('classes(*)')
       .eq('student_id', profile.id)
       .eq('is_active', true)
+      // Cùng lý do như nhánh trên: em chuyển lớp giữa năm có thể còn nhiều dòng ghi danh đang bật;
+      // không order thì lớp hiện ra đổi ngẫu nhiên giữa các lần tải.
+      .order('class_id')
       .limit(1)
       .maybeSingle();
     return ((enr as unknown as {classes: ClassRow | null} | null)?.classes) ?? null;
@@ -74,6 +82,9 @@ export async function getMyClass(
       .from('enrollments')
       .select('classes(*)')
       .eq('is_active', true)
+      // Phụ huynh nhiều con thì có nhiều dòng; không order thì "con mặc định" đổi ngẫu nhiên giữa
+      // các lần tải trang. Trang gọi hàm này truyền ?class= khi họ chủ động đổi con.
+      .order('student_id')
       .limit(1)
       .maybeSingle();
     return ((enr as unknown as {classes: ClassRow | null} | null)?.classes) ?? null;
