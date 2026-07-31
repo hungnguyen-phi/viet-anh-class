@@ -1,6 +1,16 @@
-# Coolify đang gửi chìa khoá quản trị sang app — cần đổi tên miền
+# Coolify đang gửi chìa khoá quản trị sang app
 
-**Mức độ:** không phải lỗi của app, nhưng app đang gánh rủi ro thay. Nên sửa sớm, tốn ~10 phút.
+> **CHỦ DỰ ÁN ĐÃ QUYẾT ĐỊNH (2026-07-31): GIỮ NGUYÊN, KHÔNG ĐỔI TÊN MIỀN.**
+>
+> Không phải việc treo. Đừng tự sửa. Ghi lại đây để người đọc sau biết chuyện này đã được cân
+> nhắc và bỏ qua có chủ đích, và để nếu sau này đổi ý thì có sẵn các bước.
+>
+> Hệ quả cần nhớ: chừng nào Coolify còn ở `vietanh.org`, **một lỗ XSS trong app sẽ leo thẳng
+> thành chiếm máy chủ**, chứ không dừng ở chiếm app. Nghĩa là mọi thứ nhận đầu vào từ người dùng
+> rồi đưa ra màn hình đều phải cẩn thận hơn mức bình thường. Nếu sau này bật CSP sang chế độ chặn
+> (hiện đang report-only, xem `next.config.ts`) thì đó là lớp phòng thủ đáng giá nhất còn lại.
+
+**Mức độ:** không phải lỗi của app, nhưng app đang gánh rủi ro thay.
 
 ## Chuyện gì đang xảy ra
 
