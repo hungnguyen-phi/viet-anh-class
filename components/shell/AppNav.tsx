@@ -13,7 +13,6 @@ import {useLinkStatus} from 'next/link';
 import {Link, usePathname, useRouter} from '@/i18n/navigation';
 import {signOut} from '@/lib/auth-actions';
 import type {Profile} from '@/lib/auth';
-import {isoWeekLabel} from '@/lib/dates';
 import {
   LayoutDashboard,
   Users,
@@ -166,7 +165,6 @@ export function AppNav({
       : baseLinks;
 
   const displayName = profile.full_name ?? profile.email;
-  const weekLabel = isoWeekLabel(new Date());
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
   const activeItem = links.find((l) => isActive(l.href));
@@ -220,13 +218,13 @@ export function AppNav({
           })}
         </nav>
 
-        {/* Desktop: cụm phải — chỉ hiện từ lg */}
+        {/* Desktop: cụm phải — chỉ hiện từ lg.
+            BỎ nhãn tuần "W31-2026" khỏi đây. Người thử hỏi thẳng: "Có chữ W31-2026 không biết là
+            gì? Mình nghĩ là tuần 31 của năm 2026 nhưng không biết dùng để làm gì". Đoán đúng mà
+            vẫn không biết để làm gì — nghĩa là nó không giúp được việc gì, chỉ chiếm chỗ trên
+            thanh nav vốn đã chật (docs/NAV_IA.md) và bắt người ta dừng lại nghĩ.
+            Tuần vẫn hiện ở nơi nó CÓ NGHĨA: bộ chọn tuần trong WIG, Thời khoá biểu, Báo cáo. */}
         <div className="hidden shrink-0 items-center gap-1.5 lg:flex">
-          {/* Tuần hiện tại */}
-          <span className="hidden whitespace-nowrap rounded-full bg-white/10 px-3 py-[5px] text-[11.5px] font-extrabold text-white/90 ring-1 ring-white/15 lg:inline">
-            {weekLabel}
-          </span>
-
           {/* Người dùng */}
           <span className="inline-flex items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 ring-1 ring-white/15">
             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-linear-to-b from-gold-soft to-gold font-display text-[11px] font-bold text-navy">
@@ -309,9 +307,6 @@ export function AppNav({
                   {tr(role)}
                 </div>
               </div>
-              <span className="glass-pill shrink-0 whitespace-nowrap rounded-full px-3 py-[5px] text-[11.5px] font-extrabold text-navy">
-                {weekLabel}
-              </span>
             </div>
 
             {/* Danh sách trang */}
