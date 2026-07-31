@@ -118,7 +118,7 @@ export function ClassManager({
                 </form>
                 <form action={deleteClass}>
                   <input type="hidden" name="id" value={c.id} />
-                  <ConfirmButton message={t('confirmDeleteClass')} className={danger}>
+                  <ConfirmButton message={t('confirmDeleteClass')} label={t('deleteClass')} className={danger}>
                     ✕
                   </ConfirmButton>
                 </form>

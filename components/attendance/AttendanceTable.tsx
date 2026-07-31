@@ -9,12 +9,21 @@ import type {Database} from '@/lib/database.types';
 type Status = Database['public']['Enums']['attendance_status'];
 type Student = {id: string; name: string};
 
+// Bốn màu này TRÙNG KHÍT token trạng thái trong globals.css (success/status-bad/warn/grey-mid),
+// nhưng trước đây được gõ lại bằng hex. Đổi token một lần thì bảng điểm danh vẫn giữ màu cũ —
+// đúng cái bẫy "sửa một nơi, sót một nơi". Nay trỏ thẳng vào token.
+// `color-mix` để pha quầng sáng từ chính màu ấy thay vì gõ tay lại giá trị rgb tương ứng.
 const STATUSES: {key: Status; color: string; glow: string}[] = [
-  {key: 'present', color: '#1e8a5a', glow: '0 4px 12px rgba(30,138,90,0.4)'},
-  {key: 'absent', color: '#c0392b', glow: '0 4px 12px rgba(192,57,43,0.4)'},
-  {key: 'late', color: '#b98900', glow: '0 4px 12px rgba(185,137,0,0.4)'},
-  {key: 'excused', color: '#5d6180', glow: '0 4px 12px rgba(93,97,128,0.4)'},
+  {key: 'present', color: 'var(--color-success)', glow: glowOf('var(--color-success)')},
+  {key: 'absent', color: 'var(--color-status-bad)', glow: glowOf('var(--color-status-bad)')},
+  {key: 'late', color: 'var(--color-warn)', glow: glowOf('var(--color-warn)')},
+  // CỐ Ý giữ hex: #5d6180 không trùng token nào (grey-mid là #575c7d). Đổi sang token là ĐỔI MÀU,
+  // không phải gom token — nằm ngoài phạm vi việc này.
+  {key: 'excused', color: '#5d6180', glow: glowOf('#5d6180')},
 ];
+function glowOf(c: string): string {
+  return `0 4px 12px color-mix(in srgb, ${c} 40%, transparent)`;
+}
 
 export function AttendanceTable({
   classId,

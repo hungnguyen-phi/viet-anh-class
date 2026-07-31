@@ -115,12 +115,9 @@ export async function SchoolNetworkManager({
               <form action={setSchoolNetworkActive}>
                 <input type="hidden" name="id" value={n.id} />
                 <input type="hidden" name="active" value={(!n.is_active).toString()} />
-                <button
-                  type="submit"
-                  className="h-8 cursor-pointer whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/20 bg-white px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy"
-                >
+                <SubmitButton className="h-8 cursor-pointer whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/20 bg-white px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy">
                   {n.is_active ? t('turnOff') : t('turnOn')}
-                </button>
+                </SubmitButton>
               </form>
               <form action={deleteSchoolNetwork}>
                 <input type="hidden" name="id" value={n.id} />

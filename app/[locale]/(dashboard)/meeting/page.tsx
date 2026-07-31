@@ -4,19 +4,21 @@ import {createClient} from '@/lib/supabase/server';
 import {getClassContext} from '@/lib/queries';
 import {isoWeekLabel} from '@/lib/dates';
 import {ClassPicker} from '@/components/shell/ClassPicker';
-import {ConfirmButton} from '@/components/ui/ConfirmButton';
-import {MeetingScoreboard} from '@/components/wig/MeetingScoreboard';
-import {MeetingForm} from './MeetingForm';
-import {deleteMeeting} from './actions';
+import {ClassMeetingSection} from '@/components/wig/ClassMeetingSection';
 
-type Meeting = {
-  id: string;
-  week_label: string;
-  results: string | null;
-  commitments: string | null;
-  next_actions: string | null;
-  created_at: string;
-};
+// ════════════════════════════════════════════════════════════════════════════
+// /meeting — BIÊN BẢN HỌP WIG TUẦN, xem theo lớp.
+//
+// Nhịp họp WIG đã được gộp vào /wig (ClassMeetingSection) để giáo viên chủ nhiệm không phải nhảy
+// trang — thanh nav của họ vì thế không còn tab "Họp WIG". Trang này vẫn giữ, vì hai lối vào còn
+// dùng nó: mục lục màn hình ở /admin, và ban giám hiệu (vai principal KHÔNG vào được /wig nhưng
+// vẫn được ĐỌC biên bản của lớp).
+//
+// Trước đây trang này VẼ LẠI toàn bộ danh sách biên bản bằng JSX riêng — bản sao thứ hai của
+// đúng thứ ClassMeetingSection đã vẽ. Hai bản đã bắt đầu trôi khỏi nhau: bản trong /wig có ô
+// "ngày chốt tick", bản ở đây không. Nay dùng chung một component, còn trang chỉ giữ phần vỏ
+// (tiêu đề + bộ chọn lớp) mà /wig không có.
+// ════════════════════════════════════════════════════════════════════════════
 
 export default async function MeetingPage({
   params,
@@ -44,15 +46,6 @@ export default async function MeetingPage({
     );
   }
 
-  const {data: meetingsData} = await supabase
-    .from('wig_meetings')
-    .select('id, week_label, results, commitments, next_actions, created_at')
-    .eq('class_id', myClass.id)
-    .is('student_id', null)
-    .order('created_at', {ascending: false});
-  const meetings = (meetingsData ?? []) as Meeting[];
-  const defaultWeek = isoWeekLabel(new Date());
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -62,63 +55,13 @@ export default async function MeetingPage({
         {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
       </div>
 
-      {/* PRD Màn 5: "cầm scoreboard mà họp" — WIG tuần/lead của lớp tuần này */}
-      <MeetingScoreboard classId={myClass.id} weekLabel={defaultWeek} />
-
-      {canManage && (
-        <section className="glass rounded-[20px] p-[18px]">
-          <MeetingForm classId={myClass.id} defaultWeek={defaultWeek} />
-        </section>
-      )}
-
-      <section>
-        <h2 className="mb-2.5 font-display text-[15px] font-bold text-navy">{t('history')}</h2>
-        {meetings.length === 0 ? (
-          <div className="rounded-[20px] border-[1.5px] border-dashed border-navy/15 bg-navy/[0.02] p-5 text-center text-[12.5px] font-semibold italic text-grey-mid">
-            {t('noMeetings')}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2.5">
-            {meetings.map((m) => (
-              <div key={m.id} className="glass rounded-[20px] px-[18px] py-4">
-                <div className="flex items-center gap-2">
-                  <div className="font-display text-[15px] font-bold text-navy">{m.week_label}</div>
-                  {canManage && (
-                    <form action={deleteMeeting} className="ml-auto">
-                      <input type="hidden" name="id" value={m.id} />
-                      {classParam && <input type="hidden" name="class" value={classParam} />}
-                      <ConfirmButton
-                        message={t('confirmDeleteMeeting')}
-                        className="grid h-7 w-7 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
-                      >
-                        ✕
-                      </ConfirmButton>
-                    </form>
-                  )}
-                </div>
-                {m.results && (
-                  <p className="mt-1.5 text-[13px] font-semibold text-navy">
-                    <span className="font-bold text-grey-mid">{t('reflection')}: </span>
-                    {m.results}
-                  </p>
-                )}
-                {m.commitments && (
-                  <p className="mt-1 text-[13px] font-semibold text-navy">
-                    <span className="font-bold text-grey-mid">{t('commitments')}: </span>
-                    {m.commitments}
-                  </p>
-                )}
-                {m.next_actions && (
-                  <p className="mt-1 text-[13px] font-semibold text-navy">
-                    <span className="font-bold text-grey-mid">{t('nextActions')}: </span>
-                    {m.next_actions}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      <ClassMeetingSection
+        classId={myClass.id}
+        weekLabel={isoWeekLabel(new Date())}
+        canManage={canManage}
+        classParam={classParam}
+        tickLockDow={myClass.tick_lock_dow}
+      />
     </div>
   );
 }

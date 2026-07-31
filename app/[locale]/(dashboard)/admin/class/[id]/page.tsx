@@ -65,19 +65,23 @@ export default async function ClassDetailPage({
   const gvcn = teacher ? teacher.full_name ?? teacher.email : null;
 
   // Thẻ liên kết sang các màn hình của lớp (mang theo ?class=id).
+  const softOf = (c: string) => `color-mix(in srgb, ${c} 12%, transparent)`;
   const links: {href: string; label: string; desc: string; Icon: LucideIcon; hex: string; soft: string}[] = [
-    {href: '/roster', label: tn('roster'), desc: t('linkRoster'), Icon: Users, hex: '#3a62c9', soft: 'rgba(58,98,201,0.12)'},
-    {href: '/wig', label: tn('wig'), desc: t('linkWig'), Icon: Target, hex: '#557f3c', soft: 'rgba(85,127,60,0.12)'},
-    {href: '/attendance', label: tn('attendance'), desc: t('linkAttendance'), Icon: ClipboardCheck, hex: '#0e7c86', soft: 'rgba(14,124,134,0.12)'},
-    {href: '/scoreboard', label: tn('compete'), desc: t('linkScoreboard'), Icon: Trophy, hex: '#b98900', soft: 'rgba(185,137,0,0.12)'},
-    {href: '/meeting', label: tn('meeting'), desc: t('linkMeeting'), Icon: MessagesSquare, hex: '#cf5a42', soft: 'rgba(207,90,66,0.12)'},
+    // Năm cặp màu này TRÙNG KHÍT token màu lĩnh vực + warn, chỉ là trước đây gõ lại bằng hex và
+    // rgba. `soft` pha ra từ chính màu ấy thay vì gõ tay bộ rgb tương ứng — đổi token một lần là
+    // đủ, không phải nhớ sửa thêm ba con số ở đây.
+    {href: '/roster', label: tn('roster'), desc: t('linkRoster'), Icon: Users, hex: 'var(--color-subj-knowledge)', soft: softOf('var(--color-subj-knowledge)')},
+    {href: '/wig', label: tn('wig'), desc: t('linkWig'), Icon: Target, hex: 'var(--color-subj-skills)', soft: softOf('var(--color-subj-skills)')},
+    {href: '/attendance', label: tn('attendance'), desc: t('linkAttendance'), Icon: ClipboardCheck, hex: 'var(--color-subj-english)', soft: softOf('var(--color-subj-english)')},
+    {href: '/scoreboard', label: tn('compete'), desc: t('linkScoreboard'), Icon: Trophy, hex: 'var(--color-warn)', soft: softOf('var(--color-warn)')},
+    {href: '/meeting', label: tn('meeting'), desc: t('linkMeeting'), Icon: MessagesSquare, hex: 'var(--color-subj-physical)', soft: softOf('var(--color-subj-physical)')},
   ];
 
   const metaChip = 'inline-flex items-center gap-1.5 rounded-full bg-navy/[0.06] px-3 py-1 text-[12px] font-bold text-txt';
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href="/admin" className="text-[12.5px] font-extrabold text-gold-deep hover:underline">
+      <Link href="/admin" className="text-[12.5px] font-extrabold text-gold-text hover:underline">
         {t('backToAdmin')}
       </Link>
 
@@ -85,7 +89,7 @@ export default async function ClassDetailPage({
       <section className="glass rounded-[22px] p-6">
         <div className="flex flex-wrap items-center gap-2.5">
           <h1 className="font-display text-[26px] font-bold leading-none text-navy">{cls.name}</h1>
-          <span className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/10 px-3 py-1 text-[11.5px] font-extrabold text-gold-deep">
+          <span className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/10 px-3 py-1 text-[11.5px] font-extrabold text-gold-text">
             {cls.school_year}
           </span>
           {!cls.is_active && (

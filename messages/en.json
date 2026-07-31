@@ -195,7 +195,9 @@
     "removeTick": "Remove tick",
     "confirmDeleteLead": "Delete this lead measure and all its ticks? Cannot be undone.",
     "confirmDeleteWig": "Delete this personal WIG (incl. its weekly WIGs/leads)? Cannot be undone.",
-    "titleLabel": "Goal name"
+    "titleLabel": "Goal name",
+    "deleteWig": "Delete WIG",
+    "deleteLead": "Delete lead measure"
   },
   "admin": {
     "title": "System administration",
@@ -298,7 +300,9 @@
     "gradesAuto": "Seeded from school level",
     "pickLevelFirst": "Pick a school level to seed grades",
     "willSeed": "Will create",
-    "manualGradeHint": "Preschool grades are not numbered — add them manually"
+    "manualGradeHint": "Preschool grades are not numbered — add them manually",
+    "deleteClass": "Delete class",
+    "deleteGrade": "Delete grade"
   },
   "dashboard": {
     "welcome": "Hello",
@@ -353,7 +357,9 @@
     "startDate": "Start date",
     "endDate": "End date",
     "from": "From",
-    "tickLockLabel": "Tick lock day"
+    "tickLockLabel": "Tick lock day",
+    "deleteWig": "Delete WIG",
+    "deleteLead": "Delete lead measure"
   },
   "meeting": {
     "title": "Weekly WIG meeting",
@@ -370,7 +376,8 @@
     "confirmDeleteMeeting": "Delete these minutes? Cannot be undone.",
     "lockDow": "Lock weekly ticks on",
     "lockSave": "Save",
-    "lockHint": "Students tick, untick and back-fill freely all week. From the day after this, it locks so the meeting reads settled numbers. Set it before your meeting day."
+    "lockHint": "Students tick, untick and back-fill freely all week. From the day after this, it locks so the meeting reads settled numbers. Set it before your meeting day.",
+    "deleteMeeting": "Delete minutes"
   },
   "report": {
     "title": "Parent report",
@@ -519,7 +526,8 @@
     "approve": "Approve",
     "reject": "Reject",
     "results": "Last week results",
-    "message": "Message"
+    "message": "Message",
+    "deleteMeeting": "Delete minutes"
   },
   "campusReport": {
     "title": "Campus report",

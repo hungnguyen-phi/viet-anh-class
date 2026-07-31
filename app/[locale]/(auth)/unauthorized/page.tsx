@@ -2,6 +2,7 @@ import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {ShieldAlert, LogOut} from 'lucide-react';
 import {signOut} from '@/lib/auth-actions';
 import {LocaleSwitcher} from '@/components/shell/LocaleSwitcher';
+import {SubmitButton} from '@/components/ui/SubmitButton';
 
 export default async function UnauthorizedPage({
   params,
@@ -32,13 +33,13 @@ export default async function UnauthorizedPage({
           {t('message')}
         </p>
         <form action={signOut} className="mt-6">
-          <button
-            type="submit"
+          <SubmitButton
             className="btn-gold inline-flex cursor-pointer items-center gap-2 rounded-[12px] px-6 py-2.5 font-display font-bold"
+            wrapClass="inline-flex items-center gap-2"
           >
             <LogOut size={17} strokeWidth={2.2} />
             {t('signOut')}
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </main>

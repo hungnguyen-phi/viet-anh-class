@@ -86,7 +86,7 @@ function MoodCard({
         {now}
       </div>
       {required && (
-        <div className="mt-2 text-center text-[12.5px] font-bold text-gold-deep">{t('moodRequired')}</div>
+        <div className="mt-2 text-center text-[12.5px] font-bold text-gold-text">{t('moodRequired')}</div>
       )}
       <div className="mt-4 flex justify-center gap-2.5">
         {DISPLAY.map((k) => {
@@ -263,7 +263,7 @@ export function MoodCheckin({
       {/* Inline trong hero */}
       <div className="flex flex-col justify-center gap-2.5">
         <div className="flex items-center gap-2">
-          <span className="whitespace-nowrap text-[13px] font-extrabold text-gold-deep">
+          <span className="whitespace-nowrap text-[13px] font-extrabold text-gold-text">
             {t('mood')}
           </span>
           <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-navy/[0.07] px-2.5 py-1 text-[11px] font-extrabold text-navy">

@@ -324,7 +324,11 @@ export default async function TimetablePage({
                             <button
                               type="submit"
                               aria-label={t('delete')}
-                              className="grid h-4 w-4 cursor-pointer place-items-center rounded text-status-bad"
+                              // 24px chứ không phải 16px: WCAG 2.5.8 (AA) đòi vùng chạm tối thiểu
+                              // 24×24, và đây là nút XOÁ không hoàn tác được. Không nới tới 44px
+                              // vì ô lịch chật và ngay bên dưới là liên kết sửa tiết — nút to hơn
+                              // nữa sẽ đè lên tên môn.
+                              className="grid h-6 w-6 cursor-pointer place-items-center rounded text-status-bad"
                             >
                               ✕
                             </button>
@@ -358,7 +362,7 @@ export default async function TimetablePage({
                     ...(weekParam ? {week: weekParam} : {}),
                   },
                 }}
-                className="text-[11.5px] font-extrabold text-gold-deep underline underline-offset-2"
+                className="text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
               >
                 {t('editCancel')}
               </Link>
@@ -510,12 +514,9 @@ export default async function TimetablePage({
                       <form action={deleteOverride} className="ml-auto">
                         <input type="hidden" name="class_id" value={myClass.id} />
                         <input type="hidden" name="id" value={o.id} />
-                        <button
-                          type="submit"
-                          className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-1 text-[11px] font-extrabold text-navy hover:border-navy"
-                        >
+                        <SubmitButton className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-1 text-[11px] font-extrabold text-navy hover:border-navy">
                           {t('ovRemove')}
-                        </button>
+                        </SubmitButton>
                       </form>
                     </div>
                   );

@@ -368,7 +368,7 @@ export default async function HomeworkPage({
                         {tenMon(p)}
                       </span>
                       {p.due_date && (
-                        <span className="inline-flex shrink-0 items-center gap-1 text-[11.5px] font-extrabold text-gold-deep">
+                        <span className="inline-flex shrink-0 items-center gap-1 text-[11.5px] font-extrabold text-gold-text">
                           <CalendarClock size={12} strokeWidth={2.5} />
                           Hạn nộp {ngayNgan(p.due_date)}
                         </span>

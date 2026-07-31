@@ -115,7 +115,7 @@ export default async function GalleryPage({
         <div className="glass rounded-[20px] p-4">
           <Link
             href={{pathname: '/gallery', query: classParam ? {class: classParam} : {}}}
-            className="mb-2 inline-flex items-center gap-1 text-[11.5px] font-extrabold text-gold-deep underline underline-offset-2"
+            className="mb-2 inline-flex items-center gap-1 text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
           >
             <ArrowLeft size={12} strokeWidth={3} />
             Tất cả album

@@ -1,6 +1,7 @@
 import {getTranslations} from 'next-intl/server';
 import {MessagesSquare, UserRound, Sparkles, Target, Lock, Unlock} from 'lucide-react';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {btnIconDanger} from '@/components/ui/Field';
 import {deleteStudentMeeting, toggleBuddyChat} from '@/app/[locale]/(dashboard)/student/actions';
 import {StudentMeetingForm, type PlanArea} from './StudentMeetingForm';
 import {BuddyChat, type BuddyMessage} from './BuddyChat';
@@ -91,7 +92,8 @@ export async function StudentMeetings({
                     <input type="hidden" name="meeting_id" value={m.id} />
                     <ConfirmButton
                       message={t('confirmDeleteMeeting')}
-                      className="grid h-7 w-7 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                      label={t('deleteMeeting')}
+                      className={btnIconDanger}
                     >
                       ✕
                     </ConfirmButton>
@@ -118,7 +120,7 @@ export async function StudentMeetings({
               )}
               {m.buddy_note && (
                 <div className="mt-3 rounded-[14px] border-[1.5px] border-gold/40 bg-gold/[0.07] p-3">
-                  <div className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.04em] text-gold-deep">
+                  <div className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.04em] text-gold-text">
                     <Sparkles size={12} strokeWidth={2.5} />
                     {t('buddyNote')}
                   </div>

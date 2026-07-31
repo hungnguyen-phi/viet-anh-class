@@ -387,7 +387,7 @@ export async function StudentScoreboard({
             ★
           </span>
           <div className="min-w-0">
-            <div className="text-[12px] font-extrabold uppercase tracking-[0.04em] text-gold-deep">
+            <div className="text-[12px] font-extrabold uppercase tracking-[0.04em] text-gold-text">
               {t('title')}
             </div>
             <h1 className="font-display text-[30px] font-bold leading-[1.15] text-navy">

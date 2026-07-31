@@ -136,7 +136,7 @@ export default async function ReportPage({
       <div className="glass animate-rise rounded-[26px] p-6 sm:p-7">
         <div className="flex flex-wrap items-start gap-4">
           <div className="min-w-0">
-            <div className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gold-deep">
+            <div className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gold-text">
               {t('title')}
             </div>
             <h1 className="mt-0.5 font-display text-[27px] font-bold leading-tight text-navy">
@@ -225,7 +225,7 @@ export default async function ReportPage({
                       className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-extrabold"
                       style={{
                         background: r.wig_won ? 'rgba(30,138,90,0.12)' : 'rgba(192,57,43,0.12)',
-                        color: r.wig_won ? 'var(--color-success-dark)' : '#c0392b',
+                        color: r.wig_won ? 'var(--color-success-dark)' : 'var(--color-status-bad)',
                       }}
                     >
                       {r.wig_won ? (

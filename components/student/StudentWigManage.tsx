@@ -138,7 +138,7 @@ export function StudentWigManage({
                         <form action={deleteStudentLead}>
                           <input type="hidden" name="student_id" value={studentId} />
                           <input type="hidden" name="lead_measure_id" value={l.id} />
-                          <ConfirmButton message={t('confirmDeleteLead')} className={danger}>✕</ConfirmButton>
+                          <ConfirmButton message={t('confirmDeleteLead')} label={t('deleteLead')} className={danger}>✕</ConfirmButton>
                         </form>
                       </span>
                     </div>
@@ -192,7 +192,7 @@ function WigRowEdit({
         <form action={deleteStudentWig}>
           <input type="hidden" name="student_id" value={studentId} />
           <input type="hidden" name="wig_id" value={w.id} />
-          <ConfirmButton message={t('confirmDeleteWig')} className={danger}>✕</ConfirmButton>
+          <ConfirmButton message={t('confirmDeleteWig')} label={t('deleteWig')} className={danger}>✕</ConfirmButton>
         </form>
       </span>
     </div>

@@ -224,7 +224,7 @@ export function LoginForm() {
           <button
             type="button"
             onClick={() => setShowParent(true)}
-            className="mx-auto mt-3 block cursor-pointer px-1.5 py-1 text-xs font-extrabold text-gold-deep underline underline-offset-[3px]"
+            className="mx-auto mt-3 block cursor-pointer px-1.5 py-1 text-xs font-extrabold text-gold-text underline underline-offset-[3px]"
           >
             {t('parentLink')}
           </button>

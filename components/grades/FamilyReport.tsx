@@ -202,7 +202,7 @@ export async function FamilyReport({
       <div className="glass animate-rise rounded-[26px] p-6 sm:p-7">
         <div className="flex flex-wrap items-start gap-4">
           <div className="min-w-0">
-            <div className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gold-deep">
+            <div className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gold-text">
               Học bạ
             </div>
             <h1 className="mt-0.5 font-display text-[27px] font-bold leading-tight text-navy">

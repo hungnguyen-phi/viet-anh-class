@@ -310,7 +310,7 @@ export function AppNav({
                 <div className="truncate text-[14px] font-extrabold leading-tight text-navy">
                   {displayName}
                 </div>
-                <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-gold-deep">
+                <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-gold-text">
                   {tr(role)}
                 </div>
               </div>

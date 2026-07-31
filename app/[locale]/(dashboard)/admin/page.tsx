@@ -579,7 +579,7 @@ export default async function AdminPage({
             >
               <div className="flex items-center justify-between">
                 <span className="font-display text-[15px] font-bold text-navy">{s.label}</span>
-                <span className="text-xs font-extrabold text-gold-deep">{tcommon('open')} →</span>
+                <span className="text-xs font-extrabold text-gold-text">{tcommon('open')} →</span>
               </div>
               <p className="mt-1 text-xs text-grey-mid">{s.desc}</p>
               <code className="mt-1 block text-[11px] text-grey-mid">{s.href}</code>
@@ -625,12 +625,9 @@ function ArchivedCol({
             <form action={action}>
               <input type="hidden" name="id" value={r.id} />
               <input type="hidden" name="active" value="true" />
-              <button
-                type="submit"
-                className="h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700"
-              >
+              <SubmitButton className="h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700">
                 {restoreLabel}
-              </button>
+              </SubmitButton>
             </form>
           </div>
         ))}

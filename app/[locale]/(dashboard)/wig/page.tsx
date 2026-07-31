@@ -8,7 +8,7 @@ import {ConfirmButton} from '@/components/ui/ConfirmButton';
 // "Ghi +" và "Tạo WIG tuần" xong không thấy dấu hiệu gì nên tưởng hỏng, bấm lại nhiều lần —
 // nút này khoá + hiện spinner ngay khi bấm, và chặn luôn double-submit.
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {Field, inputCls, inputInline, btnGhost, btnGold} from '@/components/ui/Field';
+import {Field, inputCls, inputInline, btnGhost, btnGold, btnIconDanger} from '@/components/ui/Field';
 import {WigCreateForm} from './WigCreateForm';
 import {
   addLeadMeasure,
@@ -381,7 +381,7 @@ export default async function WigPage({
               <form action={deleteLeadMeasure}>
                 <input type="hidden" name="class_id" value={myClass.id} />
                 <input type="hidden" name="lead_measure_id" value={l.id} />
-                <ConfirmButton message={t('confirmDeleteLead')} className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]">
+                <ConfirmButton message={t('confirmDeleteLead')} label={t('deleteLead')} className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]">
                   ✕
                 </ConfirmButton>
               </form>
@@ -432,7 +432,7 @@ export default async function WigPage({
           <form action={deleteWig}>
             <input type="hidden" name="class_id" value={myClass.id} />
             <input type="hidden" name="wig_id" value={mw.id} />
-            <ConfirmButton message={t('confirmDeleteWig')} className="grid h-7 w-7 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]">
+            <ConfirmButton message={t('confirmDeleteWig')} label={t('deleteWig')} className={btnIconDanger}>
               ✕
             </ConfirmButton>
           </form>

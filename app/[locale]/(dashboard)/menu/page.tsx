@@ -283,7 +283,7 @@ export default async function MenuPage({
             {editingDate && (
               <Link
                 href={{pathname: '/menu', query: q()}}
-                className="text-[11.5px] font-extrabold text-gold-deep underline underline-offset-2"
+                className="text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
               >
                 Bỏ chọn ô
               </Link>

@@ -2,6 +2,7 @@ import {getTranslations} from 'next-intl/server';
 import {Clock3} from 'lucide-react';
 import {updateEditRequest, withdrawEditRequest} from '@/app/[locale]/(dashboard)/student/actions';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {SubmitButton} from '@/components/ui/SubmitButton';
 import {kindLabel} from './RequestInbox';
 
 export type MyRequest = {
@@ -51,12 +52,9 @@ export async function MyRequests({
                 placeholder={t('requestEditPlaceholder')} aria-label={t('requestEditPlaceholder')}
                 className="min-h-[52px] min-w-0 flex-1 resize-y rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-[13px] font-semibold text-navy outline-none focus:border-navy"
               />
-              <button
-                type="submit"
-                className="btn-gold h-10 shrink-0 cursor-pointer rounded-[10px] px-4 text-[12.5px] font-extrabold"
-              >
+              <SubmitButton className="btn-gold h-10 shrink-0 cursor-pointer rounded-[10px] px-4 text-[12.5px] font-extrabold">
                 {t('requestSend')}
-              </button>
+              </SubmitButton>
             </form>
             <form action={withdrawEditRequest} className="mt-2">
               <input type="hidden" name="student_id" value={studentId} />

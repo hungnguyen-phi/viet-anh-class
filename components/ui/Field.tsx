@@ -49,6 +49,21 @@ export const btnNavy = `${BTN_BASE} bg-navy text-white hover:bg-navy-700`;
 export const btnGhost = `${BTN_BASE} border-[1.5px] border-navy/20 bg-white text-navy hover:border-navy`;
 export const btnDanger = `${BTN_BASE} border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-3 text-status-bad hover:bg-status-bad/[0.16]`;
 
+// Nút XOÁ chỉ có icon, dùng ở đầu mỗi thẻ (biên bản họp, WIG…).
+//
+// Chuỗi class này trước đây được CHÉP TAY nguyên văn ở 4 file. Gom về đây để sửa một lần là đổi
+// khắp nơi — và để lần sau không mọc thêm bản thứ năm lệch một hai lớp so với bốn bản kia.
+//
+// VÙNG CHẠM 28px: đạt WCAG 2.5.8 (mức AA, ngưỡng 24×24). Ngưỡng 44px là 2.5.5 mức AAA, và là
+// luật riêng của dự án cho MÀN HỌC SINH — nút này chỉ hiện với `canManage`, tức giáo viên/quản
+// trị trên laptop, nên 28px là đúng mức.
+//
+// ĐÃ CÂN NHẮC VÀ BỎ: nới vùng chạm lên 44px bằng lớp phủ `after:-inset-2`. Ở /wig nút này đứng
+// ngay sát liên kết "Sửa"; lớp phủ trong suốt tràn 8px sang trái sẽ nằm ĐÈ lên liên kết đó, và
+// người dùng bấm "Sửa" lại ra hộp thoại xoá. Đổi một lỗi nhỏ lấy một lỗi lớn hơn.
+export const btnIconDanger =
+  'grid h-7 w-7 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]';
+
 // Nhãn: hoa nhỏ, đậm — giữ đúng kiểu nhãn đã dùng ở WigCreateForm.
 export const labelCls =
   'mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';

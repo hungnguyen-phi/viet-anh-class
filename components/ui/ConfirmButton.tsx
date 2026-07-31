@@ -18,12 +18,23 @@ import {SlowNotice} from './SlowNotice';
 // giữa. Các nút này nằm trong hàng bảng chật nên không được phép nhảy bố cục.
 export function ConfirmButton({
   message,
-  className = 'cursor-pointer rounded-[10px] border-[1.5px] border-[rgba(192,57,43,0.3)] bg-[rgba(192,57,43,0.12)] px-3 py-1.5 text-sm font-bold text-status-bad transition-all hover:bg-[rgba(192,57,43,0.2)] active:translate-y-px',
+  // rgba(192,57,43,…) là --color-status-bad gõ lại bằng tay. Pha từ chính token để đổi một chỗ
+  // là đổi cả nút, thay vì phải nhớ ba con số này nằm ở đây.
+  className = 'cursor-pointer rounded-[10px] border-[1.5px] border-[color-mix(in_srgb,var(--color-status-bad)_30%,transparent)] bg-[color-mix(in_srgb,var(--color-status-bad)_12%,transparent)] px-3 py-1.5 text-sm font-bold text-status-bad transition-all hover:bg-[color-mix(in_srgb,var(--color-status-bad)_20%,transparent)] active:translate-y-px',
   children,
+  label,
 }: {
   message: string;
   className?: string;
   children: React.ReactNode;
+  /**
+   * TÊN ĐỌC ĐƯỢC của nút, cho nút chỉ có ký hiệu.
+   *
+   * Phần lớn nút xoá trong app có nội dung đúng một chữ "✕". Trình đọc màn hình đọc ký tự đó
+   * thành "dấu nhân" — người khiếm thị nghe được là có một nút tên "dấu nhân", không biết nó
+   * xoá cái gì. Truyền `label` vào là nút có tên thật, còn mắt thường vẫn chỉ thấy dấu ✕.
+   */
+  label?: string;
 }) {
   const {pending} = useFormStatus();
 
@@ -33,6 +44,7 @@ export function ConfirmButton({
         type="submit"
         disabled={pending}
         aria-busy={pending}
+        aria-label={label}
         className={`relative ${className}`}
         onClick={(e) => {
           if (!window.confirm(message)) e.preventDefault();

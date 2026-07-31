@@ -16,7 +16,11 @@
   --color-gold: #f9dd0e;
   --color-gold-soft: #ffe94d;
   --color-gold-mid: #e3b400; /* viền/sao đầy */
-  --color-gold-deep: #b98900; /* chữ gold trên nền sáng (đủ tương phản) */
+  /* CHỮ GOLD, HAI NẤC THEO CỠ CHỮ — WCAG 2.1 đòi tương phản khác nhau cho chữ to và chữ nhỏ.
+     Trước đây chỉ có một nấc `gold-deep`, chú thích ghi "đủ tương phản"; đúng với chữ TO, nhưng
+     nó bị đem dùng cho cả nhãn 11.5–12.5px ở 20 chỗ, và ở cỡ đó thì thiếu chuẩn. */
+  --color-gold-deep: #b98900; /* 3.19:1 trên trắng — CHỈ dùng cho chữ ≥18px, hoặc ≥14px in đậm */
+  --color-gold-text: #8a6600; /* 5.32:1 trên trắng — dùng cho MỌI chữ dưới 14px */
 
   /* Bề mặt & mực */
   --color-canvas: #ebf0ec; /* nền cơ sở dưới lớp gradient */

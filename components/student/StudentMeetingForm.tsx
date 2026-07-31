@@ -163,7 +163,7 @@ export function StudentMeetingForm({
       {/* ===== Kế hoạch tuần sau — phần sinh dữ liệu thật ===== */}
       <div className="rounded-[14px] border-[1.5px] border-gold/40 bg-gold/[0.06] p-3.5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.04em] text-gold-deep">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.04em] text-gold-text">
             <Target size={13} strokeWidth={2.5} />
             {t('planTitle', {week: nextWeekLabel})}
           </span>

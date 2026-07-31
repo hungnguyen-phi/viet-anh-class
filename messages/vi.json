@@ -195,7 +195,9 @@
     "removeTick": "Gỡ lượt tick",
     "confirmDeleteLead": "Xoá lead measure này và toàn bộ lượt tick? Không thể hoàn tác.",
     "confirmDeleteWig": "Xoá WIG cá nhân này (kèm WIG tuần/lead bên trong)? Không thể hoàn tác.",
-    "titleLabel": "Tên mục tiêu"
+    "titleLabel": "Tên mục tiêu",
+    "deleteWig": "Xoá WIG",
+    "deleteLead": "Xoá việc dẫn dắt"
   },
   "admin": {
     "title": "Quản trị hệ thống",
@@ -298,7 +300,9 @@
     "gradesAuto": "Tự sinh theo cấp học",
     "pickLevelFirst": "Chọn cấp học để hệ thống sinh khối",
     "willSeed": "Sẽ tạo",
-    "manualGradeHint": "Mầm non không đánh số khối — hãy thêm bằng tay (Nhà trẻ, Mầm, Chồi, Lá…)"
+    "manualGradeHint": "Mầm non không đánh số khối — hãy thêm bằng tay (Nhà trẻ, Mầm, Chồi, Lá…)",
+    "deleteClass": "Xoá lớp",
+    "deleteGrade": "Xoá khối"
   },
   "dashboard": {
     "welcome": "Xin chào",
@@ -353,7 +357,9 @@
     "startDate": "Ngày bắt đầu",
     "endDate": "Ngày kết thúc",
     "from": "Từ",
-    "tickLockLabel": "Ngày chốt tick"
+    "tickLockLabel": "Ngày chốt tick",
+    "deleteWig": "Xoá WIG",
+    "deleteLead": "Xoá việc dẫn dắt"
   },
   "meeting": {
     "title": "Họp WIG tuần",
@@ -370,7 +376,8 @@
     "confirmDeleteMeeting": "Xoá biên bản họp này? Không thể hoàn tác.",
     "lockDow": "Chốt tick tuần vào",
     "lockSave": "Lưu",
-    "lockHint": "Học sinh tự tick / bỏ tick / tick bù cả tuần. Từ sau ngày này là khoá, để buổi họp đọc số liệu đã chốt. Đặt trước ngày lớp họp."
+    "lockHint": "Học sinh tự tick / bỏ tick / tick bù cả tuần. Từ sau ngày này là khoá, để buổi họp đọc số liệu đã chốt. Đặt trước ngày lớp họp.",
+    "deleteMeeting": "Xoá biên bản"
   },
   "report": {
     "title": "Báo cáo phụ huynh",
@@ -519,7 +526,8 @@
     "approve": "Duyệt",
     "reject": "Từ chối",
     "results": "Kết quả tuần trước",
-    "message": "Nội dung"
+    "message": "Nội dung",
+    "deleteMeeting": "Xoá biên bản"
   },
   "campusReport": {
     "title": "Báo cáo cơ sở",

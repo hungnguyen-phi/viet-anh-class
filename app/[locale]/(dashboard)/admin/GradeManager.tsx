@@ -96,7 +96,7 @@ export function GradeManager({
               </form>
               <form action={deleteGrade}>
                 <input type="hidden" name="id" value={g.id} />
-                <ConfirmButton message={t('confirmDeleteGrade')} className={danger}>
+                <ConfirmButton message={t('confirmDeleteGrade')} label={t('deleteGrade')} className={danger}>
                   ✕
                 </ConfirmButton>
               </form>

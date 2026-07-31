@@ -61,7 +61,7 @@ export function BuddyChat({
   return (
     <div className="mt-3 rounded-[14px] border-[1.5px] border-navy/12 bg-white/60 p-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.04em] text-gold-deep">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.04em] text-gold-text">
           <Sparkles size={12} strokeWidth={2.5} />
           {t('buddyChatTitle')}
         </span>

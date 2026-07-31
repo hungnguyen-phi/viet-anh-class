@@ -212,7 +212,7 @@ export default async function AttendancePage({
       )}
 
       {dateNotice && (
-        <p className="rounded-[10px] bg-gold/15 px-3 py-2 text-[12.5px] font-semibold text-gold-deep">
+        <p className="rounded-[10px] bg-gold/15 px-3 py-2 text-[12.5px] font-semibold text-gold-text">
           {dateNotice}
         </p>
       )}

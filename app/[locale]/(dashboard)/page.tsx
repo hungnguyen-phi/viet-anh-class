@@ -38,11 +38,16 @@ type LeadRow = {
 // AREAS + màu/icon/nhãn lĩnh vực ("Môn") lấy từ lib/areas (đọc area_config, fallback = giá trị cũ).
 
 // Meta trạng thái WIG (label lấy từ i18n, màu/nền theo design system v3).
+// Ba màu này TRÙNG KHÍT token success/warn/status-bad, chỉ là trước đây gõ lại bằng hex — nên
+// đổi token trong globals.css thì trang lớp vẫn giữ màu cũ. Nay trỏ thẳng vào token.
 const STATUS_META: Record<string, {color: string; bg: string}> = {
-  on_track: {color: '#1e8a5a', bg: 'rgba(30,138,90,0.12)'},
-  mid: {color: '#b98900', bg: 'rgba(185,137,0,0.12)'},
-  off_track: {color: '#c0392b', bg: 'rgba(192,57,43,0.12)'},
+  on_track: {color: 'var(--color-success)', bg: softOf('var(--color-success)')},
+  mid: {color: 'var(--color-warn)', bg: softOf('var(--color-warn)')},
+  off_track: {color: 'var(--color-status-bad)', bg: softOf('var(--color-status-bad)')},
 };
+function softOf(c: string): string {
+  return `color-mix(in srgb, ${c} 12%, transparent)`;
+}
 
 export default async function ClassPage({
   params,
@@ -175,11 +180,11 @@ export default async function ClassPage({
           className="animate-rise flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-[20px] p-5 text-white"
           style={{
             background: isWinning
-              ? 'linear-gradient(120deg,#1e8a5a 0%,#16724a 100%)'
-              : 'linear-gradient(120deg,#c0392b 0%,#9e2f23 100%)',
+              ? 'linear-gradient(120deg,var(--color-success) 0%,var(--color-success-dark) 100%)'
+              : 'linear-gradient(120deg,var(--color-status-bad) 0%,var(--color-status-bad-dark) 100%)',
             boxShadow: isWinning
-              ? '0 10px 26px rgba(30,138,90,0.3)'
-              : '0 10px 26px rgba(192,57,43,0.3)',
+              ? '0 10px 26px color-mix(in srgb, var(--color-success) 30%, transparent)'
+              : '0 10px 26px color-mix(in srgb, var(--color-status-bad) 30%, transparent)',
           }}
         >
           <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full bg-white/15 ring-2 ring-white/30">
@@ -214,7 +219,7 @@ export default async function ClassPage({
           <h1 className="font-display text-[28px] font-bold leading-none text-navy">
             {myClass.name}
           </h1>
-          <span className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/10 px-3 py-1 text-[11.5px] font-extrabold text-gold-deep">
+          <span className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/10 px-3 py-1 text-[11.5px] font-extrabold text-gold-text">
             {myClass.school_year}
           </span>
           {rank && (
@@ -399,7 +404,12 @@ export default async function ClassPage({
             <div className="glass overflow-x-auto rounded-[20px]">
               {leads.map((l, i) => {
                 const pct = l.target > 0 ? Math.min(1, l.actual / l.target) : 0;
-                const barBg = pct >= 1 ? '#1e8a5a' : pct >= 0.5 ? '#e3b400' : '#c0392b';
+                const barBg =
+                  pct >= 1
+                    ? 'var(--color-success)'
+                    : pct >= 0.5
+                      ? 'var(--color-gold-mid)'
+                      : 'var(--color-status-bad)';
                 return (
                   <div
                     key={l.id}

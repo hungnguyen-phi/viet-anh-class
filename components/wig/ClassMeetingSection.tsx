@@ -1,6 +1,7 @@
 import {getTranslations} from 'next-intl/server';
 import {createClient} from '@/lib/supabase/server';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {btnIconDanger} from '@/components/ui/Field';
 import {MeetingScoreboard} from '@/components/wig/MeetingScoreboard';
 import {MeetingForm} from '@/app/[locale]/(dashboard)/meeting/MeetingForm';
 import {deleteMeeting} from '@/app/[locale]/(dashboard)/meeting/actions';
@@ -104,7 +105,8 @@ export async function ClassMeetingSection({
                     {classParam && <input type="hidden" name="class" value={classParam} />}
                     <ConfirmButton
                       message={t('confirmDeleteMeeting')}
-                      className="grid h-7 w-7 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                      label={t('deleteMeeting')}
+                      className={btnIconDanger}
                     >
                       ✕
                     </ConfirmButton>

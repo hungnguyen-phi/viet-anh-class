@@ -4,6 +4,7 @@ import {useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {PencilLine} from 'lucide-react';
 import {createEditRequest} from '@/app/[locale]/(dashboard)/student/actions';
+import {SubmitButton} from '@/components/ui/SubmitButton';
 
 // CHỈ CÒN MỘT LOẠI yêu cầu (0046): xin đổi tên lead measure.
 //
@@ -90,12 +91,9 @@ export function EditRequestButton({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="submit"
-              className="btn-gold h-10 cursor-pointer rounded-[10px] px-4 text-[12.5px] font-extrabold"
-            >
+            <SubmitButton className="btn-gold h-10 cursor-pointer rounded-[10px] px-4 text-[12.5px] font-extrabold">
               {t('requestSend')}
-            </button>
+            </SubmitButton>
             <button
               type="button"
               onClick={() => setOpen(false)}
