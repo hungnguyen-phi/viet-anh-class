@@ -1,3 +1,4 @@
+import {getTranslations} from 'next-intl/server';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, selectInline, inputInline, btnGold} from '@/components/ui/Field';
 import {tenCot, type ScoreKind} from '@/components/grades/labels';
@@ -14,7 +15,7 @@ export type ScoreCell = {reviewId: string; name: string; current: string};
  * Tên em CHÍNH LÀ nhãn của ô nhập (<label htmlFor>): vừa đúng a11y (dự án đã bị người thử phàn
  * nàn chuyện ô không có nhãn), vừa cho phép bấm vào tên là nhảy con trỏ vào ô điểm.
  */
-export function ScoreColumnForm({
+export async function ScoreColumnForm({
   classId,
   termId,
   subjectId,
@@ -35,6 +36,7 @@ export function ScoreColumnForm({
   weight: number;
   rows: ScoreCell[];
 }) {
+  const t = await getTranslations('grades');
   return (
     <form action={saveScoreColumn} className="glass rounded-[20px] p-4">
       <input type="hidden" name="class_id" value={classId} />
@@ -49,14 +51,14 @@ export function ScoreColumnForm({
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <div className="font-display text-[15px] font-bold text-navy">
-            Nhập điểm cả lớp · {tenCot(subjectName, kind, ordinal)}
+            {t('enterForClass', {column: tenCot(subjectName, kind, ordinal, t)})}
           </div>
           <p className="mt-0.5 text-[11px] italic text-grey-mid">
-            Nhập từ trên xuống rồi bấm Lưu một lần. Ô để trống nghĩa là xoá con điểm đó của em ấy.
+            {t('columnFormHint')}
           </p>
         </div>
         <div className="flex items-end gap-2">
-          <Field label="Hệ số" htmlFor="grades-weight">
+          <Field label={t('fWeight')} htmlFor="grades-weight">
             <select
               id="grades-weight"
               name="weight"
@@ -71,7 +73,7 @@ export function ScoreColumnForm({
             </select>
           </Field>
           <SubmitButton className={btnGold} wrapClass="contents">
-            Lưu cột điểm
+            {t('saveColumn')}
           </SubmitButton>
         </div>
       </div>

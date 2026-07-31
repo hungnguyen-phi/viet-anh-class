@@ -1,4 +1,5 @@
-import {soVN, CONDUCT_LABEL, CONDUCT_CHIP, type Conduct} from '@/components/grades/labels';
+import {getTranslations} from 'next-intl/server';
+import {soVN, CONDUCT_CHIP, type Conduct} from '@/components/grades/labels';
 
 export type ScoreTableRow = {
   studentId: string;
@@ -31,13 +32,14 @@ export type MonCot = {id: string; name: string; short_name: string};
  * theo lớp, mà Tailwind v4 chỉ sinh CSS cho chuỗi class thấy được lúc build — ghép chuỗi động là
  * class không tồn tại.
  */
-export function ClassScoreTable({
+export async function ClassScoreTable({
   subjects,
   rows,
 }: {
   subjects: MonCot[];
   rows: ScoreTableRow[];
 }) {
+  const t = await getTranslations('grades');
   const minWidth = 470 + subjects.length * 88;
 
   const tbLop = (monId: string): number | null => {
@@ -54,7 +56,7 @@ export function ClassScoreTable({
       >
         <span className="w-[22px] flex-none text-[11px] font-extrabold text-grey-mid">#</span>
         <span className="flex-[1.4] text-[11px] font-extrabold uppercase text-grey-mid">
-          Học sinh
+          {t('thStudent')}
         </span>
         {/* Ô tiêu đề rộng 80px: hiện MÃ NGẮN của môn (cột short_name có sẵn trong danh mục, đặt
             ra đúng cho ô hẹp), tên đầy đủ để trong title. Trước 0069 chỗ này hiện tên đầy đủ và
@@ -69,10 +71,10 @@ export function ClassScoreTable({
           </span>
         ))}
         <span className="w-[104px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid">
-          Hạnh kiểm
+          {t('thConduct')}
         </span>
         <span className="w-[92px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid">
-          Trạng thái
+          {t('thStatus')}
         </span>
       </div>
 
@@ -87,7 +89,7 @@ export function ClassScoreTable({
             <span className="min-w-0 truncate text-[13.5px] font-bold text-navy">{r.name}</span>
             {r.daRoiLop && (
               <span
-                title="Em đã rời lớp giữa đợt. Phiếu và điểm cũ vẫn giữ nguyên, nhưng không sửa nhận xét/hạnh kiểm và không công bố thêm được nữa."
+                title={t('leftClassTitle')}
                 className="inline-flex shrink-0 items-center gap-1 rounded-full bg-navy/[0.07] px-2 py-0.5 text-[10.5px] font-extrabold text-navy/70"
               >
                 ○ đã rời lớp
@@ -109,7 +111,7 @@ export function ClassScoreTable({
               <span
                 className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10.5px] font-extrabold ${CONDUCT_CHIP[r.conduct]}`}
               >
-                {CONDUCT_LABEL[r.conduct]}
+                {t(`conducts.${r.conduct}`)}
               </span>
             ) : (
               <span className="text-[12px] font-semibold text-navy/25">—</span>
@@ -121,7 +123,7 @@ export function ClassScoreTable({
                 r.published ? 'bg-gold/20 text-navy' : 'bg-navy/[0.08] text-grey-mid'
               }`}
             >
-              {r.published ? 'đã công bố' : 'bản nháp'}
+              {r.published ? t('published') : t('draft')}
             </span>
           </span>
         </div>
@@ -129,7 +131,7 @@ export function ClassScoreTable({
 
       {rows.length === 0 && (
         <div className="border-t border-navy/[0.08] px-[18px] py-8 text-center text-sm text-grey-mid">
-          Lớp chưa có phiếu nào trong đợt này.
+          {t('noSheetsInTerm')}
         </div>
       )}
 
@@ -140,7 +142,7 @@ export function ClassScoreTable({
         >
           <span className="w-[22px] flex-none" />
           <span className="flex-[1.4] text-[11px] font-extrabold uppercase text-grey-mid">
-            TB của lớp
+            {t('classAverage')}
           </span>
           {subjects.map((s) => (
             <span

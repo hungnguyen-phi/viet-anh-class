@@ -1,12 +1,17 @@
 import type {Database} from '@/lib/database.types';
 
 // ============================================================
-// Chữ nghĩa dùng chung của màn hình Học bạ.
+// Hằng số dùng chung của màn hình Học bạ.
 //
 // VÌ SAO GOM VÀO MỘT FILE: ba enum của migration 0064 (loại đợt, hạnh kiểm, loại điểm) xuất hiện
-// ở CẢ màn hình giáo viên LẪN màn hình phụ huynh. Mỗi nơi tự đặt tên tiếng Việt là kiểu lỗi
-// người dùng phát hiện trước mình: cô thấy "Cuối kỳ", phụ huynh thấy "Thi học kỳ", rồi cãi nhau
-// xem hai chỗ có phải cùng một cột điểm không. Một bảng chữ, một chỗ sửa.
+// ở CẢ màn hình giáo viên LẪN màn hình phụ huynh. Mỗi nơi tự đặt tên là kiểu lỗi người dùng phát
+// hiện trước mình: cô thấy "Cuối kỳ", phụ huynh thấy "Thi học kỳ", rồi cãi nhau xem hai chỗ có
+// phải cùng một cột điểm không. Một bảng chữ, một chỗ sửa.
+//
+// CHỮ thì nằm ở file dịch (grades.termKinds.* / grades.conducts.* / grades.scoreKinds.*), không
+// ở đây — trước kia ba bảng nhãn tiếng Việt viết cứng ngay trong file này nên bản tiếng Anh của
+// cả màn hình giáo viên lẫn học bạ gia đình vẫn ra tiếng Việt. File này giờ chỉ giữ thứ KHÔNG
+// phụ thuộc ngôn ngữ: danh sách khoá, thứ tự hiển thị, và lớp CSS của chip.
 //
 // Thứ tự trong các mảng là thứ tự HIỂN THỊ và trùng thứ tự enum trong Postgres — nhờ vậy
 // `.order('kind')` ở truy vấn ra đúng dãy này, không phải sắp lại ở client.
@@ -24,22 +29,7 @@ export const TERM_KINDS: TermKind[] = [
   'ca_nam',
 ];
 
-export const TERM_KIND_LABEL: Record<TermKind, string> = {
-  giua_ky_1: 'Giữa học kỳ 1',
-  hoc_ky_1: 'Học kỳ 1',
-  giua_ky_2: 'Giữa học kỳ 2',
-  hoc_ky_2: 'Học kỳ 2',
-  ca_nam: 'Cả năm',
-};
-
 export const CONDUCTS: Conduct[] = ['tot', 'kha', 'trung_binh', 'yeu'];
-
-export const CONDUCT_LABEL: Record<Conduct, string> = {
-  tot: 'Tốt',
-  kha: 'Khá',
-  trung_binh: 'Trung bình',
-  yeu: 'Yếu',
-};
 
 // Chip hạnh kiểm — chỉ dùng token màu của dự án (success / navy / gold-deep / status-bad),
 // không đặt màu tự phát.
@@ -61,14 +51,6 @@ export const CONDUCT_TEXT: Record<Conduct, string> = {
 
 export const SCORE_KINDS: ScoreKind[] = ['mieng', '15p', '1tiet', 'giua_ky', 'cuoi_ky'];
 
-export const SCORE_KIND_LABEL: Record<ScoreKind, string> = {
-  mieng: 'Miệng',
-  '15p': '15 phút',
-  '1tiet': '1 tiết',
-  giua_ky: 'Giữa kỳ',
-  cuoi_ky: 'Cuối kỳ',
-};
-
 /**
  * Hiện một con điểm theo lối Việt Nam: dấu PHẨY thập phân, và không kéo lê số 0 vô nghĩa
  * (9 chứ không phải 9,00 — bảng 30 em × 8 môn mà toàn '0' thừa thì đọc rất mệt).
@@ -88,6 +70,11 @@ export function soVN(n: number | string | null | undefined): string {
 }
 
 /** Nhãn đầy đủ của một cột điểm: "Toán · 15 phút · lần 2". */
-export function tenCot(subject: string, kind: ScoreKind, ordinal: number): string {
-  return `${subject} · ${SCORE_KIND_LABEL[kind]} · lần ${ordinal}`;
+export function tenCot(
+  subject: string,
+  kind: ScoreKind,
+  ordinal: number,
+  t: (key: string, values?: Record<string, string | number>) => string,
+): string {
+  return t('columnName', {subject, kind: t(`scoreKinds.${kind}`), ordinal});
 }

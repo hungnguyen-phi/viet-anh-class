@@ -4,7 +4,8 @@ import {ChevronDown} from 'lucide-react';
 import {useRouter, usePathname} from '@/i18n/navigation';
 import {useSearchParams} from 'next/navigation';
 import {labelCls, selectInline} from '@/components/ui/Field';
-import {TERM_KIND_LABEL, type TermKind} from '@/components/grades/labels';
+import {useTranslations} from 'next-intl';
+import {type TermKind} from '@/components/grades/labels';
 
 export type TermOption = {id: string; name: string; kind: TermKind; is_locked: boolean};
 
@@ -16,6 +17,7 @@ export type TermOption = {id: string; name: string; kind: TermKind; is_locked: b
  * Riêng ?flash= thì bỏ: thông báo của việc vừa xong không được đi theo sang màn hình khác.
  */
 export function TermPicker({terms, current}: {terms: TermOption[]; current: string}) {
+  const tr = useTranslations('grades');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -31,7 +33,7 @@ export function TermPicker({terms, current}: {terms: TermOption[]; current: stri
   return (
     <div className="min-w-0">
       <label className={labelCls} htmlFor="grades-term">
-        Đợt đánh giá
+        {tr('termPickerLabel')}
       </label>
       <div className="relative inline-flex w-full items-center sm:w-[260px]">
         <select
@@ -42,8 +44,8 @@ export function TermPicker({terms, current}: {terms: TermOption[]; current: stri
         >
           {terms.map((t) => (
             <option key={t.id} value={t.id}>
-              {t.name} · {TERM_KIND_LABEL[t.kind]}
-              {t.is_locked ? ' (đã chốt sổ)' : ''}
+              {t.name} · {tr(`termKinds.${t.kind}`)}
+              {t.is_locked ? tr('termLocked') : ''}
             </option>
           ))}
         </select>

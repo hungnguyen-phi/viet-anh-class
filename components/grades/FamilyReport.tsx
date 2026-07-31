@@ -1,15 +1,13 @@
 import {after} from 'next/server';
+import {getTranslations} from 'next-intl/server';
 import {Link} from '@/i18n/navigation';
 import {createClient} from '@/lib/supabase/server';
 import type {Profile} from '@/lib/auth';
 import {
   soVN,
-  CONDUCT_LABEL,
   CONDUCT_CHIP,
-  SCORE_KIND_LABEL,
   SCORE_KINDS,
   TERM_KINDS,
-  TERM_KIND_LABEL,
   type Conduct,
   type ScoreKind,
   type TermKind,
@@ -65,6 +63,7 @@ export async function FamilyReport({
   childParam?: string;
   termParam?: string;
 }) {
+  const t = await getTranslations('grades');
   const supabase = await createClient();
   const laPhuHuynh = profile.role === 'parent';
 
@@ -89,9 +88,9 @@ export async function FamilyReport({
   if (!childId) {
     return (
       <div className="glass rounded-[26px] p-10 text-center">
-        <h1 className="font-display text-xl font-bold text-navy">Học bạ</h1>
+        <h1 className="font-display text-xl font-bold text-navy">{t('reportTitle')}</h1>
         <p className="mt-2 text-sm text-grey-mid">
-          Tài khoản này chưa được nối với học sinh nào. Nhờ giáo viên chủ nhiệm kiểm tra giúp.
+          {t('noChildLinked')}
         </p>
       </div>
     );
@@ -176,7 +175,7 @@ export async function FamilyReport({
     else
       theoMon.set(khoa, {
         khoa,
-        ten: d.subjects?.name ?? d.subject ?? 'Môn chưa rõ',
+        ten: d.subjects?.name ?? d.subject ?? t('unknownSubject'),
         // Môn trong danh mục xếp theo thứ tự của trường; dòng cũ chưa gắn môn dồn xuống cuối.
         thuTu: d.subjects?.sort_order ?? 9999,
         diem: [d],
@@ -203,10 +202,10 @@ export async function FamilyReport({
         <div className="flex flex-wrap items-start gap-4">
           <div className="min-w-0">
             <div className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gold-text">
-              Học bạ
+              {t('reportTitle')}
             </div>
             <h1 className="mt-0.5 font-display text-[27px] font-bold leading-tight text-navy">
-              {children.find((c) => c.id === childId)?.name ?? 'Học sinh'}
+              {children.find((c) => c.id === childId)?.name ?? t('aStudent')}
             </h1>
             {chon?.classes?.name && (
               <p className="mt-1 text-[13px] font-bold text-txt">
@@ -238,7 +237,7 @@ export async function FamilyReport({
             {phieu.length > 1 && (
               <div className="flex flex-col items-end gap-1.5">
                 <span className="text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
-                  Đợt đánh giá
+                  {t('termPickerLabel')}
                 </span>
                 <div className="flex flex-wrap justify-end gap-1.5">
                   {phieu.map((p) => (
@@ -252,13 +251,13 @@ export async function FamilyReport({
                       }`}
                     >
                       {p.assessment_terms?.name ??
-                        TERM_KIND_LABEL[p.assessment_terms?.kind ?? 'hoc_ky_1']}
+                        t(`termKinds.${p.assessment_terms?.kind ?? 'hoc_ky_1'}`)}
                     </Link>
                   ))}
                 </div>
               </div>
             )}
-            <span className="text-[10.5px] font-semibold italic text-grey-mid">Chỉ xem</span>
+            <span className="text-[10.5px] font-semibold italic text-grey-mid">{t('viewOnly')}</span>
           </div>
         </div>
       </div>
@@ -266,7 +265,7 @@ export async function FamilyReport({
       {!chon ? (
         <div className="glass rounded-[20px] p-8 text-center">
           <p className="text-sm text-grey-mid">
-            Chưa có bảng điểm nào được công bố. Khi nhà trường tổng kết xong một đợt, bảng điểm sẽ
+            {t('nothingPublished')}
             hiện ở đây.
           </p>
         </div>
@@ -275,24 +274,24 @@ export async function FamilyReport({
           {/* Điểm từng môn */}
           <section>
             <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
-              Điểm các môn
+              {t('scoresTitle')}
               {chon.assessment_terms?.name ? ` · ${chon.assessment_terms.name}` : ''}
             </h2>
             {monList.length === 0 ? (
               <div className="glass rounded-[20px] p-8 text-center">
-                <p className="text-sm text-grey-mid">Đợt này chưa có con điểm nào.</p>
+                <p className="text-sm text-grey-mid">{t('noScoresInTerm')}</p>
               </div>
             ) : (
               <div className="glass overflow-x-auto rounded-[20px]">
                 <div className="flex min-w-[640px] items-center gap-2 bg-navy/[0.03] px-[18px] py-[10px]">
                   <span className="w-[140px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
-                    Môn học
+                    {t('thSubject')}
                   </span>
                   <span className="flex-1 text-[11px] font-extrabold uppercase text-grey-mid">
-                    Các con điểm
+                    {t('thScores')}
                   </span>
                   <span className="w-[90px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid">
-                    Trung bình
+                    {t('thAverage')}
                   </span>
                 </div>
                 {monList.map((mon) => (
@@ -310,10 +309,10 @@ export async function FamilyReport({
                       {mon.diem.map((d) => (
                         <span
                           key={`${d.kind}-${d.ordinal}`}
-                          title={`${SCORE_KIND_LABEL[d.kind]} lần ${d.ordinal} · hệ số ${d.weight}`}
+                          title={t('scoreTitle', {kind: t(`scoreKinds.${d.kind}`), ordinal: d.ordinal, weight: d.weight})}
                           className="inline-flex items-center gap-1 rounded-full border-[1.5px] border-navy/15 bg-white/70 px-2 py-0.5 text-[11px] font-extrabold text-navy"
                         >
-                          <span className="text-grey-mid">{SCORE_KIND_LABEL[d.kind]}</span>
+                          <span className="text-grey-mid">{t(`scoreKinds.${d.kind}`)}</span>
                           {soVN(d.score)}
                           {d.weight > 1 && <span className="text-gold-deep">×{d.weight}</span>}
                         </span>
@@ -334,16 +333,16 @@ export async function FamilyReport({
           {/* Hạnh kiểm + nhận xét của cô */}
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_1.6fr]">
             <section>
-              <h2 className="mb-3 font-display text-[17px] font-bold text-navy">Rèn luyện</h2>
+              <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('conductSection')}</h2>
               <div className="glass rounded-[20px] p-[18px] text-center">
                 {chon.conduct ? (
                   <span
                     className={`inline-flex items-center rounded-full border px-3 py-1 text-[13px] font-extrabold ${CONDUCT_CHIP[chon.conduct]}`}
                   >
-                    {CONDUCT_LABEL[chon.conduct]}
+                    {t(`conducts.${chon.conduct}`)}
                   </span>
                 ) : (
-                  <p className="text-xs italic text-grey-mid">Đợt này chưa xếp loại hạnh kiểm.</p>
+                  <p className="text-xs italic text-grey-mid">{t('noConductInTerm')}</p>
                 )}
                 {chon.conduct_score !== null && (
                   <p className="mt-2.5 text-[12.5px] font-semibold text-grey-mid">
@@ -357,7 +356,7 @@ export async function FamilyReport({
 
             <section>
               <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
-                Nhận xét của giáo viên chủ nhiệm
+                {t('teacherComment')}
               </h2>
               <div className="glass rounded-[20px] p-[18px]">
                 {chon.comment ? (
@@ -365,7 +364,7 @@ export async function FamilyReport({
                     {chon.comment}
                   </p>
                 ) : (
-                  <p className="text-xs italic text-grey-mid">Đợt này chưa có nhận xét.</p>
+                  <p className="text-xs italic text-grey-mid">{t('noCommentInTerm')}</p>
                 )}
               </div>
             </section>

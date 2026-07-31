@@ -16,7 +16,6 @@ import {ScoreColumnForm, type ScoreCell} from '@/components/grades/ScoreColumnFo
 import {ReviewListForm, type ReviewRow} from '@/components/grades/ReviewListForm';
 import {
   SCORE_KINDS,
-  TERM_KIND_LABEL,
   tenCot,
   type Conduct,
   type ScoreKind,
@@ -143,6 +142,7 @@ export default async function GradesPage({
   }
 
   const tc = await getTranslations('class');
+  const t = await getTranslations('grades');
   const supabase = await createClient();
   // Hai truy vấn độc lập — chạy song song, tránh waterfall.
   const [{myClass: myClassGoc, classes: accessibleGoc}, phanCong] = await Promise.all([
@@ -252,7 +252,7 @@ export default async function GradesPage({
         <div className="glass rounded-[20px] p-8 text-center">
           <p className="text-sm text-grey-mid">
             Năm học {myClass.school_year} chưa có đợt đánh giá nào cho cơ sở này.
-            {!canTerm && ' Nhờ ban giám hiệu khai báo học kỳ trước, rồi giáo viên mới nhập điểm được.'}
+            {!canTerm && t('askLeadershipTerm')}
           </p>
         </div>
         {canTerm && (
@@ -499,7 +499,7 @@ export default async function GradesPage({
   // nốt con điểm gõ nhầm, nhưng ghi rõ để không ai tưởng em còn trong lớp.
   const scoreCells: ScoreCell[] = coPhieu.map((h) => ({
     reviewId: h.reviewId!,
-    name: h.conHoc ? h.name : `${h.name} (đã rời lớp)`,
+    name: h.conHoc ? h.name : t('leftClassSuffix', {name: h.name}),
     current:
       diemTheoPhieu.get(h.reviewId!) === undefined
         ? ''
@@ -545,7 +545,7 @@ export default async function GradesPage({
                 term.is_locked ? 'bg-status-bad/[0.08] text-status-bad' : 'bg-gold/20 text-navy'
               }`}
             >
-              {term.is_locked ? 'đã chốt sổ' : 'đang mở'}
+              {term.is_locked ? t('statusLocked') : t('statusOpen')}
             </span>
             {/* Giáo viên bộ môn không đọc được phiếu nên không biết đã công bố bao nhiêu — không
                 bịa một con số 0 ra cho họ đọc. */}
@@ -574,8 +574,8 @@ export default async function GradesPage({
                 <ConfirmButton
                   message={
                     term.is_locked
-                      ? `Mở lại đợt "${term.name}"? Giáo viên chủ nhiệm sẽ sửa được điểm và nhận xét trở lại.`
-                      : `Chốt sổ đợt "${term.name}"? Sau khi chốt, giáo viên không sửa được điểm và nhận xét của đợt này nữa.`
+                      ? t('confirmReopen', {name: term.name})
+                      : t('confirmLock', {name: term.name})
                   }
                   className={btnGhost}
                 >
@@ -585,12 +585,12 @@ export default async function GradesPage({
                     {term.is_locked ? (
                       <>
                         <LockOpen size={14} strokeWidth={2.5} />
-                        Mở lại đợt
+                        {t('reopenTerm')}
                       </>
                     ) : (
                       <>
                         <Lock size={14} strokeWidth={2.5} />
-                        Chốt sổ đợt
+                        {t('lockTerm')}
                       </>
                     )}
                   </span>
@@ -601,9 +601,9 @@ export default async function GradesPage({
         </div>
 
         <p className="mt-1.5 text-[11px] italic text-grey-mid">
-          {TERM_KIND_LABEL[term.kind as TermKind]} · năm học {term.school_year}
+          {t('termMeta', {kind: t(`termKinds.${term.kind as TermKind}`), year: term.school_year})}
           {(term.start_date || term.end_date) &&
-            ` · từ ${ngayVN(term.start_date) || '…'} đến ${ngayVN(term.end_date) || '…'}`}
+            t('termRange', {from: ngayVN(term.start_date) || '…', to: ngayVN(term.end_date) || '…'})}
         </p>
       </div>
 
@@ -614,8 +614,8 @@ export default async function GradesPage({
         <div className="glass rounded-[20px] p-4">
           <div className="font-display text-[15px] font-bold text-navy">
             {monToiDay.length > 0
-              ? `Bạn đang nhập điểm môn ${subjectName || monToiDay[0].name} · lớp ${myClass.name}`
-              : `Bạn chưa được phân công dạy môn nào ở lớp ${myClass.name}`}
+              ? t('subjectTeacherHere', {subject: subjectName || monToiDay[0].name, class: myClass.name})
+              : t('subjectTeacherNone', {class: myClass.name})}
           </div>
           <p className="mt-1 text-[12px] font-semibold leading-[1.55] text-grey-mid">
             {monToiDay.length > 0 ? (
@@ -628,7 +628,7 @@ export default async function GradesPage({
               </>
             ) : (
               <>
-                Nhờ ban giám hiệu phân công bạn dạy môn ở lớp này trước, rồi mới nhập điểm được.
+                {t('askAssignment')}
                 Chỉ ban giám hiệu và quản trị viên phân công được — giáo viên chủ nhiệm cũng không
                 tự mở quyền cho ai vào học bạ lớp mình.
               </>
@@ -648,7 +648,7 @@ export default async function GradesPage({
             Lớp {myClass.name} chưa khai môn học nào
           </div>
           <p className="mt-1 text-[12px] font-semibold leading-[1.55] text-grey-mid">
-            Chương trình của lớp là nguồn duy nhất cho ô chọn môn khi nhập điểm. Bấm nút dưới đây
+            {t('seedHint')}
             để gắn cả bộ môn đang dùng của cơ sở cho lớp — thừa môn nào thì nhờ quản trị viên gỡ
             bớt, còn hơn là không nhập được điểm.
           </p>
@@ -659,7 +659,7 @@ export default async function GradesPage({
                 thẳng vào là đủ — không cần bọc thêm span như chỗ dùng ConfirmButton. */}
             <SubmitButton className={btnGhost}>
               <Plus size={14} strokeWidth={2.5} />
-              Gieo bộ môn chuẩn cho lớp này
+              {t('seedButton')}
             </SubmitButton>
           </form>
         </div>
@@ -667,7 +667,7 @@ export default async function GradesPage({
 
       {term.is_locked && (canEdit || laGVBM) && profile.role !== 'admin' && (
         <p className="text-[12px] font-bold text-status-bad">
-          Đợt này đã chốt sổ — không sửa được điểm và nhận xét nữa. Cần sửa thì nhờ ban giám hiệu
+          {t('lockedNotice')}
           mở lại đợt.
         </p>
       )}
@@ -676,8 +676,8 @@ export default async function GradesPage({
         <div className="glass rounded-[20px] p-8 text-center">
           <p className="text-sm text-grey-mid">
             {canEdit
-              ? 'Lớp chưa có phiếu nào trong đợt này. Bấm “Mở đợt cho cả lớp” ở trên để tạo phiếu cho mọi em một lượt, rồi mới nhập điểm được.'
-              : 'Giáo viên chủ nhiệm chưa mở đợt đánh giá này cho lớp.'}
+              ? t('noSheetsManage')
+              : t('noSheets')}
           </p>
         </div>
       ) : (
@@ -687,7 +687,7 @@ export default async function GradesPage({
             <div className="flex flex-col gap-3">
               <div className="glass rounded-[20px] p-4">
                 <div className="mb-2.5 font-display text-[15px] font-bold text-navy">
-                  Chọn cột điểm cần nhập
+                  {t('pickColumn')}
                 </div>
                 <ColumnPicker
                   subjects={monHienCo}
@@ -717,8 +717,8 @@ export default async function GradesPage({
               ) : (
                 <p className="text-[12px] font-semibold text-grey-mid">
                   {monHienCo.length === 0
-                    ? 'Lớp này chưa khai môn nào — hãy gieo bộ môn chuẩn ở trên, hoặc nhờ quản trị viên gắn môn cho lớp.'
-                    : 'Hãy chọn môn ở trên để bắt đầu nhập điểm.'}
+                    ? t('noSubjectsSeed')
+                    : t('pickSubjectFirst')}
                 </p>
               )}
             </div>
@@ -742,10 +742,10 @@ export default async function GradesPage({
           {suaPhieu && (
             <div className="glass rounded-[20px] p-4">
               <div className="font-display text-[15px] font-bold text-navy">
-                Công bố cho gia đình
+                {t('publishTitle')}
               </div>
               <p className="mt-1 text-[12px] font-semibold leading-[1.55] text-grey-mid">
-                Trước khi công bố, mọi thứ ở đây là BẢN NHÁP — chỉ giáo viên và ban giám hiệu nhìn
+                {t('publishHint')}
                 thấy. Khi công bố, phụ huynh và chính các em thấy ngay điểm, nhận xét và hạnh kiểm
                 của đợt này.
               </p>
@@ -759,7 +759,7 @@ export default async function GradesPage({
                         `dangHoc` phía trên — một phiếu của em đã rời lớp sẽ làm đổ cả lệnh. */}
                     <input type="hidden" name="ids" value={ghiDuoc.map((h) => h.reviewId).join(',')} />
                     <ConfirmButton
-                      message={`Công bố ${coTheCongBo} phiếu của đợt "${term.name}"? GIA ĐÌNH SẼ THẤY NGAY điểm, nhận xét và hạnh kiểm — hãy soát lại trước khi bấm.`}
+                      message={t('confirmPublish', {n: coTheCongBo, name: term.name})}
                       className={btnGold}
                     >
                       Công bố {coTheCongBo} phiếu
@@ -773,7 +773,7 @@ export default async function GradesPage({
                     <input type="hidden" name="mode" value="unpublish" />
                     <input type="hidden" name="ids" value={ghiDuoc.map((h) => h.reviewId).join(',')} />
                     <ConfirmButton
-                      message={`Gỡ công bố ${coTheGoCongBo} phiếu? Gia đình sẽ không xem được nữa. Việc này được ghi lại trong nhật ký hệ thống. Chỉ sửa vài chữ thì KHÔNG cần gỡ — cứ sửa rồi lưu là gia đình thấy bản mới.`}
+                      message={t('confirmUnpublish', {n: coTheGoCongBo})}
                       // btnDanger chứ không để mặc định: nút mặc định của ConfirmButton cao 38px,
                       // đứng cạnh nút vàng 44px trong cùng hàng là lệch (đúng lỗi đã phải vá bằng ctl-h).
                       className={btnDanger}
@@ -784,7 +784,7 @@ export default async function GradesPage({
                 )}
                 {coTheCongBo === 0 && coTheGoCongBo === 0 && (
                   <span className="text-[12px] font-semibold text-grey-mid">
-                    Chưa có phiếu nào để công bố.
+                    {t('nothingToPublish')}
                   </span>
                 )}
               </div>
@@ -807,13 +807,13 @@ export default async function GradesPage({
                 />
                 {monCoDiem.size === 0 && (
                   <p className="mt-2 text-[11px] italic text-grey-mid">
-                    Đợt này chưa có con điểm nào — bảng sẽ hiện ngay khi giáo viên lưu cột điểm
+                    {t('noScoresYet')}
                     đầu tiên.
                   </p>
                 )}
                 {nhapDiem && subjectName && (
                   <p className="mt-2 text-[11px] italic text-grey-mid">
-                    Đang nhập: {tenCot(subjectName, kind, ordinal)} · hệ số {heSo}
+                    {t('enteringNow', {column: tenCot(subjectName, kind, ordinal, t), weight: heSo})}
                   </p>
                 )}
               </section>
@@ -830,8 +830,8 @@ export default async function GradesPage({
         <p className="text-[11px] italic text-grey-mid">
           Còn {thieuPhieu} em trong lớp chưa có phiếu của đợt này
           {canEdit
-            ? ' — bấm “Mở đợt cho cả lớp” ở trên để bổ sung.'
-            : ' — nhờ giáo viên chủ nhiệm mở đợt cho các em ấy, chưa có phiếu thì chưa nhập điểm được.'}
+            ? t('missingSheetsManage')
+            : t('missingSheets')}
         </p>
       )}
 

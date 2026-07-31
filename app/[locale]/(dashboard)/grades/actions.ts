@@ -5,13 +5,27 @@ import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
-import {CONDUCTS, SCORE_KINDS, TERM_KINDS, TERM_KIND_LABEL} from '@/components/grades/labels';
+import {CONDUCTS, SCORE_KINDS, TERM_KINDS} from '@/components/grades/labels';
 import type {Conduct, ScoreKind, TermKind} from '@/components/grades/labels';
 
 // Môn giờ là một dòng trong danh mục (0069), nên mọi chỗ nhắc tới môn đều là UUID — cả ô ẩn
 // trong form lẫn ?subject= trên địa chỉ. Kiểm hình dạng trước khi gửi xuống DB để không phải
 // dịch lỗi 22P02 ("invalid input syntax for type uuid") thành câu tiếng Việt.
 const LA_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// TÊN MẶC ĐỊNH CỦA ĐỢT — cố ý KHÔNG lấy từ file dịch.
+//
+// Chuỗi này được GHI VÀO CSDL (cột assessment_terms.name) và cả trường cùng đọc một giá trị đó.
+// Nếu lấy theo ngôn ngữ của người đang bấm nút thì hiệu trưởng mở app bản tiếng Anh sẽ tạo ra
+// một đợt tên 'Semester 1' nằm lẫn giữa các đợt tên 'Học kỳ 1' — dữ liệu dùng chung mà mỗi dòng
+// một thứ tiếng. Nhãn HIỂN THỊ thì vẫn dịch (grades.termKinds.*); đây là DỮ LIỆU, không phải nhãn.
+const TEN_DOT_MAC_DINH: Record<TermKind, string> = {
+  giua_ky_1: 'Giữa học kỳ 1',
+  hoc_ky_1: 'Học kỳ 1',
+  giua_ky_2: 'Giữa học kỳ 2',
+  hoc_ky_2: 'Học kỳ 2',
+  ca_nam: 'Cả năm',
+};
 
 // ── Ngữ cảnh đang xem ────────────────────────────────────────────────────────
 // Trang này có tới năm tham số cùng lúc (lớp / đợt / môn / loại điểm / lần thứ mấy). Bỏ sót một
@@ -381,7 +395,7 @@ export async function createTerm(formData: FormData) {
   // Bỏ trống tên thì lấy đúng tên loại đợt. 0064 tách `kind` (máy so sánh) khỏi `name` (người
   // đọc) để trường tự đặt tên riêng được, nhưng phần lớn trường gọi y như loại — bắt gõ lại một
   // lần nữa chỉ tổ tạo ra 'HK1', 'Học kì 1', 'Học kỳ I' nằm lẫn trong cùng một cột.
-  const name = String(formData.get('name') ?? '').trim() || TERM_KIND_LABEL[kind];
+  const name = String(formData.get('name') ?? '').trim() || TEN_DOT_MAC_DINH[kind];
   if (name.length > 80) gradesFlash(ctx, 'Tên đợt dài quá 80 ký tự');
   if (start && end && end < start) gradesFlash(ctx, 'Ngày kết thúc phải sau ngày bắt đầu');
 

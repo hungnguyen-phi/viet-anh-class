@@ -3,7 +3,8 @@
 import {useRouter, usePathname} from '@/i18n/navigation';
 import {useSearchParams} from 'next/navigation';
 import {Field, selectInline} from '@/components/ui/Field';
-import {SCORE_KINDS, SCORE_KIND_LABEL, type ScoreKind} from '@/components/grades/labels';
+import {useTranslations} from 'next-intl';
+import {SCORE_KINDS, type ScoreKind} from '@/components/grades/labels';
 
 // DB cho tới 20 lần một loại điểm; 10 đã quá đủ cho một học kỳ và danh sách ngắn thì chọn nhanh hơn.
 const LAN = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -36,6 +37,7 @@ export function ColumnPicker({
   kind: ScoreKind;
   ordinal: number;
 }) {
+  const t = useTranslations('grades');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -50,7 +52,7 @@ export function ColumnPicker({
   return (
     <div className="flex flex-col gap-2.5">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1.6fr_1fr_0.8fr]">
-        <Field label="Môn học" htmlFor="grades-subject">
+        <Field label={t('fSubject')} htmlFor="grades-subject">
           <select
             id="grades-subject"
             value={subjectId}
@@ -58,7 +60,7 @@ export function ColumnPicker({
             disabled={subjects.length === 0}
             className={`${selectInline} w-full`}
           >
-            {subjects.length === 0 && <option value="">— chưa có môn nào —</option>}
+            {subjects.length === 0 && <option value="">{t('noSubjectOption')}</option>}
             {subjects.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -67,7 +69,7 @@ export function ColumnPicker({
           </select>
         </Field>
 
-        <Field label="Loại điểm" htmlFor="grades-kind">
+        <Field label={t('fScoreKind')} htmlFor="grades-kind">
           <select
             id="grades-kind"
             value={kind}
@@ -76,13 +78,13 @@ export function ColumnPicker({
           >
             {SCORE_KINDS.map((k) => (
               <option key={k} value={k}>
-                {SCORE_KIND_LABEL[k]}
+                {t(`scoreKinds.${k}`)}
               </option>
             ))}
           </select>
         </Field>
 
-        <Field label="Lần thứ" htmlFor="grades-ordinal">
+        <Field label={t('fOrdinal')} htmlFor="grades-ordinal">
           <select
             id="grades-ordinal"
             value={String(ordinal)}
@@ -100,7 +102,7 @@ export function ColumnPicker({
 
       {/* Nói trước đường đi khi thiếu môn, để không ai đi tìm ô gõ tay đã bỏ. */}
       <p className="text-[11px] italic text-grey-mid">
-        Danh sách này là chương trình của lớp. Thiếu môn nào thì nhờ quản trị viên thêm vào danh
+        {t('columnHint')}
         mục môn của trường rồi gắn cho lớp — cố ý không cho gõ tay tên môn, vì mỗi người gõ một
         kiểu là điểm của cùng một môn nằm rời ra hai chỗ.
       </p>

@@ -1,6 +1,7 @@
 'use client';
 
 import {useActionState, useEffect, useState, type KeyboardEvent} from 'react';
+import {useTranslations} from 'next-intl';
 import {CheckCircle2, AlertCircle} from 'lucide-react';
 import {Link, useRouter} from '@/i18n/navigation';
 import {SubmitButton} from '@/components/ui/SubmitButton';
@@ -9,11 +10,8 @@ import {savePost} from './actions';
 
 // Ba loại nội dung khác nhau ở VIỆC người đọc phải làm (xem comment enum homework_kind ở 0061),
 // nên nhãn cũng phải nói ra việc đó chứ không chỉ đặt tên.
-const LOAI = [
-  {value: 'assignment', label: 'Bài tập (có việc phải làm/nộp)'},
-  {value: 'reminder', label: 'Dặn dò (chỉ cần nhớ)'},
-  {value: 'exam', label: 'Kiểm tra (phải ôn)'},
-];
+// Nhãn tra ở homework.kindOptions.* — chúng nói ra VIỆC người đọc phải làm, không chỉ đặt tên.
+const LOAI = ['assignment', 'reminder', 'exam'] as const;
 
 const RONG = {date: '', subject_id: '', content: '', due_date: '', kind: 'assignment'};
 
@@ -49,6 +47,8 @@ export function HomeworkForm({
   subjects: {id: string; name: string}[];
   post?: PostForEdit | null;
 }) {
+  const t = useTranslations('homework');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const [state, formAction] = useActionState(savePost, {ok: false});
 
@@ -71,13 +71,13 @@ export function HomeworkForm({
     if (post) {
       // SỬA xong thì phải rời chế độ sửa, nếu không panel vẫn mở và giáo viên tưởng chưa lưu.
       // Kèm ?flash= để thông báo nổi lên như mọi thao tác khác của app.
-      router.push(`${dsHref}&flash=${encodeURIComponent(state.message ?? 'Đã cập nhật bài')}`);
+      router.push(`${dsHref}&flash=${encodeURIComponent(state.message ?? t('updated'))}`);
       return;
     }
     // ĐĂNG xong thì dọn form cho bài kế tiếp, nhưng GIỮ NGUYÊN ngày và môn: giáo viên thường
     // báo mấy môn liền trong cùng một buổi, bắt chọn lại ngày mỗi lần là thừa thao tác.
     setV((p) => ({...RONG, date: p.date, subject_id: p.subject_id}));
-  }, [state, post, router, dsHref]);
+  }, [state, post, router, dsHref, t]);
 
   // Ctrl/⌘+Enter gửi nhanh (form nhiều ô, và ô nội dung là textarea nên Enter thường là xuống dòng).
   const onKeyDown = (e: KeyboardEvent<HTMLFormElement>) => {
@@ -118,7 +118,7 @@ export function HomeworkForm({
 
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         {/* Ngày BÁO BÀI (buổi học nào), không phải hạn nộp — mặc định hôm nay theo giờ VN. */}
-        <Field label="Ngày báo bài" htmlFor="hw-date" error={loi('date')}>
+        <Field label={t('fDate')} htmlFor="hw-date" error={loi('date')}>
           <input
             id="hw-date"
             name="date"
@@ -135,7 +135,7 @@ export function HomeworkForm({
             chữ là hàng chục người cùng nhận. Dùng ctlWithBorder + cursor-pointer chứ không
             `selectCls + BORDER_ERR`: hai lớp viền chồng nhau thì cái nào thắng phụ thuộc thứ tự
             Tailwind sinh CSS. */}
-        <Field label="Môn" htmlFor="hw-subject" error={loi('subject_id')}>
+        <Field label={t('fSubject')} htmlFor="hw-subject" error={loi('subject_id')}>
           <select
             id="hw-subject"
             name="subject_id"
@@ -144,7 +144,7 @@ export function HomeworkForm({
             aria-invalid={state.fieldError === 'subject_id'}
             className={`${ctlWithBorder(state.fieldError === 'subject_id')} cursor-pointer`}
           >
-            <option value="">— Chọn môn —</option>
+            <option value="">{t('pickSubject')}</option>
             {subjects.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
@@ -153,7 +153,7 @@ export function HomeworkForm({
           </select>
         </Field>
 
-        <Field label="Loại" htmlFor="hw-kind">
+        <Field label={t('fKind')} htmlFor="hw-kind">
           <select
             id="hw-kind"
             name="kind"
@@ -162,8 +162,8 @@ export function HomeworkForm({
             className={selectCls}
           >
             {LOAI.map((k) => (
-              <option key={k.value} value={k.value}>
-                {k.label}
+              <option key={k} value={k}>
+                {t(`kindOptions.${k}`)}
               </option>
             ))}
           </select>
@@ -173,10 +173,10 @@ export function HomeworkForm({
             cho mọi dòng chỉ đẻ ra hạn giả rồi không ai tin màn "sắp đến hạn" nữa (xem 0061). */}
         {/* <Field> tự ưu tiên hiện lỗi và giấu hint khi có lỗi — không cần tự lo ở đây. */}
         <Field
-          label="Hạn nộp"
+          label={t('fDue')}
           htmlFor="hw-due"
           error={loi('due_date')}
-          hint="Bỏ trống nếu không có gì phải nộp"
+          hint={t('hDue')}
         >
           <input
             id="hw-due"
@@ -191,14 +191,14 @@ export function HomeworkForm({
         </Field>
 
         <div className="sm:col-span-2 lg:col-span-4">
-          <Field label="Nội dung" htmlFor="hw-content" error={loi('content')}>
+          <Field label={t('fContent')} htmlFor="hw-content" error={loi('content')}>
             <textarea
               id="hw-content"
               name="content"
               value={v.content}
               onChange={set('content')}
               rows={3}
-              placeholder="vd: Làm bài 3, 4 trang 52 sách bài tập. Em nào chưa xong bài hôm qua thì làm nốt."
+              placeholder={t('phContent')}
               aria-invalid={state.fieldError === 'content'}
               className={taCls(state.fieldError === 'content')}
             />
@@ -208,19 +208,18 @@ export function HomeworkForm({
         <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4 lg:justify-end">
           {post && (
             <Link href={dsHref} className={btnGhost}>
-              Huỷ
+              {tCommon('cancel')}
             </Link>
           )}
           <SubmitButton className={btnGold} wrapClass="contents">
-            {post ? 'Lưu thay đổi' : '+ Đăng báo bài'}
+            {post ? t('saveEdit') : t('post')}
           </SubmitButton>
         </div>
       </div>
 
       {!post && (
         <p className="mt-2 text-[11px] italic text-grey-mid">
-          Bài đăng xong là học sinh và phụ huynh của lớp thấy ngay. Đăng nhầm thì sửa hoặc xoá được
-          ở danh sách bên dưới.
+          {t('postHint')}
         </p>
       )}
 

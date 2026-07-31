@@ -1,6 +1,7 @@
+import {getTranslations} from 'next-intl/server';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {selectInline, inputInline, btnGold} from '@/components/ui/Field';
-import {CONDUCTS, CONDUCT_LABEL, type Conduct} from '@/components/grades/labels';
+import {CONDUCTS, type Conduct} from '@/components/grades/labels';
 import {saveClassReviews} from '@/app/[locale]/(dashboard)/grades/actions';
 
 export type ReviewRow = {
@@ -29,7 +30,7 @@ const taCls =
  * (nhập rải rác nhiều ngày, gửi gia đình một thể). Sửa lỗi nhỏ sau khi công bố thì không cần gỡ:
  * RLS vẫn cho GVCN sửa, và trigger audit ghi lại việc sửa-sau-công-bố.
  */
-export function ReviewListForm({
+export async function ReviewListForm({
   classId,
   termId,
   rows,
@@ -38,6 +39,7 @@ export function ReviewListForm({
   termId: string;
   rows: ReviewRow[];
 }) {
+  const t = await getTranslations('grades');
   const daDien = rows.filter((r) => r.comment.trim() !== '').length;
 
   return (
@@ -48,12 +50,12 @@ export function ReviewListForm({
 
       <div className="flex flex-wrap items-start justify-between gap-2 px-[18px] py-3">
         <div className="min-w-0">
-          <div className="font-display text-[15px] font-bold text-navy">Nhận xét &amp; hạnh kiểm</div>
+          <div className="font-display text-[15px] font-bold text-navy">{t('reviewTitle')}</div>
           {/* Cảnh báo này nằm ngay trên ô nhập vì đúng chỗ đó mới đọc. Cột comment của phiếu là ô
               GỬI GIA ĐÌNH — migration 0064 ghi rõ: sau khi công bố, phụ huynh và chính em đó đọc
               được nguyên văn. */}
           <p className="mt-0.5 text-[11px] italic text-grey-mid">
-            Nhận xét ở đây gửi thẳng cho gia đình sau khi công bố — phụ huynh và chính em đó đọc
+            {t('reviewHint')}
             được nguyên văn. Ghi chú nội bộ thì đừng viết vào đây.
           </p>
         </div>
@@ -72,10 +74,10 @@ export function ReviewListForm({
             <span className="min-w-0 truncate text-[13.5px] font-bold text-navy">{r.name}</span>
             {r.published && (
               <span
-                title="Phiếu của em này đã công bố — gia đình đang xem được"
+                title={t('publishedTitle')}
                 className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gold/20 px-2 py-0.5 text-[10.5px] font-extrabold text-navy"
               >
-                đã gửi
+                {t('sentChip')}
               </span>
             )}
           </div>
@@ -86,21 +88,21 @@ export function ReviewListForm({
             rows={2}
             maxLength={2000}
             defaultValue={r.comment}
-            aria-label={`Nhận xét cho ${r.name}`}
-            placeholder="Em tiến bộ ở… cần cố gắng thêm ở…"
+            aria-label={t('commentAria', {name: r.name})}
+            placeholder={t('commentPlaceholder')}
             className={`${taCls} sm:flex-1`}
           />
 
           <select
             name={`conduct_${r.studentId}`}
             defaultValue={r.conduct}
-            aria-label={`Xếp loại hạnh kiểm của ${r.name}`}
+            aria-label={t('conductAria', {name: r.name})}
             className={`${selectInline} w-full sm:w-[136px] sm:flex-none`}
           >
-            <option value="">— chưa xếp —</option>
+            <option value="">{t('noConductOption')}</option>
             {CONDUCTS.map((c) => (
               <option key={c} value={c}>
-                {CONDUCT_LABEL[c]}
+                {t(`conducts.${c}`)}
               </option>
             ))}
           </select>
@@ -115,7 +117,7 @@ export function ReviewListForm({
             max="100"
             inputMode="numeric"
             defaultValue={r.conductScore}
-            aria-label={`Điểm rèn luyện của ${r.name} (thang 100, có thể bỏ trống)`}
+            aria-label={t('conductScoreAria', {name: r.name})}
             placeholder="RL"
             className={`${inputInline} w-full text-center sm:w-[78px] sm:flex-none`}
           />

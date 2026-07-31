@@ -34,13 +34,12 @@ type Con = {id: string; name: string; classId: string; className: string};
 
 // Nhãn + màu chip theo loại. Dùng token brand có sẵn, không màu tự phát:
 // bài tập = navy (việc thường), dặn dò = xanh (nhẹ nhàng), kiểm tra = vàng (giống tiết thi ở TKB).
-const LOAI: Record<Kind, {label: string; chip: string}> = {
-  assignment: {label: 'Bài tập', chip: 'bg-navy/[0.08] text-navy'},
-  reminder: {label: 'Dặn dò', chip: 'bg-success/[0.12] text-success-dark'},
-  exam: {label: 'Kiểm tra', chip: 'bg-gold/20 text-navy'},
+// Chỉ giữ phần KHÔNG phụ thuộc ngôn ngữ. Nhãn tra ở homework.kinds.* / homework.weekdays.*.
+const CHIP_LOAI: Record<Kind, string> = {
+  assignment: 'bg-navy/[0.08] text-navy',
+  reminder: 'bg-success/[0.12] text-success-dark',
+  exam: 'bg-gold/20 text-navy',
 };
-
-const THU = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 
 // Bao nhiêu bài gần nhất thì tải. 60 ≈ hai tháng học của một lớp — đủ để tra "BTVN thứ Ba tuần
 // trước là gì" mà không kéo cả năm về. Chỉ mục (class_id, date desc) của 0061 phục vụ đúng
@@ -49,9 +48,9 @@ const SO_BAI_TAI = 60;
 
 // yyyy-mm-dd → 'Thứ Ba · 28/07/2026'. Neo vào T00:00:00Z rồi đọc bằng getUTCDay: phép tính
 // thuần trên chuỗi ngày, không phụ thuộc múi giờ của máy chủ.
-function nhanNgay(iso: string): string {
+function nhanNgay(iso: string, t: (k: string) => string): string {
   const [y, m, d] = iso.split('-');
-  const thu = THU[new Date(`${iso}T00:00:00Z`).getUTCDay()];
+  const thu = t(`weekdays.d${new Date(`${iso}T00:00:00Z`).getUTCDay()}`);
   return `${thu} · ${d}/${m}/${y}`;
 }
 function ngayNgan(iso: string): string {
@@ -73,6 +72,7 @@ export default async function HomeworkPage({
   // GVCN/admin đăng bài · học sinh tự đánh dấu · phụ huynh theo dõi con · hiệu trưởng chỉ xem.
   const profile = await requireProfile();
   const tc = await getTranslations('class');
+  const t = await getTranslations('homework');
   const supabase = await createClient();
 
   // ===== Phụ huynh: con nào, lớp nào =====
@@ -242,7 +242,7 @@ export default async function HomeworkPage({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-[22px] font-bold text-navy">
-          Báo bài · {myClass.name}
+          {t('title', {class: myClass.name})}
         </h1>
         {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
       </div>
@@ -273,20 +273,20 @@ export default async function HomeworkPage({
       {/* Nói rõ tinh thần của ô đánh dấu NGAY TRÊN danh sách, trước khi em bấm nút đầu tiên. */}
       {laHocSinh && (
         <p className="text-[12px] font-semibold leading-[1.55] text-grey-mid">
-          Ô “Em đã làm rồi” là để em tự theo dõi việc của mình — không phải điểm, không dùng để xếp
+          {t('noteStudent')}
           hạng hay so sánh với bạn. Chỉ mình em, thầy cô chủ nhiệm và bố mẹ nhìn thấy; các bạn khác
           thì không.
         </p>
       )}
       {laPhuHuynh && (
         <p className="text-[12px] font-semibold leading-[1.55] text-grey-mid">
-          Đây là báo bài của lớp con. Dấu “đã làm” là do chính con tự đánh dấu để tự theo dõi, không
+          {t('noteParent')}
           phải điểm — nên bố mẹ xem được nhưng không đánh dấu thay con.
         </p>
       )}
       {profile.role === 'principal' && (
         <p className="text-[12px] font-semibold leading-[1.55] text-grey-mid">
-          Bạn đang xem báo bài của lớp. Việc đăng và sửa bài thuộc về giáo viên chủ nhiệm.
+          {t('notePrincipal')}
         </p>
       )}
 
@@ -300,13 +300,13 @@ export default async function HomeworkPage({
           <div className="glass rounded-[16px] p-3">
             <div className="flex flex-wrap items-center gap-2.5">
               <p className="min-w-[240px] flex-1 text-[12.5px] font-semibold leading-[1.55] text-txt">
-                Lớp này chưa khai môn nào nên chưa chọn được môn để báo bài. Bấm nút bên cạnh để
+                {t('noSubjects')}
                 thêm cả bộ môn của cơ sở vào chương trình lớp, rồi đăng bài như thường.
               </p>
               <form action={seedSubjects}>
                 <input type="hidden" name="class_id" value={myClass.id} />
                 <SubmitButton className={btnGold} wrapClass="contents">
-                  Thêm bộ môn cho lớp
+                  {t('seedSubjects')}
                 </SubmitButton>
               </form>
             </div>
@@ -337,17 +337,17 @@ export default async function HomeworkPage({
         <div className="glass rounded-[20px] p-8 text-center">
           <p className="text-sm text-grey-mid">
             {canManage
-              ? 'Lớp chưa có bài báo nào. Dùng ô phía trên để đăng bài đầu tiên.'
-              : 'Lớp chưa có bài báo nào.'}
+              ? t('emptyManage')
+              : t('empty')}
           </p>
         </div>
       ) : (
         nhom.map((g) => (
           <section key={g.ngay} className="glass rounded-[20px] p-4">
             <div className="mb-2.5 flex flex-wrap items-center gap-2">
-              <h2 className="font-display text-[15px] font-bold text-navy">{nhanNgay(g.ngay)}</h2>
+              <h2 className="font-display text-[15px] font-bold text-navy">{nhanNgay(g.ngay, t)}</h2>
               {g.ngay === today && (
-                <span className={`${chipCls} bg-gold/20 text-navy`}>Hôm nay</span>
+                <span className={`${chipCls} bg-gold/20 text-navy`}>{t('today')}</span>
               )}
             </div>
 
@@ -363,29 +363,29 @@ export default async function HomeworkPage({
                 return (
                   <article key={p.id} className={`rounded-[12px] border-[1.5px] px-3 py-2.5 ${vien}`}>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className={`${chipCls} ${LOAI[p.kind].chip}`}>{LOAI[p.kind].label}</span>
+                      <span className={`${chipCls} ${CHIP_LOAI[p.kind]}`}>{t(`kinds.${p.kind}`)}</span>
                       <span className="min-w-0 truncate text-[13.5px] font-bold text-navy">
                         {tenMon(p)}
                       </span>
                       {p.due_date && (
                         <span className="inline-flex shrink-0 items-center gap-1 text-[11.5px] font-extrabold text-gold-text">
                           <CalendarClock size={12} strokeWidth={2.5} />
-                          Hạn nộp {ngayNgan(p.due_date)}
+                          {t('dueOn', {date: ngayNgan(p.due_date)})}
                         </span>
                       )}
                       {canManage && (
                         <span className="ml-auto flex shrink-0 items-center gap-1.5">
                           <Link href={href({edit: p.id})} className={editLinkCls}>
-                            Sửa
+                            {t('edit')}
                           </Link>
                           <form action={deletePost}>
                             <input type="hidden" name="class_id" value={myClass.id} />
                             <input type="hidden" name="id" value={p.id} />
                             <ConfirmButton
-                              message={`Xoá ${LOAI[p.kind].label.toLowerCase()} môn ${tenMon(p)} ngày ${ngayNgan(p.date)}?`}
+                              message={t('confirmDelete', {kind: t(`kinds.${p.kind}`).toLowerCase(), subject: tenMon(p), date: ngayNgan(p.date)})}
                               className={xoaCls}
                             >
-                              Xoá
+                              {t('delete')}
                             </ConfirmButton>
                           </form>
                         </span>
@@ -401,12 +401,12 @@ export default async function HomeworkPage({
                     {canManage && (
                       <div className="mt-2 inline-flex items-center gap-1.5 text-[11.5px] font-bold text-grey-mid">
                         <Users size={12} strokeWidth={2.5} />
-                        Đã tự đánh dấu là đã làm:{' '}
+                        {t('doneCountLabel')}{' '}
                         <b className="font-display text-navy">
                           {demTheoBai.get(p.id) ?? 0}
                           <span className="text-grey-mid">/{siSo}</span>
                         </b>{' '}
-                        em
+                        {t('doneCountUnit')}
                       </div>
                     )}
 
@@ -420,12 +420,12 @@ export default async function HomeworkPage({
                           {xong ? (
                             <>
                               <Check size={14} strokeWidth={2.5} />
-                              Đã đánh dấu — bấm để bỏ
+                              {t('undoDone')}
                             </>
                           ) : (
                             <>
                               <Circle size={14} strokeWidth={2.5} />
-                              Em đã làm rồi
+                              {t('markDone')}
                             </>
                           )}
                         </SubmitButton>
@@ -445,8 +445,8 @@ export default async function HomeworkPage({
                           <Circle size={12} strokeWidth={2.5} />
                         )}
                         {xong
-                          ? `${conDangXem.name} đã tự đánh dấu là đã làm`
-                          : `${conDangXem.name} chưa đánh dấu bài này`}
+                          ? t('childDone', {name: conDangXem.name})
+                          : t('childNotDone', {name: conDangXem.name})}
                       </div>
                     )}
                   </article>
