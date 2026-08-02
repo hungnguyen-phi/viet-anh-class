@@ -40,6 +40,31 @@ export function todayInVN(): string {
   }).format(new Date());
 }
 
+// Bảy ngày của tuần ISO chứa `today` (Thứ Hai → Chủ Nhật), dạng 'YYYY-MM-DD'.
+//
+// Nhận vào MỘT CHUỖI NGÀY chứ không phải Date: nơi gọi đã có sẵn ngày theo giờ VN (todayInVN
+// hoặc app_today), và nếu nhận Date thì lại phải đổi múi giờ lần nữa — mỗi lần đổi là một cơ hội
+// lệch 7 tiếng trong khung 00:00–07:00. Tính bằng UTC trên chuỗi đã chuẩn hoá thì không lệch.
+//
+// Trước đây đoạn này được chép tay trong StudentScoreboard; nay bảng tick của GVCN cần đúng
+// 7 ngày ấy để xếp cột, nên tách ra dùng chung — hai bản chép tay là hai cơ hội lệch nhau.
+export function weekDaysVN(today: string): string[] {
+  const monday = new Date(`${today}T00:00:00Z`);
+  const isoDow = monday.getUTCDay() === 0 ? 7 : monday.getUTCDay();
+  monday.setUTCDate(monday.getUTCDate() - (isoDow - 1));
+  return Array.from({length: 7}, (_, i) => {
+    const d = new Date(monday);
+    d.setUTCDate(monday.getUTCDate() + i);
+    return d.toISOString().slice(0, 10);
+  });
+}
+
+// Thứ trong tuần theo ISO (1=T2 … 7=CN) của một chuỗi ngày 'YYYY-MM-DD'.
+export function isoDowVN(day: string): number {
+  const n = new Date(`${day}T00:00:00Z`).getUTCDay();
+  return n === 0 ? 7 : n;
+}
+
 // Phạm vi tuần ISO (Thứ Hai → Chủ Nhật) chứa ngày cho trước, theo lịch VN.
 export function weekRangeVN(date: Date = new Date()): {start: string; end: string; label: string} {
   const {y, m, d} = vnParts(date);

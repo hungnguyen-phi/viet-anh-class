@@ -8,6 +8,7 @@ import {GradeManager} from '@/app/[locale]/(dashboard)/admin/GradeManager';
 import {ClassForm} from '@/app/[locale]/(dashboard)/admin/ClassForm';
 import {ClassManager} from '@/app/[locale]/(dashboard)/admin/ClassManager';
 import {SchoolRollup, type RollupRow} from './SchoolRollup';
+import {WigRollup, type WigRollupRow} from './WigRollup';
 import {TeacherManager} from './TeacherManager';
 import {CampusLevelPicker} from './CampusLevelPicker';
 import {FlashToast} from '@/components/ui/FlashToast';
@@ -41,6 +42,13 @@ export default async function CampusPage({
   const rollupPromise = supabase.rpc('campus_rollup').then(
     (r) => (r.data ?? []) as RollupRow[],
     () => [] as RollupRow[],
+  );
+
+  // Nhịp WIG tuần này theo lớp (0073) — phóng đi cùng lúc với campus_rollup, cùng lý do: nó không
+  // cần kết quả của câu nào, và cũng không câu nào dưới đây cần nó.
+  const wigRollupPromise = supabase.rpc('school_wig_rollup').then(
+    (r) => (r.data ?? []) as WigRollupRow[],
+    () => [] as WigRollupRow[],
   );
 
   // BGH quản lý Cơ sở mình (admin dùng /admin). Các truy vấn dưới đây độc lập → chạy song song.
@@ -153,8 +161,8 @@ export default async function CampusPage({
     };
   }
 
-  // Giờ mới chờ bảng tổng hợp — nó đã chạy SONG SONG với cả khối quản lý ở trên.
-  const rows = await rollupPromise;
+  // Giờ mới chờ hai bảng tổng hợp — cả hai đã chạy SONG SONG với khối quản lý ở trên.
+  const [rows, wigRows] = await Promise.all([rollupPromise, wigRollupPromise]);
 
   // Nhật ký kiểm toán không nằm trên đường tới hạn — xem ghi chú ở lần sửa hiệu năng.
   after(() => {
@@ -172,6 +180,10 @@ export default async function CampusPage({
       ) : (
         <SchoolRollup rows={rows} />
       )}
+
+      {/* Nhịp 4DX tuần này — thắng/thua theo lớp và theo GVCN. Đặt ngay dưới bảng thi đua vì đây
+          là cùng một câu hỏi ở hai thang thời gian: bảng trên là cả năm, bảng này là tuần. */}
+      <WigRollup rows={wigRows} />
 
       {/* Kênh liên lạc phụ huynh ↔ GVCN: ban giám hiệu chỉ nhận SỐ, không nhận CHỮ.
           Đặt ở đây vì đây là màn hình cấp trường của họ, và "lớp nào để phụ huynh chờ lâu" là

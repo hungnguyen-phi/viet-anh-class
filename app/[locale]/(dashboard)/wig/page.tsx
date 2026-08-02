@@ -8,12 +8,11 @@ import {ConfirmButton} from '@/components/ui/ConfirmButton';
 // "Ghi +" và "Tạo WIG tuần" xong không thấy dấu hiệu gì nên tưởng hỏng, bấm lại nhiều lần —
 // nút này khoá + hiện spinner ngay khi bấm, và chặn luôn double-submit.
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {Field, inputCls, inputInline, btnGhost, btnGold, btnIconDanger} from '@/components/ui/Field';
+import {Field, inputCls, btnGhost, btnGold, btnIconDanger} from '@/components/ui/Field';
 import {WigCreateForm} from './WigCreateForm';
 import {
   addLeadMeasure,
   createWig,
-  logProgress,
   deleteWig,
   deleteLeadMeasure,
   editWig,
@@ -23,7 +22,9 @@ import {Link} from '@/i18n/navigation';
 import {isoWeekLabel, schoolYearOptions, weekOptions, monthOptions} from '@/lib/dates';
 import {ClassMeetingSection} from '@/components/wig/ClassMeetingSection';
 import {ClassStudentWigSetup} from '@/components/wig/ClassStudentWigSetup';
+import {ClassTickBoard} from '@/components/wig/ClassTickBoard';
 import {ChildPeriodFields} from '@/components/wig/ChildPeriodFields';
+import {WeekdayPicker} from '@/components/wig/WeekdayPicker';
 import {AREAS, buildAreaMeta, areaLabel, type Area} from '@/lib/areas';
 import {FlashToast} from '@/components/ui/FlashToast';
 
@@ -47,6 +48,8 @@ type Lead = {
   target_value: number;
   unit: string | null;
   sub_category: string | null;
+  // 0073 — những thứ trong tuần mà việc này được tick (ISO 1=T2…7=CN).
+  active_weekdays: number[] | null;
 };
 type Prog = {actual: number | null; pct: number | null; status: string | null};
 
@@ -97,7 +100,7 @@ export default async function WigPage({
     supabase
       .from('wigs')
       .select(
-        'id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date, lead_measures(id, wig_id, title, target_value, unit, sub_category)',
+        'id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date, lead_measures(id, wig_id, title, target_value, unit, sub_category, active_weekdays)',
       )
       .eq('class_id', myClass.id)
       .eq('scope', 'class'),
@@ -165,11 +168,11 @@ export default async function WigPage({
   // Ô nhập và nút DÙNG CHUNG chiều cao ctl-h (44px) từ components/ui/Field.
   // Trước đây ba thứ này cao 40 / 38 / 31px vì mỗi cái tự chế padding riêng — đứng cùng một
   // hàng `items-center` là lệch, đúng lỗi người dùng báo. Chiều cao tường minh thì tự thẳng.
-  // inputInline (KHONG kem w-full) vi cho nay tu dat be rong `w-20` — dung inputCls se co
-  // hai lop width da nhau, ket qua phu thuoc thu tu Tailwind sinh CSS.
-  const compactInput = inputInline;
   const ghostBtn = btnGhost;
   const logBtn = btnGold;
+
+  // Nhãn thứ (T2…CN) cho ô chọn ngày áp dụng của lead measure.
+  const dayShort = t.raw('dayShort') as string[];
 
   const bar = (p?: Prog) => {
     const pct = Math.round(Number(p?.pct ?? 0) * 100);
@@ -254,6 +257,12 @@ export default async function WigPage({
             <input name="sub_category" defaultValue={l.sub_category ?? ''} className={inputCls} />
           </Field>
         </div>
+        <WeekdayPicker
+          label={t('weekdays')}
+          hint={t('weekdaysHint')}
+          dayLabels={dayShort}
+          selected={l.active_weekdays ?? undefined}
+        />
         <div className="flex flex-wrap justify-end gap-2">
           <Link href={backHref} className={ghostBtn}>{t('cancel')}</Link>
           <SubmitButton className={logBtn}>{t('save')}</SubmitButton>
@@ -357,24 +366,14 @@ export default async function WigPage({
                   ({l.target_value} {l.unit ?? ''})
                 </span>
               </span>
-              {/* w-14 (56px) trước đây trừ padding 24px và cặp mũi tên spinner ~17px chỉ còn
-                  ~15px cho con số — không đủ cho hai chữ số. Spinner đã bỏ ở globals.css, và
-                  w-20 cho chỗ thoải mái. aria-label vì ô này không có nhãn nhìn thấy được. */}
-              <form action={logProgress} className="ml-auto flex items-center gap-1.5">
-                <input type="hidden" name="class_id" value={myClass.id} />
-                <input type="hidden" name="lead_measure_id" value={l.id} />
-                <input
-                  name="value"
-                  type="number"
-                  step="any"
-                  min="0.01"
-                  inputMode="decimal"
-                  defaultValue={1}
-                  aria-label={`${t('log')} — ${l.title}`}
-                  className={`${compactInput} w-20 text-center`}
-                />
-                <SubmitButton className={logBtn}>{t('log')}</SubmitButton>
-              </form>
+              {/* Những thứ em được tick việc này. Ô "Ghi +" cũ ĐÃ BỎ (0073): con số của WIG lớp
+                  nay do học sinh tick mà thành, giáo viên gõ tay thì bảng thắng/thua chỉ phản
+                  chiếu lại chính tay người bấm. Xem ai đã tick ở bảng "Việc chung" đầu trang. */}
+              <span className="ml-auto rounded-full bg-navy/[0.05] px-2 py-1 text-[10.5px] font-bold text-grey-mid">
+                {(l.active_weekdays ?? [1, 2, 3, 4, 5, 6, 7])
+                  .map((d) => dayShort[d - 1])
+                  .join(' · ')}
+              </span>
               <Link href={editHref({editLead: l.id})} className={editLinkCls}>
                 {t('edit')}
               </Link>
@@ -408,6 +407,7 @@ export default async function WigPage({
               <input name="sub_category" className={inputCls} />
             </Field>
           </div>
+          <WeekdayPicker label={t('weekdays')} hint={t('weekdaysHint')} dayLabels={dayShort} />
           <div className="flex justify-end">
             <SubmitButton className={ghostBtn}>+ {t('addLead')}</SubmitButton>
           </div>
@@ -482,6 +482,10 @@ export default async function WigPage({
         classParam={classParam}
         tickLockDow={myClass.tick_lock_dow ?? 7}
       />
+
+      {/* Việc chung của lớp: ai đã tick, đến đâu (0073). Đặt ngay dưới khối họp vì đây chính là
+          con số quyết định thắng/thua tuần này — trước bản đó, số ấy do giáo viên tự gõ. */}
+      <ClassTickBoard classId={myClass.id} />
 
       {/* Việc hằng ngày của HỌC SINH. Đặt ngay đây (không chôn trong trang từng em) vì thiếu nó
           thì màn hình của các em trống trơn — đúng lỗi cả ba người thử đều gặp. */}

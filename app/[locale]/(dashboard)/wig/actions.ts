@@ -161,6 +161,18 @@ export async function createWig(formData: FormData) {
   flash(error ? friendlyError(error) : 'Đã tạo WIG', class_id);
 }
 
+// Những thứ trong tuần mà một lead measure được tick (ISO: 1=T2 … 7=CN).
+// Bỏ trống → T2–T6, mặc định của một việc học ngày thường. Đây là chỗ đặt mặc định, KHÔNG phải
+// cột trong CSDL: cột để cả 7 thứ để các việc đã tạo trước 0073 không bị siết ngược.
+function parseWeekdays(formData: FormData): number[] {
+  const raw = formData
+    .getAll('weekdays')
+    .map((v) => Number(v))
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7);
+  const uniq = [...new Set(raw)].sort((a, b) => a - b);
+  return uniq.length > 0 ? uniq : [1, 2, 3, 4, 5];
+}
+
 export async function addLeadMeasure(formData: FormData) {
   await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '') || undefined;
@@ -169,31 +181,23 @@ export async function addLeadMeasure(formData: FormData) {
   const target_value = Number(formData.get('target_value') ?? 0);
   const unit = String(formData.get('unit') ?? '').trim() || null;
   const sub_category = String(formData.get('sub_category') ?? '').trim() || null;
+  const active_weekdays = parseWeekdays(formData);
   if (!wig_id || !title || !target_value) flash('Thiếu tên/mục tiêu lead measure', class_id);
   if (target_value <= 0) flash('Mục tiêu phải lớn hơn 0.', class_id);
   const supabase = await createClient();
-  const {error} = await supabase.from('lead_measures').insert({wig_id, title, target_value, unit, sub_category});
+  const {error} = await supabase
+    .from('lead_measures')
+    .insert({wig_id, title, target_value, unit, sub_category, active_weekdays});
   revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]/student', 'page');
   flash(error ? friendlyError(error) : 'Đã thêm lead measure', class_id);
 }
 
-export async function logProgress(formData: FormData) {
-  // requireRole đã trả về hồ sơ người đang ghi → dùng luôn me.id thay vì gọi thêm
-  // supabase.auth.getUser() (một vòng mạng nữa tới Supabase Auth chỉ để lấy lại đúng id đó).
-  const me = await requireRole(['teacher', 'admin']);
-  const class_id = String(formData.get('class_id') ?? '') || undefined;
-  const lead_measure_id = String(formData.get('lead_measure_id') ?? '');
-  const value = Number(formData.get('value') || 1);
-  if (!lead_measure_id) flash('Thiếu lead measure', class_id);
-  if (!Number.isFinite(value) || value <= 0) flash('Giá trị ghi phải lớn hơn 0.', class_id);
-  const supabase = await createClient();
-  const {error} = await supabase
-    .from('lead_progress')
-    .insert({lead_measure_id, value, logged_by: me.id});
-  revalidatePath('/[locale]/wig', 'page');
-  revalidatePath('/[locale]', 'page');
-  flash(error ? friendlyError(error) : `Đã ghi +${value}`, class_id);
-}
+// logProgress() ĐÃ BỎ (0073). Trước đây GVCN tự bấm "Ghi +" để cộng số cho WIG lớp — nên bảng
+// thắng/thua chỉ phản chiếu lại chính tay người bấm, lớp nào cũng thắng. Nay con số ấy do học
+// sinh tick mà thành: cùng một bảng lead_progress, nhưng student_id là em nào tick, và
+// wig_actual() cộng lên như cũ. Cần chữa sai sót thì sửa/xoá tick của em (RLS lp_staff_manage
+// vẫn cho GVCN toàn quyền), chứ không cộng thêm một con số không thuộc về ai.
 
 // Xoá WIG (sửa sai sót làm méo xếp hạng). WIG năm: xoá WIG tuần con trước
 // (parent_wig_id không cascade); lead_measures + lead_progress tự cascade theo wig_id.
@@ -265,15 +269,17 @@ export async function editLeadMeasure(formData: FormData) {
   const target_value = Number(formData.get('target_value') ?? 0);
   const unit = String(formData.get('unit') ?? '').trim() || null;
   const sub_category = String(formData.get('sub_category') ?? '').trim() || null;
+  const active_weekdays = parseWeekdays(formData);
   if (!id || !title || !Number.isFinite(target_value)) flash('Thiếu tên/mục tiêu lead measure', class_id);
   if (target_value <= 0) flash('Mục tiêu phải lớn hơn 0.', class_id);
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('lead_measures')
-    .update({title, target_value, unit, sub_category})
+    .update({title, target_value, unit, sub_category, active_weekdays})
     .eq('id', id)
     .select('id');
   revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]', 'page');
   if (error) flash(friendlyError(error), class_id);
   if (!data || data.length === 0)

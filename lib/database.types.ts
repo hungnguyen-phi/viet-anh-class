@@ -703,6 +703,7 @@ export type Database = {
       }
       lead_measures: {
         Row: {
+          active_weekdays: number[]
           created_at: string
           id: string
           sub_category: string | null
@@ -712,6 +713,7 @@ export type Database = {
           wig_id: string
         }
         Insert: {
+          active_weekdays?: number[]
           created_at?: string
           id?: string
           sub_category?: string | null
@@ -721,6 +723,7 @@ export type Database = {
           wig_id: string
         }
         Update: {
+          active_weekdays?: number[]
           created_at?: string
           id?: string
           sub_category?: string | null
@@ -2089,6 +2092,54 @@ export type Database = {
           school_year: string
           score: number
           student_count: number
+        }[]
+      }
+      class_lead_board: {
+        Args: { p_class: string; p_student?: string; p_week_start?: string }
+        Returns: {
+          active_weekdays: number[]
+          area: string
+          class_size: number
+          class_total: number
+          contributors: number
+          lead_measure_id: string
+          my_dates: string[]
+          target_value: number
+          title: string
+          unit: string
+          wig_id: string
+          wig_title: string
+        }[]
+      }
+      class_tick_matrix: {
+        Args: { p_class: string; p_week_start?: string }
+        Returns: {
+          active_weekdays: number[]
+          area: string
+          lead_measure_id: string
+          lead_title: string
+          student_id: string
+          student_name: string
+          ticked_dates: string[]
+          wig_id: string
+          wig_title: string
+        }[]
+      }
+      lead_day_ok: { Args: { d: string; lm: string }; Returns: boolean }
+      school_wig_rollup: {
+        Args: { p_week_start?: string }
+        Returns: {
+          avg_pct: number
+          class_id: string
+          class_name: string
+          grade_name: string
+          grade_sort: number
+          student_count: number
+          teacher_name: string
+          tick_count: number
+          tick_students: number
+          wigs_total: number
+          wigs_won: number
         }[]
       }
       can_manage_class_cover: { Args: { p_name: string }; Returns: boolean }

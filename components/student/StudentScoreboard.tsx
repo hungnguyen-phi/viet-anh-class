@@ -3,7 +3,14 @@ import {headers} from 'next/headers';
 import {createClient} from '@/lib/supabase/server';
 import type {Profile} from '@/lib/auth';
 import {clientIp} from '@/lib/ip';
-import {todayInVN, isoWeekLabel, nextWeekRangeVN, recentWeekLabels} from '@/lib/dates';
+import {
+  todayInVN,
+  isoWeekLabel,
+  nextWeekRangeVN,
+  recentWeekLabels,
+  weekDaysVN,
+  isoDowVN,
+} from '@/lib/dates';
 import {DonutRing} from '@/components/charts/DonutRing';
 import {MoodCheckin, MoodGate, type MoodKey} from '@/components/student/MoodCheckin';
 import {LeadTicker, type TickerLead} from '@/components/student/LeadTicker';
@@ -42,9 +49,31 @@ type LeadRow = {
   title: string;
   target_value: number;
   unit: string | null;
+  // 0073 — những thứ trong tuần mà việc này được tick (ISO 1=T2…7=CN).
+  active_weekdays: number[] | null;
   lead_progress:
-    | {id: string; value: number; logged_date: string; created_at: string; logged_by: string | null}[]
+    | {
+        id: string;
+        value: number;
+        logged_date: string;
+        created_at: string;
+        logged_by: string | null;
+        student_id: string | null;
+      }[]
     | null;
+};
+
+// Một dòng của class_lead_board() — VIỆC CHUNG của lớp tuần này (0073).
+type ClassLeadRow = {
+  lead_measure_id: string;
+  title: string;
+  target_value: number | string;
+  unit: string | null;
+  active_weekdays: number[] | null;
+  class_total: number | string;
+  contributors: number | string;
+  class_size: number | string;
+  my_dates: string[] | null;
 };
 
 function initialsOf(name: string): string {
@@ -80,6 +109,9 @@ export async function StudentScoreboard({
   // đã tin nó đúng rồi. lib/dates.ts tính bằng Intl với múi giờ Asia/Ho_Chi_Minh nên không phụ
   // thuộc giờ máy chủ (máy chủ chạy UTC, lệch 7 tiếng).
   const today = todayInVN();
+  // 7 ngày của tuần hiện tại (Thứ Hai → Chủ Nhật). Tính SỚM ở đây vì đợt truy vấn thứ hai cần
+  // ngày Thứ Hai để hỏi bảng việc chung của lớp — trước đây đoạn này nằm mãi cuối hàm.
+  const weekDays = weekDaysVN(today);
 
   const locale = await getLocale();
 
@@ -260,7 +292,7 @@ export async function StudentScoreboard({
   // Và hai câu lead_measures ấy HỎI TRÙNG NHAU: cùng bảng, cùng `.in('wig_id', weekIds)`, chỉ
   // khác bộ cột. Nay hỏi một lần với hợp của hai bộ (bảng tick cần value/created_at/logged_by,
   // khối quản lý cần wig_id) rồi tách ở phía dưới. Ba vòng → một.
-  const [{data: mates}, {data: leadData}] = await Promise.all([
+  const [{data: mates}, {data: leadData}, {data: classLeadData}] = await Promise.all([
     canManage && classId
       ? supabase
           .from('enrollments')
@@ -273,9 +305,21 @@ export async function StudentScoreboard({
       ? supabase
           .from('lead_measures')
           .select(
-            'id, wig_id, title, target_value, unit, lead_progress(id, value, logged_date, created_at, logged_by)',
+            'id, wig_id, title, target_value, unit, active_weekdays, lead_progress(id, value, logged_date, created_at, logged_by, student_id)',
           )
           .in('wig_id', weekIds)
+      : Promise.resolve({data: null}),
+    // VIỆC CHUNG CỦA LỚP (0073). Phải đi qua RPC chứ không hỏi thẳng bảng: RLS chỉ cho một em đọc
+    // dòng tick của CHÍNH em, nên nếu hỏi thẳng thì con số "cả lớp" hiện ra đúng bằng phần của em
+    // — mà đây là scoreboard của cả đội, em phải thấy tỷ số chung mới biết lớp đang thắng hay thua.
+    classId
+      ? supabase.rpc('class_lead_board', {
+          p_class: classId,
+          p_week_start: weekDays[0],
+          // GVCN/phụ huynh mở trang của một em thì `my_dates` là của EM ĐÓ, không phải của người
+          // đang xem. Hàm tự kiểm quyền; truyền id bừa thì rơi về chính mình.
+          p_student: studentId,
+        })
       : Promise.resolve({data: null}),
   ]);
 
@@ -286,19 +330,50 @@ export async function StudentScoreboard({
     .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
 
   const leadRows = (leadData ?? []) as unknown as LeadRow[];
-  const tickerLeads: TickerLead[] = leadRows.map((l) => ({
-    id: l.id,
-    title: l.title,
-    target: Number(l.target_value),
-    unit: l.unit,
-    entries: (l.lead_progress ?? []).map((p) => ({
-      id: p.id,
-      value: Number(p.value ?? 0),
-      loggedDate: p.logged_date,
-      createdAt: p.created_at,
-      mine: p.logged_by === viewer.id,
+  const classLeadRows = (classLeadData ?? []) as unknown as ClassLeadRow[];
+
+  // 7 ngày của tuần → còn những THỨ mà việc đó áp dụng (0073). Trước đây bảng tick luôn bày đủ
+  // T2…CN cho mọi việc, kể cả việc chỉ làm ở lớp — em không biết cuối tuần có phải tick không.
+  const daysFor = (w: number[] | null) => {
+    const on = new Set(w ?? [1, 2, 3, 4, 5, 6, 7]);
+    return weekDays.filter((d) => on.has(isoDowVN(d)));
+  };
+
+  // VIỆC CHUNG đứng trước việc riêng: đây là thứ quyết định lớp thắng hay thua tuần này.
+  const tickerLeads: TickerLead[] = [
+    ...classLeadRows.map((l) => ({
+      id: l.lead_measure_id,
+      title: l.title,
+      target: Number(l.target_value),
+      unit: l.unit,
+      kind: 'class' as const,
+      days: daysFor(l.active_weekdays),
+      myDates: l.my_dates ?? [],
+      classTotal: Number(l.class_total),
+      contributors: Number(l.contributors),
+      classSize: Number(l.class_size),
     })),
-  }));
+    ...leadRows.map((l) => ({
+      id: l.id,
+      title: l.title,
+      target: Number(l.target_value),
+      unit: l.unit,
+      kind: 'mine' as const,
+      days: daysFor(l.active_weekdays),
+      // Lọc theo student_id chứ không theo logged_by: GVCN tick hộ một em thì dòng đó vẫn là của
+      // EM (student_id), chỉ khác người ghi. Bản trước so `logged_by === viewer.id` nên GVCN mở
+      // trang của một em thấy dải ngày trống trơn dù em đã tick đủ.
+      myDates: (l.lead_progress ?? [])
+        .filter((p) => p.student_id === studentId)
+        .map((p) => p.logged_date),
+      classTotal: null,
+      contributors: null,
+      classSize: null,
+    })),
+  ];
+  // Chỉ việc RIÊNG mới xin đổi tên được: việc chung là của cả lớp, một em đổi tên là đổi cho
+  // mọi người — chỗ sửa nó là buổi họp WIG với GVCN.
+  const myLeadOptions = leadRows.map((l) => ({id: l.id, title: l.title}));
 
   // GVCN/Admin: dữ liệu QUẢN LÝ WIG/lead/tick cá nhân + yêu cầu-sửa đang chờ (audit: hết ngõ cụt).
   let manageWigs: ManageWig[] = [];
@@ -334,18 +409,9 @@ export async function StudentScoreboard({
   }
 
 
-  // 7 ngày của tuần hiện tại (Thứ Hai → Chủ Nhật) cho dải tick, và tuần còn mở hay đã chốt.
-  // Phải khớp luật RLS ở 0046: trong tuần, không quá hôm nay, và hôm nay chưa qua ngày chốt.
-  // Tính từ `today` (app_today, giờ VN) chứ không từ giờ máy chủ.
-  const weekMonday = new Date(`${today}T00:00:00Z`);
-  const isoDow = weekMonday.getUTCDay() === 0 ? 7 : weekMonday.getUTCDay();
-  weekMonday.setUTCDate(weekMonday.getUTCDate() - (isoDow - 1));
-  const weekDays = Array.from({length: 7}, (_, i) => {
-    const d = new Date(weekMonday);
-    d.setUTCDate(weekMonday.getUTCDate() + i);
-    return d.toISOString().slice(0, 10);
-  });
-  const tickOpen = isoDow <= (cls?.tick_lock_dow ?? 7);
+  // Tuần còn mở cho sửa hay đã chốt — phải khớp luật RLS ở 0046: trong tuần, không quá hôm nay,
+  // và hôm nay chưa qua ngày chốt của lớp. (weekDays đã tính ở đầu hàm, cùng nguồn `today`.)
+  const tickOpen = isoDowVN(today) <= (cls?.tick_lock_dow ?? 7);
 
   // Tên lead measure theo id — dùng cho "việc hôm nay" của Buddy và cho nhãn yêu cầu-sửa.
   const leadTitleById = new Map(tickerLeads.map((l) => [l.id, l.title]));
@@ -472,18 +538,13 @@ export async function StudentScoreboard({
               studentId={studentId}
               canTick={canTick}
               today={today}
-              weekDays={weekDays}
               tickOpen={tickOpen}
             />
           )}
           {/* Học sinh: xin GVCN sửa (vd gỡ tick của ngày đã qua, đổi mục tiêu) — hết ngõ cụt phía HS */}
           {canTick && classId && (
             <div className="mt-3">
-              <EditRequestButton
-                studentId={studentId}
-                classId={classId}
-                leads={tickerLeads.map((l) => ({id: l.id, title: l.title}))}
-              />
+              <EditRequestButton studentId={studentId} classId={classId} leads={myLeadOptions} />
             </div>
           )}
           {/* Yêu cầu đã gửi mà GVCN chưa xử lý → còn sửa/rút lại được */}
