@@ -134,36 +134,50 @@ export default async function WigPage({
   // WIG + tiến độ chỉ phụ thuộc myClass.id — chạy song song.
   // Kèm hai truy vấn cho khối "việc hằng ngày của học sinh": sĩ số đang học, và số em ĐÃ có WIG
   // cá nhân của tuần ĐANG XEM. Gộp vào đây thay vì để component tự lấy → không thêm lượt chờ nào.
-  const [{data: wigsData}, {data: progData}, {data: enrolled}, {data: readyWigs}] = await Promise.all([
-    // NHÚNG LUÔN lead_measures. Trước đây phải chờ câu này về mới biết id của các WIG tuần, rồi
-    // mới hỏi lead_measures được — một vòng mạng xếp hàng thuần tuý ở giữa. PostgREST nhúng được
-    // theo khoá ngoại wig_id, và RLS vẫn áp y như khi hỏi rời. Lead của WIG năm/tháng (nếu có)
-    // theo về cùng, đổi lại là bỏ hẳn một chặng.
-    supabase
-      .from('wigs')
-      .select(
-        'id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date, lead_measures(id, wig_id, title, target_value, unit, sub_category, active_weekdays)',
-      )
-      .eq('class_id', myClass.id)
-      .eq('scope', 'class'),
-    supabase
-      .from('wig_progress_v')
-      .select('wig_id, actual, pct, status')
-      .eq('class_id', myClass.id)
-      .eq('scope', 'class'),
-    supabase
-      .from('enrollments')
-      .select('student_id')
-      .eq('class_id', myClass.id)
-      .eq('is_active', true),
-    supabase
-      .from('wigs')
-      .select('student_id')
-      .eq('class_id', myClass.id)
-      .eq('scope', 'student')
-      .eq('period', 'week')
-      .eq('period_label', wk.label),
-  ]);
+  const [{data: wigsData}, {data: progData}, {data: enrolled}, {data: readyWigs}] =
+    await Promise.all([
+      // NHÚNG LUÔN lead_measures. Trước đây phải chờ câu này về mới biết id của các WIG tuần, rồi
+      // mới hỏi lead_measures được — một vòng mạng xếp hàng thuần tuý ở giữa. PostgREST nhúng được
+      // theo khoá ngoại wig_id, và RLS vẫn áp y như khi hỏi rời. Lead của WIG năm/tháng (nếu có)
+      // theo về cùng, đổi lại là bỏ hẳn một chặng.
+      //
+      // ĐÃ THỬ VÀ BỎ (03/08): tách lead ra một câu riêng lọc sẵn theo tuần qua `wigs!inner`, để
+      // không kéo về lead của mọi tuần từ đầu năm. Đo trên lớp 7B1 thì payload gần như không đổi
+      // (229,1 KB → 229,6 KB) còn trang CHẬM HƠN chừng 5% (trung vị 730ms → 766/785ms qua ba lượt
+      // đo) — vì thêm một câu là thêm một lượt đi về, mà lớp hiện chỉ có một lead measure nên
+      // không có gì để tiết kiệm. Khi một lớp thật sự tích đủ vài chục tuần thì đo lại rồi hẵng
+      // đổi; tối ưu theo phỏng đoán mà làm chậm thứ đang chạy được là đổi chắc lấy ngờ.
+      supabase
+        .from('wigs')
+        .select(
+          'id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date, lead_measures(id, wig_id, title, target_value, unit, sub_category, active_weekdays)',
+        )
+        .eq('class_id', myClass.id)
+        .eq('scope', 'class'),
+      // Tiến độ: chỉ những WIG thật sự được vẽ ra — năm, tháng, và tuần đang xem. WIG tuần của
+      // tuần khác không có thanh nào trên màn hình nên không việc gì phải tải về. Đây là lọc
+      // THÊM ĐIỀU KIỆN vào một câu đã có, không phải thêm câu mới, nên không tốn lượt đi về nào.
+      supabase
+        .from('wig_progress_v')
+        .select('wig_id, actual, pct, status')
+        .eq('class_id', myClass.id)
+        .eq('scope', 'class')
+        .or(
+          `period.in.(year,month),and(period.eq.week,start_date.lte.${wk.end},end_date.gte.${wk.start})`,
+        ),
+      supabase
+        .from('enrollments')
+        .select('student_id')
+        .eq('class_id', myClass.id)
+        .eq('is_active', true),
+      supabase
+        .from('wigs')
+        .select('student_id')
+        .eq('class_id', myClass.id)
+        .eq('scope', 'student')
+        .eq('period', 'week')
+        .eq('period_label', wk.label),
+    ]);
   const studentCount = (enrolled ?? []).length;
   const readyCount = new Set((readyWigs ?? []).map((w) => w.student_id)).size;
   const wigsKemLead = (wigsData ?? []) as unknown as (Wig & {lead_measures: Lead[] | null})[];
@@ -204,9 +218,11 @@ export default async function WigPage({
     );
   };
 
-  // Chỉ lấy lead của WIG TUẦN, đúng như câu `.in('wig_id', weekIds)` cũ — nay lọc trong bộ nhớ.
+  // Chỉ lấy lead của WIG TUẦN THUỘC TUẦN ĐANG XEM — lọc trong bộ nhớ vì dữ liệu đã về cùng câu
+  // trên. Cùng vị ngữ `trongTuan` mà danh sách WIG dùng, nên panel sửa lead và danh sách không
+  // thể lệch nhau.
   const leads: Lead[] = wigsKemLead
-    .filter((w) => w.period === 'week')
+    .filter((w) => w.period === 'week' && trongTuan(w))
     .flatMap((w) => w.lead_measures ?? []);
   const leadsByWig = new Map<string, Lead[]>();
   for (const l of leads) {
