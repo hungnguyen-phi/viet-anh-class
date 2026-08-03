@@ -9,22 +9,41 @@ export async function MeetingScoreboard({
   classId,
   studentId,
   weekLabel,
+  weekStart,
+  weekEnd,
 }: {
   classId: string;
   studentId?: string;
   weekLabel: string;
+  // Hai đầu mốc của tuần đang họp. Có thì lọc theo NGÀY; không có thì đành theo nhãn (xem dưới).
+  weekStart?: string;
+  weekEnd?: string;
 }) {
   const t = await getTranslations('meeting');
   const locale = await getLocale();
   const supabase = await createClient();
   const scope = studentId ? 'student' : 'class';
 
+  // LỌC THEO NGÀY, không theo period_label.
+  //
+  // period_label là ô CHỮ TỰ DO trên panel sửa WIG (/wig), nằm tách rời hai ô ngày. Mọi thứ khác
+  // quanh panel này — danh sách WIG của /wig, class_lead_board, class_tick_matrix, màn hình học
+  // sinh — đều khớp theo start_date/end_date. Hai luật trên cùng một màn hình chính là thứ đã gây
+  // sự cố 7B1, và ở đây nó có lối vào rất tự nhiên: huy hiệu "Lệch tuần" mới bảo GVCN rằng ngày
+  // đang sai, họ vào sửa hai ô ngày, ô nhãn bên cạnh không ai đụng — thế là panel này mù, báo
+  // "chưa có số liệu tuần này" trong khi bảng tick ngay dưới đang hiện 18/30.
+  //
+  // 0073 cũng chọn ngày với đúng lý do ấy: "nhãn kỳ là chữ người gõ, có thể bỏ trống hoặc gõ khác
+  // quy ước, còn start_date/end_date thì luôn có".
   let q = supabase
     .from('wig_progress_v')
     .select('wig_id, area, pct')
     .eq('scope', scope)
-    .eq('period', 'week')
-    .eq('period_label', weekLabel);
+    .eq('period', 'week');
+  q =
+    weekStart && weekEnd
+      ? q.lte('start_date', weekEnd).gte('end_date', weekStart)
+      : q.eq('period_label', weekLabel);
   q = studentId ? q.eq('student_id', studentId) : q.eq('class_id', classId);
 
   const [{data: wrows}, {data: areaCfg}] = await Promise.all([
@@ -39,10 +58,16 @@ export async function MeetingScoreboard({
   let leadsDone = 0;
   let leadsTotal = 0;
   if (wigIds.length > 0) {
-    const {data: leadData} = await supabase
-      .from('lead_measures')
-      .select('target_value, lead_progress(value)')
-      .in('wig_id', wigIds);
+    // Tick cũng phải nằm trong tuần đang họp. Không ràng thì một việc đã đạt ở tuần trước vẫn
+    // được đếm "hoàn thành" cho tuần này — buổi họp đọc ra một con số không thuộc về tuần mình
+    // đang bàn, mà đó đúng là con số PRD bảo cầm để họp.
+    let lq = supabase.from('lead_measures').select('target_value, lead_progress(value)').in('wig_id', wigIds);
+    if (weekStart && weekEnd) {
+      lq = lq
+        .gte('lead_progress.logged_date', weekStart)
+        .lte('lead_progress.logged_date', weekEnd);
+    }
+    const {data: leadData} = await lq;
     for (const l of (leadData ?? []) as {target_value: number; lead_progress: {value: number}[] | null}[]) {
       leadsTotal += 1;
       const actual = (l.lead_progress ?? []).reduce((s, p) => s + Number(p.value ?? 0), 0);

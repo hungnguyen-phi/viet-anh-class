@@ -28,11 +28,12 @@ type WigRow = {
   pct: number | null;
   status: string | null;
 };
-type LeadRow = {
-  id: string;
+// Một dòng của RPC class_lead_board (0073/0074) — chỉ lấy những cột khối lead measure cần.
+type ClassLeadRow = {
+  lead_measure_id: string;
   title: string;
-  target_value: number;
-  lead_progress: {value: number}[] | null;
+  target_value: number | string;
+  class_total: number | string;
 };
 
 // AREAS + màu/icon/nhãn lĩnh vực ("Môn") lấy từ lib/areas (đọc area_config, fallback = giá trị cũ).
@@ -130,20 +131,31 @@ export default async function ClassPage({
     weeksByArea.set(w.area, arr);
   }
 
-  // Lead measure tuần: hoàn thành khi tổng tiến độ ≥ mục tiêu.
-  const weekIds = weekRows.map((w) => w.wig_id);
-  let leads: {id: string; title: string; target: number; actual: number; done: boolean}[] = [];
-  if (weekIds.length > 0) {
-    const {data: leadData} = await supabase
-      .from('lead_measures')
-      .select('id, title, target_value, lead_progress(value)')
-      .in('wig_id', weekIds);
-    leads = ((leadData ?? []) as LeadRow[]).map((l) => {
-      const actual = (l.lead_progress ?? []).reduce((s, p) => s + Number(p.value ?? 0), 0);
-      const target = Number(l.target_value);
-      return {id: l.id, title: l.title, target, actual, done: target > 0 && actual >= target};
-    });
-  }
+  // Lead measure TUẦN NÀY — đi qua đúng cái RPC mà học sinh và bảng tick của GVCN đang dùng.
+  //
+  // Trước đây khối này tự hỏi lead_measures của MỌI WIG tuần trong `weekRows` (câu trên không lọc
+  // ngày) rồi cộng lead_progress cũng không lọc ngày. Nó chính là nửa còn lại của sự cố 7B1 ngày
+  // 03/08: /wig đã nói đúng "tuần này chưa có WIG nào" và màn hình học sinh trống trơn, nhưng
+  // trang chủ — màn hình GVCN mở đầu tiên — vẫn trưng "Dành 30 phút đọc sách 0/30" của một WIG
+  // đóng từ hôm trước, dưới đúng dòng chữ "Lead measure tuần này".
+  //
+  // Chưa kể nó tự hỏng dần theo thời gian: một việc đã đạt ở tuần 28 vĩnh viễn được đếm là "xong"
+  // trong ô "tuần này", nên tới giữa năm tỷ số hoàn thành là tỷ số CẢ NĂM mang nhãn tuần.
+  //
+  // Gọi class_lead_board (0074) thay vì chép lại luật lọc: nó đã ràng cả hai đầu — WIG phải giao
+  // với tuần, và tick phải nằm trong bảy ngày ấy. Một luật, ba màn hình, không thể trôi khỏi nhau.
+  const {data: boardData} = await supabase.rpc('class_lead_board', {p_class: myClass.id});
+  const leads = ((boardData ?? []) as ClassLeadRow[]).map((l) => {
+    const actual = Number(l.class_total ?? 0);
+    const target = Number(l.target_value);
+    return {
+      id: l.lead_measure_id,
+      title: l.title,
+      target,
+      actual,
+      done: target > 0 && actual >= target,
+    };
+  });
   const leadsDone = leads.filter((l) => l.done).length;
 
   // Banner "3 giây": thắng khi số lĩnh vực on-track ≥ số off-track (theo WIG năm).
@@ -208,11 +220,11 @@ export default async function ClassPage({
             ) : (
               <Flame size={14} strokeWidth={2.5} />
             )}
-            {/* Ghi rõ đây là chỉ số CẢ NĂM. Trước đây huy hiệu chỉ có "1/1 on-track" đứng ngay
-                trên khối "Lead measure tuần này — 0/1", nên đọc liền hai dòng là hiểu thành tuần
-                này đang thắng trong khi tuần này chưa ai tick lần nào. Banner cộng dồn từ đầu năm
-                qua mọi WIG tuần con, còn khối kia chỉ tính tuần hiện tại — hai thước đo khác nhau
-                đứng cạnh nhau mà không cái nào tự giới thiệu. */}
+            {/* Ghi rõ đây là chỉ số CẢ NĂM. Huy hiệu này trước chỉ có "1/1 on-track" và đứng ngay
+                trên khối "Lead measure tuần này", nên đọc liền hai dòng là hiểu thành tuần này
+                đang thắng — trong khi nó cộng dồn từ đầu năm qua mọi WIG tuần con.
+                Khối lead bên dưới nay đã bám đúng tuần hiện tại (xem chỗ gọi class_lead_board),
+                nên hai con số cạnh nhau đo hai kỳ khác nhau — mỗi cái phải tự nói ra mình đo gì. */}
             {t('class.yearOnTrack', {n: onCount, total: yearRows.length})}
           </span>
         </div>

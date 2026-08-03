@@ -378,6 +378,7 @@
     "tickBoardContributors": "{n}/{total} em đã góp",
     "tickBoardStudent": "Học sinh",
     "tickBoardNone": "chưa tick",
+    "tickBoardNotStarted": "Tuần chưa bắt đầu",
     "weekPrev": "Tuần trước",
     "weekNext": "Tuần sau",
     "weekNow": "TUẦN NÀY",

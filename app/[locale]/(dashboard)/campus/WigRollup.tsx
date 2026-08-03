@@ -24,7 +24,17 @@ export type WigRollupRow = {
 //
 // Cột "Em đã tick" đứng cạnh cột "Thắng" là có chủ ý: một lớp thắng đủ 4 WIG mà chỉ 3/30 em có
 // tick thì đó không phải một lớp đang chạy tốt, đó là một lớp đặt mục tiêu quá thấp.
-export async function WigRollup({rows}: {rows: WigRollupRow[]}) {
+export async function WigRollup({
+  rows,
+  canOpenWig = true,
+}: {
+  rows: WigRollupRow[];
+  // /wig chỉ cho vai teacher/admin (requireRole ở wig/page.tsx); hiệu trưởng vào là bị đá về
+  // đúng /campus này — nhấp một cái rồi quay lại chỗ cũ, không báo gì. Mà bảng này dựng ra CHO
+  // hiệu trưởng, và những con số đỏ trong đây chính là thứ mời người ta bấm vào.
+  // Với họ, trỏ sang /meeting: đó là màn hình 4DX của lớp mà vai principal đọc được.
+  canOpenWig?: boolean;
+}) {
   const t = await getTranslations('campusReport');
 
   if (rows.length === 0) {
@@ -81,7 +91,7 @@ export async function WigRollup({rows}: {rows: WigRollupRow[]}) {
           return (
             <Link
               key={r.class_id}
-              href={{pathname: '/wig', query: {class: r.class_id}}}
+              href={{pathname: canOpenWig ? '/wig' : '/meeting', query: {class: r.class_id}}}
               className="flex min-w-[680px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2.5 transition-colors hover:bg-navy/[0.03]"
             >
               <span className="text-[13.5px] font-bold text-navy" style={colClass}>

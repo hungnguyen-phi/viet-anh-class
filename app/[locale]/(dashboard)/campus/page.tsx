@@ -183,7 +183,7 @@ export default async function CampusPage({
 
       {/* Nhịp 4DX tuần này — thắng/thua theo lớp và theo GVCN. Đặt ngay dưới bảng thi đua vì đây
           là cùng một câu hỏi ở hai thang thời gian: bảng trên là cả năm, bảng này là tuần. */}
-      <WigRollup rows={wigRows} />
+      <WigRollup rows={wigRows} canOpenWig={profile.role === 'admin'} />
 
       {/* Kênh liên lạc phụ huynh ↔ GVCN: ban giám hiệu chỉ nhận SỐ, không nhận CHỮ.
           Đặt ở đây vì đây là màn hình cấp trường của họ, và "lớp nào để phụ huynh chờ lâu" là

@@ -27,11 +27,16 @@ export async function ClassMeetingSection({
   weekLabel,
   canManage,
   classParam,
+  weekStart,
+  weekEnd,
   weekParam,
   tickLockDow,
 }: {
   classId: string;
   weekLabel: string;
+  // Hai đầu mốc của tuần đang xem — bảng điểm họp lọc theo NGÀY chứ không theo nhãn chữ.
+  weekStart?: string;
+  weekEnd?: string;
   canManage: boolean;
   classParam?: string;
   // Thứ Hai của tuần đang xem, rỗng nếu là tuần hiện tại (xem WeekNav). Chỉ để mang theo ?week=
@@ -86,7 +91,12 @@ export async function ClassMeetingSection({
       )}
 
       {/* PRD Màn 5: "cầm scoreboard mà họp" — WIG tuần/lead của lớp tuần này */}
-      <MeetingScoreboard classId={classId} weekLabel={weekLabel} />
+      <MeetingScoreboard
+        classId={classId}
+        weekLabel={weekLabel}
+        weekStart={weekStart}
+        weekEnd={weekEnd}
+      />
 
       {canManage && (
         <div className="glass rounded-[20px] p-[18px]">
@@ -119,6 +129,10 @@ export async function ClassMeetingSection({
                   <form action={deleteMeeting} className="ml-auto">
                     <input type="hidden" name="id" value={m.id} />
                     {classParam && <input type="hidden" name="class" value={classParam} />}
+                    {/* Nút này nằm trong component dùng chung nên lúc bịt ?week= cho các form của
+                        /wig nó bị sót. Thiếu ô này thì GVCN đang dọn tuần cũ, bấm ✕ một cái là
+                        văng về tuần hiện tại — và ở trang khác nữa (xem deleteMeeting). */}
+                    {weekParam && <input type="hidden" name="week" value={weekParam} />}
                     <ConfirmButton
                       message={t('confirmDeleteMeeting')}
                       label={t('deleteMeeting')}

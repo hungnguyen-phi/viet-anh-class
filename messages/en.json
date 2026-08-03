@@ -378,6 +378,7 @@
     "tickBoardContributors": "{n}/{total} students joined in",
     "tickBoardStudent": "Student",
     "tickBoardNone": "no ticks",
+    "tickBoardNotStarted": "Week not started",
     "weekPrev": "Prev week",
     "weekNext": "Next week",
     "weekNow": "THIS WEEK",

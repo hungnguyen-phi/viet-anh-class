@@ -87,6 +87,10 @@ export async function ClassTickBoard({classId, weekStart}: {classId: string; wee
     [...s.cells.values()].every((c) => (c.ticked_dates ?? []).length === 0),
   ).length;
 
+  // Tuần chưa bắt đầu thì KHÔNG báo động "n em chưa tick lần nào" — chưa tới ngày nào để tick,
+  // đỏ ở đây là báo động giả và làm nhờn cảnh báo thật của tuần đang chạy.
+  const tuanChuaToi = monday > today;
+
   const dayShort = t.raw('dayShort') as string[];
   // Nhãn thứ của những ngày mà việc này áp dụng — dùng cho cả tiêu đề cột lẫn tooltip từng ô.
   const activeDaysOf = (w: number[] | null) => {
@@ -101,10 +105,15 @@ export async function ClassTickBoard({classId, weekStart}: {classId: string; wee
         <span className="rounded-full bg-navy/[0.06] px-2.5 py-0.5 text-[11px] font-bold text-grey-mid">
           {monday} → {weekDays[6]}
         </span>
-        {silent > 0 && (
+        {silent > 0 && !tuanChuaToi && (
           <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-status-bad/[0.10] px-2.5 py-1 text-[11px] font-extrabold text-status-bad">
             <AlertTriangle size={12} strokeWidth={2.5} />
             {t('tickBoardSilent', {n: silent})}
+          </span>
+        )}
+        {tuanChuaToi && (
+          <span className="ml-auto rounded-full bg-navy/[0.06] px-2.5 py-1 text-[11px] font-extrabold text-grey-mid">
+            {t('tickBoardNotStarted')}
           </span>
         )}
       </div>
@@ -185,7 +194,7 @@ export async function ClassTickBoard({classId, weekStart}: {classId: string; wee
                     >
                       {s.name}
                     </Link>
-                    {none && (
+                    {none && !tuanChuaToi && (
                       <span className="ml-1.5 rounded-full bg-status-bad/[0.10] px-1.5 py-0.5 text-[9.5px] font-extrabold text-status-bad">
                         {t('tickBoardNone')}
                       </span>

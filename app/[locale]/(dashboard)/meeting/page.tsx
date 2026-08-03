@@ -2,7 +2,7 @@ import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getClassContext} from '@/lib/queries';
-import {isoWeekLabel} from '@/lib/dates';
+import {mondayOf, todayInVN, weekFromMonday} from '@/lib/dates';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {ClassMeetingSection} from '@/components/wig/ClassMeetingSection';
 
@@ -37,6 +37,9 @@ export default async function MeetingPage({
   const tc = await getTranslations('class');
   const supabase = await createClient();
   const {myClass, classes: accessible} = await getClassContext(supabase, profile, classParam);
+  // Tuần hiện tại theo lịch VN. Trang này không có nút ← → như /wig (nó là lối vào phụ cho BGH),
+  // nhưng vẫn phải đưa NGÀY xuống để bảng điểm họp lọc theo ngày thay vì theo nhãn kỳ gõ tay.
+  const wk = weekFromMonday(mondayOf(todayInVN()));
 
   if (!myClass) {
     return (
@@ -57,7 +60,9 @@ export default async function MeetingPage({
 
       <ClassMeetingSection
         classId={myClass.id}
-        weekLabel={isoWeekLabel(new Date())}
+        weekLabel={wk.label}
+        weekStart={wk.start}
+        weekEnd={wk.end}
         canManage={canManage}
         classParam={classParam}
         tickLockDow={myClass.tick_lock_dow}

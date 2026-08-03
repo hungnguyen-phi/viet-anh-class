@@ -363,8 +363,20 @@ export async function StudentScoreboard({
       // Lọc theo student_id chứ không theo logged_by: GVCN tick hộ một em thì dòng đó vẫn là của
       // EM (student_id), chỉ khác người ghi. Bản trước so `logged_by === viewer.id` nên GVCN mở
       // trang của một em thấy dải ngày trống trơn dù em đã tick đủ.
+      //
+      // VÀ phải lọc theo TUẦN. `days` ngay dưới chỉ vẽ ô cho 7 ngày của tuần này, còn LeadTicker
+      // lấy `mine = myDates.length` làm tử số của thanh tiến độ — không ràng ngày thì một lượt
+      // tick nằm ngoài tuần (GVCN sửa hộ ngày cũ, hoặc dữ liệu trước khi 0073 siết ngày) sẽ đẩy
+      // thanh lên mà không có ô vàng nào tương ứng. Trên production đã có thật: một em hiện
+      // "5/5 ĐẠT" trong khi màn hình chỉ có 4 ô. Việc CHUNG ngay bên cạnh lấy my_dates từ RPC —
+      // vốn đã lọc theo tuần — nên trước bản này hai loại việc trong cùng một bảng đếm hai kiểu.
       myDates: (l.lead_progress ?? [])
-        .filter((p) => p.student_id === studentId)
+        .filter(
+          (p) =>
+            p.student_id === studentId &&
+            p.logged_date >= weekDays[0] &&
+            p.logged_date <= weekDays[6],
+        )
         .map((p) => p.logged_date),
       classTotal: null,
       contributors: null,
@@ -614,7 +626,18 @@ export async function StudentScoreboard({
           <section className="flex flex-col gap-3">
             <h2 className="font-display text-[17px] font-bold text-navy">{t('meetings')}</h2>
             {/* PRD Màn 6: "cầm scoreboard mà họp" — panel WIG tuần/lead của em */}
-            {classId && <MeetingScoreboard classId={classId} studentId={studentId} weekLabel={isoWeekLabel(new Date())} />}
+            {/* weekDays đã là 7 ngày của tuần hiện tại theo lịch VN (tính ở đầu hàm, cùng nguồn
+                `today`) — truyền xuống để bảng điểm họp lọc theo NGÀY, khớp với dải ô tick ngay
+                trên nó, thay vì theo nhãn kỳ do người gõ. */}
+            {classId && (
+              <MeetingScoreboard
+                classId={classId}
+                studentId={studentId}
+                weekLabel={isoWeekLabel(new Date())}
+                weekStart={weekDays[0]}
+                weekEnd={weekDays[6]}
+              />
+            )}
             {/* PRD §7 "ghi chú Buddy" — Buddy là LLM. KHÔNG có nút: mở trang là tự sinh, server
                 chặn tối đa 1 lượt/ngày và chỉ gọi LLM khi có tick mới (0043). */}
             {canTick && (

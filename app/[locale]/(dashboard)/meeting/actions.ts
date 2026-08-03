@@ -80,11 +80,18 @@ export async function deleteMeeting(formData: FormData) {
   await requireRole(['teacher', 'admin']);
   const id = String(formData.get('id') ?? '');
   const classParam = String(formData.get('class') ?? '');
+  // Tuần đang xem, do khối họp nhúng trong /wig gửi lên (rỗng nếu bấm từ trang /meeting).
+  const week = String(formData.get('week') ?? '');
   const supabase = await createClient();
   const {error} = await supabase.from('wig_meetings').delete().eq('id', id);
   revalidatePath('/[locale]/meeting', 'page');
+  revalidatePath('/[locale]/wig', 'page');
   const q = new URLSearchParams();
   if (classParam) q.set('class', classParam);
   q.set('flash', error ? friendlyError(error) : 'Đã xoá biên bản');
-  redirect(`/meeting?${q.toString()}`);
+  // VỀ ĐÚNG CHỖ VỪA BẤM. Trước đây luôn redirect sang /meeting, kể cả khi người dùng đang ở /wig
+  // — mà /meeting không còn nằm trên thanh nav của GVCN, và cũng không có nút ← → nào. Bấm xoá
+  // một biên bản của tuần cũ là bị ném sang một trang lạ, mất luôn tuần đang dọn dở.
+  if (week) q.set('week', week);
+  redirect(`${week ? '/wig' : '/meeting'}?${q.toString()}`);
 }

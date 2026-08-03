@@ -594,6 +594,8 @@ export default async function WigPage({
       <ClassMeetingSection
         classId={myClass.id}
         weekLabel={wk.label}
+        weekStart={wk.start}
+        weekEnd={wk.end}
         canManage /* trang này đã requireRole(['teacher','admin']) nên ai vào được cũng quản lý được */
         classParam={classParam}
         weekParam={weekQ}

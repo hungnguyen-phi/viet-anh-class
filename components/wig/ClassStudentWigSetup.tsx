@@ -71,8 +71,13 @@ export async function ClassStudentWigSetup({
         </p>
       ) : missing === 0 ? (
         <p className="mt-2.5 text-[12.5px] font-semibold text-success">
-          Cả lớp đã có việc để tick trong tuần {weekLabel}
-          {laTuanNay ? '' : ' (tuần đang xem)'}. Các em vào “Bảng điểm của tôi” là thấy.
+          Cả lớp đã có việc để tick trong tuần {weekLabel}.{' '}
+          {/* Chỉ hứa "các em vào là thấy" khi đó ĐÚNG là tuần này. Màn hình học sinh luôn cắt theo
+              tuần lịch hiện tại, nên câu ấy đặt ở tuần khác là nói sai — và đó chính là kiểu sai
+              đã khiến GVCN tin lớp đang có việc trong khi máy các em trống trơn. */}
+          {laTuanNay
+            ? 'Các em vào “Bảng điểm của tôi” là thấy.'
+            : 'Đây là tuần đang xem, không phải tuần này — màn hình của các em chỉ hiện việc của tuần hiện tại.'}
         </p>
       ) : (
         <form action={createClassStudentWigs} className="mt-3">

@@ -48,9 +48,23 @@ function check(ten, ok, ghiChu = '') {
   }
 }
 
+// PHẢI BỎ <script> TRƯỚC KHI DÒ CHỮ.
+//
+// Trang được stream, và trong HTML có payload RSC (self.__next_f.push) chứa cả DỮ LIỆU THÔ của
+// truy vấn — kể cả những WIG mà giao diện đã lọc bỏ. Dò thẳng trên HTML thì "Đọc sách 3 buổi/1
+// tuần" tìm thấy được ngay cả khi màn hình không hề vẽ nó ra, và vì payload tới theo từng đợt
+// nên phép kiểm lúc đỏ lúc xanh — đúng kiểu hỏng tệ nhất: một phép kiểm không tin được.
+//
+// Cùng bài học đã ghi ở scripts/test-homework-e2e.mjs: soi thứ được VẼ RA, không soi thứ trôi nổi
+// trong payload.
+function thanTrang(html) {
+  return html.replace(/<script[\s\S]*?<\/script>/gi, '');
+}
+
 async function get(path, cookie) {
   const r = await fetch(BASE + path, {headers: {cookie}, redirect: 'manual'});
-  return {status: r.status, html: await r.text()};
+  const raw = await r.text();
+  return {status: r.status, html: thanTrang(raw), raw};
 }
 
 // Thứ Hai của tuần chứa `day` — bản chép của mondayOf() trong lib/dates.ts. Chép có chủ ý: nếu
