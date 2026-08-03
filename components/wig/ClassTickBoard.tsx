@@ -33,13 +33,18 @@ type MatrixRow = {
   ticked_dates: string[] | null;
 };
 
-export async function ClassTickBoard({classId}: {classId: string}) {
+export async function ClassTickBoard({classId, weekStart}: {classId: string; weekStart?: string}) {
   // Namespace `wig` (không tạo namespace riêng): khối này chỉ hiện ở trang /wig và là server
   // component, nên không phải cân nhắc gói bản dịch gửi xuống trình duyệt.
   const t = await getTranslations('wig');
   const supabase = await createClient();
   const today = todayInVN();
-  const weekDays = weekDaysVN(today);
+  // Tuần do trang truyền xuống (nút ← →); không có thì là tuần chứa hôm nay.
+  //
+  // weekDaysVN() tự lùi về Thứ Hai, và phải giữ đúng như vậy: hai RPC ở dưới KHÔNG tự ép
+  // p_week_start về đầu tuần — chúng lấy nguyên cửa sổ [ngày truyền vào, +6]. Đưa vào ngày giữa
+  // tuần là cửa sổ trượt sang tuần sau, lặng lẽ, không báo lỗi gì.
+  const weekDays = weekDaysVN(weekStart ?? today);
   const monday = weekDays[0];
 
   const [{data: boardData}, {data: matrixData}] = await Promise.all([
@@ -53,7 +58,15 @@ export async function ClassTickBoard({classId}: {classId: string}) {
   if (board.length === 0) {
     return (
       <section className="glass rounded-[20px] p-[18px]">
-        <div className="font-display text-[15px] font-bold text-navy">{t('tickBoardTitle')}</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-display text-[15px] font-bold text-navy">{t('tickBoardTitle')}</span>
+          {/* Dải ngày phải hiện CẢ KHI trống. Đây đúng là trạng thái đã đánh lừa GVCN: bảng rỗng
+              vì tuần đang xem không có việc chung nào, nhưng nếu không ghi ra tuần nào thì nó đọc
+              thành "lớp chẳng có việc gì" — hai chuyện khác hẳn nhau. */}
+          <span className="rounded-full bg-navy/[0.06] px-2.5 py-0.5 text-[11px] font-bold text-grey-mid">
+            {monday} → {weekDays[6]}
+          </span>
+        </div>
         <p className="mt-1.5 text-[12.5px] font-semibold leading-relaxed text-grey-mid">{t('tickBoardEmpty')}</p>
       </section>
     );

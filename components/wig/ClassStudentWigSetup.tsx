@@ -22,12 +22,21 @@ const FALLBACK_UNIT: Record<Area, string> = {
 export async function ClassStudentWigSetup({
   classId,
   weekLabel,
+  weekStart,
+  laTuanNay,
   studentCount,
   readyCount,
 }: {
   classId: string;
   weekLabel: string;
-  // Sĩ số đang học và số em ĐÃ có WIG cá nhân tuần này — để nói thẳng còn thiếu bao nhiêu.
+  // Thứ Hai của tuần đang xem, và tuần đó có phải tuần hiện tại không.
+  //
+  // Phải truyền xuống vì con số "x/y em đã có việc" ở đây đếm theo tuần ĐANG XEM. Nếu cái nút
+  // bên dưới vẫn tạo cho tuần HIỆN TẠI như trước thì con số và hành động nói hai chuyện khác
+  // nhau — đúng kiểu lệch tuần đã khiến GVCN hiểu nhầm.
+  weekStart: string;
+  laTuanNay: boolean;
+  // Sĩ số đang học và số em ĐÃ có WIG cá nhân của tuần đang xem — để nói thẳng còn thiếu bao nhiêu.
   studentCount: number;
   readyCount: number;
 }) {
@@ -62,15 +71,19 @@ export async function ClassStudentWigSetup({
         </p>
       ) : missing === 0 ? (
         <p className="mt-2.5 text-[12.5px] font-semibold text-success">
-          Cả lớp đã có việc để tick trong tuần này. Các em vào “Bảng điểm của tôi” là thấy.
+          Cả lớp đã có việc để tick trong tuần {weekLabel}
+          {laTuanNay ? '' : ' (tuần đang xem)'}. Các em vào “Bảng điểm của tôi” là thấy.
         </p>
       ) : (
         <form action={createClassStudentWigs} className="mt-3">
           <input type="hidden" name="class_id" value={classId} />
+          {/* Tuần đang xem đi kèm form: server action tạo WIG cho ĐÚNG tuần này, không phải tuần
+              chứa hôm nay. Xem createClassStudentWigs trong student/actions.ts. */}
+          <input type="hidden" name="week_start" value={weekStart} />
           <p className="mb-2.5 text-[12.5px] font-semibold leading-[1.6] text-navy/70">
-            Còn <b>{missing} em</b> chưa có việc nào để tick. Đặt mục tiêu chung cho cả lớp ở đây —
-            một lần bấm là mọi em đều có việc trong tuần. Muốn chỉnh riêng cho em nào thì vào trang
-            của em đó sửa sau.
+            Còn <b>{missing} em</b> chưa có việc nào để tick trong tuần <b>{weekLabel}</b>. Đặt mục
+            tiêu chung cho cả lớp ở đây — một lần bấm là mọi em đều có việc trong tuần đó. Muốn
+            chỉnh riêng cho em nào thì vào trang của em đó sửa sau.
           </p>
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -117,7 +130,7 @@ export async function ClassStudentWigSetup({
             </label>
             <SubmitButton className="btn-gold inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-[12px] px-4 font-display text-[13.5px] font-black">
               <Sparkles size={15} strokeWidth={2.5} />
-              Tạo việc cho cả lớp
+              Tạo việc cho cả lớp — tuần {weekLabel}
             </SubmitButton>
           </div>
         </form>

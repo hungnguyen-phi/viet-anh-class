@@ -9,7 +9,15 @@ import {getCurrentProfile, requireRole} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
 import {buddyNote, buddyChat, type BuddyContext, type BuddyLead} from '@/lib/buddy';
-import {weekRangeVN, nextWeekRangeVN, schoolYearRangeVN, todayInVN} from '@/lib/dates';
+import {
+  weekRangeVN,
+  nextWeekRangeVN,
+  schoolYearRangeVN,
+  todayInVN,
+  isValidDayVN,
+  mondayOf,
+  weekFromMonday,
+} from '@/lib/dates';
 import type {Database} from '@/lib/database.types';
 
 type Mood = Database['public']['Enums']['mood_level'];
@@ -918,11 +926,21 @@ export async function resolveEditRequest(formData: FormData) {
 export async function createClassStudentWigs(formData: FormData) {
   await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '');
+  // Tuần do trang /wig gửi lên (nút ← → đang đứng ở tuần nào thì tạo cho tuần đó).
+  //
+  // Bắt buộc phải nhận tham số này: khối gọi nó hiện "x/y em đã có việc" ĐẾM THEO TUẦN ĐANG XEM,
+  // nên nếu ở đây vẫn cứng weekRangeVN() như trước thì con số và cái nút nói hai chuyện khác nhau
+  // — bấm ở tuần sau lại đi tạo cho tuần này, rồi tuần sau vẫn báo thiếu. Chuẩn hoá về thứ Hai và
+  // chặn chuỗi rác vì giá trị này đi thẳng từ trình duyệt vào phép dựng Date.
+  const weekStartRaw = String(formData.get('week_start') ?? '');
+  const weekStart = isValidDayVN(weekStartRaw) ? mondayOf(weekStartRaw) : '';
   // Chú thích kiểu TƯỜNG MINH trên biến (không chỉ trên hàm mũi tên): TypeScript chỉ chịu coi
   // một lời gọi là "không bao giờ trả về" — để thu hẹp kiểu ở các dòng sau — khi chính BIẾN được
   // khai báo kiểu. Thiếu nó thì sau `if (!x) back(...)` TS vẫn nghĩ code chạy tiếp.
   const back: (m: string) => never = (m) =>
-    redirect(`/wig?class=${class_id}&flash=${encodeURIComponent(m)}`);
+    redirect(
+      `/wig?class=${class_id}${weekStart ? `&week=${weekStart}` : ''}&flash=${encodeURIComponent(m)}`,
+    );
   if (!class_id) back('Thiếu lớp');
 
   // Mục tiêu + đơn vị cho từng lĩnh vực, áp chung cho cả lớp; GVCN sửa riêng từng em sau.
@@ -935,7 +953,9 @@ export async function createClassStudentWigs(formData: FormData) {
 
   const supabase = await createClient();
   const year = schoolYearRangeVN();
-  const week = weekRangeVN();
+  // weekFromMonday() và weekRangeVN() trả về cùng một hình dạng {start, end, label} — cái đi từ
+  // chuỗi ngày, cái đi từ "bây giờ" — nên phần dưới không phải biết mình đang ở nhánh nào.
+  const week = weekStart ? weekFromMonday(weekStart) : weekRangeVN();
 
   const {data: enr} = await supabase
     .from('enrollments')

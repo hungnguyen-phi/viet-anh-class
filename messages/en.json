@@ -101,6 +101,7 @@
     "score": "Score",
     "winning": "WINNING",
     "losing": "PUSH HARDER",
+    "yearOnTrack": "Year to date: {n}/{total} on track",
     "winningDesc": "The class is on pace for its yearly WIGs — keep it up!",
     "losingDesc": "Some areas are falling behind — focus on this week's lead measures.",
     "wigWeek": "Weekly WIGs across 4 areas",
@@ -376,7 +377,17 @@
     "tickBoardReached": "Reached",
     "tickBoardContributors": "{n}/{total} students joined in",
     "tickBoardStudent": "Student",
-    "tickBoardNone": "no ticks"
+    "tickBoardNone": "no ticks",
+    "weekPrev": "Prev week",
+    "weekNext": "Next week",
+    "weekNow": "THIS WEEK",
+    "weekPast": "PAST",
+    "weekFuture": "UPCOMING",
+    "weekBackToThis": "Back to this week",
+    "weekNavHint": "Everything below — class work, meeting minutes, weekly WIGs — belongs to the week selected here.",
+    "weekWigOther": "{n} more weekly WIGs in other weeks — use ← → to see them.",
+    "noWeekWigsThisWeek": "No weekly WIG for {label} — so students have no shared work to tick.",
+    "weekDateOff": "Off-week dates: {start} → {end}"
   },
   "meeting": {
     "title": "Weekly WIG meeting",
@@ -394,7 +405,8 @@
     "lockDow": "Lock weekly ticks on",
     "lockSave": "Save",
     "lockHint": "Students tick, untick and back-fill freely all week. From the day after this, it locks so the meeting reads settled numbers. Set it before your meeting day.",
-    "deleteMeeting": "Delete minutes"
+    "deleteMeeting": "Delete minutes",
+    "viewing": "Viewing"
   },
   "report": {
     "title": "Parent report",

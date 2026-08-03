@@ -84,6 +84,59 @@ export function nextWeekRangeVN(date: Date = new Date()): {start: string; end: s
   return weekRangeVN(new Date(date.getTime() + 7 * 86_400_000));
 }
 
+// ============================================================
+// ĐIỀU HƯỚNG THEO TUẦN — nút ← → ở trang quản lý WIG.
+//
+// Nhóm hàm này trao đổi bằng CHUỖI 'YYYY-MM-DD' của thứ Hai, không phải Date. Phần còn lại của
+// hệ thống đã nói chuyện với nhau bằng chuỗi ngày theo lịch VN (todayInVN, weekDaysVN, tham số
+// p_week_start của RPC class_lead_board); nhét Date vào giữa là thêm một lần quy đổi múi giờ,
+// tức thêm một cơ hội lệch 7 tiếng trong khung 00:00–07:00 — đúng loại lỗi cả file này đang tránh.
+// ============================================================
+
+// Date "không thể trượt ngày" từ một chuỗi ngày: giữa trưa UTC = 19h giờ VN CÙNG NGÀY.
+//
+// Vì sao không dùng T00:00:00Z: các hàm nhận Date ở dưới (isoWeekLabel, weekOptions, monthOptions)
+// đều quy đổi sang lịch VN thêm một lần nữa. Mốc nửa đêm UTC cho biên an toàn đúng bằng 0 — lệch
+// một tiếng theo chiều nào cũng rơi sang ngày khác. Mốc giữa trưa cho biên 12 tiếng cả hai phía.
+export function vnNoon(day: string): Date {
+  return new Date(`${day}T12:00:00Z`);
+}
+
+// Chuỗi ngày này có TỒN TẠI trên lịch không.
+//
+// Bắt buộc phải có vì ?week= đến thẳng từ thanh địa chỉ: người ta sửa được, link cũ dán lại được.
+// Mọi hàm bên dưới đều kết thúc bằng toISOString(), và Date hỏng thì hàm đó NÉM RangeError — cả
+// trang trắng vì một ký tự thừa trên URL. Phải kiểm bằng cách QUAY VÒNG chứ không chỉ bằng regex:
+// '2026-02-31' khớp regex nhưng Date đẩy nó thành 03-03, so lại là lệch.
+export function isValidDayVN(s: string | null | undefined): boolean {
+  if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
+// Thứ Hai của tuần chứa `day`.
+//
+// Dùng để CHUẨN HOÁ ?week= trước khi truyền đi bất cứ đâu: RPC class_lead_board / class_tick_matrix
+// (0073) KHÔNG tự ép về đầu tuần — chúng lấy nguyên cửa sổ [p_week_start, p_week_start+6]. Đưa vào
+// một ngày giữa tuần là cửa sổ trượt sang tuần sau, lặng lẽ, không báo gì.
+export function mondayOf(day: string): string {
+  return weekDaysVN(day)[0];
+}
+
+// Thứ Hai cách `monday` đúng `delta` tuần (âm = lùi về quá khứ).
+export function shiftWeeks(monday: string, delta: number): string {
+  const d = new Date(`${monday}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + delta * 7);
+  return d.toISOString().slice(0, 10);
+}
+
+// Nhãn ISO + hai đầu mốc của tuần bắt đầu từ `monday`. Cùng hình dạng với weekRangeVN() để hai
+// thứ thay nhau được ở nơi gọi (weekRangeVN đi từ Date, hàm này đi từ chuỗi ngày).
+export function weekFromMonday(monday: string): {start: string; end: string; label: string} {
+  const days = weekDaysVN(monday);
+  return {start: days[0], end: days[6], label: isoWeekLabel(vnNoon(days[0]))};
+}
+
 // N nhãn tuần gần nhất (mới → cũ) cho ô CHỌN tuần, thay ô nhập text tự do.
 export function recentWeekLabels(count = 6, date: Date = new Date()): string[] {
   return Array.from({length: count}, (_, i) =>

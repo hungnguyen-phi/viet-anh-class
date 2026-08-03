@@ -208,7 +208,12 @@ export default async function ClassPage({
             ) : (
               <Flame size={14} strokeWidth={2.5} />
             )}
-            {onCount}/{yearRows.length} on-track
+            {/* Ghi rõ đây là chỉ số CẢ NĂM. Trước đây huy hiệu chỉ có "1/1 on-track" đứng ngay
+                trên khối "Lead measure tuần này — 0/1", nên đọc liền hai dòng là hiểu thành tuần
+                này đang thắng trong khi tuần này chưa ai tick lần nào. Banner cộng dồn từ đầu năm
+                qua mọi WIG tuần con, còn khối kia chỉ tính tuần hiện tại — hai thước đo khác nhau
+                đứng cạnh nhau mà không cái nào tự giới thiệu. */}
+            {t('class.yearOnTrack', {n: onCount, total: yearRows.length})}
           </span>
         </div>
       )}

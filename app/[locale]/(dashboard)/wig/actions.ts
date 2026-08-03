@@ -1,4 +1,4 @@
-'use server';
+﻿'use server';
 
 import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
@@ -10,12 +10,24 @@ import type {Database} from '@/lib/database.types';
 type Area = Database['public']['Enums']['wig_area'];
 type Period = Database['public']['Enums']['wig_period'];
 
-// Giữ lại ?class= khi redirect để không nhảy về lớp mặc định (WIG vừa tạo "biến mất").
-function flash(msg: string, classId?: string): never {
+// Giữ lại ?class= khi redirect để không nhảy về lớp mặc định (WIG vừa tạo "biến mất"), và ?week=
+// để không nhảy về tuần hiện tại (WIG vừa sửa cũng "biến mất" y như vậy, chỉ theo chiều thời gian).
+//
+// Mỗi action ở dưới che tên này bằng một hàm cục bộ đã gắn sẵn lớp + tuần:
+//   const flash: (m: string) => never = (m) => flashTo(m, class_id, week);
+// nhờ vậy hàng chục lời gọi flash('...') sẵn có không phải sửa từng cái — và không có chỗ nào
+// lỡ quên truyền tuần.
+function flashTo(msg: string, classId?: string, week?: string): never {
   const q = new URLSearchParams();
   if (classId) q.set('class', classId);
+  if (week) q.set('week', week);
   q.set('flash', msg);
   redirect(`/wig?${q.toString()}`);
+}
+
+// Tuần đang xem, do ô ẩn name="week" trên mọi form của /wig gửi lên. Rỗng = tuần hiện tại.
+function weekOf(formData: FormData): string | undefined {
+  return String(formData.get('week') ?? '') || undefined;
 }
 
 // Ngày CHỐT tick của tuần (0046). Học sinh tự tick/gỡ/tick bù cả tuần, tới ngày này thì khoá để
@@ -24,8 +36,12 @@ function flash(msg: string, classId?: string): never {
 export async function setTickLockDow(formData: FormData) {
   await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '');
+  const week = weekOf(formData);
+  // Kiểu `never` tường minh TRÊN BIẾN, không chỉ trên hàm mũi tên: thiếu nó thì sau
+  // `if (!x) flash(...)` TypeScript vẫn nghĩ code chạy tiếp và không thu hẹp kiểu.
+  const flash: (m: string) => never = (m) => flashTo(m, class_id, week);
   const dow = Number(formData.get('tick_lock_dow') ?? 0);
-  if (!class_id || !Number.isInteger(dow) || dow < 1 || dow > 7) flash('Ngày chốt không hợp lệ', class_id);
+  if (!class_id || !Number.isInteger(dow) || dow < 1 || dow > 7) flash('Ngày chốt không hợp lệ');
   const supabase = await createClient();
   // .select() để phân biệt "RLS chặn" với "đã lưu" — không báo thành công giả.
   const {data, error} = await supabase
@@ -35,8 +51,8 @@ export async function setTickLockDow(formData: FormData) {
     .select('id');
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]/student', 'page');
-  if (error) flash(friendlyError(error), class_id);
-  flash(data && data.length ? 'Đã lưu ngày chốt tuần' : 'Không lưu được (không có quyền).', class_id);
+  if (error) flash(friendlyError(error));
+  flash(data && data.length ? 'Đã lưu ngày chốt tuần' : 'Không lưu được (không có quyền).');
 }
 
 // State trả về cho useActionState → hiện lỗi/thành công INLINE (không redirect, giữ nguyên input).
@@ -116,6 +132,8 @@ export async function createYearWig(_prev: CreateWigState, formData: FormData): 
 export async function createWig(formData: FormData) {
   await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '');
+  const week = weekOf(formData);
+  const flash: (m: string) => never = (m) => flashTo(m, class_id, week);
   const title = String(formData.get('title') ?? '').trim();
   const area = String(formData.get('area') ?? '') as Area;
   const period = String(formData.get('period') ?? '') as Period;
@@ -127,19 +145,19 @@ export async function createWig(formData: FormData) {
   const period_label = String(formData.get('period_label') ?? '').trim() || null;
   const parent_wig_id = String(formData.get('parent_wig_id') ?? '') || null;
   if (!class_id || !area || !period || !target_value || !unit || !start_date || !end_date) {
-    flash('Thiếu thông tin WIG (lĩnh vực / kỳ / mục tiêu / đơn vị / ngày).', class_id);
+    flash('Thiếu thông tin WIG (lĩnh vực / kỳ / mục tiêu / đơn vị / ngày).');
   }
-  if (!title) flash('Hãy đặt tên cho mục tiêu tuần/tháng.', class_id);
-  if (target_value <= 0) flash('Mục tiêu phải lớn hơn 0.', class_id);
+  if (!title) flash('Hãy đặt tên cho mục tiêu tuần/tháng.');
+  if (target_value <= 0) flash('Mục tiêu phải lớn hơn 0.');
   const baseline = baseline_raw === '' ? null : Number(baseline_raw);
   if (baseline !== null && (!Number.isFinite(baseline) || baseline < 0)) {
-    flash('Mốc xuất phát phải là số từ 0 trở lên.', class_id);
+    flash('Mốc xuất phát phải là số từ 0 trở lên.');
   }
   if (baseline !== null && baseline >= target_value) {
-    flash('Mốc xuất phát phải nhỏ hơn mục tiêu.', class_id);
+    flash('Mốc xuất phát phải nhỏ hơn mục tiêu.');
   }
   if ((period === 'week' || period === 'month') && !parent_wig_id) {
-    flash('WIG tuần/tháng phải liên kết với 1 WIG cha.', class_id);
+    flash('WIG tuần/tháng phải liên kết với 1 WIG cha.');
   }
   const supabase = await createClient();
   const {error} = await supabase.from('wigs').insert({
@@ -158,7 +176,7 @@ export async function createWig(formData: FormData) {
   });
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]', 'page');
-  flash(error ? friendlyError(error) : 'Đã tạo WIG', class_id);
+  flash(error ? friendlyError(error) : 'Đã tạo WIG');
 }
 
 // Những thứ trong tuần mà một lead measure được tick (ISO: 1=T2 … 7=CN).
@@ -176,21 +194,23 @@ function parseWeekdays(formData: FormData): number[] {
 export async function addLeadMeasure(formData: FormData) {
   await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '') || undefined;
+  const week = weekOf(formData);
+  const flash: (m: string) => never = (m) => flashTo(m, class_id, week);
   const wig_id = String(formData.get('wig_id') ?? '');
   const title = String(formData.get('title') ?? '').trim();
   const target_value = Number(formData.get('target_value') ?? 0);
   const unit = String(formData.get('unit') ?? '').trim() || null;
   const sub_category = String(formData.get('sub_category') ?? '').trim() || null;
   const active_weekdays = parseWeekdays(formData);
-  if (!wig_id || !title || !target_value) flash('Thiếu tên/mục tiêu lead measure', class_id);
-  if (target_value <= 0) flash('Mục tiêu phải lớn hơn 0.', class_id);
+  if (!wig_id || !title || !target_value) flash('Thiếu tên/mục tiêu lead measure');
+  if (target_value <= 0) flash('Mục tiêu phải lớn hơn 0.');
   const supabase = await createClient();
   const {error} = await supabase
     .from('lead_measures')
     .insert({wig_id, title, target_value, unit, sub_category, active_weekdays});
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]/student', 'page');
-  flash(error ? friendlyError(error) : 'Đã thêm lead measure', class_id);
+  flash(error ? friendlyError(error) : 'Đã thêm lead measure');
 }
 
 // logProgress() ĐÃ BỎ (0073). Trước đây GVCN tự bấm "Ghi +" để cộng số cho WIG lớp — nên bảng
@@ -204,20 +224,24 @@ export async function addLeadMeasure(formData: FormData) {
 export async function deleteWig(formData: FormData) {
   await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '') || undefined;
+  const week = weekOf(formData);
+  const flash: (m: string) => never = (m) => flashTo(m, class_id, week);
   const wig_id = String(formData.get('wig_id') ?? '');
-  if (!wig_id) flash('Thiếu WIG cần xoá', class_id);
+  if (!wig_id) flash('Thiếu WIG cần xoá');
   const supabase = await createClient();
   await supabase.from('wigs').delete().eq('parent_wig_id', wig_id); // WIG con (nếu là WIG năm)
   const {error} = await supabase.from('wigs').delete().eq('id', wig_id);
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]', 'page');
-  flash(error ? friendlyError(error) : 'Đã xoá WIG', class_id);
+  flash(error ? friendlyError(error) : 'Đã xoá WIG');
 }
 
 // Sửa WIG (mục tiêu / đơn vị / nhãn kỳ / ngày) — bổ sung cho create+delete đã có.
 export async function editWig(formData: FormData) {
   await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '') || undefined;
+  const week = weekOf(formData);
+  const flash: (m: string) => never = (m) => flashTo(m, class_id, week);
   const id = String(formData.get('wig_id') ?? '');
   const title = String(formData.get('title') ?? '').trim();
   const baseline_raw = String(formData.get('baseline') ?? '').trim();
@@ -226,17 +250,17 @@ export async function editWig(formData: FormData) {
   const period_label = String(formData.get('period_label') ?? '').trim() || null;
   const start_date = String(formData.get('start_date') ?? '');
   const end_date = String(formData.get('end_date') ?? '');
-  if (!id) flash('Thiếu WIG cần sửa', class_id);
-  if (!title) flash('Hãy đặt tên cho mục tiêu.', class_id);
-  if (!Number.isFinite(target_value) || target_value <= 0) flash('Mục tiêu phải lớn hơn 0.', class_id);
+  if (!id) flash('Thiếu WIG cần sửa');
+  if (!title) flash('Hãy đặt tên cho mục tiêu.');
+  if (!Number.isFinite(target_value) || target_value <= 0) flash('Mục tiêu phải lớn hơn 0.');
   const baseline = baseline_raw === '' ? null : Number(baseline_raw);
   if (baseline !== null && (!Number.isFinite(baseline) || baseline < 0)) {
-    flash('Mốc xuất phát phải là số từ 0 trở lên.', class_id);
+    flash('Mốc xuất phát phải là số từ 0 trở lên.');
   }
   if (baseline !== null && baseline >= target_value) {
-    flash('Mốc xuất phát phải nhỏ hơn mục tiêu.', class_id);
+    flash('Mốc xuất phát phải nhỏ hơn mục tiêu.');
   }
-  if (!unit) flash('Thiếu đơn vị.', class_id);
+  if (!unit) flash('Thiếu đơn vị.');
   const supabase = await createClient();
   // .select() để biết có dòng nào thực sự đổi không: RLS chặn (lớp khác) → 0 dòng, error=null.
   // Không kiểm thì báo "thành công" sai (audit #5).
@@ -255,23 +279,25 @@ export async function editWig(formData: FormData) {
     .select('id');
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]', 'page');
-  if (error) flash(friendlyError(error), class_id);
-  if (!data || data.length === 0) flash('Không sửa được WIG này (không có quyền hoặc đã bị xoá).', class_id);
-  flash('Đã cập nhật WIG', class_id);
+  if (error) flash(friendlyError(error));
+  if (!data || data.length === 0) flash('Không sửa được WIG này (không có quyền hoặc đã bị xoá).');
+  flash('Đã cập nhật WIG');
 }
 
 // Sửa lead measure (tên / mục tiêu / đơn vị / phân loại).
 export async function editLeadMeasure(formData: FormData) {
   await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '') || undefined;
+  const week = weekOf(formData);
+  const flash: (m: string) => never = (m) => flashTo(m, class_id, week);
   const id = String(formData.get('lead_measure_id') ?? '');
   const title = String(formData.get('title') ?? '').trim();
   const target_value = Number(formData.get('target_value') ?? 0);
   const unit = String(formData.get('unit') ?? '').trim() || null;
   const sub_category = String(formData.get('sub_category') ?? '').trim() || null;
   const active_weekdays = parseWeekdays(formData);
-  if (!id || !title || !Number.isFinite(target_value)) flash('Thiếu tên/mục tiêu lead measure', class_id);
-  if (target_value <= 0) flash('Mục tiêu phải lớn hơn 0.', class_id);
+  if (!id || !title || !Number.isFinite(target_value)) flash('Thiếu tên/mục tiêu lead measure');
+  if (target_value <= 0) flash('Mục tiêu phải lớn hơn 0.');
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('lead_measures')
@@ -281,20 +307,22 @@ export async function editLeadMeasure(formData: FormData) {
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]', 'page');
-  if (error) flash(friendlyError(error), class_id);
+  if (error) flash(friendlyError(error));
   if (!data || data.length === 0)
-    flash('Không sửa được lead measure này (không có quyền hoặc đã bị xoá).', class_id);
-  flash('Đã cập nhật lead measure', class_id);
+    flash('Không sửa được lead measure này (không có quyền hoặc đã bị xoá).');
+  flash('Đã cập nhật lead measure');
 }
 
 export async function deleteLeadMeasure(formData: FormData) {
   await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '') || undefined;
+  const week = weekOf(formData);
+  const flash: (m: string) => never = (m) => flashTo(m, class_id, week);
   const id = String(formData.get('lead_measure_id') ?? '');
-  if (!id) flash('Thiếu lead measure cần xoá', class_id);
+  if (!id) flash('Thiếu lead measure cần xoá');
   const supabase = await createClient();
   const {error} = await supabase.from('lead_measures').delete().eq('id', id);
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]', 'page');
-  flash(error ? friendlyError(error) : 'Đã xoá lead measure', class_id);
+  flash(error ? friendlyError(error) : 'Đã xoá lead measure');
 }

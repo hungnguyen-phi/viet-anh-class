@@ -19,7 +19,17 @@ import {
   editLeadMeasure,
 } from './actions';
 import {Link} from '@/i18n/navigation';
-import {isoWeekLabel, schoolYearOptions, weekOptions, monthOptions} from '@/lib/dates';
+import {
+  isValidDayVN,
+  mondayOf,
+  monthOptions,
+  schoolYearOptions,
+  todayInVN,
+  vnNoon,
+  weekFromMonday,
+  weekOptions,
+} from '@/lib/dates';
+import {WeekNav} from '@/components/wig/WeekNav';
 import {ClassMeetingSection} from '@/components/wig/ClassMeetingSection';
 import {ClassStudentWigSetup} from '@/components/wig/ClassStudentWigSetup';
 import {ClassTickBoard} from '@/components/wig/ClassTickBoard';
@@ -64,10 +74,22 @@ export default async function WigPage({
   searchParams,
 }: {
   params: Promise<{locale: string}>;
-  searchParams: Promise<{class?: string; flash?: string; editWig?: string; editLead?: string}>;
+  searchParams: Promise<{
+    class?: string;
+    flash?: string;
+    editWig?: string;
+    editLead?: string;
+    week?: string;
+  }>;
 }) {
   const {locale} = await params;
-  const {class: classParam, flash, editWig: editWigId, editLead: editLeadId} = await searchParams;
+  const {
+    class: classParam,
+    flash,
+    editWig: editWigId,
+    editLead: editLeadId,
+    week: weekParam,
+  } = await searchParams;
   setRequestLocale(locale);
   const profile = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('wig');
@@ -88,10 +110,30 @@ export default async function WigPage({
     );
   }
 
+  // ── TUẦN ĐANG XEM ─────────────────────────────────────────────────────────────────────────
+  // Trước đây trang này không có khái niệm "tuần": nó lấy MỌI WIG scope='class' của lớp, không
+  // lọc ngày, và các khối con thì tự gọi new Date() để tính tuần hiện tại. Màn hình học sinh lại
+  // đi theo luật khác — RPC class_lead_board (0073) chỉ lấy WIG giao với tuần lịch hiện tại.
+  // Hậu quả đã xảy ra thật (7B1, 03/08/2026): WIG tuần 27/07→02/08 đã đóng từ hôm trước vẫn hiện
+  // "0/30" trên trang GVCN, trong khi màn hình các em trống trơn — và không có gì trên màn hình
+  // nói ra điều đó, vì cả hai trạng thái trông y hệt nhau.
+  //
+  // Nay cả trang bám vào MỘT tuần, và tuần ấy hiện rõ ở thanh WeekNav với dải ngày thật.
+  const todayVN = todayInVN();
+  const thisMonday = mondayOf(todayVN);
+  // Chuẩn hoá về thứ Hai: ?week= đến thẳng từ URL nên có thể là ngày giữa tuần, mà RPC ở dưới
+  // không tự ép — nó lấy nguyên cửa sổ [ngày truyền vào, +6]. isValidDayVN chặn chuỗi rác trước
+  // khi mondayOf() dựng Date, vì Date hỏng làm toISOString() ném lỗi → trắng cả trang.
+  const monday = isValidDayVN(weekParam) ? mondayOf(weekParam as string) : thisMonday;
+  const wk = weekFromMonday(monday);
+  const laTuanNay = monday === thisMonday;
+  // Chỉ đính ?week= khi ĐANG XEM tuần khác. Ở tuần hiện tại thì URL và các form giữ nguyên như
+  // trước — không kéo theo một tuần đông cứng vào mọi thao tác sau đó.
+  const weekQ = laTuanNay ? '' : monday;
+
   // WIG + tiến độ chỉ phụ thuộc myClass.id — chạy song song.
   // Kèm hai truy vấn cho khối "việc hằng ngày của học sinh": sĩ số đang học, và số em ĐÃ có WIG
-  // cá nhân của tuần này. Gộp vào đây thay vì để component tự lấy → không thêm lượt chờ nào.
-  const thisWeekLabel = isoWeekLabel(new Date());
+  // cá nhân của tuần ĐANG XEM. Gộp vào đây thay vì để component tự lấy → không thêm lượt chờ nào.
   const [{data: wigsData}, {data: progData}, {data: enrolled}, {data: readyWigs}] = await Promise.all([
     // NHÚNG LUÔN lead_measures. Trước đây phải chờ câu này về mới biết id của các WIG tuần, rồi
     // mới hỏi lead_measures được — một vòng mạng xếp hàng thuần tuý ở giữa. PostgREST nhúng được
@@ -120,7 +162,7 @@ export default async function WigPage({
       .eq('class_id', myClass.id)
       .eq('scope', 'student')
       .eq('period', 'week')
-      .eq('period_label', thisWeekLabel),
+      .eq('period_label', wk.label),
   ]);
   const studentCount = (enrolled ?? []).length;
   const readyCount = new Set((readyWigs ?? []).map((w) => w.student_id)).size;
@@ -129,11 +171,38 @@ export default async function WigPage({
   const progByWig = new Map((progData ?? []).map((p) => [p.wig_id, p as unknown as Prog]));
 
   const yearWigs = wigs.filter((w) => w.period === 'year').sort((a, b) => a.area.localeCompare(b.area));
+
+  // Một WIG tuần thuộc về tuần đang xem khi khoảng ngày của nó GIAO với tuần đó.
+  //
+  // Đây ĐÚNG là luật của class_lead_board (0073: `w.start_date <= monday+6 and w.end_date >= monday`),
+  // cố ý chép lại cho khớp. Dùng chung một luật là cách duy nhất bảo đảm thứ GVCN nhìn thấy trùng
+  // khít thứ học sinh nhìn thấy — hai luật khác nhau chính là gốc của sự cố 7B1.
+  const trongTuan = (w: Wig) => w.start_date <= wk.end && w.end_date >= wk.start;
+
   // Con trực tiếp của 1 WIG theo cấp (năm→tháng→tuần). Tuần có thể nằm dưới năm HOẶC tháng.
+  // WIG TUẦN lọc theo tuần đang xem; WIG THÁNG thì không — mục tiêu tháng vẫn phải sửa được bất
+  // kể đang đứng ở tuần nào của nó.
   const childrenOf = (pid: string, period: 'month' | 'week') =>
     wigs
-      .filter((w) => w.parent_wig_id === pid && w.period === period)
+      .filter(
+        (w) =>
+          w.parent_wig_id === pid && w.period === period && (period === 'week' ? trongTuan(w) : true),
+      )
       .sort((a, b) => (a.period_label ?? '').localeCompare(b.period_label ?? ''));
+
+  // Mọi WIG tuần trong cây của một WIG năm — con trực tiếp HOẶC qua một WIG tháng. Dùng để nói
+  // thẳng "tuần này có mấy việc, và còn bao nhiêu việc nằm ở tuần khác", thay vì bắt người đọc
+  // tự trừ ngày trong đầu.
+  const weeksUnder = (yearId: string) => {
+    const monthIds = new Set(
+      wigs.filter((w) => w.parent_wig_id === yearId && w.period === 'month').map((w) => w.id),
+    );
+    return wigs.filter(
+      (w) =>
+        w.period === 'week' &&
+        (w.parent_wig_id === yearId || (w.parent_wig_id != null && monthIds.has(w.parent_wig_id))),
+    );
+  };
 
   // Chỉ lấy lead của WIG TUẦN, đúng như câu `.in('wig_id', weekIds)` cũ — nay lọc trong bộ nhớ.
   const leads: Lead[] = wigsKemLead
@@ -150,18 +219,34 @@ export default async function WigPage({
   const areaOptions = AREAS.map((a) => ({value: a, label: areaLabel(areaMeta[a], locale)}));
   // Tính Ở SERVER rồi truyền xuống client component: nếu client tự gọi new Date() thì lúc
   // hydrate có thể lệch (qua nửa đêm / qua mốc tháng 6 của năm học) → cảnh báo hydration.
-  // weekOptions(back=2) → chỉ số 2 là tuần hiện tại; monthOptions(back=1) → chỉ số 1.
-  const weekOpts = weekOptions();
-  const monthOpts = monthOptions();
+  //
+  // Danh sách xoay quanh TUẦN ĐANG XEM, không phải quanh hôm nay: đứng ở tuần sau mà bấm "Tạo WIG
+  // tuần" thì kỳ chọn sẵn phải là tuần sau. Trước đây nó luôn chọn sẵn tuần hiện tại, nên tạo
+  // xong lại một WIG rơi vào tuần khác với tuần đang nhìn — thêm một nguồn lệch nữa.
+  // weekOptions(back=2) → chỉ số 2 là tuần đang xem; monthOptions(back=1) → chỉ số 1.
+  const weekOpts = weekOptions(2, 4, vnNoon(monday));
+  const monthOpts = monthOptions(1, 4, vnNoon(monday));
 
   // Chế độ sửa qua ?editWig / ?editLead — panel hiện ở đầu trang (server-rendered, không cần client state).
   const editingWig = editWigId ? wigs.find((w) => w.id === editWigId) : undefined;
   const editingLead = editLeadId ? leads.find((l) => l.id === editLeadId) : undefined;
+  // Mọi liên kết trong trang phải mang theo TUẦN đang xem, nếu không thì bấm "Sửa" một lần là
+  // rơi về tuần hiện tại và WIG vừa bấm biến mất khỏi danh sách — trông y như vừa xoá nhầm.
   const editHref = (extra: Record<string, string>) => ({
     pathname: '/wig' as const,
-    query: {...(classParam ? {class: classParam} : {}), ...extra},
+    query: {
+      ...(classParam ? {class: classParam} : {}),
+      ...(weekQ ? {week: weekQ} : {}),
+      ...extra,
+    },
   });
-  const backHref = editHref({}); // huỷ sửa → về danh sách (giữ ?class)
+  const backHref = editHref({}); // huỷ sửa → về danh sách (giữ ?class và ?week)
+
+  // Ô ẩn mang TUẦN đang xem theo mọi form của trang. Các server action ở đây kết thúc bằng
+  // redirect về /wig (xem flash() trong actions.ts); không có ô này thì mỗi lần lưu là bật về
+  // tuần hiện tại, và người dùng tưởng thao tác vừa rồi rơi vào tuần khác.
+  // Một React element dùng lại được ở nhiều chỗ — nó chỉ là mô tả, không phải thể hiện đã gắn.
+  const oTuan = <input type="hidden" name="week" value={weekQ} />;
   const editLinkCls =
     'cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-[11px] font-extrabold text-navy transition-all hover:border-navy';
 
@@ -196,6 +281,7 @@ export default async function WigPage({
       <form action={editWig} className="flex flex-col gap-3">
         <input type="hidden" name="class_id" value={myClass.id} />
         <input type="hidden" name="wig_id" value={w.id} />
+        {oTuan}
 
         <Field label={t('wigTitle')}>
           <input name="title" defaultValue={w.title ?? ''} placeholder={t('wigTitlePlaceholder')} className={inputCls} required />
@@ -243,6 +329,7 @@ export default async function WigPage({
       <form action={editLeadMeasure} className="flex flex-col gap-3">
         <input type="hidden" name="class_id" value={myClass.id} />
         <input type="hidden" name="lead_measure_id" value={l.id} />
+        {oTuan}
         <Field label={t('leadTitle')}>
           <input name="title" defaultValue={l.title} className={inputCls} required />
         </Field>
@@ -282,6 +369,7 @@ export default async function WigPage({
       <input type="hidden" name="class_id" value={myClass.id} />
       <input type="hidden" name="parent_wig_id" value={parentId} />
       <input type="hidden" name="area" value={area} />
+      {oTuan}
 
       <Field label={t('wigTitle')} hint={t('wigTitleHint')}>
         <input name="title" placeholder={t('wigTitlePlaceholder')} className={inputCls} required />
@@ -299,7 +387,11 @@ export default async function WigPage({
         </Field>
       </div>
 
+      {/* key=tuần đang xem → ép dựng lại khi bấm ← →. Bên trong là useState(weekDefault), tức
+          chỉ số kỳ được nhớ từ lần dựng đầu; không có key thì đổi tuần xong ô chọn vẫn giữ chỉ số
+          cũ và trỏ sang một tuần khác tuần đang nhìn. */}
       <ChildPeriodFields
+        key={monday}
         weekOpts={weekOpts}
         monthOpts={monthOpts}
         weekDefault={2}
@@ -342,6 +434,15 @@ export default async function WigPage({
             {t('week')}
             {ww.period_label ? ` · ${ww.period_label}` : ''}
           </span>
+          {/* WIG này GIAO với tuần đang xem nhưng hai đầu mốc không trùng khít Thứ Hai→Chủ Nhật.
+              Đây chính là cái bẫy đã cắn: ngày nhập tay lệch một hai hôm thì WIG vẫn "có vẻ" đúng
+              tuần trên trang này, nhưng cửa sổ của học sinh lại cắt theo tuần lịch — nên phải nói
+              thẳng ra thay vì để người đọc tự đối chiếu ngày trong đầu. */}
+          {(ww.start_date !== wk.start || ww.end_date !== wk.end) && (
+            <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-deep">
+              {t('weekDateOff', {start: ww.start_date, end: ww.end_date})}
+            </span>
+          )}
           {/* "Từ X → Y" chỉ hiện khi có mốc xuất phát; WIG cũ chưa có thì bỏ qua, không hiện số 0
               giả để tránh nói sai là lớp bắt đầu từ con số không. */}
           {ww.baseline != null && (
@@ -380,6 +481,7 @@ export default async function WigPage({
               <form action={deleteLeadMeasure}>
                 <input type="hidden" name="class_id" value={myClass.id} />
                 <input type="hidden" name="lead_measure_id" value={l.id} />
+                {oTuan}
                 <ConfirmButton message={t('confirmDeleteLead')} label={t('deleteLead')} className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]">
                   ✕
                 </ConfirmButton>
@@ -393,6 +495,7 @@ export default async function WigPage({
         <form action={addLeadMeasure} className="mt-3 flex flex-col gap-3 border-t border-navy/[0.08] pt-3">
           <input type="hidden" name="class_id" value={myClass.id} />
           <input type="hidden" name="wig_id" value={ww.id} />
+          {oTuan}
           <Field label={t('leadTitle')} hint={t('leadHint')}>
             <input name="title" className={inputCls} required />
           </Field>
@@ -432,6 +535,7 @@ export default async function WigPage({
           <form action={deleteWig}>
             <input type="hidden" name="class_id" value={myClass.id} />
             <input type="hidden" name="wig_id" value={mw.id} />
+            {oTuan}
             <ConfirmButton message={t('confirmDeleteWig')} label={t('deleteWig')} className={btnIconDanger}>
               ✕
             </ConfirmButton>
@@ -469,6 +573,18 @@ export default async function WigPage({
 
       {flash && <FlashToast message={flash} />}
 
+      {/* Thanh chọn tuần — đặt NGAY DƯỚI tiêu đề vì mọi con số bên dưới đều thuộc về tuần này.
+          Trước đây trang không nói mình đang ở tuần nào, nên WIG đã hết hạn và WIG đang chạy
+          trông giống hệt nhau. */}
+      <WeekNav
+        monday={monday}
+        thisMonday={thisMonday}
+        label={wk.label}
+        start={wk.start}
+        end={wk.end}
+        classParam={classParam}
+      />
+
       {/* Panel sửa (WIG hoặc lead) — hiện khi có ?editWig / ?editLead */}
       {editingWig && wigEditPanel(editingWig)}
       {editingLead && leadEditPanel(editingLead)}
@@ -477,21 +593,24 @@ export default async function WigPage({
           vì nhịp họp tuần là thứ GVCN dùng thường xuyên nhất trong 4DX. */}
       <ClassMeetingSection
         classId={myClass.id}
-        weekLabel={isoWeekLabel(new Date())}
+        weekLabel={wk.label}
         canManage /* trang này đã requireRole(['teacher','admin']) nên ai vào được cũng quản lý được */
         classParam={classParam}
+        weekParam={weekQ}
         tickLockDow={myClass.tick_lock_dow ?? 7}
       />
 
       {/* Việc chung của lớp: ai đã tick, đến đâu (0073). Đặt ngay dưới khối họp vì đây chính là
           con số quyết định thắng/thua tuần này — trước bản đó, số ấy do giáo viên tự gõ. */}
-      <ClassTickBoard classId={myClass.id} />
+      <ClassTickBoard classId={myClass.id} weekStart={monday} />
 
       {/* Việc hằng ngày của HỌC SINH. Đặt ngay đây (không chôn trong trang từng em) vì thiếu nó
           thì màn hình của các em trống trơn — đúng lỗi cả ba người thử đều gặp. */}
       <ClassStudentWigSetup
         classId={myClass.id}
-        weekLabel={thisWeekLabel}
+        weekLabel={wk.label}
+        weekStart={monday}
+        laTuanNay={laTuanNay}
         studentCount={studentCount}
         readyCount={readyCount}
       />
@@ -512,6 +631,13 @@ export default async function WigPage({
           const yprog = progByWig.get(yw.id);
           const months = childrenOf(yw.id, 'month');
           const directWeeks = childrenOf(yw.id, 'week');
+          // Đếm trên TOÀN cây tuần của WIG năm này (kể cả tuần nằm dưới WIG tháng), rồi tách làm
+          // hai: bao nhiêu việc thuộc tuần đang xem, bao nhiêu nằm ở tuần khác. Con số thứ hai là
+          // thứ trước đây hoàn toàn vô hình — người ta chỉ thấy một danh sách dài không mốc thời
+          // gian và tưởng tất cả đều đang chạy.
+          const tuanCuaNam = weeksUnder(yw.id);
+          const soTuan = tuanCuaNam.filter(trongTuan).length;
+          const soTuanKhac = tuanCuaNam.length - soTuan;
           return (
             <section key={yw.id} className="glass rounded-[20px] p-[18px]">
               <div className="flex flex-wrap items-baseline gap-2">
@@ -526,6 +652,7 @@ export default async function WigPage({
                 <form action={deleteWig}>
                   <input type="hidden" name="class_id" value={myClass.id} />
                   <input type="hidden" name="wig_id" value={yw.id} />
+                  {oTuan}
                   <ConfirmButton
                     message={t('confirmDeleteWig')}
                     className="cursor-pointer rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-2 py-1 text-[11px] font-extrabold text-status-bad transition-all hover:bg-status-bad/[0.16]"
@@ -568,15 +695,27 @@ export default async function WigPage({
                 {createChildForm(yw.id, yw.area, yw.unit, true)}
               </div>
 
-              {/* WIG tháng (mỗi tháng có tuần con) + WIG tuần trực tiếp của năm */}
-              {months.length === 0 && directWeeks.length === 0 ? (
-                <div className="mt-3 text-xs font-semibold italic text-grey-mid">{t('noWeekWigs')}</div>
-              ) : (
-                <div className="mt-3 flex flex-col gap-3">
-                  {months.map(monthBlock)}
-                  {directWeeks.map(weekBlock)}
-                </div>
-              )}
+              {/* WIG tháng (mỗi tháng có tuần con) + WIG tuần trực tiếp của năm — TUẦN đã lọc
+                  theo tuần đang xem, THÁNG thì không (xem ghi chú ở childrenOf). */}
+              <div className="mt-3 flex flex-col gap-3">
+                {soTuan === 0 && (
+                  <div className="rounded-[14px] border-[1.5px] border-dashed border-navy/15 bg-navy/[0.02] p-3.5 text-center">
+                    <p className="text-[12.5px] font-bold text-navy">
+                      {t('noWeekWigsThisWeek', {label: wk.label})}
+                    </p>
+                    <p className="mt-1 text-[11.5px] font-semibold italic leading-relaxed text-grey-mid">
+                      {soTuanKhac > 0 ? t('weekWigOther', {n: soTuanKhac}) : t('noWeekWigs')}
+                    </p>
+                  </div>
+                )}
+                {soTuan > 0 && soTuanKhac > 0 && (
+                  <p className="text-[11px] font-semibold italic text-grey-mid">
+                    {t('weekWigOther', {n: soTuanKhac})}
+                  </p>
+                )}
+                {months.map(monthBlock)}
+                {directWeeks.map(weekBlock)}
+              </div>
             </section>
           );
         })

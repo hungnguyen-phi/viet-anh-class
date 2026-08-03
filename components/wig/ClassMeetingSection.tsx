@@ -27,12 +27,16 @@ export async function ClassMeetingSection({
   weekLabel,
   canManage,
   classParam,
+  weekParam,
   tickLockDow,
 }: {
   classId: string;
   weekLabel: string;
   canManage: boolean;
   classParam?: string;
+  // Thứ Hai của tuần đang xem, rỗng nếu là tuần hiện tại (xem WeekNav). Chỉ để mang theo ?week=
+  // khi server action redirect về /wig — không có thì lưu ngày chốt xong là bật về tuần này.
+  weekParam?: string;
   // Ngày chốt tick của tuần (0046) — hiện ngay cạnh nhịp họp vì hai thứ đi liền nhau.
   tickLockDow: number;
 }) {
@@ -55,6 +59,7 @@ export async function ClassMeetingSection({
       {canManage && (
         <form action={setTickLockDow} className="glass flex flex-wrap items-center gap-2 rounded-[16px] p-3.5">
           <input type="hidden" name="class_id" value={classId} />
+          <input type="hidden" name="week" value={weekParam ?? ''} />
           <span className="text-[12.5px] font-extrabold text-navy">{t('lockDow')}</span>
           <select
             name="tick_lock_dow"
@@ -85,7 +90,10 @@ export async function ClassMeetingSection({
 
       {canManage && (
         <div className="glass rounded-[20px] p-[18px]">
-          <MeetingForm classId={classId} defaultWeek={weekLabel} />
+          {/* key=nhãn tuần → ép dựng lại khi bấm ← →. Bên trong là useState(defaultWeek), tức ô
+              "Tuần" chỉ nhận giá trị ở lần dựng đầu tiên; không có key thì đổi tuần xong ô vẫn
+              ghi tuần cũ và biên bản lưu vào nhầm tuần. */}
+          <MeetingForm key={weekLabel} classId={classId} defaultWeek={weekLabel} />
         </div>
       )}
 
@@ -99,6 +107,14 @@ export async function ClassMeetingSection({
             <div key={m.id} className="glass rounded-[20px] px-[18px] py-4">
               <div className="flex items-center gap-2">
                 <div className="font-display text-[15px] font-bold text-navy">{m.week_label}</div>
+                {/* Danh sách này là LỊCH SỬ (mọi tuần), nên phải chỉ ra cái nào thuộc tuần đang
+                    xem — nếu không thì đổi tuần bằng ← → mà khối này không đổi gì, đọc thành
+                    "biên bản không theo tuần". */}
+                {m.week_label === weekLabel && (
+                  <span className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/20 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text">
+                    {t('viewing')}
+                  </span>
+                )}
                 {canManage && (
                   <form action={deleteMeeting} className="ml-auto">
                     <input type="hidden" name="id" value={m.id} />

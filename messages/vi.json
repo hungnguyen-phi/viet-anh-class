@@ -101,6 +101,7 @@
     "score": "Điểm thi đua",
     "winning": "ĐANG THẮNG",
     "losing": "CẦN BỨT PHÁ",
+    "yearOnTrack": "Cả năm: {n}/{total} đúng nhịp",
     "winningDesc": "Lớp đang đúng nhịp WIG năm — giữ vững phong độ!",
     "losingDesc": "Một số lĩnh vực đang chậm nhịp — tập trung lead measure tuần này.",
     "wigWeek": "WIG tuần theo 4 lĩnh vực",
@@ -376,7 +377,17 @@
     "tickBoardReached": "Đạt",
     "tickBoardContributors": "{n}/{total} em đã góp",
     "tickBoardStudent": "Học sinh",
-    "tickBoardNone": "chưa tick"
+    "tickBoardNone": "chưa tick",
+    "weekPrev": "Tuần trước",
+    "weekNext": "Tuần sau",
+    "weekNow": "TUẦN NÀY",
+    "weekPast": "ĐÃ QUA",
+    "weekFuture": "SẮP TỚI",
+    "weekBackToThis": "Về tuần này",
+    "weekNavHint": "Mọi khối bên dưới — việc chung của lớp, biên bản họp, WIG tuần — đều thuộc tuần đang chọn ở đây.",
+    "weekWigOther": "Còn {n} WIG tuần ở tuần khác — bấm ← → để xem.",
+    "noWeekWigsThisWeek": "Tuần {label} chưa có WIG tuần nào — nên màn hình học sinh sẽ không có việc chung nào để tick.",
+    "weekDateOff": "Lệch tuần: {start} → {end}"
   },
   "meeting": {
     "title": "Họp WIG tuần",
@@ -394,7 +405,8 @@
     "lockDow": "Chốt tick tuần vào",
     "lockSave": "Lưu",
     "lockHint": "Học sinh tự tick / bỏ tick / tick bù cả tuần. Từ sau ngày này là khoá, để buổi họp đọc số liệu đã chốt. Đặt trước ngày lớp họp.",
-    "deleteMeeting": "Xoá biên bản"
+    "deleteMeeting": "Xoá biên bản",
+    "viewing": "Đang xem"
   },
   "report": {
     "title": "Báo cáo phụ huynh",
