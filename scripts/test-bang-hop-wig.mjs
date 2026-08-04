@@ -112,6 +112,53 @@ check('Có nút "chưa chấm" để gỡ khi bấm nhầm', /verdictNone/.test(
       /Đang tổng kết tuần W\d{2}-\d{4}/.test(html) && /Rút ra điều gì/.test(html),
       '',
     );
+
+    // ── Bảng TỪNG EM ──
+    // Tổng cả lớp "25/30" không cho biết đó là cả lớp làm đều hay vài em gánh phần còn lại. Buổi
+    // họp cần trả lời "em nào chưa làm", nên phải có danh sách em kèm tỉ lệ, và em thấp nhất
+    // đứng đầu. Dò cả tên em thật lấy từ CSDL — không chỉ dò tiêu đề, vì tiêu đề có thể hiện ra
+    // với danh sách rỗng.
+    const {data: dsHs} = await admin
+      .from('enrollments')
+      .select('profiles!enrollments_student_id_fkey(full_name)')
+      .eq('class_id', coViec.class_id)
+      .eq('is_active', true);
+    const ten = (dsHs ?? []).map((r) => r.profiles?.full_name).filter(Boolean);
+    check(
+      'Bảng họp có danh sách từng em kèm tỉ lệ',
+      /Từng em trong tuần/.test(html) && ten.every((n) => html.includes(n)),
+      `${ten.length} em`,
+    );
+    // Em thấp nhất phải nằm TRƯỚC em cao nhất trong HTML — chứng minh có sắp xếp thật, không chỉ
+    // liệt kê theo thứ tự CSDL trả về.
+    const {data: mt} = await admin.rpc('class_tick_matrix', {
+      p_class: coViec.class_id,
+      p_week_start: monday,
+    });
+    const lam = new Map();
+    for (const m of mt ?? []) {
+      lam.set(m.student_name, (lam.get(m.student_name) ?? 0) + (m.ticked_dates ?? []).length);
+    }
+    const xep = [...lam.entries()].sort((a, b) => a[1] - b[1]);
+    if (xep.length >= 2 && xep[0][1] !== xep[xep.length - 1][1]) {
+      // Có chênh lệch thật → kiểm bằng thứ tự trên màn hình, mạnh hơn.
+      const iThap = html.indexOf(xep[0][0]);
+      const iCao = html.indexOf(xep[xep.length - 1][0]);
+      check(
+        'Em làm ít nhất đứng đầu danh sách',
+        iThap >= 0 && iThap < iCao,
+        `${xep[0][0]} trước ${xep[xep.length - 1][0]}`,
+      );
+    } else {
+      // Mọi em cùng số lượt (tuần chưa ai tick) → không dựng được phép so trên màn hình mà không
+      // ghi dữ liệu giả vào production. Lùi về soi mã nguồn: vẫn là chốt chặn thật, ai bỏ sort
+      // đi sẽ thấy đỏ.
+      check(
+        'Danh sách em sắp theo tỉ lệ tăng dần (soi mã nguồn)',
+        /\.sort\(\(a, b\) => a\.ti - b\.ti/.test(table),
+        'mọi em cùng số lượt nên không so được trên màn hình',
+      );
+    }
   }
 }
 

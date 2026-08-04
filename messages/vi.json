@@ -415,6 +415,8 @@
     "tableNote": "Bỏ trống cả hai ô là xoá ghi nhận của việc đó.",
     "colWork": "Việc chung",
     "colResult": "Kết quả tuần {week}",
+    "perStudent": "Từng em trong tuần {week}",
+    "noneYet": "{n} em chưa làm gì",
     "summarising": "Đang tổng kết tuần {week}",
     "backToLastWeek": "Về tuần vừa xong",
     "prevWeek": "Tuần trước",

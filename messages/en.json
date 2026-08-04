@@ -415,6 +415,8 @@
     "tableNote": "Leaving both fields empty removes that row's record.",
     "colWork": "Shared task",
     "colResult": "{week} result",
+    "perStudent": "Each student in {week}",
+    "noneYet": "{n} students did nothing",
     "summarising": "Reviewing {week}",
     "backToLastWeek": "Back to last week",
     "prevWeek": "Previous week",

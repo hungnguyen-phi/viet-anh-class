@@ -1,5 +1,6 @@
 import {getTranslations} from 'next-intl/server';
-import {Check, X, Minus, ArrowRight} from 'lucide-react';
+import {Check, X, Minus, ArrowRight, AlertTriangle} from 'lucide-react';
+import {Link} from '@/i18n/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {btnGold} from '@/components/ui/Field';
@@ -36,6 +37,14 @@ type BoardRow = {
 
 type NoteRow = {lead_measure_id: string; verdict: string | null; note: string | null};
 
+type MatrixRow = {
+  student_id: string;
+  student_name: string;
+  lead_measure_id: string;
+  active_weekdays: number[] | null;
+  ticked_dates: string[] | null;
+};
+
 export async function MeetingTable({
   classId,
   weekStart,
@@ -67,19 +76,58 @@ export async function MeetingTable({
   // CHỈ LẤY SỐ CỦA TUẦN ĐANG TỔNG KẾT. Bản đầu còn một cột "Tuần trước" để đối chiếu, nhưng chủ
   // dự án chốt bỏ: buổi họp bàn về một tuần, trộn số tuần khác vào chỉ làm rối. (Cột ấy cũng từng
   // hỏng vì ghép theo lead_measure_id — mỗi tuần một bộ id mới nên không dòng nào khớp.)
-  const [{data: nay}, {data: ghiChu}] = await Promise.all([
+  const [{data: nay}, {data: ghiChu}, {data: matrix}] = await Promise.all([
     supabase.rpc('class_lead_board', {p_class: classId, p_week_start: weekStart}),
     supabase
       .from('wig_meeting_notes')
       .select('lead_measure_id, verdict, note')
       .eq('class_id', classId)
       .eq('week_start', weekStart),
+    // Ma trận (em × việc) của đúng tuần đang tổng kết — để buổi họp trả lời được câu hỏi thật
+    // của nó: EM NÀO CHƯA LÀM. Bảng trên chỉ có tổng cả lớp, mà "25/30" không cho biết đó là 21
+    // em làm đều hay 5 em gánh cả lớp.
+    supabase.rpc('class_tick_matrix', {p_class: classId, p_week_start: weekStart}),
   ]);
 
   const rows = (nay ?? []) as BoardRow[];
   if (rows.length === 0) return null;
 
   const noteById = new Map(((ghiChu ?? []) as NoteRow[]).map((r) => [r.lead_measure_id, r]));
+
+  // ── TỪNG EM LÀM ĐƯỢC BAO NHIÊU ────────────────────────────────────────────────────────────
+  //
+  // Mẫu số là số ô em ĐÁNG LẼ tick được trong tuần ấy: với mỗi việc, đếm những ngày trong tuần
+  // có thứ nằm trong active_weekdays. Cùng luật RLS dùng để chặn tick (lead_day_ok, 0073), nên
+  // đây là trần thật — không phải "7 ngày × số việc" cho mọi trường hợp.
+  const cuoiTuan = (() => {
+    const d = new Date(`${weekStart}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 6);
+    return d.toISOString().slice(0, 10);
+  })();
+  const soNgayApDung = (thu: number[] | null) => {
+    const on = new Set(thu ?? [1, 2, 3, 4, 5, 6, 7]);
+    let n = 0;
+    for (const d = new Date(`${weekStart}T00:00:00Z`); ; d.setUTCDate(d.getUTCDate() + 1)) {
+      const iso = d.toISOString().slice(0, 10);
+      if (iso > cuoiTuan) break;
+      if (on.has(d.getUTCDay() === 0 ? 7 : d.getUTCDay())) n += 1;
+    }
+    return n;
+  };
+
+  const theoEm = new Map<string, {ten: string; lam: number; can: number}>();
+  for (const m of (matrix ?? []) as MatrixRow[]) {
+    const cur = theoEm.get(m.student_id) ?? {ten: m.student_name, lam: 0, can: 0};
+    cur.lam += (m.ticked_dates ?? []).length;
+    cur.can += soNgayApDung(m.active_weekdays);
+    theoEm.set(m.student_id, cur);
+  }
+  // Sắp theo TỈ LỆ TĂNG DẦN: buổi họp hỏi "ai chưa làm", nên những em cần nhắc phải nằm ngay đầu
+  // danh sách thay vì để giáo viên tự dò trong ba mươi cái tên. Bằng nhau thì theo tên.
+  const dsEm = [...theoEm.entries()]
+    .map(([id, v]) => ({id, ...v, ti: v.can > 0 ? v.lam / v.can : 0}))
+    .sort((a, b) => a.ti - b.ti || a.ten.localeCompare(b.ten, 'vi'));
+  const chuaLam = dsEm.filter((e) => e.lam === 0).length;
 
   const so = (r: BoardRow) => `${Number(r.class_total)}/${Number(r.target_value)} ${r.unit ?? ''}`;
 
@@ -212,6 +260,67 @@ export async function MeetingTable({
           </div>
         )}
       </form>
+
+      {/* TỪNG EM LÀM ĐƯỢC BAO NHIÊU.
+          Bảng trên nói lớp được 25/30; con số ấy không cho biết đó là cả lớp làm đều hay vài em
+          gánh phần còn lại. Buổi họp cần trả lời "em nào chưa làm" — nên xếp em thấp nhất lên
+          đầu, thay vì để giáo viên tự dò trong ba mươi cái tên. */}
+      {dsEm.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-2 flex flex-wrap items-baseline gap-x-2">
+            <span className="font-display text-[13.5px] font-bold text-navy">
+              {t('perStudent', {week: weekLabel})}
+            </span>
+            {chuaLam > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-status-bad/[0.10] px-2 py-0.5 text-[10.5px] font-extrabold text-status-bad">
+                <AlertTriangle size={11} strokeWidth={2.5} />
+                {t('noneYet', {n: chuaLam})}
+              </span>
+            )}
+          </div>
+          <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
+            <table className="w-full min-w-[420px] border-collapse">
+              <tbody>
+                {dsEm.map((e) => {
+                  const pct = Math.round(e.ti * 100);
+                  const mau =
+                    e.lam === 0
+                      ? 'var(--color-status-bad)'
+                      : e.ti >= 0.8
+                        ? 'var(--color-success)'
+                        : 'var(--color-gold-mid)';
+                  return (
+                    <tr key={e.id} className="border-t border-navy/[0.07] first:border-t-0">
+                      <td className="px-3 py-2">
+                        <Link
+                          href={`/student/${e.id}`}
+                          className="text-[12.5px] font-bold text-navy hover:underline"
+                        >
+                          {e.ten}
+                        </Link>
+                      </td>
+                      <td className="w-[86px] px-3 py-2 text-right text-[12.5px] font-extrabold tabular-nums text-navy">
+                        {e.lam}/{e.can}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="h-[7px] w-full min-w-[80px] overflow-hidden rounded-[4px] bg-navy/[0.08]">
+                          <div
+                            className="h-full rounded-[4px]"
+                            style={{width: `${pct}%`, background: mau}}
+                          />
+                        </div>
+                      </td>
+                      <td className="w-[52px] px-3 py-2 text-right text-[11.5px] font-bold tabular-nums text-grey-mid">
+                        {pct}%
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
