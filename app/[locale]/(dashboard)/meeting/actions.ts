@@ -156,18 +156,29 @@ export async function saveMeeting(_prev: MeetingState, formData: FormData): Prom
     return {ok: false, fieldError: 'results', error: 'Nhập ít nhất một nội dung: chiêm nghiệm, cam kết hoặc việc tuần sau.', values};
 
   const supabase = await createClient();
+
+  // NGÀY là khoá thật (0080), nhãn chỉ để hiển thị. Form gửi kèm week_start; biên bản cũ hoặc
+  // form chưa cập nhật thì suy ngược từ nhãn — cùng một đường duy nhất, không nơi nào tự cắt
+  // chuỗi lấy năm/tuần nữa (chỗ ấy có bẫy: cắt lệch một ký tự là ra năm 0026).
+  const wsRaw = String(formData.get('week_start') ?? '').trim();
+  let week_start: string | null = /^\d{4}-\d{2}-\d{2}$/.test(wsRaw) ? wsRaw : null;
+  if (!week_start) {
+    const {data: suy} = await supabase.rpc('thu_hai_tu_nhan', {nhan: week_label});
+    week_start = (suy as string | null) ?? null;
+  }
+
   // 1 biên bản / (lớp, tuần): đã có thì SỬA, chưa có thì tạo (cho phép sửa lại nội dung).
-  const {data: existing} = await supabase
-    .from('wig_meetings')
-    .select('id')
-    .eq('class_id', class_id)
-    .eq('week_label', week_label)
-    .is('student_id', null)
-    .maybeSingle();
+  //
+  // Tìm theo NGÀY khi có — thế thì sửa nhãn cũng không đẻ ra biên bản thứ hai cho cùng một tuần,
+  // và dòng "tuần trước lớp đã hứa" luôn tìm thấy. Không suy được ngày thì đành theo nhãn như cũ.
+  let q = supabase.from('wig_meetings').select('id').eq('class_id', class_id).is('student_id', null);
+  q = week_start ? q.eq('week_start', week_start) : q.eq('week_label', week_label);
+  const {data: existing} = await q.maybeSingle();
 
   const payload = {
     class_id,
     week_label,
+    week_start,
     results: results || null,
     commitments: commitments || null,
     next_actions: next_actions || null,

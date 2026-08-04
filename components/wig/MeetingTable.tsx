@@ -235,17 +235,19 @@ export async function MeetingTable({
 // chiếu hộ được, nhưng đặt lời hứa cạnh kết quả là đủ để buổi họp tự làm việc đó — mà trước bản
 // này thì ô cam kết viết xong là nằm im, không màn hình nào đọc lại.
 //
-// HẠN CHẾ ĐÃ BIẾT, ghi ra để không ai tưởng nó chắc chắn: wig_meetings không có cột ngày, chỉ có
-// week_label — và nhãn ấy là ô CHỮ TỰ DO trong MeetingForm. Form điền sẵn nhãn đúng, nhưng ai sửa
-// tay thành "Tuần 31" thì dòng này không tìm ra và lặng lẽ ẩn đi. Đây đúng là cặp "lọc theo nhãn
-// vs lọc theo ngày" đã gây sự cố 7B1; chữa tận gốc thì phải thêm cột ngày vào wig_meetings và
-// chuyển ô nhãn thành ô chọn — để lần sau, khi có lý do đủ lớn. Chọn ẩn (không hiện gì) thay vì
-// hiện sai: một dòng "tuần trước lớp đã hứa: (trống)" còn tệ hơn không có dòng nào.
+// TRA THEO NGÀY, không theo nhãn (0080). Trước đây bảng wig_meetings chỉ có week_label — mà nhãn
+// ấy là ô chữ tự do trong MeetingForm, ai sửa tay thành "Tuần 31" là dòng này lặng lẽ không hiện.
+// Đúng cặp "lọc theo nhãn vs lọc theo ngày" đã gây sự cố 7B1, và ở đây nó cắt đứt vòng cam kết mà
+// không ai thấy. Nay biên bản có cột week_start; nhãn còn lại chỉ để con người đọc.
 export async function LoiHuaTuanTruoc({
   classId,
+  weekStartTruoc,
   weekLabelTruoc,
 }: {
   classId: string;
+  // Thứ Hai của tuần trước — khoá tra cứu thật.
+  weekStartTruoc: string;
+  // Chỉ để hiển thị trong câu "Tuần Wxx lớp đã hứa".
   weekLabelTruoc: string;
 }) {
   const t = await getTranslations('meeting');
@@ -255,7 +257,7 @@ export async function LoiHuaTuanTruoc({
     .select('next_actions, commitments')
     .eq('class_id', classId)
     .is('student_id', null)
-    .eq('week_label', weekLabelTruoc)
+    .eq('week_start', weekStartTruoc)
     .maybeSingle();
 
   const hua = (data?.next_actions ?? '').trim() || (data?.commitments ?? '').trim();

@@ -12,7 +12,17 @@ const inputBase =
 
 // Form biên bản họp WIG — validation INLINE (useActionState): lỗi hiện cạnh field,
 // giữ nguyên nội dung đã gõ, báo thành công ngay, gửi nhanh bằng Ctrl/⌘+Enter.
-export function MeetingForm({classId, defaultWeek}: {classId: string; defaultWeek: string}) {
+export function MeetingForm({
+  classId,
+  defaultWeek,
+  weekStart,
+}: {
+  classId: string;
+  defaultWeek: string;
+  // Thứ Hai của tuần đang họp — KHOÁ THẬT của biên bản (0080). Ô "Tuần" bên dưới vẫn cho sửa vì
+  // nó là thứ con người đọc, nhưng sửa nó không còn làm biên bản lạc khỏi tuần nữa.
+  weekStart?: string;
+}) {
   const t = useTranslations('meeting');
   const [state, formAction] = useActionState(saveMeeting, {ok: false});
   const formRef = useRef<HTMLFormElement>(null);
@@ -47,6 +57,7 @@ export function MeetingForm({classId, defaultWeek}: {classId: string; defaultWee
   return (
     <form ref={formRef} action={formAction} onKeyDown={onKeyDown} className="flex flex-col gap-3" noValidate>
       <input type="hidden" name="class_id" value={classId} />
+      <input type="hidden" name="week_start" value={weekStart ?? ''} />
 
       <div>
         <label className={fieldLabelCls} htmlFor="mtg-week">

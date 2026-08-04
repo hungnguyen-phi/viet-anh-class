@@ -115,6 +115,7 @@ export async function ClassMeetingSection({
       {weekStart && (
         <LoiHuaTuanTruoc
           classId={classId}
+          weekStartTruoc={luiMotTuan(weekStart)}
           weekLabelTruoc={isoWeekLabel(vnNoon(luiMotTuan(weekStart)))}
         />
       )}
@@ -135,7 +136,12 @@ export async function ClassMeetingSection({
           {/* key=nhãn tuần → ép dựng lại khi bấm ← →. Bên trong là useState(defaultWeek), tức ô
               "Tuần" chỉ nhận giá trị ở lần dựng đầu tiên; không có key thì đổi tuần xong ô vẫn
               ghi tuần cũ và biên bản lưu vào nhầm tuần. */}
-          <MeetingForm key={weekLabel} classId={classId} defaultWeek={weekLabel} />
+          <MeetingForm
+            key={weekLabel}
+            classId={classId}
+            defaultWeek={weekLabel}
+            weekStart={weekStart}
+          />
         </div>
       )}
 

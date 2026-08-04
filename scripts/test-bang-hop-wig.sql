@@ -192,6 +192,50 @@ begin
   perform set_config('request.jwt.claims', null, true);
 end $$;
 
+-- ── 8. VÒNG CAM KẾT KHÔNG CÒN ĐỨT KHI NHÃN BỊ GÕ KHÁC (0080) ──
+--
+-- Trước 0080, biên bản chỉ có week_label — ô CHỮ TỰ DO. Dòng "Tuần trước lớp đã hứa…" tra theo
+-- nhãn, nên ai sửa tay thành "Tuần 31" là vòng cam kết đứt, lặng lẽ: dòng đó chỉ đơn giản không
+-- hiện, không ai biết mình vừa làm mất nó.
+--
+-- Nay khoá là NGÀY. Dựng một biên bản có nhãn gõ bậy hoàn toàn rồi tra theo ngày — vẫn phải thấy.
+do $$
+declare
+  v_class uuid;
+  v_n int;
+  v_hua text;
+begin
+  select c.id into v_class from classes c where c.homeroom_teacher_id is not null limit 1;
+
+  insert into wig_meetings (class_id, week_label, week_start, next_actions)
+  values (v_class, 'Tuần ba mươi mốt', '2026-03-02', 'ZZ_TEST cả lớp đọc sách 4 buổi');
+
+  -- Tra bằng NGÀY: phải thấy, dù nhãn không theo quy ước nào.
+  select next_actions into v_hua from wig_meetings
+  where class_id = v_class and week_start = '2026-03-02' and student_id is null;
+  insert into ket_qua values
+    ('Nhãn gõ bậy vẫn tra được lời hứa (theo ngày)', 'thấy lời hứa',
+     coalesce(v_hua, '(không thấy)'), v_hua = 'ZZ_TEST cả lớp đọc sách 4 buổi');
+
+  -- Tra bằng NHÃN như bản cũ: không thấy — đây chính là cái đã hỏng.
+  select count(*) into v_n from wig_meetings
+  where class_id = v_class and week_label = 'W10-2026' and student_id is null;
+  insert into ket_qua values
+    ('(đối chứng) Tra theo nhãn thì trượt', '0 dòng', v_n || ' dòng', v_n = 0);
+
+  -- Hàm suy ngược dùng chung: nhãn đúng quy ước → thứ Hai đúng.
+  insert into ket_qua
+  select 'thu_hai_tu_nhan(''W31-2026'') ra 27/07 (thứ Hai)',
+         '2026-07-27', coalesce(thu_hai_tu_nhan('W31-2026')::text, 'null'),
+         thu_hai_tu_nhan('W31-2026') = date '2026-07-27';
+
+  -- Nhãn không theo quy ước → trả null chứ không đoán bừa một ngày.
+  insert into ket_qua
+  select 'thu_hai_tu_nhan(nhãn lạ) trả null, không đoán bừa',
+         'null', coalesce(thu_hai_tu_nhan('Tuần 31')::text, 'null'),
+         thu_hai_tu_nhan('Tuần 31') is null;
+end $$;
+
 -- Ba chốt chặn cho phần TẦNG ỨNG DỤNG (ghép cột tuần trước theo tên, chỉ xoá thứ đã nhìn thấy,
 -- và thông điệp khi bảng trắng) nằm ở scripts/test-bang-hop-wig.mjs — Supabase chặn pg_read_file
 -- nên không soi mã nguồn từ trong SQL được.

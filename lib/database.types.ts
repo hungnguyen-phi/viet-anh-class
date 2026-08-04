@@ -1891,6 +1891,7 @@ export type Database = {
           results: string | null
           student_id: string | null
           week_label: string
+          week_start: string | null
         }
         Insert: {
           buddy_action?: string | null
@@ -1910,6 +1911,7 @@ export type Database = {
           results?: string | null
           student_id?: string | null
           week_label: string
+          week_start?: string | null
         }
         Update: {
           buddy_action?: string | null
@@ -1929,6 +1931,7 @@ export type Database = {
           results?: string | null
           student_id?: string | null
           week_label?: string
+          week_start?: string | null
         }
         Relationships: [
           {
@@ -2213,6 +2216,7 @@ export type Database = {
           wigs_won: number
         }[]
       }
+      thu_hai_tu_nhan: { Args: { nhan: string }; Returns: string }
       can_manage_class_cover: { Args: { p_name: string }; Returns: boolean }
       can_manage_class_photo: { Args: { p_name: string }; Returns: boolean }
       can_manage_student_email: { Args: { p_email: string }; Returns: boolean }
