@@ -63,6 +63,7 @@ export default async function MeetingPage({
         weekLabel={wk.label}
         weekStart={wk.start}
         weekEnd={wk.end}
+        tuTrang="meeting"
         canManage={canManage}
         classParam={classParam}
         tickLockDow={myClass.tick_lock_dow}

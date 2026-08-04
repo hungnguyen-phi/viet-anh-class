@@ -412,7 +412,22 @@
     "lockSave": "Lưu",
     "lockHint": "Học sinh tự tick / bỏ tick / tick bù cả tuần. Từ sau ngày này là khoá, để buổi họp đọc số liệu đã chốt. Đặt trước ngày lớp họp.",
     "deleteMeeting": "Xoá biên bản",
-    "viewing": "Đang xem"
+    "viewing": "Đang xem",
+    "tableTitle": "Cầm bảng này mà họp",
+    "tableHint": "Mỗi việc một dòng. Cột “Tuần này” là con số máy đếm từ chính lượt tick của các em — thầy cô không sửa được ở đây. Nút thắng/thua là kết luận của buổi họp, ghi lại để nhớ, không làm đổi bảng thi đua hay bảng của ban giám hiệu.",
+    "tableNote": "Bỏ trống cả hai ô là xoá ghi nhận của việc đó.",
+    "colWork": "Việc chung",
+    "colLastWeek": "Tuần trước",
+    "colThisWeek": "Tuần này",
+    "colVerdict": "Thắng/Thua",
+    "colLesson": "Rút ra điều gì?",
+    "lessonPlaceholder": "Vì sao được/chưa được? Tuần sau làm khác chỗ nào?",
+    "verdictWin": "Tuần này thắng việc này",
+    "verdictLose": "Tuần này chưa đạt",
+    "verdictNone": "Buổi họp chưa chấm việc này",
+    "joinedCount": "{n}/{total} em đã góp",
+    "saveTable": "Lưu ghi nhận buổi họp",
+    "promisedLastWeek": "Tuần {week} lớp đã hứa"
   },
   "report": {
     "title": "Báo cáo phụ huynh",

@@ -3,6 +3,8 @@ import {createClient} from '@/lib/supabase/server';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {btnIconDanger} from '@/components/ui/Field';
 import {MeetingScoreboard} from '@/components/wig/MeetingScoreboard';
+import {MeetingTable, LoiHuaTuanTruoc} from '@/components/wig/MeetingTable';
+import {isoWeekLabel, vnNoon} from '@/lib/dates';
 import {MeetingForm} from '@/app/[locale]/(dashboard)/meeting/MeetingForm';
 import {deleteMeeting} from '@/app/[locale]/(dashboard)/meeting/actions';
 import {setTickLockDow} from '@/app/[locale]/(dashboard)/wig/actions';
@@ -22,6 +24,14 @@ type Meeting = {
 const DOW = [1, 2, 3, 4, 5, 6, 7];
 const DOW_LABEL = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
+// Thứ Hai của tuần trước. Tính bằng UTC trên chuỗi đã chuẩn hoá theo lịch VN — không quy đổi
+// múi giờ thêm lần nào nữa, mỗi lần quy đổi là một cơ hội lệch 7 tiếng (xem lib/dates.ts).
+function luiMotTuan(monday: string): string {
+  const d = new Date(`${monday}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 7);
+  return d.toISOString().slice(0, 10);
+}
+
 export async function ClassMeetingSection({
   classId,
   weekLabel,
@@ -30,10 +40,13 @@ export async function ClassMeetingSection({
   weekStart,
   weekEnd,
   weekParam,
+  tuTrang = 'wig',
   tickLockDow,
 }: {
   classId: string;
   weekLabel: string;
+  // Trang đang nhúng khối này — để lưu xong quay về đúng chỗ (/wig hay /meeting).
+  tuTrang?: 'wig' | 'meeting';
   // Hai đầu mốc của tuần đang xem — bảng điểm họp lọc theo NGÀY chứ không theo nhãn chữ.
   weekStart?: string;
   weekEnd?: string;
@@ -97,6 +110,25 @@ export async function ClassMeetingSection({
         weekStart={weekStart}
         weekEnd={weekEnd}
       />
+
+      {/* Nhịp 4DX mở đầu bằng "tuần trước hứa gì" — đặt TRƯỚC bảng để đọc theo đúng thứ tự ấy. */}
+      {weekStart && (
+        <LoiHuaTuanTruoc
+          classId={classId}
+          weekLabelTruoc={isoWeekLabel(vnNoon(luiMotTuan(weekStart)))}
+        />
+      )}
+
+      {/* Bảng cầm mà họp: mỗi việc một dòng, có cột tuần trước để đối chiếu cam kết. */}
+      {weekStart && (
+        <MeetingTable
+          classId={classId}
+          weekStart={weekStart}
+          weekParam={weekParam}
+          canManage={canManage}
+          tuTrang={tuTrang}
+        />
+      )}
 
       {canManage && (
         <div className="glass rounded-[20px] p-[18px]">

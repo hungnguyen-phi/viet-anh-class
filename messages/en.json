@@ -412,7 +412,22 @@
     "lockSave": "Save",
     "lockHint": "Students tick, untick and back-fill freely all week. From the day after this, it locks so the meeting reads settled numbers. Set it before your meeting day.",
     "deleteMeeting": "Delete minutes",
-    "viewing": "Viewing"
+    "viewing": "Viewing",
+    "tableTitle": "Run the meeting from this table",
+    "tableHint": "One row per shared task. “This week” is counted from the students' own ticks — staff cannot edit it here. The win/lose button is the meeting's own call, recorded for the record; it does not change the competition score or the leadership board.",
+    "tableNote": "Leaving both fields empty removes that row's record.",
+    "colWork": "Shared task",
+    "colLastWeek": "Last week",
+    "colThisWeek": "This week",
+    "colVerdict": "Win/Lose",
+    "colLesson": "What did we learn?",
+    "lessonPlaceholder": "Why did it work or not? What will we do differently next week?",
+    "verdictWin": "Won this week",
+    "verdictLose": "Fell short this week",
+    "verdictNone": "Not called at this meeting",
+    "joinedCount": "{n}/{total} students joined in",
+    "saveTable": "Save meeting record",
+    "promisedLastWeek": "In {week} the class promised"
   },
   "report": {
     "title": "Parent report",

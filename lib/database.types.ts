@@ -1817,6 +1817,61 @@ export type Database = {
           },
         ]
       }
+      wig_meeting_notes: {
+        Row: {
+          class_id: string
+          id: string
+          lead_measure_id: string
+          note: string | null
+          updated_at: string
+          updated_by: string | null
+          verdict: string | null
+          week_start: string
+        }
+        Insert: {
+          class_id: string
+          id?: string
+          lead_measure_id: string
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          verdict?: string | null
+          week_start: string
+        }
+        Update: {
+          class_id?: string
+          id?: string
+          lead_measure_id?: string
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          verdict?: string | null
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wig_meeting_notes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wig_meeting_notes_lead_measure_id_fkey"
+            columns: ["lead_measure_id"]
+            isOneToOne: false
+            referencedRelation: "lead_measures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wig_meeting_notes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wig_meetings: {
         Row: {
           buddy_action: string | null
