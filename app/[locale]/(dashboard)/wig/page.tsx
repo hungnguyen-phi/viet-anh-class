@@ -1,4 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
+import {AlertTriangle} from 'lucide-react';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getClassContext} from '@/lib/queries';
@@ -60,6 +61,8 @@ type Lead = {
   sub_category: string | null;
   // 0073 — những thứ trong tuần mà việc này được tick (ISO 1=T2…7=CN).
   active_weekdays: number[] | null;
+  // 0076 — một lượt tick đáng bao nhiêu ĐƠN VỊ CỦA WIG cha. Mặc định 1.
+  unit_per_tick: number | null;
 };
 type Prog = {actual: number | null; pct: number | null; status: string | null};
 
@@ -150,7 +153,7 @@ export default async function WigPage({
       supabase
         .from('wigs')
         .select(
-          'id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date, lead_measures(id, wig_id, title, target_value, unit, sub_category, active_weekdays)',
+          'id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date, lead_measures(id, wig_id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick)',
         )
         .eq('class_id', myClass.id)
         .eq('scope', 'class'),
@@ -275,6 +278,64 @@ export default async function WigPage({
   // Nhãn thứ (T2…CN) cho ô chọn ngày áp dụng của lead measure.
   const dayShort = t.raw('dayShort') as string[];
 
+  // ── HAI CHỖ ĐẶT SAI MÀ APP TỪNG IM LẶNG (0076) ───────────────────────────────────────────
+  //
+  // Tính ngay tại đây thay vì gọi RPC lead_measure_canh_bao: mọi dữ liệu cần đã nằm sẵn trong
+  // `wigs` và `lead_measures` vừa lấy về, nên thêm một lượt hỏi nữa là trả tiền cho thứ mình đã
+  // có. Hàm SQL kia vẫn giữ — scripts/test-* dùng nó làm nguồn đối chiếu ĐỘC LẬP, hai bên lệch
+  // nhau là phép kiểm báo ngay.
+  //
+  // Vì sao đáng làm: lớp 7B1 đang có việc "Dành 30 phút mỗi tối để đọc sách" đặt mục tiêu 30 bên
+  // trong một WIG TUẦN. Tuần có 7 ngày, nên cả năm học không ai đạt nổi — mà trước bản này không
+  // màn hình nào nói ra, giáo viên phải tự đối chiếu ngày tháng trong đầu mới thấy.
+  // Bỏ dấu tiếng Việt khi so đơn vị. Production đang có cả 'buoi' lẫn 'buổi' trong cùng một cột
+  // (dữ liệu cũ gõ không dấu), mà chúng là một thứ — so nguyên văn thì kêu oan.
+  // Phải khớp private.bo_dau() trong 0078; phép kiểm đối chiếu hai bên.
+  const boDau = (s: string) =>
+    s
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .trim()
+      .toLowerCase();
+
+  const canhBaoLead = (l: Lead, w: Wig) => {
+    const moiTick = Number(l.unit_per_tick ?? 1) || 1;
+    // LÀM TRÒN TRƯỚC KHI ceil. CSDL tính bằng numeric thập phân chính xác, JavaScript tính bằng
+    // số thực nhị phân — với hệ số kiểu 0.7 thì 21/0.7 ra 30.000000000000004, và Math.ceil biến
+    // nó thành 31 trong khi Postgres nói 30. Lệch một đơn vị ấy đủ để trang bật cảnh báo đỏ "không
+    // ai đạt nổi" trên một mục tiêu đặt vừa khít, giục giáo viên hạ một con số đang đúng.
+    // Chín chữ số thập phân đủ nuốt sai số nhị phân mà không chạm tới khác biệt thật.
+    const soTickCan = Math.ceil(Number((Number(l.target_value) / moiTick).toFixed(9)));
+    // Số ngày THẬT SỰ tick được: đếm ngày trong kỳ có thứ nằm trong active_weekdays — đúng luật
+    // mà RLS dùng để chặn tick (lead_day_ok, 0073), nên đây là trần thật chứ không phải ước lượng.
+    const thu = new Set(l.active_weekdays ?? [1, 2, 3, 4, 5, 6, 7]);
+    let soNgay = 0;
+    for (const d = new Date(`${w.start_date}T00:00:00Z`); ; d.setUTCDate(d.getUTCDate() + 1)) {
+      const iso = d.toISOString().slice(0, 10);
+      if (iso > w.end_date) break;
+      if (thu.has(d.getUTCDay() === 0 ? 7 : d.getUTCDay())) soNgay += 1;
+    }
+    // TRẦN PHẢI NHÂN SỐ NGƯỜI. Với WIG của lớp thì CẢ LỚP cùng tick vào một việc, nên trần là
+    // "số ngày × sĩ số", không phải số ngày. Bản đầu quên vế này: 7B1 chỉ có 3 em nên 7×3=21 vẫn
+    // nhỏ hơn mục tiêu 30 và cảnh báo vẫn đúng — lỗi ẩn sau một lớp nhỏ. Lớp 24 em thì trần là
+    // 168, và mọi mục tiêu từ 8 tới 168 sẽ bị kêu oan. Báo động giả tệ hơn không báo: vài lần bị
+    // kêu oan là người ta thôi đọc cảnh báo.
+    const soNguoi = studentCount > 0 ? studentCount : 1;
+    const tran = soNgay * soNguoi;
+    return {
+      soTickCan,
+      soNgay,
+      soNguoi,
+      tran,
+      // Hai đơn vị khác nhau mà hệ số vẫn để 1 → đang cộng cái nọ vào cái kia.
+      lechDonVi:
+        Boolean(l.unit) && Boolean(w.unit) && boDau(l.unit!) !== boDau(w.unit) && moiTick === 1,
+      quaNhieu: soTickCan > tran,
+    };
+  };
+
   const bar = (p?: Prog) => {
     const pct = Math.round(Number(p?.pct ?? 0) * 100);
     return (
@@ -360,6 +421,26 @@ export default async function WigPage({
             <input name="sub_category" defaultValue={l.sub_category ?? ''} className={inputCls} />
           </Field>
         </div>
+        <Field
+          label={t('unitPerTick')}
+          hint={t('unitPerTickHint', {unit: wigs.find((w) => w.id === l.wig_id)?.unit ?? ''})}
+          className="sm:max-w-[280px]"
+        >
+          {/* `required` để trình duyệt chặn ngay tại chỗ nếu ô bị xoá trắng. Không có nó thì form
+              vẫn gửi được với chuỗi rỗng, và ở server chuỗi rỗng từng bị biến thành 1 — tức là
+              chia toàn bộ lịch sử tick cho hệ số cũ, lặng lẽ, kèm câu "Đã cập nhật". Server nay
+              cũng bỏ qua ô rỗng thay vì đoán; đây là lớp thứ hai, ngăn ngay từ trước khi gửi. */}
+          <input
+            name="unit_per_tick"
+            type="number"
+            step="any"
+            min="0.01"
+            inputMode="decimal"
+            required
+            defaultValue={Number(l.unit_per_tick ?? 1)}
+            className={inputCls}
+          />
+        </Field>
         <WeekdayPicker
           label={t('weekdays')}
           hint={t('weekdaysHint')}
@@ -475,12 +556,18 @@ export default async function WigPage({
           {wleads.length === 0 && (
             <li className="py-2 text-xs font-semibold text-grey-mid">{t('noLeads')}</li>
           )}
-          {wleads.map((l) => (
+          {wleads.map((l) => {
+            const cb = canhBaoLead(l, ww);
+            return (
             <li key={l.id} className="flex flex-wrap items-center gap-2 border-b border-navy/[0.08] py-2">
               <span className="text-[13px] font-bold text-navy">
                 {l.title}{' '}
                 <span className="font-semibold text-grey-mid">
-                  ({l.target_value} {l.unit ?? ''})
+                  ({l.target_value} {l.unit ?? ''}
+                  {Number(l.unit_per_tick ?? 1) !== 1
+                    ? ` · ${t('perTickShort', {n: Number(l.unit_per_tick), unit: ww.unit})}`
+                    : ''}
+                  )
                 </span>
               </span>
               {/* Những thứ em được tick việc này. Ô "Ghi +" cũ ĐÃ BỎ (0073): con số của WIG lớp
@@ -502,8 +589,28 @@ export default async function WigPage({
                   ✕
                 </ConfirmButton>
               </form>
+              {/* Cảnh báo, KHÔNG phải rào chắn: dữ liệu cũ vẫn chạy, giáo viên vẫn lưu được — chỉ
+                  là từ nay họ nhìn thấy. Chiếm trọn một dòng riêng bên dưới để không bóp méo hàng
+                  nút phía trên. */}
+              {(cb.quaNhieu || cb.lechDonVi) && (
+                <div className="w-full">
+                  {cb.quaNhieu && (
+                    <p className="mt-1 flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-1.5 text-[11.5px] font-semibold leading-relaxed text-status-bad">
+                      <AlertTriangle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+                      {t('warnTooMany', {can: cb.soTickCan, co: cb.tran, ngay: cb.soNgay, nguoi: cb.soNguoi})}
+                    </p>
+                  )}
+                  {cb.lechDonVi && (
+                    <p className="mt-1 flex items-start gap-1.5 rounded-[10px] bg-gold/20 px-2.5 py-1.5 text-[11.5px] font-semibold leading-relaxed text-gold-deep">
+                      <AlertTriangle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+                      {t('warnUnitMismatch', {lead: l.unit ?? '', wig: ww.unit})}
+                    </p>
+                  )}
+                </div>
+              )}
             </li>
-          ))}
+            );
+          })}
         </ul>
         {/* Thêm lead measure. Trước đây 4 ô + 1 nút chen trong một hàng flex, các ô rộng 96px
             và 112px trong khi nhãn của chúng là "Mục tiêu (số)" và "Nhóm (Kỹ năng)" — placeholder
@@ -526,6 +633,19 @@ export default async function WigPage({
               <input name="sub_category" className={inputCls} />
             </Field>
           </div>
+          {/* Mặc định 1 — hầu hết việc không phải đụng tới. Chỉ khai khác khi WIG đo bằng đơn vị
+              nhỏ hơn một lần làm: WIG tính bằng PHÚT mà mỗi tối làm 30 phút thì ghi 30. */}
+          <Field label={t('unitPerTick')} hint={t('unitPerTickHint', {unit: ww.unit})} className="sm:max-w-[280px]">
+            <input
+              name="unit_per_tick"
+              type="number"
+              step="any"
+              min="0.01"
+              inputMode="decimal"
+              defaultValue={1}
+              className={inputCls}
+            />
+          </Field>
           <WeekdayPicker label={t('weekdays')} hint={t('weekdaysHint')} dayLabels={dayShort} />
           <div className="flex justify-end">
             <SubmitButton className={ghostBtn}>+ {t('addLead')}</SubmitButton>

@@ -61,16 +61,27 @@ export async function MeetingScoreboard({
     // Tick cũng phải nằm trong tuần đang họp. Không ràng thì một việc đã đạt ở tuần trước vẫn
     // được đếm "hoàn thành" cho tuần này — buổi họp đọc ra một con số không thuộc về tuần mình
     // đang bàn, mà đó đúng là con số PRD bảo cầm để họp.
-    let lq = supabase.from('lead_measures').select('target_value, lead_progress(value)').in('wig_id', wigIds);
+    // unit_per_tick (0076): một lượt tick đáng bao nhiêu đơn vị của WIG. Không nhân thì bảng họp
+    // hiện 3 trong khi thanh tiến độ ngay trên nó hiện 90 — hai nguồn sự thật, đúng con bệnh mà
+    // 0074/0075 vừa dẹp.
+    let lq = supabase
+      .from('lead_measures')
+      .select('target_value, unit_per_tick, lead_progress(value)')
+      .in('wig_id', wigIds);
     if (weekStart && weekEnd) {
       lq = lq
         .gte('lead_progress.logged_date', weekStart)
         .lte('lead_progress.logged_date', weekEnd);
     }
     const {data: leadData} = await lq;
-    for (const l of (leadData ?? []) as {target_value: number; lead_progress: {value: number}[] | null}[]) {
+    for (const l of (leadData ?? []) as {
+      target_value: number;
+      unit_per_tick: number | null;
+      lead_progress: {value: number}[] | null;
+    }[]) {
       leadsTotal += 1;
-      const actual = (l.lead_progress ?? []).reduce((s, p) => s + Number(p.value ?? 0), 0);
+      const moiTick = Number(l.unit_per_tick ?? 1) || 1;
+      const actual = (l.lead_progress ?? []).reduce((s, p) => s + Number(p.value ?? 0) * moiTick, 0);
       if (Number(l.target_value) > 0 && actual >= Number(l.target_value)) leadsDone += 1;
     }
   }

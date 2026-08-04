@@ -710,6 +710,7 @@ export type Database = {
           target_value: number
           title: string
           unit: string | null
+          unit_per_tick: number
           wig_id: string
         }
         Insert: {
@@ -720,6 +721,7 @@ export type Database = {
           target_value: number
           title: string
           unit?: string | null
+          unit_per_tick?: number
           wig_id: string
         }
         Update: {
@@ -730,6 +732,7 @@ export type Database = {
           target_value?: number
           title?: string
           unit?: string | null
+          unit_per_tick?: number
           wig_id?: string
         }
         Relationships: [
@@ -2107,6 +2110,7 @@ export type Database = {
           target_value: number
           title: string
           unit: string
+          unit_per_tick: number
           wig_id: string
           wig_title: string
         }[]
@@ -2126,6 +2130,18 @@ export type Database = {
         }[]
       }
       lead_day_ok: { Args: { d: string; lm: string }; Returns: boolean }
+      lead_measure_canh_bao: {
+        Args: { p_wig: string }
+        Returns: {
+          lead_measure_id: string
+          lech_don_vi: boolean
+          qua_nhieu: boolean
+          so_ngay_tick_duoc: number
+          so_nguoi_tick: number
+          so_tick_can: number
+          tran_luot_tick: number
+        }[]
+      }
       school_wig_rollup: {
         Args: { p_week_start?: string }
         Returns: {

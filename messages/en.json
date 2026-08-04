@@ -388,7 +388,12 @@
     "weekNavHint": "Everything below — class work, meeting minutes, weekly WIGs — belongs to the week selected here.",
     "weekWigOther": "{n} more weekly WIGs in other weeks — use ← → to see them.",
     "noWeekWigsThisWeek": "No weekly WIG for {label} — so students have no shared work to tick.",
-    "weekDateOff": "Off-week dates: {start} → {end}"
+    "weekDateOff": "Off-week dates: {start} → {end}",
+    "unitPerTick": "Each tick counts as",
+    "unitPerTickHint": "In the goal's unit ({unit}). Leave it at 1 when one tick means one {unit}; set 30 when the goal is in minutes and each session is 30 minutes.",
+    "perTickShort": "{n} {unit} per tick",
+    "warnTooMany": "This needs {can} ticks, but at most {co} are possible ({ngay} days × {nguoi} people) — nobody can reach it. Lower the target, add more weekdays, or set “each tick counts as” correctly.",
+    "warnUnitMismatch": "Measured in “{lead}” while the goal is in “{wig}” — different units, yet each tick still adds 1 {wig} to progress. Either make both use the same unit, or set “each tick counts as” to how many {wig} ONE session is really worth (not the number in the task name)."
   },
   "meeting": {
     "title": "Weekly WIG meeting",

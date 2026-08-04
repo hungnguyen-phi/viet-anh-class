@@ -51,6 +51,8 @@ type LeadRow = {
   unit: string | null;
   // 0073 — những thứ trong tuần mà việc này được tick (ISO 1=T2…7=CN).
   active_weekdays: number[] | null;
+  // 0076 — một lượt tick đáng bao nhiêu đơn vị của mục tiêu.
+  unit_per_tick: number | null;
   lead_progress:
     | {
         id: string;
@@ -70,6 +72,8 @@ type ClassLeadRow = {
   target_value: number | string;
   unit: string | null;
   active_weekdays: number[] | null;
+  // 0077 — chỉ dùng cho cập nhật lạc quan lúc bấm; class_total dưới đây đã nhân sẵn trong SQL.
+  unit_per_tick: number | string | null;
   class_total: number | string;
   contributors: number | string;
   class_size: number | string;
@@ -305,7 +309,7 @@ export async function StudentScoreboard({
       ? supabase
           .from('lead_measures')
           .select(
-            'id, wig_id, title, target_value, unit, active_weekdays, lead_progress(id, value, logged_date, created_at, logged_by, student_id)',
+            'id, wig_id, title, target_value, unit, active_weekdays, unit_per_tick, lead_progress(id, value, logged_date, created_at, logged_by, student_id)',
           )
           .in('wig_id', weekIds)
       : Promise.resolve({data: null}),
@@ -349,6 +353,9 @@ export async function StudentScoreboard({
       kind: 'class' as const,
       days: daysFor(l.active_weekdays),
       myDates: l.my_dates ?? [],
+      // class_total từ RPC ĐÃ nhân hệ số trong SQL (0076); truyền hệ số xuống chỉ để cập nhật lạc
+      // quan lúc bấm nhích đúng bằng chừng ấy, không phải bằng 1.
+      unitPerTick: Number(l.unit_per_tick ?? 1) || 1,
       classTotal: Number(l.class_total),
       contributors: Number(l.contributors),
       classSize: Number(l.class_size),
@@ -359,6 +366,7 @@ export async function StudentScoreboard({
       target: Number(l.target_value),
       unit: l.unit,
       kind: 'mine' as const,
+      unitPerTick: Number(l.unit_per_tick ?? 1) || 1,
       days: daysFor(l.active_weekdays),
       // Lọc theo student_id chứ không theo logged_by: GVCN tick hộ một em thì dòng đó vẫn là của
       // EM (student_id), chỉ khác người ghi. Bản trước so `logged_by === viewer.id` nên GVCN mở

@@ -388,7 +388,12 @@
     "weekNavHint": "Mọi khối bên dưới — việc chung của lớp, biên bản họp, WIG tuần — đều thuộc tuần đang chọn ở đây.",
     "weekWigOther": "Còn {n} WIG tuần ở tuần khác — bấm ← → để xem.",
     "noWeekWigsThisWeek": "Tuần {label} chưa có WIG tuần nào — nên màn hình học sinh sẽ không có việc chung nào để tick.",
-    "weekDateOff": "Lệch tuần: {start} → {end}"
+    "weekDateOff": "Lệch tuần: {start} → {end}",
+    "unitPerTick": "Mỗi lần tick đáng",
+    "unitPerTickHint": "Tính theo đơn vị của mục tiêu ({unit}). Để 1 nếu mỗi lần làm là một {unit}; đặt 30 nếu mục tiêu tính bằng phút mà mỗi lần làm 30 phút.",
+    "perTickShort": "mỗi lần {n} {unit}",
+    "warnTooMany": "Việc này cần {can} lượt tick, nhưng nhiều nhất cũng chỉ có {co} lượt ({ngay} ngày × {nguoi} người) — không ai đạt nổi. Hạ mục tiêu, chọn thêm thứ trong tuần, hoặc khai “mỗi lần tick đáng” cho đúng.",
+    "warnUnitMismatch": "Việc đo bằng “{lead}” còn mục tiêu đo bằng “{wig}” — hai đơn vị khác nhau, mà mỗi lượt tick vẫn đang cộng 1 {wig} vào tiến độ. Sửa cho hai bên cùng một đơn vị, hoặc khai “mỗi lần tick đáng” bằng số {wig} mà MỘT lần làm thật sự đáng (không phải con số trong tên việc)."
   },
   "meeting": {
     "title": "Họp WIG tuần",

@@ -182,6 +182,25 @@ export async function createWig(formData: FormData) {
 // Những thứ trong tuần mà một lead measure được tick (ISO: 1=T2 … 7=CN).
 // Bỏ trống → T2–T6, mặc định của một việc học ngày thường. Đây là chỗ đặt mặc định, KHÔNG phải
 // cột trong CSDL: cột để cả 7 thứ để các việc đã tạo trước 0073 không bị siết ngược.
+// Một lượt tick đáng bao nhiêu đơn vị của WIG cha (0076).
+//
+// TRẢ null KHI Ô RỖNG, và nơi gọi phải BỎ HẲN cột khỏi lệnh cập nhật — đừng thay bằng 1.
+//
+// Vì sao quan trọng: hệ số KHÔNG đóng băng vào từng lượt tick; wig_actual nhân nó lúc đọc
+// (0076). Nên ghi đè 30 thành 1 là chia toàn bộ lịch sử tick cho 30 — một WIG đang "30/30 đã
+// đạt" tụt về "1/30" chỉ vì ai đó mở panel sửa để đổi cái tên rồi bấm Lưu. Ô number không có
+// `required` thì trình duyệt gửi lên chuỗi rỗng mà không kêu gì, `??` chỉ bắt null nên chuỗi
+// rỗng lọt qua, Number('') = 0, rồi bản cũ lặng lẽ biến nó thành 1 và báo "Đã cập nhật".
+//
+// Gõ bậy (chữ, số âm, 0) thì vẫn về 1: đó là giá trị mặc định có nghĩa, và CHECK ở CSDL chặn
+// ≤ 0 làm lớp thứ hai.
+function parseUnitPerTick(formData: FormData): number | null {
+  const raw = formData.get('unit_per_tick');
+  if (raw === null || String(raw).trim() === '') return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
 function parseWeekdays(formData: FormData): number[] {
   const raw = formData
     .getAll('weekdays')
@@ -207,7 +226,16 @@ export async function addLeadMeasure(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase
     .from('lead_measures')
-    .insert({wig_id, title, target_value, unit, sub_category, active_weekdays});
+    .insert({
+      wig_id,
+      title,
+      target_value,
+      unit,
+      sub_category,
+      active_weekdays,
+      // Thêm mới: rỗng thì để CSDL dùng default 1.
+      unit_per_tick: parseUnitPerTick(formData) ?? 1,
+    });
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]/student', 'page');
   flash(error ? friendlyError(error) : 'Đã thêm lead measure');
@@ -296,12 +324,21 @@ export async function editLeadMeasure(formData: FormData) {
   const unit = String(formData.get('unit') ?? '').trim() || null;
   const sub_category = String(formData.get('sub_category') ?? '').trim() || null;
   const active_weekdays = parseWeekdays(formData);
+  const upt = parseUnitPerTick(formData);
   if (!id || !title || !Number.isFinite(target_value)) flash('Thiếu tên/mục tiêu lead measure');
   if (target_value <= 0) flash('Mục tiêu phải lớn hơn 0.');
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('lead_measures')
-    .update({title, target_value, unit, sub_category, active_weekdays})
+    .update({
+      title,
+      target_value,
+      unit,
+      sub_category,
+      active_weekdays,
+      // Ô rỗng → KHÔNG đụng tới cột, giữ nguyên hệ số đang có. Xem ghi chú ở parseUnitPerTick.
+      ...(upt === null ? {} : {unit_per_tick: upt}),
+    })
     .eq('id', id)
     .select('id');
   revalidatePath('/[locale]/wig', 'page');

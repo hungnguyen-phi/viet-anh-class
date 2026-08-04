@@ -20,6 +20,13 @@ export type TickerLead = {
   days: string[];
   // Ngày chính em đã tick.
   myDates: string[];
+  // 0076 — một lượt tick đáng bao nhiêu ĐƠN VỊ của mục tiêu. Mặc định 1.
+  //
+  // Phải có ở đây vì `target` tính theo ĐƠN VỊ (vd 150 phút) còn `myDates` đếm theo LẦN (5 tối).
+  // Không quy đổi thì thanh tiến độ đọc ra "5/150" — em đọc thành gần như chưa làm gì, trong khi
+  // thật ra đã xong. Việc CHUNG không vướng chuyện này vì `classTotal` đến từ class_lead_board,
+  // nơi hệ số đã được nhân sẵn trong SQL.
+  unitPerTick: number;
   // Chỉ có ở việc chung: tổng cả lớp đã góp, và bao nhiêu bạn đã góp.
   classTotal: number | null;
   contributors: number | null;
@@ -79,7 +86,10 @@ export function LeadTicker({
         myDates: [...set].sort(),
         // Tổng của lớp cũng nhích theo — nếu không thì em bấm xong thấy ô mình sáng lên mà tỷ số
         // chung đứng yên, tưởng lượt tick của mình không được tính.
-        classTotal: l.classTotal === null ? null : l.classTotal + (a.on ? 1 : -1),
+        //
+        // Nhích đúng bằng hệ số, không phải 1: classTotal tính theo đơn vị của mục tiêu (SQL đã
+        // nhân sẵn), nên cộng 1 vào đó là lệch ngay lúc bấm rồi lại nhảy về khi dữ liệu thật tới.
+        classTotal: l.classTotal === null ? null : l.classTotal + (a.on ? l.unitPerTick : -l.unitPerTick),
       };
     }),
   );
@@ -147,7 +157,12 @@ export function LeadTicker({
 
   // ---- Một việc: tiến độ + dải ngày ----
   const leadCard = (l: TickerLead) => {
-    const mine = l.myDates.length;
+    // Quy về đơn vị của mục tiêu: 5 tối × 30 phút = 150 phút, không phải 5.
+    //
+    // CHỈ dùng cho phép so với `target` và thanh tiến độ. Câu "em góp N lượt" bên dưới phải đếm
+    // theo LẦN BẤM (myDates.length): em nhìn thấy 3 ô vàng mà đọc "em góp 90 lượt" thì con số
+    // trên màn hình không còn nói về thứ em vừa làm nữa.
+    const mine = l.myDates.length * l.unitPerTick;
     const total = l.classTotal ?? mine;
     const pct = l.target > 0 ? Math.min(1, total / l.target) : 0;
     const done = l.target > 0 && total >= l.target;
@@ -198,10 +213,10 @@ export function LeadTicker({
                 <Users size={12} strokeWidth={2.5} />
                 {t('classContrib', {n: l.contributors ?? 0, total: l.classSize ?? 0})}
               </span>
-              <span>· {t('myContrib', {n: mine})}</span>
+              <span>· {t('myContrib', {n: l.myDates.length})}</span>
             </>
           ) : (
-            <span>{t('myContrib', {n: mine})}</span>
+            <span>{t('myContrib', {n: l.myDates.length})}</span>
           )}
           {/* Việc chung thì đích là của CẢ LỚP, việc riêng thì của em — không dùng chung một câu,
               nếu không thì mục tiêu cá nhân lại hiện "còn 5 nữa là lớp thắng". */}

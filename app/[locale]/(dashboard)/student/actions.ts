@@ -583,7 +583,7 @@ async function buddyContextFor(
 
   const {data: leadRows} = await supabase
     .from('lead_measures')
-    .select('id, title, target_value, unit, lead_progress(value, logged_date)')
+    .select('id, title, target_value, unit, unit_per_tick, lead_progress(value, logged_date)')
     .in('wig_id', wigIds);
   if (!leadRows || leadRows.length === 0) return null;
 
@@ -593,11 +593,15 @@ async function buddyContextFor(
 
   const leads: BuddyLead[] = leadRows.map((l) => {
     const entries = (l.lead_progress ?? []) as {value: number | null; logged_date: string}[];
+    // Nhân hệ số (0076) — nếu không thì Buddy nhắn cho em một con số khác hẳn con số trên màn
+    // hình em đang nhìn. Với một trợ lý nói chuyện với trẻ con, sai số ấy còn tệ hơn ở bảng biểu:
+    // các em tin lời nhắn hơn tin bảng.
+    const moiTick = Number(l.unit_per_tick ?? 1) || 1;
     return {
       title: l.title,
       target: Number(l.target_value ?? 0),
       unit: l.unit,
-      actual: entries.reduce((s, e) => s + Number(e.value ?? 0), 0),
+      actual: entries.reduce((s, e) => s + Number(e.value ?? 0) * moiTick, 0),
       tickedToday: entries.some((e) => e.logged_date === todayVN),
     };
   });
