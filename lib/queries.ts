@@ -224,15 +224,104 @@ export async function getClassContext(
     }
   }
   if (!myClass) {
-    // Y hệt thứ tự cũ của getMyClass: lớp mình chủ nhiệm trước (admin kiêm GVCN là có thật), rồi
-    // mới tới lớp đầu tiên trong phạm vi. `rows` đã sắp theo tên nên "lớp đầu" là tất định —
-    // đúng cái lỗi .limit(1) không .order() đã sửa ở đợt trước.
+    // ── CHỌN HỘ THÌ PHẢI CHỌN ĐÚNG ────────────────────────────────────────────────────────
+    //
+    // Bản cũ lấy `rows[0]` — dòng đầu tiên theo THỨ TỰ CHỮ CÁI của tên lớp. Nghe thì tất định,
+    // nhưng đo trên production thì nó chọn sai một cách khá ngoạn mục: một cô chủ nhiệm ba lớp
+    // (10A2, 6A1, 7A2) mở app lên là rơi vào 10A2 — vì ký tự '1' đứng trước '6' — mà 10A2 có
+    // ĐÚNG 0 học sinh, 0 WIG, 0 tiết. Cả tám mục menu của cô đều là view của một lớp trống, và
+    // không màn hình nào nói ra là còn hai lớp khác. Đọc thành "app này chưa có dữ liệu gì".
+    //
+    // Trớ trêu hơn: chính hàm này dựng `classes` cho bộ chọn lớp bằng MỘT THỨ TỰ KHÁC
+    // (sortByGradeThenName), và 10A2 chưa gán khối nên rơi xuống cuối. Tức là lớp app chọn hộ
+    // lại đúng là lớp nằm cuối danh sách người ta nhìn thấy.
+    //
+    // Nay: ưu tiên lớp CHỦ NHIỆM, trong đó ưu tiên lớp CÓ HỌC SINH, và theo ĐÚNG thứ tự của bộ
+    // chọn lớp. Ba vế, vế nào cũng có lý do người dùng nhìn thấy được.
     const uuTienChuNhiem = profile.role === 'teacher' || profile.role === 'admin';
-    myClass =
-      (uuTienChuNhiem ? rows.find((r) => r.homeroom_teacher_id === profile.id) : undefined) ??
-      rows[0] ??
-      null;
+    const chuNhiem = uuTienChuNhiem
+      ? rows.filter((r) => r.homeroom_teacher_id === profile.id)
+      : [];
+    const ungVien = chuNhiem.length > 0 ? chuNhiem : rows;
+    // Sắp theo đúng thứ tự bộ chọn lớp đang bày ra, để "lớp app mở sẵn" và "lớp đầu danh sách"
+    // luôn là một. Hai thứ tự khác nhau là hai nguồn sự thật cho cùng một câu hỏi.
+    const viTri = new Map(classes.map((c, i) => [c.id, i]));
+    const theoBoChon = [...ungVien].sort(
+      (a, b) => (viTri.get(a.id) ?? 1e9) - (viTri.get(b.id) ?? 1e9),
+    );
+
+    if (theoBoChon.length > 1) {
+      // Câu thứ hai CHỈ chạy khi thật sự có gì để chọn. Người chủ nhiệm một lớp — phần lớn giáo
+      // viên — không trả thêm lượt đi về nào. Đường VPS↔Supabase mất ~5% gói nên mỗi câu tiết
+      // kiệm được là một cơ hội rụng gói tiết kiệm được.
+      const {data: dsGhiDanh} = await supabase
+        .from('enrollments')
+        .select('class_id')
+        .in(
+          'class_id',
+          theoBoChon.map((c) => c.id),
+        )
+        .eq('is_active', true);
+      const coEm = new Set((dsGhiDanh ?? []).map((e) => e.class_id));
+      myClass = theoBoChon.find((c) => coEm.has(c.id)) ?? theoBoChon[0] ?? null;
+    } else {
+      myClass = theoBoChon[0] ?? null;
+    }
   }
 
   return {myClass, classes};
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CON CỦA MỘT PHỤ HUYNH — MỘT DANH SÁCH, MỘT THỨ TỰ.
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Bốn trang của phụ huynh đều phải trả lời "đang xem con nào", và trước đây mỗi trang tự trả lời
+// theo một luật riêng: /report và /homework sắp theo TÊN, còn getMyClass() sắp theo student_id
+// (tức là theo UUID — một thứ tự không có nghĩa gì với con người). Nên /timetable mở ra một đứa,
+// ba trang kia mở ra đứa khác, và không màn hình nào nói ra là vừa đổi người. Bố mẹ đọc điểm
+// danh của đứa này rồi tưởng là của đứa kia.
+//
+// Nay một hàm, một thứ tự: theo tên, có dấu tiếng Việt.
+export type Con = {id: string; name: string; classId: string; className: string};
+
+export async function getChildren(supabase: SB): Promise<Con[]> {
+  // RLS pl_parent_self chỉ trả link của chính họ, nên không cần lọc thêm theo parent_id.
+  const {data: links} = await supabase
+    .from('parent_links')
+    .select('student_id, profiles!parent_links_student_id_fkey(full_name)');
+  const rows = (links ?? []) as unknown as {
+    student_id: string;
+    profiles: {full_name: string | null} | null;
+  }[];
+  if (rows.length === 0) return [];
+
+  const tenTheoId = new Map(rows.map((l) => [l.student_id, l.profiles?.full_name ?? l.student_id]));
+  const {data: enr} = await supabase
+    .from('enrollments')
+    .select('student_id, class_id, classes(name)')
+    .in(
+      'student_id',
+      rows.map((l) => l.student_id),
+    )
+    .eq('is_active', true);
+  const enrRows = (enr ?? []) as unknown as {
+    student_id: string;
+    class_id: string;
+    classes: {name: string} | null;
+  }[];
+
+  return enrRows
+    .map((e) => ({
+      id: e.student_id,
+      name: tenTheoId.get(e.student_id) ?? e.student_id,
+      classId: e.class_id,
+      className: e.classes?.name ?? '',
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+}
+
+/** Con đang xem: theo ?child= nếu hợp lệ, không thì đứa đầu danh sách (theo tên). */
+export function conDangXem(children: Con[], childParam?: string): Con | null {
+  return (childParam ? children.find((c) => c.id === childParam) : undefined) ?? children[0] ?? null;
 }

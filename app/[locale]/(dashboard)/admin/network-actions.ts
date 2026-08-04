@@ -5,11 +5,12 @@ import {redirect} from 'next/navigation';
 import {headers} from 'next/headers';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
-import {friendlyError} from '@/lib/errors';
+import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
 
 function flash(msg: string): never {
-  redirect(`/admin?flash=${encodeURIComponent(msg)}`);
+  const g = tachLoi(msg);
+  redirect(`/admin?${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
 }
 
 // Chuẩn hoá CIDR: nếu người dùng nhập IP đơn (không có "/") → coi là /32 (IPv4) hoặc /128 (IPv6).
@@ -36,7 +37,7 @@ export async function addSchoolNetwork(formData: FormData) {
     .upsert({label, cidr, campus_id, is_active: true}, {onConflict: 'campus_id,cidr'});
   if (!error) await supabase.rpc('log_audit', {p_action: 'add_school_network', p_detail: {label, cidr}});
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? friendlyError(error) : `Đã thêm mạng "${label}"`);
+  flash(error ? loi(friendlyError(error)) : `Đã thêm mạng "${label}"`);
 }
 
 // Thêm nhanh IP HIỆN TẠI của admin (đứng ở trường bấm 1 nút) — server đọc IP thật từ header.
@@ -53,7 +54,7 @@ export async function addCurrentSchoolIp(formData: FormData) {
     .upsert({label, cidr, campus_id, is_active: true}, {onConflict: 'campus_id,cidr'});
   if (!error) await supabase.rpc('log_audit', {p_action: 'add_current_ip', p_detail: {cidr}});
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? friendlyError(error) : `Đã thêm IP hiện tại: ${ip}`);
+  flash(error ? loi(friendlyError(error)) : `Đã thêm IP hiện tại: ${ip}`);
 }
 
 export async function setSchoolNetworkActive(formData: FormData) {
@@ -64,7 +65,7 @@ export async function setSchoolNetworkActive(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.from('school_networks').update({is_active: active}).eq('id', id);
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? friendlyError(error) : active ? 'Đã bật mạng' : 'Đã tắt mạng');
+  flash(error ? loi(friendlyError(error)) : active ? 'Đã bật mạng' : 'Đã tắt mạng');
 }
 
 export async function deleteSchoolNetwork(formData: FormData) {
@@ -74,5 +75,5 @@ export async function deleteSchoolNetwork(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.from('school_networks').delete().eq('id', id);
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? friendlyError(error) : 'Đã xoá mạng');
+  flash(error ? loi(friendlyError(error)) : 'Đã xoá mạng');
 }

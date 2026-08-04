@@ -3,7 +3,7 @@ import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getClassContext} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
-import {FlashToast} from '@/components/ui/FlashToast';
+import {Flash} from '@/components/ui/Flash';
 import {SubjectCreateForm} from '@/components/subjects/SubjectCreateForm';
 import {SubjectTable, type SubjectRow} from '@/components/subjects/SubjectTable';
 import {
@@ -47,7 +47,7 @@ export default async function SubjectsPage({
   searchParams: Promise<{class?: string; edit?: string; flash?: string}>;
 }) {
   const {locale} = await params;
-  const {class: classParam, edit: editId, flash} = await searchParams;
+  const {class: classParam, edit: editId} = await searchParams;
   setRequestLocale(locale);
   // Đúng hai vai có quyền GHI ở cả hai bảng (rls_admin_subjects + rls_principal_subjects,
   // rls_write_teaching_assignments). Giáo viên vào đây cũng chỉ thấy nút không bấm được.
@@ -166,7 +166,7 @@ export default async function SubjectsPage({
     <div className="flex flex-col gap-4">
       <h1 className="font-display text-[22px] font-bold text-navy">{t('title')}</h1>
 
-      {flash && <FlashToast message={flash} />}
+      <Flash />
 
       {profile.role === 'principal' && !profile.campus_id ? (
         <p className="text-[11px] italic text-grey-mid">{t('noCampus')}</p>

@@ -90,7 +90,7 @@ export async function TodayMenuCard({campusId}: {campusId?: string}) {
 
       <Link
         href="/menu"
-        className="mt-2 inline-block text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
+        className="mt-2 inline-flex min-h-[24px] items-center text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
       >
         {t('seeWeek')}
       </Link>

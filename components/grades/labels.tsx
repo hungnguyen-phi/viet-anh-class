@@ -36,7 +36,7 @@ export const CONDUCTS: Conduct[] = ['tot', 'kha', 'trung_binh', 'yeu'];
 export const CONDUCT_CHIP: Record<Conduct, string> = {
   tot: 'border-success/30 bg-success/[0.12] text-success-dark',
   kha: 'border-navy/20 bg-navy/[0.06] text-navy',
-  trung_binh: 'border-gold-mid/40 bg-gold/20 text-gold-deep',
+  trung_binh: 'border-gold-mid/40 bg-gold/20 text-gold-text',
   yeu: 'border-status-bad/30 bg-status-bad/[0.08] text-status-bad',
 };
 
@@ -45,7 +45,7 @@ export const CONDUCT_CHIP: Record<Conduct, string> = {
 export const CONDUCT_TEXT: Record<Conduct, string> = {
   tot: 'text-success-dark',
   kha: 'text-navy',
-  trung_binh: 'text-gold-deep',
+  trung_binh: 'text-gold-text',
   yeu: 'text-status-bad',
 };
 

@@ -1,17 +1,46 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
-import {ShieldAlert, LogOut} from 'lucide-react';
+import {redirect} from 'next/navigation';
+import {ShieldAlert, LogOut, RotateCcw, Mail} from 'lucide-react';
 import {signOut} from '@/lib/auth-actions';
+import {getCurrentProfile, homeRouteForRole} from '@/lib/auth';
+import {createClient} from '@/lib/supabase/server';
 import {LocaleSwitcher} from '@/components/shell/LocaleSwitcher';
 import {SubmitButton} from '@/components/ui/SubmitButton';
+import {Link} from '@/i18n/navigation';
 
-export default async function UnauthorizedPage({
-  params,
-}: {
-  params: Promise<{locale: string}>;
-}) {
+// ════════════════════════════════════════════════════════════════════════════
+// MÀN HÌNH ĐẦU TIÊN MỌI GIÁO VIÊN MỚI CỦA TRƯỜNG SẼ GẶP
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Bản cũ: một hình tam giác đỏ, một câu "Tài khoản của bạn chưa được gán vai trò. Liên hệ quản
+// trị viên." và ĐÚNG MỘT NÚT — Đăng xuất. Ai? tên gì? bao lâu? Đăng xuất rồi đăng nhập lại vẫn
+// màn hình đó. Và tệ nhất: khi quản trị viên đã duyệt xong, người ta bấm F5 vẫn thấy y nguyên
+// màn hình đỏ, vì trang không hề kiểm tra lại — nên họ gọi lên bảo "app hỏng".
+//
+// Ba thứ được thêm, mỗi thứ gỡ đúng một ngõ cụt:
+//   · Trang TỰ KIỂM lại vai mỗi lần mở. Đã được duyệt thì đi thẳng vào nhà, không phải hỏi ai.
+//   · Nút "Kiểm tra lại" — cùng việc ấy nhưng do người dùng chủ động, và họ thấy mình làm được gì.
+//   · TÊN VÀ EMAIL THẬT của người duyệt. "Liên hệ quản trị viên" không phải một chỉ dẫn.
+export default async function UnauthorizedPage({params}: {params: Promise<{locale: string}>}) {
   const {locale} = await params;
   setRequestLocale(locale);
   const t = await getTranslations('unauthorized');
+
+  // ĐÃ ĐƯỢC DUYỆT THÌ ĐI THẲNG VÀO. Đây là đường thoát mà bản cũ không có: quản trị viên bấm cấp
+  // quyền xong, người dùng tải lại trang là vào được, không cần ai giải thích gì.
+  const profile = await getCurrentProfile();
+  if (profile && profile.role !== 'pending') redirect(homeRouteForRole(profile.role));
+
+  // Người duyệt là AI. Đọc bằng client thường: RLS profiles cho người đã đăng nhập xem danh bạ
+  // nhân sự, và ở đây chỉ lấy đúng tên + email của quản trị viên — không có gì riêng tư hơn thứ
+  // in trên bảng tin phòng hội đồng. Hỏng thì thôi, câu chữ có nhánh lùi.
+  const supabase = await createClient();
+  const {data: admins} = await supabase
+    .from('profiles')
+    .select('full_name, email')
+    .eq('role', 'admin')
+    .order('full_name')
+    .limit(3);
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center px-5 py-12">
@@ -26,21 +55,61 @@ export default async function UnauthorizedPage({
         >
           <ShieldAlert size={30} strokeWidth={2} />
         </div>
-        <h1 className="font-display text-xl font-extrabold text-navy">
-          {t('title')}
-        </h1>
-        <p className="mt-2.5 text-sm leading-relaxed text-txt">
-          {t('message')}
-        </p>
-        <form action={signOut} className="mt-6">
-          <SubmitButton
-            className="btn-gold inline-flex cursor-pointer items-center gap-2 rounded-[12px] px-6 py-2.5 font-display font-bold"
-            wrapClass="inline-flex items-center gap-2"
+        <h1 className="font-display text-xl font-extrabold text-navy">{t('title')}</h1>
+        <p className="mt-2.5 text-sm leading-relaxed text-txt">{t('message')}</p>
+
+        {profile?.email && (
+          <p className="mt-2 text-[12.5px] font-semibold text-grey-mid">
+            {t('yourAccount', {email: profile.email})}
+          </p>
+        )}
+
+        {/* AI DUYỆT. Danh sách thật, có email bấm gửi thư được — thay cho "liên hệ quản trị viên",
+            một câu không chỉ tới ai cả. */}
+        <div className="mt-5 rounded-[16px] border-[1.5px] border-navy/10 bg-white/60 p-4 text-left">
+          <div className="text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+            {t('whoApproves')}
+          </div>
+          {admins && admins.length > 0 ? (
+            <ul className="mt-1.5 flex flex-col gap-1.5">
+              {admins.map((a) => (
+                <li key={a.email} className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-[13px] font-bold text-navy">{a.full_name ?? a.email}</span>
+                  <a
+                    href={`mailto:${a.email}`}
+                    className="inline-flex min-h-[24px] items-center gap-1 text-[12px] font-semibold text-navy/70 underline"
+                  >
+                    <Mail size={11} strokeWidth={2.5} />
+                    {a.email}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1.5 text-[12.5px] font-semibold text-grey-mid">{t('noAdminYet')}</p>
+          )}
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+          {/* Cùng một trang, nhưng bấm vào là server render lại và chạy lại phép kiểm ở trên.
+              Người dùng có một việc để làm thay vì chỉ có nút đăng xuất. */}
+          <Link
+            href="/unauthorized"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-[12px] border-[1.5px] border-navy/20 bg-white px-5 py-2.5 font-display text-[13.5px] font-bold text-navy transition-all hover:border-navy"
           >
-            <LogOut size={17} strokeWidth={2.2} />
-            {t('signOut')}
-          </SubmitButton>
-        </form>
+            <RotateCcw size={15} strokeWidth={2.4} />
+            {t('checkAgain')}
+          </Link>
+          <form action={signOut}>
+            <SubmitButton
+              className="btn-gold inline-flex cursor-pointer items-center gap-2 rounded-[12px] px-6 py-2.5 font-display font-bold"
+              wrapClass="inline-flex items-center gap-2"
+            >
+              <LogOut size={17} strokeWidth={2.2} />
+              {t('signOut')}
+            </SubmitButton>
+          </form>
+        </div>
       </div>
     </main>
   );

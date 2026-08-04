@@ -62,7 +62,7 @@ export async function ClassMoodBoard({
   if (moods === null) {
     return (
       <section className="glass rounded-[20px] p-[18px]">
-        <div className="mb-1 font-display text-[15px] font-bold text-navy">{t('moodTitle')}</div>
+        <h2 className="mb-1 font-display text-[15px] font-bold text-navy">{t('moodTitle')}</h2>
         <p className="text-xs italic text-grey-mid">{t('moodError')}</p>
       </section>
     );
@@ -71,7 +71,7 @@ export async function ClassMoodBoard({
   if (moods !== null && (moods?.length ?? 0) === 0) {
     return (
       <section className="glass rounded-[20px] p-[18px]">
-        <div className="mb-1 font-display text-[15px] font-bold text-navy">{t('moodTitle')}</div>
+        <h2 className="mb-1 font-display text-[15px] font-bold text-navy">{t('moodTitle')}</h2>
         <p className="text-xs italic text-grey-mid">{t('moodNone')}</p>
       </section>
     );
@@ -81,7 +81,7 @@ export async function ClassMoodBoard({
 
   return (
     <section className="glass rounded-[20px] p-[18px]">
-      <div className="mb-1 font-display text-[15px] font-bold text-navy">{t('moodTitle')}</div>
+      <h2 className="mb-1 font-display text-[15px] font-bold text-navy">{t('moodTitle')}</h2>
       <div className="mb-3 flex flex-wrap items-center gap-3 text-[11px] font-bold text-grey-mid">
         {Object.entries(MOODS).map(([k, v]) => (
           <span key={k} className="inline-flex items-center gap-1">

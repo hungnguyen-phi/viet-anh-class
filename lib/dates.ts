@@ -200,3 +200,34 @@ export function periodOptions(period: 'year' | 'month' | 'week'): PeriodOption[]
   if (period === 'month') return monthOptions();
   return weekOptions();
 }
+
+// ============================================================
+// NGÀY CỦA MỘT KỲ, TRA TỪ NHÃN — nguồn sự thật của mọi lệnh tạo WIG.
+// ============================================================
+//
+// Trước đây form gửi lên cả ba thứ: nhãn kỳ, ngày đầu, ngày cuối. Chúng phải khớp nhau mới đúng
+// mà không có gì bảo đảm chuyện đó, và hậu quả đã thấy trên production: cột period_label của WIG
+// năm có cả '2026' lẫn '2026-2027' lẫn lộn, còn WIG tuần thì có cái lệch một hai hôm so với tuần
+// lịch — nên màn hình giáo viên và màn hình học sinh cắt ra hai kết quả khác nhau (sự cố 7B1).
+//
+// Nay trình duyệt chỉ gửi NHÃN, server tra ngày ở đây. Nhãn không nằm trong danh sách thì từ chối
+// thẳng. Đặt trong lib/dates.ts vì cả trang /wig lẫn phòng họp đều tạo WIG — hai bản chép tay là
+// hai cơ hội trôi khỏi nhau.
+//
+// Cửa sổ rộng hơn danh sách mà form bày ra, cố ý: người dùng có thể đang đứng ở một tuần đã lùi
+// vài bước, và chặn đúng bằng danh sách hiển thị thì họ bấm Lưu ra lỗi mà không hiểu vì sao.
+export function ngayCuaKy(
+  period: 'year' | 'month' | 'week',
+  label: string,
+  now: Date = new Date(),
+): {start: string; end: string} | null {
+  const ngay = 86_400_000;
+  const ds =
+    period === 'year'
+      ? schoolYearOptions(4, new Date(now.getTime() - 365 * ngay))
+      : period === 'month'
+        ? monthOptions(6, 12, now)
+        : weekOptions(12, 12, now);
+  const hit = ds.find((o) => o.label === label);
+  return hit ? {start: hit.start, end: hit.end} : null;
+}

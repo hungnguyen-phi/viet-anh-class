@@ -4,7 +4,7 @@ import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
-import {friendlyError} from '@/lib/errors';
+import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {CONDUCTS, SCORE_KINDS, TERM_KINDS} from '@/components/grades/labels';
 import type {Conduct, ScoreKind, TermKind} from '@/components/grades/labels';
 
@@ -62,7 +62,8 @@ function gradesFlash(ctx: Ctx, msg: string): never {
   if (ctx.subject) q.set('subject', ctx.subject);
   if (ctx.kind) q.set('kind', ctx.kind);
   if (ctx.ordinal) q.set('ordinal', ctx.ordinal);
-  q.set('flash', msg);
+  const g = tachLoi(msg);
+  q.set(g.laLoi ? 'flash_err' : 'flash', g.msg);
   redirect(`/grades?${q.toString()}`);
 }
 
@@ -81,7 +82,7 @@ export async function openTermForClass(formData: FormData) {
     p_class: ctx.class,
   });
   revalidatePath('/[locale]/grades', 'page');
-  if (error) gradesFlash(ctx, friendlyError(error));
+  if (error) gradesFlash(ctx, loi(friendlyError(error)));
   gradesFlash(
     ctx,
     data && data > 0
@@ -203,7 +204,7 @@ export async function saveScoreColumn(formData: FormData) {
       .upsert(rows, {onConflict: 'review_id,subject_id,kind,ordinal'})
       .select('id');
     revalidatePath('/[locale]/grades', 'page');
-    if (error) gradesFlash(ctx, friendlyError(error));
+    if (error) gradesFlash(ctx, loi(friendlyError(error)));
     if ((data ?? []).length === 0)
       gradesFlash(
         ctx,
@@ -223,7 +224,7 @@ export async function saveScoreColumn(formData: FormData) {
       .in('review_id', empty);
     if (error) {
       revalidatePath('/[locale]/grades', 'page');
-      gradesFlash(ctx, friendlyError(error));
+      gradesFlash(ctx, loi(friendlyError(error)));
     }
   }
 
@@ -252,7 +253,7 @@ export async function seedClassSubjects(formData: FormData) {
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('seed_class_subjects', {p_class: ctx.class});
   revalidatePath('/[locale]/grades', 'page');
-  if (error) gradesFlash(ctx, friendlyError(error));
+  if (error) gradesFlash(ctx, loi(friendlyError(error)));
   gradesFlash(
     ctx,
     data && data > 0
@@ -315,7 +316,7 @@ export async function saveClassReviews(formData: FormData) {
     .upsert(rows, {onConflict: 'term_id,student_id'})
     .select('student_id');
   revalidatePath('/[locale]/grades', 'page');
-  if (error) gradesFlash(ctx, friendlyError(error));
+  if (error) gradesFlash(ctx, loi(friendlyError(error)));
   if ((data ?? []).length === 0)
     gradesFlash(ctx, 'Không lưu được — đợt có thể đã chốt sổ, hoặc bạn không chủ nhiệm lớp này.');
   gradesFlash(ctx, `Đã lưu nhận xét và hạnh kiểm cho ${(data ?? []).length} em`);
@@ -360,7 +361,7 @@ export async function publishTerm(formData: FormData) {
   // Gia đình đọc bảng điểm ở CHÍNH route này (/grades đổi màn hình theo vai), nên một lần
   // revalidate là đủ cho cả màn hình cô lẫn màn hình phụ huynh.
   revalidatePath('/[locale]/grades', 'page');
-  if (error) gradesFlash(ctx, friendlyError(error));
+  if (error) gradesFlash(ctx, loi(friendlyError(error)));
 
   const n = (data ?? []).length;
   gradesFlash(
@@ -415,7 +416,7 @@ export async function createTerm(formData: FormData) {
     .maybeSingle();
 
   revalidatePath('/[locale]/grades', 'page');
-  if (error) gradesFlash(ctx, friendlyError(error));
+  if (error) gradesFlash(ctx, loi(friendlyError(error)));
   // Nhảy thẳng vào đợt vừa tạo — vừa khai báo xong là mở được ngay, không phải đi tìm trong ô chọn.
   gradesFlash({...ctx, term: data?.id ?? ctx.term}, `Đã tạo đợt đánh giá "${name}"`);
 }
@@ -437,7 +438,7 @@ export async function setTermLock(formData: FormData) {
     .select('id');
 
   revalidatePath('/[locale]/grades', 'page');
-  if (error) gradesFlash(ctx, friendlyError(error));
+  if (error) gradesFlash(ctx, loi(friendlyError(error)));
   if ((data ?? []).length === 0)
     gradesFlash(ctx, 'Không đổi được — bạn không có quyền với đợt đánh giá của cơ sở này.');
   gradesFlash(

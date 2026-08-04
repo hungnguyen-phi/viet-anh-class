@@ -5,7 +5,7 @@ import {Link} from '@/i18n/navigation';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getAccessibleClasses} from '@/lib/queries';
-import {FlashToast} from '@/components/ui/FlashToast';
+import {Flash} from '@/components/ui/Flash';
 import {ThreadList, type ThreadItem} from '@/components/inbox/ThreadList';
 import {MessageBubble, type MessageRow} from '@/components/inbox/MessageBubble';
 import {MessageForm} from './MessageForm';
@@ -38,7 +38,7 @@ export default async function InboxPage({
   searchParams: Promise<{t?: string; flash?: string}>;
 }) {
   const {locale} = await params;
-  const {t: threadParam, flash} = await searchParams;
+  const {t: threadParam} = await searchParams;
   setRequestLocale(locale);
 
   // Ban giám hiệu và quản trị viên CỐ Ý không vào được màn này (0065): họ nhận CON SỐ qua
@@ -157,7 +157,7 @@ export default async function InboxPage({
           </Link>
         </div>
 
-        {flash && <FlashToast message={flash} />}
+        <Flash />
 
         <div className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
           {messages.length === 0 ? (
@@ -283,7 +283,7 @@ export default async function InboxPage({
         )}
       </div>
 
-      {flash && <FlashToast message={flash} />}
+      <Flash />
 
       {threads.length === 0 ? (
         <div className="glass rounded-[20px] p-8 text-center">

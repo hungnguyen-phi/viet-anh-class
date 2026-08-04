@@ -81,7 +81,7 @@ export default async function ClassDetailPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href="/admin" className="text-[12.5px] font-extrabold text-gold-text hover:underline">
+      <Link href="/admin" className="inline-flex min-h-[24px] items-center text-[12.5px] font-extrabold text-gold-text hover:underline">
         {t('backToAdmin')}
       </Link>
 

@@ -13,13 +13,21 @@ type Student = {id: string; name: string};
 // nhưng trước đây được gõ lại bằng hex. Đổi token một lần thì bảng điểm danh vẫn giữ màu cũ —
 // đúng cái bẫy "sửa một nơi, sót một nơi". Nay trỏ thẳng vào token.
 // `color-mix` để pha quầng sáng từ chính màu ấy thay vì gõ tay lại giá trị rgb tương ứng.
-const STATUSES: {key: Status; color: string; glow: string}[] = [
-  {key: 'present', color: 'var(--color-success)', glow: glowOf('var(--color-success)')},
-  {key: 'absent', color: 'var(--color-status-bad)', glow: glowOf('var(--color-status-bad)')},
-  {key: 'late', color: 'var(--color-warn)', glow: glowOf('var(--color-warn)')},
+// HAI MÀU CHO MỖI TRẠNG THÁI, KHÔNG PHẢI MỘT.
+//
+// `color` là màu TÔ (nút đã chọn, quầng sáng) — chỉ cần 3:1 vì đó là mảng màu, không phải chữ.
+// `chu`   là màu CHỮ cho nhãn cột 10.5px — cần 4.5:1 (WCAG 1.4.3).
+//
+// Trước đây dùng chung một giá trị, nên nhãn "Có mặt" đo được 4.34:1 và "Trễ" 3.16:1 — cả hai
+// dưới ngưỡng. Nhìn thì vẫn ra chữ, nhưng đây là bảng giáo viên quét mắt mỗi sáng, và hai nhãn
+// ấy là thứ phân biệt bốn cột với nhau.
+const STATUSES: {key: Status; color: string; chu: string; glow: string}[] = [
+  {key: 'present', color: 'var(--color-success)', chu: 'var(--color-success-dark)', glow: glowOf('var(--color-success)')},
+  {key: 'absent', color: 'var(--color-status-bad)', chu: 'var(--color-status-bad-dark)', glow: glowOf('var(--color-status-bad)')},
+  {key: 'late', color: 'var(--color-warn)', chu: 'var(--color-warn-text)', glow: glowOf('var(--color-warn)')},
   // CỐ Ý giữ hex: #5d6180 không trùng token nào (grey-mid là #575c7d). Đổi sang token là ĐỔI MÀU,
-  // không phải gom token — nằm ngoài phạm vi việc này.
-  {key: 'excused', color: '#5d6180', glow: glowOf('#5d6180')},
+  // không phải gom token — nằm ngoài phạm vi việc này. Đo được 5.86:1, đủ cho chữ nhỏ.
+  {key: 'excused', color: '#5d6180', chu: '#5d6180', glow: glowOf('#5d6180')},
 ];
 function glowOf(c: string): string {
   return `0 4px 12px color-mix(in srgb, ${c} 40%, transparent)`;
@@ -132,6 +140,19 @@ export function AttendanceTable({
     else setSavedFlash(true);
   }, [canEdit, classId, dirtyCount, pending, supabase]);
 
+  // ── CÒN TICK CHƯA LƯU THÌ ĐỪNG ĐỂ NGƯỜI TA ĐI MẤT ─────────────────────────────────────────
+  //
+  // Bảng này KHÔNG tự lưu (xem `save` ở trên: nó chỉ chạy khi bấm nút), mà dòng chữ dưới chân
+  // bảng lại ghi "Tự lưu realtime". Cô giáo tick cả lớp, đọc câu đó, yên tâm bấm sang tab khác —
+  // và hai mươi tư lượt tick biến mất vì chúng mới chỉ nằm trong `pending` của trình duyệt.
+  // Câu chữ đã sửa lại cho đúng việc; đây là rào chắn thứ hai, cho lúc người ta không đọc.
+  useEffect(() => {
+    if (dirtyCount === 0) return;
+    const chan = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', chan);
+    return () => window.removeEventListener('beforeunload', chan);
+  }, [dirtyCount]);
+
   const display = (id: string): Status | undefined => pending[id] ?? saved[id];
   const presentCount = useMemo(
     () => students.filter((s) => display(s.id) === 'present').length,
@@ -160,7 +181,7 @@ export function AttendanceTable({
             <span
               key={s.key}
               className="w-[60px] flex-none text-center text-[10.5px] font-extrabold"
-              style={{color: s.color}}
+              style={{color: s.chu}}
             >
               {t(s.key)}
             </span>
@@ -244,11 +265,11 @@ export function AttendanceTable({
 
       <div className="flex flex-wrap items-center gap-2.5">
         <div className="text-[12.5px] font-bold text-txt">
-          {t('present')}: <b className="text-success">{presentCount}</b> / {students.length}
+          {t('present')}: <b className="text-success-dark">{presentCount}</b> / {students.length}
         </div>
         <span className="flex-1" />
         {canEdit && savedFlash && dirtyCount === 0 && saveError === 0 && (
-          <span className="inline-flex flex-none items-center gap-1 text-[13px] font-extrabold text-success">
+          <span className="inline-flex flex-none items-center gap-1 text-[13px] font-extrabold text-success-dark">
             <Check size={15} strokeWidth={3} />
             {t('savedAt')}
           </span>
@@ -274,6 +295,24 @@ export function AttendanceTable({
         )}
       </div>
       <p className="text-[11px] italic text-grey-mid">{t('realtimeNote')}</p>
+
+      {/* Nút Lưu nằm cuối một bảng ba mươi dòng, nên tick xong ở giữa bảng là nó đã trôi khỏi màn.
+          Dải này bám đáy để "còn N em chưa lưu" luôn nằm trong tầm mắt, và bấm được ngay tại chỗ. */}
+      {canEdit && dirtyCount > 0 && (
+        <div className="fixed inset-x-3 bottom-3 z-30 mx-auto flex max-w-[560px] flex-wrap items-center gap-3 rounded-[16px] border-[1.5px] border-gold-deep/40 bg-white px-4 py-3 shadow-pop">
+          <span className="min-w-0 flex-1 text-[12.5px] font-extrabold text-navy">
+            {t('unsaved', {count: dirtyCount})}
+          </span>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className="btn-gold h-[42px] flex-none cursor-pointer rounded-[12px] px-5 text-sm font-extrabold disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? t('saving') : t('save')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

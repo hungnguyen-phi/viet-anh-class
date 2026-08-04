@@ -196,15 +196,23 @@ const check = (ten, ok, ghi = '') => {
 // Soi chính hàm parseUnitPerTick trong mã nguồn: nó phải trả null (→ nơi gọi bỏ cột khỏi lệnh
 // cập nhật), không được trả 1.
 {
+  // Luật "ô rỗng thì ĐỪNG đụng tới cột" nay nằm ở lib/wig-tao.ts (chuanHoaHeSo) — dùng chung cho
+  // cả trang /wig lẫn phòng họp. Trước đây nó là parseUnitPerTick riêng của wig/actions.ts.
+  const chung = readFileSync('lib/wig-tao.ts', 'utf8');
   const src = readFileSync('app/[locale]/(dashboard)/wig/actions.ts', 'utf8');
-  const co = /String\(raw\)\.trim\(\) === ''\)\s*return null/.test(src);
+  const co = /raw\.trim\(\) === ''\)\s*return null/.test(chung);
   const boQua = /upt === null \? \{\} : \{unit_per_tick: upt\}/.test(src);
-  check('Ô rỗng không ghi đè hệ số (server)', co && boQua, co ? (boQua ? '' : 'thiếu chỗ bỏ cột') : 'parseUnitPerTick vẫn nuốt rỗng');
-
-  const page = readFileSync('app/[locale]/(dashboard)/wig/page.tsx', 'utf8');
-  const oSua = page.slice(page.indexOf('name="unit_per_tick"'));
   check(
-    'Ô hệ số ở panel sửa có required (chặn ngay trên trình duyệt)',
+    'Ô rỗng không ghi đè hệ số (server)',
+    co && boQua,
+    co ? (boQua ? '' : 'thiếu chỗ bỏ cột') : 'chuanHoaHeSo vẫn nuốt rỗng',
+  );
+
+  // Form sửa việc nay là components/wig/ViecTuan.tsx (mở tại chỗ, không còn panel ở đầu trang).
+  const form = readFileSync('components/wig/ViecTuan.tsx', 'utf8');
+  const oSua = form.slice(form.indexOf('name="unit_per_tick"'));
+  check(
+    'Ô hệ số ở form sửa việc có required (chặn ngay trên trình duyệt)',
     /required/.test(oSua.slice(0, 400)),
     '',
   );

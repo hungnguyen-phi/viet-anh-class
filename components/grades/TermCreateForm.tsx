@@ -42,9 +42,9 @@ export async function TermCreateForm({
       <input type="hidden" name="school_year" value={schoolYear} />
       <input type="hidden" name="class_id" value={classId} />
 
-      <div className="mb-2 font-display text-[15px] font-bold text-navy">
+      <h2 className="mb-2 font-display text-[15px] font-bold text-navy">
         Khai báo đợt đánh giá · năm học {schoolYear}
-      </div>
+      </h2>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1.2fr_1.4fr_1fr_1fr_auto]">
         <Field label={t('fTermKind')} htmlFor="term-kind">

@@ -3,13 +3,15 @@ import {CalendarDays, MapPin, UserRound, ArrowRight} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {getClassContext} from '@/lib/queries';
+import {KhongCoLop} from '@/components/ui/KhongCoLop';
+import {getClassContext, getChildren, conDangXem} from '@/lib/queries';
 import {todayInVN, weekRangeVN} from '@/lib/dates';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {OverrideForm} from './OverrideForm';
 import {saveSlot, deleteSlot, deleteOverride, seedSubjects} from './actions';
-import {FlashToast} from '@/components/ui/FlashToast';
+import {Flash} from '@/components/ui/Flash';
+import {ConfirmButton} from '@/components/ui/ConfirmButton';
 
 const DAYS = [2, 3, 4, 5, 6, 7]; // T2..T7 (tuần học VN)
 const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -54,22 +56,33 @@ export default async function TimetablePage({
   searchParams,
 }: {
   params: Promise<{locale: string}>;
-  searchParams: Promise<{class?: string; flash?: string; week?: string; editSlot?: string}>;
+  searchParams: Promise<{class?: string; child?: string; week?: string; editSlot?: string}>;
 }) {
   const {locale} = await params;
-  const {class: classParam, flash, week: weekParam, editSlot: editSlotId} = await searchParams;
+  const {class: classParam, child: childParam, week: weekParam, editSlot: editSlotId} =
+    await searchParams;
   setRequestLocale(locale);
   const profile = await requireProfile();
   const t = await getTranslations('timetable');
-  const tc = await getTranslations('class');
   const supabase = await createClient();
 
-  const {myClass, classes: accessible} = await getClassContext(supabase, profile, classParam);
+  // ===== Phụ huynh: con nào, lớp nào =====
+  //
+  // Trang này trước đây KHÔNG có chỗ đổi con. Bố mẹ hai đứa ở hai lớp mở Thời khoá biểu ra là
+  // thấy lịch của một đứa — và là đứa đầu theo THỨ TỰ UUID, tức khác với đứa mà /báo bài, /học bạ
+  // và /báo cáo đang mở (ba trang ấy sắp theo TÊN). Bốn mục menu, hai đứa trẻ, không màn hình nào
+  // nói ra là vừa đổi người.
+  const laPhuHuynh = profile.role === 'parent';
+  const children = laPhuHuynh ? await getChildren(supabase) : [];
+  const con = conDangXem(children, childParam);
+  const {myClass, classes: accessible} = await getClassContext(
+    supabase,
+    profile,
+    laPhuHuynh ? con?.classId : classParam,
+  );
   if (!myClass) {
     return (
-      <div className="glass rounded-[20px] p-8 text-center">
-        <p className="text-sm text-grey-mid">{tc('noClass')}</p>
-      </div>
+      <KhongCoLop role={profile.role} />
     );
   }
 
@@ -168,7 +181,28 @@ export default async function TimetablePage({
         {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
       </div>
 
-      {flash && <FlashToast message={flash} />}
+      <Flash />
+
+      {/* Cùng kiểu chip với /báo bài và /báo cáo — phụ huynh không phải học lại một thao tác mới
+          ở mỗi trang. Chỉ hiện khi thật sự có nhiều hơn một con để chọn. */}
+      {laPhuHuynh && children.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
+          {children.map((c) => (
+            <Link
+              key={c.id}
+              href={{pathname: '/timetable', query: {child: c.id}}}
+              className={`rounded-full border px-2.5 py-1 text-[11.5px] font-bold transition-colors ${
+                c.id === con?.id
+                  ? 'border-navy bg-navy text-white'
+                  : 'border-navy/15 bg-navy/[0.02] text-navy hover:border-navy'
+              }`}
+            >
+              {c.name}
+              {c.className ? ` · ${c.className}` : ''}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Nói rõ đây là MẪU TUẦN LẶP.
           Ban giám hiệu hiểu nhầm là phải lập lại mỗi tuần ("kì trước mình đóng vai trò GV thì
@@ -198,6 +232,7 @@ export default async function TimetablePage({
                 pathname: '/timetable',
                 query: {
                   ...(classParam ? {class: classParam} : {}),
+                  ...(childParam ? {child: childParam} : {}),
                   ...(d === 0 ? {} : {week: shiftWeek(d)}),
                 },
               }}
@@ -229,7 +264,7 @@ export default async function TimetablePage({
                 <div className="text-[12px] font-extrabold text-navy">{dayLabel(d)}</div>
                 <div
                   className={`text-[10.5px] font-bold ${
-                    weekDates[i] === today ? 'text-gold-deep' : 'text-grey-mid'
+                    weekDates[i] === today ? 'text-gold-text' : 'text-grey-mid'
                   }`}
                 >
                   {weekDates[i].slice(5)}
@@ -264,7 +299,7 @@ export default async function TimetablePage({
                               },
                             }}
                             title={tenMon(s)}
-                            className={`block truncate text-[12.5px] font-bold text-navy underline-offset-2 hover:underline ${
+                            className={`flex min-h-[24px] items-center truncate text-[12.5px] font-bold text-navy underline-offset-2 hover:underline ${
                               ov?.status === 'cancelled' ? 'line-through' : ''
                             }`}
                           >
@@ -321,9 +356,19 @@ export default async function TimetablePage({
                           <form action={deleteSlot} className="absolute right-1 top-1">
                             <input type="hidden" name="class_id" value={myClass.id} />
                             <input type="hidden" name="id" value={s.id} />
-                            <button
-                              type="submit"
-                              aria-label={t('delete')}
+                            {/* PHẢI HỎI LẠI. Lưới này có 48 ô, mỗi ô một dấu ✕ đỏ ở góc, và xoá
+                                một tiết là xoá nó ở MỌI TUẦN — cho cả lớp lẫn phụ huynh — không
+                                có đường hoàn tác. Chạm nhầm trên điện thoại là mất luôn. Mọi nút
+                                xoá khác của dự án (/roster, /wig, biên bản họp) đều đã hỏi lại;
+                                đúng cái ô này bị sót. Câu hỏi nêu rõ TÊN MÔN và TIẾT để người ta
+                                biết mình đang xoá cái gì, thay vì một câu "chắc chưa?" chung chung. */}
+                            <ConfirmButton
+                              message={t('confirmDeleteSlot', {
+                                subject: tenMon(s),
+                                day: dayLabel(d),
+                                period: p,
+                              })}
+                              label={t('delete')}
                               // 24px chứ không phải 16px: WCAG 2.5.8 (AA) đòi vùng chạm tối thiểu
                               // 24×24, và đây là nút XOÁ không hoàn tác được. Không nới tới 44px
                               // vì ô lịch chật và ngay bên dưới là liên kết sửa tiết — nút to hơn
@@ -331,7 +376,7 @@ export default async function TimetablePage({
                               className="grid h-6 w-6 cursor-pointer place-items-center rounded text-status-bad"
                             >
                               ✕
-                            </button>
+                            </ConfirmButton>
                           </form>
                         )}
                       </div>
@@ -362,7 +407,7 @@ export default async function TimetablePage({
                     ...(weekParam ? {week: weekParam} : {}),
                   },
                 }}
-                className="text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
+                className="inline-flex min-h-[24px] items-center text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
               >
                 {t('editCancel')}
               </Link>

@@ -232,7 +232,7 @@ export function HomeworkForm({
       )}
       {/* Báo thành công inline (chế độ sửa thì đã chuyển sang thông báo nổi rồi rời trang) */}
       {state.ok && state.message && !post && (
-        <p className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-bold text-success">
+        <p className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-bold text-success-dark">
           <CheckCircle2 size={14} strokeWidth={2.5} />
           {state.message}
         </p>

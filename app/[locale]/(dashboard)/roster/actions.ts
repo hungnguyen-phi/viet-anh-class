@@ -4,7 +4,7 @@ import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
-import {friendlyError} from '@/lib/errors';
+import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {parseDob} from '@/lib/dob';
 
 // Đặt tổ trưởng điểm danh cho lớp. ĐỘC QUYỀN: mỗi lớp đúng 1 em.
@@ -32,7 +32,7 @@ export async function assignAttendanceLeader(
     .eq('class_id', classId)
     .eq('is_active', true)
     .eq('is_attendance_leader', true);
-  if (clear.error) return {ok: false, error: friendlyError(clear.error)};
+  if (clear.error) return {ok: false, error: (friendlyError(clear.error))};
 
   if (studentId) {
     // .select() để phân biệt "RLS chặn / em đã rời lớp" với "đã đổi xong" — không báo thành công giả.
@@ -43,7 +43,7 @@ export async function assignAttendanceLeader(
       .eq('student_id', studentId)
       .eq('is_active', true)
       .select('student_id');
-    if (error) return {ok: false, error: friendlyError(error)};
+    if (error) return {ok: false, error: (friendlyError(error))};
     if (!data || data.length === 0)
       return {ok: false, error: 'Không đặt được — em này không còn trong lớp, hoặc bạn không có quyền.'};
   }
@@ -54,7 +54,8 @@ export async function assignAttendanceLeader(
 }
 
 function rosterFlash(classId: string, msg: string): never {
-  redirect(`/roster?class=${encodeURIComponent(classId)}&flash=${encodeURIComponent(msg)}`);
+  const g = tachLoi(msg);
+  redirect(`/roster?class=${encodeURIComponent(classId)}&${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
 }
 
 // State trả về cho useActionState → hiện lỗi/thành công INLINE (không redirect, giữ nguyên email đã gõ).
@@ -134,7 +135,7 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
   // Giữ lại MỌI ô đã gõ để trả về khi có lỗi (không mất công điền lại 6 trường).
   const values = fields;
 
-  if (!classId) return {ok: false, error: friendlyError(null), values};
+  if (!classId) return {ok: false, error: (friendlyError(null)), values};
   if (!email) return {ok: false, fieldError: 'email', error: 'Hãy nhập email học sinh.', values};
   if (!EMAIL_RE.test(email))
     return {ok: false, fieldError: 'email', error: 'Email không hợp lệ (vd hs01@student.truongvietanh.com).', values};
@@ -146,7 +147,7 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
 
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('enroll_student_by_email', {p_class: classId, p_email: email});
-  if (error) return {ok: false, error: friendlyError(error), values};
+  if (error) return {ok: false, error: (friendlyError(error)), values};
 
   // Chưa có tài khoản → KHÔNG còn là ngõ cụt.
   //
@@ -159,7 +160,7 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
       p_class: classId,
       p_email: email,
     });
-    if (invErr) return {ok: false, error: friendlyError(invErr), values};
+    if (invErr) return {ok: false, error: (friendlyError(invErr)), values};
     if (inv === 'invited') {
       // Lưu thông tin SAU khi có lời mời: RLS của student_details cho phép GVCN ghi khi email đó
       // đã được mời vào lớp mình — nên thứ tự này bắt buộc, đảo lại là bị chặn.
@@ -219,7 +220,7 @@ export async function cancelStudentInvite(formData: FormData) {
     .ilike('email', email)
     .select('email');
   revalidatePath('/[locale]/roster', 'page');
-  if (error) rosterFlash(classId, friendlyError(error));
+  if (error) rosterFlash(classId, loi(friendlyError(error)));
   rosterFlash(
     classId,
     (data ?? []).length > 0
@@ -237,5 +238,5 @@ export async function removeStudent(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.rpc('unenroll_student', {p_class: classId, p_student: studentId});
   revalidatePath('/[locale]/roster', 'page');
-  rosterFlash(classId, error ? friendlyError(error) : 'Đã cho học sinh rời lớp');
+  rosterFlash(classId, error ? loi(friendlyError(error)) : 'Đã cho học sinh rời lớp');
 }

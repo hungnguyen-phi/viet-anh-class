@@ -10,6 +10,7 @@ import {
 } from 'react';
 import {useTranslations, useLocale} from 'next-intl';
 import {useLinkStatus} from 'next/link';
+import {useSearchParams} from 'next/navigation';
 import {Link, usePathname, useRouter} from '@/i18n/navigation';
 import {signOut} from '@/lib/auth-actions';
 import type {Profile} from '@/lib/auth';
@@ -33,6 +34,7 @@ import {
   Loader2,
   Menu,
   X,
+  BookOpenCheck,
 } from 'lucide-react';
 
 type IconType = ComponentType<{size?: number; strokeWidth?: number; className?: string}>;
@@ -131,6 +133,18 @@ const LINKS: Record<string, NavItem[]> = {
 // 0065), nên vẽ icon cho họ là vẽ một cái cửa mở ra phòng trống.
 const CO_LIEN_LAC = new Set(['teacher', 'parent']);
 
+// Logo dẫn về ĐÂU. Trước đây luôn là '/' — mà '/' là bảng điểm lớp của giáo viên. Phụ huynh bấm
+// vào cái nút to nhất màn hình là rơi thẳng vào tám ô trống kèm câu bảo chị đi thiết lập WIG cho
+// lớp; học sinh cũng vậy. Phải khớp với homeRouteForRole() trong lib/auth.ts — không import được
+// vào đây vì file đó kéo theo cả supabase/server, nên chép bảng và ghi rõ ràng buộc này.
+const NHA_CUA: Record<string, string> = {
+  admin: '/admin',
+  principal: '/campus',
+  parent: '/report',
+  student: '/student',
+  teacher: '/',
+};
+
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '?';
@@ -155,7 +169,23 @@ export function AppNav({
   const tr = useTranslations('roles');
   const tc = useTranslations('common');
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
+
+  // ── MANG THEO "ĐANG XEM LỚP NÀO / CON NÀO" KHI ĐỔI TAB ──────────────────────────────────
+  //
+  // Cô chủ nhiệm ba lớp mở Điểm danh của 6A1, bấm sang Báo bài — và rơi về lớp app chọn hộ.
+  // Phụ huynh hai con đang xem báo bài của đứa lớn, bấm sang Học bạ — ra đứa bé. Không có gì
+  // trên màn hình nói ra chuyện vừa đổi người, nên người ta đọc số của đứa này rồi tưởng là
+  // của đứa kia.
+  //
+  // Hai tham số này là NGỮ CẢNH của cả phiên làm việc, không phải của riêng một trang, nên nó
+  // phải đi theo. Trang nào không hiểu thì bỏ qua — Next chỉ chuyển tiếp, không ai vấp.
+  const giuLai: Record<string, string> = {};
+  for (const k of ['class', 'child']) {
+    const v = searchParams.get(k);
+    if (v) giuLai[k] = v;
+  }
 
   const role = profile.role;
   const baseLinks = LINKS[role] ?? [];
@@ -184,7 +214,7 @@ export function AppNav({
       {/* Bar full-width navy. Desktop (lg+): logo | tabs | cụm phải. Mobile (<lg): logo | tên trang | hamburger. */}
       <div className="flex w-full items-center gap-3 rounded-[24px] bg-[linear-gradient(180deg,#2f3170,#26275d)] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_10px_28px_-6px_rgba(38,39,93,0.5)] ring-1 ring-white/10">
         {/* Logo + tên */}
-        <Link href="/" className="flex shrink-0 items-center gap-2.5" onClick={() => setOpen(false)}>
+        <Link href={NHA_CUA[role] ?? '/'} className="flex shrink-0 items-center gap-2.5" onClick={() => setOpen(false)}>
           {/* Dùng bản 128px (2,8 KB), KHÔNG dùng logo-viet-anh.jpg (900×900, 72 KB).
               Ô này rộng 32 CSS px, tức là bản .jpg đang tải về gấp 25 lần dữ liệu cần thiết — và
               nó nằm trên MỌI trang sau đăng nhập, nên cái giá đó phải trả lại ở từng lần chuyển
@@ -210,7 +240,7 @@ export function AppNav({
             return (
               <Link
                 key={href}
-                href={href}
+                href={{pathname: href, query: giuLai}}
                 aria-current={active ? 'page' : undefined}
                 className={`inline-flex h-11 shrink-0 items-center gap-[7px] whitespace-nowrap rounded-xl px-3.5 text-[13px] font-extrabold transition-all ${
                   active
@@ -323,7 +353,7 @@ export function AppNav({
                 return (
                   <Link
                     key={href}
-                    href={href}
+                    href={{pathname: href, query: giuLai}}
                     onClick={() => setOpen(false)}
                     aria-current={active ? 'page' : undefined}
                     style={{'--i': i} as CSSProperties}
@@ -341,7 +371,11 @@ export function AppNav({
             </nav>
 
             {/* Tiện ích: ngôn ngữ · đăng xuất (đã bỏ nút Hướng dẫn theo yêu cầu) */}
-            <div className="mt-2 flex items-center gap-1.5 border-t border-navy/[0.08] pt-2">
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-navy/[0.08] pt-2">
+              <MoHuongDan
+                className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-[13px] font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy"
+                onDone={() => setOpen(false)}
+              />
               <LocaleToggle className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-[13px] font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy disabled:opacity-50" />
               <form action={signOut} className="flex-1">
                 <button
@@ -449,6 +483,7 @@ function SettingsMenu() {
           role="menu"
           className="absolute right-0 top-[calc(100%+8px)] z-30 w-[188px] rounded-[16px] bg-white p-1.5 shadow-pop ring-1 ring-navy/10"
         >
+          <MoHuongDan className={item} onDone={() => setOpen(false)} />
           <LocaleToggle className={item} withLabel />
           <form action={signOut}>
             <button type="submit" className={item} role="menuitem">
@@ -459,6 +494,33 @@ function SettingsMenu() {
         </div>
       )}
     </div>
+  );
+}
+
+// MỞ LẠI HƯỚNG DẪN LẦN ĐẦU.
+//
+// Màn cuối của hướng dẫn hứa nguyên văn: "Bạn có thể xem lại hướng dẫn này bất cứ lúc nào ở nút
+// Hướng dẫn trên góc phải". Nút ấy đã bị gỡ khỏi thanh nav ở đợt dọn chỗ, nhưng câu hứa thì ở
+// lại — và IntroGuide vẫn nghe sự kiện 'va:open-intro' mà không còn ai phát nó. Một lời hứa treo
+// lơ lửng, và người dùng không cãi được vì nó chỉ hiện ở màn cuối của lần đăng nhập đầu tiên.
+//
+// Rẻ nhất là sửa câu chữ. Nhưng ở đây trả lại nút thì đúng hơn: menu Cài đặt còn thừa chỗ, và
+// người mới cần xem lại hướng dẫn hơn là cần đổi ngôn ngữ.
+function MoHuongDan({className, onDone}: {className?: string; onDone?: () => void}) {
+  const tc = useTranslations('common');
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      className={className}
+      onClick={() => {
+        window.dispatchEvent(new Event('va:open-intro'));
+        onDone?.();
+      }}
+    >
+      <BookOpenCheck size={16} strokeWidth={2} />
+      {tc('guide')}
+    </button>
   );
 }
 

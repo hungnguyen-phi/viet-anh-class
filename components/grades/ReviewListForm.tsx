@@ -50,7 +50,7 @@ export async function ReviewListForm({
 
       <div className="flex flex-wrap items-start justify-between gap-2 px-[18px] py-3">
         <div className="min-w-0">
-          <div className="font-display text-[15px] font-bold text-navy">{t('reviewTitle')}</div>
+          <h2 className="font-display text-[15px] font-bold text-navy">{t('reviewTitle')}</h2>
           {/* Cảnh báo này nằm ngay trên ô nhập vì đúng chỗ đó mới đọc. Cột comment của phiếu là ô
               GỬI GIA ĐÌNH — migration 0064 ghi rõ: sau khi công bố, phụ huynh và chính em đó đọc
               được nguyên văn. */}

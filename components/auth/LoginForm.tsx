@@ -253,7 +253,7 @@ export function LoginForm() {
                 </button>
               </form>
             ) : (
-              <div className="flex items-center gap-[9px] text-[12.5px] font-bold text-success">
+              <div className="flex items-center gap-[9px] text-[12.5px] font-bold text-success-dark">
                 <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-success text-white">
                   <Check size={12} strokeWidth={3.2} />
                 </span>
@@ -265,7 +265,7 @@ export function LoginForm() {
                       setSent(false);
                       setEmail('');
                     }}
-                    className="cursor-pointer font-extrabold text-gold-deep underline"
+                    className="cursor-pointer font-extrabold text-gold-text underline"
                   >
                     {t('again')}
                   </button>

@@ -185,7 +185,7 @@ export function LeadTicker({
             </span>
           )}
           {done && (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-success/30 bg-success/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-success">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-success/30 bg-success/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
               <Check size={11} strokeWidth={3} />
               {t('doneTag')}
             </span>
@@ -271,6 +271,26 @@ export function LeadTicker({
 
   return (
     <div className="flex flex-col gap-3.5">
+      {/* ── BẤM HỤT THÌ PHẢI NÓI NGAY TẠI CHỖ ────────────────────────────────────────────────
+          Câu báo lỗi và câu "tuần này đã chốt" trước đây đều nằm ở CUỐI khối, dưới ba bốn thẻ
+          phải cuộn. Em bấm một ô, ô không đổi màu, và lời giải thích thì ở ngoài màn hình — em
+          chỉ biết là bấm không ăn. Đưa lên đầu, ngay trên chính mấy cái ô ấy.
+          role="alert" để trình đọc màn hình đọc ra ngay, không đợi em tự dò tới. */}
+      {err && (
+        <p
+          role="alert"
+          className="rounded-[12px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-3 py-2 text-[12.5px] font-bold leading-relaxed text-status-bad"
+        >
+          {err}
+        </p>
+      )}
+      {canTick && !tickOpen && (
+        <p className="inline-flex items-start gap-1.5 rounded-[12px] bg-navy/[0.05] px-3 py-2 text-[12px] font-semibold leading-relaxed text-grey-mid">
+          <Lock size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+          {t('tickWeekLocked')}
+        </p>
+      )}
+
       {/* ---- HÔM NAY: việc thường ngày, một chạm ---- */}
       {canTick && todayLeads.length > 0 && (
         <div className="glass rounded-[20px] p-4">
@@ -280,7 +300,7 @@ export function LeadTicker({
               {dayShort[isoDow(today) - 1]} · {today.slice(5)}
             </span>
             {todayLeft.length === 0 && (
-              <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/[0.12] px-2.5 py-1 text-[11px] font-extrabold text-success">
+              <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/[0.12] px-2.5 py-1 text-[11px] font-extrabold text-success-dark">
                 <Check size={12} strokeWidth={3} />
                 {t('todayAllDone')}
               </span>
@@ -349,13 +369,12 @@ export function LeadTicker({
         </section>
       )}
 
-      {err && (
-        <p className="rounded-lg bg-status-bad/10 px-3 py-1.5 text-xs font-bold text-status-bad">{err}</p>
-      )}
-      {canTick && (
+      {/* Câu "trong tuần tick thoải mái" ở lại đây: đó là lời trấn an, đọc lúc nào cũng được.
+          Còn hai câu BÁO HỎNG thì đã chuyển lên đầu — xem ghi chú ở trên. */}
+      {canTick && tickOpen && (
         <p className="inline-flex items-center gap-1.5 text-xs italic text-grey-mid">
           <Lock size={12} strokeWidth={2.5} />
-          {tickOpen ? t('tickWeekOpen') : t('tickWeekLocked')}
+          {t('tickWeekOpen')}
         </p>
       )}
     </div>

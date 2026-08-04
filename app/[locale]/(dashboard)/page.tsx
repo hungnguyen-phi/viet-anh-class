@@ -41,10 +41,13 @@ type ClassLeadRow = {
 // Meta trạng thái WIG (label lấy từ i18n, màu/nền theo design system v3).
 // Ba màu này TRÙNG KHÍT token success/warn/status-bad, chỉ là trước đây gõ lại bằng hex — nên
 // đổi token trong globals.css thì trang lớp vẫn giữ màu cũ. Nay trỏ thẳng vào token.
+// `color` là màu CHỮ trên chip (11px in đậm → cần 4.5:1), `bg` pha từ nấc SÁNG của cùng màu.
+// Dùng chung một giá trị cho cả hai thì chữ chỉ đạt 4.34:1 (xanh) và 3.16:1 (vàng) — đo được
+// trên màn 360px. Xem ghi chú hai nấc màu trong app/globals.css.
 const STATUS_META: Record<string, {color: string; bg: string}> = {
-  on_track: {color: 'var(--color-success)', bg: softOf('var(--color-success)')},
-  mid: {color: 'var(--color-warn)', bg: softOf('var(--color-warn)')},
-  off_track: {color: 'var(--color-status-bad)', bg: softOf('var(--color-status-bad)')},
+  on_track: {color: 'var(--color-success-dark)', bg: softOf('var(--color-success)')},
+  mid: {color: 'var(--color-warn-text)', bg: softOf('var(--color-warn)')},
+  off_track: {color: 'var(--color-status-bad-dark)', bg: softOf('var(--color-status-bad)')},
 };
 function softOf(c: string): string {
   return `color-mix(in srgb, ${c} 12%, transparent)`;
@@ -240,9 +243,18 @@ export default async function ClassPage({
             {myClass.school_year}
           </span>
           {rank && (
-            <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-linear-to-b from-gold-soft to-gold px-3.5 py-1.5 text-[12px] font-extrabold text-navy shadow-[var(--shadow-gold)]">
+            // TÊN PHẢI KHÁC NHAU KHI CON SỐ KHÁC NHAU.
+            //
+            // Chip này và tab "Thi đua" trước đây cùng mang chữ "Điểm thi đua" nhưng đo hai thứ
+            // khác hẳn: đây là PHẦN TRĂM hoàn thành mục tiêu năm (0–100, lọc theo năm học), còn
+            // bên kia là TỔNG LƯỢT tick nhân hệ số (không trần, không lọc kỳ). Hôm nay cả hai
+            // đều bằng 0 nên chưa ai để ý; tới giữa năm sẽ là "42" và "318" dưới cùng một cái tên.
+            <span
+              className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-linear-to-b from-gold-soft to-gold px-3.5 py-1.5 text-[12px] font-extrabold text-navy shadow-[var(--shadow-gold)]"
+              title={t('class.scoreHint')}
+            >
               <Trophy size={13} strokeWidth={2.5} />
-              {t('class.score')}: {Number(rank.score)}
+              {t('class.score')}: {Number(rank.score)}/100
             </span>
           )}
         </div>
@@ -334,7 +346,7 @@ export default async function ClassPage({
       {/* WIG tuần + Lead measure — 2 cột */}
       <div
         className="grid items-start gap-5"
-        style={{gridTemplateColumns: 'repeat(auto-fit,minmax(360px,1fr))'}}
+        style={{gridTemplateColumns: 'repeat(auto-fit,minmax(min(360px,100%),1fr))'}}
       >
         {/* WIG tuần theo 4 lĩnh vực — dãy pip thắng/thua vuông (PRD §6.1.1) */}
         <div>

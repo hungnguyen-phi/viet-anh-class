@@ -39,10 +39,26 @@
   --color-grey-mid: #575c7d; /* chữ phụ mờ */
   --color-grey-soft: #6b7093; /* rất mờ (số thứ tự, chú thích) */
 
-  /* Trạng thái 4DX (PRD §6.1) */
+  /* Trạng thái 4DX (PRD §6.1).
+     MỖI MÀU HAI NẤC, ĐÚNG NHƯ CẶP gold-deep / gold-text ở trên — và vì đúng một lý do:
+     WCAG 1.4.3 đòi 4.5:1 cho chữ dưới 18.66px nhưng chỉ 3:1 cho chữ to và cho ô màu.
+     Đo lại bằng canvas (đã trộn alpha) trên nền trắng và trên chính chip nền của nó:
+
+       success       #1e8a5a → 4.34:1 trắng · 3.74:1 trên chip success/12   ✗ chữ nhỏ
+       success-dark  #16724a → 5.93:1 trắng · 5.11:1 trên chip              ✓
+       warn          #b98900 → 3.19:1 trắng · 2.88:1 trên chip gold/25      ✗ chữ nhỏ
+       warn-text     #8a6600 → 5.27:1 trắng · 4.81:1 trên chip              ✓
+       status-bad    #c0392b → 5.15:1 trắng · 4.68:1 trên chip bad/10       ✓ (đủ, giữ nguyên)
+
+     Nấc SÁNG dùng cho: thanh tiến độ, ô màu, viền, icon, và chữ ≥18.66px in đậm.
+     Nấc TỐI  dùng cho: MỌI chữ nhỏ hơn thế. Đây là luật, không phải gợi ý — bộ kiểm
+     scripts/test-tuong-phan.mjs quét toàn repo và báo đỏ nếu ai đó dùng ngược.
+
+     Bảng màu KHÔNG đổi: hai nấc mới cùng tông với nấc cũ, chỉ tối hơn. */
   --color-success: #1e8a5a;
   --color-success-dark: #16724a;
   --color-warn: #b98900;
+  --color-warn-text: #8a6600; /* = gold-text, đặt tên theo NGHĨA để chỗ gọi đọc ra ý */
   --color-status-bad: #c0392b;
   --color-status-bad-dark: #9e2f23;
 
@@ -374,6 +390,24 @@ textarea,
 /* Keyframes đám đông login (va-wk, va-st, va-bob2) đặt inline trong
    components/auth/StudentCrowd.tsx qua thẻ style — vì Tailwind v4 purge
    các keyframes chỉ được tham chiếu bởi inline style, không qua @utility. */
+
+/* ĐƯỜNG TẮT XUỐNG NỘI DUNG (WCAG 2.4.1) — viết bằng CSS thường, cố ý.
+   Đã thử hai cách bằng utility và ĐO THẤY HỎNG, ghi lại để lần sau không ai làm lại:
+     · `sr-only focus:not-sr-only` — not-sr-only đặt padding:0, đè mất px-4 py-2 nên nút hiện ra
+       chỉ còn 32×16px.
+     · `-translate-y-[200%] focus:translate-y-0` và `top-[-120px] focus:top-4` — biến thể focus
+       không thắng; đo lúc đang focus vẫn thấy top = -120px.
+   Hai dòng CSS thường thì không có gì để thắng thua. */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -120px;
+  z-index: var(--z-modal);
+  transition: top var(--dur-base) var(--ease-out-expo);
+}
+.skip-link:focus {
+  top: 1rem;
+}
 
 /* ============================================================
    Điều khiển form — sửa 2026-07-27 (audit giao diện)

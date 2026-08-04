@@ -58,7 +58,7 @@ export async function ClassStudentWigSetup({
         </span>
         <span
           className={`ml-auto rounded-full px-2.5 py-1 text-[11.5px] font-extrabold ${
-            missing === 0 ? 'bg-success/15 text-success' : 'bg-gold/25 text-gold-deep'
+            missing === 0 ? 'bg-success/15 text-success-dark' : 'bg-gold/25 text-gold-text'
           }`}
         >
           {readyCount}/{studentCount} em đã có việc
@@ -70,7 +70,7 @@ export async function ClassStudentWigSetup({
           Lớp chưa có học sinh nào đang học. Vào mục “Danh sách” để ghi danh trước.
         </p>
       ) : missing === 0 ? (
-        <p className="mt-2.5 text-[12.5px] font-semibold text-success">
+        <p className="mt-2.5 text-[12.5px] font-semibold text-success-dark">
           Cả lớp đã có việc để tick trong tuần {weekLabel}.{' '}
           {/* Chỉ hứa "các em vào là thấy" khi đó ĐÚNG là tuần này. Màn hình học sinh luôn cắt theo
               tuần lịch hiện tại, nên câu ấy đặt ở tuần khác là nói sai — và đó chính là kiểu sai

@@ -6,7 +6,7 @@ import {headers} from 'next/headers';
 import {createClient} from '@/lib/supabase/server';
 import {createAdminClient} from '@/lib/supabase/admin';
 import {getCurrentProfile, requireRole} from '@/lib/auth';
-import {friendlyError} from '@/lib/errors';
+import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
 import {buddyNote, buddyChat, type BuddyContext, type BuddyLead} from '@/lib/buddy';
 import {
@@ -25,6 +25,14 @@ type Mood = Database['public']['Enums']['mood_level'];
 // Check-in cảm xúc = điểm danh, có CỔNG IP (chỉ khi ở mạng trường).
 // Đường ghi duy nhất: server đọc IP thật từ header → gọi hàm student_checkin bằng service_role.
 // Học sinh KHÔNG thể tự gọi hàm này (đã revoke) nên không lách được cổng IP.
+// Về trang của MỘT em kèm thông báo. Trước đây câu này được chép tay sáu chỗ trong file; đợt
+// thêm đường báo hỏng (?flash_err=) là lần đầu phải sửa cả sáu, và sót một chỗ nghĩa là chỗ đó
+// vẫn báo thất bại bằng hộp xanh có dấu tích.
+function veTrangEm(studentId: string, msg: string): never {
+  const g = tachLoi(msg);
+  redirect(`/student/${studentId}?${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
+}
+
 export type CheckinResult = {ok: boolean; blocked?: boolean; noClass?: boolean; error?: string};
 
 export async function checkinMood(mood: Mood): Promise<CheckinResult> {
@@ -41,7 +49,7 @@ export async function checkinMood(mood: Mood): Promise<CheckinResult> {
     p_mood: mood,
     p_ip: ip ?? '',
   });
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: (friendlyError(error))};
   if (data === 'blocked') return {ok: false, blocked: true};
   if (data === 'no_class') return {ok: false, noClass: true};
 
@@ -102,7 +110,7 @@ export async function saveStudentMeeting(
   // Giữ lại input để trả về khi có lỗi (không mất nội dung đã gõ).
   const values = {week_label, buddy_id, results, commitments, next_actions};
 
-  if (!student_id || !class_id) return {ok: false, error: friendlyError(null), values};
+  if (!student_id || !class_id) return {ok: false, error: (friendlyError(null)), values};
   if (!week_label) return {ok: false, fieldError: 'week_label', error: 'Hãy chọn tuần.', values};
   if (!results && !commitments && !next_actions && planRows.length === 0)
     return {
@@ -133,10 +141,21 @@ export async function saveStudentMeeting(
     .eq('week_label', week_label)
     .maybeSingle();
 
+  // GHI CẢ NGÀY, không chỉ nhãn.
+  //
+  // 0080 đã chốt week_start là khoá thật của một biên bản, và biên bản LỚP đã chuyển sang dùng nó.
+  // Biên bản CÁ NHÂN thì chưa: nó vẫn chỉ có week_label — một ô chữ. Nghĩa là cái bẫy cũ còn
+  // nguyên ở nhánh học sinh: sửa nhãn một chút là biên bản rơi khỏi mọi màn hình tra cứu, lặng lẽ.
+  // thu_hai_tu_nhan() là đường suy ngược DUY NHẤT trong dự án (0080) — không nơi nào tự cắt chuỗi
+  // lấy năm/tuần nữa, vì chỗ ấy có bẫy: cắt lệch một ký tự là ra năm 0026.
+  const {data: suyNgay} = await supabase.rpc('thu_hai_tu_nhan', {nhan: week_label});
+  const week_start = (suyNgay as string | null) ?? null;
+
   const payload = {
     class_id,
     student_id,
     week_label,
+    week_start,
     buddy_id: buddy_id || null,
     results: results || null,
     commitments: commitments || null,
@@ -162,7 +181,7 @@ export async function saveStudentMeeting(
     }
   }
 
-  if (error) return {ok: false, error: friendlyError(error), values};
+  if (error) return {ok: false, error: (friendlyError(error)), values};
 
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/student', 'page');
@@ -233,7 +252,7 @@ async function applyNextWeekPlan(
     .eq('student_id', student_id)
     .eq('scope', 'student')
     .eq('period', 'year');
-  if (yErr) return {error: friendlyError(yErr)};
+  if (yErr) return {error: (friendlyError(yErr))};
   const parentByArea = new Map((yearWigs ?? []).map((y) => [y.area as string, y.id]));
 
   const missing = [...new Set(rows.map((r) => r.area))].filter((a) => !parentByArea.has(a));
@@ -261,7 +280,7 @@ async function applyNextWeekPlan(
       .eq('period_label', label)
       .eq('area', area)
       .maybeSingle();
-    if (fErr) return {error: friendlyError(fErr)};
+    if (fErr) return {error: (friendlyError(fErr))};
 
     let wigId = found?.id ?? null;
     if (wigId) {
@@ -269,7 +288,7 @@ async function applyNextWeekPlan(
         .from('wigs')
         .update({target_value: target, unit, start_date: start, end_date: end, parent_wig_id: parentByArea.get(area)})
         .eq('id', wigId);
-      if (error) return {error: friendlyError(error)};
+      if (error) return {error: (friendlyError(error))};
     } else {
       const {data, error} = await supabase
         .from('wigs')
@@ -289,7 +308,7 @@ async function applyNextWeekPlan(
         })
         .select('id')
         .single();
-      if (error || !data) return {error: friendlyError(error)};
+      if (error || !data) return {error: (friendlyError(error))};
       wigId = data.id;
     }
 
@@ -299,7 +318,7 @@ async function applyNextWeekPlan(
       .from('lead_measures')
       .select('id, lead_progress(id)')
       .eq('wig_id', wigId);
-    if (oErr) return {error: friendlyError(oErr)};
+    if (oErr) return {error: (friendlyError(oErr))};
     const hasProgress = (olds ?? []).some(
       (l) => ((l as {lead_progress: unknown[] | null}).lead_progress ?? []).length > 0,
     );
@@ -311,12 +330,12 @@ async function applyNextWeekPlan(
         .from('lead_measures')
         .delete()
         .in('id', (olds ?? []).map((l) => l.id));
-      if (error) return {error: friendlyError(error)};
+      if (error) return {error: (friendlyError(error))};
     }
     const {error: insErr} = await supabase.from('lead_measures').insert(
       list.map((r) => ({wig_id: wigId!, title: r.title, target_value: r.target, unit: r.unit || null})),
     );
-    if (insErr) return {error: friendlyError(insErr)};
+    if (insErr) return {error: (friendlyError(insErr))};
   }
 
   const summary = rows.map((r) => `${r.title} — ${r.target} ${r.unit}`.trim()).join('; ');
@@ -329,7 +348,7 @@ export async function createStudentYearWigs(formData: FormData) {
   const student_id = String(formData.get('student_id') ?? '');
   const class_id = String(formData.get('class_id') ?? '');
   const back = (m: string): never =>
-    redirect(`/student/${student_id}?flash=${encodeURIComponent(m)}`);
+    veTrangEm(student_id, m);
   if (!student_id || !class_id) back('Thiếu học sinh hoặc lớp');
 
   const {label, start, end} = schoolYearRangeVN();
@@ -357,7 +376,7 @@ export async function createStudentYearWigs(formData: FormData) {
     })),
   );
   revalidatePath('/[locale]/student/[id]', 'page');
-  back(error ? friendlyError(error) : `Đã tạo ${rows.length} WIG năm cá nhân`);
+  back(error ? loi(friendlyError(error)) : `Đã tạo ${rows.length} WIG năm cá nhân`);
 }
 
 // C6 — 1 chạm: sinh WIG TUẦN NÀY (+ lead measure mặc định) cho mỗi WIG năm của em.
@@ -367,7 +386,7 @@ export async function createStudentWeekWigs(formData: FormData) {
   const student_id = String(formData.get('student_id') ?? '');
   const class_id = String(formData.get('class_id') ?? '');
   const back = (m: string): never =>
-    redirect(`/student/${student_id}?flash=${encodeURIComponent(m)}`);
+    veTrangEm(student_id, m);
   if (!student_id || !class_id) back('Thiếu học sinh hoặc lớp');
 
   const supabase = await createClient();
@@ -411,7 +430,7 @@ export async function createStudentWeekWigs(formData: FormData) {
       })),
     )
     .select('id, area, unit');
-  if (error || !inserted) return back(friendlyError(error));
+  if (error || !inserted) return back(loi(friendlyError(error)));
 
   await supabase.from('lead_measures').insert(
     inserted.map((w) => ({
@@ -431,7 +450,7 @@ export async function createStudentWeekWigs(formData: FormData) {
 // GVCN/Admin sửa trực tiếp; .select() bắt no-op do RLS (báo đúng, không "thành công" giả).
 // ============================================================
 function backToStudent(studentId: string, msg: string): never {
-  redirect(`/student/${studentId}?flash=${encodeURIComponent(msg)}`);
+  veTrangEm(studentId, msg);
 }
 
 export async function editStudentWig(formData: FormData) {
@@ -452,7 +471,7 @@ export async function editStudentWig(formData: FormData) {
     .select('id');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]', 'page');
-  if (error) backToStudent(student_id, friendlyError(error));
+  if (error) backToStudent(student_id, loi(friendlyError(error)));
   if (!data || data.length === 0) backToStudent(student_id, 'Không sửa được (không có quyền hoặc đã xoá).');
   backToStudent(student_id, 'Đã cập nhật WIG cá nhân');
 }
@@ -467,7 +486,7 @@ export async function deleteStudentWig(formData: FormData) {
   const {error} = await supabase.from('wigs').delete().eq('id', id).eq('scope', 'student');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]', 'page');
-  backToStudent(student_id, error ? friendlyError(error) : 'Đã xoá WIG cá nhân');
+  backToStudent(student_id, error ? loi(friendlyError(error)) : 'Đã xoá WIG cá nhân');
 }
 
 export async function editStudentLead(formData: FormData) {
@@ -487,7 +506,7 @@ export async function editStudentLead(formData: FormData) {
     .select('id');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]', 'page');
-  if (error) backToStudent(student_id, friendlyError(error));
+  if (error) backToStudent(student_id, loi(friendlyError(error)));
   if (!data || data.length === 0) backToStudent(student_id, 'Không sửa được lead (không có quyền hoặc đã xoá).');
   backToStudent(student_id, 'Đã cập nhật lead measure');
 }
@@ -501,7 +520,7 @@ export async function deleteStudentLead(formData: FormData) {
   const {error} = await supabase.from('lead_measures').delete().eq('id', id);
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]', 'page');
-  backToStudent(student_id, error ? friendlyError(error) : 'Đã xoá lead measure');
+  backToStudent(student_id, error ? loi(friendlyError(error)) : 'Đã xoá lead measure');
 }
 
 // Gỡ 1 lượt tick sai của học sinh (RLS lp_staff_manage cho GVCN/Admin lớp).
@@ -514,7 +533,7 @@ export async function removeLeadEntry(formData: FormData) {
   const {data, error} = await supabase.from('lead_progress').delete().eq('id', entry_id).select('id');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]', 'page');
-  if (error) backToStudent(student_id, friendlyError(error));
+  if (error) backToStudent(student_id, loi(friendlyError(error)));
   backToStudent(student_id, data && data.length ? 'Đã gỡ lượt tick' : 'Không gỡ được (không có quyền hoặc đã xoá).');
 }
 
@@ -526,7 +545,7 @@ export async function deleteStudentMeeting(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.from('wig_meetings').delete().eq('id', id);
   revalidatePath('/[locale]/student/[id]', 'page');
-  backToStudent(student_id, error ? friendlyError(error) : 'Đã xoá biên bản');
+  backToStudent(student_id, error ? loi(friendlyError(error)) : 'Đã xoá biên bản');
 }
 
 // Học sinh (hoặc PH) gửi yêu cầu chỉnh sửa → GVCN duyệt. 23505 = đã có pending trùng.
@@ -538,7 +557,7 @@ export async function createEditRequest(formData: FormData) {
   const kind = String(formData.get('kind') ?? 'other');
   const ref_id = String(formData.get('ref_id') ?? '') || null;
   const message = String(formData.get('message') ?? '').trim();
-  const back = (m: string): never => redirect(`/student/${student_id}?flash=${encodeURIComponent(m)}`);
+  const back = (m: string): never => veTrangEm(student_id, m);
   if (!student_id || !class_id) back('Thiếu thông tin yêu cầu');
   const supabase = await createClient();
   const {error} = await supabase.from('edit_requests').insert({
@@ -550,7 +569,7 @@ export async function createEditRequest(formData: FormData) {
     message: message || null,
   });
   revalidatePath('/[locale]/student/[id]', 'page');
-  if (error && error.code !== '23505') back(friendlyError(error));
+  if (error && error.code !== '23505') back(loi(friendlyError(error)));
   back('Đã gửi yêu cầu chỉnh sửa cho giáo viên');
 }
 
@@ -727,7 +746,7 @@ export async function toggleBuddyChat(formData: FormData) {
     .select('id');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/student', 'page');
-  if (error) backToStudent(student_id, friendlyError(error));
+  if (error) backToStudent(student_id, loi(friendlyError(error)));
   if (!data || data.length === 0) backToStudent(student_id, 'Không đổi được (không có quyền hoặc đã xoá).');
   backToStudent(student_id, open ? 'Đã mở Buddy cho buổi họp' : 'Đã đóng Buddy');
 }
@@ -806,7 +825,7 @@ export async function updateEditRequest(formData: FormData) {
   const student_id = String(formData.get('student_id') ?? '');
   const id = String(formData.get('request_id') ?? '');
   const message = String(formData.get('message') ?? '').trim();
-  const back = (m: string): never => redirect(`/student/${student_id}?flash=${encodeURIComponent(m)}`);
+  const back = (m: string): never => veTrangEm(student_id, m);
   if (!id) back('Thiếu yêu cầu');
   const supabase = await createClient();
   const {data, error} = await supabase
@@ -817,7 +836,7 @@ export async function updateEditRequest(formData: FormData) {
     .select('id');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/student', 'page');
-  if (error) back(friendlyError(error));
+  if (error) back(loi(friendlyError(error)));
   back(
     data && data.length
       ? 'Đã cập nhật yêu cầu'
@@ -832,7 +851,7 @@ export async function withdrawEditRequest(formData: FormData) {
   if (!profile) redirect('/login');
   const student_id = String(formData.get('student_id') ?? '');
   const id = String(formData.get('request_id') ?? '');
-  const back = (m: string): never => redirect(`/student/${student_id}?flash=${encodeURIComponent(m)}`);
+  const back = (m: string): never => veTrangEm(student_id, m);
   if (!id) back('Thiếu yêu cầu');
   const supabase = await createClient();
   const {data, error} = await supabase
@@ -843,7 +862,7 @@ export async function withdrawEditRequest(formData: FormData) {
     .select('id');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/student', 'page');
-  if (error) back(friendlyError(error));
+  if (error) back(loi(friendlyError(error)));
   back(
     data && data.length
       ? 'Đã rút lại yêu cầu'
@@ -869,7 +888,7 @@ export async function resolveEditRequest(formData: FormData) {
     .eq('status', 'pending')
     .select('id, kind, ref_id, student_id');
   revalidatePath('/[locale]/student/[id]', 'page');
-  if (error) backToStudent(student_id, friendlyError(error));
+  if (error) backToStudent(student_id, loi(friendlyError(error)));
   if (!data || data.length === 0) backToStudent(student_id, 'Yêu cầu đã được xử lý trước đó.');
   const r = data[0];
   // rename_lead: `message` CHÍNH LÀ tên mới (0046) → duyệt là đổi tên luôn, GVCN không phải
@@ -883,7 +902,7 @@ export async function resolveEditRequest(formData: FormData) {
       .update({title: newTitle.slice(0, 200)})
       .eq('id', r.ref_id)
       .select('id');
-    if (upErr) backToStudent(student_id, friendlyError(upErr));
+    if (upErr) backToStudent(student_id, loi(friendlyError(upErr)));
     revalidatePath('/[locale]', 'page');
     backToStudent(
       student_id,
@@ -901,10 +920,10 @@ export async function resolveEditRequest(formData: FormData) {
       .order('created_at', {ascending: false})
       .limit(1)
       .maybeSingle();
-    if (findErr) backToStudent(student_id, friendlyError(findErr));
+    if (findErr) backToStudent(student_id, loi(friendlyError(findErr)));
     if (target) {
       const {error: delErr} = await supabase.from('lead_progress').delete().eq('id', target.id);
-      if (delErr) backToStudent(student_id, friendlyError(delErr));
+      if (delErr) backToStudent(student_id, loi(friendlyError(delErr)));
     }
     revalidatePath('/[locale]', 'page');
     backToStudent(student_id, 'Đã duyệt & gỡ tick');
@@ -943,7 +962,7 @@ export async function createClassStudentWigs(formData: FormData) {
   // khai báo kiểu. Thiếu nó thì sau `if (!x) back(...)` TS vẫn nghĩ code chạy tiếp.
   const back: (m: string) => never = (m) =>
     redirect(
-      `/wig?class=${class_id}${weekStart ? `&week=${weekStart}` : ''}&flash=${encodeURIComponent(m)}`,
+      `/wig?class=${class_id}${weekStart ? `&week=${weekStart}` : ''}&${tachLoi(m).laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(tachLoi(m).msg)}`,
     );
   if (!class_id) back('Thiếu lớp');
 
@@ -998,7 +1017,7 @@ export async function createClassStudentWigs(formData: FormData) {
   );
   if (yearRows.length > 0) {
     const {error} = await supabase.from('wigs').insert(yearRows);
-    if (error) back(friendlyError(error));
+    if (error) back(loi(friendlyError(error)));
   }
 
   // ---- WIG TUẦN: mỗi WIG năm sinh ra một WIG tuần, bỏ qua tuần đã có ----
@@ -1046,7 +1065,7 @@ export async function createClassStudentWigs(formData: FormData) {
     .from('wigs')
     .insert(weekRows)
     .select('id, area, unit');
-  if (wErr || !insertedRaw) back(friendlyError(wErr));
+  if (wErr || !insertedRaw) back(loi(friendlyError(wErr)));
   const inserted = insertedRaw;
 
   // Lead measure là thứ học sinh THẤY và TICK — thiếu nó thì WIG tuần vẫn vô hình với các em.
@@ -1058,7 +1077,7 @@ export async function createClassStudentWigs(formData: FormData) {
       unit: w.unit,
     })),
   );
-  if (lErr) back(friendlyError(lErr));
+  if (lErr) back(loi(friendlyError(lErr)));
 
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]/student', 'page');

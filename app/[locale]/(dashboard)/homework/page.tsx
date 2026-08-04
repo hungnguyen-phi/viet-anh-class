@@ -3,10 +3,11 @@ import {CalendarClock, Check, Circle, Users} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {getClassContext} from '@/lib/queries';
+import {KhongCoLop} from '@/components/ui/KhongCoLop';
+import {getClassContext, getChildren, conDangXem as layConDangXem, type Con} from '@/lib/queries';
 import {todayInVN} from '@/lib/dates';
 import {ClassPicker} from '@/components/shell/ClassPicker';
-import {FlashToast} from '@/components/ui/FlashToast';
+import {Flash} from '@/components/ui/Flash';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {btnGold, btnGhost} from '@/components/ui/Field';
@@ -30,7 +31,6 @@ type Post = {
 };
 // Một môn trong chương trình của lớp (class_subjects → subjects).
 type MonHoc = {id: string; name: string; sort_order: number; is_active: boolean};
-type Con = {id: string; name: string; classId: string; className: string};
 
 // Nhãn + màu chip theo loại. Dùng token brand có sẵn, không màu tự phát:
 // bài tập = navy (việc thường), dặn dò = xanh (nhẹ nhàng), kiểm tra = vàng (giống tiết thi ở TKB).
@@ -63,59 +63,25 @@ export default async function HomeworkPage({
   searchParams,
 }: {
   params: Promise<{locale: string}>;
-  searchParams: Promise<{class?: string; child?: string; flash?: string; edit?: string}>;
+  searchParams: Promise<{class?: string; child?: string; edit?: string}>;
 }) {
   const {locale} = await params;
-  const {class: classParam, child: childParam, flash, edit: editId} = await searchParams;
+  const {class: classParam, child: childParam, edit: editId} = await searchParams;
   setRequestLocale(locale);
   // Mọi vai đăng nhập đều có việc ở đây, chỉ khác nhau ở phần được thấy:
   // GVCN/admin đăng bài · học sinh tự đánh dấu · phụ huynh theo dõi con · hiệu trưởng chỉ xem.
   const profile = await requireProfile();
-  const tc = await getTranslations('class');
   const t = await getTranslations('homework');
   const supabase = await createClient();
 
   // ===== Phụ huynh: con nào, lớp nào =====
   // Phải hỏi trước Promise.all bên dưới (thêm một chặng mạng, CHỈ với phụ huynh) vì chưa biết con
   // đang xem là ai thì chưa biết hỏi lớp nào. RLS pl_parent_self chỉ trả link của chính họ.
-  const children: Con[] = [];
-  if (profile.role === 'parent') {
-    const {data: links} = await supabase
-      .from('parent_links')
-      .select('student_id, profiles!parent_links_student_id_fkey(full_name)');
-    const rows = (links ?? []) as unknown as {
-      student_id: string;
-      profiles: {full_name: string | null} | null;
-    }[];
-    if (rows.length > 0) {
-      const tenTheoId = new Map(rows.map((l) => [l.student_id, l.profiles?.full_name ?? l.student_id]));
-      const {data: enr} = await supabase
-        .from('enrollments')
-        .select('student_id, class_id, classes(name)')
-        .in(
-          'student_id',
-          rows.map((l) => l.student_id),
-        )
-        .eq('is_active', true);
-      const enrRows = (enr ?? []) as unknown as {
-        student_id: string;
-        class_id: string;
-        classes: {name: string} | null;
-      }[];
-      children.push(
-        ...enrRows
-          .map((e) => ({
-            id: e.student_id,
-            name: tenTheoId.get(e.student_id) ?? e.student_id,
-            classId: e.class_id,
-            className: e.classes?.name ?? '',
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name, 'vi')),
-      );
-    }
-  }
-  const conDangXem =
-    (childParam ? children.find((c) => c.id === childParam) : undefined) ?? children[0] ?? null;
+  // Danh sách con lấy từ lib/queries.ts — dùng chung với /thời khoá biểu. Bản chép tay ở đây đã
+  // được gỡ: nó và getMyClass() sắp theo hai thứ tự khác nhau (tên vs UUID), nên hai trang mở ra
+  // hai đứa trẻ khác nhau mà không màn hình nào nói ra.
+  const children: Con[] = profile.role === 'parent' ? await getChildren(supabase) : [];
+  const conDangXem = layConDangXem(children, childParam);
 
   // Phụ huynh đổi con thì đổi luôn lớp — dùng lại nhánh preferredClassId của getClassContext
   // (RLS chặn nếu đó không phải lớp của con họ).
@@ -124,9 +90,7 @@ export default async function HomeworkPage({
 
   if (!myClass) {
     return (
-      <div className="glass rounded-[20px] p-8 text-center">
-        <p className="text-sm text-grey-mid">{tc('noClass')}</p>
-      </div>
+      <KhongCoLop role={profile.role} />
     );
   }
 
@@ -247,7 +211,7 @@ export default async function HomeworkPage({
         {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
       </div>
 
-      {flash && <FlashToast message={flash} />}
+      <Flash />
 
       {/* Phụ huynh nhiều con (có thể ở nhiều lớp) → chọn con để xem báo bài của lớp con đó.
           Cùng kiểu chip với trang Báo cáo để phụ huynh không phải học lại thao tác mới. */}

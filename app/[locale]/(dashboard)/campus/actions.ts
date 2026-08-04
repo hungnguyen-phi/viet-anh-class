@@ -4,7 +4,7 @@ import {redirect} from 'next/navigation';
 import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
-import {friendlyError} from '@/lib/errors';
+import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {SCHOOL_LEVELS, GRADE_NUMBERS, type SchoolLevel} from '@/lib/levels';
 
 // Quản lý giáo viên ở cấp CƠ SỞ, dành cho Hiệu trưởng (Admin làm việc này ở /admin).
@@ -20,7 +20,8 @@ import {SCHOOL_LEVELS, GRADE_NUMBERS, type SchoolLevel} from '@/lib/levels';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function flash(msg: string): never {
-  redirect(`/campus?flash=${encodeURIComponent(msg)}`);
+  const g = tachLoi(msg);
+  redirect(`/campus?${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
 }
 
 // Cơ sở của chính người đang đăng nhập — HT không được tự chọn cơ sở khác.
@@ -74,7 +75,7 @@ export async function inviteTeachers(formData: FormData) {
     valid.length === 1
       ? `Đã mời ${valid[0]}. Vai trò giáo viên được gán khi họ đăng nhập lần đầu.`
       : `Đã mời ${valid.length} giáo viên. Vai trò được gán khi họ đăng nhập lần đầu.`;
-  flash(error ? friendlyError(error) : msg + (skipped > 0 ? ` (bỏ qua ${skipped} email sai định dạng)` : ''));
+  flash(error ? loi(friendlyError(error)) : msg + (skipped > 0 ? ` (bỏ qua ${skipped} email sai định dạng)` : ''));
 }
 
 export async function cancelInvite(formData: FormData) {
@@ -85,7 +86,7 @@ export async function cancelInvite(formData: FormData) {
   // RLS giới hạn đúng cơ sở HT → không cần (và không nên) tự lọc campus ở đây.
   const {error} = await supabase.from('pending_user_grants').delete().eq('email', email);
   revalidatePath('/[locale]/campus', 'page');
-  flash(error ? friendlyError(error) : `Đã huỷ lời mời ${email}`);
+  flash(error ? loi(friendlyError(error)) : `Đã huỷ lời mời ${email}`);
 }
 
 // Vô hiệu / khôi phục giáo viên. 'pending' = còn tài khoản nhưng không vào được gì —
@@ -111,7 +112,7 @@ export async function setTeacherActive(formData: FormData) {
   revalidatePath('/[locale]/campus', 'page');
   flash(
     error
-      ? friendlyError(error)
+      ? loi(friendlyError(error))
       : active
         ? 'Đã khôi phục quyền giáo viên'
         : 'Đã vô hiệu (chuyển về "chờ cấp quyền")',
@@ -128,7 +129,7 @@ export async function setCampusLevel(formData: FormData) {
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('set_my_campus_level', {p_level: level as SchoolLevel});
   revalidatePath('/[locale]/campus', 'page');
-  if (error) flash(friendlyError(error));
+  if (error) flash(loi(friendlyError(error)));
   const nums = GRADE_NUMBERS[level as SchoolLevel];
   flash(
     nums
@@ -155,5 +156,5 @@ export async function assignHomeroom(formData: FormData) {
     });
   }
   revalidatePath('/[locale]/campus', 'page');
-  flash(error ? friendlyError(error) : userId ? 'Đã phân công GVCN' : 'Đã bỏ phân công GVCN');
+  flash(error ? loi(friendlyError(error)) : userId ? 'Đã phân công GVCN' : 'Đã bỏ phân công GVCN');
 }

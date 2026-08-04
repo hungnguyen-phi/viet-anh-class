@@ -93,7 +93,7 @@ export function ParentForm({students}: {students: Student[]}) {
       )}
       {/* Báo thành công */}
       {state.ok && state.message && (
-        <p className="w-full inline-flex items-center gap-1.5 text-[13px] font-bold text-success">
+        <p className="w-full inline-flex items-center gap-1.5 text-[13px] font-bold text-success-dark">
           <CheckCircle2 size={14} strokeWidth={2.5} />
           {state.message}
         </p>

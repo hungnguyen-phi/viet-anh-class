@@ -2,9 +2,10 @@ import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {Lock, LockOpen, Plus} from 'lucide-react';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
+import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext, type ClassOption} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
-import {FlashToast} from '@/components/ui/FlashToast';
+import {Flash} from '@/components/ui/Flash';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {btnGold, btnGhost, btnDanger} from '@/components/ui/Field';
@@ -119,8 +120,7 @@ export default async function GradesPage({
     kind?: string;
     ordinal?: string;
     child?: string;
-    flash?: string;
-  }>;
+    }>;
 }) {
   const {locale} = await params;
   const {
@@ -130,8 +130,7 @@ export default async function GradesPage({
     kind: kindParam,
     ordinal: ordinalParam,
     child: childParam,
-    flash,
-  } = await searchParams;
+    } = await searchParams;
   setRequestLocale(locale);
   const profile = await requireProfile();
 
@@ -141,7 +140,6 @@ export default async function GradesPage({
     return <FamilyReport profile={profile} childParam={childParam} termParam={termParam} />;
   }
 
-  const tc = await getTranslations('class');
   const t = await getTranslations('grades');
   const supabase = await createClient();
   // Hai truy vấn độc lập — chạy song song, tránh waterfall.
@@ -196,9 +194,7 @@ export default async function GradesPage({
 
   if (!myClass) {
     return (
-      <div className="glass rounded-[20px] p-8 text-center">
-        <p className="text-sm text-grey-mid">{tc('noClass')}</p>
-      </div>
+      <KhongCoLop role={profile.role} />
     );
   }
 
@@ -248,11 +244,16 @@ export default async function GradesPage({
     return (
       <div className="flex flex-col gap-4">
         {tieuDe}
-        {flash && <FlashToast message={flash} />}
+        <Flash />
+        {/* Ai mở trang này cũng đang muốn ĐỌC ĐIỂM. Nói thẳng vì sao chưa có gì để đọc, và ai là
+            người mở đường — thay vì đưa ngay một cái form hành chính mà không giải thích nó là gì.
+            Ban giám hiệu vào đây để xem học sinh học ra sao, không phải để làm thủ tục. */}
         <div className="glass rounded-[20px] p-8 text-center">
-          <p className="text-sm text-grey-mid">
-            Năm học {myClass.school_year} chưa có đợt đánh giá nào cho cơ sở này.
-            {!canTerm && t('askLeadershipTerm')}
+          <p className="font-display text-[16px] font-bold text-navy">
+            {t('noTermTitle', {year: myClass.school_year})}
+          </p>
+          <p className="mx-auto mt-2 max-w-[520px] text-[12.5px] font-semibold leading-relaxed text-grey-mid">
+            {canTerm ? t('noTermForLeader') : t('askLeadershipTerm')}
           </p>
         </div>
         {canTerm && (
@@ -532,7 +533,7 @@ export default async function GradesPage({
     <div className="flex flex-col gap-4">
       {tieuDe}
 
-      {flash && <FlashToast message={flash} />}
+      <Flash />
 
       {/* ── Thanh đợt đánh giá ─────────────────────────────────────────────── */}
       <div className="glass rounded-[20px] p-4">

@@ -27,7 +27,7 @@ import {AREAS, buildAreaMeta} from '@/lib/areas';
 import {clientIp} from '@/lib/ip';
 import {Link} from '@/i18n/navigation';
 import {UtensilsCrossed, BookMarked} from 'lucide-react';
-import {FlashToast} from '@/components/ui/FlashToast';
+import {Flash} from '@/components/ui/Flash';
 
 const ROLES = ['admin', 'principal', 'teacher', 'student', 'parent', 'pending'] as const;
 const INVITE_ROLES = ['teacher', 'principal', 'admin', 'student'] as const;
@@ -37,10 +37,10 @@ export default async function AdminPage({
   searchParams,
 }: {
   params: Promise<{locale: string}>;
-  searchParams: Promise<{flash?: string; q?: string; upage?: string}>;
+  searchParams: Promise<{q?: string; upage?: string}>;
 }) {
   const {locale} = await params;
-  const {flash, q: qRaw, upage: upageRaw} = await searchParams;
+  const {q: qRaw, upage: upageRaw} = await searchParams;
   setRequestLocale(locale);
   const me = await requireRole(['admin']);
   const t = await getTranslations('admin');
@@ -49,16 +49,24 @@ export default async function AdminPage({
   const tcommon = await getTranslations('common');
   const supabase = await createClient();
 
+  // Mục lục màn hình. CHỈ liệt kê những trang quản trị viên THẬT SỰ MỞ ĐƯỢC từ đây.
+  //
+  // Bản cũ có thêm hai thẻ dẫn tới ngõ cụt: "/report" (chỉ phụ huynh vào được — admin bấm là bị
+  // đá ngược về /admin, không một lời giải thích) và "/login" kèm chú thích "đăng xuất để xem",
+  // tức một cái nút chỉ dùng được sau khi làm một việc khác. Thẻ bấm vào mà không tới đâu thì
+  // lần sau người ta thôi tin cả cái mục lục.
+  //
+  // "/meeting" cũng bỏ: từ đợt này nó đưa giáo viên/quản trị thẳng sang /wig/hop, nên để hai thẻ
+  // trỏ về cùng một chỗ là bày ra một lựa chọn không tồn tại.
   const screens = [
     {href: '/', label: tn('scoreboard'), desc: 'Trang lớp: bảng điểm, xếp hạng, donut WIG'},
-    {href: '/attendance', label: tn('attendance'), desc: 'Điểm danh hằng ngày (realtime, tick cả lớp)'},
+    {href: '/attendance', label: tn('attendance'), desc: 'Điểm danh hằng ngày (tick cả lớp rồi bấm Lưu)'},
     {href: '/roster', label: tn('roster'), desc: 'Danh sách lớp + gán trưởng điểm danh'},
-    {href: '/wig', label: tn('wig'), desc: 'Thiết lập WIG năm → tuần → lead measure'},
-    {href: '/meeting', label: tn('meeting'), desc: 'Biên bản họp WIG tuần'},
-    {href: '/report', label: tn('report'), desc: 'Báo cáo phụ huynh (chỉ con mình)'},
-    {href: '/campus', label: tn('campus'), desc: 'Báo cáo cơ sở (BGH)'},
+    {href: '/wig', label: tn('wig'), desc: 'Mục tiêu tuần, việc để các em tick, phòng họp WIG'},
+    {href: '/homework', label: tn('homework'), desc: 'Báo bài cho lớp'},
+    {href: '/grades', label: tn('grades'), desc: 'Học bạ: điểm số và rèn luyện'},
+    {href: '/campus', label: tn('campus'), desc: 'Bảng tổng hợp toàn trường (BGH)'},
     {href: '/admin', label: tn('admin'), desc: 'Trang quản trị (màn hình này)'},
-    {href: '/login', label: tcommon('login'), desc: 'Màn hình đăng nhập (đăng xuất để xem)'},
   ];
 
   // Phân trang + tìm kiếm bảng người dùng (tránh load TOÀN BỘ PII trong 1 payload).
@@ -86,6 +94,7 @@ export default async function AdminPage({
     {data: invites},
     {data: areaCfg},
     {data: networks},
+    {data: dangKet},
   ] = await Promise.all([
     usersQuery,
     supabase
@@ -105,6 +114,16 @@ export default async function AdminPage({
     supabase.from('parent_invitations').select('email, student_id, status').order('created_at'),
     supabase.from('area_config').select('*').order('sort_order'),
     supabase.from('school_networks').select('id, label, cidr, campus_id, is_active').order('created_at'),
+    // NGƯỜI ĐANG KẸT Ở MÀN HÌNH ĐỎ. Bảng người dùng bên dưới phân trang 40 dòng xếp theo email,
+    // nên một giáo viên mới có thể nằm ở trang 3 suốt hai tuần mà không ai để ý. Và ô duy nhất
+    // trên trang này mang chữ "đang chờ" lại đếm LỜI MỜI ĐÃ GỬI — một con số khác hẳn, khiến
+    // người đọc yên tâm nhầm.
+    supabase
+      .from('profiles')
+      .select('id, full_name, email, created_at')
+      .eq('role', 'pending')
+      .order('created_at')
+      .limit(50),
   ]);
   const currentIp = clientIp(await headers());
 
@@ -188,7 +207,59 @@ export default async function AdminPage({
     <div className="flex flex-col gap-4">
       <h1 className="font-display text-[22px] font-bold text-navy">{t('title')}</h1>
 
-      {flash && <FlashToast message={flash} />}
+      <Flash />
+
+      {/* ══ AI ĐANG CHỜ BẠN ══
+          Đặt TRÊN CÙNG, trước cả bảng người dùng: đây là việc duy nhất trên trang này có người
+          thật đang ngồi đợi ở đầu kia. Trước đây họ lẫn vào một bảng 40 dòng xếp theo email, và
+          ô duy nhất mang chữ "đang chờ" thì đếm lời mời đã gửi — một con số khác. Nên có người
+          kẹt mười ba ngày mà không ai biết.
+          Chỉ hiện khi có người chờ: một khối rỗng nằm mãi trên đầu là một khối người ta thôi nhìn. */}
+      {(dangKet ?? []).length > 0 && (
+        <section className="rounded-[20px] border-[1.5px] border-gold-deep/40 bg-gold/[0.10] p-[18px]">
+          <div className="mb-2.5 font-display text-[15px] font-bold text-navy">
+            {t('waitingOnYou', {n: (dangKet ?? []).length})}
+          </div>
+          <p className="mb-3 text-[12px] font-semibold leading-relaxed text-navy/70">
+            {t('waitingOnYouHint')}
+          </p>
+          <div className="flex flex-col gap-2">
+            {(dangKet ?? []).map((u) => (
+              <div
+                key={u.id}
+                className="flex flex-wrap items-center gap-2 rounded-[12px] bg-white/70 px-3 py-2.5"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-extrabold text-navy">
+                    {u.full_name ?? u.email}
+                  </span>
+                  <span className="block truncate text-[11.5px] font-semibold text-grey-mid">
+                    {u.email} · {t('waitingSince', {date: String(u.created_at).slice(0, 10)})}
+                  </span>
+                </span>
+                {/* Cấp quyền NGAY TẠI ĐÂY. Bắt người ta đi tìm lại đúng dòng ấy trong bảng dưới
+                    là thêm một bước để quên. */}
+                <form action={setUserRole} className="flex flex-none items-center gap-1.5">
+                  <input type="hidden" name="userId" value={u.id} />
+                  <select
+                    name="role"
+                    aria-label={t('selectRole')}
+                    defaultValue="teacher"
+                    className="h-10 cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy"
+                  >
+                    {ROLES.filter((r) => r !== 'pending').map((r) => (
+                      <option key={r} value={r}>
+                        {tr(r)}
+                      </option>
+                    ))}
+                  </select>
+                  <SubmitButton className={navyBtnSm}>{t('setRole')}</SubmitButton>
+                </form>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Người dùng + đổi vai trò */}
       <section className="glass rounded-[20px] p-[18px]">
@@ -255,9 +326,20 @@ export default async function AdminPage({
               <span className="flex w-[130px] flex-none gap-1.5">
                 {p.id !== me.id ? (
                   <>
+                    {/* Vô hiệu = đẩy người ta về vai "chờ cấp quyền", tức là đăng nhập vào chỉ
+                        còn màn hình đỏ. Nút "Xoá" ngay bên cạnh thì hỏi lại, nút này thì không —
+                        mà hai nút cách nhau 6px và hậu quả của cái này cũng không tự gỡ được
+                        (vai cũ không được lưu ở đâu cả). Câu hỏi nêu rõ TÊN và VAI ĐANG CÓ để
+                        người bấm còn đường tự khôi phục. */}
                     <form action={disableUser}>
                       <input type="hidden" name="userId" value={p.id} />
-                      <SubmitButton className={outlineBtnSm}>{t('disable')}</SubmitButton>
+                      <ConfirmButton
+                        message={t('confirmDisable', {name: p.full_name ?? p.email, role: tr(p.role)})}
+                        label={t('disable')}
+                        className={outlineBtnSm}
+                      >
+                        {t('disable')}
+                      </ConfirmButton>
                     </form>
                     <form action={deleteUser}>
                       <input type="hidden" name="userId" value={p.id} />
@@ -305,7 +387,7 @@ export default async function AdminPage({
       </section>
 
       {/* Tạo cơ sở · Tạo lớp · Mời người dùng · Phân công GVCN · Mời phụ huynh */}
-      <div className="grid items-start gap-4 [grid-template-columns:repeat(auto-fit,minmax(340px,1fr))]">
+      <div className="grid items-start gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr))]">
         {/* Tạo cơ sở */}
         <section className="glass rounded-[20px] p-[18px]">
           <div className={cardTitle}>{t('createCampus')}</div>
@@ -352,11 +434,19 @@ export default async function AdminPage({
               <option value="">
                 — {t('selectClass')} ({t('none')}) —
               </option>
-              {activeClasses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} · {c.school_year}
-                </option>
-              ))}
+              {/* GHI KÈM GVCN ĐANG CÓ. Mời một giáo viên vào lớp đã có chủ nhiệm từng ÂM THẦM
+                  cướp lớp của người đang dạy (đã chặn ở CSDL từ 0082). Nhưng chặn thôi chưa đủ:
+                  người mời vẫn cần biết ghế ấy có người, nếu không họ mời xong rồi ngồi đợi một
+                  chuyện sẽ không xảy ra. */}
+              {activeClasses.map((c) => {
+                const gv = c.homeroom_teacher_id ? personName.get(c.homeroom_teacher_id) : null;
+                return (
+                  <option key={c.id} value={c.id}>
+                    {c.name} · {c.school_year}
+                    {gv ? ` · ${t('alreadyHasGvcn', {name: gv})}` : ''}
+                  </option>
+                );
+              })}
             </select>
             <SubmitButton className={goldBtn} wrapClass="contents">
               + {t('inviteUser')}
@@ -383,11 +473,19 @@ export default async function AdminPage({
               <option value="" disabled>
                 — {t('selectClass')} —
               </option>
-              {activeClasses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} · {c.school_year}
-                </option>
-              ))}
+              {/* GHI KÈM GVCN ĐANG CÓ. Mời một giáo viên vào lớp đã có chủ nhiệm từng ÂM THẦM
+                  cướp lớp của người đang dạy (đã chặn ở CSDL từ 0082). Nhưng chặn thôi chưa đủ:
+                  người mời vẫn cần biết ghế ấy có người, nếu không họ mời xong rồi ngồi đợi một
+                  chuyện sẽ không xảy ra. */}
+              {activeClasses.map((c) => {
+                const gv = c.homeroom_teacher_id ? personName.get(c.homeroom_teacher_id) : null;
+                return (
+                  <option key={c.id} value={c.id}>
+                    {c.name} · {c.school_year}
+                    {gv ? ` · ${t('alreadyHasGvcn', {name: gv})}` : ''}
+                  </option>
+                );
+              })}
             </select>
             <SubmitButton className={goldBtn} wrapClass="contents">
               {t('assignGvcn')}
@@ -412,7 +510,7 @@ export default async function AdminPage({
             {t('none')}
           </div>
         ) : (
-          <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
+          <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))]">
             {activeCampuses.map((c) => (
               <CampusCard
                 key={c.id}

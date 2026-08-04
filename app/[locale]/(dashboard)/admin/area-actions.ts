@@ -4,13 +4,14 @@ import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
-import {friendlyError} from '@/lib/errors';
+import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import type {Database} from '@/lib/database.types';
 
 type Area = Database['public']['Enums']['wig_area'];
 
 function flash(msg: string): never {
-  redirect(`/admin?flash=${encodeURIComponent(msg)}`);
+  const g = tachLoi(msg);
+  redirect(`/admin?${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
 }
 
 // Nền mờ (soft_rgba) suy ra từ màu hex ở opacity 0.14 — trùng giá trị seed hiện tại,
@@ -45,5 +46,5 @@ export async function updateArea(formData: FormData) {
   revalidatePath('/[locale]/admin', 'page');
   revalidatePath('/[locale]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  flash(error ? friendlyError(error) : 'Đã cập nhật lĩnh vực');
+  flash(error ? loi(friendlyError(error)) : 'Đã cập nhật lĩnh vực');
 }

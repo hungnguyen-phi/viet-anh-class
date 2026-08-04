@@ -1,4 +1,4 @@
-import {setRequestLocale} from 'next-intl/server';
+import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {AppNav} from '@/components/shell/AppNav';
@@ -17,6 +17,7 @@ export default async function DashboardLayout({
 }) {
   const {locale} = await params;
   setRequestLocale(locale);
+  const tc = await getTranslations('common');
 
   const supabase = await createClient();
 
@@ -75,6 +76,19 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen">
+      {/* ĐƯỜNG TẮT XUỐNG NỘI DUNG (WCAG 2.4.1).
+          Thanh nav của giáo viên chủ nhiệm có 8 tab cộng chuông, phong bì và menu cài đặt. Người
+          dùng bàn phím — và người dùng trình đọc màn hình — phải đi qua toàn bộ chừng ấy ở MỌI
+          trang trước khi chạm được vào nội dung. Liên kết này ẩn cho tới khi nhận focus, nên
+          không đổi gì về mặt hình ảnh.
+          Kiểu `.skip-link` viết bằng CSS thường trong globals.css — ở đó có ghi vì sao không
+          dùng utility của Tailwind cho chỗ này. */}
+      <a
+        href="#noi-dung"
+        className="skip-link rounded-[10px] bg-navy px-4 py-2.5 text-[13px] font-extrabold text-white"
+      >
+        {tc('skipToContent')}
+      </a>
       <AppNav
         profile={profile}
         isAttendanceLeader={isAttendanceLeader}
@@ -82,7 +96,9 @@ export default async function DashboardLayout({
         unreadMessages={unreadMessages}
       />
       {/* Nội dung căn giữa dưới top-nav; nền gradient nằm ở <body>. */}
-      <main className="mx-auto max-w-[1160px] px-4 pb-10 pt-2 sm:px-6">{children}</main>
+      <main id="noi-dung" className="mx-auto max-w-[1160px] px-4 pb-10 pt-2 sm:px-6">
+        {children}
+      </main>
       {/* Hướng dẫn onboarding — tự hiện lần đầu, mở lại từ nút Hướng dẫn trên nav. */}
       <IntroGuide userId={profile.id} role={profile.role} introSeen={profile.intro_seen} />
     </div>

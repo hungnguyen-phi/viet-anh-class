@@ -4,7 +4,7 @@ import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
-import {friendlyError} from '@/lib/errors';
+import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import type {Database} from '@/lib/database.types';
 
 type Kind = Database['public']['Enums']['homework_kind'];
@@ -33,7 +33,8 @@ function ngayNgan(iso: string): string {
 function homeworkFlash(classId: string, msg: string): never {
   // Giữ ?class= để sau thao tác vẫn ở đúng lớp đang xem (ClassPicker điều hướng bằng tham số này).
   const lop = classId ? `class=${encodeURIComponent(classId)}&` : '';
-  redirect(`/homework?${lop}flash=${encodeURIComponent(msg)}`);
+  const g = tachLoi(msg);
+  redirect(`/homework?${lop}${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
 }
 
 // State trả về cho useActionState → lỗi hiện ngay cạnh ô, KHÔNG mất nội dung đã soạn.
@@ -89,7 +90,7 @@ export async function savePost(
   const f = readFields(formData);
   const values = f; // giữ lại mọi ô đã gõ để trả về khi lỗi
 
-  if (!classId) return {ok: false, error: friendlyError(null), values};
+  if (!classId) return {ok: false, error: (friendlyError(null)), values};
   if (!NGAY_ISO.test(f.date))
     return {ok: false, fieldError: 'date', error: 'Hãy chọn ngày báo bài.', values};
   if (!UUID.test(f.subject_id))
@@ -127,7 +128,7 @@ export async function savePost(
       })
       .eq('id', postId)
       .select('id, subjects(name)');
-    if (error) return {ok: false, error: friendlyError(error), values};
+    if (error) return {ok: false, error: (friendlyError(error)), values};
     if (!data || data.length === 0)
       return {
         ok: false,
@@ -154,7 +155,7 @@ export async function savePost(
       created_by: me.id,
     })
     .select('id, subjects(name)');
-  if (error) return {ok: false, error: friendlyError(error), values};
+  if (error) return {ok: false, error: (friendlyError(error)), values};
   // Phòng xa: RLS chặn insert thì thường trả 42501 ở nhánh trên, nhưng không báo thành công giả.
   if (!data || data.length === 0)
     return {
@@ -185,7 +186,7 @@ export async function seedSubjects(formData: FormData) {
   revalidatePath('/[locale]/homework', 'page');
   homeworkFlash(
     classId,
-    error ? friendlyError(error) : `Đã thêm ${data ?? 0} môn vào chương trình của lớp`,
+    error ? loi(friendlyError(error)) : `Đã thêm ${data ?? 0} môn vào chương trình của lớp`,
   );
 }
 
@@ -203,7 +204,7 @@ export async function deletePost(formData: FormData) {
     .eq('id', id)
     .select('id');
   revalidatePath('/[locale]/homework', 'page');
-  if (error) homeworkFlash(classId, friendlyError(error));
+  if (error) homeworkFlash(classId, loi(friendlyError(error)));
   homeworkFlash(
     classId,
     (data ?? []).length > 0
@@ -234,7 +235,7 @@ export async function toggleDone(formData: FormData) {
       .eq('post_id', postId)
       .eq('student_id', me.id);
     revalidatePath('/[locale]/homework', 'page');
-    homeworkFlash(classId, error ? friendlyError(error) : 'Đã bỏ đánh dấu bài này');
+    homeworkFlash(classId, error ? loi(friendlyError(error)) : 'Đã bỏ đánh dấu bài này');
   }
 
   const {error} = await supabase
@@ -243,6 +244,6 @@ export async function toggleDone(formData: FormData) {
   revalidatePath('/[locale]/homework', 'page');
   // 23505 = đã có hàng rồi. Xảy ra khi em bấm hai lần, hoặc mở app trên hai máy — với người dùng
   // thì kết quả vẫn đúng ("đã đánh dấu"), báo lỗi ở đây chỉ làm em hoang mang.
-  if (error && error.code !== '23505') homeworkFlash(classId, friendlyError(error));
+  if (error && error.code !== '23505') homeworkFlash(classId, loi(friendlyError(error)));
   homeworkFlash(classId, 'Đã đánh dấu: em tự ghi nhận là đã làm bài này');
 }

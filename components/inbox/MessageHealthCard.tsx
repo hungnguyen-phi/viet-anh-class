@@ -43,7 +43,7 @@ function choLau(h: number | null, t: Dich): string {
 function mauCho(h: number | null): string {
   if (h == null) return 'text-grey-mid';
   if (h >= 48) return 'text-status-bad';
-  if (h >= 24) return 'text-warn';
+  if (h >= 24) return 'text-warn-text';
   return 'text-grey-mid';
 }
 

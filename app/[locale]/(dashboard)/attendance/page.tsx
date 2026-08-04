@@ -4,6 +4,7 @@ import {Lock, CalendarDays, Users} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
+import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext} from '@/lib/queries';
 import {todayInVN} from '@/lib/dates';
 import {AttendanceTable} from '@/components/attendance/AttendanceTable';
@@ -31,15 +32,12 @@ export default async function AttendancePage({
   // Phụ huynh không có việc gì ở trang điểm danh lớp → về báo cáo con mình.
   if (profile.role === 'parent') redirect('/report');
   const t = await getTranslations('attendance');
-  const tc = await getTranslations('class');
   const supabase = await createClient();
   const {myClass, classes: accessible} = await getClassContext(supabase, profile, classParam);
 
   if (!myClass) {
     return (
-      <div className="glass rounded-[20px] p-8 text-center">
-        <p className="text-sm text-grey-mid">{tc('noClass')}</p>
-      </div>
+      <KhongCoLop role={profile.role} />
     );
   }
 

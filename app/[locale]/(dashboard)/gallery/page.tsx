@@ -3,10 +3,11 @@ import {ArrowLeft, CalendarDays, Images} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
+import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext} from '@/lib/queries';
 import {todayInVN} from '@/lib/dates';
 import {ClassPicker} from '@/components/shell/ClassPicker';
-import {FlashToast} from '@/components/ui/FlashToast';
+import {Flash} from '@/components/ui/Flash';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {PhotoImg} from '@/components/gallery/PhotoImg';
 import {PhotoUpload} from '@/components/gallery/PhotoUpload';
@@ -48,13 +49,12 @@ export default async function GalleryPage({
   searchParams: Promise<{class?: string; album?: string; flash?: string}>;
 }) {
   const {locale} = await params;
-  const {class: classParam, album: albumParam, flash} = await searchParams;
+  const {class: classParam, album: albumParam} = await searchParams;
   setRequestLocale(locale);
   // Mọi vai đăng nhập đều vào được trang; RLS quyết ai thấy album nào (HS trong lớp, PH có con
   // trong lớp, GVCN lớp đó, BGH cơ sở, admin). GVCN lớp KHÁC không nằm trong danh sách đó nên
   // getAccessibleClasses cũng không đưa lớp ấy ra cho họ chọn.
   const profile = await requireProfile();
-  const tc = await getTranslations('class');
   const t = await getTranslations('gallery');
   const supabase = await createClient();
 
@@ -62,9 +62,7 @@ export default async function GalleryPage({
 
   if (!myClass) {
     return (
-      <div className="glass rounded-[20px] p-8 text-center">
-        <p className="text-sm text-grey-mid">{tc('noClass')}</p>
-      </div>
+      <KhongCoLop role={profile.role} />
     );
   }
 
@@ -111,12 +109,12 @@ export default async function GalleryPage({
     return (
       <div className="flex flex-col gap-4">
         {tieuDe}
-        {flash && <FlashToast message={flash} />}
+        <Flash />
 
         <div className="glass rounded-[20px] p-4">
           <Link
             href={{pathname: '/gallery', query: classParam ? {class: classParam} : {}}}
-            className="mb-2 inline-flex items-center gap-1 text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
+            className="mb-2 inline-flex min-h-[24px] items-center gap-1 text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
           >
             <ArrowLeft size={12} strokeWidth={3} />
             {t('allAlbums')}
@@ -248,7 +246,7 @@ export default async function GalleryPage({
   return (
     <div className="flex flex-col gap-4">
       {tieuDe}
-      {flash && <FlashToast message={flash} />}
+      <Flash />
 
       <p className="text-[12px] font-semibold leading-[1.55] text-grey-mid">
         {canManage

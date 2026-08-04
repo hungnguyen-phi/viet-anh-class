@@ -4,6 +4,8 @@ import {createClient} from '@/lib/supabase/server';
 import {getClassContext} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {AREAS, buildAreaMeta, areaLabel, areaIcon} from '@/lib/areas';
+import {Link} from '@/i18n/navigation';
+import {ArrowRight} from 'lucide-react';
 
 // Bảng điểm thi đua 4 HẠNG MỤC (Discipline 3). Điểm = tổng lead_progress theo lĩnh vực;
 // hạng mục Kỹ năng tách sub-category (5 Giá trị/7 Thói quen/DEAR/Thể chất/Khác) nếu có.
@@ -51,6 +53,9 @@ export default async function ScoreboardPage({
     if (r.sub_category) c.subs.push({name: r.sub_category, points: Number(r.points)});
   }
   const totalPoints = AREAS.reduce((s, a) => s + (byCat.get(a)?.points ?? 0), 0);
+  // Hiệu trưởng chỉ XEM; đường dẫn tới /wig là màn hình của giáo viên chủ nhiệm, bày cho họ là
+  // bày một cái cửa mở ra màn "không có quyền".
+  const canManage = profile.role === 'teacher' || profile.role === 'admin';
 
   return (
     <div className="flex flex-col gap-4">
@@ -64,8 +69,32 @@ export default async function ScoreboardPage({
       <div className="glass rounded-[20px] p-4">
         <div className="text-[12px] font-extrabold uppercase tracking-wide text-grey-mid">{t('total')}</div>
         <div className="font-display text-[30px] font-bold text-navy">{totalPoints}</div>
-        <p className="text-[11.5px] font-semibold italic text-grey-mid">{t('hint')}</p>
+        <p className="max-w-[640px] text-[11.5px] font-semibold italic leading-relaxed text-grey-mid">
+          {t('hint')}
+        </p>
       </div>
+
+      {/* TRỐNG THÌ PHẢI NÓI VÌ SAO TRỐNG.
+          Toàn trường hôm nay mọi lớp đều 0, và bản cũ chỉ bày ra năm con số 0 không một chữ giải
+          thích, không một nút bấm. Người mở ra đọc thành "app hỏng" hoặc "lớp mình tệ", trong khi
+          sự thật chỉ là chưa có lượt tick nào được ghi. Hai chuyện khác hẳn nhau. */}
+      {totalPoints === 0 && (
+        <div className="rounded-[20px] border-[1.5px] border-dashed border-navy/20 p-5 text-center">
+          <p className="text-[13px] font-bold text-navy">{t('emptyTitle')}</p>
+          <p className="mx-auto mt-1.5 max-w-[520px] text-[12px] font-semibold leading-relaxed text-grey-mid">
+            {t('emptyHow')}
+          </p>
+          {canManage && (
+            <Link
+              href={{pathname: '/wig', query: classParam ? {class: classParam} : {}}}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 py-2 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy"
+            >
+              {t('emptyGo')}
+              <ArrowRight size={14} strokeWidth={2.5} />
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
         {AREAS.map((a) => {

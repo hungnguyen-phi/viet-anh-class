@@ -4,7 +4,7 @@ import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
-import {friendlyError} from '@/lib/errors';
+import {friendlyError, loi, tachLoi} from '@/lib/errors';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -14,7 +14,8 @@ function galleryFlash(classId: string, albumId: string | null, msg: string): nev
   const q = new URLSearchParams();
   if (classId) q.set('class', classId);
   if (albumId) q.set('album', albumId);
-  q.set('flash', msg);
+  const g = tachLoi(msg);
+  q.set(g.laLoi ? 'flash_err' : 'flash', g.msg);
   redirect(`/gallery?${q.toString()}`);
 }
 
@@ -38,7 +39,7 @@ export async function createAlbum(_prev: AlbumState, formData: FormData): Promis
   const description = String(formData.get('description') ?? '').trim();
   const values = {title, event_date: eventDate, description};
 
-  if (!classId) return {ok: false, error: friendlyError(null), values};
+  if (!classId) return {ok: false, error: (friendlyError(null)), values};
   if (!title)
     return {ok: false, fieldError: 'title', error: 'Hãy đặt tên cho album.', values};
   if (!ISO_DATE.test(eventDate))
@@ -63,7 +64,7 @@ export async function createAlbum(_prev: AlbumState, formData: FormData): Promis
     })
     .select('id');
 
-  if (error) return {ok: false, error: friendlyError(error), values};
+  if (error) return {ok: false, error: (friendlyError(error)), values};
   if (!data || data.length === 0)
     return {
       ok: false,
@@ -97,7 +98,7 @@ export async function deletePhoto(formData: FormData) {
 
   if (error) {
     revalidatePath('/[locale]/gallery', 'page');
-    galleryFlash(classId, albumId, friendlyError(error));
+    galleryFlash(classId, albumId, loi(friendlyError(error)));
   }
   if (!data || data.length === 0) {
     revalidatePath('/[locale]/gallery', 'page');
@@ -138,7 +139,7 @@ export async function deleteAlbum(formData: FormData) {
 
   if (error) {
     revalidatePath('/[locale]/gallery', 'page');
-    galleryFlash(classId, albumId, friendlyError(error));
+    galleryFlash(classId, albumId, loi(friendlyError(error)));
   }
   if (!data || data.length === 0) {
     revalidatePath('/[locale]/gallery', 'page');

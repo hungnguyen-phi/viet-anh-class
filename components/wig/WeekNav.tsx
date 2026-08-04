@@ -26,6 +26,7 @@ export async function WeekNav({
   start,
   end,
   classParam,
+  basePath = '/wig',
 }: {
   // Thứ Hai của tuần đang xem, và của tuần chứa hôm nay (để biết đang ở quá khứ hay tương lai).
   monday: string;
@@ -35,11 +36,15 @@ export async function WeekNav({
   start: string;
   end: string;
   classParam?: string;
+  // Trang đang nhúng thanh này. Bấm ← → phải ở lại ĐÚNG màn đang đứng: thanh này nay dùng ở cả
+  // /wig lẫn /wig/chi-tiet, và đóng cứng '/wig' thì từ màn chi tiết bấm mũi tên là văng về trang
+  // ngoài — người dùng đọc thành "bấm sang tuần khác thì mất hết chi tiết".
+  basePath?: '/wig' | '/wig/chi-tiet';
 }) {
   const t = await getTranslations('wig');
 
   const href = (m: string) => ({
-    pathname: '/wig' as const,
+    pathname: basePath,
     query: {...(classParam ? {class: classParam} : {}), ...(m === thisMonday ? {} : {week: m})},
   });
 

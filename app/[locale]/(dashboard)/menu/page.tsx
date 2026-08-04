@@ -5,7 +5,7 @@ import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getMyClass} from '@/lib/queries';
 import {todayInVN, weekRangeVN} from '@/lib/dates';
-import {FlashToast} from '@/components/ui/FlashToast';
+import {Flash} from '@/components/ui/Flash';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {Field, selectInline, inputInline, btnGold} from '@/components/ui/Field';
@@ -36,7 +36,6 @@ export default async function MenuPage({
   searchParams: Promise<{
     campus?: string;
     week?: string;
-    flash?: string;
     date?: string;
     meal?: string;
   }>;
@@ -45,7 +44,6 @@ export default async function MenuPage({
   const {
     campus: campusParam,
     week: weekParam,
-    flash,
     date: dateParam,
     meal: mealParam,
   } = await searchParams;
@@ -147,7 +145,7 @@ export default async function MenuPage({
         {isAdmin && <CampusPicker campuses={campuses} current={campusId} />}
       </div>
 
-      {flash && <FlashToast message={flash} />}
+      <Flash />
 
       <p className="text-[12px] font-semibold leading-[1.55] text-grey-mid">
         {t('intro')}
@@ -197,7 +195,7 @@ export default async function MenuPage({
                 <div className="text-[12px] font-extrabold text-navy">{t(`days.${dk}`)}</div>
                 <div
                   className={`text-[10.5px] font-bold ${
-                    weekDates[i] === today ? 'text-gold-deep' : 'text-grey-mid'
+                    weekDates[i] === today ? 'text-gold-text' : 'text-grey-mid'
                   }`}
                 >
                   {weekDates[i].slice(5)}
@@ -281,7 +279,7 @@ export default async function MenuPage({
             {editingDate && (
               <Link
                 href={{pathname: '/menu', query: q()}}
-                className="text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
+                className="inline-flex min-h-[24px] items-center text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
               >
                 {t('clearPick')}
               </Link>

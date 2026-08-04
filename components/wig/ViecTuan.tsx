@@ -1,0 +1,272 @@
+'use client';
+
+import {useActionState, useEffect, useState} from 'react';
+import {useTranslations} from 'next-intl';
+import {AlertCircle, AlertTriangle, CheckCircle2, Pencil, Plus, Trash2} from 'lucide-react';
+import {SubmitButton} from '@/components/ui/SubmitButton';
+import {Field, ctlWithBorder, inputCls, btnGold, btnGhost} from '@/components/ui/Field';
+import {WeekdayPicker} from '@/components/wig/WeekdayPicker';
+import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {luuViec, deleteLeadMeasure} from '@/app/[locale]/(dashboard)/wig/actions';
+
+// ════════════════════════════════════════════════════════════════════════════
+// VIỆC ĐỂ CÁC EM TICK — mỗi việc một thẻ, sửa/xoá ngay tại thẻ.
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Trước đây danh sách này là mấy dòng <li> gạch chân, còn form thêm việc thì nằm SẴN bên dưới
+// mỗi mục tiêu tuần với đủ 6 ô trống. Muốn sửa một việc thì bấm "Sửa" → cả trang tải lại → một
+// panel hiện ở TẬN ĐẦU TRANG, cách chỗ vừa bấm mấy màn hình cuộn. Sửa xong lại tải lại lần nữa.
+//
+// Nay: thẻ đọc được trong một liếc (tên · mục tiêu · những thứ được tick · một lượt đáng bao
+// nhiêu), và bấm Sửa là form mở ra ĐÚNG CHỖ ẤY, lưu xong đóng lại, không chuyển trang lần nào.
+// Gõ hỏng một ô cũng không mất năm ô kia (xem luuViec trong actions.ts).
+
+export type ViecItem = {
+  id: string;
+  title: string;
+  target_value: number;
+  unit: string | null;
+  sub_category: string | null;
+  active_weekdays: number[] | null;
+  unit_per_tick: number | null;
+  // Cảnh báo tính ở server (cùng công thức với hàm SQL lead_measure_canh_bao).
+  quaNhieu: boolean;
+  lechDonVi: boolean;
+  soTickCan: number;
+  tran: number;
+  soNgay: number;
+  soNguoi: number;
+};
+
+export function ViecTuan({
+  wigId,
+  wigUnit,
+  viec,
+  dayShort,
+  weekParam,
+  classParam,
+}: {
+  // Mục tiêu tuần mà những việc này thuộc về. Rỗng = tuần này chưa có mục tiêu nào → không thêm
+  // việc được, và thẻ trống phải nói ra lý do thay vì chỉ biến mất.
+  wigId: string | null;
+  wigUnit: string;
+  viec: ViecItem[];
+  dayShort: string[];
+  weekParam: string;
+  classParam?: string;
+}) {
+  const t = useTranslations('wig');
+  // 'none' | 'them' | <id việc đang sửa>
+  const [mo, setMo] = useState<string>('none');
+
+  const thu = (w: number[] | null) =>
+    (w ?? [1, 2, 3, 4, 5, 6, 7]).map((d) => dayShort[d - 1]).join(' · ');
+
+  if (mo !== 'none') {
+    const dangSua = viec.find((v) => v.id === mo);
+    return (
+      <ViecForm
+        key={mo}
+        wigId={wigId}
+        wigUnit={wigUnit}
+        viec={dangSua}
+        dayShort={dayShort}
+        onDong={() => setMo('none')}
+      />
+    );
+  }
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {viec.map((v) => (
+        <div
+          key={v.id}
+          className="flex flex-col rounded-[14px] border-[1.5px] border-navy/10 bg-white/60 p-3"
+        >
+          <div className="text-[13.5px] font-extrabold leading-snug text-navy">{v.title}</div>
+          <div className="mt-1 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
+            {v.target_value} {v.unit ?? ''} · {thu(v.active_weekdays)}
+            <br />
+            {t('perTickShort', {n: Number(v.unit_per_tick ?? 1), unit: wigUnit})}
+          </div>
+
+          {/* Cảnh báo, KHÔNG phải rào chắn: giáo viên vẫn lưu được, chỉ là từ nay họ nhìn thấy. */}
+          {v.quaNhieu && (
+            <p className="mt-2 flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2 py-1.5 text-[11px] font-semibold leading-relaxed text-status-bad">
+              <AlertTriangle size={12} strokeWidth={2.5} className="mt-px shrink-0" />
+              {t('warnTooMany', {can: v.soTickCan, co: v.tran, ngay: v.soNgay, nguoi: v.soNguoi})}
+            </p>
+          )}
+          {v.lechDonVi && (
+            <p className="mt-2 flex items-start gap-1.5 rounded-[10px] bg-gold/20 px-2 py-1.5 text-[11px] font-semibold leading-relaxed text-gold-text">
+              <AlertTriangle size={12} strokeWidth={2.5} className="mt-px shrink-0" />
+              {t('warnUnitMismatch', {lead: v.unit ?? '', wig: wigUnit})}
+            </p>
+          )}
+
+          <div className="mt-2.5 flex items-center gap-1.5 pt-0.5">
+            <button
+              type="button"
+              onClick={() => setMo(v.id)}
+              className="inline-flex cursor-pointer items-center gap-1 rounded-[9px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy"
+            >
+              <Pencil size={11} strokeWidth={2.5} />
+              {t('edit')}
+            </button>
+            <form action={deleteLeadMeasure} className="contents">
+              {classParam && <input type="hidden" name="class_id" value={classParam} />}
+              <input type="hidden" name="lead_measure_id" value={v.id} />
+              <input type="hidden" name="week" value={weekParam} />
+              <ConfirmButton
+                message={t('confirmDeleteLead')}
+                label={t('deleteLead')}
+                className="inline-flex cursor-pointer items-center gap-1 rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.06] px-2.5 py-1.5 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-status-bad/[0.14]"
+              >
+                <Trash2 size={11} strokeWidth={2.5} />
+                {t('delete')}
+              </ConfirmButton>
+            </form>
+          </div>
+        </div>
+      ))}
+
+      {wigId ? (
+        <button
+          type="button"
+          onClick={() => setMo('them')}
+          className="flex min-h-[92px] cursor-pointer flex-col items-center justify-center gap-1 rounded-[14px] border-[1.5px] border-dashed border-navy/25 bg-transparent p-3 text-[12.5px] font-extrabold text-navy/60 transition-all hover:border-navy/50 hover:bg-navy/[0.03] hover:text-navy"
+        >
+          <Plus size={16} strokeWidth={2.5} />
+          {t('addWork')}
+        </button>
+      ) : (
+        <p className="rounded-[14px] border-[1.5px] border-dashed border-navy/15 p-3 text-[11.5px] font-semibold italic leading-relaxed text-grey-mid sm:col-span-2">
+          {t('addWorkNeedsWig')}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Form thêm/sửa một việc. Tách riêng để mỗi lần mở là một thể hiện mới — state của
+// useActionState nhờ vậy sạch, không mang câu báo lỗi của lần mở trước sang lần này.
+function ViecForm({
+  wigId,
+  wigUnit,
+  viec,
+  dayShort,
+  onDong,
+}: {
+  wigId: string | null;
+  wigUnit: string;
+  viec?: ViecItem;
+  dayShort: string[];
+  onDong: () => void;
+}) {
+  const t = useTranslations('wig');
+  const [state, formAction] = useActionState(luuViec, {ok: false});
+
+  // Lưu xong thì đóng lại — trang đã được revalidate nên thẻ vừa sửa hiện ra ngay bên dưới.
+  useEffect(() => {
+    if (state.ok) onDong();
+  }, [state.ok, onDong]);
+
+  const err = (f: string) => (state.fieldError === f ? state.error : null);
+
+  return (
+    <form action={formAction} className="flex flex-col gap-3 rounded-[14px] border-[1.5px] border-gold/60 bg-white p-3.5">
+      <h2 className="font-display text-[13.5px] font-bold text-navy">
+        {viec ? t('editWork') : t('addWork')}
+      </h2>
+      {viec ? (
+        <input type="hidden" name="lead_measure_id" value={viec.id} />
+      ) : (
+        <input type="hidden" name="wig_id" value={wigId ?? ''} />
+      )}
+
+      <Field label={t('leadTitle')} htmlFor="viec-title" error={err('title')} hint={t('leadHint')}>
+        <input
+          id="viec-title"
+          name="title"
+          defaultValue={viec?.title ?? ''}
+          aria-invalid={state.fieldError === 'title'}
+          className={ctlWithBorder(state.fieldError === 'title')}
+        />
+      </Field>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <Field label={t('target')} htmlFor="viec-target" error={err('target_value')}>
+          <input
+            id="viec-target"
+            name="target_value"
+            type="number"
+            step="any"
+            min="0.01"
+            inputMode="decimal"
+            defaultValue={viec?.target_value ?? ''}
+            aria-invalid={state.fieldError === 'target_value'}
+            className={ctlWithBorder(state.fieldError === 'target_value')}
+          />
+        </Field>
+        <Field label={t('unit')} htmlFor="viec-unit">
+          <input
+            id="viec-unit"
+            name="unit"
+            defaultValue={viec?.unit ?? ''}
+            placeholder={t('unitPlaceholder')}
+            className={inputCls}
+          />
+        </Field>
+        <Field label={t('subCat')} htmlFor="viec-sub" className="col-span-2 sm:col-span-1">
+          <input id="viec-sub" name="sub_category" defaultValue={viec?.sub_category ?? ''} className={inputCls} />
+        </Field>
+      </div>
+
+      {/* `required` để trình duyệt chặn ngay tại chỗ nếu ô bị xoá trắng: hệ số KHÔNG đóng băng vào
+          từng lượt tick mà được nhân lúc đọc, nên ghi đè 30 thành 1 là chia cả lịch sử tick cho
+          30 — một mục tiêu đang "30/30 đã đạt" tụt về "1/30" chỉ vì ai đó mở ra sửa cái tên. */}
+      <Field label={t('unitPerTick')} hint={t('unitPerTickHint', {unit: wigUnit})} htmlFor="viec-upt" className="sm:max-w-[300px]">
+        <input
+          id="viec-upt"
+          name="unit_per_tick"
+          type="number"
+          step="any"
+          min="0.01"
+          inputMode="decimal"
+          required
+          defaultValue={Number(viec?.unit_per_tick ?? 1)}
+          className={inputCls}
+        />
+      </Field>
+
+      <WeekdayPicker
+        label={t('weekdays')}
+        hint={t('weekdaysHint')}
+        dayLabels={dayShort}
+        selected={viec?.active_weekdays ?? undefined}
+      />
+
+      {state.error && !state.fieldError && (
+        <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12.5px] font-bold text-status-bad">
+          <AlertCircle size={14} strokeWidth={2.5} className="mt-px shrink-0" />
+          {state.error}
+        </p>
+      )}
+      {state.ok && state.message && (
+        <p className="inline-flex items-start gap-1.5 text-[12.5px] font-bold text-success-dark">
+          <CheckCircle2 size={14} strokeWidth={2.5} className="mt-px shrink-0" />
+          {state.message}
+        </p>
+      )}
+
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={onDong} className={btnGhost}>
+          {t('cancel')}
+        </button>
+        <SubmitButton className={btnGold} wrapClass="contents">
+          {t('save')}
+        </SubmitButton>
+      </div>
+    </form>
+  );
+}

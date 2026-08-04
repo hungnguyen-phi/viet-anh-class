@@ -11,6 +11,8 @@ export type RollupRow = {
   score: number;
   att_today: number;
   student_count: number;
+  // 0084 — số mục tiêu NĂM của lớp. 0 nghĩa là lớp chưa vào cuộc, khác hẳn "đã đặt mà điểm 0".
+  wig_count: number;
 };
 
 // Bảng thi đua TOÀN TRƯỜNG, gom theo Khối.
@@ -97,11 +99,30 @@ const colNum = {flex: 1};
               <span className="text-center text-[12.5px] font-semibold text-grey-mid" style={colNum}>
                 {r.student_count}
               </span>
-              <span className="text-center font-display text-[15px] text-navy" style={colNum}>
-                {Number(r.score)}
+              {/* CHƯA ĐẶT MỤC TIÊU ≠ ĐẶT RỒI MÀ ĐIỂM 0.
+                  Bản cũ hiện số 0 cho cả hai, mà hai chuyện ấy đòi hai lời nhắc khác hẳn nhau:
+                  một bên là "ngồi xuống đặt mục tiêu đi", bên kia là "xem vì sao chưa chạy".
+                  Bảng WIG ngay bên dưới trên cùng trang này đã phân biệt được bằng dấu "—";
+                  bảng trên thì chưa — đúng kiểu chẩn đúng ở một chỗ rồi quên chỗ còn lại. */}
+              <span
+                className="text-center font-display text-[15px] text-navy"
+                style={colNum}
+                title={Number(r.wig_count) === 0 ? t('noWigYet') : undefined}
+              >
+                {Number(r.wig_count) === 0 ? (
+                  <span className="text-[12.5px] font-semibold text-grey-soft">—</span>
+                ) : (
+                  Number(r.score)
+                )}
               </span>
+              {/* "0/24" đọc thành "cả lớp nghỉ học", trong khi sự thật là chưa ai mở điểm danh.
+                  Nói thẳng bằng chữ thì không đọc nhầm được. */}
               <span className="text-center text-[12.5px] font-semibold text-grey-mid" style={colNum}>
-                {r.att_today}/{r.student_count}
+                {Number(r.att_today) === 0 ? (
+                  <span className="text-grey-soft">{t('attNotYet')}</span>
+                ) : (
+                  `${r.att_today}/${r.student_count}`
+                )}
               </span>
             </Link>
           ))}

@@ -2153,6 +2153,7 @@ export type Database = {
           school_year: string
           score: number
           student_count: number
+          wig_count: number
         }[]
       }
       class_lead_board: {
@@ -2218,6 +2219,7 @@ export type Database = {
       }
       thu_hai_tu_nhan: { Args: { nhan: string }; Returns: string }
       tuan_da_hop: { Args: { d: string; p_class: string }; Returns: boolean }
+      truong_da_khai_mang: { Args: Record<string, never>; Returns: boolean }
       can_manage_class_cover: { Args: { p_name: string }; Returns: boolean }
       can_manage_class_photo: { Args: { p_name: string }; Returns: boolean }
       can_manage_student_email: { Args: { p_email: string }; Returns: boolean }
@@ -2254,6 +2256,8 @@ export type Database = {
         Args: { s: string }
         Returns: {
           week_label: string
+          week_start: string
+          week_end: string
         }[]
       }
       class_campus: { Args: { c: string }; Returns: string }

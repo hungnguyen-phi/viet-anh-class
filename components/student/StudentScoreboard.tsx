@@ -35,6 +35,8 @@ type WigRow = {
   area: string;
   period: string;
   period_label: string | null;
+  // NGÀY là khoá thật để biết một WIG thuộc tuần nào; period_label chỉ để con người đọc.
+  start_date: string;
   end_date: string;
   // unit của WIG năm → dùng làm đơn vị mặc định cho form kế hoạch tuần sau.
   unit: string | null;
@@ -145,7 +147,7 @@ export async function StudentScoreboard({
         .maybeSingle(),
       supabase
         .from('wig_progress_v')
-        .select('wig_id, area, period, period_label, end_date, unit, pct, status')
+        .select('wig_id, area, period, period_label, start_date, end_date, unit, pct, status')
         .eq('student_id', studentId)
         .eq('scope', 'student')
         .in('period', ['year', 'week']),
@@ -225,8 +227,20 @@ export async function StudentScoreboard({
     // data về undefined → mustCheckin=false → cổng không bao giờ chặn, mà mỗi lượt vẫn tốn một
     // vòng mạng hỏng.
     const {createAdminClient} = await import('@/lib/supabase/admin');
-    const {data: onSchoolNetwork} = await createAdminClient().rpc('ip_allowed', {p_ip: ip ?? ''});
-    mustCheckin = onSchoolNetwork === true;
+    const admin = createAdminClient();
+    // HAI CÂU HỎI, KHÔNG PHẢI MỘT.
+    //
+    // ip_allowed() trả TRUE khi trường CHƯA khai dải mạng nào — "chưa cấu hình thì không chặn"
+    // (0031). Nhưng chỗ này dùng nó theo nghĩa ngược lại: "TRUE nghĩa là em đang đứng trong
+    // trường". Trường Việt Anh hiện chưa bật dải nào, nên mọi em ở mọi nơi đều được coi là đang
+    // ở trường: em mở app tối Chủ Nhật ở nhà là gặp một cổng chặn cứng cả màn hình, không Esc,
+    // không bấm nền, và bấm xong thì CSDL có thêm một dòng điểm danh "có mặt" — đã có 8 dòng
+    // như thế. Nay hỏi thêm một câu để phân biệt "đang ở trường" với "chưa ai khai gì" (0082).
+    const [{data: onSchoolNetwork}, {data: daKhaiMang}] = await Promise.all([
+      admin.rpc('ip_allowed', {p_ip: ip ?? ''}),
+      admin.rpc('truong_da_khai_mang'),
+    ]);
+    mustCheckin = daKhaiMang === true && onSchoolNetwork === true;
   }
 
   const meetings: StudentMeeting[] = (
@@ -284,8 +298,18 @@ export async function StudentScoreboard({
   // Trước đây lấy mọi WIG tuần (W29, W30, W31…) nên cùng một việc hiện nhiều dòng với số đếm
   // khác nhau — học sinh không biết dòng nào của tuần nào. Dãy pip "WIG tuần của em" thì vẫn
   // dùng weekRows (mọi tuần) vì nó cố tình thể hiện lịch sử thắng/thua.
-  const currentWeekLabel = isoWeekLabel(new Date());
-  const weekIds = weekRows.filter((w) => w.period_label === currentWeekLabel).map((w) => w.wig_id);
+  //
+  // LỌC THEO NGÀY, KHÔNG THEO NHÃN. Bản cũ so `period_label === 'W32-2026'` — mà nhãn ấy là một
+  // ô CHỮ TỰ DO giáo viên sửa được, và trên cùng cái bảng này việc CHUNG của lớp lại đi qua
+  // class_lead_board vốn cắt theo NGÀY (0073). Hai luật cho hai nửa của một bảng: sửa nhãn thành
+  // "Tuần 32" là việc riêng của em biến mất trong khi việc chung vẫn còn, và không màn hình nào
+  // nói ra. Đây đúng là cặp luật đã gây sự cố 7B1, chỉ còn sót lại ở màn hình học sinh.
+  //
+  // Vị ngữ dưới đây là bản chép ĐÚNG của class_lead_board: khoảng ngày của WIG giao với tuần lịch.
+  const tuanNay = {dau: weekDays[0], cuoi: weekDays[6]};
+  const weekIds = weekRows
+    .filter((w) => w.start_date <= tuanNay.cuoi && w.end_date >= tuanNay.dau)
+    .map((w) => w.wig_id);
 
   // ĐỢT HAI — HAI CÂU CÒN LẠI, CHẠY CÙNG NHAU.
   //
@@ -468,7 +492,7 @@ export async function StudentScoreboard({
       {/* Lớp chặn bắt buộc check-in — đặt NGOÀI hero (hero có backdrop-filter, sẽ phá position:fixed) */}
       {mustCheckin && <MoodGate />}
       {flash && (
-        <div className="rounded-2xl border border-success/30 bg-success/10 px-4 py-2.5 text-sm font-bold text-success">
+        <div className="rounded-2xl border border-success/30 bg-success/10 px-4 py-2.5 text-sm font-bold text-success-dark">
           {flash}
         </div>
       )}

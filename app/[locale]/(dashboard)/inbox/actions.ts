@@ -4,7 +4,7 @@ import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
-import {friendlyError} from '@/lib/errors';
+import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {GIOI_HAN_KY_TU} from '@/components/inbox/format';
 
 // Trần độ dài (GIOI_HAN_KY_TU) để ở components/inbox/format.tsx chứ không ở đây: file 'use server'
@@ -17,7 +17,8 @@ const VAI_DUOC_VAO = ['parent', 'teacher'] as const;
 function inboxFlash(threadId: string | null, msg: string): never {
   const q = new URLSearchParams();
   if (threadId) q.set('t', threadId);
-  q.set('flash', msg);
+  const g = tachLoi(msg);
+  q.set(g.laLoi ? 'flash_err' : 'flash', g.msg);
   redirect(`/inbox?${q.toString()}`);
 }
 
@@ -78,7 +79,7 @@ export async function sendMessage(_prev: SendState, formData: FormData): Promise
     const msg =
       error.code === '42501'
         ? 'Không gửi được: cuộc trao đổi này đã khoá vì em không còn học lớp đó nữa. Hai bên vẫn xem lại được toàn bộ nội dung cũ.'
-        : friendlyError(error);
+        : loi(friendlyError(error));
     return {ok: false, error: msg, value};
   }
   if (!data || data.length === 0)
@@ -110,7 +111,7 @@ export async function openThread(formData: FormData) {
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('pt_open_thread', {p_student: studentId});
   revalidatePath('/[locale]/inbox', 'page');
-  if (error) inboxFlash(null, friendlyError(error));
+  if (error) inboxFlash(null, loi(friendlyError(error)));
   if (!data)
     inboxFlash(null, 'Không mở được cuộc trao đổi. Em này có thể chưa thuộc lớp nào đang hoạt động.');
 

@@ -50,9 +50,9 @@ export async function ScoreColumnForm({
 
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <div className="font-display text-[15px] font-bold text-navy">
+          <h2 className="font-display text-[15px] font-bold text-navy">
             {t('enterForClass', {column: tenCot(subjectName, kind, ordinal, t)})}
-          </div>
+          </h2>
           <p className="mt-0.5 text-[11px] italic text-grey-mid">
             {t('columnFormHint')}
           </p>

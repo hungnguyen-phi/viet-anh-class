@@ -70,9 +70,9 @@ export function SubjectTable({
           WIG (không cần client state cho 12 ô tick). */}
       {isAdmin && editing && (
         <section className="glass animate-rise rounded-[20px] p-[18px] ring-2 ring-gold/60">
-          <div className="mb-2.5 font-display text-[15px] font-bold text-navy">
+          <h2 className="mb-2.5 font-display text-[15px] font-bold text-navy">
             {t('editPanelTitle', {name: editing.name})}
-          </div>
+          </h2>
           <form action={saveSubjectGrades} className="flex flex-col gap-3">
             <input type="hidden" name="subject_id" value={editing.id} />
             {classParam && <input type="hidden" name="class_id" value={classParam} />}
@@ -166,7 +166,7 @@ export function SubjectTable({
                 // KHÔNG ẩn cho gọn: bốn môn đang ở tình trạng này và nhà trường CẦN thấy để bổ
                 // sung. Chưa khai = chọn được cho mọi lớp, tức là ô chọn môn của lớp 6 vẫn hiện
                 // "Giáo dục kinh tế và pháp luật" — dễ nhập nhầm.
-                <span className="inline-flex items-center gap-1 rounded-full border-[1.5px] border-warn/40 bg-warn/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-warn">
+                <span className="inline-flex items-center gap-1 rounded-full border-[1.5px] border-warn/40 bg-warn/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-warn-text">
                   {t('gradesUndeclared')}
                 </span>
               )}

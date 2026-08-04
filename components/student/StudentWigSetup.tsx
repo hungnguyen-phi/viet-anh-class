@@ -85,7 +85,7 @@ export async function StudentWigSetup({
           </SubmitButton>
         </form>
       ) : hasThisWeek ? (
-        <p className="mt-2 text-[12.5px] font-semibold text-success">{t('weekDone', {label: weekLabel})}</p>
+        <p className="mt-2 text-[12.5px] font-semibold text-success-dark">{t('weekDone', {label: weekLabel})}</p>
       ) : (
         <form action={createStudentWeekWigs} className="mt-3">
           <input type="hidden" name="student_id" value={studentId} />

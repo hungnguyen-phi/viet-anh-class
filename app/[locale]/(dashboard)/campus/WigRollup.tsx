@@ -147,14 +147,20 @@ export async function WigRollup({
               </span>
 
               <span
-                // Đỏ = có học sinh mà KHÔNG em nào tick. Lớp chưa có em nào (0/0) thì để trung
-                // tính: tô đỏ một lớp trống là báo động giả, và báo động giả làm mờ báo động thật.
+                // Đỏ = có học sinh, LỚP CÓ VIỆC ĐỂ TICK, mà không em nào tick.
+                //
+                // Vế giữa (`!idle`) là vế bị thiếu. Lớp chưa đặt mục tiêu tuần thì các em KHÔNG
+                // CÓ GÌ để tick — hai cột bên trái đã thừa nhận điều đó bằng dấu "—", nhưng cột
+                // này vẫn tô đỏ "0/24". Hiệu trưởng đọc bảng thấy một hàng đỏ và nhắc giáo viên
+                // về chuyện học sinh lười tick, trong khi việc thật cần làm là đặt mục tiêu.
+                // Báo động giả ngay trên bảng dựng ra để báo động.
                 className={`text-center text-[12.5px] font-bold tabular-nums ${
-                  size > 0 && ticking === 0 ? 'text-status-bad' : 'text-navy'
+                  !idle && size > 0 && ticking === 0 ? 'text-status-bad' : 'text-navy'
                 }`}
                 style={colNum}
+                title={idle ? t('wigIdleTick') : undefined}
               >
-                {ticking}/{size}
+                {idle ? <span className="font-semibold text-grey-soft">—</span> : `${ticking}/${size}`}
               </span>
               <span className="text-center text-[12.5px] font-semibold tabular-nums text-grey-mid" style={colNum}>
                 {Number(r.tick_count)}

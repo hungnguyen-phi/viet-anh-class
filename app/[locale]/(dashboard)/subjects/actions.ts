@@ -4,7 +4,7 @@ import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
-import {friendlyError} from '@/lib/errors';
+import {friendlyError, loi, tachLoi} from '@/lib/errors';
 
 // ════════════════════════════════════════════════════════════════════════════
 // Danh mục môn + phân công giáo viên bộ môn (migration 0069).
@@ -24,7 +24,8 @@ import {friendlyError} from '@/lib/errors';
 // dùng bị ném về lớp đầu danh sách ngay sau khi bấm — đúng kiểu "bấm xong lạc mất chỗ đang làm".
 function subjectsFlash(msg: string, classId?: string | null): never {
   const keo = classId ? `class=${encodeURIComponent(classId)}&` : '';
-  redirect(`/subjects?${keo}flash=${encodeURIComponent(msg)}`);
+  const g = tachLoi(msg);
+  redirect(`/subjects?${keo}${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
 }
 
 // ── THÊM MÔN ────────────────────────────────────────────────────────────────
@@ -129,7 +130,7 @@ export async function createSubject(
       };
     // P0001 = trigger subject_guard: "Môn ... đã có trong danh mục dùng chung...". friendlyError
     // giữ nguyên câu tiếng Việt đó, đúng thứ người dùng cần đọc.
-    return {ok: false, error: friendlyError(error), values};
+    return {ok: false, error: (friendlyError(error)), values};
   }
   if (!data || data.length === 0)
     return {ok: false, error: 'Không tạo được môn — bạn không có quyền tạo môn ở phạm vi này.', values};
@@ -161,7 +162,7 @@ export async function setSubjectActive(formData: FormData) {
     .eq('id', subjectId)
     .select('name');
   revalidatePath('/[locale]/subjects', 'page');
-  if (error) subjectsFlash(friendlyError(error), classId);
+  if (error) subjectsFlash(loi(friendlyError(error)), classId);
   if (!data || data.length === 0)
     subjectsFlash(
       'Không đổi được — môn dùng chung của cả trường chỉ quản trị viên mới sửa được.',
@@ -202,14 +203,14 @@ export async function saveSubjectGrades(formData: FormData) {
   // khoảng trống vài trăm ms chỉ làm môn tạm thời "chưa khai lớp", mà chưa khai = CHỌN ĐƯỢC CHO
   // MỌI LỚP (subject_fits_grade), tức là không chặn nhầm ai giữa chừng.
   const del = await supabase.from('subject_grades').delete().eq('subject_id', subjectId);
-  if (del.error) subjectsFlash(friendlyError(del.error), classId);
+  if (del.error) subjectsFlash(loi(friendlyError(del.error)), classId);
 
   if (chosen.length > 0) {
     const {error} = await supabase
       .from('subject_grades')
       .insert(chosen.map((n) => ({subject_id: subjectId, grade_no: n})));
     revalidatePath('/[locale]/subjects', 'page');
-    if (error) subjectsFlash(friendlyError(error), classId);
+    if (error) subjectsFlash(loi(friendlyError(error)), classId);
     subjectsFlash(`Đã lưu: môn này dạy lớp ${chosen.join(', ')}`, classId);
   }
 
@@ -231,7 +232,7 @@ export async function seedClassSubjects(formData: FormData) {
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('seed_class_subjects', {p_class: classId});
   revalidatePath('/[locale]/subjects', 'page');
-  if (error) subjectsFlash(friendlyError(error), classId);
+  if (error) subjectsFlash(loi(friendlyError(error)), classId);
   const n = Number(data ?? 0);
   subjectsFlash(
     n > 0
@@ -271,7 +272,7 @@ export async function assignTeacher(formData: FormData) {
       .select('id');
     revalidatePath('/[locale]/subjects', 'page');
     revalidatePath('/[locale]/grades', 'page');
-    if (error) subjectsFlash(friendlyError(error), classId);
+    if (error) subjectsFlash(loi(friendlyError(error)), classId);
     if (!data || data.length === 0)
       subjectsFlash('Không phân công được — bạn không có quyền với lớp này.', classId);
     subjectsFlash(
@@ -284,7 +285,7 @@ export async function assignTeacher(formData: FormData) {
   revalidatePath('/[locale]/grades', 'page');
   // P0001 hay gặp nhất ở đây: "Chỉ phân công được cho tài khoản có vai GIÁO VIÊN" (trigger
   // teaching_assignment_guard). friendlyError giữ nguyên câu đó.
-  if (ins.error) subjectsFlash(friendlyError(ins.error), classId);
+  if (ins.error) subjectsFlash(loi(friendlyError(ins.error)), classId);
   if (!ins.data || ins.data.length === 0)
     subjectsFlash('Không phân công được — bạn không có quyền với lớp này.', classId);
   subjectsFlash(
@@ -311,7 +312,7 @@ export async function unassignTeacher(formData: FormData) {
     .select('id');
   revalidatePath('/[locale]/subjects', 'page');
   revalidatePath('/[locale]/grades', 'page');
-  if (error) subjectsFlash(friendlyError(error), classId);
+  if (error) subjectsFlash(loi(friendlyError(error)), classId);
   if (!data || data.length === 0)
     subjectsFlash('Không gỡ được — bạn không có quyền với lớp này.', classId);
   subjectsFlash(

@@ -95,7 +95,7 @@ export async function ThreadList({
                     className={`${chipBase} ${
                       gioCho >= 24
                         ? 'bg-status-bad/[0.08] text-status-bad'
-                        : 'bg-gold/20 text-gold-deep'
+                        : 'bg-gold/20 text-gold-text'
                     }`}
                   >
                     {t('waitingFor')} · {daCho(it.last_message_at, t)}

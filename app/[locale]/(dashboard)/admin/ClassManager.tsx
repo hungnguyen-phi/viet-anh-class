@@ -232,6 +232,15 @@ function ClassEditRow({
           className={`cursor-pointer ${inp}`}
         >
           <option value="">— {t('none')} —</option>
+          {/* GIỮ LẠI NGƯỜI ĐANG CHỦ NHIỆM DÙ HỌ KHÔNG CÒN TRONG DANH SÁCH.
+              `teachers` chỉ gồm nhân sự đang có vai giáo viên/BGH/quản trị. Nếu người đang chủ
+              nhiệm đã bị đổi vai (hoặc vô hiệu), họ biến mất khỏi danh sách — và một <select> có
+              defaultValue không khớp option nào sẽ tự nhảy về option ĐẦU TIÊN, ở đây là "— Không —".
+              Nên mở form ra sửa mỗi cái tên lớp rồi bấm Lưu là lớp mất chủ nhiệm, lặng lẽ.
+              Đúng lỗi này đã được vá cho ô "Khối" ngay bên cạnh; ô này bị sót. */}
+          {row.homeroom_teacher_id && !teachers.some((p) => p.id === row.homeroom_teacher_id) && (
+            <option value={row.homeroom_teacher_id}>{t('gvcnRoleChanged')}</option>
+          )}
           {teachers.map((p) => (
             <option key={p.id} value={p.id}>
               {p.full_name ?? p.email}

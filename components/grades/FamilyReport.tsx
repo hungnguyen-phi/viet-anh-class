@@ -314,7 +314,7 @@ export async function FamilyReport({
                         >
                           <span className="text-grey-mid">{t(`scoreKinds.${d.kind}`)}</span>
                           {soVN(d.score)}
-                          {d.weight > 1 && <span className="text-gold-deep">×{d.weight}</span>}
+                          {d.weight > 1 && <span className="text-gold-text">×{d.weight}</span>}
                         </span>
                       ))}
                     </span>

@@ -11,20 +11,17 @@ import {SchoolRollup, type RollupRow} from './SchoolRollup';
 import {WigRollup, type WigRollupRow} from './WigRollup';
 import {TeacherManager} from './TeacherManager';
 import {CampusLevelPicker} from './CampusLevelPicker';
-import {FlashToast} from '@/components/ui/FlashToast';
+import {Flash} from '@/components/ui/Flash';
 import {MessageHealthCard} from '@/components/inbox/MessageHealthCard';
 import {Link} from '@/i18n/navigation';
 import {BookMarked} from 'lucide-react';
 
 export default async function CampusPage({
   params,
-  searchParams,
 }: {
   params: Promise<{locale: string}>;
-  searchParams: Promise<{flash?: string}>;
 }) {
   const {locale} = await params;
-  const {flash} = await searchParams;
   setRequestLocale(locale);
   const profile = await requireRole(['principal', 'admin']);
   const t = await getTranslations('campusReport');
@@ -173,7 +170,7 @@ export default async function CampusPage({
     <div className="flex flex-col gap-3.5">
       <h1 className="font-display text-[22px] font-bold text-navy">{t('title')}</h1>
 
-      {flash && <FlashToast message={flash} />}
+      <Flash />
 
       {rows.length === 0 ? (
         <p className="text-sm italic text-grey-mid">{t('noClasses')}</p>

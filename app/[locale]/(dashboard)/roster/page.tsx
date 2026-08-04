@@ -3,6 +3,7 @@ import {Link} from '@/i18n/navigation';
 import {Images} from 'lucide-react';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
+import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {ClassCoverUpload} from '@/components/shell/ClassCoverUpload';
@@ -10,7 +11,7 @@ import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {AttendanceLeaderPicker} from '@/components/roster/AttendanceLeaderPicker';
 import {EnrollForm} from './EnrollForm';
 import {removeStudent, cancelStudentInvite} from './actions';
-import {FlashToast} from '@/components/ui/FlashToast';
+import {Flash} from '@/components/ui/Flash';
 
 type EnrRow = {
   student_id: string;
@@ -43,21 +44,27 @@ export default async function RosterPage({
   searchParams: Promise<{class?: string; flash?: string}>;
 }) {
   const {locale} = await params;
-  const {class: classParam, flash} = await searchParams;
+  const {class: classParam} = await searchParams;
   setRequestLocale(locale);
   const profile = await requireRole(['teacher', 'admin', 'principal']);
   // BGH chỉ XEM (danh sách + mở từng em); GVCN/Admin mới quản lý (ghi danh, tổ trưởng, xoá).
   const canManage = profile.role === 'teacher' || profile.role === 'admin';
+  // BỐN CỘT CHI TIẾT CHỈ HIỆN VỚI NGƯỜI ĐỌC ĐƯỢC CHÚNG.
+  //
+  // student_details bị RLS giới hạn cho GVCN của chính lớp đó + quản trị viên (0058). Hiệu trưởng
+  // gọi vẫn hợp lệ nhưng nhận về RỖNG — nên với họ, bốn cột "Mã HS · Ngày sinh · SĐT phụ huynh ·
+  // Ghi chú" là bốn cột vĩnh viễn toàn dấu "—", trên một bảng phải cuộn ngang 900px. Đọc thành
+  // "trường chưa nhập dữ liệu", trong khi dữ liệu có đủ, chỉ là không dành cho họ.
+  //
+  // Giấu cột thì bảng vừa màn hình, và không nói dối điều gì.
+  const xemChiTiet = canManage;
   const t = await getTranslations('roster');
-  const tc = await getTranslations('class');
   const supabase = await createClient();
   const {myClass, classes: accessible} = await getClassContext(supabase, profile, classParam);
 
   if (!myClass) {
     return (
-      <div className="glass rounded-[20px] p-8 text-center">
-        <p className="text-sm text-txt">{tc('noClass')}</p>
-      </div>
+      <KhongCoLop role={profile.role} />
     );
   }
 
@@ -177,7 +184,7 @@ export default async function RosterPage({
         <h1 className="font-display text-[22px] font-bold text-navy">
           {t('title')} · {myClass.name}
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Album ảnh lớp vào đây thay vì thành một tab riêng: thanh menu chỉ còn chỗ cho khoảng
               hai tab nữa (docs/NAV_IA.md), mà xem ảnh là việc thỉnh thoảng. Đặt cạnh "Ảnh bìa
               lớp" vì cùng là việc với hình ảnh của lớp này. */}
@@ -193,7 +200,7 @@ export default async function RosterPage({
         </div>
       </div>
 
-      {flash && <FlashToast message={flash} />}
+      <Flash />
 
       {/* Ghi danh / chuyển lớp: nhập email học sinh (đã có tài khoản) — chỉ GVCN/Admin */}
       {canManage && (
@@ -210,24 +217,30 @@ export default async function RosterPage({
 
       <div className="glass overflow-x-auto rounded-[20px]">
         {/* Header */}
-        <div className="flex min-w-[900px] items-center gap-2 bg-navy/[0.03] px-[18px] py-[10px]">
+        <div className={`flex ${xemChiTiet ? 'min-w-[900px]' : 'min-w-[420px]'} items-center gap-2 bg-navy/[0.03] px-[18px] py-[10px]`}>
           <span className="w-[22px] flex-none text-[11px] font-extrabold text-grey-mid">#</span>
           <span className="flex-[1.4] text-[11px] font-extrabold uppercase text-grey-mid">
             {t('name')}
           </span>
-          <span className="w-[110px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
-            Mã HS
-          </span>
+          {xemChiTiet && (
+            <span className="w-[110px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
+              Mã HS
+            </span>
+          )}
           <span className="flex-[1.4] text-[11px] font-extrabold uppercase text-grey-mid">
             {t('email')}
           </span>
-          <span className="w-[100px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
-            Ngày sinh
-          </span>
-          <span className="w-[110px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
-            SĐT phụ huynh
-          </span>
-          <span className="flex-1 text-[11px] font-extrabold uppercase text-grey-mid">Ghi chú</span>
+          {xemChiTiet && (
+            <>
+              <span className="w-[100px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
+                Ngày sinh
+              </span>
+              <span className="w-[110px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
+                SĐT phụ huynh
+              </span>
+              <span className="flex-1 text-[11px] font-extrabold uppercase text-grey-mid">Ghi chú</span>
+            </>
+          )}
           <span className="w-[70px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid" />
         </div>
 
@@ -235,7 +248,7 @@ export default async function RosterPage({
         {rows.map((r, i) => (
           <div
             key={r.key}
-            className="flex min-w-[900px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2 transition-colors hover:bg-navy/[0.03]"
+            className={`flex ${xemChiTiet ? 'min-w-[900px]' : 'min-w-[420px]'} items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2 transition-colors hover:bg-navy/[0.03]`}
           >
             <span className="w-[22px] flex-none text-[12px] font-bold text-grey-mid">{i + 1}</span>
             <span className="flex min-w-0 flex-[1.4] items-center gap-1.5">
@@ -243,7 +256,7 @@ export default async function RosterPage({
               {r.studentId ? (
                 <Link
                   href={`/student/${r.studentId}`}
-                  className="truncate text-[13.5px] font-bold text-navy underline-offset-2 transition-colors hover:underline"
+                  className="block min-w-[88px] flex-1 truncate py-1 text-[13.5px] font-bold text-navy underline-offset-2 transition-colors hover:underline"
                 >
                   {r.name}
                 </Link>
@@ -254,7 +267,7 @@ export default async function RosterPage({
               {r.isLeader && (
                 <span
                   title={t('attendanceLeader')}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gold/20 px-2 py-0.5 text-[10.5px] font-extrabold text-navy"
+                  className="inline-flex min-w-0 shrink items-center gap-1 truncate rounded-full bg-gold/20 px-2 py-0.5 text-[10.5px] font-extrabold text-navy"
                 >
                   ★ {t('attendanceLeader')}
                 </span>
@@ -268,21 +281,30 @@ export default async function RosterPage({
                 </span>
               )}
             </span>
-            <span className="w-[110px] flex-none truncate text-[12.5px] font-bold text-navy/70">
-              {r.code ?? '—'}
-            </span>
+            {xemChiTiet && (
+              <span className="w-[110px] flex-none truncate text-[12.5px] font-bold text-navy/70">
+                {r.code ?? '—'}
+              </span>
+            )}
             <span className="min-w-0 flex-[1.4] truncate text-[12.5px] font-semibold text-grey-mid">
               {r.email}
             </span>
-            <span className="w-[100px] flex-none text-[12.5px] font-semibold text-grey-mid">
-              {ngayVN(r.dob)}
-            </span>
-            <span className="w-[110px] flex-none truncate text-[12.5px] font-semibold text-grey-mid">
-              {r.phone ?? '—'}
-            </span>
-            <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-grey-mid" title={r.note ?? ''}>
-              {r.note ?? '—'}
-            </span>
+            {xemChiTiet && (
+              <>
+                <span className="w-[100px] flex-none text-[12.5px] font-semibold text-grey-mid">
+                  {ngayVN(r.dob)}
+                </span>
+                <span className="w-[110px] flex-none truncate text-[12.5px] font-semibold text-grey-mid">
+                  {r.phone ?? '—'}
+                </span>
+                <span
+                  className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-grey-mid"
+                  title={r.note ?? ''}
+                >
+                  {r.note ?? '—'}
+                </span>
+              </>
+            )}
             <span className="grid w-[70px] flex-none place-items-center">
               {canManage && r.studentId && (
                 <form action={removeStudent}>

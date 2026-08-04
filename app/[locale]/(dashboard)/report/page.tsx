@@ -8,6 +8,7 @@ import {Link} from '@/i18n/navigation';
 import {DonutRing} from '@/components/charts/DonutRing';
 import {WeekPicker} from '@/components/report/WeekPicker';
 import {AREAS, buildAreaMeta, areaLabel} from '@/lib/areas';
+import {weekRangeVN} from '@/lib/dates';
 
 type WeekReportRow = {
   area: string;
@@ -88,8 +89,15 @@ export default async function ReportPage({
     counts[a.status] = (counts[a.status] ?? 0) + 1;
   });
   const yearByArea = new Map((yearRows ?? []).map((r) => [(r as YearProg).area, r as YearProg]));
-  const weeks = ((weeksData ?? []) as {week_label: string}[]).map((w) => w.week_label);
+  // Bộ chọn tuần nói bằng NGÀY, không bằng mã "W31-2026" (0083). Nhãn vẫn là khoá tra cứu cho
+  // child_week_report(), nhưng nó không còn là thứ phụ huynh phải đọc.
+  const dsTuan = (weeksData ?? []) as {week_label: string; week_start: string; week_end: string}[];
+  const weeks = dsTuan.map((w) => w.week_label);
   const week = weekParam && weeks.includes(weekParam) ? weekParam : weeks[0];
+  // Tuần mở sẵn có thể là một tuần ĐÃ QUA (danh sách chỉ gồm tuần con có việc). Trước đây không
+  // có gì nói ra, nên bố mẹ đọc số của tuần trước mà tưởng là tuần này.
+  const tuanNayISO = weekRangeVN().start;
+  const tuanDangXem = dsTuan.find((w) => w.week_label === week);
 
   // Đợt 2 (phụ thuộc tuần đã chọn): báo cáo tuần (WIG thắng/tổng + LM hoàn thành/tổng) + biên bản họp.
   let weekRows: WeekReportRow[] = [];
@@ -97,12 +105,23 @@ export default async function ReportPage({
   if (week) {
     const [{data: wr}, {data: mtg}] = await Promise.all([
       supabase.rpc('child_week_report', {s: childId, wk: week}),
-      supabase
-        .from('wig_meetings')
-        .select('results, commitments, next_actions')
-        .eq('student_id', childId)
-        .eq('week_label', week)
-        .maybeSingle(),
+      // TRA THEO NGÀY khi biết ngày (0080/0083). Nhãn tuần là ô CHỮ giáo viên sửa được, nên tra
+      // theo nhãn thì ai gõ lại thành "Tuần 31" là biên bản biến mất khỏi báo cáo của gia đình —
+      // lặng lẽ, và phụ huynh là người ít có khả năng phát hiện nhất. Nhãn chỉ còn là đường lùi
+      // cho biên bản cũ chưa có ngày.
+      tuanDangXem?.week_start
+        ? supabase
+            .from('wig_meetings')
+            .select('results, commitments, next_actions')
+            .eq('student_id', childId)
+            .eq('week_start', tuanDangXem.week_start)
+            .maybeSingle()
+        : supabase
+            .from('wig_meetings')
+            .select('results, commitments, next_actions')
+            .eq('student_id', childId)
+            .eq('week_label', week)
+            .maybeSingle(),
     ]);
     weekRows = (wr ?? []) as WeekReportRow[];
     meeting = (mtg ?? null) as Meeting | null;
@@ -111,9 +130,9 @@ export default async function ReportPage({
 
   const statuses = ['present', 'absent', 'late', 'excused'] as const;
   const statusColor: Record<string, string> = {
-    present: 'text-success',
+    present: 'text-success-dark',
     absent: 'text-status-bad',
-    late: 'text-warn',
+    late: 'text-warn-text',
     excused: 'text-grey-mid',
   };
 
@@ -136,10 +155,7 @@ export default async function ReportPage({
       <div className="glass animate-rise rounded-[26px] p-6 sm:p-7">
         <div className="flex flex-wrap items-start gap-4">
           <div className="min-w-0">
-            <div className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gold-text">
-              {t('title')}
-            </div>
-            <h1 className="mt-0.5 font-display text-[27px] font-bold leading-tight text-navy">
+            <h1 className="font-display text-[27px] font-bold leading-tight text-navy">
               {child?.full_name ?? t('child')}
             </h1>
             {cls && (
@@ -168,8 +184,18 @@ export default async function ReportPage({
                 ))}
               </div>
             )}
-            {weeks.length > 0 && week && (
-              <WeekPicker weeks={weeks} current={week} label={t('selectWeek')} />
+            {dsTuan.length > 0 && week && (
+              <WeekPicker
+                weeks={dsTuan.map((w) => ({
+                  label: w.week_label,
+                  start: w.week_start,
+                  end: w.week_end,
+                  laTuanNay: w.week_start === tuanNayISO,
+                }))}
+                current={week}
+                label={t('selectWeek')}
+                nowTag={t('thisWeek')}
+              />
             )}
             <span className="text-[10.5px] font-semibold italic text-grey-mid">{t('readOnly')}</span>
           </div>
@@ -189,13 +215,29 @@ export default async function ReportPage({
             </div>
           ))}
         </div>
+        {/* NÓI RÕ BỐN Ô NÀY KHÔNG THEO TUẦN.
+            Chúng nằm ngay dưới bộ chọn tuần, nên bố mẹ bấm đổi tuần rồi nhìn xuống thấy số không
+            nhúc nhích — và kết luận app hỏng. Con số vẫn đúng, chỉ là nó trả lời một câu hỏi khác. */}
+        <p className="mt-2 text-[11.5px] font-semibold italic leading-relaxed text-grey-mid">
+          {t('attendanceNote')}
+        </p>
       </section>
 
       {/* Kết quả tuần được chọn: WIG thắng/tổng + LM hoàn thành/tổng theo 4 lĩnh vực */}
       <section>
-        <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
+        <h2 className="mb-3 flex flex-wrap items-baseline gap-x-2 font-display text-[17px] font-bold text-navy">
           {t('weekResult')}
-          {week ? ` · ${week}` : ''}
+          {tuanDangXem && (
+            <span className="text-[13px] font-bold text-grey-mid">
+              {tuanDangXem.week_start.slice(8, 10)}/{tuanDangXem.week_start.slice(5, 7)} →{' '}
+              {tuanDangXem.week_end.slice(8, 10)}/{tuanDangXem.week_end.slice(5, 7)}
+            </span>
+          )}
+          {tuanDangXem && tuanDangXem.week_start !== tuanNayISO && (
+            <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[11px] font-extrabold text-grey-mid">
+              {t('pastWeek')}
+            </span>
+          )}
         </h2>
         {weeks.length === 0 ? (
           <p className="text-xs italic text-grey-mid">{t('noWeeks')}</p>

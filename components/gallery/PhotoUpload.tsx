@@ -169,7 +169,7 @@ export function PhotoUpload({
           {loi}
         </p>
       )}
-      {xong && <p className="mt-2 text-[13px] font-bold text-success">{xong}</p>}
+      {xong && <p className="mt-2 text-[13px] font-bold text-success-dark">{xong}</p>}
     </div>
   );
 }

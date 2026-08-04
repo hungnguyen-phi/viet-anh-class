@@ -4,10 +4,11 @@ import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
-import {friendlyError} from '@/lib/errors';
+import {friendlyError, loi, tachLoi} from '@/lib/errors';
 
 function flash(classId: string, msg: string): never {
-  redirect(`/timetable?class=${encodeURIComponent(classId)}&flash=${encodeURIComponent(msg)}`);
+  const g = tachLoi(msg);
+  redirect(`/timetable?class=${encodeURIComponent(classId)}&${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
 }
 
 // Hiệu trưởng nằm trong danh sách: ở trường thật, THỜI KHOÁ BIỂU do ban giám hiệu xếp, giáo
@@ -44,7 +45,7 @@ export async function saveSlot(formData: FormData) {
       {onConflict: 'class_id,day_of_week,period_no'},
     );
   revalidatePath('/[locale]/timetable', 'page');
-  flash(class_id, error ? friendlyError(error) : 'Đã lưu ô thời khoá biểu');
+  flash(class_id, error ? loi(friendlyError(error)) : 'Đã lưu ô thời khoá biểu');
 }
 
 // Gieo cả bộ môn của cơ sở vào chương trình lớp (class_subjects), để ô chọn môn thôi rỗng.
@@ -61,7 +62,7 @@ export async function seedSubjects(formData: FormData) {
   revalidatePath('/[locale]/timetable', 'page');
   flash(
     class_id,
-    error ? friendlyError(error) : `Đã thêm ${data ?? 0} môn vào chương trình của lớp`,
+    error ? loi(friendlyError(error)) : `Đã thêm ${data ?? 0} môn vào chương trình của lớp`,
   );
 }
 
@@ -106,7 +107,7 @@ export async function saveOverride(formData: FormData) {
     {onConflict: 'slot_id,date'},
   );
   revalidatePath('/[locale]/timetable', 'page');
-  flash(class_id, error ? friendlyError(error) : 'Đã lưu thay đổi lịch');
+  flash(class_id, error ? loi(friendlyError(error)) : 'Đã lưu thay đổi lịch');
 }
 
 export async function deleteOverride(formData: FormData) {
@@ -116,7 +117,7 @@ export async function deleteOverride(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.from('timetable_overrides').delete().eq('id', id);
   revalidatePath('/[locale]/timetable', 'page');
-  flash(class_id, error ? friendlyError(error) : 'Đã gỡ thay đổi, tiết trở lại bình thường');
+  flash(class_id, error ? loi(friendlyError(error)) : 'Đã gỡ thay đổi, tiết trở lại bình thường');
 }
 
 export async function deleteSlot(formData: FormData) {
@@ -126,5 +127,5 @@ export async function deleteSlot(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.from('timetable_slots').delete().eq('id', id);
   revalidatePath('/[locale]/timetable', 'page');
-  flash(class_id, error ? friendlyError(error) : 'Đã xoá ô');
+  flash(class_id, error ? loi(friendlyError(error)) : 'Đã xoá ô');
 }

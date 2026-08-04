@@ -4,7 +4,7 @@ import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
-import {friendlyError} from '@/lib/errors';
+import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {isMealSlot} from '@/components/menu/MealMeta';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -15,7 +15,8 @@ function menuFlash(campusId: string, week: string, msg: string): never {
   const q = new URLSearchParams();
   if (campusId) q.set('campus', campusId);
   if (week) q.set('week', week);
-  q.set('flash', msg);
+  const g = tachLoi(msg);
+  q.set(g.laLoi ? 'flash_err' : 'flash', g.msg);
   redirect(`/menu?${q.toString()}`);
 }
 
@@ -65,7 +66,7 @@ export async function saveMenu(formData: FormData) {
     .select('date');
 
   lamMoiCacTrang();
-  if (error) menuFlash(campusId, week, friendlyError(error));
+  if (error) menuFlash(campusId, week, loi(friendlyError(error)));
   // .select() để phân biệt "RLS chặn" với "đã lưu xong" — không báo thành công giả.
   if (!data || data.length === 0)
     menuFlash(campusId, week, 'Không lưu được — bạn không có quyền nhập thực đơn cho cơ sở này.');
@@ -94,7 +95,7 @@ export async function deleteMenu(formData: FormData) {
     .select('date');
 
   lamMoiCacTrang();
-  if (error) menuFlash(campusId, week, friendlyError(error));
+  if (error) menuFlash(campusId, week, loi(friendlyError(error)));
   menuFlash(
     campusId,
     week,
