@@ -21,6 +21,15 @@ import path from 'node:path';
 import {createClient} from '@supabase/supabase-js';
 
 const BASE = process.argv[2] ?? 'http://localhost:6871';
+// Tên miền của vé đăng nhập phải LẤY TỪ BASE, không đóng cứng.
+//
+// Bản đầu ghi thẳng `domain: 'localhost'`. Chạy lên production thì cookie gắn nhầm tên miền,
+// KHÔNG có phiên, và mọi trang lặng lẽ rơi về /login — bộ kiểm vẫn chạy, vẫn ra số, chỉ là nó
+// đang đo trang đăng nhập mười bảy lần. Lần này nó báo đỏ nên lộ ra; nếu trang đăng nhập tình cờ
+// sạch thì nó đã báo XANH cho một phép đo chưa từng chạm tới trang nào.
+const URL_BASE = new URL(BASE);
+const TEN_MIEN = URL_BASE.hostname;
+const LA_HTTPS = URL_BASE.protocol === 'https:';
 const RONG = Number(process.argv[3] ?? 360);
 const CAO = 800;
 // Cổng NGẪU NHIÊN: cổng cố định làm hai lượt chạy nối nhau tranh nhau, lượt sau không mở
@@ -169,13 +178,22 @@ for (const [vai, duong] of TRANG) {
   if (vai !== vaiCu) {
     const [n, v] = ve[vai].split('=');
     await goi('Network.clearBrowserCookies');
-    await goi('Network.setCookie', {name: n, value: v, domain: 'localhost', path: '/'});
+    await goi('Network.setCookie', {name: n, value: v, domain: TEN_MIEN, path: '/', secure: LA_HTTPS});
     vaiCu = vai;
   }
   const xong = new Promise((ok) => nghe('Page.loadEventFired', ok));
   await goi('Page.navigate', {url: BASE + duong});
   await xong;
   await new Promise((r) => setTimeout(r, 2200)); // chờ RSC stream xong
+  const {result: rUrl} = await goi('Runtime.evaluate', {expression: 'location.pathname', returnByValue: true});
+  // Rơi về /login = vé đăng nhập không ăn. Dừng ngay, đừng đo tiếp mười sáu trang đăng nhập.
+  if (/\/login$/.test(rUrl.value) && !/\/login$/.test(duong)) {
+    console.log(`SAI  Vé đăng nhập không ăn: ${duong} [${vai}] bị đẩy về ${rUrl.value}.`);
+    console.log('     Kiểm lại tên miền cookie / đồng hồ máy / vé đã hết hạn chưa.');
+    sock.close();
+    donDep();
+    process.exit(1);
+  }
   const {result} = await goi('Runtime.evaluate', {expression: DO, returnByValue: true});
   const k = result.value;
   const nhan = `${duong} [${vai}]`;
