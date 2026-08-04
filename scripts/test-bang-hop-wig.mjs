@@ -30,14 +30,15 @@ const check = (ten, ok, ghi = '') => {
 const table = readFileSync('components/wig/MeetingTable.tsx', 'utf8');
 const act = readFileSync('app/[locale]/(dashboard)/meeting/actions.ts', 'utf8');
 
-// ── 1. Cột "Tuần trước" phải ghép theo TÊN việc ──
-// Mỗi tuần GVCN tạo một WIG tuần mới với bộ lead measure riêng, uuid mới hoàn toàn. Ghép hai tuần
-// bằng lead_measure_id thì không dòng nào khớp — cột hiện "—" ở MỌI dòng, MỌI tuần, tức cột quan
-// trọng nhất của bảng chưa bao giờ chạy. Tệ hơn "—" đọc thành "tuần trước không có việc này".
+// ── 1. Bảng chỉ hiện số của TUẦN ĐANG TỔNG KẾT ──
+//
+// Bản đầu có thêm cột "Tuần trước" để đối chiếu; chủ dự án chốt bỏ (2026-08-04): buổi họp bàn về
+// một tuần, trộn số tuần khác vào chỉ làm rối. Cột ấy cũng từng hỏng vì ghép theo lead_measure_id
+// — mỗi tuần một bộ id mới nên không dòng nào khớp, cột hiện "—" ở mọi dòng.
 check(
-  'Cột "Tuần trước" ghép theo TÊN việc, không theo id',
-  /truocByTen\.get\(chuanTen\(r\.title\)\)/.test(table),
-  /truocById/.test(table) ? 'vẫn còn map theo id' : '',
+  'Bảng chỉ hiện số của tuần đang tổng kết',
+  /colResult/.test(table) && !/colLastWeek/.test(table) && !/truocByTen|truocById/.test(table),
+  /truocByTen|truocById/.test(table) ? 'vẫn còn map tuần trước' : '',
 );
 
 // ── 2. Chỉ xoá ghi nhận mà người bấm Lưu ĐÃ NHÌN THẤY ──
@@ -106,7 +107,11 @@ check('Có nút "chưa chấm" để gỡ khi bấm nhầm', /verdictNone/.test(
       /Cầm bảng này mà họp/.test(html) && /name="verdict_/.test(html) && /name="note_/.test(html),
       `tuần ${monday}`,
     );
-    check('Bảng có cột Tuần trước và ô Rút ra', /Tuần trước/.test(html) && /Rút ra điều gì/.test(html), '');
+    check(
+      'Bảng nói rõ đang tổng kết tuần nào, và có ô Rút ra',
+      /Đang tổng kết tuần W\d{2}-\d{4}/.test(html) && /Rút ra điều gì/.test(html),
+      '',
+    );
   }
 }
 

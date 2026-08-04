@@ -41,10 +41,13 @@ export async function saveMeetingNotes(formData: FormData) {
   // trang sau), nên đoán mò là ném người ta sang một trang khác — đúng lỗi deleteMeeting vừa
   // phải sửa hôm qua vì cùng lý do.
   const tuTrang = String(formData.get('from') ?? '') === 'meeting' ? '/meeting' : '/wig';
+  const hop = String(formData.get('hop') ?? '');
   const back = (msg: string): never => {
     const q = new URLSearchParams();
     if (class_id) q.set('class', class_id);
     if (week && tuTrang === '/wig') q.set('week', week);
+    // Giữ cả tuần đang TỔNG KẾT: lưu xong mà bật về tuần vừa xong thì người ta mất chỗ đang dở.
+    if (hop && tuTrang === '/wig') q.set('hop', hop);
     q.set('flash', msg);
     redirect(`${tuTrang}?${q.toString()}`);
   };

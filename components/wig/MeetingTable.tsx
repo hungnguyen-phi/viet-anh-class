@@ -39,15 +39,21 @@ type NoteRow = {lead_measure_id: string; verdict: string | null; note: string | 
 export async function MeetingTable({
   classId,
   weekStart,
+  weekLabel,
   weekParam,
+  hopParam,
   canManage,
   tuTrang = 'wig',
 }: {
   classId: string;
-  // Thứ Hai của tuần đang họp (đã chuẩn hoá ở trang /wig).
+  // Thứ Hai của tuần ĐANG TỔNG KẾT.
   weekStart: string;
-  // Rỗng nếu đang ở tuần hiện tại — chỉ để server action quay về đúng chỗ.
+  // Nhãn tuần ấy, để tiêu đề cột nói rõ đang xem số của tuần nào.
+  weekLabel: string;
+  // Tuần đang xem của trang (thanh ← → ở trên) — chỉ để server action quay về đúng chỗ.
   weekParam?: string;
+  // Tuần đang tổng kết, rỗng nếu là tuần vừa xong — cũng chỉ để quay về đúng chỗ.
+  hopParam?: string;
   canManage: boolean;
   // Bảng nhúng ở cả /wig lẫn /meeting; lưu xong phải quay về đúng trang vừa đứng.
   tuTrang?: 'wig' | 'meeting';
@@ -55,16 +61,14 @@ export async function MeetingTable({
   const t = await getTranslations('meeting');
   const supabase = await createClient();
 
-  // Tuần trước = lùi 7 ngày. Tính bằng UTC trên chuỗi đã chuẩn hoá, không qua múi giờ lần nữa.
-  const truoc = new Date(`${weekStart}T00:00:00Z`);
-  truoc.setUTCDate(truoc.getUTCDate() - 7);
-  const weekTruoc = truoc.toISOString().slice(0, 10);
-
-  // Ba truy vấn độc lập → chạy song song. class_lead_board đã lọc sẵn theo tuần và nhân hệ số
+  // Hai truy vấn độc lập → chạy song song. class_lead_board đã lọc sẵn theo tuần và nhân hệ số
   // (0074/0076), nên đây đúng là con số học sinh nhìn thấy — không phải một cách tính thứ hai.
-  const [{data: nay}, {data: truocData}, {data: ghiChu}] = await Promise.all([
+  //
+  // CHỈ LẤY SỐ CỦA TUẦN ĐANG TỔNG KẾT. Bản đầu còn một cột "Tuần trước" để đối chiếu, nhưng chủ
+  // dự án chốt bỏ: buổi họp bàn về một tuần, trộn số tuần khác vào chỉ làm rối. (Cột ấy cũng từng
+  // hỏng vì ghép theo lead_measure_id — mỗi tuần một bộ id mới nên không dòng nào khớp.)
+  const [{data: nay}, {data: ghiChu}] = await Promise.all([
     supabase.rpc('class_lead_board', {p_class: classId, p_week_start: weekStart}),
-    supabase.rpc('class_lead_board', {p_class: classId, p_week_start: weekTruoc}),
     supabase
       .from('wig_meeting_notes')
       .select('lead_measure_id, verdict, note')
@@ -75,18 +79,6 @@ export async function MeetingTable({
   const rows = (nay ?? []) as BoardRow[];
   if (rows.length === 0) return null;
 
-  // GHÉP TUẦN TRƯỚC THEO TÊN VIỆC, KHÔNG THEO ID.
-  //
-  // Mỗi WIG tuần có bộ lead measure riêng của nó — tuần này một dòng "Đọc sách", tuần trước một
-  // dòng "Đọc sách" khác, hai id khác nhau hoàn toàn. Bản đầu tôi map theo lead_measure_id, nên
-  // cột "Tuần trước" hiện "—" ở MỌI dòng, MỌI tuần: cột quan trọng nhất của bảng chưa bao giờ
-  // chạy. Tệ hơn, "—" đọc thành "tuần trước không có việc này", tức nói sai chứ không phải im.
-  //
-  // Ghép theo tên đã chuẩn hoá (bỏ khoảng trắng thừa, không phân biệt hoa thường) là cách khớp
-  // được mà không bắt giáo viên khai thêm quan hệ giữa hai tuần. Đổi tên việc giữa hai tuần thì
-  // mất khớp — chấp nhận: lúc đó nó ĐÚNG là một việc khác.
-  const chuanTen = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase();
-  const truocByTen = new Map(((truocData ?? []) as BoardRow[]).map((r) => [chuanTen(r.title), r]));
   const noteById = new Map(((ghiChu ?? []) as NoteRow[]).map((r) => [r.lead_measure_id, r]));
 
   const so = (r: BoardRow) => `${Number(r.class_total)}/${Number(r.target_value)} ${r.unit ?? ''}`;
@@ -144,18 +136,19 @@ export async function MeetingTable({
         <input type="hidden" name="week_start" value={weekStart} />
         <input type="hidden" name="week" value={weekParam ?? ''} />
         <input type="hidden" name="from" value={tuTrang} />
+        <input type="hidden" name="hop" value={hopParam ?? ''} />
 
         {/* Cuộn ngang trong khung riêng — trang không được cuộn ngang (luật của dự án). */}
         <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
           <table className="w-full min-w-[680px] border-collapse">
             <thead>
               <tr className="bg-navy/[0.03]">
-                {[t('colWork'), t('colLastWeek'), t('colThisWeek'), t('colVerdict'), t('colLesson')].map(
+                {[t('colWork'), t('colResult', {week: weekLabel}), t('colVerdict'), t('colLesson')].map(
                   (h, i) => (
                     <th
                       key={h}
                       className={`px-3 py-2 text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid ${
-                        i >= 1 && i <= 3 ? 'text-center' : 'text-left'
+                        i >= 1 && i <= 2 ? 'text-center' : 'text-left'
                       } ${i === 0 ? 'sticky left-0 z-10 bg-white' : ''}`}
                     >
                       {h}
@@ -166,7 +159,6 @@ export async function MeetingTable({
             </thead>
             <tbody>
               {rows.map((r) => {
-                const tr = truocByTen.get(chuanTen(r.title));
                 const gc = noteById.get(r.lead_measure_id);
                 return (
                   <tr key={r.lead_measure_id} className="border-t border-navy/[0.07] align-top">
@@ -178,11 +170,6 @@ export async function MeetingTable({
                       <span className="mt-0.5 block text-[11px] font-semibold text-grey-mid">
                         {t('joinedCount', {n: Number(r.contributors), total: Number(r.class_size)})}
                       </span>
-                    </td>
-                    <td className="px-3 py-2.5 text-center text-[12.5px] font-semibold tabular-nums text-grey-mid">
-                      {/* Việc mới đặt tuần này thì tuần trước không có gì — nói "—" chứ đừng hiện
-                          0/0, vì 0/0 đọc thành "tuần trước không ai làm gì". */}
-                      {tr ? so(tr) : '—'}
                     </td>
                     <td className="px-3 py-2.5 text-center text-[13px] font-extrabold tabular-nums text-navy">
                       {so(r)}

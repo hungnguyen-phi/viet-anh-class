@@ -1,4 +1,6 @@
 import {getTranslations} from 'next-intl/server';
+import {ChevronLeft, ChevronRight, RotateCcw} from 'lucide-react';
+import {Link} from '@/i18n/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {btnIconDanger} from '@/components/ui/Field';
@@ -7,7 +9,6 @@ import {MeetingTable, LoiHuaTuanTruoc} from '@/components/wig/MeetingTable';
 import {isoWeekLabel, vnNoon} from '@/lib/dates';
 import {MeetingForm} from '@/app/[locale]/(dashboard)/meeting/MeetingForm';
 import {deleteMeeting} from '@/app/[locale]/(dashboard)/meeting/actions';
-import {setTickLockDow} from '@/app/[locale]/(dashboard)/wig/actions';
 
 type Meeting = {
   id: string;
@@ -31,6 +32,11 @@ function luiMotTuan(monday: string): string {
   d.setUTCDate(d.getUTCDate() - 7);
   return d.toISOString().slice(0, 10);
 }
+function tienMotTuan(monday: string): string {
+  const d = new Date(`${monday}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 7);
+  return d.toISOString().slice(0, 10);
+}
 
 export async function ClassMeetingSection({
   classId,
@@ -40,11 +46,16 @@ export async function ClassMeetingSection({
   weekStart,
   weekEnd,
   weekParam,
+  hopParam,
+  laTuanVuaXong = true,
   tuTrang = 'wig',
-  tickLockDow,
 }: {
   classId: string;
   weekLabel: string;
+  // Thứ Hai của tuần đang TỔNG KẾT, rỗng nếu là tuần vừa xong (mặc định). Chỉ để dựng liên kết.
+  hopParam?: string;
+  // Đang tổng kết đúng tuần vừa kết thúc hay đã đi lạc sang tuần khác.
+  laTuanVuaXong?: boolean;
   // Trang đang nhúng khối này — để lưu xong quay về đúng chỗ (/wig hay /meeting).
   tuTrang?: 'wig' | 'meeting';
   // Hai đầu mốc của tuần đang xem — bảng điểm họp lọc theo NGÀY chứ không theo nhãn chữ.
@@ -55,11 +66,21 @@ export async function ClassMeetingSection({
   // Thứ Hai của tuần đang xem, rỗng nếu là tuần hiện tại (xem WeekNav). Chỉ để mang theo ?week=
   // khi server action redirect về /wig — không có thì lưu ngày chốt xong là bật về tuần này.
   weekParam?: string;
-  // Ngày chốt tick của tuần (0046) — hiện ngay cạnh nhịp họp vì hai thứ đi liền nhau.
-  tickLockDow: number;
 }) {
   const t = await getTranslations('meeting');
   const supabase = await createClient();
+
+  // Liên kết đổi tuần họp: giữ nguyên ?class và ?week (tuần đang xem của trang), chỉ đổi ?hop.
+  // Khối này chỉ nhúng ở /wig — trang /meeting không có thanh chọn nên `weekStart` bên đó là tuần
+  // hiện tại và không dựng ra liên kết nào (xem điều kiện `weekStart &&` ở dưới).
+  const linkHop = (m: string) => ({
+    pathname: '/wig' as const,
+    query: {
+      ...(classParam ? {class: classParam} : {}),
+      ...(weekParam ? {week: weekParam} : {}),
+      ...(m ? {hop: m} : {}),
+    },
+  });
 
   const {data} = await supabase
     .from('wig_meetings')
@@ -71,37 +92,51 @@ export async function ClassMeetingSection({
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="font-display text-[15px] font-bold text-navy">{t('title')}</h2>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="font-display text-[15px] font-bold text-navy">{t('title')}</h2>
+        {weekStart && (
+          <>
+            {/* Thanh chọn TUẦN ĐANG TỔNG KẾT — riêng với thanh ← → của trang. Buổi họp bàn về
+                tuần vừa xong, còn thanh trên dùng để soạn mục tiêu cho tuần tới; hai việc thường
+                làm cùng một buổi nhưng nhìn vào hai tuần khác nhau. */}
+            <Link
+              href={linkHop(luiMotTuan(weekStart))}
+              className="grid h-7 w-7 place-items-center rounded-[9px] border-[1.5px] border-navy/20 bg-white text-navy transition-all hover:border-navy"
+              aria-label={t('prevWeek')}
+            >
+              <ChevronLeft size={15} strokeWidth={2.5} />
+            </Link>
+            <span className="text-[12.5px] font-extrabold text-navy">
+              {t('summarising', {week: weekLabel})}
+            </span>
+            <span className="text-[11.5px] font-semibold tabular-nums text-grey-mid">
+              {weekStart.slice(8, 10)}/{weekStart.slice(5, 7)} → {weekEnd?.slice(8, 10)}/
+              {weekEnd?.slice(5, 7)}
+            </span>
+            <Link
+              href={linkHop(tienMotTuan(weekStart))}
+              className="grid h-7 w-7 place-items-center rounded-[9px] border-[1.5px] border-navy/20 bg-white text-navy transition-all hover:border-navy"
+              aria-label={t('nextWeek')}
+            >
+              <ChevronRight size={15} strokeWidth={2.5} />
+            </Link>
+            {!laTuanVuaXong && (
+              <Link
+                href={linkHop('')}
+                className="inline-flex items-center gap-1 rounded-full bg-navy/[0.06] px-2.5 py-1 text-[11px] font-extrabold text-navy transition-all hover:bg-navy/[0.12]"
+              >
+                <RotateCcw size={11} strokeWidth={2.5} />
+                {t('backToLastWeek')}
+              </Link>
+            )}
+          </>
+        )}
+      </div>
 
-      {/* Ngày chốt tick: học sinh tự sửa tick cả tuần, tới ngày này thì khoá để họp đọc số đã chốt */}
-      {canManage && (
-        <form action={setTickLockDow} className="glass flex flex-wrap items-center gap-2 rounded-[16px] p-3.5">
-          <input type="hidden" name="class_id" value={classId} />
-          <input type="hidden" name="week" value={weekParam ?? ''} />
-          <span className="text-[12.5px] font-extrabold text-navy">{t('lockDow')}</span>
-          <select
-            name="tick_lock_dow"
-                aria-label="Ngày chốt tick"
-            defaultValue={String(tickLockDow)}
-            className="cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 py-2 text-[13px] font-semibold text-navy outline-none focus:border-navy"
-          >
-            {DOW.map((d) => (
-              <option key={d} value={d}>
-                {DOW_LABEL[d - 1]}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="h-9 cursor-pointer rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12px] font-extrabold text-navy hover:border-navy"
-          >
-            {t('lockSave')}
-          </button>
-          <span className="min-w-[220px] flex-1 text-[11.5px] font-semibold italic text-grey-mid">
-            {t('lockHint')}
-          </span>
-        </form>
-      )}
+      {/* Ô "Chốt tick tuần vào [thứ]" ĐÃ BỎ (0081).
+          Nó bắt giáo viên đoán trước ngày họp rồi khai vào một ô cấu hình, và đoán sai thì hoặc
+          khoá sớm khi lớp chưa họp, hoặc vẫn mở khi đã họp xong. Nay mốc chốt gắn với việc THẬT
+          SỰ XẢY RA: ghi nhận buổi họp cho tuần nào thì tick tuần ấy khoá lại. Không phải khai gì. */}
 
       {/* PRD Màn 5: "cầm scoreboard mà họp" — WIG tuần/lead của lớp tuần này */}
       <MeetingScoreboard
@@ -125,7 +160,9 @@ export async function ClassMeetingSection({
         <MeetingTable
           classId={classId}
           weekStart={weekStart}
+          weekLabel={weekLabel}
           weekParam={weekParam}
+          hopParam={hopParam}
           canManage={canManage}
           tuTrang={tuTrang}
         />

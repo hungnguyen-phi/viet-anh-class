@@ -66,7 +66,6 @@ export default async function MeetingPage({
         tuTrang="meeting"
         canManage={canManage}
         classParam={classParam}
-        tickLockDow={myClass.tick_lock_dow}
       />
     </div>
   );

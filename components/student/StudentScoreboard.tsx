@@ -429,9 +429,16 @@ export async function StudentScoreboard({
   }
 
 
-  // Tuần còn mở cho sửa hay đã chốt — phải khớp luật RLS ở 0046: trong tuần, không quá hôm nay,
-  // và hôm nay chưa qua ngày chốt của lớp. (weekDays đã tính ở đầu hàm, cùng nguồn `today`.)
-  const tickOpen = isoDowVN(today) <= (cls?.tick_lock_dow ?? 7);
+  // Tuần còn mở cho sửa hay đã chốt — phải khớp luật RLS ở 0081: HỌP XONG LÀ CHỐT.
+  //
+  // Trước đây so hôm nay với `classes.tick_lock_dow`, một ngày giáo viên khai trước. Nay mốc chốt
+  // là việc thật sự xảy ra: lớp đã ghi nhận buổi họp cho tuần này thì thôi sửa tick. Hỏi đúng cái
+  // hàm mà RLS dùng, để màn hình không nói khác tầng chặn — bấm được rồi bị từ chối còn khó hiểu
+  // hơn là thấy nút xám ngay từ đầu.
+  const {data: daHop} = classId
+    ? await supabase.rpc('tuan_da_hop', {p_class: classId, d: today})
+    : {data: false};
+  const tickOpen = !daHop;
 
   // Tên lead measure theo id — dùng cho "việc hôm nay" của Buddy và cho nhãn yêu cầu-sửa.
   const leadTitleById = new Map(tickerLeads.map((l) => [l.id, l.title]));

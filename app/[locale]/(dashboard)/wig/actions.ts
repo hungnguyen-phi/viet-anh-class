@@ -30,30 +30,8 @@ function weekOf(formData: FormData): string | undefined {
   return String(formData.get('week') ?? '') || undefined;
 }
 
-// Ngày CHỐT tick của tuần (0046). Học sinh tự tick/gỡ/tick bù cả tuần, tới ngày này thì khoá để
-// buổi họp WIG đọc số liệu đã chốt. 1=T2 … 7=CN (mặc định 7 = mở suốt tuần).
-// Lớp họp thứ Bảy thì đặt 5 (thứ Sáu). RLS lp_student_* đọc cột này qua tick_open().
-export async function setTickLockDow(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
-  const class_id = String(formData.get('class_id') ?? '');
-  const week = weekOf(formData);
-  // Kiểu `never` tường minh TRÊN BIẾN, không chỉ trên hàm mũi tên: thiếu nó thì sau
-  // `if (!x) flash(...)` TypeScript vẫn nghĩ code chạy tiếp và không thu hẹp kiểu.
-  const flash: (m: string) => never = (m) => flashTo(m, class_id, week);
-  const dow = Number(formData.get('tick_lock_dow') ?? 0);
-  if (!class_id || !Number.isInteger(dow) || dow < 1 || dow > 7) flash('Ngày chốt không hợp lệ');
-  const supabase = await createClient();
-  // .select() để phân biệt "RLS chặn" với "đã lưu" — không báo thành công giả.
-  const {data, error} = await supabase
-    .from('classes')
-    .update({tick_lock_dow: dow})
-    .eq('id', class_id)
-    .select('id');
-  revalidatePath('/[locale]/wig', 'page');
-  revalidatePath('/[locale]/student', 'page');
-  if (error) flash(friendlyError(error));
-  flash(data && data.length ? 'Đã lưu ngày chốt tuần' : 'Không lưu được (không có quyền).');
-}
+// setTickLockDow ĐÃ BỎ (0081). Mốc chốt tick nay không phải một ngày giáo viên khai trước, mà là
+// việc thật sự xảy ra: ghi nhận buổi họp cho tuần nào thì tick tuần ấy khoá lại.
 
 // State trả về cho useActionState → hiện lỗi/thành công INLINE (không redirect, giữ nguyên input).
 export type CreateWigState = {

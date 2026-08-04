@@ -2217,6 +2217,7 @@ export type Database = {
         }[]
       }
       thu_hai_tu_nhan: { Args: { nhan: string }; Returns: string }
+      tuan_da_hop: { Args: { d: string; p_class: string }; Returns: boolean }
       can_manage_class_cover: { Args: { p_name: string }; Returns: boolean }
       can_manage_class_photo: { Args: { p_name: string }; Returns: boolean }
       can_manage_student_email: { Args: { p_email: string }; Returns: boolean }

@@ -29,6 +29,7 @@ import {
   vnNoon,
   weekFromMonday,
   weekOptions,
+  shiftWeeks,
 } from '@/lib/dates';
 import {WeekNav} from '@/components/wig/WeekNav';
 import {ClassMeetingSection} from '@/components/wig/ClassMeetingSection';
@@ -83,6 +84,7 @@ export default async function WigPage({
     editWig?: string;
     editLead?: string;
     week?: string;
+    hop?: string;
   }>;
 }) {
   const {locale} = await params;
@@ -92,6 +94,7 @@ export default async function WigPage({
     editWig: editWigId,
     editLead: editLeadId,
     week: weekParam,
+    hop: hopParam,
   } = await searchParams;
   setRequestLocale(locale);
   const profile = await requireRole(['teacher', 'admin']);
@@ -133,6 +136,20 @@ export default async function WigPage({
   // Chỉ đính ?week= khi ĐANG XEM tuần khác. Ở tuần hiện tại thì URL và các form giữ nguyên như
   // trước — không kéo theo một tuần đông cứng vào mọi thao tác sau đó.
   const weekQ = laTuanNay ? '' : monday;
+
+  // ── TUẦN ĐANG TỔNG KẾT (khác tuần đang xem) ───────────────────────────────────────────────
+  //
+  // Buổi họp WIG diễn ra cuối tuần hoặc đầu tuần sau, và nó tổng kết TUẦN VỪA XONG. Bản đầu tôi
+  // cho khối họp bám theo thanh ← → của trang, nên sáng thứ Hai giáo viên mở ra thấy cột chính
+  // hiện 0/30 — tuần mới chưa ai tick — còn số thật cần bàn thì nằm ở cột phụ. Nhìn ngược hẳn.
+  //
+  // Nay hai thứ tách nhau, vì đúng là hai việc khác nhau thường làm trong cùng một buổi ngồi:
+  // SOẠN mục tiêu cho tuần tới (thanh ← → ở trên) và TỔNG KẾT tuần vừa qua (khối họp).
+  // Mặc định lùi một tuần so với HÔM NAY, không phải so với tuần đang xem — đi xem WIG tháng
+  // trước không có nghĩa là muốn họp lại tháng trước.
+  const hopMonday = isValidDayVN(hopParam) ? mondayOf(hopParam as string) : shiftWeeks(thisMonday, -1);
+  const hopWk = weekFromMonday(hopMonday);
+  const hopQ = hopMonday === shiftWeeks(thisMonday, -1) ? '' : hopMonday;
 
   // WIG + tiến độ chỉ phụ thuộc myClass.id — chạy song song.
   // Kèm hai truy vấn cho khối "việc hằng ngày của học sinh": sĩ số đang học, và số em ĐÃ có WIG
@@ -727,15 +744,18 @@ export default async function WigPage({
 
       {/* Họp WIG lớp — gộp từ trang /meeting cũ vào đây, đặt NGAY TRÊN (không chôn ở đáy trang)
           vì nhịp họp tuần là thứ GVCN dùng thường xuyên nhất trong 4DX. */}
+      {/* Khối họp đi theo TUẦN ĐANG TỔNG KẾT (mặc định tuần vừa xong), không theo thanh ← → ở
+          trên. Xem ghi chú dài hơn ở chỗ tính hopMonday. */}
       <ClassMeetingSection
         classId={myClass.id}
-        weekLabel={wk.label}
-        weekStart={wk.start}
-        weekEnd={wk.end}
+        weekLabel={hopWk.label}
+        weekStart={hopWk.start}
+        weekEnd={hopWk.end}
+        laTuanVuaXong={hopMonday === shiftWeeks(thisMonday, -1)}
         canManage /* trang này đã requireRole(['teacher','admin']) nên ai vào được cũng quản lý được */
         classParam={classParam}
         weekParam={weekQ}
-        tickLockDow={myClass.tick_lock_dow ?? 7}
+        hopParam={hopQ}
       />
 
       {/* Việc chung của lớp: ai đã tick, đến đâu (0073). Đặt ngay dưới khối họp vì đây chính là

@@ -69,10 +69,12 @@ begin
     values (v_wig, 'ZZ_TEST việc', 5, 'buổi') returning id into v_lead;
   end if;
 
-  -- Một việc của LỚP KHÁC, để thử ghi chéo lớp.
+  -- Một việc của LỚP KHÁC BẤT KỲ, để thử ghi chéo lớp. Tìm theo "việc thuộc lớp nào đó khác
+  -- v_class" chứ không phải "việc của v_class2" — lớp đầu tiên khác v_class có thể chưa có việc
+  -- nào, và khi ấy phép kiểm im lặng bỏ qua rồi vẫn tự chấm ĐẠT.
   select lm.id into v_lead2
   from lead_measures lm join wigs w on w.id = lm.wig_id
-  where w.class_id = v_class2 limit 1;
+  where w.class_id is not null and w.class_id <> v_class limit 1;
 
   -- ── 1. Trigger chặn ghi chéo lớp ──
   -- RLS chỉ kiểm class_id của chính dòng đang ghi, mà class_id ấy do người gửi tự khai. Không có
@@ -86,7 +88,10 @@ begin
       insert into ket_qua values ('Chặn chấm việc của lớp khác', 'bị chặn', 'bị chặn', true);
     end;
   else
-    insert into ket_qua values ('Chặn chấm việc của lớp khác', 'bị chặn', 'không có lớp khác để thử', true);
+    -- Không thử được thì nói thẳng là CHƯA KIỂM, đừng tự chấm đạt: một phép kiểm luôn xanh còn
+    -- tệ hơn không có, vì nó làm mình tin là đã kiểm.
+    insert into ket_qua values
+      ('Chặn chấm việc của lớp khác', 'kiểm được', 'BỎ QUA — không lớp nào khác có việc để thử', false);
   end if;
 
   -- ── 2. verdict chỉ nhận win/lose ──
@@ -234,6 +239,50 @@ begin
   select 'thu_hai_tu_nhan(nhãn lạ) trả null, không đoán bừa',
          'null', coalesce(thu_hai_tu_nhan('Tuần 31')::text, 'null'),
          thu_hai_tu_nhan('Tuần 31') is null;
+end $$;
+
+-- ── 9. HỌP XONG LÀ CHỐT TICK (0081) ──
+--
+-- Thay ô "Chốt tick tuần vào [thứ]" của 0046. Ô ấy bắt giáo viên đoán trước ngày họp: đặt sớm thì
+-- khoá khi lớp chưa họp, đặt muộn thì họp xong tick vẫn chạy và con số vừa bàn đã đổi. Nay mốc
+-- chốt là việc thật sự xảy ra.
+--
+-- Kiểm bằng chính hàm mà RLS dùng, ở cả hai chiều: chưa họp thì mở, họp rồi thì chốt.
+do $$
+declare
+  v_class uuid;
+  v_lead  uuid;
+begin
+  select c.id into v_class from classes c where c.homeroom_teacher_id is not null limit 1;
+  select lm.id into v_lead from lead_measures lm join wigs w on w.id = lm.wig_id
+   where w.class_id = v_class and w.scope = 'class' limit 1;
+
+  -- Dọn sạch tuần thử để không dính ghi nhận của các bước trên.
+  delete from wig_meeting_notes where class_id = v_class and week_start = '2026-04-06';
+  delete from wig_meetings where class_id = v_class and week_start = '2026-04-06';
+
+  insert into ket_qua values
+    ('Chưa họp thì tick còn mở', 'mở', case when tuan_da_hop(v_class,'2026-04-08') then 'ĐÃ CHỐT' else 'mở' end,
+     not tuan_da_hop(v_class, '2026-04-08'));
+
+  -- Ghi nhận buổi họp cho tuần ấy (thứ Hai 06/04/2026).
+  if v_lead is not null then
+    insert into wig_meeting_notes (class_id, week_start, lead_measure_id, verdict)
+    values (v_class, '2026-04-06', v_lead, 'win');
+  else
+    insert into wig_meetings (class_id, week_label, week_start, results)
+    values (v_class, 'W15-2026', '2026-04-06', 'ZZ_TEST đã họp');
+  end if;
+
+  insert into ket_qua values
+    ('Họp xong thì tick chốt lại', 'đã chốt', case when tuan_da_hop(v_class,'2026-04-08') then 'đã chốt' else 'VẪN MỞ' end,
+     tuan_da_hop(v_class, '2026-04-08'));
+
+  -- Chốt đúng MỘT tuần, không lan sang tuần khác.
+  insert into ket_qua values
+    ('Chốt đúng tuần đó, tuần sau vẫn mở', 'mở',
+     case when tuan_da_hop(v_class,'2026-04-15') then 'CHỐT LAN SANG' else 'mở' end,
+     not tuan_da_hop(v_class, '2026-04-15'));
 end $$;
 
 -- Ba chốt chặn cho phần TẦNG ỨNG DỤNG (ghép cột tuần trước theo tên, chỉ xoá thứ đã nhìn thấy,

@@ -113,12 +113,26 @@ console.log(`Việc của WIG lớp thuộc tuần KHÁC: ${tenNgoai.length}\n`)
 }
 
 // ── 3. /wig — phải khớp trang chủ (cùng tuần hiện tại) ──
+//
+// CHỈ SOI DANH SÁCH WIG, bỏ hai cái BẢNG. Khối họp cố ý hiển thị tuần vừa xong (0081: buổi họp
+// tổng kết tuần đã kết thúc) và bảng tick cũng theo tuần riêng, nên tên việc của tuần khác xuất
+// hiện trong đó là đúng thiết kế. Dò cả trang thì phép kiểm báo lỗi cho hành vi cố ý.
+//
+// CẮT THEO CẤU TRÚC, KHÔNG THEO VỊ TRÍ. Đã thử cắt từ mốc chữ "Tạo WIG năm" và sai: Next.js
+// stream các server component nên thứ tự trong HTML thô KHÔNG theo thứ tự khai báo trong JSX —
+// khối họp nằm trên trong mã lại đến sau trong luồng. Danh sách WIG dùng <ul>/<li>, còn cả hai
+// bảng kia đều là <table>, nên bỏ <table> đi là còn đúng phần cần soi, bất kể thứ tự stream.
 {
-  const {html} = await get(`/wig?class=${lop.id}`, ckGv);
+  const {html: full} = await get(`/wig?class=${lop.id}`, ckGv);
+  const html = full.replace(/<table[\s\S]*?<\/table>/gi, '');
   const thieu = viecTuanNay.filter((t) => !html.includes(t));
   const lot = tenNgoai.filter((t) => html.includes(t));
   check('/wig hiện đủ việc của tuần này', thieu.length === 0, thieu.join(', '));
-  check('/wig KHÔNG hiện việc của tuần khác', lot.length === 0, lot.join(', '));
+  check(
+    '/wig KHÔNG hiện việc của tuần khác trong danh sách WIG',
+    lot.length === 0,
+    lot.length ? 'lọt: ' + lot.join(', ') : `${tenNgoai.length} việc tuần khác`,
+  );
 }
 
 // ── 4. Thanh tiến độ phải BẰNG số ô vàng — không được thắng bằng tick ngoài kỳ ──
