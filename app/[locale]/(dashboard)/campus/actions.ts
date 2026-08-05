@@ -5,7 +5,7 @@ import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
-import {SCHOOL_LEVELS, GRADE_NUMBERS, type SchoolLevel} from '@/lib/levels';
+import {SCHOOL_LEVELS, gradeNumbersFor, type SchoolLevel} from '@/lib/levels';
 
 // Quản lý giáo viên ở cấp CƠ SỞ, dành cho Hiệu trưởng (Admin làm việc này ở /admin).
 //
@@ -119,18 +119,21 @@ export async function setTeacherActive(formData: FormData) {
   );
 }
 
-// Khai cấp học cho cơ sở mình → DB sinh luôn bộ khối chuẩn của cấp đó.
-// Đi qua RPC set_my_campus_level (SECURITY DEFINER) chứ không UPDATE thẳng bảng campuses: HT
-// chỉ được đổi đúng cột `level` của đúng cơ sở mình, không đụng tên/mã/trạng thái lưu-trữ.
+// Khai cấp học cho cơ sở mình → DB sinh luôn bộ khối chuẩn của các cấp đó.
+// Đi qua RPC set_my_campus_levels (SECURITY DEFINER) chứ không UPDATE thẳng bảng campuses: HT chỉ
+// được đổi đúng cột `levels` của đúng cơ sở mình, không đụng tên/mã/trạng thái lưu-trữ.
 export async function setCampusLevel(formData: FormData) {
   await myCampus();
-  const level = String(formData.get('level') ?? '');
-  if (!SCHOOL_LEVELS.includes(level as SchoolLevel)) flash('Cấp học không hợp lệ');
+  // Nhiều ô tick cùng name="level" → getAll. Trường liên cấp khai được cả THCS lẫn THPT.
+  const levels = [...new Set(formData.getAll('level').map(String))].filter((lv) =>
+    SCHOOL_LEVELS.includes(lv as SchoolLevel),
+  ) as SchoolLevel[];
+  if (levels.length === 0) flash('Hãy chọn ít nhất một cấp học');
   const supabase = await createClient();
-  const {data, error} = await supabase.rpc('set_my_campus_level', {p_level: level as SchoolLevel});
+  const {data, error} = await supabase.rpc('set_my_campus_levels', {p_levels: levels});
   revalidatePath('/[locale]/campus', 'page');
   if (error) flash(loi(friendlyError(error)));
-  const nums = GRADE_NUMBERS[level as SchoolLevel];
+  const nums = gradeNumbersFor(levels);
   flash(
     nums
       ? `Đã đặt cấp học và tạo ${data ?? nums.length} khối: ${nums.map((n) => `Khối ${n}`).join(', ')}`

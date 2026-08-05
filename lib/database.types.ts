@@ -233,6 +233,7 @@ export type Database = {
           id: string
           is_active: boolean
           level: Database["public"]["Enums"]["school_level"] | null
+          levels: Database["public"]["Enums"]["school_level"][]
           name: string
         }
         Insert: {
@@ -241,6 +242,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           level?: Database["public"]["Enums"]["school_level"] | null
+          levels?: Database["public"]["Enums"]["school_level"][]
           name: string
         }
         Update: {
@@ -249,6 +251,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           level?: Database["public"]["Enums"]["school_level"] | null
+          levels?: Database["public"]["Enums"]["school_level"][]
           name?: string
         }
         Relationships: []
@@ -2400,6 +2403,10 @@ export type Database = {
         Args: { p_level: Database["public"]["Enums"]["school_level"] }
         Returns: number
       }
+      set_my_campus_levels: {
+        Args: { p_levels: Database["public"]["Enums"]["school_level"][] }
+        Returns: number
+      }
       set_my_mood: {
         Args: { p_mood: Database["public"]["Enums"]["mood_level"] }
         Returns: undefined
@@ -2408,6 +2415,10 @@ export type Database = {
       staff_can_read_class: { Args: { c: string }; Returns: boolean }
       standard_grade_numbers: {
         Args: { p_level: Database["public"]["Enums"]["school_level"] }
+        Returns: number[]
+      }
+      standard_grade_numbers_multi: {
+        Args: { p_levels: Database["public"]["Enums"]["school_level"][] }
         Returns: number[]
       }
       student_checkin: {

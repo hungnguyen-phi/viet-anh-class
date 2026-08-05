@@ -195,6 +195,28 @@ dat(
   );
 }
 
+// ── 14. Cơ sở liên cấp phải hiện ĐỦ các cấp ──────────────────────────────────────────────
+// Mô hình cũ chỉ chứa một cấp mỗi cơ sở, nên Việt Anh Gò Vấp dạy cả THCS lẫn THPT mà nhãn chỉ ghi
+// "THPT" — nói sai về chính dữ liệu ngay bên dưới nó. Đối chiếu thẳng với CSDL.
+{
+  const NHAN = {mam_non: 'Mầm non', tieu_hoc: 'Tiểu học', thcs: 'THCS', thpt: 'THPT'};
+  const {data: cs} = await admin
+    .from('campuses')
+    .select('name, levels')
+    .eq('is_active', true);
+  const lienCap = (cs ?? []).filter((c) => (c.levels ?? []).length > 1);
+  const thieu = lienCap.filter((c) => !(c.levels ?? []).every((lv) => goc.html.includes(NHAN[lv])));
+  dat(
+    thieu.length === 0,
+    'Cơ sở liên cấp hiện đủ các cấp trên nhãn',
+    lienCap.length === 0
+      ? 'chưa có cơ sở liên cấp nào, bỏ qua'
+      : `${lienCap.length} cơ sở liên cấp, thiếu nhãn ở ${thieu.length}`,
+  );
+  // Không còn ô chọn một-cấp kiểu cũ.
+  dat(!/<select[^>]*name="level"/.test(goc.html), 'Không còn ô chọn cấp học một-giá-trị');
+}
+
 for (const k of kq) console.log(k.ok ? 'OK  ' : 'SAI ', k.ten, k.ghi ? '— ' + k.ghi : '');
 const so = kq.filter((k) => k.ok).length;
 console.log(`\n${so}/${kq.length} đạt.`);

@@ -5,7 +5,7 @@ import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
-import {SCHOOL_LEVELS, GRADE_NUMBERS, hasNumberedGrades, type SchoolLevel} from '@/lib/levels';
+import {SCHOOL_LEVELS, gradeNumbersFor, hasNumberedGrades, type SchoolLevel} from '@/lib/levels';
 import type {Database} from '@/lib/database.types';
 
 type Role = Database['public']['Enums']['user_role'];
@@ -142,7 +142,10 @@ export async function createCampus(_prev: CampusState, formData: FormData): Prom
   await requireRole(['admin']);
   const name = String(formData.get('name') ?? '').trim();
   const code = String(formData.get('code') ?? '').trim();
-  const level = (String(formData.get('level') ?? '') || null) as SchoolLevel | null;
+  // Nhiều ô tick cùng name="level" → getAll. Trường liên cấp chọn được cả THCS lẫn THPT.
+  const levels = [...new Set(formData.getAll('level').map(String))].filter((lv) =>
+    SCHOOL_LEVELS.includes(lv as SchoolLevel),
+  ) as SchoolLevel[];
   // Giữ lại input để trả về khi có lỗi (không mất nội dung đã gõ).
   const values = {name, code};
 
@@ -150,15 +153,15 @@ export async function createCampus(_prev: CampusState, formData: FormData): Prom
   if (!code) return {ok: false, fieldError: 'code', error: 'Thiếu tên hoặc mã cơ sở', values};
   // Bắt buộc chọn cấp học: thiếu nó thì cơ sở không sinh được khối nào, và người dùng lại rơi
   // vào cảnh gõ tay tên khối — đúng thứ đang đi sửa.
-  if (!level || !SCHOOL_LEVELS.includes(level))
-    return {ok: false, fieldError: 'level', error: 'Hãy chọn cấp học của cơ sở', values};
+  if (levels.length === 0)
+    return {ok: false, fieldError: 'level', error: 'Hãy chọn ít nhất một cấp học của cơ sở', values};
 
   const supabase = await createClient();
-  const {error} = await supabase.from('campuses').insert({name, code, level});
+  const {error} = await supabase.from('campuses').insert({name, code, levels});
   if (error) return {ok: false, error: (friendlyError(error)), values};
 
   // Trigger campus_seed_grades đã sinh khối chuẩn theo cấp — báo luôn để khỏi đi tìm.
-  const nums = GRADE_NUMBERS[level];
+  const nums = gradeNumbersFor(levels);
   revalidatePath('/[locale]/admin', 'page');
   return {
     ok: true,
@@ -346,16 +349,18 @@ export async function updateCampus(formData: FormData) {
   const id = String(formData.get('id') ?? '');
   const name = String(formData.get('name') ?? '').trim();
   const code = String(formData.get('code') ?? '').trim();
-  const rawLevel = String(formData.get('level') ?? '');
-  const level = (rawLevel || null) as SchoolLevel | null;
+  const levels = [...new Set(formData.getAll('level').map(String))].filter((lv) =>
+    SCHOOL_LEVELS.includes(lv as SchoolLevel),
+  ) as SchoolLevel[];
   if (!id) flash('Thiếu cơ sở cần sửa');
   if (!name || !code) flash('Thiếu tên hoặc mã cơ sở');
-  if (level && !SCHOOL_LEVELS.includes(level)) flash('Cấp học không hợp lệ');
+  if (levels.length === 0) flash('Hãy chọn ít nhất một cấp học của cơ sở');
   const supabase = await createClient();
-  // Đổi cấp học → trigger campus_seed_grades sinh thêm khối chuẩn của cấp mới. KHÔNG xoá khối
-  // cũ (lớp có thể đang trỏ vào) — dọn là việc có ý thức của người quản trị.
-  const {error} = await supabase.from('campuses').update({name, code, level}).eq('id', id);
-  if (!error) await supabase.rpc('log_audit', {p_action: 'update_campus', p_detail: {campus: id, name, code, level}});
+  // Thêm cấp → trigger campus_seed_grades sinh thêm khối chuẩn của cấp mới. BỎ một cấp thì KHÔNG
+  // xoá khối cũ (lớp có thể đang trỏ vào) — dọn là việc có ý thức của người quản trị.
+  const {error} = await supabase.from('campuses').update({name, code, levels}).eq('id', id);
+  if (!error)
+    await supabase.rpc('log_audit', {p_action: 'update_campus', p_detail: {campus: id, name, code, levels}});
   revalidatePath('/[locale]/admin', 'page');
   revalidatePath('/[locale]/campus', 'page');
   flash(error ? loi(friendlyError(error)) : `Đã cập nhật cơ sở "${name}"`);
@@ -400,9 +405,11 @@ export async function createGrade(formData: FormData) {
   const supabase = await createClient();
   // Chặn ở SERVER chứ không chỉ giấu nút: cấp phổ thông có bộ khối cố định do DB sinh, thêm tay
   // là cách dữ liệu rác ("7", "k", "Khối"…) lọt vào lần trước.
-  const {data: campus} = await supabase.from('campuses').select('level').eq('id', campus_id).maybeSingle();
-  if (hasNumberedGrades(campus?.level))
-    flash('Cấp học này đã có bộ khối chuẩn do hệ thống sinh — không thêm khối bằng tay.');
+  const {data: campus} = await supabase.from('campuses').select('levels').eq('id', campus_id).maybeSingle();
+  // Chỉ khoá khi MỌI cấp của cơ sở đều đánh số khối. Cơ sở có mầm non thì phải gõ tay được
+  // (Nhà trẻ, Mầm, Chồi, Lá…) — khoá cứng theo một cấp sẽ chặn luôn phần ấy.
+  if (hasNumberedGrades(campus?.levels))
+    flash('Các cấp của cơ sở này đều có bộ khối chuẩn do hệ thống sinh — không thêm khối bằng tay.');
   const {error} = await supabase.from('grades').insert({campus_id, name, sort_order});
   if (!error) await supabase.rpc('log_audit', {p_action: 'create_grade', p_detail: {campus: campus_id, name}});
   revalidatePath('/[locale]/admin', 'page');

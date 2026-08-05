@@ -4,7 +4,8 @@ import {useActionState, useEffect, useRef, useState, type KeyboardEvent} from 'r
 import {useTranslations} from 'next-intl';
 import {CheckCircle2, AlertCircle} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {SCHOOL_LEVELS, GRADE_NUMBERS, type SchoolLevel} from '@/lib/levels';
+import {type SchoolLevel} from '@/lib/levels';
+import {LevelPicker} from './LevelPicker';
 import {createCampus} from './actions';
 
 // Lớp copy nguyên từ admin/page.tsx (goldBtn) + base input tách phần màu viền để tô đỏ khi lỗi.
@@ -23,7 +24,7 @@ export function CampusForm() {
 
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  const [level, setLevel] = useState<SchoolLevel | ''>('');
+  const [levels, setLevels] = useState<SchoolLevel[]>([]);
 
   // Tạo xong → xoá input để tạo tiếp cơ sở khác (giữ cấp học: các cơ sở cùng hệ thường cùng cấp).
   useEffect(() => {
@@ -67,36 +68,14 @@ export function CampusForm() {
         aria-invalid={state.fieldError === 'code'}
         className={`${codeBase} ${borderFor('code')}`}
       />
-      {/* Cấp học quyết định bộ Khối được sinh tự động ngay khi tạo cơ sở — nhờ vậy không ai
-          phải gõ tên khối và số thứ tự bằng tay nữa. */}
-      <select
-        name="level"
-                aria-label={t('level')}
-        value={level}
-        onChange={(e) => setLevel(e.target.value as SchoolLevel | '')}
-        aria-invalid={state.fieldError === 'level'}
-        className={`w-44 cursor-pointer rounded-[10px] border-[1.5px] bg-white px-3 py-2 text-sm font-semibold text-navy outline-none transition-all ${borderFor('level')}`}
-      >
-        <option value="">{t('level')}</option>
-        {SCHOOL_LEVELS.map((lv) => (
-          <option key={lv} value={lv}>
-            {t(`level_${lv}`)}
-          </option>
-        ))}
-      </select>
+      {/* Cấp học quyết định bộ Khối được sinh tự động ngay khi tạo cơ sở — nhờ vậy không ai phải
+          gõ tên khối và số thứ tự bằng tay nữa. Chọn được NHIỀU cấp: trường liên cấp là chuyện
+          bình thường, và một cơ sở dạy cả THCS lẫn THPT thì phải khai được đúng như thế. */}
+      <LevelPicker value={levels} onChange={setLevels} invalid={state.fieldError === 'level'} />
 
       <SubmitButton className={goldBtn} wrapClass="contents">
         + {t('createCampus')}
       </SubmitButton>
-
-      {/* Cho thấy trước sẽ sinh ra khối nào — bớt cảm giác "chọn xong không biết chuyện gì xảy ra" */}
-      {level && (
-        <p className="w-full text-[11.5px] font-semibold text-grey-mid">
-          {GRADE_NUMBERS[level]
-            ? `${t('willSeed')}: ${GRADE_NUMBERS[level]!.map((n) => `Khối ${n}`).join(' · ')}`
-            : t('manualGradeHint')}
-        </p>
-      )}
 
       {/* Lỗi field (name/code) — chiếm trọn dòng dưới hàng input */}
       {state.error && state.fieldError && (

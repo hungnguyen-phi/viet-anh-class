@@ -14,8 +14,43 @@ export const GRADE_NUMBERS: Record<SchoolLevel, number[] | null> = {
   thpt: [10, 11, 12],
 };
 
-// Cấp có khối đánh số → khối do hệ thống sinh, KHÔNG cho gõ tay (tránh lặp lại mớ
-// "7", "6", "k", "Khối" từng có trên production).
-export function hasNumberedGrades(level: SchoolLevel | null | undefined): boolean {
-  return level != null && GRADE_NUMBERS[level] != null;
+// MỘT CƠ SỞ MANG NHIỀU CẤP.
+//
+// Trường liên cấp là chuyện bình thường: Việt Anh Gò Vấp dạy cả THCS lẫn THPT. Mô hình cũ chỉ cho
+// một cấp mỗi cơ sở, nên nhãn ghi "THPT" trong khi cơ sở đang có Khối 6→12 — nói sai — và mục Khối
+// bị khoá ở chế độ tự sinh của riêng cấp ấy.
+//
+// Các hàm dưới đây nhận MẢNG cấp và phải khớp standard_grade_numbers_multi() ở migration 0087.
+
+/** Hợp các dải khối chuẩn của mọi cấp đã chọn. NULL = không cấp nào đánh số khối (chỉ mầm non). */
+export function gradeNumbersFor(levels: SchoolLevel[] | null | undefined): number[] | null {
+  if (!levels || levels.length === 0) return null;
+  const nums = new Set<number>();
+  for (const lv of levels) for (const n of GRADE_NUMBERS[lv] ?? []) nums.add(n);
+  return nums.size === 0 ? null : [...nums].sort((a, b) => a - b);
+}
+
+/**
+ * Khối có do hệ thống sinh hết không → có khoá ô gõ tay không.
+ *
+ * Khoá là để tránh lặp lại mớ "7", "6", "k", "Khối" từng có trên production. Nhưng CHỈ khoá khi
+ * MỌI cấp đã chọn đều đánh số: cơ sở có mầm non thì phải gõ tay được (Nhà trẻ, Mầm, Chồi, Lá…),
+ * mà nếu nó dạy cả tiểu học nữa thì khoá cứng sẽ chặn luôn phần phải gõ tay ấy.
+ */
+export function hasNumberedGrades(levels: SchoolLevel[] | null | undefined): boolean {
+  if (!levels || levels.length === 0) return false;
+  return levels.every((lv) => GRADE_NUMBERS[lv] != null);
+}
+
+/** Nhãn gọn cho danh sách cấp, dùng khi hiện chip trên thẻ cơ sở. */
+export function levelLabels(
+  levels: SchoolLevel[] | null | undefined,
+  t: (key: string) => string,
+): string {
+  if (!levels || levels.length === 0) return '';
+  // Giữ đúng thứ tự SCHOOL_LEVELS chứ không theo thứ tự người dùng tick, để hai cơ sở cùng cấp
+  // luôn hiện giống nhau.
+  return SCHOOL_LEVELS.filter((lv) => levels.includes(lv))
+    .map((lv) => t(`level_${lv}`))
+    .join(' · ');
 }

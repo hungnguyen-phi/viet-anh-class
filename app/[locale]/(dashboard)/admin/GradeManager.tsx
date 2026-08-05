@@ -30,15 +30,15 @@ const danger =
 export function GradeManager({
   campusId,
   grades,
-  level,
+  levels,
 }: {
   campusId: string;
   grades: Grade[];
-  level: SchoolLevel | null;
+  levels: SchoolLevel[] | null;
 }) {
   const t = useTranslations('admin');
   const [editId, setEditId] = useState<string | null>(null);
-  const auto = hasNumberedGrades(level);
+  const auto = hasNumberedGrades(levels);
 
   return (
     <div className="mt-2.5 border-t border-navy/[0.08] pt-2.5">
@@ -122,13 +122,15 @@ export function GradeManager({
         )}
         {grades.length === 0 && (
           <div className="text-[12px] font-semibold text-grey-mid">
-            {level ? t('noGrade') : t('pickLevelFirst')}
+            {levels && levels.length > 0 ? t('noGrade') : t('pickLevelFirst')}
           </div>
         )}
       </div>
 
-      {/* Thêm khối bằng tay — CHỈ cho mầm non (và cơ sở chưa khai cấp học). */}
-      {!auto && level != null && (
+      {/* Thêm khối bằng tay — CHỈ khi có ít nhất một cấp KHÔNG đánh số khối (mầm non). Cơ sở liên
+          cấp mầm non + tiểu học vẫn phải gõ tay được phần mầm non; khoá cứng theo một cấp như
+          trước sẽ chặn luôn phần ấy. */}
+      {!auto && levels != null && levels.length > 0 && (
         <form action={createGrade} className="mt-1.5 flex items-center gap-1.5">
           <input type="hidden" name="campus_id" value={campusId} />
           <input name="name" placeholder={t('gradeName')} aria-label={t('gradeName')} className={`${inp} flex-1`} required />

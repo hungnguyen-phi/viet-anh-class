@@ -52,7 +52,7 @@ export default async function CampusPage({
   let mgmt: null | {
     campusId: string;
     campusName: string;
-    level: SchoolLevel | null;
+    levels: SchoolLevel[];
     gradesActive: {id: string; name: string; sort_order: number}[];
     gradeOptions: {id: string; name: string; campus_id: string}[];
     gradeAll: {id: string; name: string; campus_id: string; is_active: boolean}[];
@@ -93,7 +93,7 @@ export default async function CampusPage({
         .in('role', ['teacher', 'pending'])
         .order('email')
         .limit(500),
-      supabase.from('campuses').select('name, level').eq('id', campusId).maybeSingle(),
+      supabase.from('campuses').select('name, levels').eq('id', campusId).maybeSingle(),
       supabase
         .from('pending_user_grants')
         .select('email, created_at')
@@ -109,7 +109,7 @@ export default async function CampusPage({
     mgmt = {
       campusId,
       campusName: cp?.name ?? '',
-      level: (cp?.level ?? null) as SchoolLevel | null,
+      levels: (cp?.levels ?? []) as SchoolLevel[],
       gradesActive: grades
         .filter((g) => g.is_active)
         .map((g) => ({id: g.id, name: g.name, sort_order: g.sort_order})),
@@ -222,8 +222,8 @@ export default async function CampusPage({
               {t('manageGrades')} · {mgmt.campusName}
             </div>
             {/* Chọn cấp học trước — khối sinh ra từ đây, không ai phải gõ tên khối nữa. */}
-            <CampusLevelPicker level={mgmt.level} />
-            <GradeManager campusId={mgmt.campusId} grades={mgmt.gradesActive} level={mgmt.level} />
+            <CampusLevelPicker levels={mgmt.levels} />
+            <GradeManager campusId={mgmt.campusId} grades={mgmt.gradesActive} levels={mgmt.levels} />
           </section>
 
           <section className="glass rounded-[20px] p-[18px]">

@@ -6,13 +6,14 @@ import {Building2, ChevronRight, Plus} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {GRADE_NUMBERS, SCHOOL_LEVELS, type SchoolLevel} from '@/lib/levels';
+import {gradeNumbersFor, levelLabels, type SchoolLevel} from '@/lib/levels';
+import {LevelPicker} from './LevelPicker';
 import {deleteCampus, deleteClass, setCampusActive, setClassActive, updateCampus, updateClass} from './actions';
 import {GradeManager} from './GradeManager';
 import {CampusForm} from './CampusForm';
 import {ClassForm} from './ClassForm';
 
-type Campus = {id: string; name: string; code: string; level: SchoolLevel | null};
+type Campus = {id: string; name: string; code: string; levels: SchoolLevel[]};
 type Grade = {id: string; name: string; campus_id: string; sort_order: number};
 type GradeOption = {id: string; name: string; campus_id: string; is_active: boolean};
 type ClassRow = {
@@ -176,6 +177,7 @@ function CampusNode({
 }) {
   const t = useTranslations('admin');
   const [edit, setEdit] = useState(false);
+  const [suaLevels, setSuaLevels] = useState<SchoolLevel[]>(campus.levels);
   const [addingClass, setAddingClass] = useState(false);
   const [editClassId, setEditClassId] = useState<string | null>(null);
 
@@ -187,22 +189,11 @@ function CampusNode({
           <input type="hidden" name="id" value={campus.id} />
           <input name="name" aria-label={t('name')} defaultValue={campus.name} className={`${inp} flex-1`} required />
           <input name="code" aria-label={t('code')} defaultValue={campus.code} className={`${inp} w-24`} required />
-          {/* Đổi cấp học sẽ SINH THÊM khối chuẩn của cấp mới (trigger campus_seed_grades).
-              Khối cũ không bị xoá — lớp đang trỏ vào chúng vẫn nguyên. */}
-          <select
-            name="level"
-            aria-label={t('level')}
-            defaultValue={campus.level ?? ''}
-            className={`${inp} w-40 cursor-pointer`}
-            title={t('levelHint')}
-          >
-            <option value="">{t('level')}</option>
-            {SCHOOL_LEVELS.map((lv) => (
-              <option key={lv} value={lv}>
-                {t(`level_${lv}`)}
-              </option>
-            ))}
-          </select>
+          {/* Thêm cấp sẽ SINH THÊM khối chuẩn của cấp mới (trigger campus_seed_grades). Bỏ một cấp
+              thì KHÔNG xoá khối cũ — lớp đang trỏ vào chúng vẫn nguyên; dọn là việc có ý thức. */}
+          <div className="w-full" title={t('levelHint')}>
+            <LevelPicker value={suaLevels} onChange={setSuaLevels} />
+          </div>
           <SubmitButton className={navyBtn} wrapClass="contents">
             {t('save')}
           </SubmitButton>
@@ -228,9 +219,11 @@ function CampusNode({
             <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[11px] font-bold text-grey-mid">
               {campus.code}
             </span>
-            {campus.level ? (
+            {campus.levels.length > 0 ? (
+              // Hiện ĐỦ các cấp. Trước đây chỗ này chỉ vẽ được một cấp nên cơ sở dạy cả THCS lẫn
+              // THPT hiện ra là "THPT" — nhãn nói sai về chính dữ liệu ngay bên dưới nó.
               <span className="rounded-full bg-gold/[0.18] px-2 py-0.5 text-[11px] font-bold text-navy">
-                {t(`level_${campus.level}`)}
+                {levelLabels(campus.levels, t)}
               </span>
             ) : (
               // Chưa khai cấp học thì chưa sinh được khối nào → nói thẳng việc cần làm.
@@ -267,8 +260,8 @@ function CampusNode({
       {open && (
         <div className="border-t border-navy/[0.08] px-3 pb-3">
           {/* Khối — GradeManager giữ nguyên (có sẵn thêm/sửa/lưu-trữ/xoá bên trong). */}
-          <GradeManager campusId={campus.id} grades={grades} level={campus.level} />
-          {campus.level && GRADE_NUMBERS[campus.level] == null && grades.length === 0 && (
+          <GradeManager campusId={campus.id} grades={grades} levels={campus.levels} />
+          {campus.levels.length > 0 && gradeNumbersFor(campus.levels) == null && grades.length === 0 && (
             <p className="mt-1 text-[11.5px] font-semibold italic text-grey-mid">{t('manualGradeHint')}</p>
           )}
 

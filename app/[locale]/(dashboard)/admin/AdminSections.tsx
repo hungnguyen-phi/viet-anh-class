@@ -112,7 +112,7 @@ export async function AdminSections() {
     <>
       {/* Cơ sở → Khối → Lớp: một cây mục cha/mục con, thêm mới nằm ngay trong mục nó thuộc về. */}
       <CampusTree
-        campuses={activeCampuses.map((c) => ({id: c.id, name: c.name, code: c.code, level: c.level}))}
+        campuses={activeCampuses.map((c) => ({id: c.id, name: c.name, code: c.code, levels: c.levels ?? []}))}
         grades={activeGrades.map((g) => ({
           id: g.id,
           name: g.name,

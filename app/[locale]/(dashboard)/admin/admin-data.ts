@@ -15,7 +15,7 @@ import {createClient} from '@/lib/supabase/server';
 export const layDanhMuc = cache(async () => {
   const supabase = await createClient();
   const [{data: campuses}, {data: grades}, {data: classes}, {data: staff}] = await Promise.all([
-    supabase.from('campuses').select('id, name, code, is_active, level').order('name'),
+    supabase.from('campuses').select('id, name, code, is_active, levels').order('name'),
     supabase.from('grades').select('id, name, campus_id, sort_order, is_active').order('sort_order'),
     supabase
       .from('classes')
