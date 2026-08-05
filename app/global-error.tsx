@@ -5,13 +5,16 @@
 // và KHÔNG được dựa vào globals.css (file đó nạp từ layout đã hỏng) → mọi kiểu dáng viết inline.
 //
 // Không có file này thì trường hợp đó ra một trang trắng hoàn toàn, không chữ nào.
-export default function GlobalError({
-  error,
-  reset,
-}: {
-  error: Error & {digest?: string};
-  reset: () => void;
-}) {
+export default function GlobalError({error}: {error: Error & {digest?: string}}) {
+  // TẢI LẠI THẬT, không gọi reset().
+  //
+  // reset() chỉ dựng lại cây React bằng CHÍNH mã đang có trong trình duyệt. Nhưng nguyên nhân phổ
+  // biến nhất của màn hình này là lệch bản build sau khi deploy — mã trong tab đã cũ. Dựng lại
+  // bằng mã cũ thì lỗi y nguyên, và người dùng bấm "Tải lại" ba lần vẫn thấy đúng một thứ.
+  // location.reload() lấy lại mã mới từ máy chủ.
+  const taiLai = () => {
+    if (typeof window !== 'undefined') window.location.reload();
+  };
   return (
     <html lang="vi">
       <body
@@ -38,7 +41,7 @@ export default function GlobalError({
           </p>
           <button
             type="button"
-            onClick={reset}
+            onClick={taiLai}
             style={{
               marginTop: 20,
               cursor: 'pointer',

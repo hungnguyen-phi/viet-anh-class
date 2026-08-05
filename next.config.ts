@@ -8,6 +8,17 @@ const nextConfig: NextConfig = {
   // An toàn vì app KHÔNG đọc file runtime qua process.cwd()/fs; message next-intl nạp bằng
   // dynamic import nên được Next tracer gói sẵn vào standalone.
   output: 'standalone',
+  // DẤU PHIÊN BẢN BẢN BUILD — chữa lỗi "Ứng dụng gặp sự cố" sau mỗi lần deploy.
+  //
+  // Không có nó thì mỗi lần đẩy bản mới, MỌI TAB ĐANG MỞ đều hỏng: trình duyệt giữ mã của bản cũ,
+  // còn máy chủ đã là bản mới, nên bấm bất cứ nút nào chạy server action là văng ra màn hình lỗi
+  // toàn trang. Chủ dự án gặp đúng cảnh này khi bấm Đăng xuất 19 phút sau một lần deploy — và với
+  // nhịp deploy nhiều lần một ngày thì đây không phải chuyện hiếm.
+  //
+  // Đặt deploymentId là Next gắn dấu bản build vào mọi request tài nguyên và mọi server action;
+  // khi phát hiện lệch bản, nó tự tải lại trang thay vì ném lỗi.
+  // Dùng luôn NEXT_PUBLIC_GIT_SHA — biến đã có sẵn trong Dockerfile và CI, mỗi commit một giá trị.
+  deploymentId: process.env.NEXT_PUBLIC_GIT_SHA,
   // Đừng quảng cáo stack cho người quét: bỏ header `x-powered-by: Next.js`.
   poweredByHeader: false,
   images: {
