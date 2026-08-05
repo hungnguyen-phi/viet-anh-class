@@ -175,6 +175,26 @@ dat(
   coLopConDuLieu ? `nút mờ: ${coNutXoaMo}, có lý do: ${coLyDo}` : 'không dòng lớp nào ĐANG HIỆN có dữ liệu (cơ sở đang gấp lại), bỏ qua',
 );
 
+// ── 13. Không lớp mồ côi nào lọt vào ô chọn lớp ──────────────────────────────────────────
+// Lưu trữ cơ sở không đổi cờ is_active của lớp bên trong. Nếu ô chọn lớp chỉ lọc theo cờ của
+// riêng lớp thì lớp thuộc cơ sở đã lưu trữ vẫn hiện ra để gán người vào — trong khi cây Cơ sở
+// không vẽ chúng nên không có nút nào gỡ. Đối chiếu thẳng với CSDL.
+{
+  const {data: lopMoCoi} = await admin
+    .from('classes')
+    .select('name, campuses!inner(is_active)')
+    .eq('is_active', true)
+    .eq('campuses.is_active', false);
+  const loLot = (lopMoCoi ?? []).filter((l) =>
+    new RegExp(`<option[^>]*>${l.name.replace(/[.*+?^$\{}()|[\]]/g, '\$&')}\s*·`).test(goc.html),
+  );
+  dat(
+    loLot.length === 0,
+    'Lớp thuộc cơ sở đã lưu trữ không lọt vào ô chọn lớp',
+    `${(lopMoCoi ?? []).length} lớp mồ côi trong CSDL, lọt ra ${loLot.length}`,
+  );
+}
+
 for (const k of kq) console.log(k.ok ? 'OK  ' : 'SAI ', k.ten, k.ghi ? '— ' + k.ghi : '');
 const so = kq.filter((k) => k.ok).length;
 console.log(`\n${so}/${kq.length} đạt.`);

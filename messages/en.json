@@ -351,7 +351,9 @@
     "cannotDeleteClass": "Cannot delete: this class still has {wig} WIGs and {hs} students. Deleting the class would delete those too. Use Archive to put it away and keep the data.",
     "cannotDeleteShort": "Cannot delete",
     "deleteClassFor": "Delete class {name}",
-    "grantRoleFor": "Grant role to {name}"
+    "grantRoleFor": "Grant role to {name}",
+    "classOrphanHint": "Campus {campus} is archived",
+    "restoreViaCampus": "Restore the campus to bring it back"
   },
   "dashboard": {
     "welcome": "Hello",

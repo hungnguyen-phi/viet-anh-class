@@ -48,8 +48,21 @@ export async function AdminSections() {
   const archivedCampuses = allCampuses.filter((c) => !c.is_active);
   const activeGrades = allGrades.filter((g) => g.is_active);
   const archivedGrades = allGrades.filter((g) => !g.is_active);
-  const activeClasses = allClasses.filter((c) => c.is_active);
-  const archivedClasses = allClasses.filter((c) => !c.is_active);
+
+  // LỚP ĐI THEO CƠ SỞ CỦA NÓ.
+  //
+  // Lưu trữ một cơ sở KHÔNG đổi cờ is_active của các lớp bên trong. Trước đây "đang dùng" chỉ xét
+  // cờ của riêng lớp, nên lớp thuộc cơ sở đã lưu trữ rơi vào khe giữa hai chỗ: cây Cơ sở chỉ vẽ
+  // cơ sở đang dùng nên không thấy chúng đâu để mà lưu trữ hay xoá, còn ô chọn lớp thì vẫn liệt kê
+  // đủ. Chủ dự án gặp đúng cảnh đó — bốn lớp cứ hiện trong ô "gán lớp" mà không có nút nào đụng
+  // tới được.
+  //
+  // Nay: cơ sở nghỉ thì lớp của nó nghỉ theo, ở MỌI chỗ. Khôi phục cơ sở là lớp quay lại.
+  const coSoDangDung = new Set(activeCampuses.map((c) => c.id));
+  const activeClasses = allClasses.filter((c) => c.is_active && coSoDangDung.has(c.campus_id));
+  const archivedClasses = allClasses.filter(
+    (c) => !c.is_active || !coSoDangDung.has(c.campus_id),
+  );
 
   const campusOptions = activeCampuses.map((c) => ({id: c.id, name: c.name}));
   // Cho form SỬA lớp: gồm cả khối đã lưu-trữ (kèm cờ is_active) để không âm thầm mất khối khi lớp
@@ -232,11 +245,18 @@ export async function AdminSections() {
             <ArchivedCol
               label={t('classes')}
               restoreLabel={t('restore')}
+              restoreViaCampus={t('restoreViaCampus')}
               emptyLabel={t('none')}
               rows={archivedClasses.map((c) => ({
                 id: c.id,
                 label: c.name,
-                sub: campusName.get(c.campus_id) ?? '',
+                // Nói RÕ vì sao lớp nằm ở đây. Hai lý do khác nhau cần hai lối ra khác nhau: lớp
+                // tự bị lưu trữ thì bấm Khôi phục là xong; lớp nằm đây vì cơ sở nghỉ thì bấm
+                // Khôi phục chẳng đổi gì (cờ của lớp vốn đã bật) — phải khôi phục CƠ SỞ.
+                sub: c.is_active
+                  ? t('classOrphanHint', {campus: campusName.get(c.campus_id) ?? ''})
+                  : (campusName.get(c.campus_id) ?? ''),
+                khongKhoiPhucDuoc: c.is_active,
               }))}
               action={setClassActive}
             />
@@ -271,14 +291,16 @@ export async function AdminSections() {
 function ArchivedCol({
   label,
   restoreLabel,
+  restoreViaCampus = '',
   emptyLabel,
   rows,
   action,
 }: {
   label: string;
   restoreLabel: string;
+  restoreViaCampus?: string;
   emptyLabel: string;
-  rows: {id: string; label: string; sub: string}[];
+  rows: {id: string; label: string; sub: string; khongKhoiPhucDuoc?: boolean}[];
   action: (formData: FormData) => void | Promise<void>;
 }) {
   return (
@@ -298,13 +320,18 @@ function ArchivedCol({
               <div className="truncate text-[13px] font-bold text-navy">{r.label}</div>
               {r.sub && <div className="truncate text-[11px] font-semibold text-grey-mid">{r.sub}</div>}
             </div>
-            <form action={action}>
-              <input type="hidden" name="id" value={r.id} />
-              <input type="hidden" name="active" value="true" />
-              <SubmitButton className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700">
-                {restoreLabel}
-              </SubmitButton>
-            </form>
+            {r.khongKhoiPhucDuoc ? (
+              // Không bày một cái nút bấm vào không đổi gì. Dòng phụ bên trái đã nói phải làm gì.
+              <span className="shrink-0 text-[11px] font-bold text-grey-mid">{restoreViaCampus}</span>
+            ) : (
+              <form action={action}>
+                <input type="hidden" name="id" value={r.id} />
+                <input type="hidden" name="active" value="true" />
+                <SubmitButton className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700">
+                  {restoreLabel}
+                </SubmitButton>
+              </form>
+            )}
           </div>
         ))}
         {rows.length === 0 && <div className="px-3 py-2 text-[12px] text-grey-mid">{emptyLabel}</div>}

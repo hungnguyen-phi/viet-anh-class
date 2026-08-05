@@ -31,7 +31,11 @@ export async function CreateMenuLoader({revision}: {revision: string}) {
 
   const activeCampuses = allCampuses.filter((c) => c.is_active);
   const activeGrades = allGrades.filter((g) => g.is_active);
-  const activeClasses = allClasses.filter((c) => c.is_active);
+  // Lớp thuộc cơ sở đã lưu trữ thì KHÔNG được đứng trong ô chọn. Đây chính là chỗ chủ dự án gặp
+  // lỗi: bốn lớp của hai cơ sở đã lưu trữ vẫn hiện ra để gán người vào, trong khi cây Cơ sở không
+  // vẽ chúng nên không có cách nào gỡ. Thứ chọn được thì phải là thứ quản lý được.
+  const coSoDangDung = new Set(activeCampuses.map((c) => c.id));
+  const activeClasses = allClasses.filter((c) => c.is_active && coSoDangDung.has(c.campus_id));
   const campusOptions = activeCampuses.map((c) => ({id: c.id, name: c.name}));
   const gradeOptions = activeGrades.map((g) => ({id: g.id, name: g.name, campus_id: g.campus_id}));
   const teacherName = new Map(staffList.map((p) => [p.id, p.full_name ?? p.email]));

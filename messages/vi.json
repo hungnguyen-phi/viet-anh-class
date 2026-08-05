@@ -351,7 +351,9 @@
     "cannotDeleteClass": "Không xoá được: lớp còn {wig} WIG và {hs} học sinh. Xoá lớp là xoá luôn số đó. Dùng Lưu trữ để cất lớp đi mà vẫn giữ dữ liệu.",
     "cannotDeleteShort": "Không xoá được",
     "deleteClassFor": "Xoá lớp {name}",
-    "grantRoleFor": "Cấp vai trò cho {name}"
+    "grantRoleFor": "Cấp vai trò cho {name}",
+    "classOrphanHint": "Cơ sở {campus} đã lưu trữ",
+    "restoreViaCampus": "Khôi phục cơ sở để lấy lại"
   },
   "dashboard": {
     "welcome": "Xin chào",
