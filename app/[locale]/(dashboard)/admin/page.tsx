@@ -18,8 +18,11 @@ import {CampusForm} from './CampusForm';
 import {ClassForm} from './ClassForm';
 import {ParentForm} from './ParentForm';
 import {headers} from 'next/headers';
-import {CampusCard} from './CampusCard';
-import {ClassManager} from './ClassManager';
+import {CampusTree} from './CampusTree';
+import {CreateMenu} from './CreateMenu';
+import {Disclosure} from './Disclosure';
+import {PendingApprovals} from './PendingApprovals';
+import {UsersToolbar, USER_TABS, PAGE_SIZES, type UserTab} from './UsersToolbar';
 import {AreaConfigForm} from './AreaConfigForm';
 import {InviteEmailsField} from './InviteEmailsField';
 import {SchoolNetworkManager} from './SchoolNetworkManager';
@@ -32,15 +35,24 @@ import {Flash} from '@/components/ui/Flash';
 const ROLES = ['admin', 'principal', 'teacher', 'student', 'parent', 'pending'] as const;
 const INVITE_ROLES = ['teacher', 'principal', 'admin', 'student'] as const;
 
+// LỜI MỜI ĐANG CHỜ — TẠM ẨN.
+//
+// Mục này liệt kê những email đã được khai trước vai trò, dưới cái tên "đang chờ". Nhưng hệ thống
+// CHƯA GỬI EMAIL nào cho họ cả: vai trò chỉ được áp khi tự họ đăng nhập lần đầu. Một danh sách
+// mang chữ "đang chờ" mà không có ai được báo là đang chờ đọc như một hàng đợi đang chạy, khiến
+// người quản trị ngồi đợi một chuyện sẽ không xảy ra.
+// Bật lại bằng cách đổi hằng số này thành true sau khi đường gửi mail chạy thật.
+const HIEN_LOI_MOI_DANG_CHO = false;
+
 export default async function AdminPage({
   params,
   searchParams,
 }: {
   params: Promise<{locale: string}>;
-  searchParams: Promise<{q?: string; upage?: string}>;
+  searchParams: Promise<{q?: string; upage?: string; vai?: string; size?: string}>;
 }) {
   const {locale} = await params;
-  const {q: qRaw, upage: upageRaw} = await searchParams;
+  const {q: qRaw, upage: upageRaw, vai: vaiRaw, size: sizeRaw} = await searchParams;
   setRequestLocale(locale);
   const me = await requireRole(['admin']);
   const t = await getTranslations('admin');
@@ -69,22 +81,47 @@ export default async function AdminPage({
     {href: '/admin', label: tn('admin'), desc: 'Trang quản trị (màn hình này)'},
   ];
 
-  // Phân trang + tìm kiếm bảng người dùng (tránh load TOÀN BỘ PII trong 1 payload).
-  const PAGE = 50;
+  // ── Bảng người dùng: LỌC THEO VAI (tab) + tìm kiếm + số dòng mỗi trang ────────────────────
   // Loại ký tự phá cú pháp filter PostgREST (,()*) để chống injection ở .or().
   const q = (qRaw ?? '').replace(/[,()*%]/g, '').trim();
+  const tab: UserTab = (USER_TABS as readonly string[]).includes(vaiRaw ?? '')
+    ? (vaiRaw as UserTab)
+    : 'all';
+  // Cỡ trang phải nằm trong danh sách cho phép: ?size=100000 là một cách vô tình (hoặc cố ý) kéo
+  // toàn bộ PII của trường về trong một payload.
+  const sizeNum = Number(sizeRaw);
+  const PAGE = (PAGE_SIZES as readonly number[]).includes(sizeNum) ? sizeNum : PAGE_SIZES[0];
   const upage = Math.max(1, Number(upageRaw) || 1);
   const fromIdx = (upage - 1) * PAGE;
 
-  let usersQuery = supabase
-    .from('profiles')
-    .select('id, full_name, email, role', {count: 'exact'})
-    .order('email')
-    .range(fromIdx, fromIdx + PAGE - 1);
-  if (q) usersQuery = usersQuery.or(`email.ilike.%${q}%,full_name.ilike.%${q}%`);
+  // Bộ lọc dùng chung cho cả truy vấn dòng lẫn các truy vấn đếm của tab.
+  const applyFilters = <T extends {or: (f: string) => T; eq: (c: string, v: string) => T}>(
+    qb: T,
+    role: UserTab,
+  ): T => {
+    let out = qb;
+    if (q) out = out.or(`email.ilike.%${q}%,full_name.ilike.%${q}%`);
+    if (role !== 'all') out = out.eq('role', role);
+    return out;
+  };
+
+  const usersQuery = applyFilters(
+    supabase
+      .from('profiles')
+      .select('id, full_name, email, role', {count: 'exact'})
+      .order('email')
+      .range(fromIdx, fromIdx + PAGE - 1),
+    tab,
+  );
+  // Số đếm cho từng tab — TÍNH THEO CẢ Ô TÌM KIẾM, để "Giáo viên (3)" nghĩa là ba giáo viên khớp
+  // từ khoá đang gõ, chứ không phải ba giáo viên toàn trường rồi bấm vào lại thấy bảng rỗng.
+  const countQueries = USER_TABS.map((k) =>
+    applyFilters(supabase.from('profiles').select('id', {count: 'exact', head: true}), k),
+  );
 
   const [
     {data: pageUsers, count: usersTotal},
+    tabCounts,
     {data: staff},
     {data: students},
     {data: campuses},
@@ -97,6 +134,7 @@ export default async function AdminPage({
     {data: dangKet},
   ] = await Promise.all([
     usersQuery,
+    Promise.all(countQueries),
     supabase
       .from('profiles')
       .select('id, full_name, email')
@@ -113,11 +151,15 @@ export default async function AdminPage({
     supabase.from('pending_user_grants').select('email, role, class_id').order('created_at'),
     supabase.from('parent_invitations').select('email, student_id, status').order('created_at'),
     supabase.from('area_config').select('*').order('sort_order'),
-    supabase.from('school_networks').select('id, label, cidr, campus_id, is_active').order('created_at'),
-    // NGƯỜI ĐANG KẸT Ở MÀN HÌNH ĐỎ. Bảng người dùng bên dưới phân trang 40 dòng xếp theo email,
-    // nên một giáo viên mới có thể nằm ở trang 3 suốt hai tuần mà không ai để ý. Và ô duy nhất
-    // trên trang này mang chữ "đang chờ" lại đếm LỜI MỜI ĐÃ GỬI — một con số khác hẳn, khiến
-    // người đọc yên tâm nhầm.
+    // Mạng đang bật lên trên, rồi theo nhãn A→Z — chứ không theo thứ tự vừa thêm. Một dải mạng
+    // mới khai luôn rơi xuống cuối là lý do danh sách này càng dùng càng khó đọc.
+    supabase
+      .from('school_networks')
+      .select('id, label, cidr, campus_id, is_active')
+      .order('is_active', {ascending: false})
+      .order('label'),
+    // NGƯỜI ĐANG KẸT Ở MÀN HÌNH ĐỎ. Bảng người dùng bên dưới phân trang theo email, nên một giáo
+    // viên mới có thể nằm ở trang 3 suốt hai tuần mà không ai để ý.
     supabase
       .from('profiles')
       .select('id, full_name, email, created_at')
@@ -130,6 +172,9 @@ export default async function AdminPage({
   const rows = pageUsers ?? [];
   const total = usersTotal ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE));
+  const counts = Object.fromEntries(
+    USER_TABS.map((k, i) => [k, tabCounts[i].count ?? 0]),
+  ) as Record<UserTab, number>;
   const staffList = staff ?? [];
   const studentList = students ?? [];
   const allCampuses = campuses ?? [];
@@ -142,24 +187,14 @@ export default async function AdminPage({
   );
   const className = new Map(allClasses.map((c) => [c.id, c.name]));
 
-  // Tách active / đã-lưu-trữ + gom khối theo cơ sở, đếm lớp theo cơ sở.
+  // Tách active / đã-lưu-trữ.
   const activeCampuses = allCampuses.filter((c) => c.is_active);
   const archivedCampuses = allCampuses.filter((c) => !c.is_active);
   const activeGrades = allGrades.filter((g) => g.is_active);
   const archivedGrades = allGrades.filter((g) => !g.is_active);
   const activeClasses = allClasses.filter((c) => c.is_active);
   const archivedClasses = allClasses.filter((c) => !c.is_active);
-  const gradesByCampus = new Map<string, typeof activeGrades>();
-  for (const g of activeGrades) {
-    const arr = gradesByCampus.get(g.campus_id) ?? [];
-    arr.push(g);
-    gradesByCampus.set(g.campus_id, arr);
-  }
-  const classCountByCampus = new Map<string, number>();
-  for (const c of activeClasses) {
-    classCountByCampus.set(c.campus_id, (classCountByCampus.get(c.campus_id) ?? 0) + 1);
-  }
-  // Options cho ClassForm/ClassManager (chỉ cơ sở & khối đang hoạt động).
+  // Options cho form tạo lớp (chỉ cơ sở & khối đang hoạt động).
   const campusOptions = activeCampuses.map((c) => ({id: c.id, name: c.name}));
   const gradeOptions = activeGrades.map((g) => ({id: g.id, name: g.name, campus_id: g.campus_id}));
   // Cho form SỬA lớp: gồm cả khối đã lưu-trữ (kèm cờ is_active) để không âm thầm mất khối
@@ -186,6 +221,7 @@ export default async function AdminPage({
       })),
   ];
   const defaultYear = schoolYearLabel(new Date());
+  const activeNetworks = (networks ?? []).filter((n) => n.is_active).length;
 
   // Design system v3 — glass on gradient
   const inputCls =
@@ -202,88 +238,143 @@ export default async function AdminPage({
     'h-8 cursor-pointer whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white/60 px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
   const dangerBtnSm =
     'h-8 cursor-pointer whitespace-nowrap rounded-[10px] bg-[rgba(192,57,43,0.12)] px-2.5 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-[rgba(192,57,43,0.22)]';
+  const openLink =
+    'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy';
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="font-display text-[22px] font-bold text-navy">{t('title')}</h1>
+      {/* Tiêu đề + MỘT nút "Tạo mới" gom cả năm việc khai báo (cơ sở, lớp, mời người, phân công,
+          mời phụ huynh) — trước đây là năm thẻ form luôn mở giữa trang. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="font-display text-[22px] font-bold text-navy">{t('title')}</h1>
+        <CreateMenu
+          campusForm={<CampusForm />}
+          classForm={
+            <ClassForm
+              campuses={campusOptions}
+              grades={gradeOptions}
+              teachers={staffList}
+              defaultYear={defaultYear}
+            />
+          }
+          inviteForm={
+            <form action={inviteUser} className="flex flex-col gap-2">
+              {/* <textarea> không có kiểm tra định dạng sẵn của trình duyệt, mà ô này nhận NHIỀU
+                  email nên cũng không đổi sang <input type="email"> được. Dùng pattern qua
+                  InviteEmailsField (client) để báo lỗi ngay tại ô thay vì phải gửi lên server rồi
+                  tải lại cả trang mới biết sai. */}
+              <InviteEmailsField
+                name="email"
+                placeholder={t('emailsMulti')}
+                ariaLabel={t('emailsMulti')}
+                className={`${inputCls} min-h-[44px] resize-y`}
+              />
+              <select
+                name="role"
+                aria-label={t('selectRole')}
+                required
+                defaultValue=""
+                className={`cursor-pointer ${inputCls}`}
+              >
+                <option value="" disabled>
+                  {t('selectRole')}
+                </option>
+                {INVITE_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {tr(r)}
+                  </option>
+                ))}
+              </select>
+              <select
+                name="class_id"
+                aria-label={t('selectClass')}
+                defaultValue=""
+                className={`cursor-pointer ${inputCls}`}
+              >
+                <option value="">{t('classNone')}</option>
+                {/* GHI KÈM GVCN ĐANG CÓ. Mời một giáo viên vào lớp đã có chủ nhiệm từng ÂM THẦM
+                    cướp lớp của người đang dạy (đã chặn ở CSDL từ 0082). Nhưng chặn thôi chưa đủ:
+                    người mời vẫn cần biết ghế ấy có người, nếu không họ mời xong rồi ngồi đợi một
+                    chuyện sẽ không xảy ra. */}
+                {activeClasses.map((c) => {
+                  const gv = c.homeroom_teacher_id ? personName.get(c.homeroom_teacher_id) : null;
+                  return (
+                    <option key={c.id} value={c.id}>
+                      {c.name} · {c.school_year}
+                      {gv ? ` · ${t('alreadyHasGvcn', {name: gv})}` : ''}
+                    </option>
+                  );
+                })}
+              </select>
+              <SubmitButton className={goldBtn} wrapClass="contents">
+                + {t('inviteUser')}
+              </SubmitButton>
+              <div className="text-[10.5px] font-semibold italic text-grey-mid">{t('applyNote')}</div>
+            </form>
+          }
+          assignForm={
+            <form action={assignGvcn} className="flex flex-col gap-2">
+              <select
+                name="userId"
+                aria-label={t('selectUser')}
+                required
+                defaultValue=""
+                className={`cursor-pointer ${inputCls}`}
+              >
+                <option value="" disabled>
+                  {t('selectUser')}
+                </option>
+                {staffList.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.full_name ?? p.email}
+                  </option>
+                ))}
+              </select>
+              <select
+                name="class_id"
+                aria-label={t('selectClass')}
+                required
+                defaultValue=""
+                className={`cursor-pointer ${inputCls}`}
+              >
+                <option value="" disabled>
+                  {t('selectClass')}
+                </option>
+                {activeClasses.map((c) => {
+                  const gv = c.homeroom_teacher_id ? personName.get(c.homeroom_teacher_id) : null;
+                  return (
+                    <option key={c.id} value={c.id}>
+                      {c.name} · {c.school_year}
+                      {gv ? ` · ${t('alreadyHasGvcn', {name: gv})}` : ''}
+                    </option>
+                  );
+                })}
+              </select>
+              <SubmitButton className={goldBtn} wrapClass="contents">
+                {t('assignGvcn')}
+              </SubmitButton>
+            </form>
+          }
+          parentForm={<ParentForm students={studentList} />}
+        />
+      </div>
 
       <Flash />
 
       {/* ══ AI ĐANG CHỜ BẠN ══
           Đặt TRÊN CÙNG, trước cả bảng người dùng: đây là việc duy nhất trên trang này có người
-          thật đang ngồi đợi ở đầu kia. Trước đây họ lẫn vào một bảng 40 dòng xếp theo email, và
-          ô duy nhất mang chữ "đang chờ" thì đếm lời mời đã gửi — một con số khác. Nên có người
-          kẹt mười ba ngày mà không ai biết.
-          Chỉ hiện khi có người chờ: một khối rỗng nằm mãi trên đầu là một khối người ta thôi nhìn. */}
-      {(dangKet ?? []).length > 0 && (
-        <section className="rounded-[20px] border-[1.5px] border-gold-deep/40 bg-gold/[0.10] p-[18px]">
-          <div className="mb-2.5 font-display text-[15px] font-bold text-navy">
-            {t('waitingOnYou', {n: (dangKet ?? []).length})}
-          </div>
-          <p className="mb-3 text-[12px] font-semibold leading-relaxed text-navy/70">
-            {t('waitingOnYouHint')}
-          </p>
-          <div className="flex flex-col gap-2">
-            {(dangKet ?? []).map((u) => (
-              <div
-                key={u.id}
-                className="flex flex-wrap items-center gap-2 rounded-[12px] bg-white/70 px-3 py-2.5"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-extrabold text-navy">
-                    {u.full_name ?? u.email}
-                  </span>
-                  <span className="block truncate text-[11.5px] font-semibold text-grey-mid">
-                    {u.email} · {t('waitingSince', {date: String(u.created_at).slice(0, 10)})}
-                  </span>
-                </span>
-                {/* Cấp quyền NGAY TẠI ĐÂY. Bắt người ta đi tìm lại đúng dòng ấy trong bảng dưới
-                    là thêm một bước để quên. */}
-                <form action={setUserRole} className="flex flex-none items-center gap-1.5">
-                  <input type="hidden" name="userId" value={u.id} />
-                  <select
-                    name="role"
-                    aria-label={t('selectRole')}
-                    defaultValue="teacher"
-                    className="h-10 cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy"
-                  >
-                    {ROLES.filter((r) => r !== 'pending').map((r) => (
-                      <option key={r} value={r}>
-                        {tr(r)}
-                      </option>
-                    ))}
-                  </select>
-                  <SubmitButton className={navyBtnSm}>{t('setRole')}</SubmitButton>
-                </form>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+          thật đang ngồi đợi ở đầu kia. Chỉ hiện khi có người chờ — một khối rỗng nằm mãi trên
+          đầu là một khối người ta thôi nhìn. */}
+      {(dangKet ?? []).length > 0 && <PendingApprovals users={dangKet ?? []} />}
 
-      {/* Người dùng + đổi vai trò */}
+      {/* Người dùng: tab theo vai + tìm kiếm + số dòng/trang + đổi vai trò */}
       <section className="glass rounded-[20px] p-[18px]">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="font-display text-[15px] font-bold text-navy">
-            {t('users')} ({total})
-          </div>
-          <form method="get" className="flex items-center gap-1.5">
-            <input
-              name="q"
-              defaultValue={q}
-              placeholder={t('searchUser')} aria-label={t('searchUser')}
-              className="h-10 w-[200px] rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 text-[12.5px] font-semibold text-navy outline-none focus:border-navy"
-            />
-            <SubmitButton className={`${navyBtnSm} h-10`}>
-              {t('search')}
-            </SubmitButton>
-            {q && (
-              <Link href="/admin" className={outlineBtnSm}>
-                {t('clear')}
-              </Link>
-            )}
-          </form>
+        <div className="mb-3 font-display text-[15px] font-bold text-navy">
+          {t('users')} <span className="font-semibold text-grey-mid">({counts.all})</span>
         </div>
+
+        <UsersToolbar q={q} tab={tab} size={PAGE} counts={counts} />
+
         <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
           <div className="box-border flex min-w-[760px] items-center gap-2 bg-navy/[0.03] px-[14px] py-[9px]">
             <span className={`flex-[1.2] ${th}`}>{t('name')}</span>
@@ -356,197 +447,72 @@ export default async function AdminPage({
           ))}
           {rows.length === 0 && (
             <div className="border-t border-navy/[0.08] px-[14px] py-3 text-[13px] text-grey-mid">
-              {t('none')}
+              {q ? t('noMatch', {q}) : t('none')}
             </div>
           )}
         </div>
-        {/* Phân trang */}
+
+        {/* Phân trang — giữ nguyên tab và cỡ trang khi sang trang khác. */}
         {totalPages > 1 && (
           <div className="mt-3 flex items-center justify-center gap-2 text-[12.5px] font-bold text-navy">
-            {upage > 1 && (
+            {upage > 1 ? (
               <Link
-                href={{pathname: '/admin', query: {...(q ? {q} : {}), upage: upage - 1}}}
+                href={{
+                  pathname: '/admin',
+                  query: {...(q ? {q} : {}), ...(tab !== 'all' ? {vai: tab} : {}), size: PAGE, upage: upage - 1},
+                }}
                 className={outlineBtnSm}
               >
                 ← {t('prev')}
               </Link>
+            ) : (
+              <span className={`${outlineBtnSm} pointer-events-none opacity-40`}>← {t('prev')}</span>
             )}
             <span className="text-grey-mid">
-              {upage} / {totalPages}
+              {t('pageOf', {page: upage, total: totalPages})}
             </span>
-            {upage < totalPages && (
+            {upage < totalPages ? (
               <Link
-                href={{pathname: '/admin', query: {...(q ? {q} : {}), upage: upage + 1}}}
+                href={{
+                  pathname: '/admin',
+                  query: {...(q ? {q} : {}), ...(tab !== 'all' ? {vai: tab} : {}), size: PAGE, upage: upage + 1},
+                }}
                 className={outlineBtnSm}
               >
                 {t('next')} →
               </Link>
+            ) : (
+              <span className={`${outlineBtnSm} pointer-events-none opacity-40`}>{t('next')} →</span>
             )}
           </div>
         )}
       </section>
 
-      {/* Tạo cơ sở · Tạo lớp · Mời người dùng · Phân công GVCN · Mời phụ huynh */}
-      <div className="grid items-start gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr))]">
-        {/* Tạo cơ sở */}
-        <section className="glass rounded-[20px] p-[18px]">
-          <div className={cardTitle}>{t('createCampus')}</div>
-          <CampusForm />
-          <p className="mt-2.5 text-[11px] font-semibold italic text-grey-mid">{t('manageBelowHint')}</p>
-        </section>
+      {/* Cơ sở → Khối → Lớp: một cây mục cha/mục con, thêm mới nằm ngay trong mục nó thuộc về. */}
+      <CampusTree
+        campuses={activeCampuses.map((c) => ({id: c.id, name: c.name, code: c.code, level: c.level}))}
+        grades={activeGrades.map((g) => ({
+          id: g.id,
+          name: g.name,
+          campus_id: g.campus_id,
+          sort_order: g.sort_order,
+        }))}
+        allGrades={allGradeOptions}
+        classes={activeClasses.map((c) => ({
+          id: c.id,
+          name: c.name,
+          grade_id: c.grade_id,
+          grade: c.grade,
+          school_year: c.school_year,
+          campus_id: c.campus_id,
+          homeroom_teacher_id: c.homeroom_teacher_id,
+        }))}
+        teachers={staffList}
+        defaultYear={defaultYear}
+      />
 
-        {/* Tạo lớp */}
-        <section className="glass rounded-[20px] p-[18px]">
-          <div className={cardTitle}>{t('createClass')}</div>
-          <ClassForm
-            campuses={campusOptions}
-            grades={gradeOptions}
-            teachers={staffList}
-            defaultYear={defaultYear}
-          />
-        </section>
-
-        {/* Mời người dùng mới */}
-        <section className="glass rounded-[20px] p-[18px]">
-          <div className={cardTitle}>{t('inviteUser')}</div>
-          <form action={inviteUser} className="flex flex-col gap-2">
-            {/* <textarea> không có kiểm tra định dạng sẵn của trình duyệt, mà ô này nhận NHIỀU
-                email nên cũng không đổi sang <input type="email"> được. Dùng pattern qua
-                InviteEmailsField (client) để báo lỗi ngay tại ô thay vì phải gửi lên server rồi
-                tải lại cả trang mới biết sai. */}
-            <InviteEmailsField
-              name="email"
-              placeholder={t('emailsMulti')}
-              ariaLabel={t('emailsMulti')}
-              className={`${inputCls} min-h-[44px] resize-y`}
-            />
-            <select name="role" aria-label={t('selectRole')} required defaultValue="" className={`cursor-pointer ${inputCls}`}>
-              <option value="" disabled>
-                — {t('selectRole')} —
-              </option>
-              {INVITE_ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {tr(r)}
-                </option>
-              ))}
-            </select>
-            <select name="class_id" aria-label={t('selectClass')} defaultValue="" className={`cursor-pointer ${inputCls}`}>
-              <option value="">
-                — {t('selectClass')} ({t('none')}) —
-              </option>
-              {/* GHI KÈM GVCN ĐANG CÓ. Mời một giáo viên vào lớp đã có chủ nhiệm từng ÂM THẦM
-                  cướp lớp của người đang dạy (đã chặn ở CSDL từ 0082). Nhưng chặn thôi chưa đủ:
-                  người mời vẫn cần biết ghế ấy có người, nếu không họ mời xong rồi ngồi đợi một
-                  chuyện sẽ không xảy ra. */}
-              {activeClasses.map((c) => {
-                const gv = c.homeroom_teacher_id ? personName.get(c.homeroom_teacher_id) : null;
-                return (
-                  <option key={c.id} value={c.id}>
-                    {c.name} · {c.school_year}
-                    {gv ? ` · ${t('alreadyHasGvcn', {name: gv})}` : ''}
-                  </option>
-                );
-              })}
-            </select>
-            <SubmitButton className={goldBtn} wrapClass="contents">
-              + {t('inviteUser')}
-            </SubmitButton>
-            <div className="text-[10.5px] font-semibold italic text-grey-mid">{t('applyNote')}</div>
-          </form>
-        </section>
-
-        {/* Phân công GVCN */}
-        <section className="glass rounded-[20px] p-[18px]">
-          <div className={cardTitle}>{t('assignGvcn')}</div>
-          <form action={assignGvcn} className="flex flex-col gap-2">
-            <select name="userId" aria-label={t('selectUser')} required defaultValue="" className={`cursor-pointer ${inputCls}`}>
-              <option value="" disabled>
-                — {t('selectUser')} —
-              </option>
-              {staffList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.full_name ?? p.email}
-                </option>
-              ))}
-            </select>
-            <select name="class_id" aria-label={t('selectClass')} required defaultValue="" className={`cursor-pointer ${inputCls}`}>
-              <option value="" disabled>
-                — {t('selectClass')} —
-              </option>
-              {/* GHI KÈM GVCN ĐANG CÓ. Mời một giáo viên vào lớp đã có chủ nhiệm từng ÂM THẦM
-                  cướp lớp của người đang dạy (đã chặn ở CSDL từ 0082). Nhưng chặn thôi chưa đủ:
-                  người mời vẫn cần biết ghế ấy có người, nếu không họ mời xong rồi ngồi đợi một
-                  chuyện sẽ không xảy ra. */}
-              {activeClasses.map((c) => {
-                const gv = c.homeroom_teacher_id ? personName.get(c.homeroom_teacher_id) : null;
-                return (
-                  <option key={c.id} value={c.id}>
-                    {c.name} · {c.school_year}
-                    {gv ? ` · ${t('alreadyHasGvcn', {name: gv})}` : ''}
-                  </option>
-                );
-              })}
-            </select>
-            <SubmitButton className={goldBtn} wrapClass="contents">
-              {t('assignGvcn')}
-            </SubmitButton>
-          </form>
-        </section>
-
-        {/* Mời phụ huynh */}
-        <section className="glass rounded-[20px] p-[18px]">
-          <div className={cardTitle}>{t('inviteParent')}</div>
-          <ParentForm students={studentList} />
-        </section>
-      </div>
-
-      {/* Cơ sở & Khối — quản lý sửa/lưu-trữ/xoá, khối lồng bên trong mỗi cơ sở */}
-      <section className="glass rounded-[20px] p-[18px]">
-        <div className={cardTitle}>
-          {t('manageCampusGrade')} ({activeCampuses.length})
-        </div>
-        {activeCampuses.length === 0 ? (
-          <div className="rounded-[12px] border-[1.5px] border-navy/10 px-[13px] py-[9px] text-[13px] text-grey-mid">
-            {t('none')}
-          </div>
-        ) : (
-          <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))]">
-            {activeCampuses.map((c) => (
-              <CampusCard
-                key={c.id}
-                campus={{id: c.id, name: c.name, code: c.code, level: c.level}}
-                grades={(gradesByCampus.get(c.id) ?? []).map((g) => ({
-                  id: g.id,
-                  name: g.name,
-                  sort_order: g.sort_order,
-                }))}
-                classCount={classCountByCampus.get(c.id) ?? 0}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Lớp — quản lý sửa/lưu-trữ/xoá + mở trang chi tiết */}
-      <section className="glass rounded-[20px] p-[18px]">
-        <ClassManager
-          classes={activeClasses.map((c) => ({
-            id: c.id,
-            name: c.name,
-            grade_id: c.grade_id,
-            grade: c.grade,
-            school_year: c.school_year,
-            campus_id: c.campus_id,
-            homeroom_teacher_id: c.homeroom_teacher_id,
-          }))}
-          campuses={campusOptions}
-          grades={allGradeOptions}
-          teachers={staffList}
-        />
-      </section>
-
-      {/* Lời mời đang chờ */}
-      {pendingInvites.length > 0 && (
+      {/* Lời mời đang chờ — xem ghi chú ở HIEN_LOI_MOI_DANG_CHO trên đầu file. */}
+      {HIEN_LOI_MOI_DANG_CHO && pendingInvites.length > 0 && (
         <section className="glass rounded-[20px] p-[18px]">
           <div className={cardTitle}>
             {t('pending')} ({pendingInvites.length})
@@ -567,52 +533,21 @@ export default async function AdminPage({
         </section>
       )}
 
-      {/* Môn — cấu hình 4 lĩnh vực 4DX (nhãn/màu/icon/đơn vị) */}
-      <section className="glass rounded-[20px] p-[18px]">
-        <div className={cardTitle}>{t('manageAreas')}</div>
-        <p className="mb-3 text-xs text-grey-mid">{t('areasHint')}</p>
-        <AreaConfigForm rows={areaRows} />
-      </section>
-
-      {/* Danh mục môn + phân công giáo viên bộ môn.
-          Cũng không làm tab: khai danh mục môn là việc vài lần một năm, còn thanh menu thì mọi
-          vai phải nhìn mỗi ngày (docs/NAV_IA.md). Đặt ở đây vì đây là nơi quản trị viên dựng nền
-          cho cả trường — cùng họ với tạo cơ sở, tạo lớp, phân công GVCN ở phía trên. */}
-      <section className="glass rounded-[20px] p-[18px]">
-        <div className={cardTitle}>Môn học &amp; phân công giáo viên bộ môn</div>
-        <p className="mb-3 text-xs text-grey-mid">
-          Danh mục môn dùng chung toàn trường, lớp nào học môn nào, và ai dạy môn gì ở lớp nào.
-          Giáo viên bộ môn chỉ nhập được điểm môn mình được phân công.
-        </p>
-        <Link
-          href="/subjects"
-          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy"
-        >
-          <BookMarked size={14} strokeWidth={2.2} />
-          Mở danh mục môn
-        </Link>
-      </section>
-
-      {/* Thực đơn bữa ăn — soạn ở trang riêng, không nhét vào đây.
-          Không làm tab trên thanh menu: nhập thực đơn là việc của một hai người, mỗi tuần một
-          lần; còn thanh menu thì mọi vai đều phải nhìn mỗi ngày (docs/NAV_IA.md). */}
-      <section className="glass rounded-[20px] p-[18px]">
-        <div className={cardTitle}>Thực đơn bữa ăn</div>
-        <p className="mb-3 text-xs text-grey-mid">
-          Soạn theo tuần cho từng cơ sở. Phụ huynh và học sinh thấy ngay trong trang của họ.
-        </p>
-        <Link
-          href="/menu"
-          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy"
-        >
-          <UtensilsCrossed size={14} strokeWidth={2.2} />
-          Mở trang thực đơn
-        </Link>
-      </section>
-
-      {/* Điểm danh & Wifi trường — cổng IP cho check-in cảm xúc */}
-      <section className="glass rounded-[20px] p-[18px]">
-        <div className={cardTitle}>{t('networkTitle')}</div>
+      {/* Điểm danh & Wifi trường — cổng IP cho check-in cảm xúc. Đặt TRÊN mục Môn: khai sai dải
+          mạng thì điểm danh cả trường hỏng ngay hôm ấy, còn nhãn/màu lĩnh vực thì sửa lúc nào
+          cũng được. Gấp lại, nhưng CHƯA KHAI BÁO MẠNG NÀO thì nhãn cảnh báo hiện ngay trên đầu
+          mục, không cần mở ra mới thấy. */}
+      <Disclosure
+        title={t('networkTitle')}
+        count={(networks ?? []).length}
+        badge={
+          activeNetworks === 0 ? (
+            <span className="rounded-full border border-warn/40 bg-warn/10 px-2.5 py-1 text-[11px] font-extrabold text-navy">
+              {t('networkOpenBadge')}
+            </span>
+          ) : undefined
+        }
+      >
         {/* cidr là kiểu `cidr` của Postgres, không có kiểu TS tương ứng nên bộ sinh
             database.types.ts để `unknown`. PostgREST trả về nó dạng chuỗi ("10.0.0.0/24"),
             nên ép kiểu ở đây là đúng thực tế — và phải làm ở chỗ dùng, vì file types là file
@@ -622,14 +557,48 @@ export default async function AdminPage({
           campuses={campusOptions}
           currentIp={currentIp}
         />
+      </Disclosure>
+
+      {/* Môn (4 lĩnh vực 4DX) — gấp lại: sửa nhãn/màu là việc vài lần một năm. */}
+      <Disclosure title={t('manageAreas')} hint={t('areasHint')} count={areaRows.length}>
+        <AreaConfigForm rows={areaRows} />
+      </Disclosure>
+
+      {/* Hai trang soạn thảo riêng — chỉ là lối vào, không nhét nội dung vào đây.
+          Không làm tab trên thanh menu: đây là việc của một hai người mỗi tuần/mỗi năm, còn thanh
+          menu thì mọi vai đều phải nhìn mỗi ngày (docs/NAV_IA.md). */}
+      <section className="glass rounded-[20px] p-[18px]">
+        <div className={cardTitle}>{t('otherPages')}</div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <p className="mb-2 text-xs text-grey-mid">
+              Danh mục môn dùng chung toàn trường, lớp nào học môn nào, và ai dạy môn gì ở lớp nào.
+              Giáo viên bộ môn chỉ nhập được điểm môn mình được phân công.
+            </p>
+            <Link href="/subjects" className={openLink}>
+              <BookMarked size={14} strokeWidth={2.2} />
+              Mở danh mục môn
+            </Link>
+          </div>
+          <div>
+            <p className="mb-2 text-xs text-grey-mid">
+              Thực đơn bữa ăn soạn theo tuần cho từng cơ sở. Phụ huynh và học sinh thấy ngay trong
+              trang của họ.
+            </p>
+            <Link href="/menu" className={openLink}>
+              <UtensilsCrossed size={14} strokeWidth={2.2} />
+              Mở trang thực đơn
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* Đã lưu trữ — khôi phục Cơ sở / Khối / Lớp */}
       {archivedCampuses.length + archivedGrades.length + archivedClasses.length > 0 && (
-        <section className="glass rounded-[20px] p-[18px]">
-          <div className={cardTitle}>
-            {t('archived')} ({archivedCampuses.length + archivedGrades.length + archivedClasses.length})
-          </div>
+        <Disclosure
+          title={t('archived')}
+          count={archivedCampuses.length + archivedGrades.length + archivedClasses.length}
+        >
           <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
             <ArchivedCol
               label={t('campuses')}
@@ -661,13 +630,11 @@ export default async function AdminPage({
               action={setClassActive}
             />
           </div>
-        </section>
+        </Disclosure>
       )}
 
       {/* Giao diện mẫu — mở mọi màn hình */}
-      <section className="glass rounded-[20px] p-[18px]">
-        <div className="mb-1 font-display text-[15px] font-bold text-navy">{t('screensTitle')}</div>
-        <p className="mb-3 text-xs text-grey-mid">{t('screensHint')}</p>
+      <Disclosure title={t('screensTitle')} hint={t('screensHint')} count={screens.length}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {screens.map((s) => (
             <Link
@@ -684,7 +651,7 @@ export default async function AdminPage({
             </Link>
           ))}
         </div>
-      </section>
+      </Disclosure>
     </div>
   );
 }

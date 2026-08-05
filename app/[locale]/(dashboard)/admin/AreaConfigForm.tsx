@@ -2,10 +2,14 @@
 
 import {useState} from 'react';
 import {useTranslations} from 'next-intl';
-import {updateArea} from './area-actions';
+import {RotateCcw} from 'lucide-react';
+import {resetArea, updateArea} from './area-actions';
 import {SubmitButton} from '@/components/ui/SubmitButton';
+import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {AREA_ICON_MAP, AREA_ICON_NAMES, type AreaMeta, type Area} from '@/lib/areas';
 
+const resetBtn =
+  'h-8 cursor-pointer whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/15 bg-white/70 px-2.5 text-[11.5px] font-extrabold text-grey-mid transition-all hover:border-navy hover:text-navy';
 const inp =
   'min-w-0 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
 const navyBtn =
@@ -31,7 +35,8 @@ function AreaCard({area, meta}: {area: Area; meta: AreaMeta}) {
   const Preview = AREA_ICON_MAP[icon] ?? AREA_ICON_MAP.BookOpen;
 
   return (
-    <form action={updateArea} className="rounded-[14px] border-[1.5px] border-navy/10 bg-white/50 p-3">
+    <div className="rounded-[14px] border-[1.5px] border-navy/10 bg-white/50 p-3">
+      <form action={updateArea} id={`area-${area}`}>
       <input type="hidden" name="area" value={area} />
       {/* Xem trước: chip icon + màu + nhãn */}
       <div className="mb-2.5 flex items-center gap-2">
@@ -93,6 +98,20 @@ function AreaCard({area, meta}: {area: Area; meta: AreaMeta}) {
           {t('save')}
         </SubmitButton>
       </div>
-    </form>
+      </form>
+
+      {/* Khôi phục mặc định = xoá dòng cấu hình, lĩnh vực rơi về nhãn/màu gốc.
+          Form RIÊNG đặt cạnh form sửa: <form> lồng trong <form> là HTML không hợp lệ, trình duyệt
+          sẽ âm thầm bỏ cái bên trong và nút này thành nút không làm gì. */}
+      <form action={resetArea} className="mt-2 border-t border-navy/[0.08] pt-2">
+        <input type="hidden" name="area" value={area} />
+        <ConfirmButton message={t('confirmResetArea')} className={resetBtn}>
+          <span className="inline-flex items-center gap-1.5">
+            <RotateCcw size={12} strokeWidth={2.4} />
+            {t('resetArea')}
+          </span>
+        </ConfirmButton>
+      </form>
+    </div>
   );
 }

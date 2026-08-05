@@ -23,11 +23,17 @@ export function ClassForm({
   grades,
   teachers,
   defaultYear,
+  fixedCampusId,
 }: {
   campuses: Campus[];
   grades: Grade[];
   teachers: Teacher[];
   defaultYear: string;
+  /**
+   * Cơ sở đã biết trước — dùng khi form này nằm BÊN TRONG một cơ sở ở cây quản lý. Bắt người ta
+   * chọn lại cơ sở mà họ vừa bấm mở là một bước thừa, và là một bước chọn nhầm được.
+   */
+  fixedCampusId?: string;
 }) {
   const t = useTranslations('admin');
   const [state, formAction] = useActionState(createClass, {ok: false});
@@ -35,7 +41,7 @@ export function ClassForm({
 
   const [name, setName] = useState('');
   const [schoolYear, setSchoolYear] = useState(defaultYear);
-  const [campusId, setCampusId] = useState('');
+  const [campusId, setCampusId] = useState(fixedCampusId ?? '');
   const [gradeId, setGradeId] = useState('');
   const [teacherId, setTeacherId] = useState('');
 
@@ -88,26 +94,30 @@ export function ClassForm({
       />
       {err('school_year') && <FieldError msg={err('school_year')!} />}
 
-      <select
-        name="campus_id"
-                aria-label={t('campus')}
-        value={campusId}
-        onChange={(e) => {
-          setCampusId(e.target.value);
-          setGradeId(''); // đổi cơ sở → reset khối (khối thuộc cơ sở khác không hợp lệ)
-        }}
-        aria-invalid={state.fieldError === 'campus_id'}
-        className={`cursor-pointer ${inputBase} ${borderFor('campus_id')}`}
-      >
-        <option value="" disabled>
-          — {t('campus')} —
-        </option>
-        {campuses.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
+      {fixedCampusId ? (
+        <input type="hidden" name="campus_id" value={fixedCampusId} />
+      ) : (
+        <select
+          name="campus_id"
+          aria-label={t('campus')}
+          value={campusId}
+          onChange={(e) => {
+            setCampusId(e.target.value);
+            setGradeId(''); // đổi cơ sở → reset khối (khối thuộc cơ sở khác không hợp lệ)
+          }}
+          aria-invalid={state.fieldError === 'campus_id'}
+          className={`cursor-pointer ${inputBase} ${borderFor('campus_id')}`}
+        >
+          <option value="" disabled>
+            {t('campus')}
           </option>
-        ))}
-      </select>
+          {campuses.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      )}
       {err('campus_id') && <FieldError msg={err('campus_id')!} />}
 
       {/* Khối — lọc theo cơ sở; rỗng nếu chưa chọn cơ sở hoặc cơ sở chưa có khối */}
@@ -119,9 +129,7 @@ export function ClassForm({
         disabled={!campusId}
         className={`cursor-pointer ${inputBase} border-navy/15 focus:border-navy disabled:opacity-50`}
       >
-        <option value="">
-          — {t('grade')} ({t('none')}) —
-        </option>
+        <option value="">{t('gradeNone')}</option>
         {gradeOptions.map((g) => (
           <option key={g.id} value={g.id}>
             {g.name}
@@ -136,9 +144,7 @@ export function ClassForm({
         onChange={(e) => setTeacherId(e.target.value)}
         className={`cursor-pointer ${inputBase} border-navy/15 focus:border-navy`}
       >
-        <option value="">
-          — {t('gvcn')} ({t('none')}) —
-        </option>
+        <option value="">{t('gvcnNone')}</option>
         {teachers.map((s) => (
           <option key={s.id} value={s.id}>
             {s.full_name ?? s.email}

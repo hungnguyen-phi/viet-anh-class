@@ -42,6 +42,69 @@ export async function setUserRole(formData: FormData) {
   flash(error ? loi(friendlyError(error)) : 'Đã đổi vai trò');
 }
 
+// ---------- DUYỆT / XOÁ NHIỀU NGƯỜI CÙNG LÚC ----------
+//
+// Một đợt tuyển đầu năm đẩy vài chục giáo viên vào vai "chờ cấp quyền" cùng một buổi. Trước đây
+// mỗi người là một <form> riêng: chọn vai → bấm → cả trang tải lại → cuộn tìm lại chỗ cũ, nhân
+// với ba mươi lần. Nay tick một loạt rồi bấm một cái.
+//
+// Bỏ qua chính mình trong danh sách (đổi vai/xoá bản thân là cách tự khoá quyền admin) thay vì
+// chặn cả mẻ: người bấm "chọn tất cả" không nên bị cả thao tác hỏng chỉ vì dòng của họ lọt vào.
+export async function bulkSetUserRole(formData: FormData) {
+  const me = await requireRole(['admin']);
+  const role = String(formData.get('role') ?? '') as Role;
+  const ids = formData.getAll('userId').map(String).filter(Boolean);
+  const targets = ids.filter((id) => id !== me.id);
+  const skippedSelf = ids.length - targets.length;
+  if (!role) flash(loi('Chưa chọn vai trò để cấp.'));
+  if (targets.length === 0)
+    flash(loi(skippedSelf > 0 ? 'Không thể tự đổi vai trò của chính mình.' : 'Chưa chọn người nào.'));
+
+  const supabase = await createClient();
+  const {error} = await supabase.from('profiles').update({role}).in('id', targets);
+  if (!error) {
+    await supabase.rpc('log_audit', {
+      p_action: 'bulk_set_user_role',
+      p_detail: {targets, new_role: role},
+    });
+  }
+  revalidatePath('/[locale]/admin', 'page');
+  flash(
+    error
+      ? loi(friendlyError(error))
+      : `Đã cấp quyền cho ${targets.length} người${skippedSelf > 0 ? ' (bỏ qua chính bạn)' : ''}`,
+  );
+}
+
+export async function bulkDeleteUsers(formData: FormData) {
+  const me = await requireRole(['admin']);
+  const ids = formData.getAll('userId').map(String).filter(Boolean);
+  const targets = ids.filter((id) => id !== me.id);
+  const skippedSelf = ids.length - targets.length;
+  if (targets.length === 0)
+    flash(loi(skippedSelf > 0 ? 'Không thể xoá chính mình.' : 'Chưa chọn người nào.'));
+
+  const supabase = await createClient();
+  // admin_delete_user nhận MỘT người mỗi lần (nó dọn cả dữ liệu liên quan), nên phải gọi lần
+  // lượt. Số lượng bị chặn bởi số dòng đang hiện trên trang nên không có vòng lặp vô hạn.
+  let ok = 0;
+  const failed: string[] = [];
+  for (const id of targets) {
+    const {error} = await supabase.rpc('admin_delete_user', {p_user: id});
+    if (error) failed.push(friendlyError(error));
+    else ok++;
+  }
+  if (ok > 0) await supabase.rpc('log_audit', {p_action: 'bulk_delete_users', p_detail: {count: ok}});
+  revalidatePath('/[locale]/admin', 'page');
+  // Báo CẢ hai con số: xoá 8/10 mà chỉ nói "đã xoá" thì hai người còn lại biến mất khỏi nhận thức
+  // của người quản trị chứ không biến mất khỏi cơ sở dữ liệu.
+  flash(
+    failed.length > 0
+      ? loi(`Đã xoá ${ok} người, ${failed.length} người lỗi: ${failed[0]}`)
+      : `Đã xoá ${ok} người`,
+  );
+}
+
 export async function disableUser(formData: FormData) {
   const me = await requireRole(['admin']);
   const userId = String(formData.get('userId') ?? '');

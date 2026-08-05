@@ -65,7 +65,7 @@ export function ParentForm({students}: {students: Student[]}) {
         className={studentCls}
       >
         <option value="" disabled>
-          — {t('student')} —
+          {t('student')}
         </option>
         {students.map((s) => (
           <option key={s.id} value={s.id}>

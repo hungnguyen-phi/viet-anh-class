@@ -25,7 +25,7 @@ export function CampusLevelPicker({level}: {level: SchoolLevel | null}) {
       </span>
       <select name="level" aria-label={t('level')} defaultValue={level ?? ''} className={`${inp} w-44 cursor-pointer`} required>
         <option value="" disabled>
-          — {t('level')} —
+          {t('level')}
         </option>
         {SCHOOL_LEVELS.map((lv) => (
           <option key={lv} value={lv}>

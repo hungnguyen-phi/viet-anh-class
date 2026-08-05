@@ -1,0 +1,479 @@
+'use client';
+
+import {useMemo, useState} from 'react';
+import {useTranslations} from 'next-intl';
+import {Building2, ChevronRight, Plus} from 'lucide-react';
+import {Link} from '@/i18n/navigation';
+import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {SubmitButton} from '@/components/ui/SubmitButton';
+import {GRADE_NUMBERS, SCHOOL_LEVELS, type SchoolLevel} from '@/lib/levels';
+import {deleteCampus, deleteClass, setCampusActive, setClassActive, updateCampus, updateClass} from './actions';
+import {GradeManager} from './GradeManager';
+import {CampusForm} from './CampusForm';
+import {ClassForm} from './ClassForm';
+
+type Campus = {id: string; name: string; code: string; level: SchoolLevel | null};
+type Grade = {id: string; name: string; campus_id: string; sort_order: number};
+type GradeOption = {id: string; name: string; campus_id: string; is_active: boolean};
+type ClassRow = {
+  id: string;
+  name: string;
+  grade_id: string | null;
+  grade: string | null;
+  school_year: string;
+  campus_id: string;
+  homeroom_teacher_id: string | null;
+};
+type Teacher = {id: string; full_name: string | null; email: string};
+
+const inp =
+  'min-w-0 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
+const navyBtn =
+  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700';
+const ghost =
+  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/20 bg-white px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
+const gold =
+  'btn-gold h-8 shrink-0 inline-flex items-center cursor-pointer whitespace-nowrap rounded-[9px] px-2.5 text-[11.5px] font-extrabold transition-all';
+const danger =
+  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-[rgba(192,57,43,0.12)] px-2.5 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-[rgba(192,57,43,0.22)]';
+const subLabel = 'text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
+
+// CÂY CƠ SỞ → KHỐI → LỚP.
+//
+// Bản cũ chia cùng một cấu trúc ra ba khối rời nhau trên trang: một thẻ "Tạo cơ sở" đứng riêng ở
+// trên, một khối "Cơ sở & Khối", rồi một BẢNG LỚP phẳng có ô lọc cơ sở ở tận dưới. Nên trả lời
+// câu hỏi đơn giản nhất của người quản trị — "cơ sở này đang có những lớp nào" — phải cuộn qua
+// nửa trang rồi chọn lại đúng cơ sở ấy lần thứ hai trong một ô lọc khác.
+//
+// Nay: mỗi cơ sở là một mục cha gấp/mở được, khối và lớp là mục con nằm bên trong, và nút thêm
+// nằm ngay trong mục nó thuộc về (thêm khối trong khối, thêm lớp trong lớp, thêm cơ sở ở đầu
+// danh sách) thay vì là những thẻ riêng trôi nổi bên ngoài.
+export function CampusTree({
+  campuses,
+  grades,
+  allGrades,
+  classes,
+  teachers,
+  defaultYear,
+}: {
+  campuses: Campus[];
+  grades: Grade[];
+  allGrades: GradeOption[];
+  classes: ClassRow[];
+  teachers: Teacher[];
+  defaultYear: string;
+}) {
+  const t = useTranslations('admin');
+  const [adding, setAdding] = useState(false);
+  // Một cơ sở thì mở sẵn (gấp lại chẳng giấu được gì); nhiều cơ sở thì đóng hết để nhìn được
+  // toàn cảnh trước khi đi vào một cái.
+  const [openIds, setOpenIds] = useState<string[]>(campuses.length === 1 ? [campuses[0].id] : []);
+
+  const gradesByCampus = useMemo(() => {
+    const m = new Map<string, Grade[]>();
+    for (const g of grades) m.set(g.campus_id, [...(m.get(g.campus_id) ?? []), g]);
+    // Khối theo thứ tự khối, không theo thứ tự vừa thêm.
+    for (const arr of m.values()) arr.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'vi'));
+    return m;
+  }, [grades]);
+
+  const classesByCampus = useMemo(() => {
+    const order = new Map(grades.map((g) => [g.id, g.sort_order]));
+    const m = new Map<string, ClassRow[]>();
+    for (const c of classes) m.set(c.campus_id, [...(m.get(c.campus_id) ?? []), c]);
+    // XẾP THEO KHỐI RỒI TỚI TÊN LỚP. Trước đây lớp mới luôn rơi xuống cuối bảng theo thứ tự tạo,
+    // nên một trường thêm lớp 1C giữa năm thì nó nằm sau lớp 5A — danh sách không còn đọc được
+    // như một cuốn sổ nữa.
+    for (const arr of m.values())
+      arr.sort(
+        (a, b) =>
+          (order.get(a.grade_id ?? '') ?? 999) - (order.get(b.grade_id ?? '') ?? 999) ||
+          a.name.localeCompare(b.name, 'vi'),
+      );
+    return m;
+  }, [classes, grades]);
+
+  const toggle = (id: string) =>
+    setOpenIds((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+
+  return (
+    <section className="glass rounded-[20px] p-[18px]">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="font-display text-[15px] font-bold text-navy">
+          {t('treeTitle')} <span className="font-semibold text-grey-mid">({campuses.length})</span>
+        </div>
+        <button type="button" onClick={() => setAdding((v) => !v)} className={ghost}>
+          <span className="inline-flex items-center gap-1">
+            <Plus size={13} strokeWidth={2.6} />
+            {t('createCampus')}
+          </span>
+        </button>
+      </div>
+
+      {/* Thêm cơ sở NGAY TRONG mục cơ sở, không phải một thẻ riêng ở đầu trang. */}
+      {adding && (
+        <div className="mb-3 rounded-[14px] border-[1.5px] border-dashed border-navy/20 bg-white/50 p-3">
+          <div className={`mb-2 ${subLabel}`}>{t('createCampus')}</div>
+          <CampusForm />
+        </div>
+      )}
+
+      {campuses.length === 0 ? (
+        <div className="rounded-[12px] border-[1.5px] border-navy/10 px-[13px] py-[9px] text-[13px] text-grey-mid">
+          {t('none')}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {campuses.map((c) => (
+            <CampusNode
+              key={c.id}
+              campus={c}
+              open={openIds.includes(c.id)}
+              onToggle={() => toggle(c.id)}
+              grades={gradesByCampus.get(c.id) ?? []}
+              classes={classesByCampus.get(c.id) ?? []}
+              allCampuses={campuses}
+              allGrades={allGrades}
+              teachers={teachers}
+              defaultYear={defaultYear}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ---------- MỤC CHA: một cơ sở ----------
+function CampusNode({
+  campus,
+  open,
+  onToggle,
+  grades,
+  classes,
+  allCampuses,
+  allGrades,
+  teachers,
+  defaultYear,
+}: {
+  campus: Campus;
+  open: boolean;
+  onToggle: () => void;
+  grades: Grade[];
+  classes: ClassRow[];
+  allCampuses: Campus[];
+  allGrades: GradeOption[];
+  teachers: Teacher[];
+  defaultYear: string;
+}) {
+  const t = useTranslations('admin');
+  const [edit, setEdit] = useState(false);
+  const [addingClass, setAddingClass] = useState(false);
+  const [editClassId, setEditClassId] = useState<string | null>(null);
+
+  return (
+    <div className="rounded-[14px] border-[1.5px] border-navy/10 bg-white/50">
+      {/* Hàng tiêu đề cơ sở */}
+      {edit ? (
+        <form action={updateCampus} className="flex flex-wrap items-center gap-1.5 p-3">
+          <input type="hidden" name="id" value={campus.id} />
+          <input name="name" aria-label={t('name')} defaultValue={campus.name} className={`${inp} flex-1`} required />
+          <input name="code" aria-label={t('code')} defaultValue={campus.code} className={`${inp} w-24`} required />
+          {/* Đổi cấp học sẽ SINH THÊM khối chuẩn của cấp mới (trigger campus_seed_grades).
+              Khối cũ không bị xoá — lớp đang trỏ vào chúng vẫn nguyên. */}
+          <select
+            name="level"
+            aria-label={t('level')}
+            defaultValue={campus.level ?? ''}
+            className={`${inp} w-40 cursor-pointer`}
+            title={t('levelHint')}
+          >
+            <option value="">{t('level')}</option>
+            {SCHOOL_LEVELS.map((lv) => (
+              <option key={lv} value={lv}>
+                {t(`level_${lv}`)}
+              </option>
+            ))}
+          </select>
+          <SubmitButton className={navyBtn} wrapClass="contents">
+            {t('save')}
+          </SubmitButton>
+          <button type="button" onClick={() => setEdit(false)} className={ghost}>
+            {t('cancel')}
+          </button>
+        </form>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 p-3">
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={open}
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
+          >
+            <ChevronRight
+              size={16}
+              strokeWidth={2.6}
+              className={`shrink-0 text-grey-mid transition-transform ${open ? 'rotate-90' : ''}`}
+            />
+            <Building2 size={15} strokeWidth={2.2} className="shrink-0 text-gold-deep" />
+            <span className="truncate font-display text-[15px] font-bold text-navy">{campus.name}</span>
+            <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[11px] font-bold text-grey-mid">
+              {campus.code}
+            </span>
+            {campus.level ? (
+              <span className="rounded-full bg-gold/[0.18] px-2 py-0.5 text-[11px] font-bold text-navy">
+                {t(`level_${campus.level}`)}
+              </span>
+            ) : (
+              // Chưa khai cấp học thì chưa sinh được khối nào → nói thẳng việc cần làm.
+              <span className="rounded-full bg-status-bad/[0.10] px-2 py-0.5 text-[11px] font-bold text-status-bad">
+                {t('noLevel')}
+              </span>
+            )}
+            <span className="whitespace-nowrap text-[11px] font-semibold text-grey-mid">
+              {grades.length} {t('gradesShort')} · {classes.length} {t('classesShort')}
+            </span>
+          </button>
+          <span className="flex flex-wrap gap-1.5">
+            <button type="button" onClick={() => setEdit(true)} className={ghost}>
+              {t('edit')}
+            </button>
+            <form action={setCampusActive}>
+              <input type="hidden" name="id" value={campus.id} />
+              <input type="hidden" name="active" value="false" />
+              <SubmitButton className={ghost} wrapClass="contents">
+                {t('archive')}
+              </SubmitButton>
+            </form>
+            <form action={deleteCampus}>
+              <input type="hidden" name="id" value={campus.id} />
+              <ConfirmButton message={t('confirmDeleteCampus')} className={danger}>
+                {t('delete')}
+              </ConfirmButton>
+            </form>
+          </span>
+        </div>
+      )}
+
+      {/* Mục con: KHỐI và LỚP */}
+      {open && (
+        <div className="border-t border-navy/[0.08] px-3 pb-3">
+          {/* Khối — GradeManager giữ nguyên (có sẵn thêm/sửa/lưu-trữ/xoá bên trong). */}
+          <GradeManager campusId={campus.id} grades={grades} level={campus.level} />
+          {campus.level && GRADE_NUMBERS[campus.level] == null && grades.length === 0 && (
+            <p className="mt-1 text-[11.5px] font-semibold italic text-grey-mid">{t('manualGradeHint')}</p>
+          )}
+
+          {/* Lớp của chính cơ sở này */}
+          <div className="mt-3 border-t border-navy/[0.08] pt-2.5">
+            <div className="mb-1.5 flex flex-wrap items-center gap-2">
+              <span className={subLabel}>
+                {t('classes')} ({classes.length})
+              </span>
+              <button
+                type="button"
+                onClick={() => setAddingClass((v) => !v)}
+                className={`${ghost} ml-auto`}
+              >
+                <span className="inline-flex items-center gap-1">
+                  <Plus size={13} strokeWidth={2.6} />
+                  {t('createClass')}
+                </span>
+              </button>
+            </div>
+
+            {addingClass && (
+              <div className="mb-2 rounded-[12px] border-[1.5px] border-dashed border-navy/20 bg-white/60 p-2.5">
+                {/* Cơ sở đã biết → không bắt chọn lại. */}
+                <ClassForm
+                  campuses={allCampuses.map((c) => ({id: c.id, name: c.name}))}
+                  grades={grades.map((g) => ({id: g.id, name: g.name, campus_id: g.campus_id}))}
+                  teachers={teachers}
+                  defaultYear={defaultYear}
+                  fixedCampusId={campus.id}
+                />
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1">
+              {classes.map((c) => (
+                <div key={c.id}>
+                  <div className="flex flex-wrap items-center gap-2 rounded-[10px] px-1.5 py-1.5 transition-colors hover:bg-navy/[0.03]">
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-navy">{c.name}</span>
+                    <span className="whitespace-nowrap text-[11.5px] font-semibold text-grey-mid">
+                      {c.grade ?? t('none')} · {c.school_year}
+                    </span>
+                    <span className="min-w-0 max-w-[180px] flex-1 truncate text-[11.5px] font-semibold text-grey-mid">
+                      {c.homeroom_teacher_id
+                        ? teachers.find((p) => p.id === c.homeroom_teacher_id)?.full_name ??
+                          teachers.find((p) => p.id === c.homeroom_teacher_id)?.email ??
+                          t('gvcnRoleChanged')
+                        : t('notAssigned')}
+                    </span>
+                    <span className="flex flex-wrap gap-1.5">
+                      <Link href={`/admin/class/${c.id}`} className={gold}>
+                        {t('detail')}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setEditClassId(editClassId === c.id ? null : c.id)}
+                        className={ghost}
+                      >
+                        {t('edit')}
+                      </button>
+                      <form action={setClassActive}>
+                        <input type="hidden" name="id" value={c.id} />
+                        <input type="hidden" name="active" value="false" />
+                        <SubmitButton className={ghost} wrapClass="contents">
+                          {t('archive')}
+                        </SubmitButton>
+                      </form>
+                      <form action={deleteClass}>
+                        <input type="hidden" name="id" value={c.id} />
+                        <ConfirmButton
+                          message={t('confirmDeleteClass')}
+                          label={t('deleteClass')}
+                          className={danger}
+                        >
+                          ✕
+                        </ConfirmButton>
+                      </form>
+                    </span>
+                  </div>
+
+                  {editClassId === c.id && (
+                    <ClassInlineEdit
+                      row={c}
+                      campuses={allCampuses.map((x) => ({id: x.id, name: x.name}))}
+                      grades={allGrades}
+                      teachers={teachers}
+                      onDone={() => setEditClassId(null)}
+                    />
+                  )}
+                </div>
+              ))}
+              {classes.length === 0 && (
+                <div className="px-1.5 py-1 text-[12px] font-semibold text-grey-mid">{t('noClass')}</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- Form sửa 1 lớp, mở ngay dưới dòng lớp ----------
+// Select Cơ sở ↔ Khối liên kết (đổi cơ sở thì reset khối).
+function ClassInlineEdit({
+  row,
+  campuses,
+  grades,
+  teachers,
+  onDone,
+}: {
+  row: ClassRow;
+  campuses: {id: string; name: string}[];
+  grades: GradeOption[];
+  teachers: Teacher[];
+  onDone: () => void;
+}) {
+  const t = useTranslations('admin');
+  const [campusId, setCampusId] = useState(row.campus_id);
+  const [gradeId, setGradeId] = useState(row.grade_id ?? '');
+  // Giữ khối đang gắn của lớp trong danh sách kể cả khi đã lưu-trữ → tránh lưu mất khối (audit #3).
+  const gradeOptions = useMemo(
+    () => grades.filter((g) => g.campus_id === campusId && (g.is_active || g.id === row.grade_id)),
+    [grades, campusId, row.grade_id],
+  );
+
+  return (
+    <form
+      action={updateClass}
+      className="mt-1 grid gap-2 rounded-[12px] border-[1.5px] border-dashed border-navy/15 bg-navy/[0.02] p-2.5 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]"
+    >
+      <input type="hidden" name="id" value={row.id} />
+      <label className={`flex flex-col gap-1 ${subLabel}`}>
+        {t('name')}
+        <input name="name" aria-label={t('name')} defaultValue={row.name} className={inp} required />
+      </label>
+      <label className={`flex flex-col gap-1 ${subLabel}`}>
+        {t('schoolYear')}
+        <input
+          name="school_year"
+          aria-label={t('schoolYear')}
+          defaultValue={row.school_year}
+          className={inp}
+          required
+        />
+      </label>
+      <label className={`flex flex-col gap-1 ${subLabel}`}>
+        {t('campus')}
+        <select
+          name="campus_id"
+          aria-label={t('campus')}
+          value={campusId}
+          onChange={(e) => {
+            setCampusId(e.target.value);
+            setGradeId('');
+          }}
+          className={`cursor-pointer ${inp}`}
+        >
+          {campuses.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className={`flex flex-col gap-1 ${subLabel}`}>
+        {t('grade')}
+        <select
+          name="grade_id"
+          aria-label={t('grade')}
+          value={gradeId}
+          onChange={(e) => setGradeId(e.target.value)}
+          className={`cursor-pointer ${inp}`}
+        >
+          <option value="">{t('notAssigned')}</option>
+          {gradeOptions.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+              {g.is_active ? '' : ` (${t('archived')})`}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className={`flex flex-col gap-1 ${subLabel}`}>
+        {t('gvcn')}
+        <select
+          name="homeroom_teacher_id"
+          aria-label={t('gvcn')}
+          defaultValue={row.homeroom_teacher_id ?? ''}
+          className={`cursor-pointer ${inp}`}
+        >
+          <option value="">{t('notAssigned')}</option>
+          {/* GIỮ LẠI NGƯỜI ĐANG CHỦ NHIỆM DÙ HỌ KHÔNG CÒN TRONG DANH SÁCH.
+              `teachers` chỉ gồm nhân sự đang có vai giáo viên/BGH/quản trị. Nếu người đang chủ
+              nhiệm đã bị đổi vai (hoặc vô hiệu), họ biến mất khỏi danh sách — và một <select> có
+              defaultValue không khớp option nào sẽ tự nhảy về option ĐẦU TIÊN, ở đây là "Chưa
+              gán". Nên mở form ra sửa mỗi cái tên lớp rồi bấm Lưu là lớp mất chủ nhiệm, lặng lẽ. */}
+          {row.homeroom_teacher_id && !teachers.some((p) => p.id === row.homeroom_teacher_id) && (
+            <option value={row.homeroom_teacher_id}>{t('gvcnRoleChanged')}</option>
+          )}
+          {teachers.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.full_name ?? p.email}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="flex items-end gap-1.5">
+        <SubmitButton className={navyBtn}>{t('save')}</SubmitButton>
+        <button type="button" onClick={onDone} className={ghost}>
+          {t('cancel')}
+        </button>
+      </div>
+    </form>
+  );
+}

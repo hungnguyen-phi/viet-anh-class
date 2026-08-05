@@ -77,7 +77,7 @@ export function CampusForm() {
         aria-invalid={state.fieldError === 'level'}
         className={`w-44 cursor-pointer rounded-[10px] border-[1.5px] bg-white px-3 py-2 text-sm font-semibold text-navy outline-none transition-all ${borderFor('level')}`}
       >
-        <option value="">— {t('level')} —</option>
+        <option value="">{t('level')}</option>
         {SCHOOL_LEVELS.map((lv) => (
           <option key={lv} value={lv}>
             {t(`level_${lv}`)}

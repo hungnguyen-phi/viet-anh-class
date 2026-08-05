@@ -88,7 +88,7 @@ export function ClassEditForm({
           onChange={(e) => setGradeId(e.target.value)}
           className={`cursor-pointer ${inp}`}
         >
-          <option value="">— {t('none')} —</option>
+          <option value="">{t('notAssigned')}</option>
           {gradeOptions.map((g) => (
             <option key={g.id} value={g.id}>
               {g.name}
@@ -105,7 +105,7 @@ export function ClassEditForm({
           defaultValue={row.homeroom_teacher_id ?? ''}
           className={`cursor-pointer ${inp}`}
         >
-          <option value="">— {t('none')} —</option>
+          <option value="">{t('notAssigned')}</option>
           {/* GIỮ LẠI NGƯỜI ĐANG CHỦ NHIỆM DÙ HỌ KHÔNG CÒN TRONG DANH SÁCH.
               `teachers` chỉ gồm nhân sự đang có vai giáo viên/BGH/quản trị. Nếu người đang chủ
               nhiệm đã bị đổi vai (hoặc vô hiệu), họ biến mất khỏi danh sách — và một <select> có
