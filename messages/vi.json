@@ -353,7 +353,15 @@
     "deleteClassFor": "Xoá lớp {name}",
     "grantRoleFor": "Cấp vai trò cho {name}",
     "classOrphanHint": "Cơ sở {campus} đã lưu trữ",
-    "restoreViaCampus": "Khôi phục cơ sở để lấy lại"
+    "restoreViaCampus": "Khôi phục cơ sở để lấy lại",
+    "grantsTitle": "Đã khai sẵn — chờ đăng nhập lần đầu",
+    "grantsHint": "Những email đã được gán trước vai trò và lớp. Họ đăng nhập bằng Google lần đầu là tự vào đúng chỗ.",
+    "grantsNoMailWarning": "Hệ thống KHÔNG gửi email cho những người này. Anh/chị phải tự báo họ vào class.vietanh.org và đăng nhập bằng Google đúng email ở trên. Khai sẵn chỉ có tác dụng cho lần đăng nhập ĐẦU TIÊN.",
+    "grantedOn": "Ngày khai",
+    "classGone": "(không còn)",
+    "cancelGrant": "Huỷ",
+    "cancelGrantFor": "Huỷ khai báo cho {email}",
+    "confirmCancelGrant": "Huỷ khai báo cho {email}? Người này đăng nhập sẽ chỉ vào được vai chờ cấp quyền."
   },
   "dashboard": {
     "welcome": "Xin chào",

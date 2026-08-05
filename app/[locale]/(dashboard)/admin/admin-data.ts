@@ -46,7 +46,7 @@ export const layDanhMuc = cache(async () => {
 export const layPhuTro = cache(async () => {
   const supabase = await createClient();
   const [{data: grants}, {data: invites}, {data: areaCfg}, {data: networks}] = await Promise.all([
-    supabase.from('pending_user_grants').select('email, role, class_id').order('created_at'),
+    supabase.from('pending_user_grants').select('email, role, class_id, created_at').order('created_at', {ascending: false}),
     supabase.from('parent_invitations').select('email, student_id, status').order('created_at'),
     supabase.from('area_config').select('*').order('sort_order'),
     // Mạng đang bật lên trên, rồi theo nhãn A→Z — chứ không theo thứ tự vừa thêm. Một dải mạng

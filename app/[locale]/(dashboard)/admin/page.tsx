@@ -4,6 +4,7 @@ import {requireRole} from '@/lib/auth';
 import {Flash} from '@/components/ui/Flash';
 import {AdminSections} from './AdminSections';
 import {CreateMenuLoader, CreateMenuSkeleton} from './CreateMenuLoader';
+import {PendingGrants} from './PendingGrants';
 import {PendingSection} from './PendingSection';
 import {UsersSection, UsersSectionSkeleton} from './UsersSection';
 // Hằng số lấy từ file trung lập, KHÔNG lấy từ UsersToolbar.tsx: nhập dữ liệu thuần từ một module
@@ -85,6 +86,12 @@ export default async function AdminPage({
 
       <Suspense fallback={null}>
         <PendingSection />
+      </Suspense>
+
+      {/* Đã khai sẵn, chờ đăng nhập lần đầu — đặt TRÊN bảng người dùng vì đây là những người CHƯA
+          có trong bảng ấy. Không có mục này thì khai xong ba mươi ba email là mất dấu. */}
+      <Suspense fallback={null}>
+        <PendingGrants />
       </Suspense>
 
       <Suspense key={khoaBang} fallback={<UsersSectionSkeleton rows={Math.min(page, 10)} />}>

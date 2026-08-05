@@ -13,15 +13,6 @@ import {CampusTree} from './CampusTree';
 import {Disclosure} from './Disclosure';
 import {SchoolNetworkManager} from './SchoolNetworkManager';
 
-// LỜI MỜI ĐANG CHỜ — TẠM ẨN.
-//
-// Mục này liệt kê những email đã được khai trước vai trò, dưới cái tên "đang chờ". Nhưng hệ thống
-// CHƯA GỬI EMAIL nào cho họ cả: vai trò chỉ được áp khi tự họ đăng nhập lần đầu. Một danh sách
-// mang chữ "đang chờ" mà không có ai được báo là đang chờ đọc như một hàng đợi đang chạy, khiến
-// người quản trị ngồi đợi một chuyện sẽ không xảy ra.
-// Bật lại bằng cách đổi hằng số này thành true sau khi đường gửi mail chạy thật.
-const HIEN_LOI_MOI_DANG_CHO = false;
-
 const cardTitle = 'mb-3 font-display text-[15px] font-bold text-navy';
 const openLink =
   'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy';
@@ -33,16 +24,16 @@ const openLink =
 // vấn này xong mới thấy được một dòng nào.
 export async function AdminSections() {
   const t = await getTranslations('admin');
-  const tr = await getTranslations('roles');
   const tn = await getTranslations('nav');
   const tcommon = await getTranslations('common');
 
-  const [{allCampuses, allGrades, allClasses, staffList}, {grants, invites, areaCfg, networks}] =
-    await Promise.all([layDanhMuc(), layPhuTro()]);
+  const [{allCampuses, allGrades, allClasses, staffList}, {areaCfg, networks}] = await Promise.all([
+    layDanhMuc(),
+    layPhuTro(),
+  ]);
   const currentIp = clientIp(await headers());
 
   const campusName = new Map(allCampuses.map((c) => [c.id, c.name]));
-  const className = new Map(allClasses.map((c) => [c.id, c.name]));
 
   const activeCampuses = allCampuses.filter((c) => c.is_active);
   const archivedCampuses = allCampuses.filter((c) => !c.is_active);
@@ -77,19 +68,6 @@ export async function AdminSections() {
   const areaMeta = buildAreaMeta(areaCfg);
   const areaRows = AREAS.map((a) => ({area: a, meta: areaMeta[a]}));
   const activeNetworks = networks.filter((n) => n.is_active).length;
-
-  const pendingInvites = [
-    ...grants.map((g) => ({
-      email: g.email,
-      detail: `${tr(g.role)}${g.class_id ? ` · ${className.get(g.class_id) ?? ''}` : ''}`,
-    })),
-    ...invites
-      .filter((i) => i.status === 'pending')
-      // Không kèm tên học sinh: danh sách một nghìn học sinh đã tách sang ParentFormLoader nạp
-      // riêng. Mục này đang tắt; khi bật lại thì cho nó tự nạp tên nó cần, đừng kéo cả nghìn dòng
-      // vào đường dựng trang chỉ để ghép một chuỗi.
-      .map((i) => ({email: i.email, detail: tr('parent')})),
-  ];
 
   // Mục lục màn hình. CHỈ liệt kê những trang quản trị viên THẬT SỰ MỞ ĐƯỢC từ đây.
   //
@@ -135,28 +113,6 @@ export async function AdminSections() {
         teachers={staffList}
         defaultYear={schoolYearLabel(new Date())}
       />
-
-      {/* Lời mời đang chờ — xem ghi chú ở HIEN_LOI_MOI_DANG_CHO trên đầu file. */}
-      {HIEN_LOI_MOI_DANG_CHO && pendingInvites.length > 0 && (
-        <section className="glass rounded-[20px] p-[18px]">
-          <div className={cardTitle}>
-            {t('pending')} ({pendingInvites.length})
-          </div>
-          <div className="rounded-[12px] border-[1.5px] border-navy/10">
-            {pendingInvites.map((p, i) => (
-              <div
-                key={`${p.email}-${i}`}
-                className={`flex items-center justify-between px-[13px] py-[9px] text-[13px] ${
-                  i > 0 ? 'border-t border-navy/[0.08]' : ''
-                }`}
-              >
-                <span className="font-bold text-navy">{p.email}</span>
-                <span className="font-semibold text-grey-mid">{p.detail}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Điểm danh & Wifi trường — cổng IP cho check-in cảm xúc. Đặt TRÊN mục Môn: khai sai dải
           mạng thì điểm danh cả trường hỏng ngay hôm ấy, còn nhãn/màu lĩnh vực thì sửa lúc nào cũng

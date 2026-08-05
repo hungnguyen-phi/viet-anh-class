@@ -353,7 +353,15 @@
     "deleteClassFor": "Delete class {name}",
     "grantRoleFor": "Grant role to {name}",
     "classOrphanHint": "Campus {campus} is archived",
-    "restoreViaCampus": "Restore the campus to bring it back"
+    "restoreViaCampus": "Restore the campus to bring it back",
+    "grantsTitle": "Pre-assigned — waiting for first sign-in",
+    "grantsHint": "Emails already granted a role and class. They land in the right place the first time they sign in with Google.",
+    "grantsNoMailWarning": "The system does NOT email these people. You must tell them yourself to go to class.vietanh.org and sign in with Google using exactly the email above. A pre-assignment only applies on the FIRST sign-in.",
+    "grantedOn": "Granted on",
+    "classGone": "(gone)",
+    "cancelGrant": "Cancel",
+    "cancelGrantFor": "Cancel pre-assignment for {email}",
+    "confirmCancelGrant": "Cancel the pre-assignment for {email}? They will land as pending-approval when they sign in."
   },
   "dashboard": {
     "welcome": "Hello",

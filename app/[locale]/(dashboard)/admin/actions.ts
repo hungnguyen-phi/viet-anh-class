@@ -523,3 +523,50 @@ export async function deleteClass(formData: FormData) {
   revalidatePath('/[locale]', 'page');
   flash(error ? loi(friendlyError(error)) : 'Đã xoá lớp (rỗng)');
 }
+
+// Huỷ một khai báo đang chờ (người đó chưa đăng nhập lần đầu).
+//
+// Xoá dòng trong pending_user_grants nghĩa là: người đó đăng nhập sẽ chỉ vào được vai "chờ cấp
+// quyền" như người lạ, không tự nhận vai và lớp đã khai. Không đụng gì tới tài khoản đã tồn tại —
+// dòng chờ chỉ có ý nghĩa cho lần đăng nhập ĐẦU TIÊN.
+export async function cancelUserGrant(formData: FormData) {
+  await requireRole(['admin']);
+  const email = String(formData.get('email') ?? '').trim();
+  if (!email) flash(loi('Thiếu email'));
+  const supabase = await createClient();
+  // .select() để phân biệt "RLS chặn / không còn dòng nào" với "đã xoá xong" — không báo thành
+  // công giả.
+  const {data, error} = await supabase
+    .from('pending_user_grants')
+    .delete()
+    .ilike('email', email)
+    .select('email');
+  revalidatePath('/[locale]/admin', 'page');
+  if (error) flash(loi(friendlyError(error)));
+  flash(
+    (data ?? []).length > 0
+      ? `Đã huỷ khai báo cho ${email}`
+      : loi('Không huỷ được — khai báo không còn, hoặc bạn không có quyền.'),
+  );
+}
+
+// Huỷ một lời mời phụ huynh đang chờ.
+export async function cancelParentInvite(formData: FormData) {
+  await requireRole(['admin']);
+  const email = String(formData.get('email') ?? '').trim();
+  if (!email) flash(loi('Thiếu email'));
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('parent_invitations')
+    .delete()
+    .ilike('email', email)
+    .eq('status', 'pending')
+    .select('email');
+  revalidatePath('/[locale]/admin', 'page');
+  if (error) flash(loi(friendlyError(error)));
+  flash(
+    (data ?? []).length > 0
+      ? `Đã huỷ lời mời phụ huynh ${email}`
+      : loi('Không huỷ được — lời mời không còn, hoặc bạn không có quyền.'),
+  );
+}

@@ -77,8 +77,11 @@ dat(oGachNgang === 0, 'Không ô nào chỉ chứa một dấu gạch ngang', `t
 
 // ── 3. Bảng người dùng có ngữ nghĩa cho trình đọc màn hình ────────────────────────────────
 dat(goc.html.includes('role="table"'), 'Bảng người dùng khai role="table"');
-const soCot = (goc.html.match(/role="columnheader"/g) ?? []).length;
-dat(soCot === 5, 'Đủ năm tiêu đề cột', `${soCot}/5`);
+// Kiểm ĐÚNG năm tiêu đề của bảng người dùng, thay vì đếm mọi role="columnheader" trên trang —
+// trang còn bảng khác cũng có tiêu đề cột.
+const COT = ['Tên', 'Email', 'Vai trò', 'Đổi vai trò', 'Thao tác'];
+const thieuCot = COT.filter((c) => !new RegExp(`role="columnheader"[^>]*>${c}<`).test(goc.html));
+dat(thieuCot.length === 0, 'Đủ năm tiêu đề cột của bảng người dùng', thieuCot.join(', ') || 'đủ');
 
 // ── 4. Mỗi dòng có tên đọc được RIÊNG, không dùng chung một nhãn ──────────────────────────
 // Đây là bảng có nút xoá vĩnh viễn. Năm mươi nút cùng tên "Xoá" nghĩa là người dùng trình đọc
@@ -93,7 +96,16 @@ dat(
 
 // ── 5. Cỡ trang bị chặn trong danh sách cho phép ──────────────────────────────────────────
 // ?size=100000 là một cách kéo toàn bộ PII của trường về trong một payload.
-const demDong = (html) => (html.match(/role="row"/g) ?? []).length - 1; // trừ dòng tiêu đề
+// Đếm dòng bảng người dùng bằng MỐC RIÊNG của dòng, không bằng vị trí trong chuỗi HTML.
+//
+// Cách cũ cắt chuỗi từ aria-label="Bảng người dùng" rồi đếm role="row" phía sau. Nó hỏng khi trang
+// được truyền dần (Suspense): React đẩy phần nội dung đã xong xuống cuối tài liệu rồi mới dời vào
+// chỗ bằng script, nên THỨ TỰ TRONG HTML không còn là thứ tự trên màn hình. Mục "Đã khai sẵn" cũng
+// là một bảng, và các dòng của nó lọt vào vùng đếm.
+//
+// Ô tick của mỗi dòng người dùng mang aria-label="Chọn <tên>" — mốc ấy chỉ dòng người dùng mới có.
+const demDong = (html) => (html.match(/aria-label="Chọn [^"]+"/g) ?? []).length;
+
 const tham = await lay('/admin?size=100000');
 dat(tham.status === 200 && demDong(tham.html) <= 10, 'size ngoài danh sách bị ép về mặc định 10 dòng', `${demDong(tham.html)} dòng`);
 
@@ -148,9 +160,12 @@ dat(soDetails >= 3, 'Các mục dùng-mỗi-năm-một-lần đều gấp lại 
 // ── 10. Bảng người dùng có chọn hàng loạt ────────────────────────────────────────────────
 // Trước đây chọn-nhiều chỉ có trong khối "Ai đang chờ bạn", mà khối đó ẩn khi không ai chờ — nên
 // gần như lúc nào màn Quản trị cũng trông như không hề có tính năng ấy.
-const soTick = (goc.html.match(/type="checkbox"/g) ?? []).length;
-dat(soTick >= demDong(goc.html), 'Mỗi dòng người dùng có một ô tick', `${soTick} ô / ${demDong(goc.html)} dòng`);
-dat(/aria-label="Chọn /.test(goc.html), 'Ô tick có tên đọc được kèm tên người');
+// Mỗi dòng phải có ĐỦ cả ô tick lẫn ô chọn vai — hai mốc độc lập, nên so chúng với nhau là một
+// phép kiểm thật chứ không phải so một con số với chính nó.
+const soTick = (goc.html.match(/aria-label="Chọn [^"]+"/g) ?? []).length;
+const soOVai = (goc.html.match(/aria-label="Vai trò của [^"]+"/g) ?? []).length;
+dat(soTick > 0 && soTick === soOVai, 'Mỗi dòng người dùng có đủ ô tick và ô chọn vai', `${soTick} ô tick / ${soOVai} ô vai`);
+dat(/aria-label="Chọn tất cả"|Chọn tất cả/.test(goc.html), 'Có ô "Chọn tất cả"');
 
 // ── 11. Nút phân trang căn giữa được chữ ──────────────────────────────────────────────────
 // h-8 dựng hộp 32px, nhưng chỉ <button> mới tự căn giữa nội dung. Trên <a>/<span> thiếu
@@ -215,6 +230,22 @@ dat(
   );
   // Không còn ô chọn một-cấp kiểu cũ.
   dat(!/<select[^>]*name="level"/.test(goc.html), 'Không còn ô chọn cấp học một-giá-trị');
+}
+
+// ── 15. Đã khai sẵn phải hiện ra, và nói rõ là hệ thống không gửi mail ───────────────────
+// Khai trước vai trò + lớp cho một email rồi KHÔNG có chỗ nào xem lại là mất dấu: chủ dự án đã
+// khai ba mươi ba email và không biết tra ở đâu. Và mục này từng mang tên "Lời mời đang chờ" —
+// chữ "lời mời" hứa một email mà hệ thống chưa bao giờ gửi.
+{
+  const {count} = await admin
+    .from('pending_user_grants')
+    .select('email', {count: 'exact', head: true});
+  if ((count ?? 0) > 0) {
+    dat(/Đã khai sẵn/.test(goc.html), 'Mục "đã khai sẵn" hiện ra khi có khai báo chờ', `${count} khai báo`);
+    dat(/KHÔNG gửi email/.test(goc.html), 'Nói rõ hệ thống không gửi email cho họ');
+  } else {
+    console.log('GHI CHÚ  Bỏ qua bài "đã khai sẵn": không có khai báo nào đang chờ.');
+  }
 }
 
 for (const k of kq) console.log(k.ok ? 'OK  ' : 'SAI ', k.ten, k.ghi ? '— ' + k.ghi : '');
