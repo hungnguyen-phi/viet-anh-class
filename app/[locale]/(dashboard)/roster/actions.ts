@@ -240,3 +240,69 @@ export async function removeStudent(formData: FormData) {
   revalidatePath('/[locale]/roster', 'page');
   rosterFlash(classId, error ? loi(friendlyError(error)) : 'Đã cho học sinh rời lớp');
 }
+
+// ── DỜI HỌC SINH SANG LỚP KHÁC ────────────────────────────────────────────────────────────
+//
+// Luật nằm dưới CSDL (migration 0089), không nằm ở đây: GVCN lớp hiện tại đề nghị, GVCN lớp đích
+// duyệt, trong lúc chờ em vẫn ở lớp cũ, quản trị chuyển thẳng. Đặt luật ở RPC vì đây là quyền —
+// kiểm ở tầng giao diện thì ai gọi thẳng API là đi vòng qua được.
+
+export async function requestTransfer(formData: FormData) {
+  await requireRole(['teacher', 'admin', 'principal']);
+  const classId = String(formData.get('classId') ?? '');
+  const studentId = String(formData.get('studentId') ?? '');
+  const toClass = String(formData.get('toClassId') ?? '');
+  const note = String(formData.get('note') ?? '').trim() || undefined;
+  if (!classId || !studentId || !toClass) rosterFlash(classId, loi('Thiếu thông tin'));
+
+  const supabase = await createClient();
+  const {data, error} = await supabase.rpc('request_class_transfer', {
+    p_student: studentId,
+    p_to_class: toClass,
+    p_note: note,
+  });
+  revalidatePath('/[locale]/roster', 'page');
+  if (error) rosterFlash(classId, loi(friendlyError(error)));
+  rosterFlash(
+    classId,
+    data === 'moved'
+      ? 'Đã chuyển em sang lớp mới.'
+      : data === 'exists'
+        ? loi('Em này đã có một đề nghị dời lớp đang chờ duyệt.')
+        : 'Đã gửi đề nghị. Em vẫn ở lớp này cho tới khi lớp bên kia duyệt.',
+  );
+}
+
+export async function decideTransfer(formData: FormData) {
+  await requireRole(['teacher', 'admin', 'principal']);
+  const classId = String(formData.get('classId') ?? '');
+  const requestId = String(formData.get('requestId') ?? '');
+  const approve = String(formData.get('approve') ?? '') === 'true';
+  if (!requestId) rosterFlash(classId, loi('Thiếu đề nghị'));
+
+  const supabase = await createClient();
+  const {error} = await supabase.rpc('decide_class_transfer', {
+    p_request: requestId,
+    p_approve: approve,
+  });
+  revalidatePath('/[locale]/roster', 'page');
+  rosterFlash(
+    classId,
+    error
+      ? loi(friendlyError(error))
+      : approve
+        ? 'Đã duyệt — em đã vào lớp này.'
+        : 'Đã từ chối đề nghị.',
+  );
+}
+
+export async function cancelTransfer(formData: FormData) {
+  await requireRole(['teacher', 'admin', 'principal']);
+  const classId = String(formData.get('classId') ?? '');
+  const requestId = String(formData.get('requestId') ?? '');
+  if (!requestId) rosterFlash(classId, loi('Thiếu đề nghị'));
+  const supabase = await createClient();
+  const {error} = await supabase.rpc('cancel_class_transfer', {p_request: requestId});
+  revalidatePath('/[locale]/roster', 'page');
+  rosterFlash(classId, error ? loi(friendlyError(error)) : 'Đã rút lại đề nghị.');
+}

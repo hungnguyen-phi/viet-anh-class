@@ -232,7 +232,6 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
-          level: Database["public"]["Enums"]["school_level"] | null
           levels: Database["public"]["Enums"]["school_level"][]
           name: string
         }
@@ -241,7 +240,6 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
-          level?: Database["public"]["Enums"]["school_level"] | null
           levels?: Database["public"]["Enums"]["school_level"][]
           name: string
         }
@@ -250,7 +248,6 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
-          level?: Database["public"]["Enums"]["school_level"] | null
           levels?: Database["public"]["Enums"]["school_level"][]
           name?: string
         }
@@ -394,6 +391,84 @@ export type Database = {
             columns: ["subject_id"]
             isOneToOne: false
             referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_transfer_requests: {
+        Row: {
+          created_at: string
+          decide_note: string | null
+          decided_at: string | null
+          decided_by: string | null
+          from_class_id: string
+          id: string
+          note: string | null
+          requested_by: string
+          status: string
+          student_id: string
+          to_class_id: string
+        }
+        Insert: {
+          created_at?: string
+          decide_note?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          from_class_id: string
+          id?: string
+          note?: string | null
+          requested_by: string
+          status?: string
+          student_id: string
+          to_class_id: string
+        }
+        Update: {
+          created_at?: string
+          decide_note?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          from_class_id?: string
+          id?: string
+          note?: string | null
+          requested_by?: string
+          status?: string
+          student_id?: string
+          to_class_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_transfer_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_transfer_requests_from_class_id_fkey"
+            columns: ["from_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_transfer_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_transfer_requests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_transfer_requests_to_class_id_fkey"
+            columns: ["to_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
             referencedColumns: ["id"]
           },
         ]
@@ -2136,6 +2211,10 @@ export type Database = {
       }
       album_class: { Args: { a: string }; Returns: string }
       app_today: { Args: never; Returns: string }
+      apply_class_transfer: {
+        Args: { p_student: string; p_to_class: string }
+        Returns: undefined
+      }
       auth_campus: { Args: never; Returns: string }
       auth_role: {
         Args: never
@@ -2179,6 +2258,7 @@ export type Database = {
         Args: { p_review: string; p_subject: string }
         Returns: boolean
       }
+      cancel_class_transfer: { Args: { p_request: string }; Returns: undefined }
       child_class_progress: {
         Args: { s: string }
         Returns: {
@@ -2273,6 +2353,10 @@ export type Database = {
         }[]
       }
       current_school_year: { Args: never; Returns: string }
+      decide_class_transfer: {
+        Args: { p_approve: boolean; p_note?: string; p_request: string }
+        Returns: string
+      }
       default_score_weight: {
         Args: { k: Database["public"]["Enums"]["score_kind"] }
         Returns: number
@@ -2377,6 +2461,10 @@ export type Database = {
       pt_open_thread: { Args: { p_student: string }; Returns: string }
       pt_student_in_class: { Args: { c: string; s: string }; Returns: boolean }
       pt_unread_total: { Args: never; Returns: number }
+      request_class_transfer: {
+        Args: { p_note?: string; p_student: string; p_to_class: string }
+        Returns: string
+      }
       restrict_signup_by_email_domain: { Args: { event: Json }; Returns: Json }
       review_class: { Args: { r: string }; Returns: string }
       review_is_editable: { Args: { r: string }; Returns: boolean }
@@ -2399,10 +2487,6 @@ export type Database = {
       }
       seed_class_subjects: { Args: { p_class: string }; Returns: number }
       seed_grades_for_campus: { Args: { p_campus: string }; Returns: number }
-      set_my_campus_level: {
-        Args: { p_level: Database["public"]["Enums"]["school_level"] }
-        Returns: number
-      }
       set_my_campus_levels: {
         Args: { p_levels: Database["public"]["Enums"]["school_level"][] }
         Returns: number
@@ -2449,6 +2533,16 @@ export type Database = {
       term_is_locked: { Args: { t: string }; Returns: boolean }
       thu_hai_tu_nhan: { Args: { nhan: string }; Returns: string }
       tick_open: { Args: { p_class: string }; Returns: boolean }
+      transfer_target_classes: {
+        Args: never
+        Returns: {
+          campus_name: string
+          gvcn: string
+          id: string
+          name: string
+          school_year: string
+        }[]
+      }
       truong_da_khai_mang: { Args: never; Returns: boolean }
       tuan_da_hop: { Args: { d: string; p_class: string }; Returns: boolean }
       unenroll_student: {

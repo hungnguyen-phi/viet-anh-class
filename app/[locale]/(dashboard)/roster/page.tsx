@@ -11,6 +11,8 @@ import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {AttendanceLeaderPicker} from '@/components/roster/AttendanceLeaderPicker';
 import {EnrollForm} from './EnrollForm';
 import {removeStudent, cancelStudentInvite} from './actions';
+import {IncomingTransfers, type DeNghiDen} from './IncomingTransfers';
+import {TransferControl, type LopDich} from './TransferControl';
 import {Flash} from '@/components/ui/Flash';
 
 type EnrRow = {
@@ -69,13 +71,30 @@ export default async function RosterPage({
   }
 
   // Hai nguồn của danh sách lớp — độc lập, chạy song song.
-  const [{data: enrolls}, {data: invited}] = await Promise.all([
+  const [{data: enrolls}, {data: invited}, {data: transfers}, {data: lopDich}] = await Promise.all([
     supabase
       .from('enrollments')
       .select('student_id, is_attendance_leader, profiles!enrollments_student_id_fkey(full_name, email)')
       .eq('class_id', myClass.id)
       .eq('is_active', true),
     supabase.from('pending_user_grants').select('email').eq('class_id', myClass.id).eq('role', 'student'),
+    // Đề nghị dời lớp — CẢ HAI CHIỀU, trong cùng một truy vấn.
+    // Chiều ĐI (from = lớp này) để hiện "đang chờ lớp X duyệt" trên đúng dòng em ấy; chiều ĐẾN
+    // (to = lớp này) để chủ nhiệm lớp này còn biết có việc phải quyết. Hỏi một lượt thay vì hai:
+    // mỗi vòng ra Supabase từ VPS này tốn hơn một phần mười giây.
+    supabase
+      .from('class_transfer_requests')
+      .select(
+        'id, student_id, from_class_id, to_class_id, note, created_at, ' +
+          'hs:profiles!class_transfer_requests_student_id_fkey(full_name, email), ' +
+          'lop_di:classes!class_transfer_requests_from_class_id_fkey(name), ' +
+          'lop_den:classes!class_transfer_requests_to_class_id_fkey(name)',
+      )
+      .eq('status', 'pending')
+      .or(`from_class_id.eq.${myClass.id},to_class_id.eq.${myClass.id}`),
+    // Danh sách lớp có thể dời tới. GVCN chỉ đọc được lớp của mình (RLS bảng classes) nên phải đi
+    // qua RPC mở đúng một khe hẹp: tên lớp, năm học, cơ sở, chủ nhiệm — không gì khác.
+    canManage ? supabase.rpc('transfer_target_classes') : Promise.resolve({data: []}),
   ]);
 
   // Thông tin nhận diện: hỏi ĐÚNG các email của lớp này, không quét cả bảng.
@@ -157,6 +176,38 @@ export default async function RosterPage({
   // Chỉ em ĐÃ có tài khoản mới làm tổ trưởng điểm danh được (cần đăng nhập để ghi).
   const candidates = enrolled.map((r) => ({id: r.studentId!, name: r.name, email: r.email || null}));
 
+  // Tách hai chiều từ một mẻ dữ liệu.
+  type TR = {
+    id: string;
+    student_id: string;
+    from_class_id: string;
+    to_class_id: string;
+    note: string | null;
+    created_at: string;
+    hs: {full_name: string | null; email: string} | null;
+    lop_di: {name: string} | null;
+    lop_den: {name: string} | null;
+  };
+  const dsDoiLop = (transfers ?? []) as unknown as TR[];
+  // Chiều ĐI: khoá theo học sinh để dòng của em ấy hiện "đang chờ lớp X duyệt".
+  const dangChoTheoEm = new Map(
+    dsDoiLop
+      .filter((r) => r.from_class_id === myClass.id)
+      .map((r) => [r.student_id, {id: r.id, toClassName: r.lop_den?.name ?? ''}]),
+  );
+  // Chiều ĐẾN: việc lớp này phải quyết.
+  const deNghiDen: DeNghiDen[] = dsDoiLop
+    .filter((r) => r.to_class_id === myClass.id)
+    .map((r) => ({
+      id: r.id,
+      studentName: r.hs?.full_name ?? r.hs?.email ?? '',
+      fromClassName: r.lop_di?.name ?? '',
+      note: r.note,
+      createdAt: String(r.created_at),
+    }));
+  const lopDichList = (lopDich ?? []) as unknown as LopDich[];
+  const laAdmin = profile.role === 'admin';
+
   return (
     <div className="space-y-4">
       {/* ẢNH BÌA LỚP.
@@ -169,6 +220,10 @@ export default async function RosterPage({
           thước cố định, và bản thân ảnh ĐÃ được thu nhỏ về 1600px + nén webp ngay trên máy người
           gửi trước khi tải lên (xem ClassCoverUpload). Cho next/image tối ưu lại lần nữa chỉ thêm
           một chặng qua /_next/image mà không giảm được bao nhiêu. */}
+      {/* Đề nghị chuyển ĐẾN lớp này — đặt trên cùng vì có một em đang treo giữa hai lớp chờ
+          quyết định ở đây. */}
+      <IncomingTransfers classId={myClass.id} requests={deNghiDen} />
+
       {myClass.cover_image_url && (
         <div className="overflow-hidden rounded-[20px]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -304,6 +359,20 @@ export default async function RosterPage({
                   {r.note ?? '—'}
                 </span>
               </>
+            )}
+            {/* Dời sang lớp khác. Chỉ cho em ĐÃ có tài khoản: em chưa đăng nhập lần nào thì chưa
+                có hàng ghi danh nào để dời — sửa lời mời là xong. */}
+            {canManage && r.studentId && (
+              <span className="flex min-w-0 basis-full flex-wrap items-center gap-1.5 sm:basis-auto">
+                <TransferControl
+                  classId={myClass.id}
+                  studentId={r.studentId}
+                  studentName={r.name}
+                  targets={lopDichList}
+                  pending={dangChoTheoEm.get(r.studentId)}
+                  laAdmin={laAdmin}
+                />
+              </span>
             )}
             <span className="grid w-[70px] flex-none place-items-center">
               {canManage && r.studentId && (
