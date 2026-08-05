@@ -1,7 +1,9 @@
 'use client';
 
+import type {ReactNode} from 'react';
 import {useTranslations} from 'next-intl';
-import {Search, X} from 'lucide-react';
+import {Loader2, Search, X} from 'lucide-react';
+import {useLinkStatus} from 'next/link';
 import {Link, useRouter} from '@/i18n/navigation';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 // Hằng số nằm ở file trung lập, KHÔNG khai báo lại ở đây — xem ghi chú trong user-tabs.ts.
@@ -11,6 +13,16 @@ const navyBtn =
   'h-10 cursor-pointer whitespace-nowrap rounded-[10px] bg-navy px-3 text-[12px] font-extrabold text-white transition-all hover:bg-navy-700';
 const selectCls =
   'h-10 cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy';
+
+// Chấm quay hiện NGAY TRONG tab vừa bấm.
+//
+// Đổi tab là một vòng đi-về máy chủ thật (truy vấn lại bảng + đếm lại). Trên đường truyền của
+// trường, khoảng ấy đủ dài để người ta tưởng cú bấm rơi mất và bấm tiếp tab khác. useLinkStatus
+// đọc đúng trạng thái điều hướng của chính <Link> bọc nó, nên không cần tự quản state nào.
+function TabPending({children}: {children: ReactNode}) {
+  const {pending} = useLinkStatus();
+  return pending ? <Loader2 size={12} className="animate-spin" /> : <>{children}</>;
+}
 
 // Thanh điều khiển bảng người dùng: TÁCH VAI THÀNH TAB + tìm kiếm + số dòng mỗi trang.
 //
@@ -54,14 +66,17 @@ export function UsersToolbar({
                 pathname: '/admin',
                 query: {...(q ? {q} : {}), ...(k !== 'all' ? {vai: k} : {}), size},
               }}
-              className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-extrabold transition-all ${
+              aria-current={on ? 'page' : undefined}
+              className={`inline-flex h-10 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-extrabold transition-all ${
                 on
                   ? 'bg-navy text-white'
                   : 'border-[1.5px] border-navy/15 bg-white/60 text-navy hover:border-navy'
               }`}
             >
               {label(k)}
-              <span className={on ? 'text-white/70' : 'text-grey-mid'}>{counts[k]}</span>
+              <span className={on ? 'text-white/70' : 'text-grey-mid'}>
+                <TabPending>{counts[k]}</TabPending>
+              </span>
             </Link>
           );
         })}

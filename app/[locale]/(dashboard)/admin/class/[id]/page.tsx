@@ -101,7 +101,7 @@ export default async function ClassDetailPage({
         <div className="mt-3 flex flex-wrap gap-2">
           <span className={metaChip}>
             <Building2 size={14} strokeWidth={2} className="text-gold-deep" />
-            {campus?.name ?? '—'}
+            {campus?.name ?? t('notAssigned')}
           </span>
           <span className={metaChip}>
             <Layers size={14} strokeWidth={2} className="text-gold-deep" />

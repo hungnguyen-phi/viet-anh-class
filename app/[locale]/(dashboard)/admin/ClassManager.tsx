@@ -29,7 +29,7 @@ const ghost =
 const gold =
   'btn-gold h-8 shrink-0 inline-flex items-center cursor-pointer whitespace-nowrap rounded-[9px] px-2.5 text-[11.5px] font-extrabold transition-all';
 const danger =
-  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-[rgba(192,57,43,0.12)] px-2.5 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-[rgba(192,57,43,0.22)]';
+  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-[color-mix(in_srgb,var(--color-status-bad)_12%,transparent)] px-2.5 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-[color-mix(in_srgb,var(--color-status-bad)_22%,transparent)]';
 const th = 'text-[11px] font-extrabold uppercase tracking-wide text-grey-mid';
 
 export function ClassManager({
@@ -47,7 +47,6 @@ export function ClassManager({
   const [campusFilter, setCampusFilter] = useState('');
   const [editId, setEditId] = useState<string | null>(null);
 
-  const campusName = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
   const teacherName = useMemo(
     () => new Map(teachers.map((p) => [p.id, p.full_name ?? p.email])),
     [teachers],
@@ -90,13 +89,15 @@ export function ClassManager({
             <div className="box-border flex min-w-[720px] items-center gap-2 px-[14px] py-2 transition-colors hover:bg-navy/[0.03]">
               <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-navy">{c.name}</span>
               <span className="w-[90px] flex-none truncate text-[12px] font-semibold text-grey-mid">
-                {c.grade ?? '—'}
+                {c.grade ?? t('noGrade')}
               </span>
               <span className="w-[90px] flex-none text-[12px] font-semibold text-grey-mid">
                 {c.school_year}
               </span>
               <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-grey-mid">
-                {c.homeroom_teacher_id ? teacherName.get(c.homeroom_teacher_id) ?? '—' : t('none')}
+                {c.homeroom_teacher_id
+                  ? teacherName.get(c.homeroom_teacher_id) ?? t('gvcnRoleChanged')
+                  : t('notAssigned')}
               </span>
               <span className="flex w-[240px] flex-none gap-1.5">
                 <Link href={`/admin/class/${c.id}`} className={gold}>

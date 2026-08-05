@@ -1,9 +1,8 @@
 'use client';
 
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {bulkDeleteUsers, bulkSetUserRole, setUserRole} from './actions';
 
 type Waiting = {id: string; full_name: string | null; email: string; created_at: string};
@@ -15,7 +14,7 @@ const selectCls =
 const navyBtn =
   'h-10 cursor-pointer whitespace-nowrap rounded-[10px] bg-navy px-3 text-[12px] font-extrabold text-white transition-all hover:bg-navy-700';
 const dangerBtn =
-  'h-10 cursor-pointer whitespace-nowrap rounded-[10px] bg-[rgba(192,57,43,0.12)] px-3 text-[12px] font-extrabold text-status-bad transition-all hover:bg-[rgba(192,57,43,0.22)]';
+  'h-10 cursor-pointer whitespace-nowrap rounded-[10px] bg-[color-mix(in_srgb,var(--color-status-bad)_12%,transparent)] px-3 text-[12px] font-extrabold text-status-bad transition-all hover:bg-[color-mix(in_srgb,var(--color-status-bad)_22%,transparent)]';
 const ghostBtn =
   'h-8 cursor-pointer whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white/70 px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
 
@@ -33,6 +32,15 @@ export function PendingApprovals({users}: {users: Waiting[]}) {
   const [sel, setSel] = useState<string[]>([]);
 
   const allChecked = users.length > 0 && sel.length === users.length;
+  // TRẠNG THÁI MỘT PHẦN. Chọn 3 trên 12 mà ô "Chọn tất cả" hiện y như lúc chưa chọn gì thì nó nói
+  // sai: người dùng bấm nó tưởng là "chọn thêm phần còn lại", hoá ra là bỏ hết. `indeterminate`
+  // không đặt được bằng thuộc tính JSX, chỉ đặt được qua DOM.
+  const allRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (allRef.current) allRef.current.indeterminate = sel.length > 0 && !allChecked;
+  }, [sel.length, allChecked]);
+  const [askDelete, setAskDelete] = useState(false);
+  const selected = users.filter((u) => sel.includes(u.id));
   const toggle = (id: string) =>
     setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   const toggleAll = () => setSel(allChecked ? [] : users.map((u) => u.id));
@@ -50,6 +58,7 @@ export function PendingApprovals({users}: {users: Waiting[]}) {
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <label className="inline-flex cursor-pointer items-center gap-2 text-[12.5px] font-extrabold text-navy">
           <input
+            ref={allRef}
             type="checkbox"
             checked={allChecked}
             onChange={toggleAll}
@@ -83,18 +92,13 @@ export function PendingApprovals({users}: {users: Waiting[]}) {
                 {t('approveSelected', {n: sel.length})}
               </SubmitButton>
             </form>
-            {/* Xoá cả mẻ — hỏi lại kèm SỐ NGƯỜI, vì một cú bấm ở đây xoá nhiều hàng cùng lúc. */}
-            <form action={bulkDeleteUsers}>
-              {sel.map((id) => (
-                <input key={id} type="hidden" name="userId" value={id} />
-              ))}
-              <ConfirmButton
-                message={t('confirmDeleteMany', {n: sel.length})}
-                className={dangerBtn}
-              >
-                {t('deleteSelected', {n: sel.length})}
-              </ConfirmButton>
-            </form>
+            {/* Xoá cả mẻ — mở hộp xác nhận NGAY TRONG TRANG, không dùng window.confirm.
+                Hộp trần của trình duyệt chỉ hiện được một câu chữ: nó không liệt kê nổi ai sắp bị
+                xoá. Với một cú bấm xoá vĩnh viễn hàng chục người, "bạn có chắc không" là không đủ
+                — người bấm cần đọc lại đúng những cái tên mình vừa tick. */}
+            <button type="button" onClick={() => setAskDelete(true)} className={dangerBtn}>
+              {t('deleteSelected', {n: sel.length})}
+            </button>
           </>
         )}
       </div>
@@ -111,7 +115,7 @@ export function PendingApprovals({users}: {users: Waiting[]}) {
               type="checkbox"
               checked={sel.includes(u.id)}
               onChange={() => toggle(u.id)}
-              aria-label={u.full_name ?? u.email}
+              aria-label={t('pickFor', {name: u.full_name ?? u.email})}
               className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--color-navy)]"
             />
             <span className="min-w-0 flex-1">
@@ -128,7 +132,7 @@ export function PendingApprovals({users}: {users: Waiting[]}) {
               <input type="hidden" name="userId" value={u.id} />
               <select
                 name="role"
-                aria-label={t('selectRole')}
+                aria-label={t('roleFor', {name: u.full_name ?? u.email})}
                 defaultValue="teacher"
                 className={selectCls}
               >
@@ -138,11 +142,61 @@ export function PendingApprovals({users}: {users: Waiting[]}) {
                   </option>
                 ))}
               </select>
-              <SubmitButton className={ghostBtn}>{t('setRole')}</SubmitButton>
+              <SubmitButton className={ghostBtn} label={t('approveFor', {name: u.full_name ?? u.email})}>
+                {t('setRole')}
+              </SubmitButton>
             </form>
           </div>
         ))}
       </div>
+      {/* Hộp xác nhận xoá hàng loạt — liệt kê TÊN, không chỉ đếm số. */}
+      {askDelete && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-navy/35 p-4 backdrop-blur-[2px]"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setAskDelete(false);
+          }}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="xoa-nhieu-tieu-de"
+            className="glass w-full max-w-[440px] rounded-[20px] p-[18px]"
+          >
+            <div id="xoa-nhieu-tieu-de" className="font-display text-[16px] font-bold text-navy">
+              {t('confirmDeleteManyTitle', {n: sel.length})}
+            </div>
+            <p className="mt-1.5 text-[12.5px] font-semibold leading-relaxed text-status-bad-dark">
+              {t('confirmDeleteManyBody')}
+            </p>
+            <ul className="mt-3 max-h-[180px] overflow-y-auto rounded-[12px] border-[1.5px] border-navy/10 bg-white/70 px-3 py-2">
+              {selected.slice(0, 12).map((u) => (
+                <li key={u.id} className="truncate py-0.5 text-[12.5px] font-bold text-navy">
+                  {u.full_name ?? u.email}
+                </li>
+              ))}
+              {selected.length > 12 && (
+                <li className="py-0.5 text-[12px] font-semibold italic text-grey-mid">
+                  {t('andMore', {n: selected.length - 12})}
+                </li>
+              )}
+            </ul>
+            <div className="mt-3.5 flex flex-wrap justify-end gap-2">
+              <button type="button" onClick={() => setAskDelete(false)} autoFocus className={ghostBtn}>
+                {t('cancel')}
+              </button>
+              <form action={bulkDeleteUsers}>
+                {sel.map((id) => (
+                  <input key={id} type="hidden" name="userId" value={id} />
+                ))}
+                <SubmitButton className={dangerBtn} wrapClass="contents">
+                  {t('confirmDeleteManyGo', {n: sel.length})}
+                </SubmitButton>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

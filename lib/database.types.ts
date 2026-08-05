@@ -2124,6 +2124,13 @@ export type Database = {
     }
     Functions: {
       admin_delete_user: { Args: { p_user: string }; Returns: undefined }
+      admin_user_counts: {
+        Args: { p_q?: string }
+        Returns: {
+          n: number
+          role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
       album_class: { Args: { a: string }; Returns: string }
       app_today: { Args: never; Returns: string }
       auth_campus: { Args: never; Returns: string }
@@ -2156,70 +2163,6 @@ export type Database = {
           wig_count: number
         }[]
       }
-      class_lead_board: {
-        Args: { p_class: string; p_student?: string; p_week_start?: string }
-        Returns: {
-          active_weekdays: number[]
-          area: string
-          class_size: number
-          class_total: number
-          contributors: number
-          lead_measure_id: string
-          my_dates: string[]
-          target_value: number
-          title: string
-          unit: string
-          unit_per_tick: number
-          wig_id: string
-          wig_title: string
-        }[]
-      }
-      class_tick_matrix: {
-        Args: { p_class: string; p_week_start?: string }
-        Returns: {
-          active_weekdays: number[]
-          area: string
-          lead_measure_id: string
-          lead_title: string
-          student_id: string
-          student_name: string
-          ticked_dates: string[]
-          wig_id: string
-          wig_title: string
-        }[]
-      }
-      lead_day_ok: { Args: { d: string; lm: string }; Returns: boolean }
-      lead_measure_canh_bao: {
-        Args: { p_wig: string }
-        Returns: {
-          lead_measure_id: string
-          lech_don_vi: boolean
-          qua_nhieu: boolean
-          so_ngay_tick_duoc: number
-          so_nguoi_tick: number
-          so_tick_can: number
-          tran_luot_tick: number
-        }[]
-      }
-      school_wig_rollup: {
-        Args: { p_week_start?: string }
-        Returns: {
-          avg_pct: number
-          class_id: string
-          class_name: string
-          grade_name: string
-          grade_sort: number
-          student_count: number
-          teacher_name: string
-          tick_count: number
-          tick_students: number
-          wigs_total: number
-          wigs_won: number
-        }[]
-      }
-      thu_hai_tu_nhan: { Args: { nhan: string }; Returns: string }
-      tuan_da_hop: { Args: { d: string; p_class: string }; Returns: boolean }
-      truong_da_khai_mang: { Args: Record<string, never>; Returns: boolean }
       can_manage_class_cover: { Args: { p_name: string }; Returns: boolean }
       can_manage_class_photo: { Args: { p_name: string }; Returns: boolean }
       can_manage_student_email: { Args: { p_email: string }; Returns: boolean }
@@ -2255,9 +2198,9 @@ export type Database = {
       child_weeks: {
         Args: { s: string }
         Returns: {
+          week_end: string
           week_label: string
           week_start: string
-          week_end: string
         }[]
       }
       class_campus: { Args: { c: string }; Returns: string }
@@ -2269,6 +2212,24 @@ export type Database = {
           grade: string
           level: string
           score: number
+        }[]
+      }
+      class_lead_board: {
+        Args: { p_class: string; p_student?: string; p_week_start?: string }
+        Returns: {
+          active_weekdays: number[]
+          area: string
+          class_size: number
+          class_total: number
+          contributors: number
+          lead_measure_id: string
+          my_dates: string[]
+          target_value: number
+          title: string
+          unit: string
+          unit_per_tick: number
+          wig_id: string
+          wig_title: string
         }[]
       }
       class_ranks: {
@@ -2292,6 +2253,20 @@ export type Database = {
           lead_count: number
           points: number
           sub_category: string
+        }[]
+      }
+      class_tick_matrix: {
+        Args: { p_class: string; p_week_start?: string }
+        Returns: {
+          active_weekdays: number[]
+          area: string
+          lead_measure_id: string
+          lead_title: string
+          student_id: string
+          student_name: string
+          ticked_dates: string[]
+          wig_id: string
+          wig_title: string
         }[]
       }
       current_school_year: { Args: never; Returns: string }
@@ -2322,6 +2297,19 @@ export type Database = {
       is_parent_of_class: { Args: { c: string }; Returns: boolean }
       is_subject_teacher_of_class: { Args: { c: string }; Returns: boolean }
       lead_class: { Args: { lm: string }; Returns: string }
+      lead_day_ok: { Args: { d: string; lm: string }; Returns: boolean }
+      lead_measure_canh_bao: {
+        Args: { p_wig: string }
+        Returns: {
+          lead_measure_id: string
+          lech_don_vi: boolean
+          qua_nhieu: boolean
+          so_ngay_tick_duoc: number
+          so_nguoi_tick: number
+          so_tick_can: number
+          tran_luot_tick: number
+        }[]
+      }
       log_audit: {
         Args: { p_action: string; p_detail?: Json }
         Returns: undefined
@@ -2390,6 +2378,22 @@ export type Database = {
       review_class: { Args: { r: string }; Returns: string }
       review_is_editable: { Args: { r: string }; Returns: boolean }
       review_visible_to_family: { Args: { r: string }; Returns: boolean }
+      school_wig_rollup: {
+        Args: { p_week_start?: string }
+        Returns: {
+          avg_pct: number
+          class_id: string
+          class_name: string
+          grade_name: string
+          grade_sort: number
+          student_count: number
+          teacher_name: string
+          tick_count: number
+          tick_students: number
+          wigs_total: number
+          wigs_won: number
+        }[]
+      }
       seed_class_subjects: { Args: { p_class: string }; Returns: number }
       seed_grades_for_campus: { Args: { p_campus: string }; Returns: number }
       set_my_campus_level: {
@@ -2432,7 +2436,10 @@ export type Database = {
         }[]
       }
       term_is_locked: { Args: { t: string }; Returns: boolean }
+      thu_hai_tu_nhan: { Args: { nhan: string }; Returns: string }
       tick_open: { Args: { p_class: string }; Returns: boolean }
+      truong_da_khai_mang: { Args: never; Returns: boolean }
+      tuan_da_hop: { Args: { d: string; p_class: string }; Returns: boolean }
       unenroll_student: {
         Args: { p_class: string; p_student: string }
         Returns: undefined

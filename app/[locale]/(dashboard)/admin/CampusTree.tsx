@@ -34,8 +34,10 @@ const ghost =
   'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/20 bg-white px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
 const gold =
   'btn-gold h-8 shrink-0 inline-flex items-center cursor-pointer whitespace-nowrap rounded-[9px] px-2.5 text-[11.5px] font-extrabold transition-all';
+// Pha từ chính token --color-status-bad thay vì gõ lại rgba(192,57,43,…): đổi màu trạng thái hỏng
+// một chỗ là đổi cả app, không phải đi tìm ba con số ấy nằm rải ở đâu. Cùng cách ConfirmButton làm.
 const danger =
-  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-[rgba(192,57,43,0.12)] px-2.5 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-[rgba(192,57,43,0.22)]';
+  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-[color-mix(in_srgb,var(--color-status-bad)_12%,transparent)] px-2.5 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-[color-mix(in_srgb,var(--color-status-bad)_22%,transparent)]';
 const subLabel = 'text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
 
 // CÂY CƠ SỞ → KHỐI → LỚP.
@@ -112,7 +114,10 @@ export function CampusTree({
 
       {/* Thêm cơ sở NGAY TRONG mục cơ sở, không phải một thẻ riêng ở đầu trang. */}
       {adding && (
-        <div className="mb-3 rounded-[14px] border-[1.5px] border-dashed border-navy/20 bg-white/50 p-3">
+        // THẺ TRONG THẺ TRONG THẺ là cách nhanh nhất để một trang quản trị trông rối. Khối "thêm
+        // mới" ở đây chỉ cần tách khỏi danh sách, không cần khung riêng — dùng vạch ngăn + nền
+        // nhạt, đúng cách GradeManager đang làm ở tầng dưới.
+        <div className="mb-3 border-y border-navy/[0.08] bg-navy/[0.02] px-1 py-3">
           <div className={`mb-2 ${subLabel}`}>{t('createCampus')}</div>
           <CampusForm />
         </div>
@@ -283,7 +288,7 @@ function CampusNode({
             </div>
 
             {addingClass && (
-              <div className="mb-2 rounded-[12px] border-[1.5px] border-dashed border-navy/20 bg-white/60 p-2.5">
+              <div className="mb-2 border-y border-navy/[0.08] bg-navy/[0.02] px-1 py-2.5">
                 {/* Cơ sở đã biết → không bắt chọn lại. */}
                 <ClassForm
                   campuses={allCampuses.map((c) => ({id: c.id, name: c.name}))}
@@ -301,7 +306,7 @@ function CampusNode({
                   <div className="flex flex-wrap items-center gap-2 rounded-[10px] px-1.5 py-1.5 transition-colors hover:bg-navy/[0.03]">
                     <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-navy">{c.name}</span>
                     <span className="whitespace-nowrap text-[11.5px] font-semibold text-grey-mid">
-                      {c.grade ?? t('none')} · {c.school_year}
+                      {c.grade ?? t('noGrade')} · {c.school_year}
                     </span>
                     <span className="min-w-0 max-w-[180px] flex-1 truncate text-[11.5px] font-semibold text-grey-mid">
                       {c.homeroom_teacher_id
@@ -390,7 +395,7 @@ function ClassInlineEdit({
   return (
     <form
       action={updateClass}
-      className="mt-1 grid gap-2 rounded-[12px] border-[1.5px] border-dashed border-navy/15 bg-navy/[0.02] p-2.5 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]"
+      className="mt-1 grid gap-2 border-y border-navy/[0.08] bg-navy/[0.02] px-1 py-2.5 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]"
     >
       <input type="hidden" name="id" value={row.id} />
       <label className={`flex flex-col gap-1 ${subLabel}`}>

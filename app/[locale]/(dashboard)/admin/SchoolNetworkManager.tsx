@@ -56,7 +56,7 @@ export async function SchoolNetworkManager({
           <MapPin size={15} strokeWidth={2.2} className="text-gold-deep" />
           {t('yourIp')}:{' '}
           <code className="rounded-md bg-navy/[0.06] px-2 py-0.5 font-mono text-[12.5px]">
-            {currentIp ?? '—'}
+            {currentIp ?? t('unknownIp')}
           </code>
         </span>
         {currentIp && (
