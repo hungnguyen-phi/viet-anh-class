@@ -19,7 +19,14 @@ export const layDanhMuc = cache(async () => {
     supabase.from('grades').select('id, name, campus_id, sort_order, is_active').order('sort_order'),
     supabase
       .from('classes')
-      .select('id, name, school_year, grade, grade_id, campus_id, homeroom_teacher_id, is_active')
+      // wigs(count) / enrollments(count): PostgREST gộp luôn vào CÙNG MỘT truy vấn, không thêm
+      // vòng đi-về nào. Cần hai con số này để nút Xoá nói được vì sao nó không xoá được — hàm
+      // deleteClass từ chối xoá lớp còn WIG hoặc còn học sinh, mà trước đây giao diện không hề
+      // báo trước: nút trông y như xoá được, hộp thoại vẫn hỏi "chắc chưa", bấm đồng ý xong mới
+      // hiện một dòng đỏ thoáng qua. Chủ dự án đã tưởng mình xoá hết lớp rồi trong khi còn bốn.
+      .select(
+        'id, name, school_year, grade, grade_id, campus_id, homeroom_teacher_id, is_active, wigs(count), enrollments(count)',
+      )
       .order('name'),
     supabase
       .from('profiles')

@@ -133,7 +133,7 @@ export function PendingApprovals({users}: {users: Waiting[]}) {
               <input type="hidden" name="userId" value={u.id} />
               <select
                 name="role"
-                aria-label={t('roleFor', {name: u.full_name ?? u.email})}
+                aria-label={t('grantRoleFor', {name: u.full_name ?? u.email})}
                 defaultValue="teacher"
                 className={selectCls}
               >

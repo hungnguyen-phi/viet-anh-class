@@ -36,7 +36,24 @@ async function ck(email) {
 const kq = [];
 const dat = (ok, ten, ghi = '') => kq.push({ok, ten, ghi});
 
-const cookie = await ck('test3.admin@truongvietanh.com');
+// KHÔNG bám cứng vào một email. Tài khoản thử là dữ liệu THẬT trên production — quản trị viên
+// đổi vai hoặc bấm "Vô hiệu" nó lúc nào cũng được, và đã xảy ra: bộ kiểm bỗng báo "trang không
+// dựng được (307)" trong khi trang hoàn toàn bình thường, chỉ là tài khoản hết quyền. Một bài kiểm
+// báo sai chỗ còn tệ hơn không có bài kiểm.
+const {data: quanTri} = await admin
+  .from('profiles')
+  .select('email')
+  .eq('role', 'admin')
+  .order('email')
+  .limit(5);
+if (!quanTri || quanTri.length === 0) {
+  console.log('SAI  Không còn tài khoản quản trị nào trên hệ thống — không chạy kiểm được.');
+  process.exit(1);
+}
+const uuTien = quanTri.find((u) => u.email.startsWith('test'));
+const taiKhoan = (uuTien ?? quanTri[0]).email;
+if (!uuTien) console.log(`GHI CHÚ  Không thấy tài khoản thử nào còn vai quản trị — dùng ${taiKhoan}.`);
+const cookie = await ck(taiKhoan);
 const lay = async (duong) => {
   const r = await fetch(BASE + duong, {headers: {cookie}, redirect: 'manual'});
   return {status: r.status, html: r.status === 200 ? await r.text() : ''};
@@ -80,8 +97,15 @@ const demDong = (html) => (html.match(/role="row"/g) ?? []).length - 1; // trừ
 const tham = await lay('/admin?size=100000');
 dat(tham.status === 200 && demDong(tham.html) <= 10, 'size ngoài danh sách bị ép về mặc định 10 dòng', `${demDong(tham.html)} dòng`);
 
+// Chỉ so được khi hệ thống có QUÁ 10 người; ít hơn thì cả hai cỡ trang đều trả cùng số dòng và
+// phép so không chứng minh được gì. Nói rõ là bỏ qua, đừng báo OK giả.
 const size25 = await lay('/admin?size=25');
-dat(size25.status === 200 && demDong(size25.html) > 10, 'size=25 thật sự trả nhiều dòng hơn', `${demDong(size25.html)} dòng`);
+const tongNguoi = demDong(size25.html);
+if (tongNguoi > 10) {
+  dat(demDong(tham.html) === 10 && tongNguoi > 10, 'size=25 thật sự trả nhiều dòng hơn', `${tongNguoi} dòng`);
+} else {
+  console.log('GHI CHÚ  Bỏ qua bài "size=25 trả nhiều dòng hơn": hệ thống chỉ có', tongNguoi, 'người.');
+}
 
 // ── 6. Số trên tab bằng đúng số dòng bấm vào sẽ thấy ──────────────────────────────────────
 // Hàm admin_user_counts (migration 0085) và truy vấn bảng là hai câu SQL khác nhau. Chúng phải
@@ -136,6 +160,19 @@ dat(
   nutTrang === null || /items-center/.test(nutTrang[0]),
   'Nút phân trang có items-center để chữ nằm giữa hộp',
   nutTrang === null ? 'trang này chỉ có 1 trang, bỏ qua' : '',
+);
+
+// ── 12. Nút xoá lớp phải nói trước là nó không xoá được ──────────────────────────────────
+// deleteClass từ chối xoá lớp còn WIG hoặc còn học sinh — đúng, vì xoá lớp kéo theo toàn bộ WIG
+// và lịch sử tick. Nhưng nếu giao diện không báo trước thì người dùng bấm Xoá, xác nhận, rồi tin
+// là xong: chủ dự án đã tưởng mình xoá hết lớp trong khi còn nguyên bốn lớp.
+const coNutXoaMo = /cursor-not-allowed[^"]*opacity-40/.test(goc.html);
+const coLyDo = /Không xoá được: lớp còn/.test(goc.html);
+const coLopConDuLieu = /(\d+) WIG</.test(goc.html);
+dat(
+  !coLopConDuLieu || (coNutXoaMo && coLyDo),
+  'Lớp còn dữ liệu thì nút Xoá mờ đi và nói rõ lý do',
+  coLopConDuLieu ? `nút mờ: ${coNutXoaMo}, có lý do: ${coLyDo}` : 'không dòng lớp nào ĐANG HIỆN có dữ liệu (cơ sở đang gấp lại), bỏ qua',
 );
 
 for (const k of kq) console.log(k.ok ? 'OK  ' : 'SAI ', k.ten, k.ghi ? '— ' + k.ghi : '');

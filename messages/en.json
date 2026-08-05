@@ -345,7 +345,13 @@
     "unknownIp": "Not detected",
     "deleteGradeFor": "Delete grade {name}",
     "archiveGradeFor": "Archive grade {name}",
-    "editGradeFor": "Edit grade {name}"
+    "editGradeFor": "Edit grade {name}",
+    "classHasData": "{n} WIGs",
+    "classHasStudents": "{n} students",
+    "cannotDeleteClass": "Cannot delete: this class still has {wig} WIGs and {hs} students. Deleting the class would delete those too. Use Archive to put it away and keep the data.",
+    "cannotDeleteShort": "Cannot delete",
+    "deleteClassFor": "Delete class {name}",
+    "grantRoleFor": "Grant role to {name}"
   },
   "dashboard": {
     "welcome": "Hello",

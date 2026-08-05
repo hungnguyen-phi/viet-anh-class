@@ -23,6 +23,9 @@ type ClassRow = {
   school_year: string;
   campus_id: string;
   homeroom_teacher_id: string | null;
+  /** Số WIG và số học sinh đang gắn với lớp — quyết định lớp có xoá được hay không. */
+  soWig: number;
+  soHocSinh: number;
 };
 type Teacher = {id: string; full_name: string | null; email: string};
 
@@ -301,10 +304,24 @@ function CampusNode({
             )}
 
             <div className="flex flex-col gap-1">
-              {classes.map((c) => (
+              {classes.map((c) => {
+                // Lớp còn dữ liệu thì không xoá được — tính một lần ở đây để cả chip lẫn nút dùng
+                // chung một sự thật, thay vì mỗi chỗ tự suy ra một kiểu.
+                const coDuLieu = c.soWig > 0 || c.soHocSinh > 0;
+                const lyDoKhongXoa = t('cannotDeleteClass', {wig: c.soWig, hs: c.soHocSinh});
+                return (
                 <div key={c.id}>
                   <div className="flex flex-wrap items-center gap-2 rounded-[10px] px-1.5 py-1.5 transition-colors hover:bg-navy/[0.03]">
                     <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-navy">{c.name}</span>
+                    {/* Hiện SỐ LIỆU ĐANG GIỮ ngay trên dòng: đây là thứ quyết định lớp có xoá được
+                        hay không, nên nó phải nhìn thấy được TRƯỚC khi người ta với tay tới nút. */}
+                    {coDuLieu && (
+                      <span className="whitespace-nowrap rounded-full bg-navy/[0.06] px-2 py-0.5 text-[11px] font-bold text-grey-mid">
+                        {c.soWig > 0 && t('classHasData', {n: c.soWig})}
+                        {c.soWig > 0 && c.soHocSinh > 0 && ' · '}
+                        {c.soHocSinh > 0 && t('classHasStudents', {n: c.soHocSinh})}
+                      </span>
+                    )}
                     <span className="whitespace-nowrap text-[11.5px] font-semibold text-grey-mid">
                       {c.grade ?? t('noGrade')} · {c.school_year}
                     </span>
@@ -333,16 +350,35 @@ function CampusNode({
                           {t('archive')}
                         </SubmitButton>
                       </form>
-                      <form action={deleteClass}>
-                        <input type="hidden" name="id" value={c.id} />
-                        <ConfirmButton
-                          message={t('confirmDeleteClass')}
-                          label={t('deleteClass')}
-                          className={danger}
+                      {/* NÚT XOÁ PHẢI NÓI TRƯỚC LÀ NÓ KHÔNG XOÁ ĐƯỢC.
+                          deleteClass từ chối xoá lớp còn WIG hoặc còn học sinh — và từ chối là
+                          đúng, vì xoá lớp sẽ kéo theo toàn bộ WIG và lịch sử tick của các em.
+                          Nhưng trước đây giao diện giấu chuyện đó: nút trông y như xoá được, hộp
+                          thoại vẫn hỏi "chắc chưa", bấm đồng ý xong mới hiện một dòng đỏ thoáng
+                          qua. Chủ dự án đã tưởng mình xoá hết lớp trong khi còn nguyên bốn lớp.
+                          Nay: nút mờ đi, và hover/đọc màn hình đều nghe được LÝ DO cùng lối ra. */}
+                      {coDuLieu ? (
+                        <button
+                          type="button"
+                          disabled
+                          title={lyDoKhongXoa}
+                          aria-label={lyDoKhongXoa}
+                          className={`${danger} cursor-not-allowed opacity-40`}
                         >
                           ✕
-                        </ConfirmButton>
-                      </form>
+                        </button>
+                      ) : (
+                        <form action={deleteClass}>
+                          <input type="hidden" name="id" value={c.id} />
+                          <ConfirmButton
+                            message={t('confirmDeleteClass')}
+                            label={t('deleteClassFor', {name: c.name})}
+                            className={danger}
+                          >
+                            ✕
+                          </ConfirmButton>
+                        </form>
+                      )}
                     </span>
                   </div>
 
@@ -356,7 +392,8 @@ function CampusNode({
                     />
                   )}
                 </div>
-              ))}
+                );
+              })}
               {classes.length === 0 && (
                 <div className="px-1.5 py-1 text-[12px] font-semibold text-grey-mid">{t('noClass')}</div>
               )}

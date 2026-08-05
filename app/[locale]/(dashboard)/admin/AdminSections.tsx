@@ -115,6 +115,9 @@ export async function AdminSections() {
           school_year: c.school_year,
           campus_id: c.campus_id,
           homeroom_teacher_id: c.homeroom_teacher_id,
+          // PostgREST trả về đếm nhúng dạng [{count: n}]; lớp rỗng vẫn có một phần tử count 0.
+          soWig: c.wigs?.[0]?.count ?? 0,
+          soHocSinh: c.enrollments?.[0]?.count ?? 0,
         }))}
         teachers={staffList}
         defaultYear={schoolYearLabel(new Date())}

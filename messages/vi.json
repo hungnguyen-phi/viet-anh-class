@@ -345,7 +345,13 @@
     "unknownIp": "Chưa đọc được",
     "deleteGradeFor": "Xoá khối {name}",
     "archiveGradeFor": "Lưu trữ khối {name}",
-    "editGradeFor": "Sửa khối {name}"
+    "editGradeFor": "Sửa khối {name}",
+    "classHasData": "{n} WIG",
+    "classHasStudents": "{n} học sinh",
+    "cannotDeleteClass": "Không xoá được: lớp còn {wig} WIG và {hs} học sinh. Xoá lớp là xoá luôn số đó. Dùng Lưu trữ để cất lớp đi mà vẫn giữ dữ liệu.",
+    "cannotDeleteShort": "Không xoá được",
+    "deleteClassFor": "Xoá lớp {name}",
+    "grantRoleFor": "Cấp vai trò cho {name}"
   },
   "dashboard": {
     "welcome": "Xin chào",
