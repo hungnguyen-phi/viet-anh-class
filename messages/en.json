@@ -52,15 +52,7 @@
     "sendShort": "Send",
     "sentShort": "Link sent, please check your email.",
     "again": "Other email",
-    "guide": "View guide",
-    "orDivider": "or",
-    "emailLabel": "Email",
-    "emailPh": "name@truongvietanh.com",
-    "passwordLabel": "Password",
-    "passwordPh": "Enter your password",
-    "signIn": "Sign in",
-    "errorCredentials": "Wrong email or password.",
-    "errorMissing": "Please enter both email and password."
+    "guide": "View guide"
   },
   "unauthorized": {
     "title": "Account not yet authorized",

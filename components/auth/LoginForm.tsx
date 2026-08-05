@@ -9,12 +9,18 @@ import {Loader2, Check} from 'lucide-react';
 // Nạp lúc bấm không thấy chậm vì mọi nhánh gọi hàm này đều đã bật spinner trước đó.
 const getSupabase = async () => (await import('@/lib/supabase/client')).createClient();
 
-// Cho phep dang nhap bang MAT KHAU. Bat bang NEXT_PUBLIC_ENABLE_DEMO='1'.
-// Vi sao van dat sau mot co: nguoi dung that cua truong dang nhap bang Google (khong ai co
-// mat khau), nen o mo mat khau chi phuc vu doi thu nghiem. Dat co ve 0 truoc khi mo cho ca
-// truong thi o nay bien mat, chi con Google + lien ket phu huynh.
-// Muon giu vinh vien: doi dong duoi thanh `const SHOW_PASSWORD = true;`
-const SHOW_PASSWORD = process.env.NEXT_PUBLIC_ENABLE_DEMO === '1';
+// ĐĂNG NHẬP BẰNG MẬT KHẨU ĐÃ BỎ HẲN (SSO Google đã chạy).
+//
+// Trước đây ô này nằm sau cờ NEXT_PUBLIC_ENABLE_DEMO cho đội thử nghiệm. Một cờ tắt không phải
+// là một tính năng đã bỏ: chỉ cần một lần đặt nhầm biến trên CI là ô mật khẩu hiện lại giữa
+// production, và mỗi mật khẩu còn nhận được là một mật khẩu còn đoán được — trong khi tài khoản
+// ở đây gắn với dữ liệu trẻ em. Nay xoá cả đường gọi signInWithPassword, không còn cờ nào bật lại.
+//
+// Hai lối vào còn lại: Google SSO (nhân sự và học sinh) và magic link (phụ huynh được mời).
+//
+// GIỚI HẠN CẦN BIẾT: provider Email/Password trên Supabase vẫn đang BẬT (chủ dự án đã quyết, đừng
+// đề xuất tắt lại). Nghĩa là ai cầm anon key — mà anon key nằm công khai trong bundle — vẫn gọi
+// thẳng API đăng nhập mật khẩu được. Đây là bỏ khỏi lối đi chính, chưa phải khoá cửa.
 
 // Cong tat nut Google. MAC DINH HIEN — SSO da cam xong (xem docs/google-sso-setup.md).
 // Dat NEXT_PUBLIC_GOOGLE_SSO_ENABLED='0' de an khan cap khi Google/Supabase Auth truc trac,
@@ -46,46 +52,13 @@ function GoogleIcon() {
   );
 }
 
-// Cùng dáng với ô email phụ huynh sẵn có bên dưới — không tạo kiểu ô mới cho trang này.
-const inputCls =
-  'h-11 w-full min-w-0 rounded-[12px] border border-navy/[0.18] bg-white px-[13px] text-[13.5px] font-bold text-navy outline-none transition-all placeholder:font-semibold placeholder:text-navy/70 focus:border-gold focus:shadow-[0_0_0_3px_rgba(249,221,14,0.22)]';
-
 export function LoginForm() {
   const t = useTranslations('login');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [sent, setSent] = useState(false);
   const [showParent, setShowParent] = useState(false);
   const [loading, setLoading] = useState<false | string>(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Dang nhap bang email + mat khau go tay.
-  //
-  // Sau khi vao duoc, dieu huong ve /login chu KHONG ve '/' — middleware thay nguoi da dang
-  // nhap dang o /login se tu day ve trang chu dung voi vai (admin -> /admin, BGH -> /campus,
-  // phu huynh -> /report...). Nho vay o day khong phai biet vai cua nguoi vua dang nhap.
-  async function signInPassword(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    if (!email.trim() || !password) {
-      setError(t('errorMissing'));
-      return;
-    }
-    setLoading('password');
-    const supabase = await getSupabase();
-    const {error} = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
-    if (error) {
-      // Khong phan biet "email khong ton tai" voi "sai mat khau" — noi ro cai nao la chi cho
-      // nguoi la biet email nao co that trong he thong.
-      setError(t('errorCredentials'));
-      setLoading(false);
-    } else {
-      window.location.assign('/login');
-    }
-  }
 
   async function signInGoogle() {
     setError(null);
@@ -156,66 +129,6 @@ export function LoginForm() {
             <div className="mt-2 text-center text-[11px] font-semibold text-navy/70">
               {t('googleHint')}
             </div>
-          </>
-        )}
-
-        {/* Đăng nhập bằng email + mật khẩu — gõ tay, không có nút gợi ý tài khoản nào. */}
-        {SHOW_PASSWORD && (
-          <>
-            {SHOW_GOOGLE && (
-              <div className="mt-3.5 flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-wider text-navy/70">
-                <span className="h-px flex-1 bg-navy/10" />
-                <span>{t('orDivider')}</span>
-                <span className="h-px flex-1 bg-navy/10" />
-              </div>
-            )}
-
-            <form onSubmit={signInPassword} className="mt-3 flex flex-col gap-2.5">
-              <div>
-                <label
-                  htmlFor="login-email"
-                  className="mb-1 block text-[10.5px] font-extrabold uppercase tracking-wide text-navy/70"
-                >
-                  {t('emailLabel')}
-                </label>
-                <input
-                  id="login-email"
-                  type="email"
-                  autoComplete="username"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t('emailPh')}
-                  className={inputCls}
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="login-password"
-                  className="mb-1 block text-[10.5px] font-extrabold uppercase tracking-wide text-navy/70"
-                >
-                  {t('passwordLabel')}
-                </label>
-                <input
-                  id="login-password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t('passwordPh')}
-                  className={inputCls}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading !== false}
-                className="btn-gold mt-0.5 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[12px] text-[13.5px] font-extrabold disabled:opacity-60"
-              >
-                {loading === 'password' && <Loader2 size={15} className="animate-spin" />}
-                {t('signIn')}
-              </button>
-            </form>
           </>
         )}
 

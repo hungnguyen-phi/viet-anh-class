@@ -52,15 +52,7 @@
     "sendShort": "Gửi",
     "sentShort": "Đã gửi liên kết, kiểm tra email nhé.",
     "again": "Email khác",
-    "guide": "Xem hướng dẫn",
-    "orDivider": "hoặc",
-    "emailLabel": "Email",
-    "emailPh": "ten@truongvietanh.com",
-    "passwordLabel": "Mật khẩu",
-    "passwordPh": "Nhập mật khẩu",
-    "signIn": "Đăng nhập",
-    "errorCredentials": "Email hoặc mật khẩu không đúng.",
-    "errorMissing": "Hãy nhập cả email và mật khẩu."
+    "guide": "Xem hướng dẫn"
   },
   "unauthorized": {
     "title": "Tài khoản chưa được cấp quyền",

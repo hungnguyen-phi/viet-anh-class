@@ -45,14 +45,11 @@ jobs:
           cache-to: type=gha,mode=max
           # NEXT_PUBLIC_* bị nội tuyến lúc build → phải truyền vào đây (xem Dockerfile).
           # Giá trị public (URL + anon key); lưu ở Secrets để log CI không lộ, dù bản thân là public.
-          # NEXT_PUBLIC_ENABLE_DEMO: toggle nút demo qua Variable (đặt 1 để bật khi test, xoá/0 để tắt).
-          # ⚠️ Nhớ tắt (Variable = 0) + build lại trước khi mở cho người dùng thật.
           # NEXT_PUBLIC_GOOGLE_SSO_ENABLED: chỉ đặt = 1 (GitHub Variable) SAU KHI đã cắm xong
           # OAuth Client thật + Supabase Dashboard (docs/google-sso-setup.md) — build lại sau khi đặt.
           build-args: |
             NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-            NEXT_PUBLIC_ENABLE_DEMO=${{ vars.NEXT_PUBLIC_ENABLE_DEMO }}
             NEXT_PUBLIC_GOOGLE_SSO_ENABLED=${{ vars.NEXT_PUBLIC_GOOGLE_SSO_ENABLED }}
             NEXT_PUBLIC_GIT_SHA=${{ github.sha }}
 

@@ -31,7 +31,6 @@ File repo đã tạo sẵn: `Dockerfile`, `.dockerignore`, `.github/workflows/de
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public, **build-time** | GitHub **Secret** → build-arg | như trên (anon key vốn public, RLS bảo vệ dữ liệu) |
 | `SUPABASE_SERVICE_ROLE_KEY` | **bí mật, runtime** | **Coolify → Environment variables** | server-only (cổng IP check-in). **KHÔNG** bake vào image, KHÔNG là build-arg |
 | `PORT` | runtime | Coolify (`8080`) | khớp `EXPOSE 8080` / healthcheck |
-| `NEXT_PUBLIC_ENABLE_DEMO` | — | **KHÔNG set ở production** | có set = hiện khối demo login. Bỏ trống = ẩn |
 | `OPENROUTER_API_KEY` | **bí mật, runtime** | **Coolify → Environment variables** | Buddy 4DX = LLM. Server-only, **KHÔNG** build-arg, **KHÔNG** `NEXT_PUBLIC_*`. Thiếu → nút "Hỏi Buddy" báo chưa bật, app vẫn chạy |
 | `OPENROUTER_MODEL` | runtime, tuỳ chọn | Coolify | Đổi model không cần build lại. Mặc định `deepseek/deepseek-chat` |
 
@@ -64,7 +63,7 @@ File repo đã tạo sẵn: `Dockerfile`, `.dockerignore`, `.github/workflows/de
 2. Image: `ghcr.io/<owner>/viet-anh-class:latest`. GHCR để Private → thêm **Registry Credential**
    (Personal Access Token quyền `read:packages`).
 3. **Environment variables** (mục §1): `SUPABASE_SERVICE_ROLE_KEY`, `PORT=8080`, và 2 biến
-   `NEXT_PUBLIC_SUPABASE_*`. **KHÔNG** thêm `NEXT_PUBLIC_ENABLE_DEMO`.
+   `NEXT_PUBLIC_SUPABASE_*`.
 4. **Port**: app nghe `8080` (đã `EXPOSE`).
 5. **Domain**: gắn `https://<your-domain>` (có `https://` để proxy sinh middleware đúng).
 6. **Healthcheck**: Dockerfile đã có (`/api/health`, `start-period=40s`) — đủ cho app boot.
@@ -106,7 +105,7 @@ File repo đã tạo sẵn: `Dockerfile`, `.dockerignore`, `.github/workflows/de
 ## 7. Checklist go-live nhanh
 - [ ] 2 secret `NEXT_PUBLIC_SUPABASE_*` đã đặt (build-arg) — đúng project production.
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` đặt ở **Coolify runtime**, KHÔNG trong image/CI.
-- [ ] KHÔNG set `NEXT_PUBLIC_ENABLE_DEMO` → khối demo ẩn.
+- [ ] Trang login chỉ còn Google SSO + magic link phụ huynh (mã nguồn không còn gọi `signInWithPassword`).
 - [ ] Migrations đã áp; **KHÔNG** seed demo lên production.
 - [ ] Edge functions đã deploy.
 - [ ] Supabase Auth Site URL + Redirect URLs trỏ domain production.
@@ -129,4 +128,4 @@ File repo đã tạo sẵn: `Dockerfile`, `.dockerignore`, `.github/workflows/de
 | Proxy "no available server" | Domain thiếu `https://`. Sửa thành `https://<your-domain>`. |
 | Tác vụ dài lỗi `524` | Cloudflare timeout (~100s). Chạy nền / tách qua edge function. |
 | `docker pull ... denied` | GHCR Private, Coolify thiếu Registry Credential `read:packages`. |
-| Vẫn thấy nút demo login | Đã lỡ set `NEXT_PUBLIC_ENABLE_DEMO=1` lúc build/runtime → bỏ đi, build lại. |
+| Ai đó vẫn đăng nhập được bằng mật khẩu | Đúng như thiết kế hiện tại: giao diện đã bỏ ô mật khẩu, provider Email/Password trên Supabase **cố ý để bật**. Muốn chặn hẳn thì tắt provider trong Dashboard. |

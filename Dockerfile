@@ -17,8 +17,6 @@ COPY . .
 #    lúc build qua --build-arg. Đây là giá trị PUBLIC (URL + anon key, dữ liệu được RLS bảo vệ),
 #    ship xuống trình duyệt là bình thường.
 #    TUYỆT ĐỐI KHÔNG truyền SUPABASE_SERVICE_ROLE_KEY vào đây — nó server-only, đặt ở env runtime.
-#    NEXT_PUBLIC_ENABLE_DEMO: toggle nút demo, điều khiển bằng GitHub Variable (rỗng/0 = ẩn, 1 = hiện).
-#    ⚠️ Đặt về 0/xoá trước khi mở cho người dùng THẬT (image public + demo1234).
 #    NEXT_PUBLIC_GOOGLE_SSO_ENABLED: hiện nút "Đăng nhập với Google" — chỉ bật (=1) SAU KHI đã
 #    cắm xong OAuth Client + Supabase Dashboard (xem docs/google-sso-setup.md).
 #    NEXT_PUBLIC_GIT_SHA: mã commit build ra ảnh này, /api/health trả về để biết production
@@ -26,12 +24,10 @@ COPY . .
 #    công thì ảnh mới nằm trên GHCR còn production vẫn chạy bản cũ, nhìn ngoài không phân biệt được.
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ARG NEXT_PUBLIC_ENABLE_DEMO
 ARG NEXT_PUBLIC_GOOGLE_SSO_ENABLED
 ARG NEXT_PUBLIC_GIT_SHA
 ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL} \
     NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY} \
-    NEXT_PUBLIC_ENABLE_DEMO=${NEXT_PUBLIC_ENABLE_DEMO} \
     NEXT_PUBLIC_GOOGLE_SSO_ENABLED=${NEXT_PUBLIC_GOOGLE_SSO_ENABLED} \
     NEXT_PUBLIC_GIT_SHA=${NEXT_PUBLIC_GIT_SHA} \
     NEXT_TELEMETRY_DISABLED=1

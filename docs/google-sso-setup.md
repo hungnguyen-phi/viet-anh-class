@@ -103,7 +103,11 @@ tránh người dùng bấm vào lúc chưa cấu hình xong, gặp màn lỗi c
 ## Ghi chú vận hành
 
 - **Phụ huynh** KHÔNG dùng Google SSO — họ nhận magic link qua email (admin mời ở `/admin`, nút "Mời phụ huynh").
-- **Tắt khối demo login** trước production: bỏ biến `NEXT_PUBLIC_ENABLE_DEMO` trên Vercel (mặc định không có → nút demo tự ẩn). Và **xóa tài khoản demo `demo1234`** trên DB (xem cuối file).
+- **Đăng nhập bằng mật khẩu đã bỏ khỏi giao diện và khỏi mã nguồn** (không còn `signInWithPassword`).
+  Provider Email/Password trên Supabase thì **cố ý để nguyên trạng thái bật** — chủ dự án đã quyết,
+  đừng đề xuất tắt lại. Hệ quả cần biết: ai có anon key (nằm công khai trong bundle) vẫn gọi thẳng
+  API đăng nhập mật khẩu được, nên đây là bỏ khỏi lối đi chính chứ chưa phải khoá cửa.
+  Vẫn nên **xóa tài khoản demo `demo1234`** trên DB (xem cuối file).
 - Thêm/bớt miền cho phép: sửa bảng `signup_email_domains` (SQL Editor), ví dụ thêm cơ sở mới.
 - Cấu hình dạng code (tùy chọn, cho ai dùng Supabase CLI): xem `supabase/config.toml`.
 
