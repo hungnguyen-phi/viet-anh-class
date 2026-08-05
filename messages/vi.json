@@ -24,7 +24,9 @@
     "cancel": "Huỷ",
     "saved": "Đã lưu",
     "today": "Hôm nay",
-    "skipToContent": "Bỏ qua menu, xuống nội dung"
+    "skipToContent": "Bỏ qua menu, xuống nội dung",
+    "viewingOthersClass": "Lớp của {name} — bạn đang xem với quyền quản trị",
+    "viewingClassNoOwner": "Lớp chưa có chủ nhiệm — bạn đang xem với quyền quản trị"
   },
   "roles": {
     "admin": "Quản trị viên",
@@ -707,7 +709,11 @@
     "myContrib": "em góp {n} lượt",
     "remaining": "còn {n} nữa là lớp thắng",
     "streakHint": "Số ngày liên tiếp em đã tick",
-    "remainingMine": "còn {n} nữa là em đạt"
+    "remainingMine": "còn {n} nữa là em đạt",
+    "moodAt": "Đã điểm danh lúc {time}",
+    "moodLate": "Muộn",
+    "moodClosed": "Ngoài giờ check-in. Sáng nhận từ 6h30 đến 8h00, chiều từ 16h00.",
+    "moodLocked": "Đã khoá — cảm xúc buổi sáng chỉ sửa được trước 7h00."
   },
   "campusReport": {
     "title": "Báo cáo cơ sở",

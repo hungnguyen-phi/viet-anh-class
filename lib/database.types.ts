@@ -228,27 +228,45 @@ export type Database = {
       }
       campuses: {
         Row: {
+          an_han_phut: number
           code: string
           created_at: string
+          cua_so_chieu_phut: number
+          gio_checkin_chieu: string
+          gio_vao_lop: string
+          han_muon_phut: number
           id: string
           is_active: boolean
           levels: Database["public"]["Enums"]["school_level"][]
+          mo_truoc_phut: number
           name: string
         }
         Insert: {
+          an_han_phut?: number
           code: string
           created_at?: string
+          cua_so_chieu_phut?: number
+          gio_checkin_chieu?: string
+          gio_vao_lop?: string
+          han_muon_phut?: number
           id?: string
           is_active?: boolean
           levels?: Database["public"]["Enums"]["school_level"][]
+          mo_truoc_phut?: number
           name: string
         }
         Update: {
+          an_han_phut?: number
           code?: string
           created_at?: string
+          cua_so_chieu_phut?: number
+          gio_checkin_chieu?: string
+          gio_vao_lop?: string
+          han_muon_phut?: number
           id?: string
           is_active?: boolean
           levels?: Database["public"]["Enums"]["school_level"][]
+          mo_truoc_phut?: number
           name?: string
         }
         Relationships: []
@@ -935,6 +953,7 @@ export type Database = {
       }
       mood_checkins: {
         Row: {
+          buoi: string
           class_id: string | null
           created_at: string
           date: string
@@ -944,6 +963,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          buoi?: string
           class_id?: string | null
           created_at?: string
           date?: string
@@ -953,6 +973,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          buoi?: string
           class_id?: string | null
           created_at?: string
           date?: string
@@ -2259,6 +2280,16 @@ export type Database = {
         Returns: boolean
       }
       cancel_class_transfer: { Args: { p_request: string }; Returns: undefined }
+      checkin_windows: {
+        Args: { p_campus: string }
+        Returns: {
+          chieu_dong: string
+          chieu_mo: string
+          het_dung_gio: string
+          het_muon: string
+          mo_luc: string
+        }[]
+      }
       child_class_progress: {
         Args: { s: string }
         Returns: {
@@ -2284,6 +2315,17 @@ export type Database = {
           week_end: string
           week_label: string
           week_start: string
+        }[]
+      }
+      class_attendance_day: {
+        Args: { p_class: string; p_date?: string }
+        Returns: {
+          gio_bam: string
+          ho_ten: string
+          nguoi_danh: string
+          student_id: string
+          trang_thai: string
+          tu_dong: boolean
         }[]
       }
       class_campus: { Args: { c: string }; Returns: string }
@@ -2364,6 +2406,12 @@ export type Database = {
       enroll_student_by_email: {
         Args: { p_class: string; p_email: string }
         Returns: string
+      }
+      ham_lay_ngay_may_chu: {
+        Args: never
+        Returns: {
+          ten: string
+        }[]
       }
       homework_class: { Args: { p: string }; Returns: string }
       invite_student_to_class: {
@@ -2507,6 +2555,7 @@ export type Database = {
       }
       student_checkin: {
         Args: {
+          p_buoi?: string
           p_ip: string
           p_mood: Database["public"]["Enums"]["mood_level"]
           p_student: string

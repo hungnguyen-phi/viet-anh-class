@@ -8,8 +8,8 @@ import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext} from '@/lib/queries';
 import {todayInVN} from '@/lib/dates';
 import {AttendanceTable} from '@/components/attendance/AttendanceTable';
-import {ClassMoodBoard} from '@/components/student/ClassMoodBoard';
 import {ClassPicker} from '@/components/shell/ClassPicker';
+import {ClassOwnerNote} from '@/components/shell/ClassOwnerNote';
 import type {Database} from '@/lib/database.types';
 
 type Status = Database['public']['Enums']['attendance_status'];
@@ -142,7 +142,12 @@ export default async function AttendancePage({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
+          {/* Quản trị/BGH thấy bộ chọn KỂ CẢ khi chỉ có một lớp: nó là chỗ duy nhất trên màn hình
+            nói rõ mình đang đứng ở lớp nào. Giáo viên chỉ có lớp mình thì giấu đi cho gọn. */}
+        {(accessible.length > 1 || profile.role === 'admin' || profile.role === 'principal') && (
+          <ClassPicker classes={accessible} current={myClass.id} />
+        )}
+        <ClassOwnerNote classId={myClass.id} viewerId={profile.id} viewerRole={profile.role} />
           {!canBackfill && (
             <span
               className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold text-status-bad"
@@ -231,12 +236,10 @@ export default async function AttendancePage({
         canEdit={canEdit}
       />
 
-      {/* Cảm xúc 7 ngày — dời từ trang Danh sách sang đây: check-in cảm xúc CHÍNH LÀ điểm danh
-          (student_checkin ghi cả mood_checkins lẫn attendance_records), nên phải đọc cùng chỗ.
-          KHÔNG hiện cho học sinh: tổ trưởng điểm danh không có việc gì với cảm xúc của bạn cùng lớp. */}
-      {profile.role !== 'student' && students.length > 0 && (
-        <ClassMoodBoard classId={myClass.id} today={realToday} students={students} />
-      )}
+      {/* BẢNG CẢM XÚC ĐÃ BỎ KHỎI MÀN GIÁO VIÊN (quyết định chủ dự án).
+          Giáo viên nhìn TRẠNG THÁI ĐIỂM DANH — có mặt / muộn / vắng / có phép — chứ không nhìn
+          cảm xúc từng em. Cảm xúc chỉ còn ở màn quản trị, dưới dạng biểu đồ.
+          Không xoá component ClassMoodBoard: nó vẫn dùng được nếu sau này đổi ý. */}
     </div>
   );
 }

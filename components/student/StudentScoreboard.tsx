@@ -158,12 +158,13 @@ export async function StudentScoreboard({
         )
         .eq('student_id', studentId)
         .order('created_at', {ascending: false}),
+      // Cảm xúc HÔM NAY, cả hai buổi, kèm GIỜ BẤM — giờ bấm chính là bằng chứng có mặt kể từ khi
+      // check-in thay điểm danh, nên phải lấy về để hiện ngay dưới icon.
       supabase
         .from('mood_checkins')
-        .select('mood')
+        .select('mood, buoi, created_at')
         .eq('student_id', studentId)
-        .eq('date', today)
-        .maybeSingle(),
+        .eq('date', today),
       supabase.from('area_config').select('*').order('sort_order'),
       // Yêu-cầu-sửa của CHÍNH người đang xem. Trước đây nằm mãi cuối hàm, chạy SAU bốn đợt truy
       // vấn khác — mà nó chỉ phụ thuộc viewer.id, thứ đã biết từ trước khi hàm chạy. Tức là một
@@ -213,11 +214,34 @@ export async function StudentScoreboard({
   } | null;
   const cls = enrRow?.classes;
   const classId = enrRow?.class_id ?? null;
-  const mood = (moodRow?.mood ?? null) as MoodKey | null;
+  const moodSang = (moodRow ?? []).find((r) => r.buoi === 'sang') ?? null;
+  const moodChieu = (moodRow ?? []).find((r) => r.buoi === 'chieu') ?? null;
+  const mood = (moodSang?.mood ?? null) as MoodKey | null;
 
   // BẮT BUỘC check-in: chỉ chặn khi CHÍNH em đó chưa check-in hôm nay VÀ đang ở trong mạng
   // trường. Ngoài mạng trường (ở nhà/4G) student_checkin() trả 'blocked' → nếu vẫn chặn thì em
   // bị khoá cứng không tự thoát được, nên cho vào xem read-only (quyết định 2026-07-26).
+  // CỬA SỔ CHECK-IN của cơ sở em đang học. Lấy một lần, dùng cho cả buổi sáng lẫn buổi chiều.
+  // Null khi em chưa có lớp (chưa biết cơ sở) → giao diện giữ nguyên hành vi cũ, không khoá gì.
+  let cuaSo: {moLuc: string; hetDungGio: string; hetMuon: string; chieuMo: string; chieuDong: string} | null =
+    null;
+  if (classId) {
+    const {createAdminClient: taoAdmin} = await import('@/lib/supabase/admin');
+    const {data: cls2} = await taoAdmin().from('classes').select('campus_id').eq('id', classId).maybeSingle();
+    if (cls2?.campus_id) {
+      const {data: w} = await taoAdmin().rpc('checkin_windows', {p_campus: cls2.campus_id});
+      const r = Array.isArray(w) ? w[0] : w;
+      if (r)
+        cuaSo = {
+          moLuc: r.mo_luc,
+          hetDungGio: r.het_dung_gio,
+          hetMuon: r.het_muon,
+          chieuMo: r.chieu_mo,
+          chieuDong: r.chieu_dong,
+        };
+    }
+  }
+
   let mustCheckin = false;
   if (canEditMood && mood === null) {
     const ip = clientIp(await headers());
@@ -518,7 +542,13 @@ export async function StudentScoreboard({
           </div>
         </div>
         <div className="border-t border-navy/[0.08] p-6 md:border-l md:border-t-0">
-          <MoodCheckin initialMood={mood} canEdit={canEditMood} gated={mustCheckin} />
+          <MoodCheckin
+            initialMood={mood}
+            canEdit={canEditMood}
+            gated={mustCheckin}
+            gioBam={moodSang?.created_at ?? null}
+            cuaSo={cuaSo}
+          />
         </div>
       </div>
 

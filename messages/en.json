@@ -24,7 +24,9 @@
     "cancel": "Cancel",
     "saved": "Saved",
     "today": "Today",
-    "skipToContent": "Skip to content"
+    "skipToContent": "Skip to content",
+    "viewingOthersClass": "{name}'s class — you are viewing as an administrator",
+    "viewingClassNoOwner": "Class has no homeroom teacher — you are viewing as an administrator"
   },
   "roles": {
     "admin": "Administrator",
@@ -707,7 +709,11 @@
     "myContrib": "you added {n}",
     "remaining": "{n} more for the class to win",
     "streakHint": "Days in a row you have ticked",
-    "remainingMine": "{n} more to reach your goal"
+    "remainingMine": "{n} more to reach your goal",
+    "moodAt": "Checked in at {time}",
+    "moodLate": "Late",
+    "moodClosed": "Outside check-in hours. Mornings 6:30–8:00, afternoons from 16:00.",
+    "moodLocked": "Locked — the morning mood can only be changed before 7:00."
   },
   "campusReport": {
     "title": "Campus report",

@@ -6,6 +6,7 @@ import {createClient} from '@/lib/supabase/server';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
+import {ClassOwnerNote} from '@/components/shell/ClassOwnerNote';
 import {ClassCoverUpload} from '@/components/shell/ClassCoverUpload';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {AttendanceLeaderPicker} from '@/components/roster/AttendanceLeaderPicker';
@@ -251,7 +252,12 @@ export default async function RosterPage({
             Hình ảnh
           </Link>
           {canManage && <ClassCoverUpload classId={myClass.id} />}
-          {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
+          {/* Quản trị/BGH thấy bộ chọn KỂ CẢ khi chỉ có một lớp: nó là chỗ duy nhất trên màn hình
+            nói rõ mình đang đứng ở lớp nào. Giáo viên chỉ có lớp mình thì giấu đi cho gọn. */}
+        {(accessible.length > 1 || profile.role === 'admin' || profile.role === 'principal') && (
+          <ClassPicker classes={accessible} current={myClass.id} />
+        )}
+        <ClassOwnerNote classId={myClass.id} viewerId={profile.id} viewerRole={profile.role} />
         </div>
       </div>
 

@@ -69,8 +69,7 @@ function MoodCard({
   cardRef: RefObject<HTMLDivElement | null>;
 }) {
   const t = useTranslations('student');
-  const byKey = useMemo(() => new Map(MOODS.map((m) => [m.key, m])), []);
-  return (
+  const byKey = useMemo(() => new Map(MOODS.map((m) => [m.key, m])), []);  return (
     <div
       ref={cardRef}
       tabIndex={-1}
@@ -192,15 +191,32 @@ export function MoodGate() {
   );
 }
 
+export type CuaSo = {
+  /** Mốc thời gian (ISO) của cửa sổ hôm nay, tính ở server theo giờ Việt Nam. */
+  moLuc: string;
+  hetDungGio: string;
+  hetMuon: string;
+  chieuMo: string;
+  chieuDong: string;
+};
+
 export function MoodCheckin({
   initialMood,
   canEdit,
   gated = false,
+  gioBam = null,
+  cuaSo = null,
+  buoi = 'sang',
 }: {
   initialMood: MoodKey | null;
   canEdit: boolean;
   // true = <MoodGate> đang lo việc check-in lần đầu → đừng tự mở popup nữa (tránh 2 lớp phủ).
   gated?: boolean;
+  /** Giờ em đã bấm hôm nay (ISO), để hiện ngay dưới icon. */
+  gioBam?: string | null;
+  /** Cửa sổ check-in của cơ sở. null = chưa cấu hình → giữ nguyên hành vi cũ (bấm lúc nào cũng được). */
+  cuaSo?: CuaSo | null;
+  buoi?: 'sang' | 'chieu';
 }) {
   const t = useTranslations('student');
   const router = useRouter();
@@ -223,10 +239,48 @@ export function MoodCheckin({
 
   const byKey = useMemo(() => new Map(MOODS.map((m) => [m.key, m])), []);
 
+  // CỬA SỔ THỜI GIAN.
+  //
+  // `now` chỉ nhích mỗi 30 giây nên vừa đủ để mở/đóng cửa đúng phút, và cố ý KHÔNG đếm từng giây:
+  // một đồng hồ đếm ngược chạy giật trên màn hình của trẻ con là thứ gây căng thẳng chứ không giúp
+  // gì. Server mới là nơi quyết định thật (hàm student_checkin cũng kiểm lại cửa sổ) — chỗ này chỉ
+  // để không mời em bấm một cái nút chắc chắn sẽ bị từ chối.
+  const [tick, setTick] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setTick(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const trangThaiCua = useMemo(() => {
+    if (!cuaSo) return {mo: true, muon: false, khoaCamXuc: false} as const;
+    const t0 = tick;
+    const g = (s: string) => new Date(s).getTime();
+    if (buoi === 'chieu') {
+      return {mo: t0 >= g(cuaSo.chieuMo) && t0 <= g(cuaSo.chieuDong), muon: false, khoaCamXuc: false};
+    }
+    const mo = t0 >= g(cuaSo.moLuc) && t0 <= g(cuaSo.hetMuon);
+    return {mo, muon: t0 > g(cuaSo.hetDungGio), khoaCamXuc: t0 > g(cuaSo.hetDungGio)};
+  }, [cuaSo, tick, buoi]);
+
+  // Sửa được khi: là chính em, cửa còn mở, VÀ chưa quá giờ khoá cảm xúc.
+  // Đã bấm rồi mà chưa tới giờ khoá thì vẫn đổi được — bấm nhầm mặt cười là chuyện thường.
+  const suaDuoc = canEdit && trangThaiCua.mo && !(mood !== null && trangThaiCua.khoaCamXuc);
+
+  const gioBamVN = useMemo(() => {
+    if (!gioBam) return null;
+    return new Intl.DateTimeFormat('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(new Date(gioBam));
+  }, [gioBam]);
+
+
+
   // Tự mở popup lần đầu trong ngày nếu học sinh chưa check-in — TRỪ khi <MoodGate> đã chặn.
   useEffect(() => {
-    if (!gated && canEdit && initialMood === null) setOpen(true);
-  }, [gated, canEdit, initialMood]);
+    if (!gated && suaDuoc && initialMood === null) setOpen(true);
+  }, [gated, suaDuoc, initialMood]);
 
   // Đóng bằng phím Esc khi popup mở (popup "Sửa" là tự nguyện nên vẫn cho thoát).
   useEffect(() => {
@@ -243,7 +297,7 @@ export function MoodCheckin({
     setSaving(true);
     setErr(null);
     // Check-in = cảm xúc + điểm danh, có cổng IP mạng trường (kiểm ở server).
-    const res = await checkinMood(draft);
+    const res = await checkinMood(draft, buoi);
     setSaving(false);
     if (res.ok) {
       setMood(draft);
@@ -253,6 +307,9 @@ export function MoodCheckin({
       setErr(t('moodBlocked'));
     } else if (res.noClass) {
       setErr(t('moodNoClass'));
+    } else if (res.closed) {
+      // Không phải lỗi: em bấm sớm quá hoặc muộn quá. Nói giờ nào bấm được, đừng nói "đã xảy ra lỗi".
+      setErr(t('moodClosed'));
     } else {
       setErr(t('moodError'));
     }
@@ -270,7 +327,7 @@ export function MoodCheckin({
             <Clock size={11} strokeWidth={2.5} />
             {now}
           </span>
-          {canEdit && (
+          {suaDuoc && (
             <button
               type="button"
               onClick={() => {
@@ -295,7 +352,7 @@ export function MoodCheckin({
                 title={t(`levels.${k}`)}
                 aria-label={t(`levels.${k}`)}
                 onClick={() => {
-                  if (!canEdit) return;
+                  if (!suaDuoc) return;
                   setDraft(mood);
                   setOpen(true);
                 }}
@@ -314,6 +371,34 @@ export function MoodCheckin({
             );
           })}
         </div>
+        {/* GIỜ BẤM, ngay dưới icon.
+            Trước đây màn hình chỉ hiện mặt cười, không nói em bấm lúc nào — mà từ khi check-in
+            thay điểm danh thì giờ bấm CHÍNH LÀ bằng chứng em có mặt. Em phải nhìn thấy nó, và
+            giáo viên hỏi lại thì em có cái để chỉ. */}
+        {gioBamVN && (
+          <div className="flex items-center justify-center gap-1.5 text-[11.5px] font-bold">
+            <Clock size={11} strokeWidth={2.6} className="text-grey-mid" />
+            <span className="text-grey-mid">{t('moodAt', {time: gioBamVN})}</span>
+            {trangThaiCua.muon && (
+              <span className="rounded-full bg-warn/[0.16] px-2 py-0.5 text-[10.5px] font-extrabold text-navy">
+                {t('moodLate')}
+              </span>
+            )}
+          </div>
+        )}
+        {/* Cửa đã đóng và em chưa bấm: nói giờ, đừng để một hàng icon bấm không ăn. */}
+        {!trangThaiCua.mo && mood === null && (
+          <p className="text-center text-[11.5px] font-semibold italic text-grey-mid">
+            {t('moodClosed')}
+          </p>
+        )}
+        {/* Đã bấm và đã khoá: nói rõ vì sao không sửa được nữa. */}
+        {mood !== null && trangThaiCua.khoaCamXuc && canEdit && (
+          <p className="text-center text-[11px] font-semibold italic text-grey-mid">
+            {t('moodLocked')}
+          </p>
+        )}
+
       </div>
 
       {/* Popup chọn cảm xúc — portal ra body để phủ full màn (thoát overflow/backdrop-filter của hero) */}

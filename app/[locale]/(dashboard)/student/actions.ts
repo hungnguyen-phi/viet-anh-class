@@ -33,9 +33,18 @@ function veTrangEm(studentId: string, msg: string): never {
   redirect(`/student/${studentId}?${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
 }
 
-export type CheckinResult = {ok: boolean; blocked?: boolean; noClass?: boolean; error?: string};
+export type CheckinResult = {
+  ok: boolean;
+  blocked?: boolean;
+  noClass?: boolean;
+  /** Bấm ngoài cửa sổ cho phép (trước 6h30, sau 8h00, hoặc ngoài khung chiều). */
+  closed?: boolean;
+  /** Bấm được nhưng đã quá giờ ân hạn → ghi MUỘN. */
+  late?: boolean;
+  error?: string;
+};
 
-export async function checkinMood(mood: Mood): Promise<CheckinResult> {
+export async function checkinMood(mood: Mood, buoi: 'sang' | 'chieu' = 'sang'): Promise<CheckinResult> {
   // Xác thực phía server: phải là học sinh đang đăng nhập.
   const profile = await getCurrentProfile();
   if (!profile || profile.role !== 'student') return {ok: false, error: 'forbidden'};
@@ -48,15 +57,19 @@ export async function checkinMood(mood: Mood): Promise<CheckinResult> {
     p_student: profile.id,
     p_mood: mood,
     p_ip: ip ?? '',
+    p_buoi: buoi,
   });
   if (error) return {ok: false, error: (friendlyError(error))};
   if (data === 'blocked') return {ok: false, blocked: true};
   if (data === 'no_class') return {ok: false, noClass: true};
+  // Ngoài cửa sổ: KHÔNG ghi gì cả. Trả về để giao diện nói rõ giờ nào mới bấm được, thay vì báo
+  // "lỗi" cho một việc hoàn toàn bình thường là em bấm sớm quá hoặc muộn quá.
+  if (data === 'closed') return {ok: false, closed: true};
 
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/attendance', 'page');
-  return {ok: true};
+  return {ok: true, late: data === 'late'};
 }
 
 const AREAS = ['knowledge', 'skills', 'english', 'physical'] as const;

@@ -5,6 +5,7 @@ import {createClient} from '@/lib/supabase/server';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
+import {ClassOwnerNote} from '@/components/shell/ClassOwnerNote';
 import {Link} from '@/i18n/navigation';
 import {
   isValidDayVN,
@@ -335,7 +336,12 @@ export default async function WigPage({
         <h1 className="mr-auto font-display text-[22px] font-bold text-navy">
           {t('title')} · {myClass.name}
         </h1>
-        {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
+        {/* Quản trị/BGH thấy bộ chọn KỂ CẢ khi chỉ có một lớp: nó là chỗ duy nhất trên màn hình
+            nói rõ mình đang đứng ở lớp nào. Giáo viên chỉ có lớp mình thì giấu đi cho gọn. */}
+        {(accessible.length > 1 || profile.role === 'admin' || profile.role === 'principal') && (
+          <ClassPicker classes={accessible} current={myClass.id} />
+        )}
+        <ClassOwnerNote classId={myClass.id} viewerId={profile.id} viewerRole={profile.role} />
         <TaoWigMenu
           classId={myClass.id}
           areas={areaOptions}

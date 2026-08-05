@@ -7,6 +7,7 @@ import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext, getChildren, conDangXem as layConDangXem, type Con} from '@/lib/queries';
 import {todayInVN} from '@/lib/dates';
 import {ClassPicker} from '@/components/shell/ClassPicker';
+import {ClassOwnerNote} from '@/components/shell/ClassOwnerNote';
 import {Flash} from '@/components/ui/Flash';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
@@ -208,7 +209,12 @@ export default async function HomeworkPage({
         <h1 className="font-display text-[22px] font-bold text-navy">
           {t('title', {class: myClass.name})}
         </h1>
-        {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
+        {/* Quản trị/BGH thấy bộ chọn KỂ CẢ khi chỉ có một lớp: nó là chỗ duy nhất trên màn hình
+            nói rõ mình đang đứng ở lớp nào. Giáo viên chỉ có lớp mình thì giấu đi cho gọn. */}
+        {(accessible.length > 1 || profile.role === 'admin' || profile.role === 'principal') && (
+          <ClassPicker classes={accessible} current={myClass.id} />
+        )}
+        <ClassOwnerNote classId={myClass.id} viewerId={profile.id} viewerRole={profile.role} />
       </div>
 
       <Flash />
