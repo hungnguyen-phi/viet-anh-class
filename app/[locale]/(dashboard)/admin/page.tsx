@@ -4,15 +4,11 @@ import {createClient} from '@/lib/supabase/server';
 import {schoolYearLabel} from '@/lib/dates';
 import {
   assignGvcn,
-  deleteUser,
-  disableUser,
   inviteUser,
-  setUserRole,
   setCampusActive,
   setGradeActive,
   setClassActive,
 } from './actions';
-import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {CampusForm} from './CampusForm';
 import {ClassForm} from './ClassForm';
@@ -24,6 +20,7 @@ import {CreateMenu} from './CreateMenu';
 import {Disclosure} from './Disclosure';
 import {PendingApprovals} from './PendingApprovals';
 import {UsersToolbar} from './UsersToolbar';
+import {UsersTable} from './UsersTable';
 // Hằng số lấy từ file trung lập, KHÔNG lấy từ UsersToolbar.tsx: nhập dữ liệu thuần từ một module
 // 'use client' vào server component thì nhận về proxy tham chiếu, không phải mảng. Xem user-tabs.ts.
 import {USER_TABS, PAGE_SIZES, type UserTab} from './user-tabs';
@@ -36,7 +33,6 @@ import {Link} from '@/i18n/navigation';
 import {UtensilsCrossed, BookMarked} from 'lucide-react';
 import {Flash} from '@/components/ui/Flash';
 
-const ROLES = ['admin', 'principal', 'teacher', 'student', 'parent', 'pending'] as const;
 const INVITE_ROLES = ['teacher', 'principal', 'admin', 'student'] as const;
 
 // LỜI MỜI ĐANG CHỜ — TẠM ẨN.
@@ -248,15 +244,12 @@ export default async function AdminPage({
   const goldBtn =
     'btn-gold inline-flex h-11 cursor-pointer items-center self-start whitespace-nowrap rounded-[12px] px-3.5 text-[12.5px] font-extrabold transition-all';
   const cardTitle = 'mb-3 font-display text-[15px] font-bold text-navy';
-  const th = 'text-[11px] font-extrabold uppercase tracking-wide text-grey-mid';
-  const selectSm =
-    'min-w-0 flex-1 cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white/65 px-2.5 py-[7px] text-xs font-semibold text-navy outline-none transition-all focus:border-navy focus:bg-white';
-  const navyBtnSm =
-    'h-8 cursor-pointer whitespace-nowrap rounded-[10px] bg-navy px-[11px] text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700';
+  // inline-flex items-center KHÔNG phải thừa: h-8 dựng hộp cao 32px, nhưng chữ chỉ tự nằm giữa
+  // hộp khi phần tử là <button> (trình duyệt căn sẵn nội dung nút). Trên <a> và <span> — hai nút
+  // phân trang bên dưới — chữ bám mép trên, lệch 6px so với chữ "Trang 1/5" ở giữa. Đã đo trên
+  // production: tâm chữ nút y=875.6 còn tâm hộp y=882.
   const outlineBtnSm =
-    'h-8 cursor-pointer whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white/60 px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
-  const dangerBtnSm =
-    'h-8 cursor-pointer whitespace-nowrap rounded-[10px] bg-[color-mix(in_srgb,var(--color-status-bad)_12%,transparent)] px-2.5 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-[color-mix(in_srgb,var(--color-status-bad)_22%,transparent)]';
+    'inline-flex h-8 cursor-pointer items-center justify-center whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white/60 px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
   const openLink =
     'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy';
 
@@ -410,118 +403,7 @@ export default async function AdminPage({
 
         <UsersToolbar q={q} tab={tab} size={PAGE} counts={counts} />
 
-        {/* NGỮ NGHĨA BẢNG BẰNG ARIA, không phải <table>.
-            Bảng này dùng flex để các cột co giãn theo tỉ lệ (tên ngắn, email dài) — thứ <table>
-            làm được nhưng vụng hơn. Cái mất khi bỏ <table> là trình đọc màn hình không còn biết ô
-            nào thuộc cột nào: người khiếm thị nghe một dòng chữ liền mạch "Nguyễn Văn A a@b.c Giáo
-            viên Đổi vai trò Vô hiệu Xoá" mà không có tên cột nào xen giữa. role="table"/"row"/
-            "columnheader"/"cell" trả lại đúng thông tin đó mà không đụng tới bố cục. */}
-        <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
-          <div role="table" aria-label={t('usersTable')} aria-rowcount={total}>
-            <div role="row" className="box-border flex min-w-[760px] items-center gap-2 bg-navy/[0.03] px-[14px] py-[9px]">
-              <span role="columnheader" className={`flex-[1.2] ${th}`}>{t('name')}</span>
-              <span role="columnheader" className={`flex-[1.4] ${th}`}>{t('email')}</span>
-              <span role="columnheader" className={`flex-1 ${th}`}>{t('role')}</span>
-              <span role="columnheader" className={`flex-[1.6] ${th}`}>{t('setRole')}</span>
-              <span role="columnheader" className={`w-[130px] flex-none ${th}`}>{t('actions')}</span>
-            </div>
-            {rows.map((p) => {
-              // Tên đọc được của từng nút/ô chọn phải KÈM TÊN NGƯỜI.
-              // Trước đây mọi dòng dùng chung aria-label "Vai trò" / "Xoá", nên người dùng trình
-              // đọc màn hình đi qua năm mươi dòng chỉ nghe đúng một câu lặp lại, không biết mình
-              // đang sắp đổi vai hay xoá ai. Đây là nút xoá vĩnh viễn — không phải chỗ để đoán.
-              const who = p.full_name ?? p.email;
-              return (
-                <div
-                  key={p.id}
-                  role="row"
-                  className="box-border flex min-w-[760px] items-center gap-2 border-t border-navy/[0.08] px-[14px] py-2 transition-colors hover:bg-navy/[0.03]"
-                >
-                  <span role="cell" className="min-w-0 flex-[1.2] truncate text-[13px] font-bold text-navy">
-                    {/* Chưa có họ tên thì nói thẳng là chưa có, đừng vẽ một dấu gạch ngang.
-                        Một ô chỉ chứa "—" không nói được là dữ liệu thiếu hay hệ thống hỏng. */}
-                    {p.full_name ?? <span className="font-semibold italic text-grey-mid">{t('noName')}</span>}
-                  </span>
-                  <span role="cell" className="min-w-0 flex-[1.4] truncate text-xs font-semibold text-grey-mid">
-                    {p.email}
-                  </span>
-                  <span role="cell" className="flex-1 whitespace-nowrap text-[12.5px] font-bold text-navy">
-                    {tr(p.role)}
-                  </span>
-                  <span role="cell" className="flex-[1.6]">
-                    <form action={setUserRole} className="flex items-center gap-1.5">
-                      <input type="hidden" name="userId" value={p.id} />
-                      <select
-                        name="role"
-                        aria-label={t('roleFor', {name: who})}
-                        defaultValue={p.role}
-                        className={selectSm}
-                      >
-                        {ROLES.map((r) => (
-                          <option key={r} value={r}>
-                            {tr(r)}
-                          </option>
-                        ))}
-                      </select>
-                      {/* SubmitButton (không phải <button> trần): đổi vai trò là thao tác chạm DB
-                          rồi tải lại cả trang, mất một khoảng thấy rõ. Nút trần không báo gì trong
-                          lúc đó nên người thử tưởng "bấm không ăn / bị treo" rồi bấm lại nhiều lần.
-                          SubmitButton khoá nút + hiện spinner ngay khi bấm. */}
-                      <SubmitButton className={navyBtnSm} label={t('setRoleFor', {name: who})}>
-                        {t('setRole')}
-                      </SubmitButton>
-                    </form>
-                  </span>
-                  <span role="cell" className="flex w-[130px] flex-none gap-1.5">
-                    {p.id !== me.id ? (
-                      <>
-                        {/* Vô hiệu = đẩy người ta về vai "chờ cấp quyền", tức là đăng nhập vào chỉ
-                            còn màn hình đỏ. Nút "Xoá" ngay bên cạnh thì hỏi lại, nút này thì không —
-                            mà hai nút cách nhau 6px và hậu quả của cái này cũng không tự gỡ được
-                            (vai cũ không được lưu ở đâu cả). Câu hỏi nêu rõ TÊN và VAI ĐANG CÓ để
-                            người bấm còn đường tự khôi phục. */}
-                        <form action={disableUser}>
-                          <input type="hidden" name="userId" value={p.id} />
-                          <ConfirmButton
-                            message={t('confirmDisable', {name: who, role: tr(p.role)})}
-                            label={t('disableFor', {name: who})}
-                            className={outlineBtnSm}
-                          >
-                            {t('disable')}
-                          </ConfirmButton>
-                        </form>
-                        <form action={deleteUser}>
-                          <input type="hidden" name="userId" value={p.id} />
-                          <ConfirmButton
-                            message={t('confirmDelete')}
-                            label={t('deleteFor', {name: who})}
-                            className={dangerBtnSm}
-                          >
-                            {t('delete')}
-                          </ConfirmButton>
-                        </form>
-                      </>
-                    ) : (
-                      // Dòng của chính mình: nói RÕ vì sao không có nút, đừng để một dấu gạch ngang
-                      // đứng đó cho người ta đoán là lỗi phân quyền.
-                      <span className="text-[11.5px] font-bold text-grey-mid">{t('isYou')}</span>
-                    )}
-                  </span>
-                </div>
-              );
-            })}
-            {rows.length === 0 && (
-              <div className="border-t border-navy/[0.08] px-[14px] py-8 text-center">
-                <div className="text-[13.5px] font-extrabold text-navy">
-                  {q ? t('noMatch', {q}) : t('noUsersFilter')}
-                </div>
-                <div className="mt-1 text-[12px] font-semibold text-grey-mid">
-                  {t('noUsersFilterHint')}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <UsersTable rows={rows} meId={me.id} q={q} />
 
         {/* Phân trang — giữ nguyên tab và cỡ trang khi sang trang khác. */}
         {totalPages > 1 && (

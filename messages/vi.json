@@ -342,7 +342,10 @@
     "confirmDeleteManyBody": "Xoá vĩnh viễn và không thể hoàn tác. Toàn bộ dữ liệu liên quan của họ cũng mất.",
     "confirmDeleteManyGo": "Xoá vĩnh viễn {n} người",
     "andMore": "…và {n} người nữa",
-    "unknownIp": "Chưa đọc được"
+    "unknownIp": "Chưa đọc được",
+    "deleteGradeFor": "Xoá khối {name}",
+    "archiveGradeFor": "Lưu trữ khối {name}",
+    "editGradeFor": "Sửa khối {name}"
   },
   "dashboard": {
     "welcome": "Xin chào",

@@ -342,7 +342,10 @@
     "confirmDeleteManyBody": "Permanent and cannot be undone. All of their related data goes too.",
     "confirmDeleteManyGo": "Permanently delete {n}",
     "andMore": "…and {n} more",
-    "unknownIp": "Not detected"
+    "unknownIp": "Not detected",
+    "deleteGradeFor": "Delete grade {name}",
+    "archiveGradeFor": "Archive grade {name}",
+    "editGradeFor": "Edit grade {name}"
   },
   "dashboard": {
     "welcome": "Hello",

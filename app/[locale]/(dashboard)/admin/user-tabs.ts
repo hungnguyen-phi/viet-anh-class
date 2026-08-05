@@ -14,3 +14,7 @@ export const USER_TABS = ['all', 'teacher', 'principal', 'admin', 'student', 'pa
 export type UserTab = (typeof USER_TABS)[number];
 
 export const PAGE_SIZES = [10, 25, 50, 100] as const;
+
+// Vai trò dùng chung cho bảng người dùng (client) và trang (server). Đặt cùng chỗ với USER_TABS vì
+// cùng một lý do: nhập dữ liệu thuần từ module 'use client' vào server component thì hỏng.
+export type Role = Exclude<UserTab, 'all'>;

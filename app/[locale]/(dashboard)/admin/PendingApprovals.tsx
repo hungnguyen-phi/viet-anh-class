@@ -3,7 +3,8 @@
 import {useEffect, useRef, useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {bulkDeleteUsers, bulkSetUserRole, setUserRole} from './actions';
+import {bulkSetUserRole, setUserRole} from './actions';
+import {BulkDeleteDialog} from './BulkDeleteDialog';
 
 type Waiting = {id: string; full_name: string | null; email: string; created_at: string};
 
@@ -149,53 +150,15 @@ export function PendingApprovals({users}: {users: Waiting[]}) {
           </div>
         ))}
       </div>
-      {/* Hộp xác nhận xoá hàng loạt — liệt kê TÊN, không chỉ đếm số. */}
+      {/* Cùng một hộp thoại với bảng người dùng bên dưới — hai chỗ hỏi cùng một câu thì phải
+          hỏi bằng cùng một hộp, không phải hai bản sao rồi sau này lệch nhau. */}
       {askDelete && (
-        <div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-navy/35 p-4 backdrop-blur-[2px]"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setAskDelete(false);
-          }}
-        >
-          <div
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="xoa-nhieu-tieu-de"
-            className="glass w-full max-w-[440px] rounded-[20px] p-[18px]"
-          >
-            <div id="xoa-nhieu-tieu-de" className="font-display text-[16px] font-bold text-navy">
-              {t('confirmDeleteManyTitle', {n: sel.length})}
-            </div>
-            <p className="mt-1.5 text-[12.5px] font-semibold leading-relaxed text-status-bad-dark">
-              {t('confirmDeleteManyBody')}
-            </p>
-            <ul className="mt-3 max-h-[180px] overflow-y-auto rounded-[12px] border-[1.5px] border-navy/10 bg-white/70 px-3 py-2">
-              {selected.slice(0, 12).map((u) => (
-                <li key={u.id} className="truncate py-0.5 text-[12.5px] font-bold text-navy">
-                  {u.full_name ?? u.email}
-                </li>
-              ))}
-              {selected.length > 12 && (
-                <li className="py-0.5 text-[12px] font-semibold italic text-grey-mid">
-                  {t('andMore', {n: selected.length - 12})}
-                </li>
-              )}
-            </ul>
-            <div className="mt-3.5 flex flex-wrap justify-end gap-2">
-              <button type="button" onClick={() => setAskDelete(false)} autoFocus className={ghostBtn}>
-                {t('cancel')}
-              </button>
-              <form action={bulkDeleteUsers}>
-                {sel.map((id) => (
-                  <input key={id} type="hidden" name="userId" value={id} />
-                ))}
-                <SubmitButton className={dangerBtn} wrapClass="contents">
-                  {t('confirmDeleteManyGo', {n: sel.length})}
-                </SubmitButton>
-              </form>
-            </div>
-          </div>
-        </div>
+        <BulkDeleteDialog
+          selected={selected}
+          onCancel={() => setAskDelete(false)}
+          cancelClass={ghostBtn}
+          dangerClass={dangerBtn}
+        />
       )}
     </section>
   );

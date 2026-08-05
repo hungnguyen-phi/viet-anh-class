@@ -51,6 +51,15 @@ export function friendlyError(error: PgError): string {
     case 'P0001': // raise_exception — guard nội bộ đã đặt thông báo tiếng Việt thân thiện
       return error.message || 'Thao tác bị từ chối.';
     default:
-      return 'Đã xảy ra lỗi. Vui lòng thử lại.';
+      // KÈM MÃ LỖI cho những trường hợp chưa dịch.
+      //
+      // Câu "Đã xảy ra lỗi. Vui lòng thử lại." trần trụi từng làm mất trắng một lần chẩn: nút thêm
+      // dải wifi hỏng suốt (mã 42P10 — upsert trỏ vào một chỉ mục biểu thức, xem migration 0086),
+      // nhưng người dùng chỉ đọc được đúng câu vô nghĩa ấy, còn người sửa thì không có gì để lần.
+      // Mã lỗi Postgres không phải bí mật và không phải PII; nó là thứ duy nhất trong câu này dẫn
+      // được về đúng dòng code. Ai không quan tâm thì bỏ qua phần trong ngoặc.
+      return error.code
+        ? `Đã xảy ra lỗi (mã ${error.code}). Vui lòng thử lại, và đọc mã này cho bộ phận kỹ thuật.`
+        : 'Đã xảy ra lỗi. Vui lòng thử lại.';
   }
 }

@@ -82,21 +82,38 @@ export function GradeManager({
                 {g.sort_order}
               </span>
               <span className="flex-1 truncate text-[13px] font-bold text-navy">{g.name}</span>
+              {/* Tên đọc được KÈM TÊN KHỐI. Một cơ sở có bốn, năm khối, nên nếu cả bốn nút cùng
+                  mang tên "Xoá khối" thì người dùng trình đọc màn hình nghe đúng một câu ấy bốn
+                  lần và phải đoán mình đang xoá khối nào. Mắt thường phân biệt được nhờ nút nằm
+                  cạnh tên khối; nghe tuần tự thì không. */}
               {!auto && (
-                <button type="button" onClick={() => setEditId(g.id)} className={ghost}>
+                <button
+                  type="button"
+                  onClick={() => setEditId(g.id)}
+                  aria-label={t('editGradeFor', {name: g.name})}
+                  className={ghost}
+                >
                   {t('edit')}
                 </button>
               )}
               <form action={setGradeActive}>
                 <input type="hidden" name="id" value={g.id} />
                 <input type="hidden" name="active" value="false" />
-                <SubmitButton className={ghost} wrapClass="contents">
+                <SubmitButton
+                  className={ghost}
+                  wrapClass="contents"
+                  label={t('archiveGradeFor', {name: g.name})}
+                >
                   {t('archive')}
                 </SubmitButton>
               </form>
               <form action={deleteGrade}>
                 <input type="hidden" name="id" value={g.id} />
-                <ConfirmButton message={t('confirmDeleteGrade')} label={t('deleteGrade')} className={danger}>
+                <ConfirmButton
+                  message={t('confirmDeleteGrade')}
+                  label={t('deleteGradeFor', {name: g.name})}
+                  className={danger}
+                >
                   ✕
                 </ConfirmButton>
               </form>

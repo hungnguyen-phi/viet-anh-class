@@ -121,6 +121,23 @@ dat(hs.status === 200 && !coGiaoVien, 'Tab Học sinh không lẫn vai khác');
 const soDetails = (goc.html.match(/<details/g) ?? []).length;
 dat(soDetails >= 3, 'Các mục dùng-mỗi-năm-một-lần đều gấp lại được', `${soDetails} mục`);
 
+// ── 10. Bảng người dùng có chọn hàng loạt ────────────────────────────────────────────────
+// Trước đây chọn-nhiều chỉ có trong khối "Ai đang chờ bạn", mà khối đó ẩn khi không ai chờ — nên
+// gần như lúc nào màn Quản trị cũng trông như không hề có tính năng ấy.
+const soTick = (goc.html.match(/type="checkbox"/g) ?? []).length;
+dat(soTick >= demDong(goc.html), 'Mỗi dòng người dùng có một ô tick', `${soTick} ô / ${demDong(goc.html)} dòng`);
+dat(/aria-label="Chọn /.test(goc.html), 'Ô tick có tên đọc được kèm tên người');
+
+// ── 11. Nút phân trang căn giữa được chữ ──────────────────────────────────────────────────
+// h-8 dựng hộp 32px, nhưng chỉ <button> mới tự căn giữa nội dung. Trên <a>/<span> thiếu
+// items-center thì chữ bám mép trên, lệch 6px so với nhãn "Trang 1/5" bên cạnh (đã đo).
+const nutTrang = goc.html.match(/class="[^"]*h-8[^"]*"[^>]*>← /);
+dat(
+  nutTrang === null || /items-center/.test(nutTrang[0]),
+  'Nút phân trang có items-center để chữ nằm giữa hộp',
+  nutTrang === null ? 'trang này chỉ có 1 trang, bỏ qua' : '',
+);
+
 for (const k of kq) console.log(k.ok ? 'OK  ' : 'SAI ', k.ten, k.ghi ? '— ' + k.ghi : '');
 const so = kq.filter((k) => k.ok).length;
 console.log(`\n${so}/${kq.length} đạt.`);
