@@ -4,10 +4,8 @@ import {useTranslations} from 'next-intl';
 import {Search, X} from 'lucide-react';
 import {Link, useRouter} from '@/i18n/navigation';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-
-export const USER_TABS = ['all', 'teacher', 'principal', 'admin', 'student', 'parent', 'pending'] as const;
-export type UserTab = (typeof USER_TABS)[number];
-export const PAGE_SIZES = [10, 25, 50, 100] as const;
+// Hằng số nằm ở file trung lập, KHÔNG khai báo lại ở đây — xem ghi chú trong user-tabs.ts.
+import {USER_TABS, PAGE_SIZES, type UserTab} from './user-tabs';
 
 const navyBtn =
   'h-10 cursor-pointer whitespace-nowrap rounded-[10px] bg-navy px-3 text-[12px] font-extrabold text-white transition-all hover:bg-navy-700';

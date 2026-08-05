@@ -22,7 +22,10 @@ import {CampusTree} from './CampusTree';
 import {CreateMenu} from './CreateMenu';
 import {Disclosure} from './Disclosure';
 import {PendingApprovals} from './PendingApprovals';
-import {UsersToolbar, USER_TABS, PAGE_SIZES, type UserTab} from './UsersToolbar';
+import {UsersToolbar} from './UsersToolbar';
+// Hằng số lấy từ file trung lập, KHÔNG lấy từ UsersToolbar.tsx: nhập dữ liệu thuần từ một module
+// 'use client' vào server component thì nhận về proxy tham chiếu, không phải mảng. Xem user-tabs.ts.
+import {USER_TABS, PAGE_SIZES, type UserTab} from './user-tabs';
 import {AreaConfigForm} from './AreaConfigForm';
 import {InviteEmailsField} from './InviteEmailsField';
 import {SchoolNetworkManager} from './SchoolNetworkManager';
