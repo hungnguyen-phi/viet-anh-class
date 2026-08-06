@@ -577,11 +577,15 @@ for (const RONG of CAC_RONG) {
       // thì báo hỏng chứ không chụp một cái ảnh vô nghĩa.
       if (c.xong) {
         let moDuoc = false;
-        for (let i = 0; i < 15 && !moDuoc; i++) {
+        // 25 vòng × 600ms = 15 giây. Bản localhost hydrate xong trong hai giây nên 6 giây là
+        // thừa; bản production gói to hơn và đường truyền mất gói, nên chính hai cảnh ấy hết giờ
+        // trong khi trang hoàn toàn bình thường. Hạn giờ phải rộng bằng chỗ CHẬM NHẤT, nếu không
+        // bài kiểm lại báo đỏ vì lý do sai.
+        for (let i = 0; i < 25 && !moDuoc; i++) {
           const {result: rX} = await goi('Runtime.evaluate', {returnByValue: true, expression: c.xong});
           moDuoc = rX.value === true;
           if (!moDuoc) {
-            await new Promise((r) => setTimeout(r, 400));
+            await new Promise((r) => setTimeout(r, 600));
             await goi('Runtime.evaluate', {returnByValue: true, expression: c.bam});
           }
         }
