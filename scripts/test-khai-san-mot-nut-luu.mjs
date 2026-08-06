@@ -55,16 +55,28 @@ if (trang.status !== 200) {
   xong(1);
 }
 const html = await trang.text();
-const chunks = [...new Set([...html.matchAll(/src="(\/_next\/static\/[^"]+\.js)"/g)].map((m) => m[1]))];
-let maAction = null;
-for (const c of chunks) {
-  const js = await (await fetch(BASE + c)).text();
-  const m = js.match(/"([0-9a-f]{20,})":"updateUserGrants"/);
-  if (m) {
-    maAction = m[1];
-    break;
-  }
-}
+// Bản dựng production gắn thêm ?dpl=<sha> vào từng tệp tĩnh và nạp chúng qua cả src lẫn
+// <link rel=preload href>. Bắt cả hai, và cho phép phần truy vấn phía sau .js — regex chỉ nhận
+// `src="....js"` khớp được ở dev nhưng KHÔNG khớp gì trên production.
+const chunks = [
+  ...new Set([...html.matchAll(/(?:src|href)="(\/_next\/static\/[^"]+?\.js(?:\?[^"]*)?)"/g)].map((m) => m[1])),
+];
+const maJs = [];
+for (const c of chunks) maJs.push(await (await fetch(BASE + c)).text());
+
+// Tên hàm còn nguyên trong chunk ở CẢ hai bản dựng, nhưng viết khác nhau:
+//   · dev (turbopack): {"<băm>":"updateUserGrants"} — một bảng tra thẳng
+//   · production (webpack, đã rút gọn): createServerReference("<băm>", x.callServer, void 0,
+//     x.findSourceMapURL, "updateUserGrants") — tên là THAM SỐ THỨ NĂM
+// Phải bắt cả hai. Và KHÔNG được tra mã từ thư mục .next cục bộ: mã action là băm của id module,
+// mà id module đổi theo đường dẫn/hệ điều hành lúc dựng — bản dựng trên máy Windows này cho ra
+// một bộ mã hoàn toàn khác bản dựng trong Docker. Đã thử: 0/12 mã trùng nhau.
+const TIM = [
+  /"([0-9a-f]{20,})":"updateUserGrants"/,
+  /"([0-9a-f]{20,})",[$\w.]+\.callServer,void 0,[$\w.]+\.findSourceMapURL,"updateUserGrants"/,
+];
+const maAction =
+  maJs.flatMap((js) => TIM.map((re) => js.match(re)?.[1]).filter(Boolean))[0] ?? null;
 dat(!!maAction, 'Tìm được server action updateUserGrants trong mã trang', maAction ?? `đã dò ${chunks.length} chunk`);
 if (!maAction) xong(1);
 
