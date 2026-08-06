@@ -319,6 +319,53 @@ const chupAnh = async (rong, ten) => {
   return {caoThat, biCat: caoThat > CAO_ANH_TOI_DA};
 };
 
+// Các CẢNH cần một cú bấm mới hiện ra. `bam` chạy trong trang và trả về false nếu không tìm thấy
+// chỗ bấm — để bài kiểm nói "không bấm được" thay vì lặng lẽ chụp lại trang lúc chưa bấm, đúng
+// kiểu nói dối mà bộ đo này đã mắc bảy lần.
+const KICH_BAN = [
+  {
+    ten: 'ngan-keo-dieu-huong',
+    vai: 'gvcn',
+    duong: '/',
+    // Trên điện thoại đây là cách DUY NHẤT đi sang trang khác — mà chưa lần audit nào mở nó ra.
+    bam: `(() => {const b=document.querySelector('button[aria-label="Menu"]'); if(!b) return false; b.click(); return true;})()`,
+    xong: `!!document.querySelector('button[aria-label="Menu"][aria-expanded="true"]')`,
+  },
+  {
+    ten: 'ngan-keo-khi-o-cuoi-trang',
+    vai: 'gvcn',
+    duong: '/',
+    // Ngăn kéo được vẽ BÊN TRONG khối `sticky top-0` của thanh nav. Nghĩa là về lý thuyết nó vẫn
+    // dính đỉnh màn hình dù đang cuộn ở đâu — nhưng "về lý thuyết" là thứ đã sai bảy lần trong
+    // chính file này. Cuộn xuống đáy rồi mới bấm, và chụp ĐÚNG khung nhìn (không phải cả trang)
+    // để thấy người dùng thật sự nhìn thấy gì.
+    bam: `(() => {window.scrollTo(0, document.body.scrollHeight); const b=document.querySelector('button[aria-label="Menu"]'); if(!b) return false; b.click(); return true;})()`,
+    xong: `!!document.querySelector('button[aria-label="Menu"][aria-expanded="true"]')`,
+    chiKhungNhin: true,
+  },
+  {
+    ten: 'menu-tao-moi',
+    vai: 'admin',
+    duong: '/admin',
+    // Bám theo CHỮ TRÊN NÚT, không theo aria-haspopup: trang có HAI nút mang thuộc tính ấy, và
+    // querySelector lấy cái đầu — nút của thanh nav, vốn ẩn ở màn hẹp. Menu vẫn "mở" trong DOM
+    // nên điều kiện xác nhận vẫn đúng, còn ảnh chụp về thì trống trơn.
+    bam: `(() => {const b=[...document.querySelectorAll('button[aria-haspopup="menu"]')].find(x=>/Tạo mới|Create/.test(x.textContent||'')); if(!b) return false; b.click(); return true;})()`,
+    // Và phải HIỆN RA THẬT, không chỉ tồn tại: đo chiều cao hộp. Một phần tử nằm trong khối
+    // `hidden lg:block` vẫn có trong DOM nhưng cao 0 — mắt người dùng không thấy gì.
+    xong: `[...document.querySelectorAll('[role="menu"]')].some(el => el.getBoundingClientRect().height > 0)`,
+    chiKhungNhin: true,
+  },
+  {
+    ten: 'khai-san-dang-sua',
+    vai: 'admin',
+    duong: '/admin',
+    // Bảng khai sẵn ở chế độ sửa: hai ô chọn cộng nút Huỷ chen vào một dòng vốn đã chật.
+    bam: `(() => {const b=[...document.querySelectorAll('button')].find(x=>/Sửa danh sách|Edit list/.test(x.textContent||'')); if(!b) return false; b.click(); return true;})()`,
+    xong: `[...document.querySelectorAll('select[aria-label^="Cấp vai trò cho"], select[aria-label^="Grant role to"]')].some(el => el.getBoundingClientRect().height > 0)`,
+  },
+];
+
 const loi = {tran: [], thoat: [], contrast: [], cham: []};
 const theoRong = new Map(); // rộng → {tran, thoat, contrast, cham}
 let soLanGoIntro = 0;
@@ -470,6 +517,106 @@ for (const RONG of CAC_RONG) {
     }
   }
   theoRong.set(RONG, dem);
+
+  // ── TRẠNG THÁI SAU KHI BẤM ───────────────────────────────────────────────────────────────
+  //
+  // Mọi thứ ở trên chỉ chụp trang LÚC VỪA MỞ. Nhưng phần lớn giao diện của app này chỉ hiện ra
+  // sau một cú bấm: ngăn kéo điều hướng (trên điện thoại đó là CÁCH DUY NHẤT đi sang trang
+  // khác), hộp thoại "Tạo mới", chế độ sửa của danh sách khai sẵn. Audit mà không mở chúng ra
+  // thì đúng bằng việc audit một cái app chỉ có trang chủ.
+  //
+  // Mỗi cảnh: mở trang, chạy một đoạn JS bấm đúng chỗ, chờ hoạt hoạ xong, rồi đo và chụp như
+  // thường. Selector bám vào aria-label và chữ trên nút — hai thứ đã có bài kiểm khác canh giữ,
+  // nên nếu đổi thì gãy ở đây là gãy ĐÚNG chỗ đáng gãy.
+  for (const c of KICH_BAN) {
+    if (!coTK.has(c.vai) || (CHI_VAI.length > 0 && !CHI_VAI.includes(c.vai))) continue;
+    try {
+      const val = ve[c.vai];
+      const TEN = `sb-${REF}-auth-token`;
+      const CO = 3180;
+      await goi('Network.clearBrowserCookies');
+      const manh =
+        val.length <= CO
+          ? [[TEN, val]]
+          : Array.from({length: Math.ceil(val.length / CO)}, (_, k) => [
+              `${TEN}.${k}`,
+              val.slice(k * CO, (k + 1) * CO),
+            ]);
+      for (const [n2, v2] of manh)
+        await goi('Network.setCookie', {name: n2, value: v2, domain: TEN_MIEN, path: '/', secure: LA_HTTPS});
+      vaiCu = null; // vòng sau phải đặt lại cookie
+
+      const xong2 = Promise.race([
+        new Promise((ok) => nghe('Page.loadEventFired', ok)),
+        new Promise((ok) => setTimeout(() => ok('quá-hạn'), 25000)),
+      ]);
+      await goi('Page.navigate', {url: BASE + c.duong});
+      await xong2;
+      await choMangLang();
+      await goi('Runtime.evaluate', {
+        expression: `(() => {
+          for (const el of document.querySelectorAll('[role="dialog"]')) {
+            const cl = (el.className || '').toString();
+            if (cl.includes('fixed') && cl.includes('inset-0')) el.remove();
+          }
+          for (const d of document.querySelectorAll('details')) d.open = true;
+        })()`,
+      });
+      const {result: rBam} = await goi('Runtime.evaluate', {returnByValue: true, expression: c.bam});
+      if (rBam.value === false) {
+        trangHong.push(`${RONG}px ${c.ten} — không tìm thấy chỗ để bấm`);
+        console.log(`   ! ${RONG}px ${c.ten} BỎ QUA: không tìm thấy chỗ để bấm`);
+        continue;
+      }
+      // BẤM XONG PHẢI XÁC NHẬN CẢNH ĐÃ MỞ THẬT.
+      //
+      // Lượt đầu tôi chỉ chờ mù 700ms rồi chụp, và ảnh "menu Tạo mới" chụp về một trang KHÔNG có
+      // menu nào — cú bấm rơi vào lúc React chưa hydrate xong nên nút chưa có người nghe. Cảnh
+      // vẫn báo thành công. Đúng kiểu nói dối thứ tám của bộ đo này.
+      // Nay: bấm lại mỗi 400ms cho tới khi điều kiện `xong` thành true, tối đa 6 giây; hết giờ
+      // thì báo hỏng chứ không chụp một cái ảnh vô nghĩa.
+      if (c.xong) {
+        let moDuoc = false;
+        for (let i = 0; i < 15 && !moDuoc; i++) {
+          const {result: rX} = await goi('Runtime.evaluate', {returnByValue: true, expression: c.xong});
+          moDuoc = rX.value === true;
+          if (!moDuoc) {
+            await new Promise((r) => setTimeout(r, 400));
+            await goi('Runtime.evaluate', {returnByValue: true, expression: c.bam});
+          }
+        }
+        if (!moDuoc) {
+          trangHong.push(`${RONG}px ${c.ten} — bấm rồi mà cảnh không mở ra`);
+          console.log(`   ! ${RONG}px ${c.ten} BỎ QUA: bấm rồi mà cảnh không mở ra`);
+          continue;
+        }
+      }
+      // Chờ hoạt hoạ mở chạy xong, nếu không ảnh bắt được nó ở giữa chừng.
+      await new Promise((r) => setTimeout(r, 500));
+      const {result} = await goi('Runtime.evaluate', {expression: DO, returnByValue: true});
+      const k = result.value;
+      const nhan = `${RONG}px ${c.ten}`;
+      for (const x of k.tranPhai) loi.tran.push(`${nhan} ${x.tag}.${x.cls.slice(0, 24)} → ${x.phai}px`);
+      for (const x of k.thoatThe) loi.thoat.push(`${nhan} ${x.tag} thò ra ${x.thoaRa}px "${x.chu}"`);
+      for (const x of k.contrast) loi.contrast.push(`${nhan} "${x.chu}" ${x.tl}:1 (cần ${x.can})`);
+      for (const x of k.chamNho) loi.cham.push(`${nhan} ${x.tag} ${x.w}×${x.h} "${x.ten}"`);
+      const ten = `${RONG}-canh-${c.ten}.png`;
+      // chiKhungNhin: chụp ĐÚNG những gì đang hiện trên màn, không kéo dài ra hết trang. Cần cho
+      // những cảnh mà câu hỏi là "người dùng có THẤY nó không", chứ không phải "nó có tồn tại".
+      const {caoThat} = c.chiKhungNhin
+        ? await (async () => {
+            const {data} = await goi('Page.captureScreenshot', {format: 'png'});
+            writeFileSync(path.join(THU_MUC_ANH, ten), Buffer.from(data, 'base64'));
+            return {caoThat: CAO};
+          })()
+        : await chupAnh(RONG, ten);
+      anhDaChup.push(ten);
+      console.log(`   ${ten}  ·  cao ${caoThat}px  ·  tràn ${k.soTranPhai} · thoát ${k.soThoatThe} · tương phản ${k.soContrast} · chạm nhỏ ${k.soChamNho}`);
+    } catch (e) {
+      trangHong.push(`${RONG}px ${c.ten} — ${e.message}`);
+      console.log(`   ! ${RONG}px ${c.ten} BỎ QUA: ${e.message}`);
+    }
+  }
 }
 
 sock.close();

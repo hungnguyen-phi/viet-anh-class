@@ -52,6 +52,24 @@ const cotVai = 'min-w-0 flex-none sm:flex-1';
 const cotLop = 'min-w-0 flex-none sm:flex-1';
 const cotNgay = 'flex-none sm:w-[92px]';
 const cotNut = 'w-[72px] flex-none';
+// Cột riêng cho CHẾ ĐỘ SỬA, không dùng lại cotVai/cotLop.
+//
+// Ghép `${cotVai} flex-1` là đặt cạnh nhau hai lớp chọi nhau — flex-none (dành cho chữ ở chế độ
+// đóng băng) và flex-1 — rồi phó mặc cho thứ tự trong tệp CSS quyết định lớp nào thắng. Kết quả
+// ở 360px: mỗi ô chọn chiếm trọn một dòng, mỗi dòng khai báo cao bốn tầng, cả trang dài 9845px.
+// CHẾ ĐỘ SỬA DÙNG LƯỚI, KHÔNG DÙNG FLEX.
+//
+// Đã thử hai lần bằng flex và hỏng cả hai: chia đôi thì ô vai còn 120px và hiện "Giáo v"; cho ô
+// lớp bề ngang cố định thì phần còn lại bị bóp tiếp, ô vai còn đúng "G". Với flex, bề ngang mỗi ô
+// là phần thừa còn lại sau khi trừ mọi thứ khác — đoán được trên giấy nhưng sai trên màn hình.
+// Lưới thì khai thẳng tỉ lệ: vai 1.7 phần, lớp 1 phần, nút Huỷ vừa đúng nội dung. Không còn phụ
+// thuộc vào việc hàng có bao nhiêu thứ khác.
+// Ô ngày ở chế độ sửa là `hidden` trên máy hẹp nên không chiếm ô lưới nào — vẫn đúng ba cột.
+// KHÔNG thụt lề ở dòng sửa, khác với dòng đọc: 42px thụt lề là 42px lấy mất của hai ô chọn, mà
+// ở 360px thì đó là phần chênh giữa "Giáo viên chủ nhiệm" đọc được và "Giáo viên" cụt đuôi.
+const tangDuoiSua = 'grid w-full grid-cols-[2fr_0.85fr_auto] items-center gap-x-1.5 sm:contents';
+const cotSuaVai = 'min-w-0';
+const cotSuaLop = 'min-w-0';
 const sttCls = 'text-[11.5px] font-bold tabular-nums text-grey-mid';
 
 // HAI BỐ CỤC, MỘT CÂY DOM.
@@ -499,10 +517,10 @@ function DongKhai({
         )}
       </span>
 
-      <span className={tangDuoi}>
+      <span className={sua ? tangDuoiSua : tangDuoi}>
       {sua ? (
         <>
-          <span className={`${cotVai} flex-1`}>
+          <span className={cotSuaVai}>
             <select
               value={gia.role}
               onChange={(e) => onDoi(g.email, {role: e.target.value})}
@@ -516,7 +534,7 @@ function DongKhai({
               ))}
             </select>
           </span>
-          <span className={`${cotLop} flex-1`}>
+          <span className={cotSuaLop}>
             <select
               value={gia.class_id}
               onChange={(e) => onDoi(g.email, {class_id: e.target.value})}
@@ -558,8 +576,11 @@ function DongKhai({
       >
         {ngay(g.created_at)}
       </span>
-      </span>
-      <span className={cotNut}>
+      {/* Nút Huỷ nằm TRONG tầng dưới, không đứng riêng.
+          Ở ngoài thì trên máy hẹp nó tự chiếm thêm một dòng nữa cho mỗi khai báo — dòng thứ tư
+          của một thẻ vốn chỉ cần hai. `sm:contents` ở tầng dưới làm cái bọc biến mất ở màn rộng,
+          nên trên bảng nó vẫn là cột cuối như cũ. */}
+      <span className={sua ? 'flex-none' : cotNut}>
         {/* Huỷ chỉ hiện khi đang sửa: danh sách đóng băng thì không có nút nào xoá được dữ liệu. */}
         {sua && (
           <form action={cancelUserGrant}>
@@ -567,12 +588,19 @@ function DongKhai({
             <ConfirmButton
               message={t('confirmCancelGrant', {email: g.email})}
               label={t('cancelGrantFor', {email: g.email})}
-              className={ghostBtn}
+              className={`${ghostBtn} px-2 sm:px-2.5`}
             >
-              {t('cancelGrant')}
+              {/* Trên máy hẹp nút thu về dấu ✕: chữ "Huỷ" chiếm 72px, đúng bằng phần chênh khiến
+                  ô chọn vai bị cắt cụt. Tên đọc được của nút vẫn là "Huỷ khai báo cho <email>"
+                  nên trình đọc màn hình không mất gì. */}
+              <span className="sm:hidden" aria-hidden>
+                ✕
+              </span>
+              <span className="hidden sm:inline">{t('cancelGrant')}</span>
             </ConfirmButton>
           </form>
         )}
+      </span>
       </span>
     </div>
   );
