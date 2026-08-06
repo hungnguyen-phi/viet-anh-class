@@ -384,7 +384,9 @@
     "classGone": "(không còn)",
     "cancelGrant": "Huỷ",
     "cancelGrantFor": "Huỷ khai báo cho {email}",
-    "confirmCancelGrant": "Huỷ khai báo cho {email}? Người này đăng nhập sẽ chỉ vào được vai chờ cấp quyền."
+    "confirmCancelGrant": "Huỷ khai báo cho {email}? Người này đăng nhập sẽ chỉ vào được vai chờ cấp quyền.",
+    "classFor": "Lớp cho {name}",
+    "saveGrantFor": "Lưu khai báo cho {name}"
   },
   "dashboard": {
     "welcome": "Xin chào",

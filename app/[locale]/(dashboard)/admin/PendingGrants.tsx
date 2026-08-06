@@ -1,10 +1,17 @@
 import {getTranslations} from 'next-intl/server';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {createClient} from '@/lib/supabase/server';
-import {cancelParentInvite, cancelUserGrant} from './actions';
+import {SubmitButton} from '@/components/ui/SubmitButton';
+import {cancelParentInvite, cancelUserGrant, updateUserGrant} from './actions';
 import {layDanhMuc, layPhuTro} from './admin-data';
 import {Disclosure} from './Disclosure';
 
+const VAI_KHAI_DUOC = ['teacher', 'principal', 'admin', 'student', 'parent'] as const;
+
+const oChon =
+  'h-8 w-full min-w-0 cursor-pointer rounded-[9px] border-[1.5px] border-navy/15 bg-white px-1.5 text-[12px] font-semibold text-navy outline-none focus:border-navy';
+const luuBtn =
+  'inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[9px] bg-navy px-2 text-[11px] font-extrabold text-white transition-all hover:bg-navy-700';
 const ghostBtn =
   'inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/20 bg-white/70 px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
 
@@ -41,6 +48,7 @@ export async function PendingGrants() {
   }
 
   const className = new Map(allClasses.map((c) => [c.id, c.name]));
+  const lopDangDung = allClasses.filter((c) => c.is_active).map((c) => ({id: c.id, name: c.name}));
   const tong = grants.length + dangCho.length;
   if (tong === 0) return null;
 
@@ -59,11 +67,8 @@ export async function PendingGrants() {
           <span role="columnheader" className="flex-[1.6] text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
             {t('email')}
           </span>
-          <span role="columnheader" className="flex-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
-            {t('role')}
-          </span>
-          <span role="columnheader" className="flex-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
-            {t('classes')}
+          <span role="columnheader" className="flex-[2] text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+            {t('role')} · {t('classes')}
           </span>
           <span role="columnheader" className="w-[92px] flex-none text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
             {t('grantedOn')}
@@ -78,12 +83,46 @@ export async function PendingGrants() {
             className="box-border flex min-w-[620px] items-center gap-2 border-t border-navy/[0.08] px-[14px] py-2"
           >
             <span className="min-w-0 flex-[1.6] truncate text-[13px] font-bold text-navy">{g.email}</span>
-            <span className="flex-1 whitespace-nowrap text-[12.5px] font-semibold text-navy">
-              {tr(g.role)}
-            </span>
-            <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-grey-mid">
-              {g.class_id ? (className.get(g.class_id) ?? t('classGone')) : t('classNone')}
-            </span>
+            {/* SỬA ĐƯỢC NGAY TẠI DÒNG.
+                Khai báo mới chỉ là một dòng chờ — chưa có tài khoản nào tồn tại — nên sửa nó không
+                đụng tới ai. Trước đây dòng này chỉ có nút Huỷ, nên khai nhầm vai là phải huỷ rồi
+                gõ lại email; với ba mươi ba dòng thì đó là ba mươi ba lần gõ lại. */}
+            <form action={updateUserGrant} className="flex flex-[2] items-center gap-1.5" id={`sua-${g.email}`}>
+              <input type="hidden" name="email" value={g.email} />
+              <select
+                name="role"
+                defaultValue={g.role}
+                aria-label={t('grantRoleFor', {name: g.email})}
+                className={`${oChon} flex-1`}
+              >
+                {VAI_KHAI_DUOC.map((r) => (
+                  <option key={r} value={r}>
+                    {tr(r)}
+                  </option>
+                ))}
+              </select>
+              <select
+                name="class_id"
+                defaultValue={g.class_id ?? ''}
+                aria-label={t('classFor', {name: g.email})}
+                className={`${oChon} flex-1`}
+              >
+                <option value="">{t('classNone')}</option>
+                {lopDangDung.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+                {/* Lớp đã xoá/lưu trữ mà dòng này còn trỏ vào: giữ lại trong danh sách, nếu không
+                    <select> tự nhảy về "không gắn lớp" và bấm Lưu là âm thầm mất lớp. */}
+                {g.class_id && !lopDangDung.some((c) => c.id === g.class_id) && (
+                  <option value={g.class_id}>{className.get(g.class_id) ?? t('classGone')}</option>
+                )}
+              </select>
+              <SubmitButton className={luuBtn} wrapClass="contents" label={t('saveGrantFor', {name: g.email})}>
+                {t('save')}
+              </SubmitButton>
+            </form>
             <span className="w-[92px] flex-none whitespace-nowrap text-[11.5px] font-semibold text-grey-mid">
               {ngay(g.created_at)}
             </span>

@@ -570,3 +570,33 @@ export async function cancelParentInvite(formData: FormData) {
       : loi('Không huỷ được — lời mời không còn, hoặc bạn không có quyền.'),
   );
 }
+
+// Sửa một khai báo đang chờ: đổi vai trò và/hoặc lớp.
+//
+// Trước đây dòng này chỉ có nút Huỷ, nên khai nhầm vai là phải huỷ rồi gõ lại email — với ba mươi
+// ba dòng thì đó là ba mươi ba lần gõ lại. Mà khai báo mới chỉ là một dòng chờ, chưa có tài khoản
+// nào tồn tại, nên sửa nó không đụng tới ai cả.
+export async function updateUserGrant(formData: FormData) {
+  await requireRole(['admin']);
+  const email = String(formData.get('email') ?? '').trim();
+  const role = String(formData.get('role') ?? '') as Role;
+  const rawClass = String(formData.get('class_id') ?? '');
+  const class_id = rawClass || null;
+  if (!email || !role) flash(loi('Thiếu email hoặc vai trò'));
+
+  const supabase = await createClient();
+  // .select() để phân biệt "RLS chặn / không còn dòng nào" với "đã sửa xong" — không báo thành
+  // công giả.
+  const {data, error} = await supabase
+    .from('pending_user_grants')
+    .update({role, class_id})
+    .ilike('email', email)
+    .select('email');
+  revalidatePath('/[locale]/admin', 'page');
+  if (error) flash(loi(friendlyError(error)));
+  flash(
+    (data ?? []).length > 0
+      ? `Đã sửa khai báo cho ${email}`
+      : loi('Không sửa được — khai báo không còn, hoặc bạn không có quyền.'),
+  );
+}

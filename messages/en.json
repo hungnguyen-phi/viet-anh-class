@@ -384,7 +384,9 @@
     "classGone": "(gone)",
     "cancelGrant": "Cancel",
     "cancelGrantFor": "Cancel pre-assignment for {email}",
-    "confirmCancelGrant": "Cancel the pre-assignment for {email}? They will land as pending-approval when they sign in."
+    "confirmCancelGrant": "Cancel the pre-assignment for {email}? They will land as pending-approval when they sign in.",
+    "classFor": "Class for {name}",
+    "saveGrantFor": "Save pre-assignment for {name}"
   },
   "dashboard": {
     "welcome": "Hello",
