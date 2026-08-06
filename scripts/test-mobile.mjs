@@ -101,8 +101,18 @@ const anon = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE
 // Nay: hỏi CSDL ai đang giữ vai ấy, ưu tiên tài khoản test*, và nếu không có ai thì NÓI RA rồi
 // bỏ qua vai đó — thay vì tự tạo một tài khoản mới trên production của trường.
 const VAI_DB = {gvcn: 'teacher', ph: 'parent', bgh: 'principal', admin: 'admin'};
+// Chỉ định tay một tài khoản khi cần soi đúng dữ liệu của người đó:
+//   VA_TK_GVCN=claudia@truongvietanh.com node scripts/test-mobile.mjs …
+// Sinh ra vì lớp của tài khoản thử trống trơn, còn màn hình chỉ hiện ra khi có dữ liệu (form tạo
+// mục tiêu tuần chỉ mở khi lớp đã có mục tiêu tháng) thì không cách nào chụp được.
 const TK = {};
 for (const [vai, vaiDb] of Object.entries(VAI_DB)) {
+  const chiDinh = process.env[`VA_TK_${vai.toUpperCase()}`];
+  if (chiDinh) {
+    TK[vai] = chiDinh;
+    console.log(`GHI CHÚ  Vai ${vai} dùng tài khoản chỉ định: ${chiDinh}`);
+    continue;
+  }
   const {data} = await admin.from('profiles').select('email').eq('role', vaiDb).order('email');
   const ds = data ?? [];
   const chon = ds.find((u) => u.email.startsWith('test')) ?? ds[0];
@@ -341,6 +351,42 @@ const KICH_BAN = [
     // để thấy người dùng thật sự nhìn thấy gì.
     bam: `(() => {window.scrollTo(0, document.body.scrollHeight); const b=document.querySelector('button[aria-label="Menu"]'); if(!b) return false; b.click(); return true;})()`,
     xong: `!!document.querySelector('button[aria-label="Menu"][aria-expanded="true"]')`,
+    chiKhungNhin: true,
+  },
+  {
+    ten: 'tao-muc-tieu-thang',
+    vai: 'gvcn',
+    duong: '/wig',
+    bam: `(() => {
+      const nut = [...document.querySelectorAll('button[aria-haspopup="dialog"]')][0];
+      if (nut && nut.getAttribute('aria-expanded') !== 'true') { nut.click(); return true; }
+      const tab = [...document.querySelectorAll('button[aria-pressed]')].find(
+        (x) => (x.textContent || '').trim() === 'Tháng' || (x.textContent || '').trim() === 'Month',
+      );
+      if (tab && !tab.disabled) tab.click();
+      return true;
+    })()`,
+    xong: `(() => {const el = document.querySelector('#wig-ky'); return !!el && el.type === 'month';})()`,
+    chiKhungNhin: true,
+  },
+  {
+    ten: 'tao-muc-tieu-tuan',
+    vai: 'gvcn',
+    duong: '/wig',
+    // Hai bước trong MỘT hàm: mở hộp thoại nếu chưa mở, rồi chuyển sang tab "Tuần".
+    // Hàm này được gọi lại nhiều lần cho tới khi `xong` đúng, nên mỗi lần chỉ cần tiến một bước.
+    // Tab "Tuần" khoá khi lớp chưa có mục tiêu tháng — với lớp trống thì cảnh báo "không mở ra",
+    // đúng như nó nên báo.
+    bam: `(() => {
+      const nut = [...document.querySelectorAll('button[aria-haspopup="dialog"]')][0];
+      if (nut && nut.getAttribute('aria-expanded') !== 'true') { nut.click(); return true; }
+      const tab = [...document.querySelectorAll('button[aria-pressed]')].find(
+        (x) => (x.textContent || '').trim() === 'Tuần' || (x.textContent || '').trim() === 'Week',
+      );
+      if (tab && !tab.disabled) tab.click();
+      return true;
+    })()`,
+    xong: `(() => {const el = document.querySelector('#wig-ky'); return !!el && el.type === 'date';})()`,
     chiKhungNhin: true,
   },
   {

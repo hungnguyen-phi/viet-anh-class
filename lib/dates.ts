@@ -216,6 +216,17 @@ export function periodOptions(period: 'year' | 'month' | 'week'): PeriodOption[]
 //
 // Cửa sổ rộng hơn danh sách mà form bày ra, cố ý: người dùng có thể đang đứng ở một tuần đã lùi
 // vài bước, và chặn đúng bằng danh sách hiển thị thì họ bấm Lưu ra lỗi mà không hiểu vì sao.
+// MỘT NƠI KHAI CỬA SỔ, HAI NƠI DÙNG.
+//
+// ngayCuaKy nhận nhãn nằm trong cửa sổ này; ô chọn ngày trên form bị chặn min/max cũng bằng đúng
+// cửa sổ này. Khai hai chỗ là mở đường cho cảnh người dùng chọn được một ngày mà server từ chối —
+// và lời từ chối ấy sẽ nói "nhãn kỳ không hợp lệ", câu chẳng liên quan gì tới việc họ vừa làm.
+export const CUA_SO_KY = {
+  year: {lui: 4, toi: 0},
+  month: {lui: 6, toi: 12},
+  week: {lui: 12, toi: 12},
+} as const;
+
 export function ngayCuaKy(
   period: 'year' | 'month' | 'week',
   label: string,
@@ -224,10 +235,28 @@ export function ngayCuaKy(
   const ngay = 86_400_000;
   const ds =
     period === 'year'
-      ? schoolYearOptions(4, new Date(now.getTime() - 365 * ngay))
+      ? schoolYearOptions(CUA_SO_KY.year.lui, new Date(now.getTime() - 365 * ngay))
       : period === 'month'
-        ? monthOptions(6, 12, now)
-        : weekOptions(12, 12, now);
+        ? monthOptions(CUA_SO_KY.month.lui, CUA_SO_KY.month.toi, now)
+        : weekOptions(CUA_SO_KY.week.lui, CUA_SO_KY.week.toi, now);
   const hit = ds.find((o) => o.label === label);
   return hit ? {start: hit.start, end: hit.end} : null;
+}
+
+// Chặn đầu–cuối cho ô chọn ngày của form tạo mục tiêu.
+//
+// Tính Ở SERVER rồi truyền xuống, không tính trong component: mọi hàm ở trên đều lấy `new Date()`
+// làm mốc, mà giờ máy chủ và giờ máy người dùng lệch nhau là hydrate lệch — đúng lý do cả ba danh
+// sách kỳ hiện có cũng đang được tính ở server (xem ghi chú đầu TaoWigMenu).
+export function gioiHanChonKy(now: Date = new Date()): {
+  week: {min: string; max: string};
+  month: {min: string; max: string};
+} {
+  const w = weekOptions(CUA_SO_KY.week.lui, CUA_SO_KY.week.toi, now);
+  const m = monthOptions(CUA_SO_KY.month.lui, CUA_SO_KY.month.toi, now);
+  return {
+    week: {min: w[0].start, max: w[w.length - 1].end},
+    // <input type="month"> nhận min/max dạng 'YYYY-MM' — đúng bằng nhãn kỳ tháng, không cần đổi.
+    month: {min: m[0].label, max: m[m.length - 1].label},
+  };
 }

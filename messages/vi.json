@@ -408,6 +408,8 @@
     "placeholder": "Phần này sẽ được hoàn thiện ở các bước tiếp theo."
   },
   "wig": {
+    "weekResolved": "Tuần {week} · {from} → {to}",
+    "weekPickHint": "Chọn một ngày bất kỳ trong tuần — hệ thống tự lấy trọn tuần chứa ngày đó.",
     "csTitle": "Việc hằng ngày của học sinh — tuần {week}",
     "csReady": "{ready}/{total} em đã có việc",
     "csNoStudents": "Lớp chưa có học sinh nào đang học. Vào mục “Danh sách” để ghi danh trước.",

@@ -9,6 +9,7 @@ import {ClassOwnerNote} from '@/components/shell/ClassOwnerNote';
 import {Link} from '@/i18n/navigation';
 import {
   isValidDayVN,
+  gioiHanChonKy,
   isoWeekLabel,
   mondayOf,
   monthOptions,
@@ -360,6 +361,7 @@ export default async function WigPage({
             start_date: w.start_date,
             end_date: w.end_date,
           }))}
+          gioiHan={gioiHanChonKy()}
           kyMacDinh={kyMacDinh}
         />
       </div>

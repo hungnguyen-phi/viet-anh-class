@@ -6,7 +6,7 @@ import {AlertCircle, CheckCircle2, ChevronDown, Lock, Plus, X} from 'lucide-reac
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, ctlWithBorder, selectCls, btnGold, btnGhost} from '@/components/ui/Field';
 import {taoWig} from '@/app/[locale]/(dashboard)/wig/actions';
-import type {PeriodOption} from '@/lib/dates';
+import {weekRangeVN, type PeriodOption} from '@/lib/dates';
 
 // ════════════════════════════════════════════════════════════════════════════
 // MỘT NÚT "+ Tạo mục tiêu" Ở GÓC PHẢI — thay cho ba khung form xếp dọc cả trang.
@@ -36,6 +36,7 @@ export function TaoWigMenu({
   wigNam,
   wigThang,
   kyMacDinh,
+  gioiHan,
 }: {
   classId: string;
   areas: {value: string; label: string}[];
@@ -48,6 +49,8 @@ export function TaoWigMenu({
   wigThang: WigOption[];
   // Nhãn kỳ chọn sẵn cho từng loại — theo TUẦN ĐANG XEM, không phải theo hôm nay.
   kyMacDinh: {year: string; month: string; week: string};
+  // Chặn đầu–cuối cho ô lịch, bằng ĐÚNG cửa sổ mà server chấp nhận (xem gioiHanChonKy).
+  gioiHan: {week: {min: string; max: string}; month: {min: string; max: string}};
 }) {
   const t = useTranslations('wig');
   const [open, setOpen] = useState(false);
@@ -84,6 +87,34 @@ export function TaoWigMenu({
 
   const err = (f: string) => (state.fieldError === f ? state.error : null);
   const kyOptions = loai === 'year' ? namOptions : loai === 'month' ? thangOptions : tuanOptions;
+
+  // ── CHỌN KỲ BẰNG LỊCH, KHÔNG BẰNG DANH SÁCH ──────────────────────────────────────────────
+  //
+  // Bản cũ đổ mọi kỳ ra một <select>: "W33-2026 · 10/08 → 16/08", "W34-2026 · 17/08 → 23/08"…
+  // Người dùng không nghĩ bằng số tuần ISO — họ nghĩ bằng NGÀY ("tuần có ngày khai giảng").
+  // Nay chọn một ngày trên lịch, hệ thống tự suy ra tuần chứa ngày ấy và nói rõ nó là tuần nào,
+  // từ hôm nào tới hôm nào. Tháng thì dùng thẳng <input type="month"> — giá trị của nó ('2026-09')
+  // đúng bằng nhãn kỳ tháng, không phải đổi gì.
+  //
+  // Năm học KHÔNG dùng lịch: '2026-2027' không phải một khoảng người ta trỏ vào lịch mà chọn, và
+  // cũng chỉ có vài lựa chọn. Giữ nguyên danh sách.
+  //
+  // Ngày gửi lên vẫn KHÔNG có: form chỉ gửi nhãn kỳ như trước, server tự tra ngày. Đây là chỗ đã
+  // gây sự cố 7B1 nên không đụng vào.
+  const homNayCuaTuan = (ngay: string) => weekRangeVN(new Date(`${ngay}T12:00:00Z`));
+  // Điền sẵn thứ Hai của tuần mặc định, KHÔNG để trống.
+  //
+  // Ô trống nhưng bên dưới vẫn ghi "Tuần W32-2026 · 03/08 → 09/08" là hai câu trái nhau trên cùng
+  // một màn: nhìn thì tưởng chưa chọn gì, mà bấm Lưu lại ra một tuần cụ thể. Giá trị lấy từ prop
+  // do server tính nên không lệch hydrate.
+  const [ngayTuan, setNgayTuan] = useState(
+    () => tuanOptions.find((o) => o.label === kyMacDinh.week)?.start ?? '',
+  );
+  const tuanDangChon = ngayTuan ? homNayCuaTuan(ngayTuan) : tuanOptions.find((o) => o.label === kyMacDinh.week);
+  const [thangDangChon, setThangDangChon] = useState('');
+  const nhanThang = thangDangChon || kyMacDinh.month;
+  const thangHienThi = thangOptions.find((o) => o.label === nhanThang);
+  const dm = (x: string) => `${x.slice(8, 10)}/${x.slice(5, 7)}`;
   const chaOptions = loai === 'month' ? wigNam : wigThang;
 
   const tab = (gt: 'year' | 'month' | 'week', nhan: string, mo: boolean, viSao: string) => (
@@ -237,13 +268,58 @@ export function TaoWigMenu({
                 actions.ts) nên không còn đường nào để một mục tiêu mang ngày lệch với nhãn của
                 chính nó — đúng cái bẫy đã gây sự cố 7B1. */}
             <Field label={t('periodWhich')} htmlFor="wig-ky" error={err('period_label')}>
-              <select id="wig-ky" name="period_label" className={selectCls} defaultValue={kyMacDinh[loai]}>
-                {kyOptions.map((o) => (
-                  <option key={o.label} value={o.label}>
-                    {o.label} · {o.start.slice(8, 10)}/{o.start.slice(5, 7)} → {o.end.slice(8, 10)}/{o.end.slice(5, 7)}
-                  </option>
-                ))}
-              </select>
+              {loai === 'week' ? (
+                <>
+                  {/* Ô lịch chỉ để CHỌN; thứ gửi lên vẫn là nhãn kỳ. */}
+                  <input type="hidden" name="period_label" value={tuanDangChon?.label ?? ''} />
+                  <input
+                    id="wig-ky"
+                    type="date"
+                    value={ngayTuan}
+                    onChange={(e) => setNgayTuan(e.target.value)}
+                    min={gioiHan.week.min}
+                    max={gioiHan.week.max}
+                    aria-describedby="wig-ky-ghi"
+                    className={ctlWithBorder(state.fieldError === 'period_label')}
+                  />
+                  <p id="wig-ky-ghi" className="mt-1 text-[12px] font-semibold text-grey-mid">
+                    {tuanDangChon
+                      ? t('weekResolved', {
+                          week: tuanDangChon.label,
+                          from: dm(tuanDangChon.start),
+                          to: dm(tuanDangChon.end),
+                        })
+                      : t('weekPickHint')}
+                  </p>
+                </>
+              ) : loai === 'month' ? (
+                <>
+                  <input type="hidden" name="period_label" value={nhanThang} />
+                  <input
+                    id="wig-ky"
+                    type="month"
+                    value={nhanThang}
+                    onChange={(e) => setThangDangChon(e.target.value)}
+                    min={gioiHan.month.min}
+                    max={gioiHan.month.max}
+                    aria-describedby="wig-ky-ghi"
+                    className={ctlWithBorder(state.fieldError === 'period_label')}
+                  />
+                  {thangHienThi && (
+                    <p id="wig-ky-ghi" className="mt-1 text-[12px] font-semibold text-grey-mid">
+                      {dm(thangHienThi.start)} → {dm(thangHienThi.end)}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <select id="wig-ky" name="period_label" className={selectCls} defaultValue={kyMacDinh.year}>
+                  {kyOptions.map((o) => (
+                    <option key={o.label} value={o.label}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              )}
             </Field>
 
             {state.error && !state.fieldError && (

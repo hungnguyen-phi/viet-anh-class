@@ -408,6 +408,8 @@
     "placeholder": "This section will be completed in the next steps."
   },
   "wig": {
+    "weekResolved": "Week {week} · {from} → {to}",
+    "weekPickHint": "Pick any day — the system takes the whole week containing it.",
     "csTitle": "Students' daily actions — week {week}",
     "csReady": "{ready}/{total} students have actions",
     "csNoStudents": "This class has no active students yet. Go to “Roster” and enroll them first.",
