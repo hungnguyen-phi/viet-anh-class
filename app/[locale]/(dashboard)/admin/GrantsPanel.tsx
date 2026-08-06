@@ -47,14 +47,32 @@ const th = 'text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
 // Khai một chỗ rồi dùng lại: tiêu đề và các dòng phải khớp từng cột, mà chúng nằm ở hai component
 // khác nhau — chép tay hai bộ số là kiểu lệch cột chỉ lộ ra khi nhìn màn hình thật.
 const cotStt = 'w-[34px] flex-none';
-const cotEmail = 'min-w-0 flex-[1.8]';
-const cotVai = 'min-w-0 flex-1';
-const cotLop = 'min-w-0 flex-1';
-const cotNgay = 'w-[92px] flex-none';
+const cotEmail = 'min-w-0 flex-1 sm:flex-[1.8]';
+const cotVai = 'min-w-0 flex-none sm:flex-1';
+const cotLop = 'min-w-0 flex-none sm:flex-1';
+const cotNgay = 'flex-none sm:w-[92px]';
 const cotNut = 'w-[72px] flex-none';
 const sttCls = 'text-[11.5px] font-bold tabular-nums text-grey-mid';
+
+// HAI BỐ CỤC, MỘT CÂY DOM.
+//
+// Bảng năm cột cần 760px mới đủ chỗ. Trên máy 360px, audit cho thấy người dùng chỉ đọc được STT
+// và Email — Vai trò, Lớp học, Ngày khai nằm ngoài màn hình, tức là đúng thứ người ta mở ra để
+// xem thì phải cuộn ngang mới thấy, mà cột hiện ra lại là cột dài nhất và ít giá trị nhất.
+//
+// Dưới 640px: mỗi dòng xuống thành một THẺ hai tầng — tầng trên số thứ tự + email, tầng dưới vai
+// · lớp · ngày. Từ 640px trở lên: y nguyên bảng năm cột như cũ.
+//
+// `sm:contents` là chỗ mấu chốt: cái bọc của tầng dưới BIẾN MẤT ở màn rộng, ba ô con rơi thẳng
+// vào hàng flex của dòng. Nhờ vậy không phải viết hai khối JSX song song — thứ chắc chắn sẽ lệch
+// nhau sau vài lần sửa, và lệch ở bản nào ít ai mở thì lâu mới lộ.
 const hangCls =
-  'box-border flex min-w-[760px] items-center gap-2 border-t border-navy/[0.08] px-[14px] py-2';
+  'box-border flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-navy/[0.08] px-[14px] py-2.5 sm:min-w-[760px] sm:flex-nowrap sm:gap-2 sm:py-2';
+// flex-wrap ở tầng dưới: vai "Giáo viên chủ nhiệm" dài gấp ba "Học sinh", nên với vai ấy thì
+// vai + lớp + ngày không nằm vừa một dòng 318px và ngày bị đẩy ra ngoài thẻ 24px. Cho ngày rơi
+// xuống dòng kế còn hơn để nó tràn ra nền trang.
+const tangDuoi = 'flex w-full min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 pl-[42px] sm:contents';
+const chamNgan = 'text-grey-mid/50 sm:hidden';
 
 // DANH SÁCH KHAI SẴN — ĐÓNG BĂNG MẶC ĐỊNH, MỘT NÚT LƯU, CÓ CHIA NHÓM.
 //
@@ -308,11 +326,13 @@ export function GrantsPanel({
 
       {/* role="row" phải nằm TRONG một role="table"/"grid" thì trình đọc màn hình mới hiểu; đứng
           trơ một mình là ARIA không hợp lệ và bị bỏ qua. Khai đủ bộ như bảng người dùng. */}
-      <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
+      {/* Chỉ cuộn ngang từ 640px trở lên — dưới đó không còn gì phải cuộn, dòng đã xuống thẻ. */}
+      <div className="rounded-[14px] border-[1.5px] border-navy/10 sm:overflow-x-auto">
         <div role="table" aria-label={t('grantsTitle')}>
+          {/* Hàng tiêu đề chỉ có nghĩa khi còn là bảng. Ở dạng thẻ, mỗi dòng tự nói ra nó là gì. */}
           <div
             role="row"
-            className="box-border flex min-w-[760px] items-center gap-2 bg-navy/[0.03] px-[14px] py-[9px]"
+            className="box-border hidden min-w-[760px] items-center gap-2 bg-navy/[0.03] px-[14px] py-[9px] sm:flex"
           >
             <span role="columnheader" className={`${cotStt} ${th}`}>
               {t('grantsNo')}
@@ -352,14 +372,17 @@ export function GrantsPanel({
                 <span className={`${cotEmail} truncate text-[13px] font-bold text-navy`}>
                   {d.email}
                 </span>
-                <span className={`${cotVai} truncate text-[12.5px] font-semibold text-navy`}>
-                  {tr('parent')}
+                <span className={tangDuoi}>
+                  <span className={`${cotVai} truncate text-[12.5px] font-semibold text-navy`}>
+                    {tr('parent')}
+                  </span>
+                  <span className={chamNgan}>·</span>
+                  <span className={`${cotLop} truncate text-[12.5px] font-semibold text-grey-mid`}>
+                    {/* Phụ huynh gắn với CON, không gắn với lớp — nên cột này hiện tên con. */}
+                    {d.i.childName ?? t('classNone')}
+                  </span>
+                  <span className={cotNgay} />
                 </span>
-                <span className={`${cotLop} truncate text-[12.5px] font-semibold text-grey-mid`}>
-                  {/* Phụ huynh gắn với CON, không gắn với lớp — nên cột này hiện tên con. */}
-                  {d.i.childName ?? t('classNone')}
-                </span>
-                <span className={cotNgay} />
                 <span className={cotNut}>
                   {sua && (
                     <form action={cancelParentInvite}>
@@ -476,9 +499,10 @@ function DongKhai({
         )}
       </span>
 
+      <span className={tangDuoi}>
       {sua ? (
         <>
-          <span className={cotVai}>
+          <span className={`${cotVai} flex-1`}>
             <select
               value={gia.role}
               onChange={(e) => onDoi(g.email, {role: e.target.value})}
@@ -492,7 +516,7 @@ function DongKhai({
               ))}
             </select>
           </span>
-          <span className={cotLop}>
+          <span className={`${cotLop} flex-1`}>
             <select
               value={gia.class_id}
               onChange={(e) => onDoi(g.email, {class_id: e.target.value})}
@@ -518,14 +542,22 @@ function DongKhai({
           <span className={`${cotVai} truncate text-[12.5px] font-semibold text-navy`}>
             {tr(g.role as 'student')}
           </span>
+          <span className={chamNgan}>·</span>
           <span className={`${cotLop} truncate text-[12.5px] font-semibold text-grey-mid`}>
             {tenLop(g.class_id)}
           </span>
+          <span className={chamNgan}>·</span>
         </>
       )}
-
-      <span className={`${cotNgay} whitespace-nowrap text-[11.5px] font-semibold text-grey-mid`}>
+      {/* Đang sửa trên máy hẹp thì ngày phải nhường chỗ: hai ô chọn cộng ngày trong 318px là ba
+          thứ đều chật, mà ngày khai là thứ ít cần nhất lúc đang gán vai. */}
+      <span
+        className={`${cotNgay} whitespace-nowrap text-[11.5px] font-semibold text-grey-mid ${
+          sua ? 'hidden sm:block' : ''
+        }`}
+      >
         {ngay(g.created_at)}
+      </span>
       </span>
       <span className={cotNut}>
         {/* Huỷ chỉ hiện khi đang sửa: danh sách đóng băng thì không có nút nào xoá được dữ liệu. */}

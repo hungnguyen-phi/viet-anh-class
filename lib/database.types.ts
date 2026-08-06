@@ -2466,6 +2466,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      nguoi_duyet: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+        }[]
+      }
       open_term_for_class: {
         Args: { p_class: string; p_term: string }
         Returns: number

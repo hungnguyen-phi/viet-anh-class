@@ -13,8 +13,18 @@
 // Đường đi được: lái thẳng Edge/Chrome headless qua CDP. Không cần cài gì thêm — Node ≥22 đã có
 // sẵn WebSocket, và máy nào chạy được app này thì cũng đã có sẵn một trình duyệt Chromium.
 //
-//   node scripts/test-mobile.mjs [http://localhost:6871] [360]
-import {readFileSync, existsSync, rmSync, mkdtempSync} from 'node:fs';
+// BỔ SUNG 2026-08-06 — CHỤP LUÔN ẢNH, KHÔNG CHỈ ĐO SỐ.
+//
+// Bốn luật dưới đây bắt được thứ đo được thành số: tràn ngang bao nhiêu px, tương phản mấy phần,
+// vùng chạm mấy pixel. Chúng KHÔNG bắt được "nhìn vào thấy sai": năm cột bóp còn 40px mỗi cột thì
+// vẫn hợp lệ theo cả bốn luật, mà mở ra là không đọc nổi. Chính ghi chú ở luật 1b phía trên đã
+// nói: lỗi nặng nhất của đợt trước chỉ tìm ra vì NHÌN vào ảnh.
+//
+// Nên mỗi trang giờ được chụp lại thành PNG (chụp hết chiều dài trang, không chỉ khung nhìn). Số
+// đo dùng để KHOANH VÙNG — mở ảnh nào trước; ảnh dùng để kết luận.
+//
+//   node scripts/test-mobile.mjs [https://class.vietanh.org] [360,390,430] [thư-mục-ảnh]
+import {readFileSync, writeFileSync, existsSync, rmSync, mkdtempSync, mkdirSync} from 'node:fs';
 import {spawn, spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
@@ -30,8 +40,20 @@ const BASE = process.argv[2] ?? 'http://localhost:6871';
 const URL_BASE = new URL(BASE);
 const TEN_MIEN = URL_BASE.hostname;
 const LA_HTTPS = URL_BASE.protocol === 'https:';
-const RONG = Number(process.argv[3] ?? 360);
+// Nhiều bề ngang trong MỘT lượt: mở trình duyệt và lấy vé đăng nhập là phần chậm nhất, chạy ba
+// lần cho ba cỡ là trả giá đó ba lần vô ích. Vẫn nhận một số lẻ như cũ (`360`) để lệnh cũ không gãy.
+const CAC_RONG = String(process.argv[3] ?? '360,390,430')
+  .split(',')
+  .map((s) => Number(s.trim()))
+  .filter((n) => n > 0);
 const CAO = 800;
+// Ảnh chụp HẾT chiều dài trang, nhưng có trần: một trang dài 9000px thu về vừa màn hình thì chữ
+// nhỏ như hạt bụi, đọc bằng mắt không ra gì. Quá trần thì cắt, và nói rõ là đã cắt.
+const CAO_ANH_TOI_DA = 2000;
+const THU_MUC_ANH = process.argv[4] ?? path.join(tmpdir(), 'va-anh-mobile');
+// Lọc theo vai: chạy được phần đo được, thay vì chờ đủ bốn tài khoản mới đo được gì.
+// `node scripts/test-mobile.mjs <base> 360,390 <thư-mục> admin`
+const CHI_VAI = (process.argv[5] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 // Cổng NGẪU NHIÊN: cổng cố định làm hai lượt chạy nối nhau tranh nhau, lượt sau không mở
 // được trình duyệt rồi báo SAI vì lý do sai — một phép kiểm nói dối còn tệ hơn không có.
 const CONG = 9300 + Math.floor(Math.random() * 600);
@@ -141,17 +163,59 @@ sock.addEventListener('message', (e) => {
     m.error ? ng(new Error(m.error.message)) : ok(m.result);
   } else if (m.method && sk[m.method]) sk[m.method].forEach((f) => f(m.params));
 });
-const goi = (method, params = {}) =>
-  new Promise((ok, ng) => { const i = ++id; cho.set(i, {ok, ng}); sock.send(JSON.stringify({id: i, method, params})); });
+// MỌI LỆNH ĐỀU CÓ HẠN GIỜ.
+//
+// Bản trước chờ vô hạn: một lệnh không bao giờ được trả lời là cả lượt chạy đứng im, không báo
+// lỗi, không thoát — đúng như lượt 2026-08-06 dừng ở ảnh thứ 16 rồi treo, nhìn từ ngoài không
+// phân biệt được với "đang chạy chậm". Thà hỏng một trang và nói ra còn hơn treo cả bộ đo.
+const goi = (method, params = {}, han = 30000) =>
+  new Promise((ok, ng) => {
+    const i = ++id;
+    const dongHo = setTimeout(() => {
+      cho.delete(i);
+      ng(new Error(`${method} không trả lời sau ${han / 1000}s`));
+    }, han);
+    cho.set(i, {
+      ok: (r) => { clearTimeout(dongHo); ok(r); },
+      ng: (e) => { clearTimeout(dongHo); ng(e); },
+    });
+    sock.send(JSON.stringify({id: i, method, params}));
+  });
 const nghe = (ev, f) => ((sk[ev] ??= []).push(f));
 await new Promise((ok) => sock.addEventListener('open', ok));
 
 await goi('Page.enable');
 await goi('Network.enable');
 await goi('Runtime.enable');
+
+// ĐẾM YÊU CẦU MẠNG ĐANG BAY, để biết lúc nào trang thật sự dựng xong.
+//
+// Hai cách chờ trước đó đều sai, và sai theo kiểu im lặng:
+//   · chờ cứng 2,2 giây — đủ cho trang nhẹ, KHÔNG đủ cho /admin, nên cùng một trang cho ra hai
+//     kết quả đo khác nhau giữa hai lượt chạy.
+//   · chờ tới khi chiều cao trang không đổi — trang này dùng Suspense với fallback={null}, nghĩa
+//     là trong lúc chờ máy chủ đẩy dữ liệu về thì KHÔNG có gì được vẽ ra cả. Trang đứng yên ở
+//     800px, "ổn định" ngay lập tức, và bộ đo chụp lại một trang gần như trống rồi báo 0 lỗi.
+//     Lượt chạy 2026-08-06 báo "390px và 430px sạch tuyệt đối" đúng vì lý do đó.
+// Luồng RSC giữ kết nối mở cho tới khi đẩy xong mảnh cuối, nên "không còn yêu cầu nào đang bay"
+// là mốc trung thực nhất mà không cần biết gì về bên trong ứng dụng.
+let dangBay = 0;
+nghe('Network.requestWillBeSent', () => dangBay++);
+nghe('Network.loadingFinished', () => dangBay--);
+nghe('Network.loadingFailed', () => dangBay--);
+const choMangLang = async ({sanNha = 1200, tran = 20000, lang = 800} = {}) => {
+  const batDau = Date.now();
+  await new Promise((r) => setTimeout(r, sanNha));
+  let langTu = Date.now();
+  while (Date.now() - batDau < tran) {
+    if (dangBay > 0) langTu = Date.now();
+    else if (Date.now() - langTu >= lang) return true;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return false;
+};
 // mobile: true — media query, touch và `hover: none` đều theo đúng điện thoại, không phải
 // một cửa sổ desktop bị bóp hẹp. Đây là điểm khác biệt với mọi cách giả lập trước.
-await goi('Emulation.setDeviceMetricsOverride', {width: RONG, height: CAO, deviceScaleFactor: 2, mobile: true});
 await goi('Emulation.setTouchEmulationEnabled', {enabled: true, maxTouchPoints: 5});
 // TIẾNG VIỆT, không phải tiếng Anh.
 //
@@ -170,43 +234,202 @@ const TRANG = [
   ['ph', '/report'], ['ph', '/timetable'], ['ph', '/homework'],
   ['bgh', '/campus'], ['bgh', '/meeting'],
   ['admin', '/admin'],
-];
+].filter(([vai]) => CHI_VAI.length === 0 || CHI_VAI.includes(vai));
+if (TRANG.length === 0) {
+  console.log(`SAI  Không còn trang nào sau khi lọc vai "${CHI_VAI.join(',')}".`);
+  donDep();
+  process.exit(1);
+}
 
-let vaiCu = null;
+mkdirSync(THU_MUC_ANH, {recursive: true});
+const tenAnh = (rong, vai, duong) =>
+  `${rong}-${vai}-${duong === '/' ? 'trang-chu' : duong.slice(1).replace(/\//g, '_')}.png`;
+
+// Chụp HẾT chiều dài trang.
+//
+// Page.captureScreenshot mặc định chỉ lấy đúng khung nhìn 800px — tức là cắt mất phần dưới của
+// mọi trang, mà lỗi bố cục thì hay nằm ở cuối. Cách chắc ăn: hỏi chiều cao thật của nội dung rồi
+// tạm nới khung nhìn ra bằng đúng chừng ấy, chụp, rồi trả về như cũ.
+//
+// deviceScaleFactor 1 lúc chụp (đo thì vẫn 2): ảnh 2× của một trang dài 2000px là 780×4000 pixel,
+// thu nhỏ lại cho vừa khung đọc thì chữ nát. Ảnh 1× đọc rõ hơn hẳn — mà việc của ảnh này là để
+// ĐỌC, không phải để in.
+const chupAnh = async (rong, ten) => {
+  // Chiều cao lấy từ scrollHeight của chính trang, KHÔNG lấy từ Page.getLayoutMetrics.
+  //
+  // cssContentSize trả về 800 (đúng bằng khung nhìn) cho phần lớn trang trong lượt chạy dài —
+  // và 800 là con số trông rất hợp lý, nên ảnh cắt cụt mà không ai nghi ngờ gì: 44/51 ảnh của
+  // lượt trước là ảnh cắt ngang bụng, trong đó có TOÀN BỘ cỡ 430. scrollHeight thì không nói dối.
+  // Đo tới ĐÁY THẬT của nội dung, không tin scrollHeight.
+  //
+  // scrollHeight trả về đúng 800 — bằng chằn chặn khung nhìn — cho /admin ở 430px, trong khi ảnh
+  // chụp cho thấy trang còn dài tiếp phía dưới. Xảy ra khi html/body bị đặt chiều cao 100%: phần
+  // nội dung tràn ra không làm scrollHeight lớn lên. Và 800 là con số trông hợp lý tới mức ảnh
+  // cắt cụt vẫn lọt qua mắt.
+  // Lấy mép dưới xa nhất trong số mọi thẻ con thì không có cách nào nói dối.
+  const {result: rCao} = await goi('Runtime.evaluate', {
+    returnByValue: true,
+    expression: `(() => {
+      let day = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+      const y = window.scrollY;
+      for (const el of document.body.querySelectorAll('*')) {
+        const r = el.getBoundingClientRect();
+        if (r.height > 0 && r.width > 0 && getComputedStyle(el).position !== 'fixed')
+          day = Math.max(day, r.bottom + y);
+      }
+      return day;
+    })()`,
+  });
+  const caoThat = Math.ceil(rCao.value);
+  const cao = Math.min(caoThat, CAO_ANH_TOI_DA);
+  await goi('Emulation.setDeviceMetricsOverride', {width: rong, height: cao, deviceScaleFactor: 1, mobile: true});
+  const {data} = await goi('Page.captureScreenshot', {format: 'png'});
+  await goi('Emulation.setDeviceMetricsOverride', {width: rong, height: CAO, deviceScaleFactor: 2, mobile: true});
+  writeFileSync(path.join(THU_MUC_ANH, ten), Buffer.from(data, 'base64'));
+  return {caoThat, biCat: caoThat > CAO_ANH_TOI_DA};
+};
+
 const loi = {tran: [], thoat: [], contrast: [], cham: []};
-for (const [vai, duong] of TRANG) {
-  if (vai !== vaiCu) {
-    const [n, v] = ve[vai].split('=');
-    await goi('Network.clearBrowserCookies');
-    await goi('Network.setCookie', {name: n, value: v, domain: TEN_MIEN, path: '/', secure: LA_HTTPS});
-    vaiCu = vai;
+const theoRong = new Map(); // rộng → {tran, thoat, contrast, cham}
+let soLanGoIntro = 0;
+const trangHong = [];
+const anhDaChup = [];
+const biCat = [];
+
+for (const RONG of CAC_RONG) {
+  await goi('Emulation.setDeviceMetricsOverride', {width: RONG, height: CAO, deviceScaleFactor: 2, mobile: true});
+  const dem = {tran: 0, thoat: 0, contrast: 0, cham: 0};
+  let vaiCu = null;
+  for (const [vai, duong] of TRANG) {
+    if (vai !== vaiCu) {
+      const [n, v] = ve[vai].split('=');
+      await goi('Network.clearBrowserCookies');
+      await goi('Network.setCookie', {name: n, value: v, domain: TEN_MIEN, path: '/', secure: LA_HTTPS});
+      vaiCu = vai;
+    }
+    try {
+    // Page.loadEventFired cũng phải có hạn: trang không bắn sự kiện load (ảnh treo, font chờ mãi)
+    // là đứng đây vĩnh viễn.
+    const xong = Promise.race([
+      new Promise((ok) => nghe('Page.loadEventFired', ok)),
+      new Promise((ok) => setTimeout(() => ok('quá-hạn'), 25000)),
+    ]);
+    await goi('Page.navigate', {url: BASE + duong});
+    if ((await xong) === 'quá-hạn') console.log(`   ! ${duong} [${vai}] không bắn sự kiện load sau 25 giây.`);
+    // CHỜ TRANG YÊN, không chờ một con số giây cố định.
+    //
+    // 2,2 giây là đủ cho trang nhẹ và KHÔNG đủ cho /admin (nhiều mảnh Suspense, mỗi mảnh một
+    // truy vấn qua đường truyền trung vị 251 ms). Hậu quả không phải là "đo thiếu" mà là "đo ra
+    // số khác nhau mỗi lượt": cùng /admin ở 390px, lượt này 3 lỗi thoát thẻ và 12 vùng chạm nhỏ,
+    // lượt sau 0 và 0 — vì lượt sau đo lúc bảng người dùng còn là khung xương. Một bộ đo cho hai
+    // kết quả khác nhau trên cùng một trang thì không dùng để kết luận được gì.
+    //
+    // Yên = mạng lặng (xem choMangLang) rồi mới đến lượt kiểm khung xương còn sót.
+    const kipGio = await choMangLang();
+    if (!kipGio) console.log(`   ! ${duong} [${vai}] còn yêu cầu mạng sau 20 giây — đo trong trạng thái dở dang.`);
+    await goi('Runtime.evaluate', {
+      awaitPromise: true,
+      returnByValue: true,
+      expression: `(async () => {
+        for (let i = 0; i < 20 && document.querySelectorAll('[aria-busy="true"]').length; i++)
+          await new Promise((r) => setTimeout(r, 200));
+        return document.querySelectorAll('[aria-busy="true"]').length;
+      })()`,
+    });
+    const {result: rUrl} = await goi('Runtime.evaluate', {expression: 'location.pathname', returnByValue: true});
+    // Rơi về /login = vé đăng nhập không ăn. Dừng ngay, đừng đo tiếp mười sáu trang đăng nhập.
+    if (/\/login$/.test(rUrl.value) && !/\/login$/.test(duong)) {
+      console.log(`SAI  Vé đăng nhập không ăn: ${duong} [${vai}] bị đẩy về ${rUrl.value}.`);
+      console.log('     Kiểm lại tên miền cookie / đồng hồ máy / vé đã hết hạn chưa.');
+      sock.close();
+      donDep();
+      process.exit(1);
+    }
+    // ĐĂNG NHẬP ĐƯỢC NHƯNG KHÔNG CÓ QUYỀN — cũng phải dừng, vì lý do y hệt.
+    //
+    // Vé vẫn ăn, trang vẫn trả 200, chỉ có điều mọi đường dẫn đều bị đẩy sang /unauthorized và
+    // mười sáu lượt đo đều đo đúng MỘT màn "Tài khoản chưa được cấp quyền". Lượt chạy 2026-08-06
+    // đã đi trọn như vậy rồi in ra bốn dòng OK — sạch sẽ, và vô nghĩa. Bản trước chỉ canh /login
+    // nên không thấy; ba tài khoản thử lúc ấy đã bị hạ về vai 'pending' từ lúc nào không rõ.
+    if (/\/unauthorized$/.test(rUrl.value)) {
+      console.log(`SAI  Tài khoản [${vai}] đang ở vai "chờ cấp quyền": ${duong} bị đẩy sang /unauthorized.`);
+      console.log(`     Không đo được gì cho vai này. Cấp lại vai cho ${TK[vai]} rồi chạy lại.`);
+      sock.close();
+      donDep();
+      process.exit(1);
+    }
+    // Gỡ lớp phủ onboarding TRƯỚC KHI đo và chụp.
+    //
+    // Hồ sơ trình duyệt mới tinh mỗi lượt chạy, mà cờ "đã xem" nằm ở DB (profiles.intro_seen) —
+    // nên mọi trang đều mở kèm hộp "Chào mừng đến Việt Anh Class!" phủ kín và làm MỜ cả trang
+    // phía sau. Ảnh chụp ra là ảnh cái hộp ấy, còn số đo tương phản là đo chữ đã bị làm mờ.
+    // Gỡ thẳng nút DOM chứ không bấm "Bỏ qua": bấm là ghi intro_seen=true vào hồ sơ người ta,
+    // một bài kiểm không được phép để lại dấu vết trên tài khoản nó mượn.
+    const {result: rGo} = await goi('Runtime.evaluate', {
+      returnByValue: true,
+      expression: `(() => {
+        let n = 0;
+        for (const el of document.querySelectorAll('[role="dialog"]')) {
+          const c = (el.className || '').toString();
+          if (c.includes('fixed') && c.includes('inset-0')) { el.remove(); n++; }
+        }
+        // MỞ HẾT MỤC GẤP LẠI.
+        //
+        // Màn Quản trị gấp sẵn bốn mục (<details>), trong đó có đúng bảng "Đã khai sẵn" vừa dựng
+        // lại. Nội dung mục đóng thì trình duyệt không dựng hộp cho nó — mắt không thấy, mà bốn
+        // luật đo cũng không thấy. Đo một trang gấp kín rồi kết luận "sạch" là đo cái vỏ.
+        for (const d of document.querySelectorAll('details')) d.open = true;
+        return n;
+      })()`,
+    });
+    if (rGo.value > 0) soLanGoIntro++;
+    const {result} = await goi('Runtime.evaluate', {expression: DO, returnByValue: true});
+    const k = result.value;
+    const nhan = `${RONG}px ${duong} [${vai}]`;
+    for (const x of k.tranPhai) loi.tran.push(`${nhan} ${x.tag}.${x.cls.slice(0, 24)} → ${x.phai}px`);
+    for (const x of k.thoatThe) loi.thoat.push(`${nhan} ${x.tag} thò ra ${x.thoaRa}px "${x.chu}"`);
+    for (const x of k.contrast) loi.contrast.push(`${nhan} "${x.chu}" ${x.tl}:1 (cần ${x.can})`);
+    for (const x of k.chamNho) loi.cham.push(`${nhan} ${x.tag} ${x.w}×${x.h} "${x.ten}"`);
+    // Số ĐẦY ĐỦ (soTranPhai...) chứ không phải độ dài mảng: do-mobile.js chỉ trả về sáu ví dụ đầu
+    // mỗi loại. Lấy nhầm là báo "6 lỗi" cho một trang có sáu mươi.
+    dem.tran += k.soTranPhai;
+    dem.thoat += k.soThoatThe;
+    dem.contrast += k.soContrast;
+    dem.cham += k.soChamNho;
+
+    const ten = tenAnh(RONG, vai, duong);
+    const {caoThat, biCat: cat} = await chupAnh(RONG, ten);
+    if (cat) biCat.push(`${ten} (${caoThat}px)`);
+    anhDaChup.push(ten);
+    console.log(`   ${ten}  ·  cao ${caoThat}px  ·  tràn ${k.soTranPhai} · thoát ${k.soThoatThe} · tương phản ${k.soContrast} · chạm nhỏ ${k.soChamNho}`);
+    } catch (e) {
+      // Một trang hỏng thì bỏ trang ấy và NÓI RA, đừng kéo cả lượt chạy xuống theo. Danh sách
+      // trang hỏng được in lại ở cuối để không lẫn vào giữa năm mươi dòng tiến độ.
+      trangHong.push(`${RONG}px ${duong} [${vai}] — ${e.message}`);
+      console.log(`   ! ${RONG}px ${duong} [${vai}] BỎ QUA: ${e.message}`);
+    }
   }
-  const xong = new Promise((ok) => nghe('Page.loadEventFired', ok));
-  await goi('Page.navigate', {url: BASE + duong});
-  await xong;
-  await new Promise((r) => setTimeout(r, 2200)); // chờ RSC stream xong
-  const {result: rUrl} = await goi('Runtime.evaluate', {expression: 'location.pathname', returnByValue: true});
-  // Rơi về /login = vé đăng nhập không ăn. Dừng ngay, đừng đo tiếp mười sáu trang đăng nhập.
-  if (/\/login$/.test(rUrl.value) && !/\/login$/.test(duong)) {
-    console.log(`SAI  Vé đăng nhập không ăn: ${duong} [${vai}] bị đẩy về ${rUrl.value}.`);
-    console.log('     Kiểm lại tên miền cookie / đồng hồ máy / vé đã hết hạn chưa.');
-    sock.close();
-    donDep();
-    process.exit(1);
-  }
-  const {result} = await goi('Runtime.evaluate', {expression: DO, returnByValue: true});
-  const k = result.value;
-  const nhan = `${duong} [${vai}]`;
-  for (const x of k.tranPhai) loi.tran.push(`${nhan} ${x.tag}.${x.cls.slice(0, 24)} → ${x.phai}px`);
-  for (const x of k.thoatThe) loi.thoat.push(`${nhan} ${x.tag} thò ra ${x.thoaRa}px "${x.chu}"`);
-  for (const x of k.contrast) loi.contrast.push(`${nhan} "${x.chu}" ${x.tl}:1 (cần ${x.can})`);
-  for (const x of k.chamNho) loi.cham.push(`${nhan} ${x.tag} ${x.w}×${x.h} "${x.ten}"`);
+  theoRong.set(RONG, dem);
 }
 
 sock.close();
 donDep();
 
-console.log(`\nĐo ở ${RONG}×${CAO}, mobile thật (touch + hover:none), ${TRANG.length} trang × 4 vai:\n`);
+console.log(`\nĐo mobile thật (touch + hover:none), ${TRANG.length} trang × 4 vai × ${CAC_RONG.length} cỡ:\n`);
+for (const [rong, d] of theoRong)
+  console.log(
+    `   ${rong}px — tràn ngang ${d.tran} · thoát thẻ ${d.thoat} · tương phản ${d.contrast} · chạm nhỏ ${d.cham}`,
+  );
+console.log(`\n${anhDaChup.length} ảnh trong: ${THU_MUC_ANH}`);
+if (soLanGoIntro > 0)
+  console.log(`   (đã gỡ lớp phủ onboarding ở ${soLanGoIntro} lượt tải — không ghi gì vào hồ sơ)`);
+if (trangHong.length) {
+  console.log(`\n${trangHong.length} lượt KHÔNG đo được — kết quả dưới đây thiếu chừng ấy:`);
+  for (const x of trangHong) console.log('   ·', x);
+}
+if (biCat.length) console.log(`   (cắt ở ${CAO_ANH_TOI_DA}px: ${biCat.join(', ')})`);
+console.log('');
+
 check('Không trang nào bị kéo ngang', loi.tran.length === 0, loi.tran.slice(0, 6).join(' · '));
 check('Không nội dung nào thò ra ngoài thẻ chứa nó', loi.thoat.length === 0, loi.thoat.slice(0, 6).join(' · '));
 check('Không chữ nào dưới ngưỡng tương phản', loi.contrast.length === 0, loi.contrast.slice(0, 6).join(' · '));

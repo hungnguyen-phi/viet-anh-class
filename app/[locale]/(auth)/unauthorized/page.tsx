@@ -31,16 +31,18 @@ export default async function UnauthorizedPage({params}: {params: Promise<{local
   const profile = await getCurrentProfile();
   if (profile && profile.role !== 'pending') redirect(homeRouteForRole(profile.role));
 
-  // Người duyệt là AI. Đọc bằng client thường: RLS profiles cho người đã đăng nhập xem danh bạ
-  // nhân sự, và ở đây chỉ lấy đúng tên + email của quản trị viên — không có gì riêng tư hơn thứ
-  // in trên bảng tin phòng hội đồng. Hỏng thì thôi, câu chữ có nhánh lùi.
+  // Người duyệt là AI — hỏi qua hàm nguyen_duyet() (migration 0092), KHÔNG hỏi thẳng bảng.
+  //
+  // Bản cũ chạy `select ... from profiles where role='admin'` bằng chính phiên của người đang
+  // chờ. Chính sách rls_select_profiles chỉ cho vai 'pending' đọc đúng dòng của họ, nên câu ấy
+  // LUÔN trả về rỗng và trang rơi vào nhánh lùi "Trường chưa có quản trị viên nào trong hệ
+  // thống" — sai, và sai với đúng người đang cần biết phải nhờ ai. Không phải thỉnh thoảng: mọi
+  // lần, với mọi người, kể cả khi trường có đủ quản trị viên. Audit mobile 2026-08-06 chụp được
+  // nguyên văn câu ấy trên màn của giáo viên.
+  //
+  // Vẫn giữ nhánh lùi bên dưới cho trường hợp THẬT SỰ chưa có ai.
   const supabase = await createClient();
-  const {data: admins} = await supabase
-    .from('profiles')
-    .select('full_name, email')
-    .eq('role', 'admin')
-    .order('full_name')
-    .limit(3);
+  const {data: admins} = await supabase.rpc('nguoi_duyet');
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center px-5 py-12">

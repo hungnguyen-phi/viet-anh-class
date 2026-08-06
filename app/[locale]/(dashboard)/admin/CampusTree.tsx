@@ -207,7 +207,14 @@ function CampusNode({
             type="button"
             onClick={onToggle}
             aria-expanded={open}
-            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
+            // flex-wrap: KHÔNG phải để cho đẹp.
+            //
+            // Hàng này có bốn thứ nối đuôi nhau — tên cơ sở, mã, nhãn cấp học, "7 khối · 3 lớp" —
+            // và trước đây không thứ nào được phép xuống dòng. Trên máy 360px, audit đo được
+            // "THCS · THPT" thò ra 57px và "7 khối · 3 lớp" thò ra 129px: chúng tràn khỏi nút và
+            // ĐÈ LÊN ba nút Sửa / Lưu trữ / Xoá ngay bên phải — chữ chồng chữ, bấm Sửa có thể
+            // trúng Xoá. Cho xuống dòng là hết, và trên màn rộng thì thừa chỗ nên không đổi gì.
+            className="flex min-w-0 flex-1 cursor-pointer flex-wrap items-center gap-x-2 gap-y-1 text-left"
           >
             <ChevronRight
               size={16}

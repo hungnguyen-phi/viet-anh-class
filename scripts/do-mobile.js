@@ -89,8 +89,20 @@
     if (!p) continue;
     const pr = p.getBoundingClientRect();
     if (pr.width === 0) continue;
-    const pc = getComputedStyle(p);
-    if (['auto', 'scroll', 'hidden'].includes(pc.overflowX)) continue;
+    // Phải soi CẢ TỔ TIÊN, không chỉ cha ruột — giống hệt luật (1) ngay trên.
+    //
+    // Bảng trong app dựng ba tầng: <div overflow-x-auto> › <div role="table"> › các dòng
+    // min-w-[760px]. Cha ruột của dòng là cái role="table" KHÔNG có overflow, nên chỉ nhìn cha
+    // ruột là báo cả ba mươi tư dòng "thò ra 442px" — trong khi chúng nằm gọn trong một khung
+    // cuộn ngang đúng thiết kế. Ba mươi tư báo động giả trong một bản báo cáo là cách nhanh nhất
+    // khiến người đọc bỏ qua luôn cả những dòng thật.
+    let a = p, trongKhungCuon = false;
+    while (a && a !== document.body) {
+      const ac = getComputedStyle(a);
+      if (['auto', 'scroll', 'hidden'].includes(ac.overflowX)) { trongKhungCuon = true; break; }
+      a = a.parentElement;
+    }
+    if (trongKhungCuon) continue;
     if (getComputedStyle(el).position === 'absolute' || getComputedStyle(el).position === 'fixed') continue;
     // Dung sai 2px: bố cục flex/grid tính bằng số thực, một hàng justify-between ở 320px lệch
     // 1,44px là làm tròn chứ không phải lỗi ai nhìn ra. Lỗi thật nhỏ nhất đo được là 30px, nên

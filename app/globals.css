@@ -436,3 +436,19 @@ input[type="number"] {
 @utility ctl-h {
   height: 2.75rem; /* 44px */
 }
+
+/* Ô TICK ĐỦ TO ĐỂ BẤM BẰNG NGÓN TAY — chỉ trên thiết bị cảm ứng.
+   Audit mobile 2026-08-06 (viewport 360px, touch thật) đếm được 8 ô tick 16×16 trên màn Quản
+   trị: bảng người dùng và khối "đang chờ bạn cấp quyền". Sàn WCAG 2.5.8 là 24×24, và đây lại là
+   những ô đứng ngay cạnh nút "Xoá vĩnh viễn" — bấm trượt ở đây không phải chuyện nhỏ.
+   min-* chứ không phải width/height: không ô nào bị BÓP LẠI, chỉ những ô nhỏ hơn 24 mới nở ra.
+   Giới hạn trong pointer:coarse để bản desktop giữ nguyên từng pixel như cũ.
+   Trừ .sr-only: những ô ấy cố tình 1×1 vì vùng bấm thật là cái <label> bọc ngoài (WeekdayPicker,
+   PhongHop) — nở chúng ra là phá đúng bố cục đang đúng. */
+@media (pointer: coarse) {
+  input[type="checkbox"]:not(.sr-only),
+  input[type="radio"]:not(.sr-only) {
+    min-width: 24px;
+    min-height: 24px;
+  }
+}

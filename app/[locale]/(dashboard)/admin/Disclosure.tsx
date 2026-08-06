@@ -28,7 +28,11 @@ export function Disclosure({
 }) {
   return (
     <details className="glass group rounded-[20px]" open={defaultOpen}>
-      <summary className="flex cursor-pointer list-none items-center gap-2.5 p-[18px] [&::-webkit-details-marker]:hidden">
+      {/* flex-wrap: nhãn cảnh báo bên phải ("Chưa khai mạng — ai cũng check-in được") dài hơn cả
+          tiêu đề. Trên máy 360px nó đẩy tiêu đề "Điểm danh & Wifi trường" thò ra ngoài thẻ 52px
+          (đo được lúc audit mobile 2026-08-06). Cho xuống dòng là hết; màn rộng thừa chỗ nên
+          không đổi gì. */}
+      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-2.5 gap-y-2 p-[18px] [&::-webkit-details-marker]:hidden">
         <ChevronRight
           size={16}
           strokeWidth={2.6}
