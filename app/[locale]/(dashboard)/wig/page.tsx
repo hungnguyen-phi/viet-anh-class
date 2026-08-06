@@ -371,13 +371,17 @@ export default async function WigPage({
           namOptions={namOptions}
           thangOptions={thangOptions}
           tuanOptions={tuanOptions}
-          wigNam={yearWigs.map((w) => ({
+          // Danh sách cha xếp theo NGÀY BẮT ĐẦU, không theo thứ tự tạo: lớp tạo mục tiêu tháng 9
+          // trước rồi tháng 8 sau thì danh sách đọc thành 9, 8 — và cái đứng đầu lại là cái xa
+          // hôm nay nhất. Menu tự chọn cha phủ kỳ đang đứng (xem TaoWigMenu), thứ tự này chỉ để
+          // người đọc thấy đúng dòng thời gian.
+          wigNam={[...yearWigs].sort((a, b) => a.start_date.localeCompare(b.start_date)).map((w) => ({
             id: w.id,
             title: w.title ?? areaLabel(areaMeta[w.area as Area], locale),
             start_date: w.start_date,
             end_date: w.end_date,
           }))}
-          wigThang={monthWigs.map((w) => ({
+          wigThang={[...monthWigs].sort((a, b) => a.start_date.localeCompare(b.start_date)).map((w) => ({
             id: w.id,
             title: `${w.title ?? t('month')} · ${w.period_label ?? ''}`,
             start_date: w.start_date,

@@ -299,6 +299,30 @@ export function thangTronTrongCha(chaStart: string, chaEnd: string): {min: strin
   return min <= max ? {min, max} : null;
 }
 
+// MỤC TIÊU CHA CHỌN SẴN CHO MỘT KỲ.
+//
+// Lỗi đã xảy ra: lớp có mục tiêu tháng 9 (tạo trước) và tháng 8 (tạo sau). Form tạo mục tiêu tuần
+// lấy cha = phần tử ĐẦU DANH SÁCH, tức tháng 9, nên ô lịch bị kéo sang tháng 9 và mục tiêu tuần
+// vừa tạo rơi vào 07/09 → 13/09 — cách tuần người dùng đang nhìn cả tháng.
+//
+// Luật: cha nào PHỦ ngày neo thì lấy cha ấy. Không có thì lấy cha sớm nhất còn CHƯA KẾT THÚC —
+// kéo tới trước, không kéo ngược về kỳ đã qua. Hết cách mới lấy phần tử đầu.
+//
+// Đặt ở đây chứ không trong component vì phép này kiểm được bằng số (scripts/test-ky-cha.mjs), và
+// vì nó thuộc cùng một họ luật với tuanTronTrongCha/thangTronTrongCha ngay trên.
+export function chaPhuKy<T extends {start_date: string; end_date: string}>(
+  ds: T[],
+  neo: string | undefined,
+): T | undefined {
+  if (!neo) return ds[0];
+  const phu = ds.find((o) => o.start_date <= neo && o.end_date >= neo);
+  if (phu) return phu;
+  const conHan = ds
+    .filter((o) => o.end_date >= neo)
+    .sort((a, b) => a.start_date.localeCompare(b.start_date));
+  return conHan[0] ?? ds[0];
+}
+
 // Chặn đầu–cuối cho ô chọn ngày của form tạo mục tiêu.
 //
 // Tính Ở SERVER rồi truyền xuống, không tính trong component: mọi hàm ở trên đều lấy `new Date()`

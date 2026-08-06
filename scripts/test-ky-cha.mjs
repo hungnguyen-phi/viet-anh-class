@@ -9,7 +9,7 @@
 // là phép tính thuần, kiểm được bằng số — không phải dựng trình duyệt rồi đoán qua ảnh.
 //
 //   node scripts/test-ky-cha.mjs
-import {gioiHanChonKy, CUA_SO_KY, tuanTronTrongCha, thangTronTrongCha} from '../lib/dates.ts';
+import {gioiHanChonKy, CUA_SO_KY, tuanTronTrongCha, thangTronTrongCha, chaPhuKy} from '../lib/dates.ts';
 
 let dat = 0, hong = 0;
 const ok = (ten, c, ghi = '') => {
@@ -73,6 +73,32 @@ ok(
 const mc = thangTronTrongCha('2026-09-15', '2026-12-31');
 ok('Cha bắt đầu 15/09 → tháng chọn được bắt đầu từ 2026-10', mc?.min === '2026-10', String(mc?.min));
 ok('Cha kết thúc 31/12 → tháng chọn được tới 2026-12', mc?.max === '2026-12', String(mc?.max));
+
+// ── CHA CHỌN SẴN PHẢI LÀ CHA PHỦ KỲ ĐANG ĐỨNG ──────────────────────────────────────────────
+//
+// Đúng cảnh chủ dự án gặp ngày 06/08/2026: lớp có mục tiêu tháng 9 (tạo trước) rồi mục tiêu
+// tháng 8 (tạo sau). Form lấy cha = phần tử đầu danh sách nên chọn tháng 9, ô lịch bị kéo sang
+// tháng 9, và mục tiêu tuần vừa tạo rơi vào 07/09 → 13/09. Anh ấy đọc ra "chỗ tuần vẫn cứ ép
+// tháng 9". Thứ tự trong danh sách KHÔNG được quyết định chuyện này.
+const thang9 = {id: 't9', start_date: '2026-09-01', end_date: '2026-09-30'};
+const thang8 = {id: 't8', start_date: '2026-08-01', end_date: '2026-08-31'};
+ok('Đang ở tuần đầu tháng 8 → cha chọn sẵn là mục tiêu THÁNG 8', chaPhuKy([thang9, thang8], '2026-08-03')?.id === 't8',
+   chaPhuKy([thang9, thang8], '2026-08-03')?.id);
+ok('… kể cả khi tháng 9 đứng trước trong danh sách', chaPhuKy([thang9, thang8], '2026-08-31')?.id === 't8',
+   chaPhuKy([thang9, thang8], '2026-08-31')?.id);
+ok('Đang ở tuần trong tháng 9 → cha chọn sẵn là mục tiêu THÁNG 9', chaPhuKy([thang9, thang8], '2026-09-07')?.id === 't9',
+   chaPhuKy([thang9, thang8], '2026-09-07')?.id);
+// Không cha nào phủ: kéo TỚI TRƯỚC, không kéo ngược về một tháng đã đóng.
+ok('Không cha nào phủ → lấy cha sớm nhất còn chưa kết thúc', chaPhuKy([thang9, thang8], '2026-07-06')?.id === 't8',
+   chaPhuKy([thang9, thang8], '2026-07-06')?.id);
+ok('Mọi cha đều đã qua → vẫn trả về một cha, không để trống', chaPhuKy([thang9, thang8], '2026-12-01') != null);
+ok('Không có cha nào thì trả undefined chứ không nổ', chaPhuKy([], '2026-08-03') === undefined);
+
+// Cha chọn sẵn ấy phải cho ra một ô lịch CHỨA tuần đang đứng — đây mới là điều người dùng thấy.
+const chaTuDong = chaPhuKy([thang9, thang8], '2026-08-03');
+const c3 = chan(g, chaTuDong);
+ok('Ô lịch mở đúng vào tuần đang đứng (03/08), không nhảy sang tháng 9',
+   c3.minTuan <= '2026-08-03' && '2026-08-03' <= c3.maxTuan, `${c3.minTuan} → ${c3.maxTuan}`);
 
 // Cửa sổ server và cửa sổ lịch phải cùng một khai báo.
 ok('Cửa sổ tuần khai đúng một chỗ', CUA_SO_KY.week.lui === 12 && CUA_SO_KY.week.toi === 12, JSON.stringify(CUA_SO_KY.week));

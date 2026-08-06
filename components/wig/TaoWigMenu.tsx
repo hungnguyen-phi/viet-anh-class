@@ -6,7 +6,7 @@ import {AlertCircle, CheckCircle2, ChevronDown, Lock, Plus, X} from 'lucide-reac
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, ctlWithBorder, selectCls, btnGold, btnGhost} from '@/components/ui/Field';
 import {taoWig} from '@/app/[locale]/(dashboard)/wig/actions';
-import {tuanTronTrongCha, thangTronTrongCha, weekRangeVN, type PeriodOption} from '@/lib/dates';
+import {tuanTronTrongCha, thangTronTrongCha, chaPhuKy, weekRangeVN, type PeriodOption} from '@/lib/dates';
 
 // ════════════════════════════════════════════════════════════════════════════
 // MỘT NÚT "+ Tạo mục tiêu" Ở GÓC PHẢI — thay cho ba khung form xếp dọc cả trang.
@@ -127,7 +127,22 @@ export function TaoWigMenu({
   // Nay ô lịch không cho chọn ra ngoài khoảng của cha, và ngày mặc định tự nhảy vào trong khoảng
   // ấy. Chọn sai thành chuyện không xảy ra được, thay vì chuyện bị mắng sau khi đã xảy ra.
   const [chaId, setChaId] = useState('');
-  const cha = chaOptions.find((o) => o.id === chaId) ?? chaOptions[0];
+  // MỤC TIÊU CHA CHỌN SẴN PHẢI LÀ CÁI PHỦ KỲ ĐANG ĐỨNG — không phải cái đầu danh sách.
+  //
+  // Lỗi chủ dự án gặp: lớp có mục tiêu tháng 9 (tạo trước) và mục tiêu tháng 8 (tạo sau). Mở form
+  // tạo mục tiêu tuần trong lúc đang ở tuần đầu tháng 8, cha chọn sẵn là cái ĐẦU DANH SÁCH — tức
+  // tháng 9 — nên ô lịch bị kéo vào tháng 9 và mục tiêu tuần vừa tạo rơi vào 07/09 → 13/09, cách
+  // tuần anh đang nhìn cả tháng. Anh ấy đọc ra "chỗ tuần vẫn cứ ép tháng 9".
+  //
+  // Neo bằng KỲ MẶC ĐỊNH (prop từ server, tính theo tuần đang xem) chứ không bằng ngày đang chọn
+  // trên lịch: ngày ấy lại bị kéo theo khoảng của cha ở useEffect dưới, lấy nó làm neo là hai thứ
+  // đuổi nhau. Một chiều duy nhất: KỲ quyết định CHA, cha quyết định khoảng lịch.
+  const neoCha =
+    loai === 'month'
+      ? thangOptions.find((o) => o.label === kyMacDinh.month)?.start
+      : tuanOptions.find((o) => o.label === kyMacDinh.week)?.start;
+  // Luật chọn nằm trong lib/dates.ts để kiểm được bằng số, không phải dựng trình duyệt rồi đoán.
+  const cha = chaOptions.find((o) => o.id === chaId) ?? chaPhuKy(chaOptions, neoCha);
   const lonHon = (a: string, b: string) => (a > b ? a : b);
   const nhoHon = (a: string, b: string) => (a < b ? a : b);
   // Lùi vào TUẦN/THÁNG TRỌN VẸN, không chặn đúng bằng khoảng của cha.
