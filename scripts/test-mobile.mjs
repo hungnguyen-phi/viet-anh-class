@@ -89,17 +89,32 @@ for (const l of readFileSync('.env.local', 'utf8').split('\n')) {
 const REF = new URL(env.NEXT_PUBLIC_SUPABASE_URL).host.split('.')[0];
 const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {auth: {persistSession: false}});
 const anon = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {auth: {persistSession: false}});
-const TK = {
-  gvcn: 'test1.gvcn@truongvietanh.com',
-  ph: 'test1.ph@truongvietanh.com',
-  bgh: 'test2.bgh@truongvietanh.com',
-  admin: 'test3.admin@truongvietanh.com',
-};
+// TÀI KHOẢN CHO TỪNG VAI — TRA THEO VAI TRONG CSDL, KHÔNG ĐÓNG CỨNG EMAIL.
+//
+// Bản cũ đóng cứng bốn địa chỉ test*. Hai chuyện đã xảy ra vì thế:
+//   · Ba địa chỉ ấy KHÔNG TỒN TẠI trên cơ sở dữ liệu này. generateLink lặng lẽ TẠO MỚI người
+//     dùng khi email chưa có, trigger handle_new_user cho họ vai 'pending', và bộ đo đi đo mười
+//     sáu lượt màn "Tài khoản chưa được cấp quyền" rồi báo bốn dòng OK. Nó còn để lại ba tài
+//     khoản ma trong danh sách "đang chờ bạn cấp quyền" của trường.
+//   · Ngay cả khi có, vai của chúng đổi lúc nào không ai biết — đúng bài học đã ghi trong
+//     test-admin-man.mjs: "KHÔNG bám cứng vào một email".
+// Nay: hỏi CSDL ai đang giữ vai ấy, ưu tiên tài khoản test*, và nếu không có ai thì NÓI RA rồi
+// bỏ qua vai đó — thay vì tự tạo một tài khoản mới trên production của trường.
+const VAI_DB = {gvcn: 'teacher', ph: 'parent', bgh: 'principal', admin: 'admin'};
+const TK = {};
+for (const [vai, vaiDb] of Object.entries(VAI_DB)) {
+  const {data} = await admin.from('profiles').select('email').eq('role', vaiDb).order('email');
+  const ds = data ?? [];
+  const chon = ds.find((u) => u.email.startsWith('test')) ?? ds[0];
+  if (chon) TK[vai] = chon.email;
+  else console.log(`GHI CHÚ  Không có tài khoản nào ở vai "${vaiDb}" — bỏ qua các trang của ${vai}.`);
+}
+const coTK = new Set(Object.keys(TK));
 const ve = {};
 for (const [vai, email] of Object.entries(TK)) {
   const {data: g} = await admin.auth.admin.generateLink({type: 'magiclink', email});
   const {data: v} = await anon.auth.verifyOtp({type: 'email', token_hash: g.properties.hashed_token});
-  ve[vai] = `sb-${REF}-auth-token=base64-${Buffer.from(JSON.stringify(v.session)).toString('base64url')}`;
+  ve[vai] = `base64-${Buffer.from(JSON.stringify(v.session)).toString('base64url')}`;
 }
 
 // ── Mở trình duyệt ────────────────────────────────────────────────────────────────────────
@@ -234,7 +249,9 @@ const TRANG = [
   ['ph', '/report'], ['ph', '/timetable'], ['ph', '/homework'],
   ['bgh', '/campus'], ['bgh', '/meeting'],
   ['admin', '/admin'],
-].filter(([vai]) => CHI_VAI.length === 0 || CHI_VAI.includes(vai));
+]
+  .filter(([vai]) => coTK.has(vai))
+  .filter(([vai]) => CHI_VAI.length === 0 || CHI_VAI.includes(vai));
 if (TRANG.length === 0) {
   console.log(`SAI  Không còn trang nào sau khi lọc vai "${CHI_VAI.join(',')}".`);
   donDep();
@@ -315,9 +332,25 @@ for (const RONG of CAC_RONG) {
   let vaiCu = null;
   for (const [vai, duong] of TRANG) {
     if (vai !== vaiCu) {
-      const [n, v] = ve[vai].split('=');
+      // VÉ DÀI THÌ PHẢI CHIA MẢNH, y như thư viện @supabase/ssr vẫn làm ở trình duyệt thật.
+      //
+      // Trình duyệt từ chối cookie quá ~4096 byte, và CDP báo về đúng một câu "Sanitizing cookie
+      // failed" chứ không nói dài quá. Vé của tài khoản có nhiều dữ liệu (tên, avatar, metadata
+      // Google) vượt ngưỡng ấy — nên bộ đo chạy ngon với tài khoản thử rỗng và gãy ngay khi gặp
+      // tài khoản thật. Chia thành sb-…-auth-token.0/.1/… là đúng định dạng app đang đọc.
+      const val = ve[vai];
+      const TEN = `sb-${REF}-auth-token`;
+      const CO = 3180;
       await goi('Network.clearBrowserCookies');
-      await goi('Network.setCookie', {name: n, value: v, domain: TEN_MIEN, path: '/', secure: LA_HTTPS});
+      const manh =
+        val.length <= CO
+          ? [[TEN, val]]
+          : Array.from({length: Math.ceil(val.length / CO)}, (_, k) => [
+              `${TEN}.${k}`,
+              val.slice(k * CO, (k + 1) * CO),
+            ]);
+      for (const [n, v] of manh)
+        await goi('Network.setCookie', {name: n, value: v, domain: TEN_MIEN, path: '/', secure: LA_HTTPS});
       vaiCu = vai;
     }
     try {
@@ -371,6 +404,20 @@ for (const RONG of CAC_RONG) {
       donDep();
       process.exit(1);
     }
+    // TRANG LỖI CŨNG PHẢI DỪNG.
+    //
+    // Một trang 500 chỉ có đúng dòng chữ "Internal Server Error" thì không tràn ngang, không
+    // thoát thẻ, không có vùng chạm nào nhỏ — nó đạt SẠCH cả bốn luật. Lượt đo cuối ngày
+    // 2026-08-06 báo "4/4 đạt" cho /roster đúng như vậy, và tôi suýt kết luận là bản sửa chạy
+    // tốt. Đây là lần thứ tư cùng một kiểu nói dối: bộ đo im lặng đo nhầm một màn khác.
+    const {result: rLoi} = await goi('Runtime.evaluate', {
+      returnByValue: true,
+      expression: `document.body.innerText.trim().slice(0, 120)`,
+    });
+    if (/^(Internal Server Error|Application error|500\b)/i.test(rLoi.value ?? '')) {
+      throw new Error(`máy chủ trả về trang lỗi: "${(rLoi.value ?? '').slice(0, 60)}"`);
+    }
+
     // Gỡ lớp phủ onboarding TRƯỚC KHI đo và chụp.
     //
     // Hồ sơ trình duyệt mới tinh mỗi lượt chạy, mà cờ "đã xem" nằm ở DB (profiles.intro_seen) —
