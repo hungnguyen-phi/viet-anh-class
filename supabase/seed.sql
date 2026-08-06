@@ -184,7 +184,7 @@ begin
     ) v(a, t, u, x, y)
   loop
     insert into wigs (class_id, student_id, scope, area, period, period_label, target_value, unit, start_date, end_date)
-    values (cid, sid, 'student', v_area::wig_area, 'year', '2026-2027', 40, v_unit, date '2026-06-01', date '2027-05-31')
+    values (cid, sid, 'student', v_area::wig_area, 'year', '2026-2027', 40, v_unit, date '2026-07-01', date '2027-06-30')
     returning id into yw;
 
     insert into wigs (class_id, student_id, scope, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date)
@@ -254,7 +254,7 @@ begin
     ) v(a, t, u, x, y)
   loop
     insert into wigs (class_id, student_id, scope, area, period, period_label, target_value, unit, start_date, end_date)
-    values (cid, sid, 'student', v_area::wig_area, 'year', '2026-2027', 40, v_unit, date '2026-06-01', date '2027-05-31')
+    values (cid, sid, 'student', v_area::wig_area, 'year', '2026-2027', 40, v_unit, date '2026-07-01', date '2027-06-30')
     returning id into yw;
 
     insert into wigs (class_id, student_id, scope, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date)

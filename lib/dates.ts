@@ -25,13 +25,26 @@ export function isoWeekLabel(date: Date = new Date()): string {
   return `W${String(weekNo).padStart(2, '0')}-${dt.getUTCFullYear()}`;
 }
 
-// Năm học VN. Mốc chuyển ở tháng 6 (hè = chuẩn bị năm học mới): tháng 6→12 thuộc
-// năm học Y-(Y+1), tháng 1→5 thuộc (Y-1)-Y. Trả về dạng '2026-2027'.
-// Phải khớp với current_school_year() trong DB (migration 0025).
+// Năm học của trường Việt Anh: 01/07 → 30/06 năm sau. Trả về dạng '2026-2027'.
+//
+// SỬA 2026-08-06 — mốc từ tháng 6 sang tháng 7, và khoảng ngày từ 01/09–31/05 sang 01/07–30/06.
+// Trước đây NHÃN và KHOẢNG NGÀY nói hai chuyện khác nhau: nhãn đổi ở tháng 6, còn khoảng lại là
+// 01/09 → 31/05. Nghĩa là hôm nay (06/08/2026) mang nhãn '2026-2027' nhưng NẰM NGOÀI khoảng ngày
+// của chính năm học ấy. Hệ quả thấy được: chủ dự án tạo mục tiêu năm, nó nhận start_date
+// 2026-09-01, nên mọi mục tiêu tháng và tuần đều bị đẩy về sau tháng 9 — trong khi trường đã vào
+// năm học từ tháng 7. Anh ấy báo đúng: "tháng 7 là bắt đầu kỳ này rồi, không phải t9".
+//
+// Phải khớp với current_school_year() trong DB (migration 0025, sửa ở 0093).
 export function schoolYearLabel(date: Date = new Date()): string {
   const {y, m} = vnParts(date);
-  return m >= 6 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
+  return m >= 7 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
 }
+
+// Ngày đầu và ngày cuối của một năm học, tính từ năm đầu của nhãn ('2026-2027' → 2026).
+// Khai một chỗ: trước đây hai hàm tự viết lại '-09-01' và '-05-31', nên sửa mốc là phải nhớ sửa
+// cả hai — kiểu sót chỉ lộ ra khi một chỗ nói tháng 7 còn chỗ kia vẫn tháng 9.
+export const NGAY_DAU_NAM_HOC = '-07-01';
+export const NGAY_CUOI_NAM_HOC = '-06-30';
 
 // Ngày hôm nay theo múi giờ Việt Nam, dạng 'YYYY-MM-DD' (fallback nếu RPC app_today lỗi).
 export function todayInVN(): string {
@@ -144,11 +157,11 @@ export function recentWeekLabels(count = 6, date: Date = new Date()): string[] {
   );
 }
 
-// Phạm vi năm học VN (01/09 → 31/05 năm sau) chứa ngày cho trước.
+// Phạm vi năm học (01/07 → 30/06 năm sau) chứa ngày cho trước.
 export function schoolYearRangeVN(date: Date = new Date()): {start: string; end: string; label: string} {
   const label = schoolYearLabel(date); // '2026-2027'
   const first = Number(label.split('-')[0]);
-  return {start: `${first}-09-01`, end: `${first + 1}-05-31`, label};
+  return {start: `${first}${NGAY_DAU_NAM_HOC}`, end: `${first + 1}${NGAY_CUOI_NAM_HOC}`, label};
 }
 
 // ============================================================
@@ -168,7 +181,7 @@ export function schoolYearOptions(count = 2, date: Date = new Date()): PeriodOpt
   const first = Number(schoolYearLabel(date).split('-')[0]);
   return Array.from({length: count}, (_, i) => {
     const y = first + i;
-    return {label: `${y}-${y + 1}`, start: `${y}-09-01`, end: `${y + 1}-05-31`};
+    return {label: `${y}-${y + 1}`, start: `${y}${NGAY_DAU_NAM_HOC}`, end: `${y + 1}${NGAY_CUOI_NAM_HOC}`};
   });
 }
 
