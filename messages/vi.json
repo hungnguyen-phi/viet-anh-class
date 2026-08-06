@@ -780,6 +780,7 @@
   },
   "timetable": {
     "title": "Thời khoá biểu",
+    "noSubjects": "Lớp này chưa khai môn nào nên chưa chọn được môn cho ô thời khoá biểu. Bấm nút bên cạnh để thêm cả bộ môn của cơ sở vào chương trình lớp, rồi xếp lịch như thường.",
     "period": "Tiết",
     "subject": "Môn học",
     "room": "Phòng",

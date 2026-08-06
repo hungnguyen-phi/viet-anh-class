@@ -419,8 +419,11 @@ export default async function TimetablePage({
                bộ môn đang dùng của cơ sở, gọi lại bao nhiêu lần cũng an toàn. */
             <div className="flex flex-wrap items-center gap-2.5">
               <p className="min-w-[240px] flex-1 text-[12.5px] font-semibold leading-[1.55] text-txt">
-                Lớp này chưa khai môn nào nên chưa chọn được môn cho ô thời khoá biểu. Bấm nút bên
-                cạnh để thêm cả bộ môn của cơ sở vào chương trình lớp, rồi xếp lịch như thường.
+                {/* Câu này trước đây gõ THẲNG tiếng Việt vào JSX, nên bản tiếng Anh của trang
+                    cũng hiện ra một đoạn tiếng Việt. Bộ kiểm khoá dịch không bắt được: nó chỉ
+                    soi những khoá ĐƯỢC GỌI có tồn tại hay không, chứ không biết chỗ nào lẽ ra
+                    phải gọi mà lại gõ tay. */}
+                {t('noSubjects')}
               </p>
               <form action={seedSubjects}>
                 <input type="hidden" name="class_id" value={myClass.id} />

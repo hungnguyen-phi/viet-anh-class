@@ -270,8 +270,13 @@ export default async function HomeworkPage({
           <div className="glass rounded-[16px] p-3">
             <div className="flex flex-wrap items-center gap-2.5">
               <p className="min-w-[240px] flex-1 text-[12.5px] font-semibold leading-[1.55] text-txt">
+                {/* Trước đây sau lời gọi t('noSubjects') còn sót một mẩu chữ Việt gõ thẳng vào
+                    JSX: "thêm cả bộ môn của cơ sở vào chương trình lớp, rồi đăng bài như thường."
+                    Nó dán dính ngay sau dấu chấm của câu dịch và LẶP LẠI đúng ý câu ấy — ảnh
+                    chụp lúc audit mobile đọc ra "…vào lớp.thêm cả bộ môn của cơ sở vào chương
+                    trình lớp…". Tệ hơn: mẩu ấy là tiếng Việt cứng, nên bản tiếng Anh cũng dính
+                    một câu tiếng Việt. Câu dịch đã đủ nghĩa, bỏ hẳn mẩu thừa. */}
                 {t('noSubjects')}
-                thêm cả bộ môn của cơ sở vào chương trình lớp, rồi đăng bài như thường.
               </p>
               <form action={seedSubjects}>
                 <input type="hidden" name="class_id" value={myClass.id} />

@@ -780,6 +780,7 @@
   },
   "timetable": {
     "title": "Timetable",
+    "noSubjects": "This class has no subjects yet, so there is nothing to pick for a timetable slot. Press the button beside this to add the campus subject set to the class, then schedule as usual.",
     "period": "Period",
     "subject": "Subject",
     "room": "Room",
