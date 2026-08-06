@@ -151,23 +151,19 @@ export async function AdminSections() {
         <div className={cardTitle}>{t('otherPages')}</div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <p className="mb-2 text-xs text-grey-mid">
-              Danh mục môn dùng chung toàn trường, lớp nào học môn nào, và ai dạy môn gì ở lớp nào.
-              Giáo viên bộ môn chỉ nhập được điểm môn mình được phân công.
-            </p>
+            {/* Bốn chuỗi trong khối này trước đây gõ thẳng tiếng Việt vào JSX — bản tiếng Anh
+                của màn Quản trị hiện ra hai đoạn tiếng Việt. */}
+            <p className="mb-2 text-xs text-grey-mid">{t('subjectsHint')}</p>
             <Link href="/subjects" className={openLink}>
               <BookMarked size={14} strokeWidth={2.2} />
-              Mở danh mục môn
+              {t('openSubjects')}
             </Link>
           </div>
           <div>
-            <p className="mb-2 text-xs text-grey-mid">
-              Thực đơn bữa ăn soạn theo tuần cho từng cơ sở. Phụ huynh và học sinh thấy ngay trong
-              trang của họ.
-            </p>
+            <p className="mb-2 text-xs text-grey-mid">{t('menuHint')}</p>
             <Link href="/menu" className={openLink}>
               <UtensilsCrossed size={14} strokeWidth={2.2} />
-              Mở trang thực đơn
+              {t('openMenu')}
             </Link>
           </div>
         </div>

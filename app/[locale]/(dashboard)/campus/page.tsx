@@ -172,7 +172,18 @@ export default async function CampusPage({
 
       <Flash />
 
-      {rows.length === 0 ? (
+      {/* PHÂN BIỆT "CHƯA ĐƯỢC GÁN CƠ SỞ" VỚI "CƠ SỞ CHƯA CÓ LỚP".
+          Hiệu trưởng chưa được gán cơ sở thì khối truy vấn ở trên bị bỏ qua hoàn toàn (xem điều
+          kiện `role === 'principal' && profile.campus_id`), rồi trang rơi vào đúng câu "Chưa có
+          lớp nào trong cơ sở" — trong khi trường đang có ba lớp. Audit mobile 2026-08-06 chụp
+          được câu ấy, và ở màn Họp WIG nó còn tệ hơn: bảo người ta đi TẠO những lớp đã tồn tại.
+          Cùng một kiểu sai với màn "chưa được cấp quyền": đổ cho dữ liệu thay vì nói đúng tình
+          trạng của chính người đang đứng đó. */}
+      {profile.role === 'principal' && !profile.campus_id ? (
+        <p className="rounded-[14px] bg-warn/[0.10] px-4 py-3 text-sm font-semibold leading-relaxed text-navy">
+          {t('noCampusAssigned')}
+        </p>
+      ) : rows.length === 0 ? (
         <p className="text-sm italic text-grey-mid">{t('noClasses')}</p>
       ) : (
         <SchoolRollup rows={rows} />
@@ -191,18 +202,16 @@ export default async function CampusPage({
           toàn trường thì chỉ quản trị viên đổi (RLS 0069, cố ý — đổi tên "Ngữ văn" ở một cơ sở là
           đổi cho cả bốn, và mọi con điểm Ngữ văn toàn trường đổi nhãn theo). */}
       <section className="glass rounded-[20px] p-[18px]">
-        <div className="mb-3 font-display text-[15px] font-bold text-navy">
-          Môn học &amp; phân công giáo viên bộ môn
-        </div>
-        <p className="mb-3 text-xs text-grey-mid">
-          Xem danh mục môn của trường, thêm môn riêng của cơ sở, và chọn ai dạy môn gì ở từng lớp.
-        </p>
+        {/* Ba chuỗi này trước đây gõ thẳng tiếng Việt vào JSX, nên bản tiếng Anh của màn Báo cáo
+            cơ sở hiện ra một thẻ tiếng Việt giữa trang. */}
+        <div className="mb-3 font-display text-[15px] font-bold text-navy">{t('subjectsCard')}</div>
+        <p className="mb-3 text-xs text-grey-mid">{t('subjectsCardHint')}</p>
         <Link
           href="/subjects"
           className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy"
         >
           <BookMarked size={14} strokeWidth={2.2} />
-          Mở danh mục môn
+          {t('openSubjects')}
         </Link>
       </section>
 
