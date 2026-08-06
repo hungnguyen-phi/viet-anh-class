@@ -267,6 +267,10 @@ const chupAnh = async (rong, ten) => {
   // nội dung tràn ra không làm scrollHeight lớn lên. Và 800 là con số trông hợp lý tới mức ảnh
   // cắt cụt vẫn lọt qua mắt.
   // Lấy mép dưới xa nhất trong số mọi thẻ con thì không có cách nào nói dối.
+  //
+  // GIỚI HẠN ĐÃ BIẾT: cách này ĐO THỪA. Có một thẻ cao 2178px trên mọi trang mà ba lớp lọc dưới
+  // đây chưa bắt được, nên nhiều ảnh dư khoảng trắng ở cuối. Chấp nhận: thừa thì chỉ tốn chỗ,
+  // còn thiếu thì cắt mất nội dung — mà cắt mới là kiểu hỏng đã lừa được cả một lượt audit.
   const {result: rCao} = await goi('Runtime.evaluate', {
     returnByValue: true,
     expression: `(() => {
@@ -274,7 +278,16 @@ const chupAnh = async (rong, ten) => {
       const y = window.scrollY;
       for (const el of document.body.querySelectorAll('*')) {
         const r = el.getBoundingClientRect();
-        if (r.height > 0 && r.width > 0 && getComputedStyle(el).position !== 'fixed')
+        // Bỏ qua fixed VÀ absolute: thanh nav, ngăn kéo, lớp phủ đóng sẵn đều nằm ngoài dòng
+        // chảy của trang. Tính chúng vào thì MỌI trang đều ra đúng một chiều cao (2178px) — con
+        // số của thứ cao nhất trên màn, không phải của nội dung.
+        // Bỏ qua fixed/absolute (thanh nav, lớp phủ) VÀ những gì bị đẩy ra ngoài mép ngang —
+        // ngăn kéo menu off-canvas nằm ở translate-x-full vẫn có hộp cao 2178px, nên tính nó vào
+        // là MỌI trang đều ra đúng một chiều cao 2178px: con số của cái ngăn kéo, không phải của
+        // trang.
+        const vt = getComputedStyle(el).position;
+        const trongTam = r.left < window.innerWidth && r.right > 0;
+        if (r.height > 0 && r.width > 0 && trongTam && vt !== 'fixed' && vt !== 'absolute')
           day = Math.max(day, r.bottom + y);
       }
       return day;

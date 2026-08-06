@@ -312,7 +312,12 @@ export default async function RosterPage({
             className={`flex ${xemChiTiet ? 'min-w-[900px]' : 'min-w-[420px]'} items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2 transition-colors hover:bg-navy/[0.03]`}
           >
             <span className="w-[22px] flex-none text-[12px] font-bold text-grey-mid">{i + 1}</span>
-            <span className="flex min-w-0 flex-[1.4] items-center gap-1.5">
+            {/* flex-wrap + tên được ưu tiên chỗ.
+                Audit mobile 2026-08-06, màn 360px: nhãn "○ chưa đăng nhập" (shrink-0, ~100px)
+                không bao giờ nhường chỗ, nên TÊN HỌC SINH lãnh trọn phần thiếu và bị cắt còn ba
+                ký tự — "chi…", "hie…", "phu…". Cả màn danh sách lớp trở thành một cột vô nghĩa,
+                đúng thứ giáo viên mở ra để đọc. Nay nhãn xuống dòng khi chật, tên giữ nguyên. */}
+            <span className="flex min-w-0 flex-[1.4] flex-wrap items-center gap-x-1.5 gap-y-0.5">
               {/* Em đã có tài khoản → mở được trang cá nhân. Em chưa đăng nhập thì chưa có trang. */}
               {r.studentId ? (
                 <Link
@@ -322,7 +327,12 @@ export default async function RosterPage({
                   {r.name}
                 </Link>
               ) : (
-                <span className="truncate text-[13.5px] font-bold text-navy/70">{r.name}</span>
+                // min-w-[88px] flex-1 y như nhánh có tài khoản ở trên: thiếu nó thì ô tên co lại
+                // theo nội dung và nhường hết chỗ cho nhãn shrink-0 bên cạnh — mà đây đúng là
+                // nhánh của những em CHƯA đăng nhập, tức là những dòng luôn có nhãn ấy.
+                <span className="block min-w-[88px] flex-1 truncate py-1 text-[13.5px] font-bold text-navy/70">
+                  {r.name}
+                </span>
               )}
               {/* Chỉ là nhãn: đổi tổ trưởng làm ở khối phía trên, không còn nút trên từng dòng */}
               {r.isLeader && (
