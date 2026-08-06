@@ -359,7 +359,8 @@ const KICH_BAN = [
     duong: '/wig',
     bam: `(() => {
       const nut = [...document.querySelectorAll('button[aria-haspopup="dialog"]')][0];
-      if (nut && nut.getAttribute('aria-expanded') !== 'true') { nut.click(); return true; }
+      if (!nut) return false;
+      if (nut.getAttribute('aria-expanded') !== 'true') nut.click();
       const tab = [...document.querySelectorAll('button[aria-pressed]')].find(
         (x) => (x.textContent || '').trim() === 'Tháng' || (x.textContent || '').trim() === 'Month',
       );
@@ -379,7 +380,12 @@ const KICH_BAN = [
     // đúng như nó nên báo.
     bam: `(() => {
       const nut = [...document.querySelectorAll('button[aria-haspopup="dialog"]')][0];
-      if (nut && nut.getAttribute('aria-expanded') !== 'true') { nut.click(); return true; }
+      if (!nut) return false;
+      // MỞ RỒI THÌ ĐỪNG BẤM LẠI. Hàm này được gọi lại tới khi \`xong\` đúng, mà nút "Tạo mục
+      // tiêu" là nút bật-tắt: bấm lần hai là ĐÓNG hộp thoại vừa mở. Ở local hộp mở kịp trong một
+      // vòng nên không lộ; trên production hydrate chậm hơn, và bộ đo cứ mở-đóng-mở-đóng cho tới
+      // hết giờ rồi báo "cảnh không mở ra" cho một trang hoàn toàn bình thường.
+      if (nut.getAttribute('aria-expanded') !== 'true') nut.click();
       const tab = [...document.querySelectorAll('button[aria-pressed]')].find(
         (x) => (x.textContent || '').trim() === 'Tuần' || (x.textContent || '').trim() === 'Week',
       );
