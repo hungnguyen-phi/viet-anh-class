@@ -6,7 +6,7 @@ import {AlertCircle, CheckCircle2, ChevronDown, Lock, Plus, X} from 'lucide-reac
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, ctlWithBorder, selectCls, btnGold, btnGhost} from '@/components/ui/Field';
 import {taoWig} from '@/app/[locale]/(dashboard)/wig/actions';
-import {weekRangeVN, type PeriodOption} from '@/lib/dates';
+import {tuanTronTrongCha, thangTronTrongCha, weekRangeVN, type PeriodOption} from '@/lib/dates';
 
 // ════════════════════════════════════════════════════════════════════════════
 // MỘT NÚT "+ Tạo mục tiêu" Ở GÓC PHẢI — thay cho ba khung form xếp dọc cả trang.
@@ -130,10 +130,18 @@ export function TaoWigMenu({
   const cha = chaOptions.find((o) => o.id === chaId) ?? chaOptions[0];
   const lonHon = (a: string, b: string) => (a > b ? a : b);
   const nhoHon = (a: string, b: string) => (a < b ? a : b);
-  const minTuan = cha ? lonHon(gioiHan.week.min, cha.start_date) : gioiHan.week.min;
-  const maxTuan = cha ? nhoHon(gioiHan.week.max, cha.end_date) : gioiHan.week.max;
-  const minThang = cha ? lonHon(gioiHan.month.min, cha.start_date.slice(0, 7)) : gioiHan.month.min;
-  const maxThang = cha ? nhoHon(gioiHan.month.max, cha.end_date.slice(0, 7)) : gioiHan.month.max;
+  // Lùi vào TUẦN/THÁNG TRỌN VẸN, không chặn đúng bằng khoảng của cha.
+  //
+  // Chặn đúng bằng cha vẫn để lọt, và tôi đã đưa cái lọt ấy lên production: cha là tháng 9, ô lịch
+  // cho chọn 01/09, nhưng TUẦN chứa 01/09 là 31/08 → 06/09 — thò sang tháng 8. Server đòi cả kỳ
+  // nằm trong cha (lib/wig-tao.ts) nên vẫn từ chối, đúng câu mà bản sửa này sinh ra để dẹp.
+  const tuanCha = cha ? tuanTronTrongCha(cha.start_date, cha.end_date) : null;
+  const thangCha = cha ? thangTronTrongCha(cha.start_date, cha.end_date) : null;
+  const chaQuaNgan = cha != null && (loai === 'week' ? tuanCha === null : thangCha === null);
+  const minTuan = tuanCha ? lonHon(gioiHan.week.min, tuanCha.min) : gioiHan.week.min;
+  const maxTuan = tuanCha ? nhoHon(gioiHan.week.max, tuanCha.max) : gioiHan.week.max;
+  const minThang = thangCha ? lonHon(gioiHan.month.min, thangCha.min) : gioiHan.month.min;
+  const maxThang = thangCha ? nhoHon(gioiHan.month.max, thangCha.max) : gioiHan.month.max;
 
   // Đổi mục tiêu cha (hoặc mở tab khác) mà ngày đang chọn rơi ra ngoài khoảng mới thì KÉO nó vào.
   // Không kéo thì ô lịch giữ một ngày mà chính nó đang cấm — trình duyệt không tự sửa hộ, và người
@@ -320,13 +328,15 @@ export function TaoWigMenu({
                     className={ctlWithBorder(state.fieldError === 'period_label')}
                   />
                   <p id="wig-ky-ghi" className="mt-1 text-[12px] font-semibold text-grey-mid">
-                    {tuanDangChon
+                    {chaQuaNgan
+                      ? t('parentTooShort')
+                      : tuanDangChon
                       ? t('weekResolved', {
                           week: tuanDangChon.label,
                           from: dm(tuanDangChon.start),
                           to: dm(tuanDangChon.end),
                         })
-                      : t('weekPickHint')}
+                        : t('weekPickHint')}
                   </p>
                 </>
               ) : loai === 'month' ? (

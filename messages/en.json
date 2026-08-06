@@ -409,6 +409,7 @@
   },
   "wig": {
     "weekResolved": "Week {week} · {from} → {to}",
+    "parentTooShort": "The parent goal is shorter than a full week, so no week fits inside it. Pick a different parent.",
     "weekPickHint": "Pick any day — the system takes the whole week containing it.",
     "csTitle": "Students' daily actions — week {week}",
     "csReady": "{ready}/{total} students have actions",

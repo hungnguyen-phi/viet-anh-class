@@ -9,7 +9,7 @@
 // là phép tính thuần, kiểm được bằng số — không phải dựng trình duyệt rồi đoán qua ảnh.
 //
 //   node scripts/test-ky-cha.mjs
-import {gioiHanChonKy, CUA_SO_KY} from '../lib/dates.ts';
+import {gioiHanChonKy, CUA_SO_KY, tuanTronTrongCha, thangTronTrongCha} from '../lib/dates.ts';
 
 let dat = 0, hong = 0;
 const ok = (ten, c, ghi = '') => {
@@ -20,12 +20,16 @@ const ok = (ten, c, ghi = '') => {
 // Chép ĐÚNG phép tính trong TaoWigMenu: giao của hai khoảng.
 const lonHon = (a, b) => (a > b ? a : b);
 const nhoHon = (a, b) => (a < b ? a : b);
-const chan = (g, cha) => ({
-  minTuan: lonHon(g.week.min, cha.start_date),
-  maxTuan: nhoHon(g.week.max, cha.end_date),
-  minThang: lonHon(g.month.min, cha.start_date.slice(0, 7)),
-  maxThang: nhoHon(g.month.max, cha.end_date.slice(0, 7)),
-});
+const chan = (g, cha) => {
+  const tc = tuanTronTrongCha(cha.start_date, cha.end_date);
+  const mc = thangTronTrongCha(cha.start_date, cha.end_date);
+  return {
+    minTuan: tc ? lonHon(g.week.min, tc.min) : null,
+    maxTuan: tc ? nhoHon(g.week.max, tc.max) : null,
+    minThang: mc ? lonHon(g.month.min, mc.min) : null,
+    maxThang: mc ? nhoHon(g.month.max, mc.max) : null,
+  };
+};
 
 // Mốc cố định để phép kiểm không đổi kết quả theo ngày chạy.
 const MOC = new Date('2026-08-06T05:00:00Z');
@@ -34,8 +38,12 @@ const g = gioiHanChonKy(MOC);
 // Đúng tình huống của chủ dự án: cha là mục tiêu THÁNG 9.
 const chaThang9 = {start_date: '2026-09-01', end_date: '2026-09-30'};
 const c1 = chan(g, chaThang9);
-ok('Cha là tháng 9 → lịch tuần không cho chọn trước 01/09', c1.minTuan === '2026-09-01', c1.minTuan);
-ok('Cha là tháng 9 → lịch tuần không cho chọn sau 30/09', c1.maxTuan === '2026-09-30', c1.maxTuan);
+// TUẦN TRỌN VẸN, không phải "ngày nằm trong cha". Tuần chứa 01/09 là 31/08→06/09, thò sang
+// tháng 8 — server đòi CẢ KỲ nằm trong cha nên vẫn từ chối. Đây là lỗi tôi đã đưa lên production
+// một lần, ảnh chụp bắt được: ô lịch nhận 01/09 rồi dòng dưới ghi "Tuần W36-2026 · 31/08 → 06/09".
+ok('Cha là tháng 9 → lùi vào thứ Hai của tuần trọn đầu tiên (07/09)', c1.minTuan === '2026-09-07', c1.minTuan);
+ok('Cha là tháng 9 → lùi vào Chủ nhật của tuần trọn cuối (27/09)', c1.maxTuan === '2026-09-27', c1.maxTuan);
+ok('Không cho chọn 01/09 nữa vì tuần của nó bắt đầu từ 31/08', '2026-09-01' < c1.minTuan, `min=${c1.minTuan}`);
 ok('Tuần hiện tại (03/08) nằm NGOÀI khoảng cho phép', '2026-08-03' < c1.minTuan, `min=${c1.minTuan}`);
 
 // Cha là mục tiêu NĂM HỌC: khoảng rộng, nên cửa sổ server mới là thứ chặn.
@@ -49,11 +57,22 @@ ok('Cha là năm học → chặn tháng lấy mốc sớm hơn trong hai mốc'
 for (const [ten, cha] of [
   ['tháng 9', chaThang9],
   ['năm học', chaNam],
-  ['một tuần lẻ', {start_date: '2026-09-07', end_date: '2026-09-13'}],
+  ['đúng một tuần lịch', {start_date: '2026-09-07', end_date: '2026-09-13'}],
 ]) {
   const c = chan(g, cha);
-  ok(`Khoảng cho phép không rỗng khi cha là ${ten}`, c.minTuan <= c.maxTuan, `${c.minTuan} → ${c.maxTuan}`);
+  ok(`Khoảng cho phép không rỗng khi cha là ${ten}`, c.minTuan && c.minTuan <= c.maxTuan, `${c.minTuan} → ${c.maxTuan}`);
 }
+
+// Cha ngắn hơn một tuần: KHÔNG có tuần nào nằm gọn. Phải trả null để giao diện nói ra lý do, thay
+// vì đưa một ô lịch khoá sạch không giải thích gì — người dùng lại bí đúng như trước.
+ok(
+  'Cha ngắn hơn một tuần → trả null để giao diện còn nói được lý do',
+  tuanTronTrongCha('2026-09-08', '2026-09-10') === null,
+);
+// Cha bắt đầu giữa tháng: tháng ấy không nằm trọn, phải lùi sang tháng sau.
+const mc = thangTronTrongCha('2026-09-15', '2026-12-31');
+ok('Cha bắt đầu 15/09 → tháng chọn được bắt đầu từ 2026-10', mc?.min === '2026-10', String(mc?.min));
+ok('Cha kết thúc 31/12 → tháng chọn được tới 2026-12', mc?.max === '2026-12', String(mc?.max));
 
 // Cửa sổ server và cửa sổ lịch phải cùng một khai báo.
 ok('Cửa sổ tuần khai đúng một chỗ', CUA_SO_KY.week.lui === 12 && CUA_SO_KY.week.toi === 12, JSON.stringify(CUA_SO_KY.week));

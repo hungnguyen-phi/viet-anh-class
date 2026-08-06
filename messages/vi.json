@@ -409,6 +409,7 @@
   },
   "wig": {
     "weekResolved": "Tuần {week} · {from} → {to}",
+    "parentTooShort": "Mục tiêu cha ngắn hơn một tuần trọn vẹn — không có tuần nào nằm gọn trong nó. Chọn mục tiêu cha khác.",
     "weekPickHint": "Chọn một ngày bất kỳ trong tuần — hệ thống tự lấy trọn tuần chứa ngày đó.",
     "csTitle": "Việc hằng ngày của học sinh — tuần {week}",
     "csReady": "{ready}/{total} em đã có việc",

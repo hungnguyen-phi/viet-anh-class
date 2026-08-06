@@ -243,6 +243,49 @@ export function ngayCuaKy(
   return hit ? {start: hit.start, end: hit.end} : null;
 }
 
+// KHOẢNG NGÀY CHỌN ĐƯỢC KHI ĐÃ CÓ MỤC TIÊU CHA.
+//
+// Không phải cứ ngày nằm trong cha là chọn được. Luật của server (lib/wig-tao.ts) đòi CẢ KỲ nằm
+// trong cha: `ky.start < cha.start_date || ky.end > cha.end_date` là từ chối. Mà tuần chứa ngày
+// 01/09 là 31/08 → 06/09 — bắt đầu từ tháng 8. Nên chặn ô lịch đúng bằng khoảng của cha vẫn để
+// lọt: người dùng chọn ngày đầu tháng, bấm Lưu, và lại nhận đúng câu "kỳ nằm ngoài mục tiêu cha"
+// mà bản sửa này sinh ra để dẹp. Ảnh chụp production 2026-08-06 bắt được cảnh ấy.
+//
+// Phải lùi vào TUẦN TRỌN VẸN đầu tiên và cuối cùng. Trả về null khi cha ngắn tới mức không chứa
+// trọn tuần nào — chỗ gọi phải nói ra thay vì đưa một ô lịch khoá sạch không lý do.
+export function tuanTronTrongCha(
+  chaStart: string,
+  chaEnd: string,
+): {min: string; max: string} | null {
+  const ngay = 86_400_000;
+  const dau = weekRangeVN(new Date(`${chaStart}T12:00:00Z`));
+  // Tuần chứa ngày đầu của cha thò ra trước cha thì lấy tuần kế tiếp.
+  const min = dau.start >= chaStart ? dau.start : weekRangeVN(new Date(new Date(`${dau.end}T12:00:00Z`).getTime() + ngay)).start;
+  const cuoi = weekRangeVN(new Date(`${chaEnd}T12:00:00Z`));
+  // Tuần chứa ngày cuối của cha thò ra sau cha thì lấy tuần liền trước.
+  const max = cuoi.end <= chaEnd ? cuoi.end : weekRangeVN(new Date(new Date(`${cuoi.start}T12:00:00Z`).getTime() - ngay)).end;
+  return min <= max ? {min, max} : null;
+}
+
+// Tháng TRỌN VẸN trong cha — cùng lý do: cha bắt đầu ngày 15 thì tháng ấy không nằm trọn.
+export function thangTronTrongCha(chaStart: string, chaEnd: string): {min: string; max: string} | null {
+  const dauThang = (ym: string) => `${ym}-01`;
+  const cuoiThang = (ym: string) => {
+    const [y, m] = ym.split('-').map(Number);
+    return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+  };
+  const ke = (ym: string, b: number) => {
+    const [y, m] = ym.split('-').map(Number);
+    const d = new Date(Date.UTC(y, m - 1 + b, 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+  };
+  let min = chaStart.slice(0, 7);
+  if (dauThang(min) < chaStart) min = ke(min, 1);
+  let max = chaEnd.slice(0, 7);
+  if (cuoiThang(max) > chaEnd) max = ke(max, -1);
+  return min <= max ? {min, max} : null;
+}
+
 // Chặn đầu–cuối cho ô chọn ngày của form tạo mục tiêu.
 //
 // Tính Ở SERVER rồi truyền xuống, không tính trong component: mọi hàm ở trên đều lấy `new Date()`
