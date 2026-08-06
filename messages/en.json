@@ -493,6 +493,7 @@
     "addWorkNeedsWig": "No week goal yet, so there is nothing to attach a task to.",
     "progressRail": "Where the class stands",
     "emptyYear": "no year goal yet",
+    "monthOtherPeriod": "set for {label}, not this week",
     "emptyMonth": "no month goal yet",
     "emptyWeek": "no goal for this week yet",
     "tickSummary": "{n}/{total} students ticked this week",

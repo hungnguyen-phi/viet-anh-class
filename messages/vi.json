@@ -493,6 +493,7 @@
     "addWorkNeedsWig": "Chưa có mục tiêu tuần thì chưa thêm việc được — việc phải thuộc về một mục tiêu nào đó.",
     "progressRail": "Lớp đang đi tới đâu",
     "emptyYear": "chưa đặt mục tiêu năm",
+    "monthOtherPeriod": "đã đặt cho {label}, chưa phải tuần này",
     "emptyMonth": "chưa đặt mục tiêu tháng",
     "emptyWeek": "chưa đặt mục tiêu tuần này",
     "tickSummary": "{n}/{total} em đã tick trong tuần này",

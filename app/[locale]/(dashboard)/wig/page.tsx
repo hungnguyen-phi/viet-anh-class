@@ -289,9 +289,25 @@ export default async function WigPage({
     };
   };
 
+  // "CHƯA ĐẶT" KHÁC VỚI "ĐÃ ĐẶT NHƯNG CHO THÁNG KHÁC".
+  //
+  // Bảng này chỉ nhận mục tiêu tháng PHỦ LÊN tuần đang xem. Đúng luật — nhưng chủ dự án tạo mục
+  // tiêu cho tháng 9 trong lúc đang đứng ở tuần đầu tháng 8, và bảng báo thẳng "chưa đặt mục tiêu
+  // tháng". Cùng lúc đó tab "Tuần" ở nút Tạo lại MỞ, vì nó chỉ hỏi "lớp có mục tiêu tháng nào
+  // không" bất kể tháng nào. Hai câu hỏi khác nhau trên cùng một màn hình, và người đọc thấy đúng
+  // một điều: app vừa nói nó không có, vừa xử sự như nó có.
+  //
+  // Cách sửa KHÔNG phải là nới luật trongTuan — luật ấy đang giữ cho màn giáo viên và màn học
+  // sinh cắt ra cùng một kết quả (sự cố 7B1). Mà là nói cho đủ: có thì bảo có, kèm kỳ của nó.
+  const kyGanNhat = (ds: Wig[]): Wig | undefined =>
+    [...ds].sort((a, b) => a.start_date.localeCompare(b.start_date)).find((w) => w.end_date >= wk.start) ??
+    [...ds].sort((a, b) => b.end_date.localeCompare(a.end_date))[0];
+
   const nhomTienDo = yearWigs.map((yw) => {
     const thangCuaNam = monthWigs.filter((m) => m.parent_wig_id === yw.id);
     const thang = thangCuaNam.find(trongTuan);
+    // Không có tháng nào phủ tuần này, nhưng lớp CÓ mục tiêu tháng: lấy cái gần nhất để nói ra.
+    const thangKhac = thang ? undefined : kyGanNhat(thangCuaNam);
     const thangIds = new Set(thangCuaNam.map((m) => m.id));
     // Tuần có thể treo dưới THÁNG (luật mới) hoặc thẳng dưới NĂM (dữ liệu cũ) — nhận cả hai,
     // nếu không thì mục tiêu tuần đang chạy của các lớp cũ biến mất khỏi cột này.
@@ -305,7 +321,13 @@ export default async function WigPage({
       areaSoft: meta.soft,
       dong: [
         dongCua(yw, 'year', t('emptyYear')),
-        dongCua(thang, 'month', t('emptyMonth')),
+        dongCua(
+          thang,
+          'month',
+          thangKhac
+            ? t('monthOtherPeriod', {label: thangKhac.period_label ?? ''})
+            : t('emptyMonth'),
+        ),
         dongCua(tuan, 'week', t('emptyWeek')),
       ],
     };

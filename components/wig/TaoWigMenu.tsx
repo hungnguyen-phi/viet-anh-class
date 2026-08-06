@@ -117,6 +117,37 @@ export function TaoWigMenu({
   const dm = (x: string) => `${x.slice(8, 10)}/${x.slice(5, 7)}`;
   const chaOptions = loai === 'month' ? wigNam : wigThang;
 
+  // ── LỊCH BỊ RÀNG VÀO KHOẢNG CỦA MỤC TIÊU CHA ─────────────────────────────────────────────
+  //
+  // Đây là lỗi chủ dự án gặp: lớp có mục tiêu tháng cho THÁNG 9, nhưng form đứng ở tuần hiện tại
+  // (đầu tháng 8), nên bấm Lưu ra "Kỳ này nằm ngoài mục tiêu cha (2026-09-01 → 2026-09-30). Chọn
+  // kỳ khác hoặc chọn mục tiêu cha khác." Câu ấy đúng nhưng tới quá muộn — người ta điền xong cả
+  // form rồi mới biết ô ĐẦU TIÊN đã sai.
+  //
+  // Nay ô lịch không cho chọn ra ngoài khoảng của cha, và ngày mặc định tự nhảy vào trong khoảng
+  // ấy. Chọn sai thành chuyện không xảy ra được, thay vì chuyện bị mắng sau khi đã xảy ra.
+  const [chaId, setChaId] = useState('');
+  const cha = chaOptions.find((o) => o.id === chaId) ?? chaOptions[0];
+  const lonHon = (a: string, b: string) => (a > b ? a : b);
+  const nhoHon = (a: string, b: string) => (a < b ? a : b);
+  const minTuan = cha ? lonHon(gioiHan.week.min, cha.start_date) : gioiHan.week.min;
+  const maxTuan = cha ? nhoHon(gioiHan.week.max, cha.end_date) : gioiHan.week.max;
+  const minThang = cha ? lonHon(gioiHan.month.min, cha.start_date.slice(0, 7)) : gioiHan.month.min;
+  const maxThang = cha ? nhoHon(gioiHan.month.max, cha.end_date.slice(0, 7)) : gioiHan.month.max;
+
+  // Đổi mục tiêu cha (hoặc mở tab khác) mà ngày đang chọn rơi ra ngoài khoảng mới thì KÉO nó vào.
+  // Không kéo thì ô lịch giữ một ngày mà chính nó đang cấm — trình duyệt không tự sửa hộ, và người
+  // dùng lại rơi đúng vào câu "kỳ nằm ngoài mục tiêu cha".
+  useEffect(() => {
+    if (loai !== 'week' || !ngayTuan) return;
+    if (ngayTuan < minTuan || ngayTuan > maxTuan) setNgayTuan(minTuan);
+  }, [loai, ngayTuan, minTuan, maxTuan]);
+  useEffect(() => {
+    if (loai !== 'month') return;
+    const ht = thangDangChon || kyMacDinh.month;
+    if (ht < minThang || ht > maxThang) setThangDangChon(minThang);
+  }, [loai, thangDangChon, minThang, maxThang, kyMacDinh.month]);
+
   const tab = (gt: 'year' | 'month' | 'week', nhan: string, mo: boolean, viSao: string) => (
     <button
       type="button"
@@ -192,7 +223,13 @@ export function TaoWigMenu({
                 htmlFor="wig-parent"
                 error={err('parent_wig_id')}
               >
-                <select id="wig-parent" name="parent_wig_id" className={selectCls} defaultValue={chaOptions[0]?.id ?? ''}>
+                <select
+                  id="wig-parent"
+                  name="parent_wig_id"
+                  className={selectCls}
+                  value={cha?.id ?? ''}
+                  onChange={(e) => setChaId(e.target.value)}
+                >
                   {chaOptions.map((o) => (
                     <option key={o.id} value={o.id}>
                       {o.title}
@@ -277,8 +314,8 @@ export function TaoWigMenu({
                     type="date"
                     value={ngayTuan}
                     onChange={(e) => setNgayTuan(e.target.value)}
-                    min={gioiHan.week.min}
-                    max={gioiHan.week.max}
+                    min={minTuan}
+                    max={maxTuan}
                     aria-describedby="wig-ky-ghi"
                     className={ctlWithBorder(state.fieldError === 'period_label')}
                   />
@@ -300,8 +337,8 @@ export function TaoWigMenu({
                     type="month"
                     value={nhanThang}
                     onChange={(e) => setThangDangChon(e.target.value)}
-                    min={gioiHan.month.min}
-                    max={gioiHan.month.max}
+                    min={minThang}
+                    max={maxThang}
                     aria-describedby="wig-ky-ghi"
                     className={ctlWithBorder(state.fieldError === 'period_label')}
                   />
