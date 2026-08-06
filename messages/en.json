@@ -408,6 +408,17 @@
     "placeholder": "This section will be completed in the next steps."
   },
   "wig": {
+    "csTitle": "Students' daily actions — week {week}",
+    "csReady": "{ready}/{total} students have actions",
+    "csNoStudents": "This class has no active students yet. Go to “Roster” and enroll them first.",
+    "csAllSet": "Every student has something to tick in week {week}.",
+    "csAllSetNow": "They will see it under “My scoreboard”.",
+    "csAllSetOther": "This is the week you are viewing, not the current week — a student screen only shows the current week's actions.",
+    "csMissing": "<b>{n} students</b> still have nothing to tick in week <b>{week}</b>. Set one shared goal for the whole class here — a single press gives every student an action that week. You can fine-tune any individual later on their own page.",
+    "csYearTargetFor": "{area} — target for the year",
+    "csUnitFor": "{area} — unit",
+    "csWeekTarget": "Target per week",
+    "csCreate": "Create actions for the whole class — week {week}",
     "title": "WIG & Lead measures",
     "area": "Area",
     "year": "Year",

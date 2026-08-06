@@ -256,7 +256,13 @@ export default async function TimetablePage({
       <div className="glass overflow-x-auto rounded-[20px] p-2">
         <div className="min-w-[860px]">
           <div className="flex">
-            <div className="w-14 shrink-0 px-2 py-2 text-[11px] font-extrabold uppercase text-grey-mid">
+            {/* CỘT "TIẾT" DÍNH LẠI KHI CUỘN NGANG.
+                Lưới này rộng 860px và là lưới HAI CHIỀU — không xuống thẻ được như các bảng
+                khác, nên trên máy 360px bắt buộc phải cuộn ngang, và audit mobile 2026-08-06 cho
+                thấy chỉ nhìn được T2 với T3 trong sáu ngày. Cuộn sang T5 thì cột số tiết trôi
+                mất, người xem không còn biết ô đang nhìn là tiết mấy — mà đó chính là toạ độ
+                thứ hai của mỗi ô. sticky giữ nó lại; nền trắng để chữ bên dưới không lộ qua. */}
+            <div className="sticky left-0 z-10 w-14 shrink-0 bg-white px-2 py-2 text-[11px] font-extrabold uppercase text-grey-mid">
               {t('period')}
             </div>
             {DAYS.map((d, i) => (
@@ -274,7 +280,9 @@ export default async function TimetablePage({
           </div>
           {PERIODS.map((p) => (
             <div key={p} className="flex border-t border-navy/[0.08]">
-              <div className="grid w-14 shrink-0 place-items-center text-[13px] font-bold text-grey-mid">{p}</div>
+              <div className="sticky left-0 z-10 grid w-14 shrink-0 place-items-center bg-white text-[13px] font-bold text-grey-mid">
+                {p}
+              </div>
               {DAYS.map((d, i) => {
                 const s = byKey.get(`${d}-${p}`);
                 const ov = s ? overByKey.get(`${s.id}|${weekDates[i]}`) : undefined;

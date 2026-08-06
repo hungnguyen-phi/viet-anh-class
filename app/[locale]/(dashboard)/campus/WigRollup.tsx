@@ -46,9 +46,21 @@ export async function WigRollup({
     );
   }
 
-  const colClass = {flex: 1.5};
-  const colTeacher = {flex: 1.2};
-  const colNum = {flex: 1};
+  // HAI BỐ CỤC, MỘT CÂY DOM — cùng cách đã dùng cho bảng "đã khai sẵn" ở màn Quản trị.
+  //
+  // Bảng này cần 680px. Trên máy 360px, audit mobile 2026-08-06 cho thấy hiệu trưởng chỉ đọc
+  // được hai cột đầu (Lớp, GVCN) — còn Thắng, Trung bình, Em đã tick, Lượt tick đều nằm ngoài
+  // màn hình. Tức là bốn con số mà cả bảng dựng ra để trả lời thì phải cuộn ngang mới thấy, còn
+  // thứ hiện sẵn lại là hai cột nhãn.
+  //
+  // Dưới 640px: mỗi dòng thành một thẻ hai tầng — tầng trên lớp + GVCN, tầng dưới bốn con số kèm
+  // nhãn ngắn (nhãn chỉ hiện ở dạng thẻ, vì ở dạng bảng đã có hàng tiêu đề). Từ 640px: y nguyên
+  // bảng sáu cột như cũ, nhờ `sm:contents` làm cái bọc tầng dưới biến mất.
+  const colClass = 'min-w-0 basis-full sm:basis-auto sm:flex-[1.5]';
+  const colTeacher = 'min-w-0 flex-1 sm:flex-[1.2]';
+  const colNum = 'flex-1';
+  const tangSo = 'flex w-full min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:contents';
+  const nhanNho = 'text-[10px] font-extrabold uppercase tracking-wide text-grey-mid sm:hidden';
 
   return (
     <section className="glass overflow-hidden rounded-[20px]">
@@ -57,24 +69,25 @@ export async function WigRollup({
         <span className="text-[11.5px] font-semibold text-grey-mid">{t('wigHint')}</span>
       </div>
 
-      <div className="overflow-x-auto">
-        <div className="flex min-w-[680px] items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5">
-          <span className="text-[11px] font-extrabold uppercase text-grey-mid" style={colClass}>
+      <div className="sm:overflow-x-auto">
+        {/* Hàng tiêu đề chỉ có nghĩa khi còn là bảng; ở dạng thẻ, mỗi con số tự mang nhãn. */}
+        <div className="hidden min-w-[680px] items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5 sm:flex">
+          <span className={`text-[11px] font-extrabold uppercase text-grey-mid ${colClass}`}>
             {t('class')}
           </span>
-          <span className="text-[11px] font-extrabold uppercase text-grey-mid" style={colTeacher}>
+          <span className={`text-[11px] font-extrabold uppercase text-grey-mid ${colTeacher}`}>
             {t('wigTeacher')}
           </span>
-          <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid" style={colNum}>
+          <span className={`text-center text-[11px] font-extrabold uppercase text-grey-mid ${colNum}`}>
             {t('wigWon')}
           </span>
-          <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid" style={colNum}>
+          <span className={`text-center text-[11px] font-extrabold uppercase text-grey-mid ${colNum}`}>
             {t('wigAvg')}
           </span>
-          <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid" style={colNum}>
+          <span className={`text-center text-[11px] font-extrabold uppercase text-grey-mid ${colNum}`}>
             {t('wigStudents')}
           </span>
-          <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid" style={colNum}>
+          <span className={`text-center text-[11px] font-extrabold uppercase text-grey-mid ${colNum}`}>
             {t('wigTicks')}
           </span>
         </div>
@@ -92,17 +105,19 @@ export async function WigRollup({
             <Link
               key={r.class_id}
               href={{pathname: canOpenWig ? '/wig' : '/meeting', query: {class: r.class_id}}}
-              className="flex min-w-[680px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2.5 transition-colors hover:bg-navy/[0.03]"
+              className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-navy/[0.08] px-[18px] py-2.5 transition-colors hover:bg-navy/[0.03] sm:min-w-[680px] sm:flex-nowrap sm:gap-2"
             >
-              <span className="text-[13.5px] font-bold text-navy" style={colClass}>
+              <span className={`text-[13.5px] font-bold text-navy ${colClass}`}>
                 {r.class_name}
                 <span className="ml-1.5 text-[11px] font-semibold text-grey-mid">{r.grade_name}</span>
               </span>
-              <span className="truncate text-[12.5px] font-semibold text-grey-mid" style={colTeacher}>
+              <span className={`truncate text-[12.5px] font-semibold text-grey-mid ${colTeacher}`}>
                 {r.teacher_name ?? t('wigNoTeacher')}
               </span>
 
-              <span className="flex items-center justify-center gap-1" style={colNum}>
+              <span className={tangSo}>
+              <span className={`flex items-center justify-center gap-1 ${colNum}`}>
+                <span className={nhanNho}>{t('wigWon')}</span>
                 {idle ? (
                   <span className="text-[12px] font-semibold text-grey-soft">—</span>
                 ) : (
@@ -124,7 +139,8 @@ export async function WigRollup({
                 )}
               </span>
 
-              <span className="flex items-center justify-center" style={colNum}>
+              <span className={`flex items-center justify-center gap-1 ${colNum}`}>
+                <span className={nhanNho}>{t('wigAvg')}</span>
                 {idle ? (
                   <span className="text-[12px] font-semibold text-grey-soft">—</span>
                 ) : (
@@ -154,16 +170,20 @@ export async function WigRollup({
                 // này vẫn tô đỏ "0/24". Hiệu trưởng đọc bảng thấy một hàng đỏ và nhắc giáo viên
                 // về chuyện học sinh lười tick, trong khi việc thật cần làm là đặt mục tiêu.
                 // Báo động giả ngay trên bảng dựng ra để báo động.
-                className={`text-center text-[12.5px] font-bold tabular-nums ${
+                className={`flex items-center justify-center gap-1 text-center text-[12.5px] font-bold tabular-nums ${colNum} ${
                   !idle && size > 0 && ticking === 0 ? 'text-status-bad' : 'text-navy'
                 }`}
-                style={colNum}
                 title={idle ? t('wigIdleTick') : undefined}
               >
+                <span className={nhanNho}>{t('wigStudents')}</span>
                 {idle ? <span className="font-semibold text-grey-soft">—</span> : `${ticking}/${size}`}
               </span>
-              <span className="text-center text-[12.5px] font-semibold tabular-nums text-grey-mid" style={colNum}>
+              <span
+                className={`flex items-center justify-center gap-1 text-center text-[12.5px] font-semibold tabular-nums text-grey-mid ${colNum}`}
+              >
+                <span className={nhanNho}>{t('wigTicks')}</span>
                 {Number(r.tick_count)}
+              </span>
               </span>
             </Link>
           );

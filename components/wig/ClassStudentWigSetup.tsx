@@ -1,4 +1,4 @@
-import {getLocale} from 'next-intl/server';
+import {getLocale, getTranslations} from 'next-intl/server';
 import {Users, Sparkles} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {createClassStudentWigs} from '@/app/[locale]/(dashboard)/student/actions';
@@ -41,6 +41,10 @@ export async function ClassStudentWigSetup({
   readyCount: number;
 }) {
   const locale = await getLocale();
+  // Cả khối này trước đây viết tiếng Việt gõ thẳng vào JSX — mười một chuỗi, kể cả nhãn nút và
+  // tên đọc được của ô nhập. Nghĩa là giáo viên đổi sang tiếng Anh vẫn thấy nguyên một thẻ tiếng
+  // Việt giữa màn WIG. Bộ kiểm khoá dịch không thấy vì nó chỉ soi những khoá ĐƯỢC GỌI.
+  const t = await getTranslations('wig');
   const areaMeta = await getAreaMeta();
 
   const input =
@@ -54,30 +58,26 @@ export async function ClassStudentWigSetup({
           <Users size={16} strokeWidth={2.5} />
         </span>
         <span className="font-display text-[15px] font-bold text-navy">
-          Việc hằng ngày của học sinh — tuần {weekLabel}
+          {t('csTitle', {week: weekLabel})}
         </span>
         <span
           className={`ml-auto rounded-full px-2.5 py-1 text-[11.5px] font-extrabold ${
             missing === 0 ? 'bg-success/15 text-success-dark' : 'bg-gold/25 text-gold-text'
           }`}
         >
-          {readyCount}/{studentCount} em đã có việc
+          {t('csReady', {ready: readyCount, total: studentCount})}
         </span>
       </div>
 
       {studentCount === 0 ? (
-        <p className="mt-2.5 text-[12.5px] font-semibold text-navy/70">
-          Lớp chưa có học sinh nào đang học. Vào mục “Danh sách” để ghi danh trước.
-        </p>
+        <p className="mt-2.5 text-[12.5px] font-semibold text-navy/70">{t('csNoStudents')}</p>
       ) : missing === 0 ? (
         <p className="mt-2.5 text-[12.5px] font-semibold text-success-dark">
-          Cả lớp đã có việc để tick trong tuần {weekLabel}.{' '}
+          {t('csAllSet', {week: weekLabel})}{' '}
           {/* Chỉ hứa "các em vào là thấy" khi đó ĐÚNG là tuần này. Màn hình học sinh luôn cắt theo
               tuần lịch hiện tại, nên câu ấy đặt ở tuần khác là nói sai — và đó chính là kiểu sai
               đã khiến GVCN tin lớp đang có việc trong khi máy các em trống trơn. */}
-          {laTuanNay
-            ? 'Các em vào “Bảng điểm của tôi” là thấy.'
-            : 'Đây là tuần đang xem, không phải tuần này — màn hình của các em chỉ hiện việc của tuần hiện tại.'}
+          {laTuanNay ? t('csAllSetNow') : t('csAllSetOther')}
         </p>
       ) : (
         <form action={createClassStudentWigs} className="mt-3">
@@ -86,9 +86,13 @@ export async function ClassStudentWigSetup({
               chứa hôm nay. Xem createClassStudentWigs trong student/actions.ts. */}
           <input type="hidden" name="week_start" value={weekStart} />
           <p className="mb-2.5 text-[12.5px] font-semibold leading-[1.6] text-navy/70">
-            Còn <b>{missing} em</b> chưa có việc nào để tick trong tuần <b>{weekLabel}</b>. Đặt mục
-            tiêu chung cho cả lớp ở đây — một lần bấm là mọi em đều có việc trong tuần đó. Muốn
-            chỉnh riêng cho em nào thì vào trang của em đó sửa sau.
+            {/* t.rich để giữ được hai cụm in đậm (số em còn thiếu và tên tuần) — đó là hai thông
+                tin người đọc cần bắt ngay, không nên tan vào một khối chữ phẳng. */}
+            {t.rich('csMissing', {
+              n: missing,
+              week: weekLabel,
+              b: (chunks) => <b>{chunks}</b>,
+            })}
           </p>
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -105,13 +109,13 @@ export async function ClassStudentWigSetup({
                       defaultValue={100}
                       name={`target_${a}`}
                       className={input}
-                      aria-label={`${label} — mục tiêu cả năm`}
+                      aria-label={t('csYearTargetFor', {area: label})}
                     />
                     <input
                       name={`unit_${a}`}
                       defaultValue={areaMeta[a].default_unit ?? FALLBACK_UNIT[a]}
                       className={`${input} min-w-[104px] flex-1`}
-                      aria-label={`${label} — đơn vị`}
+                      aria-label={t('csUnitFor', {area: label})}
                     />
                   </div>
                 </div>
@@ -122,7 +126,7 @@ export async function ClassStudentWigSetup({
           <div className="mt-3 flex flex-wrap items-end gap-3">
             <label className="flex flex-col gap-1">
               <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-navy/70">
-                Mục tiêu mỗi tuần
+                {t('csWeekTarget')}
               </span>
               <input
                 type="number"
@@ -135,7 +139,7 @@ export async function ClassStudentWigSetup({
             </label>
             <SubmitButton className="btn-gold inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-[12px] px-4 font-display text-[13.5px] font-black">
               <Sparkles size={15} strokeWidth={2.5} />
-              Tạo việc cho cả lớp — tuần {weekLabel}
+              {t('csCreate', {week: weekLabel})}
             </SubmitButton>
           </div>
         </form>

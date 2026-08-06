@@ -408,6 +408,17 @@
     "placeholder": "Phần này sẽ được hoàn thiện ở các bước tiếp theo."
   },
   "wig": {
+    "csTitle": "Việc hằng ngày của học sinh — tuần {week}",
+    "csReady": "{ready}/{total} em đã có việc",
+    "csNoStudents": "Lớp chưa có học sinh nào đang học. Vào mục “Danh sách” để ghi danh trước.",
+    "csAllSet": "Cả lớp đã có việc để tick trong tuần {week}.",
+    "csAllSetNow": "Các em vào “Bảng điểm của tôi” là thấy.",
+    "csAllSetOther": "Đây là tuần đang xem, không phải tuần này — màn hình của các em chỉ hiện việc của tuần hiện tại.",
+    "csMissing": "Còn <b>{n} em</b> chưa có việc nào để tick trong tuần <b>{week}</b>. Đặt mục tiêu chung cho cả lớp ở đây — một lần bấm là mọi em đều có việc trong tuần đó. Muốn chỉnh riêng cho em nào thì vào trang của em đó sửa sau.",
+    "csYearTargetFor": "{area} — mục tiêu cả năm",
+    "csUnitFor": "{area} — đơn vị",
+    "csWeekTarget": "Mục tiêu mỗi tuần",
+    "csCreate": "Tạo việc cho cả lớp — tuần {week}",
     "title": "WIG & Lead measure",
     "area": "Lĩnh vực",
     "year": "Năm",

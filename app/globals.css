@@ -20,7 +20,10 @@
      Trước đây chỉ có một nấc `gold-deep`, chú thích ghi "đủ tương phản"; đúng với chữ TO, nhưng
      nó bị đem dùng cho cả nhãn 11.5–12.5px ở 20 chỗ, và ở cỡ đó thì thiếu chuẩn. */
   --color-gold-deep: #b98900; /* 3.19:1 trên trắng — CHỈ dùng cho chữ ≥18px, hoặc ≥14px in đậm */
-  --color-gold-text: #8a6600; /* 5.32:1 trên trắng — dùng cho MỌI chữ dưới 14px */
+  /* Đổi cùng lúc với --color-warn-text (2026-08-06) để hai token GIỮ NGUYÊN quan hệ "bằng nhau"
+     mà chỗ khai báo warn-text vẫn đang dựa vào. Hai màu vốn cố ý y hệt nhau mà lại tách ra thành
+     hai giá trị khác nhau là cái bẫy sửa-một-quên-một. Đậm hơn thì tương phản chỉ tốt lên. */
+  --color-gold-text: #866300; /* 5.53:1 trên trắng — dùng cho MỌI chữ dưới 14px */
 
   /* Bề mặt & mực */
   --color-canvas: #ebf0ec; /* nền cơ sở dưới lớp gradient */
@@ -47,7 +50,7 @@
        success       #1e8a5a → 4.34:1 trắng · 3.74:1 trên chip success/12   ✗ chữ nhỏ
        success-dark  #16724a → 5.93:1 trắng · 5.11:1 trên chip              ✓
        warn          #b98900 → 3.19:1 trắng · 2.88:1 trên chip gold/25      ✗ chữ nhỏ
-       warn-text     #8a6600 → 5.27:1 trắng · 4.81:1 trên chip              ✓
+       warn-text     #866300 → 5.53:1 trắng · 4.69:1 trên chip warn/16      ✓
        status-bad    #c0392b → 5.15:1 trắng · 4.68:1 trên chip bad/10       ✓ (đủ, giữ nguyên)
 
      Nấc SÁNG dùng cho: thanh tiến độ, ô màu, viền, icon, và chữ ≥18.66px in đậm.
@@ -58,7 +61,11 @@
   --color-success: #1e8a5a;
   --color-success-dark: #16724a;
   --color-warn: #b98900;
-  --color-warn-text: #8a6600; /* = gold-text, đặt tên theo NGHĨA để chỗ gọi đọc ra ý */
+  /* Tối thêm 3% so với #8a6600 (2026-08-06). Con số cũ được tính trên chip warn/12, nhưng trong
+     mã đang có chỗ dùng chip đậm hơn — warn/16 — và trên nền ấy nó chỉ còn 4.48:1, thiếu đúng
+     0.02 so với ngưỡng 4.5 của WCAG 1.4.3. Đây là nấc TỐI NHẤT trong dãy vẫn qua được cả hai
+     phép đo, chọn vậy để mắt không nhận ra khác biệt: cùng tông, chỉ đậm hơn một nhịp. */
+  --color-warn-text: #866300; /* = gold-text, đặt tên theo NGHĨA để chỗ gọi đọc ra ý */
   --color-status-bad: #c0392b;
   --color-status-bad-dark: #9e2f23;
 
