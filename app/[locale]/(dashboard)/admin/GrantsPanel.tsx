@@ -18,6 +18,14 @@ const VAI_KHAI_DUOC = ['teacher', 'principal', 'admin', 'student', 'parent'] as 
 const TABS = ['all', ...VAI_KHAI_DUOC] as const;
 type Tab = (typeof TABS)[number];
 
+// THỨ TỰ ĐỌC: người phụ trách trước, học sinh sau.
+//
+// Xếp theo ngày khai (mặc định của truy vấn) thì GVCN của một lớp nằm lẫn đâu đó giữa ba mươi dòng
+// học sinh, tuỳ hôm ấy khai lúc nào — trong khi đó lại là dòng cần soi kỹ nhất: khai sai vai GVCN
+// là cả lớp không có ai chủ nhiệm. Trong cùng một vai thì gom theo lớp rồi theo email, để lớp nào
+// ra lớp nấy.
+const HANG_VAI: Record<string, number> = {teacher: 0, principal: 1, admin: 2, student: 3, parent: 4};
+
 const oChon =
   'h-8 w-full min-w-0 cursor-pointer rounded-[9px] border-[1.5px] border-navy/15 bg-white px-1.5 text-[12px] font-semibold text-navy outline-none focus:border-navy';
 const selectCls =
@@ -29,6 +37,24 @@ const ghostBtn =
 const ghostBtnLg =
   'inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white/60 px-3 text-[12px] font-extrabold text-navy transition-all hover:border-navy';
 const th = 'text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
+
+// MỘT BỘ CỘT DÙNG CHUNG CHO CẢ TIÊU ĐỀ LẪN MỌI DÒNG.
+//
+// Bản trước nhồi vai trò và lớp vào CHUNG một ô ("Học sinh 12A1") nên hai thứ khác hẳn nhau lại
+// dính sát nhau, đọc lướt qua ba mươi dòng không tách được đâu là vai đâu là lớp. Nay mỗi thứ một
+// cột, chia đều phần còn lại sau khi trừ các cột có bề ngang cố định.
+//
+// Khai một chỗ rồi dùng lại: tiêu đề và các dòng phải khớp từng cột, mà chúng nằm ở hai component
+// khác nhau — chép tay hai bộ số là kiểu lệch cột chỉ lộ ra khi nhìn màn hình thật.
+const cotStt = 'w-[34px] flex-none';
+const cotEmail = 'min-w-0 flex-[1.8]';
+const cotVai = 'min-w-0 flex-1';
+const cotLop = 'min-w-0 flex-1';
+const cotNgay = 'w-[92px] flex-none';
+const cotNut = 'w-[72px] flex-none';
+const sttCls = 'text-[11.5px] font-bold tabular-nums text-grey-mid';
+const hangCls =
+  'box-border flex min-w-[760px] items-center gap-2 border-t border-navy/[0.08] px-[14px] py-2';
 
 // DANH SÁCH KHAI SẴN — ĐÓNG BĂNG MẶC ĐỊNH, MỘT NÚT LƯU, CÓ CHIA NHÓM.
 //
@@ -139,9 +165,21 @@ export function GrantsPanel({
     [tatCa, tab, lop, tuKhoa],
   );
 
-  const soTrang = Math.max(1, Math.ceil(locDuoc.length / size));
+  const daXep = useMemo(() => {
+    const khoaLop = (d: Dong) =>
+      d.kind === 'grant' ? (d.g.class_id ? (classNames[d.g.class_id] ?? '') : '￿') : '￿';
+    return [...locDuoc].sort(
+      (a, b) =>
+        (HANG_VAI[a.role] ?? 9) - (HANG_VAI[b.role] ?? 9) ||
+        khoaLop(a).localeCompare(khoaLop(b), 'vi') ||
+        a.email.localeCompare(b.email, 'vi'),
+    );
+  }, [locDuoc, classNames]);
+
+  const soTrang = Math.max(1, Math.ceil(daXep.length / size));
   const trangHienTai = Math.min(trang, soTrang);
-  const dangHien = locDuoc.slice((trangHienTai - 1) * size, trangHienTai * size);
+  const batDau = (trangHienTai - 1) * size;
+  const dangHien = daXep.slice(batDau, batDau + size);
 
   // Lớp nào ĐANG có người chờ thì mới đưa vào bộ lọc — một danh sách bốn mươi lớp mà ba mươi tám
   // lớp lọc ra rỗng là bốn mươi lần thử vô ích.
@@ -274,24 +312,31 @@ export function GrantsPanel({
         <div role="table" aria-label={t('grantsTitle')}>
           <div
             role="row"
-            className="box-border flex min-w-[620px] items-center gap-2 bg-navy/[0.03] px-[14px] py-[9px]"
+            className="box-border flex min-w-[760px] items-center gap-2 bg-navy/[0.03] px-[14px] py-[9px]"
           >
-            <span role="columnheader" className={`flex-[1.6] ${th}`}>
+            <span role="columnheader" className={`${cotStt} ${th}`}>
+              {t('grantsNo')}
+            </span>
+            <span role="columnheader" className={`${cotEmail} ${th}`}>
               {t('email')}
             </span>
-            <span role="columnheader" className={`flex-[2] ${th}`}>
-              {t('role')} · {t('classes')}
+            <span role="columnheader" className={`${cotVai} ${th}`}>
+              {t('role')}
             </span>
-            <span role="columnheader" className={`w-[92px] flex-none ${th}`}>
+            <span role="columnheader" className={`${cotLop} ${th}`}>
+              {t('classes')}
+            </span>
+            <span role="columnheader" className={`${cotNgay} ${th}`}>
               {t('grantedOn')}
             </span>
-            <span className="w-[72px] flex-none" aria-hidden />
+            <span className={cotNut} aria-hidden />
           </div>
 
-          {dangHien.map((d) =>
+          {dangHien.map((d, i) =>
             d.kind === 'grant' ? (
               <DongKhai
                 key={`g-${d.email}`}
+                stt={batDau + i + 1}
                 g={d.g}
                 sua={sua}
                 doi={daDoi(d.g)}
@@ -302,25 +347,20 @@ export function GrantsPanel({
                 onDoi={doiDong}
               />
             ) : (
-              <div
-                key={`p-${d.email}`}
-                role="row"
-                className="box-border flex min-w-[620px] items-center gap-2 border-t border-navy/[0.08] px-[14px] py-2"
-              >
-                <span className="min-w-0 flex-[1.6] truncate text-[13px] font-bold text-navy">
+              <div key={`p-${d.email}`} role="row" className={hangCls}>
+                <span className={`${cotStt} ${sttCls}`}>{batDau + i + 1}</span>
+                <span className={`${cotEmail} truncate text-[13px] font-bold text-navy`}>
                   {d.email}
                 </span>
-                <span className="flex flex-[2] min-w-0 items-center gap-2">
-                  <span className="whitespace-nowrap text-[12.5px] font-semibold text-navy">
-                    {tr('parent')}
-                  </span>
-                  <span className="min-w-0 truncate text-[12.5px] font-semibold text-grey-mid">
-                    {/* Phụ huynh gắn với CON, không gắn với lớp — nên cột này hiện tên con. */}
-                    {d.i.childName ?? t('classNone')}
-                  </span>
+                <span className={`${cotVai} truncate text-[12.5px] font-semibold text-navy`}>
+                  {tr('parent')}
                 </span>
-                <span className="w-[92px] flex-none" />
-                <span className="w-[72px] flex-none">
+                <span className={`${cotLop} truncate text-[12.5px] font-semibold text-grey-mid`}>
+                  {/* Phụ huynh gắn với CON, không gắn với lớp — nên cột này hiện tên con. */}
+                  {d.i.childName ?? t('classNone')}
+                </span>
+                <span className={cotNgay} />
+                <span className={cotNut}>
                   {sua && (
                     <form action={cancelParentInvite}>
                       <input type="hidden" name="email" value={d.email} />
@@ -398,6 +438,7 @@ export function GrantsPanel({
 // một <form> lồng trong <form> là HTML không hợp lệ, mà mỗi dòng còn cần nút Huỷ riêng — vốn là
 // một server action khác. Cùng cách làm với bảng người dùng.
 function DongKhai({
+  stt,
   g,
   sua,
   doi,
@@ -407,6 +448,8 @@ function DongKhai({
   ngay,
   onDoi,
 }: {
+  /** Số thứ tự chạy liên tục qua các trang — trang 2 bắt đầu từ 26, không quay về 1. */
+  stt: number;
   g: GrantRow;
   sua: boolean;
   doi: boolean;
@@ -420,67 +463,71 @@ function DongKhai({
   const tr = useTranslations('roles');
 
   return (
-    <div
-      role="row"
-      className={`box-border flex min-w-[620px] items-center gap-2 border-t border-navy/[0.08] px-[14px] py-2 ${
-        doi ? 'bg-navy/[0.05]' : ''
-      }`}
-    >
-      <span className="min-w-0 flex-[1.6] truncate text-[13px] font-bold text-navy">{g.email}</span>
+    <div role="row" className={`${hangCls} ${doi ? 'bg-navy/[0.05]' : ''}`}>
+      <span className={`${cotStt} ${sttCls}`}>{stt}</span>
+      <span className={`${cotEmail} flex items-center gap-1.5`}>
+        <span className="min-w-0 truncate text-[13px] font-bold text-navy">{g.email}</span>
+        {/* Nhãn "đã sửa" bám vào EMAIL chứ không vào ô chọn: nó phải đọc được ở cả hai chế độ, và
+            khi chen vào giữa cột vai/lớp thì hai ô chọn bị bóp lại mỗi lần đổi một dòng. */}
+        {doi && (
+          <span className="shrink-0 whitespace-nowrap rounded-[7px] bg-navy/10 px-1.5 py-0.5 text-[10px] font-extrabold uppercase text-navy">
+            {t('grantsChangedBadge')}
+          </span>
+        )}
+      </span>
 
       {sua ? (
-        <span className="flex flex-[2] items-center gap-1.5">
-          <select
-            value={gia.role}
-            onChange={(e) => onDoi(g.email, {role: e.target.value})}
-            aria-label={t('grantRoleFor', {name: g.email})}
-            className={`${oChon} flex-1`}
-          >
-            {VAI_KHAI_DUOC.map((r) => (
-              <option key={r} value={r}>
-                {tr(r)}
-              </option>
-            ))}
-          </select>
-          <select
-            value={gia.class_id}
-            onChange={(e) => onDoi(g.email, {class_id: e.target.value})}
-            aria-label={t('classFor', {name: g.email})}
-            className={`${oChon} flex-1`}
-          >
-            <option value="">{t('classNone')}</option>
-            {classes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-            {/* Lớp đã xoá/lưu trữ mà dòng này còn trỏ vào: giữ lại trong danh sách, nếu không
-                <select> tự nhảy về "không gắn lớp" và bấm Lưu là âm thầm mất lớp. */}
-            {g.class_id && !classes.some((c) => c.id === g.class_id) && (
-              <option value={g.class_id}>{tenLop(g.class_id)}</option>
-            )}
-          </select>
-          {doi && (
-            <span className="shrink-0 whitespace-nowrap rounded-[7px] bg-navy/10 px-1.5 py-0.5 text-[10px] font-extrabold uppercase text-navy">
-              {t('grantsChangedBadge')}
-            </span>
-          )}
-        </span>
+        <>
+          <span className={cotVai}>
+            <select
+              value={gia.role}
+              onChange={(e) => onDoi(g.email, {role: e.target.value})}
+              aria-label={t('grantRoleFor', {name: g.email})}
+              className={oChon}
+            >
+              {VAI_KHAI_DUOC.map((r) => (
+                <option key={r} value={r}>
+                  {tr(r)}
+                </option>
+              ))}
+            </select>
+          </span>
+          <span className={cotLop}>
+            <select
+              value={gia.class_id}
+              onChange={(e) => onDoi(g.email, {class_id: e.target.value})}
+              aria-label={t('classFor', {name: g.email})}
+              className={oChon}
+            >
+              <option value="">{t('classNone')}</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+              {/* Lớp đã xoá/lưu trữ mà dòng này còn trỏ vào: giữ lại trong danh sách, nếu không
+                  <select> tự nhảy về "không gắn lớp" và bấm Lưu là âm thầm mất lớp. */}
+              {g.class_id && !classes.some((c) => c.id === g.class_id) && (
+                <option value={g.class_id}>{tenLop(g.class_id)}</option>
+              )}
+            </select>
+          </span>
+        </>
       ) : (
-        <span className="flex min-w-0 flex-[2] items-center gap-2">
-          <span className="whitespace-nowrap text-[12.5px] font-semibold text-navy">
+        <>
+          <span className={`${cotVai} truncate text-[12.5px] font-semibold text-navy`}>
             {tr(g.role as 'student')}
           </span>
-          <span className="min-w-0 truncate text-[12.5px] font-semibold text-grey-mid">
+          <span className={`${cotLop} truncate text-[12.5px] font-semibold text-grey-mid`}>
             {tenLop(g.class_id)}
           </span>
-        </span>
+        </>
       )}
 
-      <span className="w-[92px] flex-none whitespace-nowrap text-[11.5px] font-semibold text-grey-mid">
+      <span className={`${cotNgay} whitespace-nowrap text-[11.5px] font-semibold text-grey-mid`}>
         {ngay(g.created_at)}
       </span>
-      <span className="w-[72px] flex-none">
+      <span className={cotNut}>
         {/* Huỷ chỉ hiện khi đang sửa: danh sách đóng băng thì không có nút nào xoá được dữ liệu. */}
         {sua && (
           <form action={cancelUserGrant}>

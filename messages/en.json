@@ -386,6 +386,7 @@
     "cancelGrantFor": "Cancel pre-assignment for {email}",
     "confirmCancelGrant": "Cancel the pre-assignment for {email}? They will land as pending-approval when they sign in.",
     "classFor": "Class for {name}",
+    "grantsNo": "No.",
     "grantsEdit": "Edit list",
     "grantsExitEdit": "Stop editing",
     "grantsSaveAll": "Save {n} changes",

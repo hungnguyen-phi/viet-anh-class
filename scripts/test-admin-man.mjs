@@ -267,6 +267,35 @@ dat(
     // Chia nhóm: tab theo vai + số đếm. Không có nó thì năm trăm dòng là một cột dài vô tận.
     dat(/aria-pressed="true"/.test(goc.html), 'Danh sách khai sẵn có tab chia theo vai trò');
     dat(/aria-label="Tìm email"/.test(goc.html), 'Có ô tìm theo email trong danh sách khai sẵn');
+    // Cột phải TÁCH RA. Bản trước nhồi vai trò và lớp vào chung một ô ("Học sinh 12A1") nên hai
+    // thứ khác hẳn nhau lại dính sát nhau, đọc lướt ba mươi dòng không tách được đâu là gì.
+    const bang = goc.html.split('aria-label="Đã khai sẵn')[1] ?? '';
+    const tieuDe = [...bang.slice(0, 3000).matchAll(/role="columnheader"[^>]*>([^<]+)</g)].map((m) => m[1].trim());
+    const CAN = ['STT', 'Email', 'Vai trò', 'Lớp học', 'Ngày khai'];
+    dat(
+      CAN.every((c) => tieuDe.includes(c)),
+      'Danh sách khai sẵn đủ năm cột riêng, có STT',
+      tieuDe.join(' | ') || 'không đọc được tiêu đề',
+    );
+    dat(!/>Vai trò<\/span> · /.test(bang), 'Vai trò và lớp không còn nhồi chung một ô');
+
+    // GVCN lên đầu: khai sai vai GVCN là cả lớp không có ai chủ nhiệm, nên đó là dòng cần soi
+    // trước tiên — không phải nằm lẫn đâu đó giữa ba mươi dòng học sinh theo ngày khai.
+    const {count: soGvcn} = await admin
+      .from('pending_user_grants')
+      .select('email', {count: 'exact', head: true})
+      .eq('role', 'teacher');
+    if ((soGvcn ?? 0) > 0) {
+      const dongDau = bang.split('role="row"')[2] ?? '';
+      dat(
+        /Giáo viên chủ nhiệm/.test(dongDau),
+        'GVCN nằm ở đầu danh sách khai sẵn',
+        `${soGvcn} GVCN đang chờ`,
+      );
+    } else {
+      console.log('GHI CHÚ  Bỏ qua bài "GVCN lên đầu": không có GVCN nào đang chờ.');
+    }
+
     // Phân trang chỉ bắt buộc khi danh sách dài hơn một trang (25 dòng).
     if ((count ?? 0) > 25) {
       dat(/Trang 1\//.test(goc.html), 'Danh sách khai sẵn dài thì có phân trang', `${count} khai báo`);

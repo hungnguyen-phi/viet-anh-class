@@ -386,6 +386,7 @@
     "cancelGrantFor": "Huỷ khai báo cho {email}",
     "confirmCancelGrant": "Huỷ khai báo cho {email}? Người này đăng nhập sẽ chỉ vào được vai chờ cấp quyền.",
     "classFor": "Lớp cho {name}",
+    "grantsNo": "STT",
     "grantsEdit": "Sửa danh sách",
     "grantsExitEdit": "Thoát sửa",
     "grantsSaveAll": "Lưu {n} thay đổi",
