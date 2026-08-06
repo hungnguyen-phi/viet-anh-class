@@ -386,7 +386,15 @@
     "cancelGrantFor": "Huỷ khai báo cho {email}",
     "confirmCancelGrant": "Huỷ khai báo cho {email}? Người này đăng nhập sẽ chỉ vào được vai chờ cấp quyền.",
     "classFor": "Lớp cho {name}",
-    "saveGrantFor": "Lưu khai báo cho {name}"
+    "grantsEdit": "Sửa danh sách",
+    "grantsExitEdit": "Thoát sửa",
+    "grantsSaveAll": "Lưu {n} thay đổi",
+    "grantsNoChange": "Chưa sửa gì",
+    "grantsChangedBadge": "đã sửa",
+    "grantsFrozen": "Danh sách đang khoá để khỏi lỡ tay. Bấm “Sửa danh sách” để đổi vai trò hoặc lớp, sửa xong bấm Lưu một lần cho cả đợt.",
+    "grantsConfirmLeave": "Còn {n} dòng sửa chưa lưu. Thoát và bỏ hết?",
+    "grantsSearch": "Tìm email",
+    "grantsAllClasses": "Mọi lớp"
   },
   "dashboard": {
     "welcome": "Xin chào",

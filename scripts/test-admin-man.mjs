@@ -248,6 +248,34 @@ dat(
   }
 }
 
+// ── 16. Đã khai sẵn: ĐÓNG BĂNG mặc định, MỘT nút lưu, và chia nhóm được ──────────────────
+// Bản cũ bày mọi dòng ở trạng thái đang-sửa với một nút "Lưu" trên TỪNG dòng: ba mươi ba dòng là
+// ba mươi ba nút lưu, mỗi cú bấm một vòng đi-về; khai năm trăm học sinh thì cách ấy không dùng
+// được, và một danh sách mọi ô đều mở sẵn thì không phân biệt được dòng nào vừa đổi.
+{
+  const {count} = await admin
+    .from('pending_user_grants')
+    .select('email', {count: 'exact', head: true});
+  if ((count ?? 0) > 0) {
+    // Đóng băng = không ô chọn vai/lớp nào của mục này nằm sẵn trong HTML.
+    const oSuaKhai = (goc.html.match(/aria-label="(Cấp vai trò cho|Lớp cho) [^"]+"/g) ?? []).length;
+    dat(oSuaKhai === 0, 'Danh sách khai sẵn đóng băng khi mới mở', `${oSuaKhai} ô chọn còn mở`);
+    // Và không còn nút lưu nào trên từng dòng.
+    const nutLuuDong = (goc.html.match(/aria-label="Lưu khai báo cho [^"]+"/g) ?? []).length;
+    dat(nutLuuDong === 0, 'Không còn nút Lưu trên từng dòng khai sẵn', `${nutLuuDong} nút`);
+    dat(/Sửa danh sách/.test(goc.html), 'Có nút "Sửa danh sách" để mở khoá');
+    // Chia nhóm: tab theo vai + số đếm. Không có nó thì năm trăm dòng là một cột dài vô tận.
+    dat(/aria-pressed="true"/.test(goc.html), 'Danh sách khai sẵn có tab chia theo vai trò');
+    dat(/aria-label="Tìm email"/.test(goc.html), 'Có ô tìm theo email trong danh sách khai sẵn');
+    // Phân trang chỉ bắt buộc khi danh sách dài hơn một trang (25 dòng).
+    if ((count ?? 0) > 25) {
+      dat(/Trang 1\//.test(goc.html), 'Danh sách khai sẵn dài thì có phân trang', `${count} khai báo`);
+    } else {
+      console.log(`GHI CHÚ  Bỏ qua bài phân trang khai sẵn: chỉ có ${count} dòng (dưới một trang).`);
+    }
+  }
+}
+
 for (const k of kq) console.log(k.ok ? 'OK  ' : 'SAI ', k.ten, k.ghi ? '— ' + k.ghi : '');
 const so = kq.filter((k) => k.ok).length;
 console.log(`\n${so}/${kq.length} đạt.`);

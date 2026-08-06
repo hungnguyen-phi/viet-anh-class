@@ -571,32 +571,77 @@ export async function cancelParentInvite(formData: FormData) {
   );
 }
 
-// Sửa một khai báo đang chờ: đổi vai trò và/hoặc lớp.
+// LƯU CẢ MỘT ĐỢT SỬA KHAI BÁO BẰNG MỘT LẦN BẤM.
 //
-// Trước đây dòng này chỉ có nút Huỷ, nên khai nhầm vai là phải huỷ rồi gõ lại email — với ba mươi
-// ba dòng thì đó là ba mươi ba lần gõ lại. Mà khai báo mới chỉ là một dòng chờ, chưa có tài khoản
-// nào tồn tại, nên sửa nó không đụng tới ai cả.
-export async function updateUserGrant(formData: FormData) {
+// Bản trước mỗi dòng là một <form> với một nút "Lưu" riêng: sửa vai của ba mươi ba người là ba
+// mươi ba lần bấm, ba mươi ba vòng đi-về (trung vị 251 ms mỗi vòng trên đường truyền này) và ba
+// mươi ba lần tải lại trang, mỗi lần lại phải cuộn tìm về chỗ cũ. Đầu năm khai năm trăm học sinh
+// thì cách ấy không dùng được.
+//
+// Nay giao diện gom mọi dòng ĐÃ ĐỔI vào một lần gửi, dưới dạng ba mảng song song (email/role/
+// class_id). FormData.getAll giữ nguyên thứ tự khai trong tài liệu nên ba mảng khớp theo chỉ số —
+// vẫn kiểm lại độ dài trước khi dùng, vì lệch một phần tử là gán nhầm vai cho người khác.
+//
+// Chỉ dòng có THAY ĐỔI mới được gửi lên (giao diện tự so với giá trị gốc), nên số dòng ở đây là số
+// người thật sự bị sửa, không phải cả trang.
+export async function updateUserGrants(formData: FormData) {
   await requireRole(['admin']);
-  const email = String(formData.get('email') ?? '').trim();
-  const role = String(formData.get('role') ?? '') as Role;
-  const rawClass = String(formData.get('class_id') ?? '');
-  const class_id = rawClass || null;
-  if (!email || !role) flash(loi('Thiếu email hoặc vai trò'));
+  const emails = formData.getAll('email').map((v) => String(v).trim());
+  const roles = formData.getAll('role').map(String);
+  const classIds = formData.getAll('class_id').map(String);
+
+  if (emails.length === 0) flash(loi('Không có thay đổi nào để lưu.'));
+  if (roles.length !== emails.length || classIds.length !== emails.length)
+    flash(loi('Dữ liệu gửi lên không khớp. Hãy tải lại trang rồi sửa lại.'));
+  if (emails.some((e) => !e)) flash(loi('Có dòng thiếu email. Hãy tải lại trang rồi sửa lại.'));
+  // Chỉ nhận đúng những vai khai sẵn được. Thiếu bước này thì một request nặn tay có thể đẩy người
+  // ta thẳng lên 'admin' — hoặc về 'pending', tức là đăng nhập vào chỉ còn màn hình đỏ.
+  const VAI_KHAI_DUOC: Role[] = ['teacher', 'principal', 'admin', 'student', 'parent'];
+  if (roles.some((r) => !VAI_KHAI_DUOC.includes(r as Role))) flash(loi('Vai trò không hợp lệ.'));
+
+  // Gom theo cặp (vai, lớp): năm trăm học sinh cùng vào 10A1 chỉ tốn MỘT câu UPDATE, không phải
+  // năm trăm.
+  const nhom = new Map<string, {role: Role; class_id: string | null; emails: string[]}>();
+  emails.forEach((email, i) => {
+    const role = roles[i] as Role;
+    const class_id = classIds[i] || null;
+    const khoa = `${role}|${class_id ?? ''}`;
+    const g = nhom.get(khoa) ?? {role, class_id, emails: []};
+    g.emails.push(email);
+    nhom.set(khoa, g);
+  });
 
   const supabase = await createClient();
-  // .select() để phân biệt "RLS chặn / không còn dòng nào" với "đã sửa xong" — không báo thành
-  // công giả.
-  const {data, error} = await supabase
-    .from('pending_user_grants')
-    .update({role, class_id})
-    .ilike('email', email)
-    .select('email');
+  let xong = 0;
+  for (const g of nhom.values()) {
+    // .select() để đếm dòng THẬT SỰ đổi — phân biệt "RLS chặn / khai báo không còn" với "đã lưu",
+    // thay vì báo thành công giả.
+    const {data, error} = await supabase
+      .from('pending_user_grants')
+      .update({role: g.role, class_id: g.class_id})
+      .in('email', g.emails)
+      .select('email');
+    if (error) {
+      revalidatePath('/[locale]/admin', 'page');
+      flash(loi(`${friendlyError(error)} — đã lưu ${xong} dòng trước đó.`));
+    }
+    xong += (data ?? []).length;
+  }
+  if (xong > 0) {
+    await supabase.rpc('log_audit', {
+      p_action: 'update_user_grants',
+      p_detail: {count: xong, emails},
+    });
+  }
   revalidatePath('/[locale]/admin', 'page');
-  if (error) flash(loi(friendlyError(error)));
   flash(
-    (data ?? []).length > 0
-      ? `Đã sửa khai báo cho ${email}`
-      : loi('Không sửa được — khai báo không còn, hoặc bạn không có quyền.'),
+    xong === emails.length
+      ? `Đã lưu ${xong} khai báo`
+      : xong === 0
+        ? loi('Không lưu được dòng nào — khai báo không còn, hoặc bạn không có quyền.')
+        : loi(`Chỉ lưu được ${xong}/${emails.length} khai báo. Số còn lại không còn trong danh sách chờ.`),
   );
 }
+
+// Ghi chú: updateUserGrant (sửa MỘT dòng) đã bị gỡ. Giao diện không còn nút Lưu trên từng dòng —
+// mọi thay đổi đi qua updateUserGrants ở trên, kể cả khi chỉ sửa đúng một người.

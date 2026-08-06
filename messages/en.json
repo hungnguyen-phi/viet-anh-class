@@ -386,7 +386,15 @@
     "cancelGrantFor": "Cancel pre-assignment for {email}",
     "confirmCancelGrant": "Cancel the pre-assignment for {email}? They will land as pending-approval when they sign in.",
     "classFor": "Class for {name}",
-    "saveGrantFor": "Save pre-assignment for {name}"
+    "grantsEdit": "Edit list",
+    "grantsExitEdit": "Stop editing",
+    "grantsSaveAll": "Save {n} changes",
+    "grantsNoChange": "Nothing changed yet",
+    "grantsChangedBadge": "edited",
+    "grantsFrozen": "The list is locked so nothing changes by accident. Hit “Edit list” to change roles or classes, then save the whole batch at once.",
+    "grantsConfirmLeave": "{n} edited rows are unsaved. Leave and discard them?",
+    "grantsSearch": "Search email",
+    "grantsAllClasses": "All classes"
   },
   "dashboard": {
     "welcome": "Hello",
