@@ -194,10 +194,7 @@ const COT = [
 // ══════════════════════════════════════════════════════════════════════════════════════════
 // 3 · KIỂM THỬ — MỤC TIÊU (WIG)
 // ══════════════════════════════════════════════════════════════════════════════════════════
-trang(
-  '3 · Thử · Mục tiêu',
-  COT,
-  [
+const TC_WIG = [
     ['W-01', '★', 'Giáo viên', 'class.vietanh.org', 'Đăng nhập lần đầu', 'Vào thẳng lớp mình, tên lớp hiện trên đầu trang', '', ''],
     ['W-02', '★', 'Giáo viên', 'Danh sách lớp', 'Ghi danh 1 em: email + họ tên + ngày sinh', 'Em hiện ngay, kèm chữ "chưa đăng nhập"', '', ''],
     ['W-03', '★', 'Giáo viên', 'Danh sách lớp', 'Bấm nút bút chì, sửa họ tên, lưu', 'Tên mới hiện ngay. Không có ô email trong bảng sửa', '', ''],
@@ -221,17 +218,13 @@ trang(
     ['W-21', '', 'Học sinh', 'Bảng của em', 'Thử tự đổi mục tiêu của mình', 'Không có chỗ nào để đổi', '', ''],
     ['W-22', '', 'Giáo viên', 'Trang của em', 'Duyệt một yêu cầu của học sinh', 'Yêu cầu đổi trạng thái, thay đổi có hiệu lực ngay', '', ''],
     ['W-23', '', 'Giáo viên', 'Bảng thi đua', 'Mở bảng thi đua sau vài ngày tick', 'Điểm 4 lĩnh vực khớp với số lượt tick', '', ''],
-  ],
-  'THỬ — ĐẶT MỤC TIÊU VÀ TICK  ·  ★ = phải chạy được mới vận hành thật',
-);
+];
+trang('3 · Thử · Mục tiêu', COT, TC_WIG, 'THỬ — ĐẶT MỤC TIÊU VÀ TICK  ·  ★ = phải chạy được mới vận hành thật');
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
 // 4 · KIỂM THỬ — HỌP WIG
 // ══════════════════════════════════════════════════════════════════════════════════════════
-trang(
-  '4 · Thử · Họp WIG',
-  COT,
-  [
+const TC_HOP = [
     ['H-01', '★', 'Giáo viên', 'WIG › Phòng họp', 'Mở phòng họp', 'Mở đúng TUẦN VỪA XONG, không phải tuần đang chạy', '', ''],
     ['H-02', '★', 'Giáo viên', 'Phòng họp', 'Đọc bước 1', 'Liệt kê từng việc kèm con số đạt được và bao nhiêu em đã góp. Không có ô nào sửa số tay', '', ''],
     ['H-03', '★', 'Cả lớp', 'Phòng họp', 'Chấm Thắng / Chưa đạt cho từng việc, ghi rút ra điều gì', 'Ghi nhận được. Việc chưa chấm thì nói rõ là chưa chấm', '', ''],
@@ -249,17 +242,13 @@ trang(
     ['H-15', '', 'Ban giám hiệu', 'Biên bản họp', 'Mở biên bản của một lớp', 'Xem được, không có nút lưu — việc chấm là của giáo viên lớp', '', ''],
     ['H-16', '★', 'Phụ huynh', 'Báo cáo', 'Chọn đúng tuần vừa họp', 'Thấy kết quả tuần của con, chiêm nghiệm và việc tuần sau', '', ''],
     ['H-17', '', 'Giáo viên', 'Phòng họp', 'Mở một tuần lớp không có việc chung nào', 'Nói rõ tuần đó không có gì để tổng kết', '', ''],
-  ],
-  'THỬ — HỌP WIG CUỐI TUẦN  ·  chạy được H-01 → H-11 là khép kín một vòng',
-);
+];
+trang('4 · Thử · Họp WIG', COT, TC_HOP, 'THỬ — HỌP WIG CUỐI TUẦN  ·  chạy được H-01 → H-11 là khép kín một vòng');
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
 // 5 · KIỂM THỬ — LỚP & TÀI KHOẢN
 // ══════════════════════════════════════════════════════════════════════════════════════════
-trang(
-  '5 · Thử · Lớp & tài khoản',
-  COT,
-  [
+const TC_LOP = [
     ['L-01', '★', 'Quản trị viên', 'Quản trị', 'Khai một cơ sở', 'Cơ sở hiện ra, khối lớp có sẵn không phải gõ tay', '', ''],
     ['L-02', '★', 'Quản trị viên', 'Quản trị', 'Tạo lớp: tên, khối, năm học 2026-2027', 'Lớp hiện ra, chưa có chủ nhiệm', '', ''],
     ['L-03', '★', 'Quản trị viên', 'Môn học', 'Khai vài môn cho một khối', 'Môn chọn được khi nhập điểm và xếp thời khoá biểu', '', ''],
@@ -279,17 +268,13 @@ trang(
     ['L-17', '', 'Giáo viên', 'Danh sách lớp', 'Đề nghị dời một em sang lớp khác', 'Báo đã gửi. Em VẪN ở lớp cũ cho tới khi lớp bên kia duyệt', '', ''],
     ['L-18', '', 'Giáo viên lớp đích', 'Danh sách lớp', 'Duyệt đề nghị dời lớp', 'Em sang lớp mới, hai danh sách cùng đổi', '', ''],
     ['L-19', '', 'Quản trị viên', 'Danh sách lớp', 'Dời một em bằng tài khoản quản trị', 'Chuyển thẳng, không cần duyệt', '', ''],
-  ],
-  'THỬ — DỰNG LỚP VÀ TÀI KHOẢN',
-);
+];
+trang('5 · Thử · Lớp & tài khoản', COT, TC_LOP, 'THỬ — DỰNG LỚP VÀ TÀI KHOẢN');
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
 // 6 · KIỂM THỬ — HẰNG NGÀY
 // ══════════════════════════════════════════════════════════════════════════════════════════
-trang(
-  '6 · Thử · Hằng ngày',
-  COT,
-  [
+const TC_NGAY = [
     ['N-01', '★', 'Giáo viên', 'Điểm danh', 'Điểm danh hôm nay cho cả lớp', 'Lưu được, mở lại đúng', '', ''],
     ['N-02', '★', 'Giáo viên', 'Điểm danh', 'Lùi về một ngày trong 7 ngày gần nhất rồi sửa', 'Sửa được', '', ''],
     ['N-03', '', 'Giáo viên', 'Điểm danh', 'Lùi quá 7 ngày rồi thử sửa', 'Không sửa được — nhờ quản trị viên', '', ''],
@@ -304,9 +289,8 @@ trang(
     ['N-12', '', 'Phụ huynh', 'Học bạ', 'Mở tab Học bạ', 'Thấy điểm và nhận xét của con mình, không thấy em khác', '', ''],
     ['N-13', '', 'Phụ huynh', 'Liên lạc', 'Gửi một tin cho giáo viên', 'Tin gửi đi, giáo viên thấy chấm đỏ', '', ''],
     ['N-14', '', 'Giáo viên', 'Liên lạc', 'Trả lời tin nhắn', 'Phụ huynh nhận được, chấm đỏ tắt sau khi đọc', '', ''],
-  ],
-  'THỬ — ĐIỂM DANH, BÁO BÀI, HỌC BẠ, LIÊN LẠC',
-);
+];
+trang('6 · Thử · Hằng ngày', COT, TC_NGAY, 'THỬ — ĐIỂM DANH, BÁO BÀI, HỌC BẠ, LIÊN LẠC');
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
 // 7 · HAY VƯỚNG
@@ -333,6 +317,185 @@ trang(
   ],
   'HAY VƯỚNG — VÀ CÁCH GỠ',
 );
+
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// 8 · NGƯỜI THỬ  ·  9 · PHIẾU GHI  ·  10 · GÓP Ý TỰ DO
+//
+// Ba trang này là chỗ 30 người THẬT SỰ ĐIỀN VÀO, khác hẳn bảy trang trên (chỉ đọc).
+//
+// Vì sao không mỗi người một trang tính: 30 trang thì không ai gộp lại được, và muốn biết "lỗi
+// nào nhiều người gặp" phải mở lần lượt 30 lần. Một bảng dài, mỗi dòng một lần thử, lọc theo cột
+// là ra ngay — đó cũng là lý do mọi cột đều có ô xổ xuống thay vì gõ tay: gõ tay thì "Không đạt",
+// "ko đạt", "KHÔNG ĐẠT" thành ba nhóm khác nhau khi lọc.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+// Mã ca lấy thẳng từ bốn bảng ở trên — thêm ca mới là ô xổ xuống tự có, không phải nhớ cập nhật.
+const MA_CA = [...TC_WIG, ...TC_HOP, ...TC_LOP, ...TC_NGAY]
+  .map((r) => r[0])
+  .filter((m) => /^[A-Z]+-\d+$/.test(m));
+
+// Danh sách người thử: đọc từ hệ thống nếu có kết nối, không thì để trống cho điền tay.
+let NGUOI = [];
+try {
+  const {readFileSync} = await import('node:fs');
+  const {createClient} = await import('@supabase/supabase-js');
+  const env = {};
+  for (const l of readFileSync('.env.local', 'utf8').split('\n')) {
+    const m = l.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)\s*$/);
+    if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+  }
+  const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {auth: {persistSession: false}});
+  const [{data: moi}, {data: lop}] = await Promise.all([
+    db.from('pending_user_grants').select('email, role, class_id'),
+    db.from('classes').select('id, name'),
+  ]);
+  const tenLop = new Map((lop ?? []).map((c) => [c.id, c.name]));
+  const VAI = {admin: 'Quản trị viên', principal: 'Ban giám hiệu', teacher: 'Giáo viên chủ nhiệm', student: 'Học sinh', parent: 'Phụ huynh'};
+  NGUOI = (moi ?? [])
+    .map((g) => ({email: g.email, vai: VAI[g.role] ?? g.role, lop: tenLop.get(g.class_id) ?? ''}))
+    .sort((a, b) => a.vai.localeCompare(b.vai, 'vi') || a.lop.localeCompare(b.lop, 'vi') || a.email.localeCompare(b.email));
+} catch {
+  console.log('GHI CHÚ  Không đọc được danh sách người thử — trang "Người thử" để trống cho điền tay.');
+}
+
+// Việc từng vai phải thử, viết bằng mã ca để đối chiếu được với bốn bảng trên.
+const VIEC_THEO_VAI = {
+  'Quản trị viên': 'L-01 → L-09, L-13',
+  'Ban giám hiệu': 'L-10, L-11, L-12, và L-01 → L-04 phần khối/lớp/môn/thời khoá biểu',
+  'Giáo viên chủ nhiệm': 'W-01 → W-16, W-19, W-22, H-01 → H-14, N-01 → N-04, N-07, N-11',
+  'Học sinh': 'W-17, W-18, W-20, W-21, H-11, N-05, N-06, N-08',
+  'Phụ huynh': 'L-14, L-15, L-16, H-16, N-09, N-12, N-13',
+};
+
+const KET_QUA = ['Đạt', 'Không đạt', 'Chưa thử được'];
+const MUC_DO = ['Chặn hẳn — không làm tiếp được', 'Khó chịu — vẫn làm được nhưng vướng', 'Nhỏ — chữ nghĩa, giao diện', 'Góp ý thêm'];
+const TRANG_THAI = ['Mới ghi', 'Đang xử lý', 'Đã sửa', 'Không sửa (giải thích)'];
+
+const vung = (cot, n) => `'DM (danh mục)'!$${cot}$2:$${cot}$${n + 1}`;
+const xo = (ws, cot, dauDong, soDong, congThuc) => {
+  for (let r = dauDong; r < dauDong + soDong; r++) {
+    ws.getCell(`${cot}${r}`).dataValidation = {
+      type: 'list',
+      allowBlank: true,
+      formulae: [congThuc],
+      showErrorMessage: true,
+      errorStyle: 'warning',
+      errorTitle: 'Không có trong danh sách',
+      error: 'Chọn một giá trị trong ô xổ xuống, hoặc báo người phụ trách thêm vào.',
+    };
+  }
+};
+
+// ── 8 · NGƯỜI THỬ ─────────────────────────────────────────────────────────────────────────
+const wsN = trang(
+  '8 · Người thử',
+  [
+    {ten: 'STT', rong: 6},
+    {ten: 'Họ và tên', rong: 26},
+    {ten: 'Email đăng nhập', rong: 40},
+    {ten: 'Vai', rong: 20},
+    {ten: 'Lớp', rong: 9},
+    {ten: 'Được làm gì (xem chi tiết ở trang 2)', rong: 46},
+    {ten: 'Phải thử những ca nào', rong: 40},
+    {ten: 'Đã đăng nhập lần đầu chưa', rong: 15},
+  ],
+  [
+    ...NGUOI.map((n, i) => [
+      i + 1,
+      '',
+      n.email,
+      n.vai,
+      n.lop,
+      {
+        'Quản trị viên': 'Toàn quyền: cơ sở, mời người, phân công chủ nhiệm, mời phụ huynh',
+        'Ban giám hiệu': 'Trong cơ sở mình: khối, lớp, môn, thời khoá biểu, danh sách học sinh. Xem WIG, không đặt WIG',
+        'Giáo viên chủ nhiệm': 'Lớp mình: danh sách, mục tiêu WIG, việc để tick, họp WIG, điểm danh, báo bài, học bạ',
+        'Học sinh': 'Tick việc của mình mỗi ngày, gửi yêu cầu sửa. Không tự đổi mục tiêu',
+        'Phụ huynh': 'Chỉ xem báo cáo về con, nhắn tin cho giáo viên',
+      }[n.vai] ?? '',
+      VIEC_THEO_VAI[n.vai] ?? '',
+      '',
+    ]),
+    // Chỗ trống để thêm người phát sinh (phụ huynh mời sau, giáo viên bộ môn…).
+    ...Array.from({length: 12}, () => ['', '', '', '', '', '', '', '']),
+  ],
+  'AI THỬ CÁI GÌ — điền họ tên vào cột B, và tick cột cuối khi đã đăng nhập được',
+);
+xo(wsN, 'H', 3, NGUOI.length + 12, '"Rồi,Chưa"');
+
+// ── 9 · PHIẾU GHI ─────────────────────────────────────────────────────────────────────────
+const SO_DONG_GHI = 400;
+const wsG = trang(
+  '9 · Phiếu ghi',
+  [
+    {ten: 'Ngày thử', rong: 12},
+    {ten: 'Email người thử', rong: 38},
+    {ten: 'Mã ca', rong: 9},
+    {ten: 'Kết quả', rong: 14},
+    {ten: 'CHUYỆN GÌ ĐÃ XẢY RA (tả bằng lời của mình)', rong: 60},
+    {ten: 'Mình mong nó phải như thế nào', rong: 44},
+    {ten: 'Bấm những gì trước đó', rong: 40},
+    {ten: 'Mức độ', rong: 26},
+    {ten: 'Người xử lý', rong: 18},
+    {ten: 'Trạng thái', rong: 18},
+    {ten: 'Ghi chú của người xử lý', rong: 40},
+  ],
+  Array.from({length: SO_DONG_GHI}, () => ['', '', '', '', '', '', '', '', '', '', '']),
+  'PHIẾU GHI KẾT QUẢ — mỗi lần thử một dòng. Cột E, F, G cứ viết dài thoải mái',
+);
+xo(wsG, 'B', 3, SO_DONG_GHI, `=${vung('A', Math.max(NGUOI.length, 1))}`);
+xo(wsG, 'C', 3, SO_DONG_GHI, `=${vung('B', MA_CA.length)}`);
+xo(wsG, 'D', 3, SO_DONG_GHI, `=${vung('C', KET_QUA.length)}`);
+xo(wsG, 'H', 3, SO_DONG_GHI, `=${vung('D', MUC_DO.length)}`);
+xo(wsG, 'J', 3, SO_DONG_GHI, `=${vung('E', TRANG_THAI.length)}`);
+for (let r = 3; r < 3 + SO_DONG_GHI; r++) {
+  wsG.getCell(`A${r}`).numFmt = 'dd/mm/yyyy';
+  wsG.getRow(r).height = 30;
+}
+
+// ── 10 · GÓP Ý TỰ DO ──────────────────────────────────────────────────────────────────────
+const SO_DONG_GY = 150;
+const wsY = trang(
+  '10 · Góp ý tự do',
+  [
+    {ten: 'Ngày', rong: 12},
+    {ten: 'Email người góp ý', rong: 38},
+    {ten: 'Góp ý — muốn viết gì cũng được', rong: 86},
+    {ten: 'Mức độ', rong: 26},
+    {ten: 'Đã đọc / đã trả lời', rong: 22},
+  ],
+  Array.from({length: SO_DONG_GY}, () => ['', '', '', '', '']),
+  'GÓP Ý TỰ DO — chỗ cho những gì không nằm trong ca kiểm thử nào',
+);
+xo(wsY, 'B', 3, SO_DONG_GY, `=${vung('A', Math.max(NGUOI.length, 1))}`);
+xo(wsY, 'D', 3, SO_DONG_GY, `=${vung('D', MUC_DO.length)}`);
+xo(wsY, 'E', 3, SO_DONG_GY, '"Chưa đọc,Đã đọc,Đã trả lời"');
+for (let r = 3; r < 3 + SO_DONG_GY; r++) {
+  wsY.getCell(`A${r}`).numFmt = 'dd/mm/yyyy';
+  wsY.getRow(r).height = 34;
+}
+
+// ── Trang danh mục: nguồn của mọi ô xổ xuống. Ẩn đi cho gọn, nhưng KHÔNG khoá — cần thêm người
+//    thử giữa chừng thì mở ra thêm một dòng là xong.
+const dm = wb.addWorksheet('DM (danh mục)');
+dm.state = 'hidden';
+dm.getColumn(1).width = 44;
+dm.getColumn(2).width = 16;
+dm.getColumn(3).width = 30;
+dm.getColumn(4).width = 44;
+dm.getColumn(5).width = 24;
+dm.getRow(1).values = ['Email người thử', 'Mã ca', 'Kết quả', 'Mức độ', 'Trạng thái xử lý'];
+const donMax = Math.max(NGUOI.length, MA_CA.length, 60);
+for (let i = 0; i < donMax; i++) {
+  dm.getRow(i + 2).values = [
+    NGUOI[i]?.email ?? null,
+    MA_CA[i] ?? null,
+    KET_QUA[i] ?? null,
+    MUC_DO[i] ?? null,
+    TRANG_THAI[i] ?? null,
+  ];
+}
 
 const duong = process.argv[2] ?? 'So_tay_van_hanh_Viet_Anh_Class.xlsx';
 await wb.xlsx.writeFile(duong);
