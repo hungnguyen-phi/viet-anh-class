@@ -104,17 +104,21 @@ select role::text as vai, count(*) as so_nguoi, string_agg(email, ', ' order by 
 -- ══════════════════════════════════════════════════════════════════════════════════════════
 
 -- ══════════════════════════════════════════════════════════════════════════════════════════
--- TUỲ CHỌN — DỌN DỮ LIỆU THỬ TRONG 10A1 TRƯỚC KHI CHẠY THẬT
+-- ĐÃ DỌN DỮ LIỆU THỬ TRONG 10A1 (07/08, chủ dự án chốt "dọn luôn đi")
 --
--- 10A1 đang mang vết của đợt thử: alex@truongvietanh.com nằm trong danh sách với vai học sinh,
--- 4 mục tiêu WIG do chủ dự án tạo lúc dò lỗi (trong đó có mục tiêu tuần W37 lạc sang tháng 9 do
--- lỗi cha-chọn-sẵn đã sửa). Để nguyên thì lớp thật mở ra đã có sẵn dữ liệu không của ai.
+-- 10A1 mang vết của đợt dò lỗi: mấy mục tiêu WIG tạo lúc thử, và alex@truongvietanh.com — tài
+-- khoản của chính chủ dự án — nằm trong danh sách với vai học sinh. Để nguyên thì giáo viên thật
+-- mở lớp ra đã thấy sẵn dữ liệu không của ai.
 --
--- KHÔNG tự chạy — bỏ dấu chú thích khi đã quyết. Xoá WIG là xoá cả lead measure và lượt tick
--- bên trong, không hoàn tác được.
+-- Mục tiêu thì XOÁ (kéo theo việc để tick và lượt tick bên trong). Còn alex@ thì CHO RỜI LỚP chứ
+-- không xoá: rời lớp là tắt cờ, mọi thứ gắn với em vẫn còn nguyên nếu sau này cần tra lại, mà
+-- danh sách lớp thì sạch ngay.
+--
+-- Đã chạy rồi, giữ lại đây để biết đã làm gì. Ba lớp sau khi dọn: 0 mục tiêu, 0 em đang học,
+-- 8 · 9 · 8 em chờ đăng nhập.
 --
 -- delete from wigs where class_id = (select id from classes where name = '10A1');
--- update enrollments set is_active = false
+-- update enrollments set is_active = false, is_attendance_leader = false
 --  where class_id = (select id from classes where name = '10A1')
 --    and student_id = (select id from profiles where lower(email) = 'alex@truongvietanh.com');
 -- ══════════════════════════════════════════════════════════════════════════════════════════
