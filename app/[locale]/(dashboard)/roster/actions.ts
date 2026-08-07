@@ -197,6 +197,69 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
   return {ok: true, message: `Đã ghi danh ${fields.full_name || email} vào lớp`};
 }
 
+// ── SỬA THÔNG TIN MỘT EM ĐÃ CÓ TRONG DANH SÁCH ────────────────────────────────────────────
+//
+// Trước bản này danh sách lớp chỉ có THÊM và XOÁ. Gõ nhầm một chữ trong tên, hay phụ huynh đổi
+// số điện thoại, thì cách duy nhất là xoá em ra rồi ghi danh lại — mà xoá em đã có tài khoản là
+// đụng tới điểm danh, WIG, biên bản họp của em ấy. Không ai làm thế, nên thực tế là thông tin sai
+// nằm lại vĩnh viễn.
+//
+// GHI ĐÈ CẢ Ô TRỐNG, khác hẳn saveStudentDetails ở trên. Hàm kia bỏ qua khi mọi ô đều trống vì nó
+// phục vụ lúc TẠO (không tạo dòng rỗng vô nghĩa); còn ở đây xoá trắng một ô là Ý ĐỊNH — xoá ghi
+// chú cũ, gỡ số điện thoại chép nhầm. Không ghi đè thì người dùng bấm Lưu, màn hình báo đã lưu,
+// mà giá trị cũ vẫn còn.
+//
+// EMAIL KHÔNG SỬA ĐƯỢC ở đây, cố ý: email là DANH TÍNH — nó là khoá của student_details, của
+// pending_user_grants, và là thứ nối em với tài khoản khi em đăng nhập lần đầu. Đổi email tức là
+// một người khác, nên đường đúng là huỷ lời mời rồi ghi danh lại đúng địa chỉ.
+//
+// Không có bước phê duyệt nào: người sửa chính là GVCN của lớp, và RLS của student_details
+// (migration 0058) đã chặn đúng vòng ấy — GVCN chỉ chạm được vào em trong lớp mình hoặc em mình
+// vừa mời. Một hàng dữ liệu duy nhất, khoá theo email, nên quản trị viên mở lên là thấy ngay bản
+// vừa sửa; không có bản sao thứ hai để hai bên lệch nhau.
+export async function capNhatHocSinh(_prev: EnrollState, formData: FormData): Promise<EnrollState> {
+  await requireRole(['teacher', 'admin']);
+  const classId = String(formData.get('class_id') ?? '');
+  const fields = readStudentFields(formData);
+  const email = fields.email.toLowerCase();
+  const values = fields;
+
+  if (!email) return {ok: false, error: 'Thiếu email học sinh.', values};
+
+  const dob = parseDob({day: fields.dob_day, month: fields.dob_month, year: fields.dob_year});
+  if (dob.error) return {ok: false, fieldError: 'date_of_birth', error: dob.error, values};
+
+  const supabase = await createClient();
+  // upsert chứ không update: em được ghi danh từ trước bản 0058 thì CHƯA có hàng nào trong
+  // student_details, và một update lặng lẽ không khớp dòng nào sẽ báo "đã lưu" cho một việc
+  // không xảy ra.
+  const {data, error} = await supabase
+    .from('student_details')
+    .upsert(
+      {
+        email,
+        full_name: fields.full_name || null,
+        student_code: fields.student_code || null,
+        date_of_birth: dob.iso,
+        parent_phone: fields.parent_phone || null,
+        note: fields.note || null,
+        updated_at: new Date().toISOString(),
+      },
+      {onConflict: 'email'},
+    )
+    .select('email');
+  if (error) return {ok: false, error: friendlyError(error), values};
+  // RLS chặn thì upsert trả 0 dòng mà error vẫn null — không kiểm là báo thành công giả.
+  if (!data || data.length === 0)
+    return {ok: false, error: 'Không sửa được — em này không thuộc lớp bạn chủ nhiệm.', values};
+
+  revalidatePath('/[locale]/roster', 'page');
+  // Quản trị viên nhìn cùng một hàng dữ liệu ấy; không gọi thì trang họ đang mở còn bản cũ.
+  revalidatePath('/[locale]/admin', 'page');
+  if (classId) revalidatePath('/[locale]/attendance', 'page');
+  return {ok: true, message: `Đã lưu thông tin ${fields.full_name || email}`};
+}
+
 // Huỷ lời mời của em CHƯA đăng nhập lần nào.
 //
 // Khác removeStudent: em này chưa có tài khoản nên không có gì trong `enrollments` để tắt —

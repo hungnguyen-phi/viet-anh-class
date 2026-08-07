@@ -11,6 +11,7 @@ import {ClassCoverUpload} from '@/components/shell/ClassCoverUpload';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {AttendanceLeaderPicker} from '@/components/roster/AttendanceLeaderPicker';
 import {EnrollForm} from './EnrollForm';
+import {SuaHocSinh} from './SuaHocSinh';
 import {removeStudent, cancelStudentInvite} from './actions';
 import {IncomingTransfers, type DeNghiDen} from './IncomingTransfers';
 import {TransferControl, type LopDich} from './TransferControl';
@@ -37,6 +38,11 @@ type Row = {
   dob: string | null;
   phone: string | null;
   note: string | null;
+  // Họ tên ĐÚNG NHƯ TRONG student_details, không phải tên hiển thị.
+  //
+  // `name` ở trên đã ưu tiên tên trong hồ sơ Google của em; đổ nó vào ô sửa là lần lưu nào cũng
+  // âm thầm chép tên Google đè lên tên giáo viên đã điền. Ô sửa phải bày đúng thứ nó sắp ghi.
+  tenDaDien: string | null;
 };
 
 export default async function RosterPage({
@@ -139,6 +145,7 @@ export default async function RosterPage({
       dob: d?.date_of_birth ?? null,
       phone: d?.parent_phone ?? null,
       note: d?.note ?? null,
+      tenDaDien: d?.full_name ?? null,
     };
   });
 
@@ -159,6 +166,7 @@ export default async function RosterPage({
         dob: d?.date_of_birth ?? null,
         phone: d?.parent_phone ?? null,
         note: d?.note ?? null,
+        tenDaDien: d?.full_name ?? null,
       };
     });
 
@@ -302,7 +310,7 @@ export default async function RosterPage({
               <span className="flex-1 text-[11px] font-extrabold uppercase text-grey-mid">Ghi chú</span>
             </>
           )}
-          <span className="w-[70px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid" />
+          <span className="w-[104px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid" />
         </div>
 
         {/* Rows */}
@@ -390,7 +398,23 @@ export default async function RosterPage({
                 />
               </span>
             )}
-            <span className="grid w-[70px] flex-none place-items-center">
+            <span className="flex w-[104px] flex-none items-center justify-center gap-1.5">
+              {/* Sửa thông tin ngay trên dòng. Chỉ hiện với người quản lý được lớp — và cũng chỉ
+                  họ đọc được student_details (RLS 0058), nên với hiệu trưởng nút này vô nghĩa. */}
+              {canManage && (
+                <SuaHocSinh
+                  classId={myClass.id}
+                  email={r.email}
+                  ten={r.name}
+                  chiTiet={{
+                    full_name: r.tenDaDien,
+                    student_code: r.code,
+                    date_of_birth: r.dob,
+                    parent_phone: r.phone,
+                    note: r.note,
+                  }}
+                />
+              )}
               {canManage && r.studentId && (
                 <form action={removeStudent}>
                   <input type="hidden" name="classId" value={myClass.id} />
