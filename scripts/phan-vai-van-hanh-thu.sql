@@ -87,22 +87,20 @@ select role::text as vai, count(*) as so_nguoi, string_agg(email, ', ' order by 
  order by role;
 
 -- ══════════════════════════════════════════════════════════════════════════════════════════
--- PHỤ HUYNH — VÌ SAO KHÔNG NẰM TRONG FILE NÀY
+-- PHỤ HUYNH — MỜI Ở NHỊP CUỐI, KHÔNG PHẢI Ở ĐÂY
 --
--- Hai lý do, cả hai đều là chuyện phải biết trước khi mời:
+-- Lời mời phụ huynh gắn vào profiles.id của CON (parent_invitations.student_id). Em chưa đăng
+-- nhập lần đầu thì chưa có id nào để gắn — nên bước này không làm sớm hơn được, dù muốn.
 --
--- 1. PHẢI CÓ HỌC SINH ĐÃ ĐĂNG NHẬP TRƯỚC. Lời mời phụ huynh gắn vào profiles.id của con
---    (parent_invitations.student_id). Em chưa đăng nhập lần đầu thì chưa có id nào để gắn.
---    → Mời phụ huynh ở NHỊP 3, sau khi các em đã vào.
+-- Còn chuyện email của trường: TRƯỚC 0096 thì dùng không được, và hỏng lặng lẽ. handle_new_user
+-- tra miền trước, miền truongvietanh.com có vai mặc định 'pending' nên cả nhánh kiểm
+-- parent_invitations bị bỏ qua; người được mời đăng nhập vào chỉ thấy "Tài khoản chưa được cấp
+-- quyền" trong khi lời mời nằm sờ sờ trong bảng. 0096 đã sửa: lời mời thắng vai mặc định
+-- 'pending', vì 'pending' là chỗ đứng tạm chứ không phải một khẳng định.
 --
--- 2. ĐỪNG DÙNG EMAIL @truongvietanh.com LÀM PHỤ HUYNH THỬ.
---    handle_new_user tra miền trước: miền truongvietanh.com đã có vai mặc định 'pending', nên
---    nhánh kiểm parent_invitations bị BỎ QUA hoàn toàn —
---        select default_role into v_role from signup_email_domains where domain = v_domain;
---        if v_role is null then  ...kiểm parent_invitations...  end if;
---    Người đó đăng nhập sẽ rơi vào vai 'pending' và thấy màn "Tài khoản chưa được cấp quyền".
---    Email ngoài miền trường (gmail…) thì đúng luồng, vì miền đó không có trong bảng.
---    → Dùng đúng email thật của phụ huynh, hoặc một gmail bất kỳ để thử.
+-- Nay email của trường dùng làm phụ huynh được. Kiểm bằng
+-- scripts/test-phu-huynh-mail-truong.sql — nó tạo tài khoản thật để trigger chạy y như lúc đăng
+-- nhập Google, rồi rollback.
 -- ══════════════════════════════════════════════════════════════════════════════════════════
 
 -- ══════════════════════════════════════════════════════════════════════════════════════════
@@ -120,3 +118,24 @@ select role::text as vai, count(*) as so_nguoi, string_agg(email, ', ' order by 
 --  where class_id = (select id from classes where name = '10A1')
 --    and student_id = (select id from profiles where lower(email) = 'alex@truongvietanh.com');
 -- ══════════════════════════════════════════════════════════════════════════════════════════
+
+-- ══════════════════════════════════════════════════════════════════════════════════════════
+-- BỔ SUNG 07/08 — HAI PHỤ HUYNH THỬ, LẤY NGAY TRONG DANH SÁCH EMAIL CỦA TRƯỜNG
+--
+-- Chủ dự án chốt: phụ huynh chọn ngẫu nhiên trong chính dãy mail đã mời. Migration 0096 đã sửa
+-- để email của trường vẫn ra đúng vai phụ huynh (trước đó vai mặc định 'pending' của miền nuốt
+-- mất lời mời).
+--
+-- Lấy 2 em ở 10A1 vì lớp ấy đông nhất — sau khi rút còn 8 · 9 · 8, đều ba lớp.
+--
+-- XOÁ HẲN lời mời học sinh của họ, không để đó chờ. Vì nếu để, họ đăng nhập trước khi được mời
+-- làm phụ huynh thì thành học sinh thật — và lúc ấy lời mời phụ huynh không đổi lại được nữa,
+-- vai đã nằm trong hồ sơ rồi. Không có lời mời nào thì họ chỉ thấy màn "chờ cấp quyền", đúng
+-- nghĩa "chưa tới lượt", và mời lại lúc nào cũng được.
+--
+-- MỜI THẬT ở NHỊP 7, sau khi ít nhất một em đã đăng nhập: /admin › Mời phụ huynh, chọn con.
+-- Lời mời gắn vào id của con, mà id chỉ có sau lần đăng nhập đầu của em ấy.
+delete from pending_user_grants
+ where lower(email) in ('tramanh.nguyen@truongvietanh.com', 'tien.nguyen@truongvietanh.com');
+
+select role::text as vai, count(*) as so_nguoi from pending_user_grants group by role order by role;
