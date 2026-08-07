@@ -50,7 +50,16 @@ export function ConfirmButton({
           if (!window.confirm(message)) e.preventDefault();
         }}
       >
-        <span className={pending ? 'invisible' : undefined}>{children}</span>
+        {/* `contents` để cái span này KHÔNG tự làm một hộp.
+            Nơi gọi đặt `inline-flex items-center gap-1` lên NÚT rồi truyền vào một icon và một
+            chữ, đinh ninh hai thứ ấy là hai ô của flex. Nhưng span bọc ngoài nuốt mất: nó thành
+            MỘT ô duy nhất, còn icon với chữ bên trong nó lại là nội dung inline nên xuống dòng
+            khi hẹp. Đó là lý do nút "Xoá" cao gấp đôi nút "Sửa" đứng cạnh — thùng rác một dòng,
+            chữ Xoá một dòng. `display: contents` cho icon và chữ ra thẳng làm ô của flex, đúng
+            như nơi gọi tưởng.
+            Vẫn giữ được mẹo che nội dung lúc đang gửi: visibility DI TRUYỀN xuống con, nên
+            `invisible` trên một phần tử `contents` vẫn giấu cả icon lẫn chữ. */}
+        <span className={`contents ${pending ? 'invisible' : ''}`}>{children}</span>
         {pending && (
           <Loader2
             size={14}

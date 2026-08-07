@@ -172,5 +172,34 @@ if (moForm === 'mo') {
   ok('Nhãn nói rõ lĩnh vực đã lấy sẵn từ mục tiêu', /đã lấy sẵn từ mục tiêu/.test(nhan), nhan.slice(0, 120));
 }
 
+// ── HAI NÚT SỬA / XOÁ TRÊN THẺ VIỆC PHẢI CÙNG CHIỀU CAO ────────────────────────────────────
+//
+// Chủ dự án: "chữ Sửa Xoá nên cao bằng nhau, hiện tại xoá đang bị xuống dòng với icon thùng rác".
+// Đo bằng chiều cao THẬT sau khi trình duyệt dựng xong, không đọc class rồi suy — bố cục là thứ
+// chỉ trình duyệt mới biết.
+const dong = await chay(`(() => {
+  // Về lại danh sách thẻ nếu đang mở form.
+  const huy = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Huỷ');
+  if (huy) huy.click();
+  return 'ok';
+})()`);
+if (dong === 'ok') {
+  await new Promise((r) => setTimeout(r, 800));
+  const cao = await doi(`(() => {
+    const bs = [...document.querySelectorAll('button')];
+    const sua = bs.find(x => x.textContent.trim() === 'Sửa');
+    const xoa = bs.find(x => x.textContent.trim() === 'Xoá');
+    if (!sua || !xoa) return '';
+    return JSON.stringify({sua: sua.offsetHeight, xoa: xoa.offsetHeight, dongXoa: xoa.getClientRects().length});
+  })()`, 15);
+  if (!cao) {
+    console.log('BỎ  Thẻ việc chưa có nút Sửa/Xoá để đo (lớp chưa có việc nào).');
+  } else {
+    const c = JSON.parse(cao);
+    ok('Nút Sửa và nút Xoá cao bằng nhau', c.sua === c.xoa, `Sửa=${c.sua}px · Xoá=${c.xoa}px`);
+    ok('Nút Xoá không bị vắt thành hai dòng', c.xoa <= c.sua, `Xoá=${c.xoa}px`);
+  }
+}
+
 console.log(`\n${dat}/${dat + hong} đạt.`);
 process.exit(hong === 0 ? 0 : 1);
