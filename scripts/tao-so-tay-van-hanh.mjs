@@ -1,13 +1,12 @@
-// SINH SỔ TAY VẬN HÀNH (.xlsx) — ai làm gì, theo thứ tự nào, và kiểm bằng test case nào.
+// SINH SỔ TAY VẬN HÀNH (.xlsx) cho giáo viên, ban giám hiệu và quản trị viên.
 //
 //   npm i --no-save exceljs && node scripts/tao-so-tay-van-hanh.mjs
 //
-// Vì sao là Excel chứ không phải trang trong app: người dùng nó là hiệu trưởng, giáo viên chủ
-// nhiệm và quản trị viên — họ tick từng dòng trong lúc chạy thử, ghi chú tay, gửi qua lại. Một
-// trang web chỉ đọc không làm được việc ấy.
+// NGUYÊN TẮC VIẾT: người đọc là thầy cô, không phải người làm phần mềm. Không có chữ kỹ thuật,
+// không kể hiện trạng dữ liệu (hôm nay có mấy lớp, ai đã mời) — thứ đó đổi mỗi tuần, ghi vào là
+// sổ tay sai ngay tuần sau. Chỉ giữ những gì cần để VẬN HÀNH, và giữ càng ngắn càng tốt.
 //
-// Nội dung LẤY TỪ MÃ ĐANG CHẠY, không chép từ tài liệu cũ: guard requireRole của từng trang,
-// LINKS trong AppNav, RLS trong migrations, và chuỗi hiển thị trong messages/vi.json.
+// Nội dung lấy từ app đang chạy: quyền của từng vai, thứ tự các bước, câu chữ trên màn hình.
 import ExcelJS from 'exceljs';
 
 const NAVY = 'FF0B1F3B';
@@ -15,438 +14,319 @@ const GOLD = 'FFF9DD0E';
 const NHAT = 'FFF3F6FA';
 
 const wb = new ExcelJS.Workbook();
-wb.creator = 'Viet Anh Class';
+wb.creator = 'Trường Việt Anh';
 wb.created = new Date();
 
-// ── Khung chung cho mọi trang tính ────────────────────────────────────────────────────────
-function trang(ten, cot, dong, {tieuDe, dan} = {}) {
-  const ws = wb.addWorksheet(ten, {views: [{state: 'frozen', ySplit: tieuDe ? 3 : 1}]});
-  let hang = 1;
-  if (tieuDe) {
-    ws.mergeCells(1, 1, 1, cot.length);
-    const o = ws.getCell(1, 1);
-    o.value = tieuDe;
-    o.font = {bold: true, size: 14, color: {argb: NAVY}};
-    o.alignment = {vertical: 'middle'};
-    ws.getRow(1).height = 24;
-    ws.mergeCells(2, 1, 2, cot.length);
-    const d = ws.getCell(2, 1);
-    d.value = dan ?? '';
-    d.font = {italic: true, size: 10, color: {argb: 'FF5A6B80'}};
-    d.alignment = {vertical: 'top', wrapText: true};
-    ws.getRow(2).height = dan && dan.length > 150 ? 44 : 30;
-    hang = 3;
-  }
-  const hRow = ws.getRow(hang);
+function trang(ten, cot, dong, tieuDe) {
+  const ws = wb.addWorksheet(ten, {views: [{state: 'frozen', ySplit: 2}]});
+  ws.mergeCells(1, 1, 1, cot.length);
+  const t = ws.getCell(1, 1);
+  t.value = tieuDe;
+  t.font = {bold: true, size: 13, color: {argb: NAVY}};
+  t.alignment = {vertical: 'middle'};
+  ws.getRow(1).height = 22;
+
+  const h = ws.getRow(2);
   cot.forEach((c, i) => {
-    const o = hRow.getCell(i + 1);
+    const o = h.getCell(i + 1);
     o.value = c.ten;
     o.font = {bold: true, size: 10.5, color: {argb: 'FFFFFFFF'}};
     o.fill = {type: 'pattern', pattern: 'solid', fgColor: {argb: NAVY}};
     o.alignment = {vertical: 'middle', horizontal: 'center', wrapText: true};
     ws.getColumn(i + 1).width = c.rong;
   });
-  hRow.height = 22;
+  h.height = 20;
 
-  dong.forEach((r, idx) => {
+  dong.forEach((r, i) => {
     const row = ws.addRow(r);
     row.alignment = {vertical: 'top', wrapText: true};
     row.font = {size: 10.5};
-    if (idx % 2 === 1) {
-      row.eachCell({includeEmpty: true}, (c) => {
-        c.fill = {type: 'pattern', pattern: 'solid', fgColor: {argb: NHAT}};
-      });
-    }
-    // Dòng bắt đầu bằng "▸" là tiêu đề nhóm — tô vàng cho dễ tìm khi cuộn.
     if (typeof r[0] === 'string' && r[0].startsWith('▸')) {
       row.eachCell({includeEmpty: true}, (c) => {
         c.fill = {type: 'pattern', pattern: 'solid', fgColor: {argb: GOLD}};
         c.font = {bold: true, size: 10.5, color: {argb: NAVY}};
       });
+    } else if (i % 2 === 1) {
+      row.eachCell({includeEmpty: true}, (c) => {
+        c.fill = {type: 'pattern', pattern: 'solid', fgColor: {argb: NHAT}};
+      });
     }
   });
-  ws.autoFilter = {
-    from: {row: hang, column: 1},
-    to: {row: hang + dong.length, column: cot.length},
-  };
+  ws.autoFilter = {from: {row: 2, column: 1}, to: {row: 2 + dong.length, column: cot.length}};
   return ws;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
-// 1 · ĐỌC TRƯỚC
+// 1 · THỨ TỰ LÀM
 // ══════════════════════════════════════════════════════════════════════════════════════════
 trang(
-  '1 · Đọc trước',
+  '1 · Thứ tự làm',
   [
-    {ten: 'Mục', rong: 26},
-    {ten: 'Nội dung', rong: 108},
-  ],
-  [
-    ['▸ File này là gì', 'Bản mô tả app Việt Anh Class đúng như nó ĐANG CHẠY ngày 07/08/2026, kèm bộ test case để chạy thử một vòng vận hành thật: dựng cơ sở → dựng lớp → giáo viên đặt WIG → học sinh tick → cuối tuần họp WIG.'],
-    ['Lấy từ đâu', 'Đọc thẳng từ mã nguồn đang chạy trên production: guard requireRole của từng trang, danh sách tab theo vai trong AppNav, luật RLS trong migrations, và chuỗi chữ trong messages/vi.json. Không chép lại từ tài liệu cũ — tài liệu cũ có chỗ đã lệch với mã.'],
-    ['Cách dùng', 'Trang "2 · Nhịp triển khai" đọc trước, nó nói AI LÀM TRƯỚC AI. Các trang bắt đầu bằng "TC" là test case: làm theo cột "Các bước", so với cột "Kết quả mong đợi", rồi điền Đạt/Không và ghi chú. Cột "Ưu tiên" = P1 phải chạy được mới vận hành thật được; P2 nên có; P3 làm sau cũng được.'],
-    ['Ưu tiên của đợt này', 'WIG và Họp WIG (trang 6 và 7). Đó là phần chủ dự án muốn chạy thật trước, và cũng là phần nhiều bước nhất — sai một mắt xích là cả tuần không tick được.'],
-    ['', ''],
-    ['▸ Hiện trạng 07/08/2026', ''],
-    ['Cơ sở', '1 cơ sở: Việt Anh Gò Vấp.'],
-    ['Lớp', '3 lớp năm học 2026-2027: 10A1, 11A1, 12A1. Cả ba đang TRỐNG chủ nhiệm, chờ giáo viên thật đăng nhập lần đầu để tự nhận lớp.'],
-    ['Đã mời, chưa ai đăng nhập', '33 người: 3 giáo viên chủ nhiệm · 27 học sinh (10A1: 10 · 11A1: 9 · 12A1: 8) · 2 ban giám hiệu · 1 quản trị viên.'],
-    ['Quản trị viên đang chạy', 'hung.nguyen@truongvietanh.com (đã đăng nhập, vai admin). Người được mời thêm: vui.nguyenvan@truongvietanh.com.'],
-    ['Phụ huynh', 'CHƯA mời ai — cố ý. Lời mời phụ huynh phải gắn vào một học sinh ĐÃ đăng nhập, nên việc này thuộc Nhịp 4. Xem thêm bẫy PH-1 ở trang 10.'],
-    ['Còn vết dữ liệu thử', 'Lớp 10A1 còn 4 mục tiêu WIG và 1 học sinh (alex@truongvietanh.com) từ đợt dò lỗi. Muốn dọn thì bỏ chú thích khối cuối trong scripts/phan-vai-van-hanh-thu.sql.'],
-    ['', ''],
-    ['▸ Quy ước đọc', ''],
-    ['Vai trong app', 'admin = Quản trị viên · principal = Ban giám hiệu · teacher = Giáo viên chủ nhiệm (GVCN) · student = Học sinh · parent = Phụ huynh · pending = đã đăng nhập nhưng chưa được cấp vai.'],
-    ['WIG', 'Mục tiêu tối quan trọng (4DX). Có 3 cấp: NĂM → THÁNG → TUẦN. Cấp dưới bắt buộc treo dưới một cấp trên.'],
-    ['Lead measure', 'Trong app gọi là "Việc để các em tick" — việc lặp lại hằng tuần, chính nó cộng lên thành tiến độ tháng rồi tiến độ năm.'],
-    ['Nhãn kỳ', 'Năm học: "2026-2027" (01/07/2026 → 30/06/2027). Tháng: "2026-08". Tuần: "W32-2026" theo chuẩn ISO, Thứ Hai → Chủ Nhật.'],
-  ],
-  {
-    tieuDe: 'SỔ TAY VẬN HÀNH — VIỆT ANH CLASS',
-    dan: 'Bản chụp app ngày 07/08/2026 · dùng cho đợt vận hành thật 3 lớp 10A1 · 11A1 · 12A1 · ưu tiên WIG và Họp WIG',
-  },
-);
-
-// ══════════════════════════════════════════════════════════════════════════════════════════
-// 2 · NHỊP TRIỂN KHAI
-// ══════════════════════════════════════════════════════════════════════════════════════════
-trang(
-  '2 · Nhịp triển khai',
-  [
-    {ten: 'Nhịp', rong: 9},
-    {ten: 'Ai làm', rong: 16},
-    {ten: 'Làm gì', rong: 40},
+    {ten: 'Bước', rong: 7},
+    {ten: 'Ai', rong: 16},
+    {ten: 'Làm gì', rong: 46},
     {ten: 'Ở đâu', rong: 20},
-    {ten: 'Vì sao phải theo thứ tự này', rong: 56},
-    {ten: 'Xong chưa', rong: 11},
+    {ten: 'Lưu ý', rong: 46},
+    {ten: 'Xong', rong: 7},
   ],
   [
-    ['▸ NHỊP 1', 'Quản trị viên', 'DỰNG NỀN — trước tất cả', '', '', ''],
-    ['1.1', 'Quản trị viên', 'Khai cơ sở (campus): tên, cấp học.', '/admin → Cơ sở', 'Mọi thứ khác treo dưới cơ sở. Khối lớp được sinh TỰ ĐỘNG theo cấp học khi tạo cơ sở (hàm seed_grades_for_campus) — không phải gõ tay.', ''],
-    ['1.2', 'Quản trị viên', 'Kiểm khối lớp đã sinh đủ chưa, thiếu thì thêm tay.', '/admin → Cơ sở', 'Khối không đánh số (mầm non…) thì hàm sinh trả rỗng, phải nhập tay.', ''],
-    ['1.3', 'Quản trị viên', 'Tạo lớp: tên, khối, năm học.', '/admin → Lớp', 'NĂM HỌC phải là "2026-2027". Lớp là thứ mà giáo viên, học sinh, WIG, điểm danh đều bám vào.', ''],
-    ['1.4', 'Quản trị viên', 'Khai môn học cho từng khối.', '/subjects', 'Học bạ và thời khoá biểu đều đọc danh sách môn từ đây. Bỏ qua bước này thì tới lúc nhập điểm mới phát hiện thiếu.', ''],
-    ['1.5', 'Quản trị viên', 'Xếp thời khoá biểu cho từng lớp.', '/timetable', 'Làm được ngay sau khi có lớp + môn, KHÔNG cần chờ giáo viên hay học sinh. Học sinh và phụ huynh xem được ngay khi họ vào.', ''],
-    ['1.6', 'Quản trị viên', 'Mời người dùng theo vai + lớp (mời hàng loạt, mỗi dòng một email).', '/admin → Mời người dùng', 'Miền truongvietanh.com có vai mặc định là "pending" — KHÔNG có lời mời thì người đó đăng nhập vào sẽ thấy màn "Tài khoản chưa được cấp quyền". Lời mời là thứ quyết định vai.', ''],
-    ['1.7', 'Quản trị viên', 'Kiểm lại: mỗi lớp phải TRỐNG chủ nhiệm trước khi giáo viên thật đăng nhập.', '/admin → Lớp', 'BẪY LỚN NHẤT — xem bẫy GV-1 ở trang 10. Lớp đã có ai đó đứng tên thì giáo viên được mời sẽ KHÔNG nhận được lớp, và lời mời bị xoá ngay sau lần đăng nhập đầu.', ''],
+    ['▸ 1', 'QUẢN TRỊ VIÊN', 'Dựng nền — làm trước tất cả', '', '', ''],
+    ['1.1', 'Quản trị viên', 'Khai cơ sở', 'Quản trị', 'Khối lớp tự có sẵn sau khi khai cơ sở.', ''],
+    ['1.2', 'Quản trị viên', 'Tạo lớp: tên lớp, khối, năm học', 'Quản trị', 'Năm học ghi dạng 2026-2027.', ''],
+    ['1.3', 'Quản trị viên', 'Khai môn học cho từng khối', 'Môn học', 'Chưa khai môn thì sau này không nhập điểm được.', ''],
+    ['1.4', 'Quản trị viên', 'Xếp thời khoá biểu cho từng lớp', 'Thời khoá biểu', 'Làm được ngay, không cần chờ ai.', ''],
+    ['1.5', 'Quản trị viên', 'Mời giáo viên chủ nhiệm — mỗi người một lớp', 'Quản trị › Mời người dùng', 'Lớp phải đang TRỐNG chủ nhiệm. Còn tên ai đó thì thầy cô mới sẽ không nhận được lớp.', ''],
+    ['1.6', 'Quản trị viên', 'Mời ban giám hiệu — nhớ chọn cơ sở', 'Quản trị › Mời người dùng', 'Quên chọn cơ sở là họ vào thấy màn nào cũng trống.', ''],
+    ['1.7', 'Quản trị viên', 'Mời học sinh theo lớp', 'Quản trị › Mời người dùng', 'Giáo viên cũng tự mời học sinh lớp mình được (bước 3.2).', ''],
     ['', '', '', '', '', ''],
-    ['▸ NHỊP 2', 'Ban giám hiệu', 'VÀO SỚM ĐỂ SOI, KHÔNG CHẶN AI', '', '', ''],
-    ['2.1', 'Ban giám hiệu', 'Đăng nhập Google lần đầu.', 'class.vietanh.org', 'Lời mời phải có CƠ SỞ, không thì vai đúng mà màn nào cũng trống — quyền của BGH là "mọi lớp trong cơ sở mình".', ''],
-    ['2.2', 'Ban giám hiệu', 'Mở /campus xem toàn cảnh cơ sở.', '/campus', 'Vào lúc nào cũng được, không chặn ai. BGH chỉ XEM: không sửa điểm danh, không đặt WIG.', ''],
+    ['▸ 2', 'BAN GIÁM HIỆU', 'Vào xem — không chặn ai', '', '', ''],
+    ['2.1', 'Ban giám hiệu', 'Đăng nhập bằng Google', 'class.vietanh.org', '', ''],
+    ['2.2', 'Ban giám hiệu', 'Xem toàn cảnh cơ sở, các lớp', 'Cơ sở', 'Chỉ xem. Không chấm điểm danh, không đặt mục tiêu.', ''],
     ['', '', '', '', '', ''],
-    ['▸ NHỊP 3', 'GVCN', 'DỰNG LỚP CỦA MÌNH VÀ ĐẶT MỤC TIÊU', '', '', ''],
-    ['3.1', 'GVCN', 'Đăng nhập Google lần đầu → tự nhận lớp được phân.', 'class.vietanh.org', 'Trigger gán lớp NGAY lần đăng nhập đầu, và chỉ khi lớp còn trống chủ nhiệm.', ''],
-    ['3.2', 'GVCN', 'Ghi danh học sinh theo email (điền thêm họ tên, mã HS, ngày sinh, SĐT phụ huynh, ghi chú).', '/roster', 'Ghi danh được cả em CHƯA có tài khoản — em hiện ngay với nhãn "chưa đăng nhập" và tự vào lớp khi đăng nhập lần đầu. Đây CHÍNH LÀ đường mời học sinh bên quản trị, cùng một hàng dữ liệu.', ''],
-    ['3.3', 'GVCN', 'Sửa lại thông tin em nào gõ nhầm.', '/roster → nút bút chì', 'Sửa tại chỗ, không phải xoá đi ghi danh lại. Email KHÔNG sửa được (là danh tính) — gõ sai email thì huỷ lời mời rồi ghi danh lại.', ''],
-    ['3.4', 'GVCN', 'TẠO MỤC TIÊU NĂM cho lớp (2026-2027).', '/wig → Tạo mục tiêu → Năm', 'Không có mục tiêu năm thì tab Tháng bị khoá. Đây là gốc của cả chuỗi.', ''],
-    ['3.5', 'GVCN', 'TẠO MỤC TIÊU THÁNG (2026-08) treo dưới mục tiêu năm.', '/wig → Tạo mục tiêu → Tháng', 'Không có mục tiêu tháng thì tab Tuần bị khoá.', ''],
-    ['3.6', 'GVCN', 'TẠO MỤC TIÊU TUẦN (tuần đang xem) treo dưới mục tiêu tháng.', '/wig → Tạo mục tiêu → Tuần', 'Ô lịch tự chặn theo khoảng của mục tiêu tháng, và mục tiêu cha chọn sẵn là cái PHỦ tuần đang đứng.', ''],
-    ['3.7', 'GVCN', 'Thêm "Việc để các em tick" (lead measure) vào mục tiêu tuần.', '/wig → Thêm việc', 'KHÔNG có việc nào thì màn hình học sinh không có gì để tick, và cả tuần không có số liệu. Đây là mắt xích hay bị quên nhất.', ''],
-    ['3.8', 'GVCN', 'Chọn trưởng điểm danh (1 em/lớp) — làm sau khi em đó đã đăng nhập.', '/roster', 'Em này được điểm danh thay GVCN, nhưng CHỈ ngày hôm nay.', ''],
+    ['▸ 3', 'GIÁO VIÊN CHỦ NHIỆM', 'Dựng lớp mình và đặt mục tiêu', '', '', ''],
+    ['3.1', 'Giáo viên', 'Đăng nhập lần đầu → tự vào lớp mình', 'class.vietanh.org', 'Thấy "Chưa có lớp" thì báo quản trị viên, họ phân lại một phút là xong.', ''],
+    ['3.2', 'Giáo viên', 'Ghi danh học sinh bằng email; điền thêm tên, mã, ngày sinh, số điện thoại phụ huynh', 'Danh sách lớp', 'Ghi danh được cả em chưa có tài khoản — em hiện ngay với chữ "chưa đăng nhập".', ''],
+    ['3.3', 'Giáo viên', 'Sửa lại thông tin em nào gõ nhầm', 'Danh sách lớp › nút bút chì', 'Email không sửa được. Gõ sai email thì huỷ rồi ghi danh lại.', ''],
+    ['3.4', 'Giáo viên', 'Đặt MỤC TIÊU NĂM cho lớp', 'WIG › Tạo mục tiêu › Năm', 'Chưa có mục tiêu năm thì không đặt được mục tiêu tháng.', ''],
+    ['3.5', 'Giáo viên', 'Đặt MỤC TIÊU THÁNG', 'WIG › Tạo mục tiêu › Tháng', 'Chưa có mục tiêu tháng thì không đặt được mục tiêu tuần.', ''],
+    ['3.6', 'Giáo viên', 'Đặt MỤC TIÊU TUẦN', 'WIG › Tạo mục tiêu › Tuần', 'Xem kỹ ô "Thuộc mục tiêu tháng" trước khi lưu.', ''],
+    ['3.7', 'Giáo viên', 'Thêm VIỆC ĐỂ CÁC EM TICK vào mục tiêu tuần', 'WIG › Thêm việc', 'Đây là bước hay quên nhất. Không có việc thì các em mở app ra không có gì để bấm.', ''],
+    ['3.8', 'Giáo viên', 'Chọn 1 em làm trưởng điểm danh', 'Danh sách lớp', 'Làm sau khi em đó đã đăng nhập.', ''],
     ['', '', '', '', '', ''],
-    ['▸ NHỊP 4', 'Học sinh', 'VÀO VÀ TICK HẰNG NGÀY', '', '', ''],
-    ['4.1', 'Học sinh', 'Đăng nhập Google lần đầu → tự vào đúng lớp.', 'class.vietanh.org', 'Ghi danh ở nhịp 3.2 quyết định lớp. Em nào chưa được ghi danh sẽ rơi vào vai "pending".', ''],
-    ['4.2', 'Học sinh', 'Mở bảng của mình, tick việc đã làm trong ngày.', '/student', 'Tick chỉ ghi được cho NGÀY HÔM NAY — qua ngày là khoá. Đó là thiết kế: số liệu 4DX phải là số ghi nóng, không phải nhớ lại cuối tuần.', ''],
-    ['4.3', 'Học sinh', 'Cần sửa gì (tick nhầm, đổi mục tiêu) thì gửi yêu cầu cho GVCN.', '/student', 'Học sinh KHÔNG tự đổi mục tiêu — cam kết 4DX chốt trong buổi họp, không sửa lén giữa tuần.', ''],
-    ['4.4', 'GVCN', 'Duyệt hoặc từ chối yêu cầu sửa của các em.', '/student/[id] hoặc thông báo', 'Mỗi lượt duyệt là một lần thầy cô nhìn lại số liệu của em đó.', ''],
+    ['▸ 4', 'HỌC SINH', 'Vào và tick mỗi ngày', '', '', ''],
+    ['4.1', 'Học sinh', 'Đăng nhập lần đầu → tự vào đúng lớp', 'class.vietanh.org', 'Phải được ghi danh trước.', ''],
+    ['4.2', 'Học sinh', 'Tick việc đã làm trong ngày', 'Bảng của em', 'Chỉ tick được cho HÔM NAY. Qua ngày là khoá.', ''],
+    ['4.3', 'Học sinh', 'Tick nhầm hoặc muốn đổi mục tiêu thì gửi yêu cầu', 'Bảng của em', 'Các em không tự đổi mục tiêu — chốt trong buổi họp.', ''],
+    ['4.4', 'Giáo viên', 'Duyệt hoặc từ chối yêu cầu của các em', 'Trang của em / Thông báo', '', ''],
     ['', '', '', '', '', ''],
-    ['▸ NHỊP 5', 'Quản trị viên', 'MỜI PHỤ HUYNH — SAU KHI CÁC EM ĐÃ VÀO', '', '', ''],
-    ['5.1', 'Quản trị viên', 'Mời phụ huynh, gắn với đúng một học sinh.', '/admin → Mời phụ huynh', 'Lời mời gắn vào ID của con, mà ID chỉ có sau khi em đăng nhập lần đầu. Nên bước này KHÔNG làm sớm hơn được.', ''],
-    ['5.2', 'Phụ huynh', 'Nhận link, đăng nhập, mở báo cáo về con.', '/report', 'Phụ huynh chỉ ĐỌC, và chỉ thấy dữ liệu con mình. Dùng email ngoài miền trường (gmail…) — xem bẫy PH-1.', ''],
+    ['▸ 5', 'QUẢN TRỊ VIÊN', 'Mời phụ huynh — sau khi các em đã vào', '', '', ''],
+    ['5.1', 'Quản trị viên', 'Mời phụ huynh, gắn với đúng một em', 'Quản trị › Mời phụ huynh', 'Dùng email riêng của phụ huynh (gmail…), đừng dùng email của trường.', ''],
+    ['5.2', 'Phụ huynh', 'Đăng nhập, xem báo cáo về con', 'Báo cáo', 'Chỉ xem, và chỉ thấy con mình.', ''],
     ['', '', '', '', '', ''],
-    ['▸ NHỊP 6', 'GVCN + cả lớp', 'CUỐI TUẦN — HỌP WIG', '', '', ''],
-    ['6.1', 'GVCN', 'Mở phòng họp, nó tự mở ĐÚNG TUẦN VỪA XONG.', '/wig/hop', 'Họp là để tổng kết tuần đã đi qua, không phải tuần đang chạy.', ''],
-    ['6.2', 'GVCN + cả lớp', 'Bước 1 — nhìn con số tuần qua, chấm Thắng/Chưa đạt, ghi "rút ra điều gì".', '/wig/hop', 'Con số do máy đếm từ lượt tick của các em, thầy cô KHÔNG sửa được ở đây. Đó là điểm tựa của cả buổi họp.', ''],
-    ['6.3', 'GVCN + cả lớp', 'Bước 2 — chiêm nghiệm tuần qua + một câu cam kết cho tuần tới.', '/wig/hop', 'Câu cam kết sẽ hiện lên đầu phòng họp tuần sau.', ''],
-    ['6.4', 'GVCN + cả lớp', 'Bước 3 — đặt luôn mục tiêu tuần TỚI ngay tại đây.', '/wig/hop', 'Không phải quay lại trang WIG làm lần nữa. Thiếu mục tiêu tháng thì đặt luôn tại chỗ; thiếu mục tiêu năm thì mới phải sang /wig.', ''],
-    ['6.5', 'GVCN', 'Bấm "Kết thúc buổi họp & lưu".', '/wig/hop', 'Một lần lưu xong cả ba bước: chốt tick tuần cũ, tạo mục tiêu tuần mới, các em tick tiếp được.', ''],
-    ['6.6', 'GVCN', 'Họp nhầm tuần thì "Gỡ biên bản tuần đó".', '/wig/hop', 'Gỡ xong tick tuần ấy mở lại cho các em. Không hoàn tác được nên hỏi kỹ trước khi gỡ.', ''],
-    ['6.7', 'Ban giám hiệu', 'Xem lại lớp đã tổng kết ra sao (bản chỉ đọc).', '/meeting', 'BGH không chấm, không đặt mục tiêu — việc ấy của GVCN cùng lớp.', ''],
+    ['▸ 6', 'GIÁO VIÊN + CẢ LỚP', 'Cuối tuần — họp WIG', '', '', ''],
+    ['6.1', 'Giáo viên', 'Mở phòng họp — tự mở đúng tuần vừa xong', 'WIG › Phòng họp', '', ''],
+    ['6.2', 'Cả lớp', 'Bước 1: nhìn con số tuần qua, chấm Thắng / Chưa đạt, ghi rút ra điều gì', 'Phòng họp', 'Con số do máy đếm từ lượt tick của các em.', ''],
+    ['6.3', 'Cả lớp', 'Bước 2: chiêm nghiệm tuần qua + một câu cam kết cho tuần tới', 'Phòng họp', 'Câu cam kết sẽ hiện lại ở buổi họp tuần sau.', ''],
+    ['6.4', 'Cả lớp', 'Bước 3: đặt mục tiêu tuần tới ngay tại đây', 'Phòng họp', 'Không phải quay lại trang WIG.', ''],
+    ['6.5', 'Giáo viên', 'Bấm "Kết thúc buổi họp & lưu"', 'Phòng họp', 'Một lần lưu là xong cả ba bước.', ''],
+    ['6.6', 'Giáo viên', 'Họp nhầm tuần thì gỡ biên bản tuần đó', 'Phòng họp', 'Gỡ xong các em tick lại được. Không lấy lại được nên hỏi kỹ.', ''],
+    ['6.7', 'Ban giám hiệu', 'Xem lại lớp đã tổng kết ra sao', 'Biên bản họp', 'Chỉ xem.', ''],
   ],
-  {
-    tieuDe: 'AI LÀM TRƯỚC, AI LÀM SAU',
-    dan: 'Sáu nhịp, chạy theo đúng thứ tự. Nhịp sau phụ thuộc dữ liệu của nhịp trước — làm ngược là kẹt, và chỗ kẹt thường không nói ra lý do.',
-  },
+  'THỨ TỰ LÀM — 6 BƯỚC, LÀM ĐÚNG THỨ TỰ',
 );
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
-// 3 · VAI TRÒ & QUYỀN
+// 2 · AI ĐƯỢC LÀM GÌ
 // ══════════════════════════════════════════════════════════════════════════════════════════
 trang(
-  '3 · Vai trò & quyền',
+  '2 · Ai được làm gì',
   [
-    {ten: 'Việc', rong: 40},
-    {ten: 'Quản trị viên', rong: 15},
-    {ten: 'Ban giám hiệu', rong: 15},
-    {ten: 'GVCN', rong: 15},
-    {ten: 'Học sinh', rong: 15},
-    {ten: 'Phụ huynh', rong: 15},
-    {ten: 'Ghi chú', rong: 52},
+    {ten: 'Việc', rong: 42},
+    {ten: 'Quản trị viên', rong: 14},
+    {ten: 'Ban giám hiệu', rong: 14},
+    {ten: 'Giáo viên', rong: 14},
+    {ten: 'Học sinh', rong: 13},
+    {ten: 'Phụ huynh', rong: 13},
+    {ten: 'Ghi chú', rong: 44},
   ],
   [
-    ['▸ TÀI KHOẢN & CƠ CẤU', '', '', '', '', '', ''],
-    ['Tạo cơ sở, khối lớp', '✔', '—', '—', '—', '—', 'Khối tự sinh theo cấp học khi tạo cơ sở.'],
-    ['Tạo / sửa lớp', '✔', '—', '—', '—', '—', ''],
-    ['Đổi giáo viên chủ nhiệm của lớp', '✔', '—', '—', '—', '—', 'Có chốt chặn ở CSDL: ai không phải admin thì không đổi được cột này.'],
-    ['Mời người dùng (hàng loạt, theo vai)', '✔', '—', '—', '—', '—', 'Mời lại cùng email với vai khác = ghi đè lời mời cũ.'],
-    ['Mời phụ huynh gắn với 1 học sinh', '✔', '—', '—', '—', '—', 'Chỉ mời được khi em đó đã đăng nhập lần đầu.'],
-    ['Khai môn học', '✔', '✔', '—', '—', '—', ''],
-    ['Xếp thời khoá biểu', '✔', '✔', '—', '—', '—', 'Học sinh và phụ huynh chỉ xem.'],
+    ['▸ LỚP & TÀI KHOẢN', '', '', '', '', '', ''],
+    ['Khai cơ sở, khối, lớp', '✔', '', '', '', '', ''],
+    ['Đổi giáo viên chủ nhiệm của lớp', '✔', '', '', '', '', ''],
+    ['Mời người dùng', '✔', '', '', '', '', 'Mời lại cùng email với vai khác là đổi vai.'],
+    ['Mời phụ huynh', '✔', '', '', '', '', 'Chỉ mời được khi con đã đăng nhập.'],
+    ['Khai môn học, xếp thời khoá biểu', '✔', '✔', '', 'xem', 'xem', ''],
     ['', '', '', '', '', '', ''],
     ['▸ DANH SÁCH LỚP', '', '', '', '', '', ''],
-    ['Xem danh sách lớp', '✔ mọi lớp', '✔ trong cơ sở', '✔ lớp mình', '—', '—', ''],
-    ['Ghi danh học sinh vào lớp', '✔', '—', '✔ lớp mình', '—', '—', 'Ghi danh được cả em chưa có tài khoản.'],
-    ['Sửa thông tin học sinh (tên, mã, ngày sinh, SĐT PH, ghi chú)', '✔', '—', '✔ lớp mình', '—', '—', 'Email là danh tính, không sửa được.'],
-    ['Cho học sinh rời lớp / huỷ lời mời', '✔', '—', '✔ lớp mình', '—', '—', 'Rời lớp = tắt cờ, không xoá dữ liệu.'],
-    ['Dời học sinh sang lớp khác', '✔ chuyển thẳng', '—', '✔ phải chờ duyệt', '—', '—', 'GVCN lớp đích duyệt thì em mới sang; trong lúc chờ em vẫn ở lớp cũ.'],
-    ['Chọn trưởng điểm danh', '✔', '—', '✔ lớp mình', '—', '—', 'Mỗi lớp đúng 1 em; chọn em khác thì em cũ tự được gỡ.'],
-    ['Xem ngày sinh / SĐT phụ huynh', '✔', '✖', '✔ lớp mình', '—', '—', 'BGH KHÔNG đọc được — đây là dữ liệu liên lạc của người thật, giới hạn có chủ đích.'],
+    ['Xem danh sách lớp', '✔ mọi lớp', '✔ cơ sở mình', '✔ lớp mình', '', '', ''],
+    ['Ghi danh học sinh', '✔', '', '✔ lớp mình', '', '', 'Ghi danh được cả em chưa có tài khoản.'],
+    ['Sửa thông tin học sinh', '✔', '', '✔ lớp mình', '', '', 'Email không sửa được.'],
+    ['Cho rời lớp / huỷ lời mời', '✔', '', '✔ lớp mình', '', '', 'Rời lớp không mất dữ liệu cũ.'],
+    ['Dời em sang lớp khác', '✔ ngay', '', '✔ chờ duyệt', '', '', 'Lớp bên kia duyệt thì em mới sang.'],
+    ['Chọn trưởng điểm danh', '✔', '', '✔ lớp mình', '', '', 'Mỗi lớp một em.'],
+    ['Xem ngày sinh, số điện thoại phụ huynh', '✔', 'không', '✔ lớp mình', '', '', 'Giữ kín thông tin liên lạc.'],
     ['', '', '', '', '', '', ''],
-    ['▸ WIG (ưu tiên đợt này)', '', '', '', '', '', ''],
-    ['Tạo mục tiêu năm / tháng / tuần của lớp', '✔', '—', '✔ lớp mình', '✖', '—', 'Học sinh không tự đặt mục tiêu — chốt trong buổi họp.'],
-    ['Thêm / sửa / xoá "việc để các em tick"', '✔', '—', '✔ lớp mình', '✖', '—', ''],
-    ['Đặt WIG cá nhân cho từng em', '✔', '—', '✔ lớp mình', '✖', '—', 'GVCN đặt cùng em trong buổi họp Coach × Buddy.'],
-    ['Tick tiến độ hằng ngày', '—', '—', '—', '✔ của mình', '—', 'Chỉ ghi được cho NGÀY HÔM NAY; qua ngày là khoá.'],
-    ['Gỡ lượt tick sai', '✔', '—', '✔ lớp mình', '✖', '—', 'Em gửi yêu cầu, GVCN gỡ.'],
-    ['Gửi yêu cầu sửa (tick nhầm, đổi mục tiêu…)', '—', '—', '—', '✔', '✔', 'Người gửi rút lại được khi còn chờ duyệt; không tự duyệt được.'],
-    ['Duyệt yêu cầu sửa', '✔', '—', '✔ lớp mình', '✖', '✖', ''],
-    ['Xem tiến độ WIG của con', '✔', '✔ trong cơ sở', '✔ lớp mình', '✔ của mình', '✔ con mình', ''],
+    ['▸ MỤC TIÊU (WIG)', '', '', '', '', '', ''],
+    ['Đặt mục tiêu năm / tháng / tuần của lớp', '✔', '', '✔ lớp mình', 'không', '', ''],
+    ['Thêm, sửa, xoá việc để các em tick', '✔', '', '✔ lớp mình', 'không', '', ''],
+    ['Đặt mục tiêu riêng cho từng em', '✔', '', '✔ lớp mình', 'không', '', 'Đặt cùng em trong buổi trao đổi.'],
+    ['Tick việc mỗi ngày', '', '', '', '✔ của mình', '', 'Chỉ tick được cho hôm nay.'],
+    ['Gỡ lượt tick sai', '✔', '', '✔ lớp mình', 'không', '', 'Em gửi yêu cầu, thầy cô gỡ.'],
+    ['Gửi yêu cầu sửa', '', '', '', '✔', '✔', 'Rút lại được khi còn chờ duyệt.'],
+    ['Duyệt yêu cầu sửa', '✔', '', '✔ lớp mình', 'không', 'không', ''],
+    ['Xem tiến độ', '✔', '✔ cơ sở mình', '✔ lớp mình', '✔ của mình', '✔ con mình', ''],
     ['', '', '', '', '', '', ''],
     ['▸ HỌP WIG', '', '', '', '', '', ''],
-    ['Mở phòng họp và chấm Thắng/Chưa đạt', '✔', '✖', '✔ lớp mình', '✖', '✖', 'BGH xem bản chỉ đọc ở /meeting.'],
-    ['Ghi chiêm nghiệm & cam kết tuần', '✔', '✖', '✔ lớp mình', '✖', '✖', ''],
-    ['Đặt mục tiêu tuần tới ngay trong phòng họp', '✔', '✖', '✔ lớp mình', '✖', '✖', ''],
-    ['Kết thúc buổi họp (chốt tick tuần đó)', '✔', '✖', '✔ lớp mình', '✖', '✖', ''],
-    ['Gỡ biên bản (mở lại tick tuần đó)', '✔', '✖', '✔ lớp mình', '✖', '✖', 'Không hoàn tác được.'],
-    ['Đọc biên bản buổi họp', '✔', '✔ trong cơ sở', '✔ lớp mình', '✔ lớp mình', '✔ phần của con', 'Phụ huynh thấy chiêm nghiệm + việc tuần sau trong báo cáo.'],
+    ['Chấm Thắng / Chưa đạt', '✔', 'không', '✔ lớp mình', 'không', 'không', ''],
+    ['Ghi chiêm nghiệm & cam kết', '✔', 'không', '✔ lớp mình', 'không', 'không', ''],
+    ['Đặt mục tiêu tuần tới trong phòng họp', '✔', 'không', '✔ lớp mình', 'không', 'không', ''],
+    ['Kết thúc buổi họp', '✔', 'không', '✔ lớp mình', 'không', 'không', 'Chốt lượt tick của tuần đó.'],
+    ['Gỡ biên bản', '✔', 'không', '✔ lớp mình', 'không', 'không', 'Không lấy lại được.'],
+    ['Đọc biên bản', '✔', '✔ cơ sở mình', '✔ lớp mình', '✔ lớp mình', '✔ phần của con', ''],
     ['', '', '', '', '', '', ''],
-    ['▸ VẬN HÀNH HẰNG NGÀY', '', '', '', '', '', ''],
-    ['Điểm danh hôm nay', '✔', '✖', '✔ lớp mình', '✔ nếu là trưởng ĐD', '—', 'Trưởng điểm danh CHỈ ghi được hôm nay, không sửa ngày cũ.'],
-    ['Sửa điểm danh ngày cũ', '✔', '✖', '✔ trong 7 ngày', '✖', '—', 'Quá 7 ngày thì chỉ quản trị viên sửa được.'],
-    ['Báo bài (bài tập về nhà)', '✔', '✔ xem', '✔ lớp mình', '✔ xem', '✔ xem', ''],
-    ['Học bạ: điểm số, nhận xét, rèn luyện', '✔', '✔ xem', '✔ lớp mình', '✔ của mình', '✔ con mình', ''],
-    ['Nhắn tin phụ huynh ↔ giáo viên', '—', '—', '✔', '—', '✔', 'Vào bằng icon ở cụm phải, không phải tab.'],
-    ['Báo cáo về con', '—', '—', '—', '—', '✔ chỉ đọc', 'Không thấy dữ liệu em khác, không thấy ghi chú nội bộ lớp.'],
+    ['▸ HẰNG NGÀY', '', '', '', '', '', ''],
+    ['Điểm danh hôm nay', '✔', 'không', '✔ lớp mình', '✔ nếu là trưởng điểm danh', '', ''],
+    ['Sửa điểm danh ngày cũ', '✔', 'không', '✔ trong 7 ngày', 'không', '', 'Quá 7 ngày thì nhờ quản trị viên.'],
+    ['Báo bài', '✔', 'xem', '✔ lớp mình', 'xem', 'xem', ''],
+    ['Điểm số, nhận xét, rèn luyện', '✔', 'xem', '✔ lớp mình', '✔ của mình', '✔ con mình', ''],
+    ['Nhắn tin phụ huynh ↔ giáo viên', '', '', '✔', '', '✔', ''],
+    ['Xem báo cáo về con', '', '', '', '', '✔ chỉ xem', 'Không thấy dữ liệu em khác.'],
   ],
-  {
-    tieuDe: 'AI ĐƯỢC LÀM GÌ',
-    dan: '✔ = làm được · ✖ = bị chặn có chủ đích · — = không thuộc việc của vai này. Chặn nằm ở CẢ giao diện, server action và luật RLS dưới CSDL, nên gọi thẳng API cũng không đi vòng được.',
-  },
+  'AI ĐƯỢC LÀM GÌ',
 );
 
-// ══════════════════════════════════════════════════════════════════════════════════════════
-// 4 · MÀN HÌNH THEO VAI
-// ══════════════════════════════════════════════════════════════════════════════════════════
-trang(
-  '4 · Màn hình theo vai',
-  [
-    {ten: 'Đường dẫn', rong: 20},
-    {ten: 'Tên trên màn hình', rong: 22},
-    {ten: 'Ai mở được', rong: 34},
-    {ten: 'Để làm gì', rong: 54},
-    {ten: 'Vào bằng cách nào', rong: 26},
-  ],
-  [
-    ['/', 'Bảng lớp', 'Mọi vai đã có tài khoản', 'Trang chủ sau khi đăng nhập; GVCN thấy lớp mình.', 'Tab đầu tiên'],
-    ['/admin', 'Quản trị', 'Chỉ Quản trị viên', 'Cơ sở, khối, lớp, mời người dùng, phân công GVCN, mời phụ huynh.', 'Tab'],
-    ['/campus', 'Cơ sở', 'Quản trị viên · Ban giám hiệu', 'Toàn cảnh cơ sở: các lớp, tình hình WIG.', 'Tab'],
-    ['/roster', 'Danh sách lớp', 'GVCN · Quản trị viên · Ban giám hiệu', 'Ghi danh, sửa thông tin, cho rời lớp, dời lớp, chọn trưởng điểm danh.', 'Tab'],
-    ['/wig', 'WIG & Lead measure', 'GVCN · Quản trị viên', 'Mục tiêu tuần này, lớp đang đi tới đâu, nút tạo mục tiêu, nút vào phòng họp.', 'Tab'],
-    ['/wig/chi-tiet', 'Chi tiết tuần', 'GVCN · Quản trị viên', 'Từng em trong tuần: ai đã tick, ai chưa.', 'Nút trong /wig'],
-    ['/wig/hop', 'Phòng họp WIG', 'GVCN · Quản trị viên', 'Ba bước tổng kết tuần và đặt mục tiêu tuần tới.', 'Nút trong /wig'],
-    ['/meeting', 'Biên bản họp', 'GVCN · Quản trị viên · Ban giám hiệu', 'GVCN bị đưa thẳng sang /wig/hop. BGH đọc bản chỉ đọc.', 'Đường dẫn trực tiếp'],
-    ['/attendance', 'Điểm danh', 'GVCN · Quản trị viên · trưởng điểm danh', 'Điểm danh hôm nay; GVCN sửa được 7 ngày gần nhất.', 'Tab (trưởng ĐD cũng có)'],
-    ['/homework', 'Báo bài', 'Mọi vai', 'Giáo viên đăng bài mỗi ngày; học sinh và phụ huynh mở mỗi tối.', 'Tab'],
-    ['/grades', 'Học bạ', 'Mọi vai', 'Điểm số, nhận xét, rèn luyện theo đợt đánh giá.', 'Tab'],
-    ['/scoreboard', 'Bảng thi đua', 'GVCN · Quản trị viên · Ban giám hiệu', 'Điểm 4 lĩnh vực của lớp, cộng từ lượt tick.', 'Tab'],
-    ['/timetable', 'Thời khoá biểu', 'Mọi vai', 'Quản trị/BGH xếp; các vai khác xem.', 'Tab'],
-    ['/subjects', 'Môn học', 'Quản trị viên · Ban giám hiệu', 'Khai môn cho từng khối.', 'Trong /admin'],
-    ['/student', 'Bảng của em', 'Học sinh', 'Nơi em tick việc mỗi ngày và xem mình đang tới đâu.', 'Tab đầu của học sinh'],
-    ['/student/[id]', 'Trang một em', 'GVCN · Quản trị viên · BGH · chính em · phụ huynh của em', 'Chi tiết WIG cá nhân, duyệt yêu cầu sửa.', 'Bấm tên em trong danh sách'],
-    ['/report', 'Báo cáo phụ huynh', 'Chỉ Phụ huynh', 'Điểm danh cộng dồn, tiến độ tuần của con, chiêm nghiệm và việc tuần sau.', 'Tab đầu của phụ huynh'],
-    ['/inbox', 'Liên lạc', 'Phụ huynh · GVCN', 'Nhắn tin hai chiều, có chấm đỏ khi chưa đọc.', 'Icon ở cụm phải'],
-    ['/notifications', 'Thông báo', 'Mọi vai', 'Chuông thông báo.', 'Icon chuông'],
-    ['/gallery', 'Hình ảnh', 'Mọi vai', 'Ảnh của lớp.', 'Nút trong Danh sách lớp / Báo cáo'],
-    ['/menu', 'Thực đơn', 'Mọi vai', 'Quản trị/BGH soạn; học sinh và phụ huynh xem qua thẻ nhúng.', 'Thẻ trong trang của họ'],
-  ],
-  {
-    tieuDe: 'MÀN HÌNH NÀO CHO AI',
-    dan: 'Cột "Ai mở được" lấy từ guard requireRole thật trong mã. Mở nhầm màn không thuộc vai mình thì bị đá về trang chủ, không phải màn trắng.',
-  },
-);
-
-// ── Khung cột dùng chung cho các trang test case ──────────────────────────────────────────
-const COT_TC = [
-  {ten: 'Mã', rong: 9},
-  {ten: 'Ưu tiên', rong: 8},
-  {ten: 'Vai', rong: 14},
-  {ten: 'Màn hình', rong: 16},
-  {ten: 'Tiền đề', rong: 30},
-  {ten: 'Các bước', rong: 52},
-  {ten: 'Kết quả mong đợi', rong: 52},
-  {ten: 'Đạt / Không', rong: 11},
-  {ten: 'Ghi chú khi chạy', rong: 30},
+const COT = [
+  {ten: 'Mã', rong: 8},
+  {ten: '★', rong: 4},
+  {ten: 'Ai', rong: 14},
+  {ten: 'Ở đâu', rong: 18},
+  {ten: 'Làm gì', rong: 48},
+  {ten: 'Phải thấy gì', rong: 50},
+  {ten: 'Đạt?', rong: 7},
+  {ten: 'Ghi chú', rong: 26},
 ];
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
-// 5 · TC — DỰNG NỀN
+// 3 · KIỂM THỬ — MỤC TIÊU (WIG)
 // ══════════════════════════════════════════════════════════════════════════════════════════
 trang(
-  '5 · TC Dựng nền',
-  COT_TC,
+  '3 · Thử · Mục tiêu',
+  COT,
   [
-    ['NEN-01', 'P1', 'Quản trị viên', '/admin', 'Đã đăng nhập bằng tài khoản quản trị', '1. Mở /admin\n2. Tạo cơ sở mới: tên + cấp học', 'Cơ sở hiện trong danh sách. Khối lớp của cấp học ấy được sinh sẵn, không phải gõ tay.', '', ''],
-    ['NEN-02', 'P1', 'Quản trị viên', '/admin', 'Đã có cơ sở', '1. Tạo lớp: tên "10A1", chọn khối, năm học 2026-2027', 'Lớp hiện trong danh sách, cột năm học ghi 2026-2027, chưa có chủ nhiệm.', '', ''],
-    ['NEN-03', 'P1', 'Quản trị viên', '/subjects', 'Đã có khối', '1. Mở /subjects\n2. Khai vài môn cho khối 10', 'Môn hiện ra và chọn được ở học bạ / thời khoá biểu.', '', ''],
-    ['NEN-04', 'P2', 'Quản trị viên', '/timetable', 'Đã có lớp + môn', '1. Xếp vài tiết cho 10A1', 'Thời khoá biểu lưu được; mở lại thấy đúng.', '', ''],
-    ['NEN-05', 'P1', 'Quản trị viên', '/admin', 'Đã có lớp', '1. Mời người dùng: dán 3 email, vai Giáo viên chủ nhiệm, chọn lớp\n2. Mời tiếp danh sách học sinh, vai Học sinh, chọn lớp', 'Báo "Đã mời N người". Lời mời hiện trong danh sách chờ.', '', ''],
-    ['NEN-06', 'P1', 'Quản trị viên', '/admin', 'Vừa mời ở NEN-05', '1. Mời lại một email trong số đó với vai KHÁC', 'Vai của lời mời được ghi đè, không sinh dòng thứ hai.', '', ''],
-    ['NEN-07', 'P1', 'Quản trị viên', '/admin', 'Lớp sắp giao cho giáo viên thật', '1. Mở danh sách lớp\n2. Soi cột chủ nhiệm của lớp sắp giao', 'Cột chủ nhiệm phải TRỐNG. Còn tên ai đó (kể cả tài khoản thử) thì giáo viên được mời sẽ không nhận được lớp — xem bẫy GV-1.', '', ''],
-    ['NEN-08', 'P2', 'Người lạ', 'class.vietanh.org', 'Email @truongvietanh.com KHÔNG có lời mời', '1. Đăng nhập Google', 'Thấy màn "Tài khoản chưa được cấp quyền", không vào được màn nào khác.', '', ''],
-    ['NEN-09', 'P2', 'Quản trị viên', '/admin', 'Có người đang ở vai pending', '1. Cấp vai cho họ trong danh sách chờ', 'Họ tải lại trang là vào được đúng màn của vai mới.', '', ''],
-    ['NEN-10', 'P1', 'Ban giám hiệu', '/campus', 'Lời mời BGH có kèm CƠ SỞ', '1. Đăng nhập lần đầu\n2. Mở /campus', 'Thấy các lớp trong cơ sở mình. Nếu trống trơn → lời mời thiếu cơ sở, xem bẫy BGH-1.', '', ''],
-    ['NEN-11', 'P2', 'Ban giám hiệu', '/roster', 'Đã đăng nhập', '1. Mở danh sách một lớp trong cơ sở', 'Xem được tên và email học sinh, KHÔNG thấy ngày sinh / SĐT phụ huynh (các cột ấy ẩn hẳn).', '', ''],
-    ['NEN-12', 'P2', 'Ban giám hiệu', '/wig', 'Đã đăng nhập', '1. Gõ thẳng /wig lên thanh địa chỉ', 'Bị đá về trang chủ — đặt WIG không phải việc của BGH.', '', ''],
+    ['W-01', '★', 'Giáo viên', 'class.vietanh.org', 'Đăng nhập lần đầu', 'Vào thẳng lớp mình, tên lớp hiện trên đầu trang', '', ''],
+    ['W-02', '★', 'Giáo viên', 'Danh sách lớp', 'Ghi danh 1 em: email + họ tên + ngày sinh', 'Em hiện ngay, kèm chữ "chưa đăng nhập"', '', ''],
+    ['W-03', '★', 'Giáo viên', 'Danh sách lớp', 'Bấm nút bút chì, sửa họ tên, lưu', 'Tên mới hiện ngay. Không có ô email trong bảng sửa', '', ''],
+    ['W-04', '', 'Giáo viên', 'Danh sách lớp', 'Xoá trắng ô Ghi chú rồi lưu', 'Ghi chú mất thật, cột hiện dấu —', '', ''],
+    ['W-05', '★', 'Giáo viên', 'WIG', 'Bấm "Tạo mục tiêu" khi lớp chưa có mục tiêu nào', 'Mở ở tab Năm. Tab Tháng và Tuần khoá, có nói rõ vì sao', '', ''],
+    ['W-06', '★', 'Giáo viên', 'WIG', 'Đặt mục tiêu NĂM: chọn năm học, điền tên, từ 0 đến bao nhiêu, đơn vị', 'Lưu được. Năm học chạy từ 01/07 tới 30/06 năm sau', '', ''],
+    ['W-07', '★', 'Giáo viên', 'WIG', 'Mở lại "Tạo mục tiêu"', 'Lần này mở sẵn ở tab Tháng', '', ''],
+    ['W-08', '★', 'Giáo viên', 'WIG', 'Đặt mục tiêu THÁNG, chọn mục tiêu năm ở trên làm cha', 'Lưu được, nằm dưới mục tiêu năm', '', ''],
+    ['W-09', '★', 'Giáo viên', 'WIG', 'Mở tab Tuần, xem ô "Thuộc mục tiêu tháng" và ô lịch', 'Chọn sẵn đúng tháng của tuần đang xem. Lịch mở đúng tuần này', '', ''],
+    ['W-10', '', 'Giáo viên', 'WIG', 'Lớp có mục tiêu hai tháng khác nhau — đổi qua lại ô "Thuộc mục tiêu tháng"', 'Lịch tự nhảy theo tháng vừa chọn', '', ''],
+    ['W-11', '', 'Giáo viên', 'WIG', 'Thử chọn một ngày nằm ngoài tháng của mục tiêu cha', 'Lịch không cho chọn', '', ''],
+    ['W-12', '★', 'Giáo viên', 'WIG', 'Gõ 5.1 vào ô Mục tiêu rồi lưu', 'Không cho lưu — mục tiêu chỉ nhận số nguyên. Gõ 5 thì lưu bình thường', '', ''],
+    ['W-13', '★', 'Giáo viên', 'WIG', 'Bấm "Thêm việc": tên việc, mục tiêu, đơn vị, mỗi lần tick đáng bao nhiêu, ngày trong tuần', 'Việc hiện thành một thẻ dưới mục tiêu tuần', '', ''],
+    ['W-14', '', 'Giáo viên', 'WIG', 'Xem ô "Nhóm nhỏ trong …" trong form thêm việc', 'Ghi đúng lĩnh vực của mục tiêu, và nói rõ là không bắt buộc điền', '', ''],
+    ['W-15', '', 'Giáo viên', 'WIG', 'Nhìn hai nút Sửa và Xoá trên thẻ việc', 'Hai nút cao bằng nhau, chữ không bị xuống dòng', '', ''],
+    ['W-16', '', 'Giáo viên', 'WIG', 'Đặt mục tiêu cao hơn sức cả lớp', 'Có câu nhắc, nhưng vẫn lưu được', '', ''],
+    ['W-17', '★', 'Học sinh', 'class.vietanh.org', 'Đăng nhập lần đầu', 'Vào thẳng bảng của mình, đúng lớp', '', ''],
+    ['W-18', '★', 'Học sinh', 'Bảng của em', 'Tick một việc của hôm nay', 'Số tăng ngay, tiến độ tuần / tháng / năm cộng theo', '', ''],
+    ['W-19', '★', 'Giáo viên', 'WIG › Chi tiết tuần', 'Mở màn chi tiết sau khi vài em đã tick', 'Thấy từng em: ai đã làm, ai chưa', '', ''],
+    ['W-20', '', 'Học sinh', 'Bảng của em', 'Thử gỡ lượt tick của hôm qua', 'Không gỡ được, chỉ gửi được yêu cầu', '', ''],
+    ['W-21', '', 'Học sinh', 'Bảng của em', 'Thử tự đổi mục tiêu của mình', 'Không có chỗ nào để đổi', '', ''],
+    ['W-22', '', 'Giáo viên', 'Trang của em', 'Duyệt một yêu cầu của học sinh', 'Yêu cầu đổi trạng thái, thay đổi có hiệu lực ngay', '', ''],
+    ['W-23', '', 'Giáo viên', 'Bảng thi đua', 'Mở bảng thi đua sau vài ngày tick', 'Điểm 4 lĩnh vực khớp với số lượt tick', '', ''],
   ],
-  {
-    tieuDe: 'TEST CASE — DỰNG NỀN (NHỊP 1 & 2)',
-    dan: 'Chạy hết nhóm này trước khi cho giáo viên thật đăng nhập. NEN-07 là bước dễ bỏ qua nhất và cũng đắt nhất nếu bỏ qua.',
-  },
+  'THỬ — ĐẶT MỤC TIÊU VÀ TICK  ·  ★ = phải chạy được mới vận hành thật',
 );
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
-// 6 · TC — WIG
+// 4 · KIỂM THỬ — HỌP WIG
 // ══════════════════════════════════════════════════════════════════════════════════════════
 trang(
-  '6 · TC WIG',
-  COT_TC,
+  '4 · Thử · Họp WIG',
+  COT,
   [
-    ['WIG-01', 'P1', 'GVCN', 'class.vietanh.org', 'Đã được mời làm GVCN, lớp còn TRỐNG chủ nhiệm', '1. Đăng nhập Google lần đầu', 'Vào thẳng lớp của mình, tên lớp hiện trên đầu trang. Nếu thấy "Chưa có lớp" → xem bẫy GV-1.', '', ''],
-    ['WIG-02', 'P1', 'GVCN', '/roster', 'Đã nhận lớp', '1. Ghi danh 1 em bằng email, điền họ tên + ngày sinh\n2. Nhìn lại danh sách', 'Em hiện ngay với nhãn "chưa đăng nhập", đủ họ tên và ngày sinh vừa điền.', '', ''],
-    ['WIG-03', 'P1', 'GVCN', '/roster', 'Vừa ghi danh ở WIG-02', '1. Bấm nút bút chì trên dòng em đó\n2. Sửa họ tên, bấm Lưu', 'Dòng hiện tên mới ngay, không phải tải lại trang. Bảng sửa KHÔNG có ô email.', '', ''],
-    ['WIG-04', 'P2', 'GVCN', '/roster', 'Em đã có ghi chú', '1. Mở bảng sửa, xoá trắng ô Ghi chú, Lưu', 'Ghi chú biến mất thật (cột hiện "—"), không phải vẫn còn giá trị cũ.', '', ''],
-    ['WIG-05', 'P1', 'GVCN', '/wig', 'Lớp chưa có mục tiêu nào', '1. Bấm "Tạo mục tiêu"', 'Menu mở ở tab NĂM. Tab Tháng và Tuần bị khoá, và bên cạnh nói rõ vì sao khoá.', '', ''],
-    ['WIG-06', 'P1', 'GVCN', '/wig', 'Đang ở WIG-05', '1. Chọn năm học 2026-2027\n2. Điền lĩnh vực, tên mục tiêu, từ 0 đến N, đơn vị\n3. Lưu', 'Tạo xong. Khoảng ngày của năm học phải là 01/07/2026 → 30/06/2027 (KHÔNG phải 01/09 → 31/05).', '', ''],
-    ['WIG-07', 'P1', 'GVCN', '/wig', 'Đã có mục tiêu năm', '1. Mở lại "Tạo mục tiêu"', 'Lần này menu mở sẵn ở tab THÁNG (loại xa nhất mà lớp đủ điều kiện tạo).', '', ''],
-    ['WIG-08', 'P1', 'GVCN', '/wig', 'Đang ở WIG-07', '1. Chọn tháng hiện tại\n2. Chọn mục tiêu năm làm cha\n3. Điền và Lưu', 'Tạo xong, mục tiêu tháng treo dưới mục tiêu năm.', '', ''],
-    ['WIG-09', 'P1', 'GVCN', '/wig', 'Đã có mục tiêu tháng', '1. Mở "Tạo mục tiêu" → tab TUẦN\n2. Soi ô "Thuộc mục tiêu tháng" và ô lịch', 'Mục tiêu cha chọn sẵn là tháng PHỦ tuần đang xem. Ô lịch mở đúng vào tuần đang đứng, không nhảy sang tháng khác.', '', ''],
-    ['WIG-10', 'P1', 'GVCN', '/wig', 'Lớp có mục tiêu của HAI tháng khác nhau', '1. Mở tab Tuần\n2. Đổi qua lại ô "Thuộc mục tiêu tháng"', 'Đổi cha thì ô lịch tự kéo vào khoảng của cha mới, không để lại một ngày mà chính nó đang cấm.', '', ''],
-    ['WIG-11', 'P2', 'GVCN', '/wig', 'Đang tạo mục tiêu tuần', '1. Thử chọn một ngày ngoài khoảng của mục tiêu cha', 'Ô lịch không cho chọn — chặn ngay tại chỗ, không phải điền xong cả form mới bị mắng.', '', ''],
-    ['WIG-12', 'P1', 'GVCN', '/wig', 'Đang điền mục tiêu', '1. Gõ 5.1 vào ô "Mục tiêu (số)"\n2. Bấm Lưu', 'Trình duyệt từ chối ngay: mục tiêu chỉ nhận số nguyên. Gõ 5 thì lưu bình thường.', '', ''],
-    ['WIG-13', 'P1', 'GVCN', '/wig', 'Đã có mục tiêu tuần', '1. Bấm "Thêm việc"\n2. Điền tên việc, mục tiêu số, đơn vị, mỗi lần tick đáng bao nhiêu\n3. Chọn ngày trong tuần (bỏ trống = T2–T6)\n4. Lưu', 'Việc hiện thành một thẻ dưới mục tiêu tuần, ghi rõ mục tiêu và những thứ được tick.', '', ''],
-    ['WIG-14', 'P2', 'GVCN', '/wig', 'Đang ở form Thêm việc', '1. Soi ô "Nhóm nhỏ trong …"', 'Nhãn ghi ĐÚNG lĩnh vực của mục tiêu (vd "Nhóm nhỏ trong Kiến thức") và nói rõ lĩnh vực đã lấy sẵn, không phải điền lại.', '', ''],
-    ['WIG-15', 'P2', 'GVCN', '/wig', 'Đã có ít nhất 1 việc', '1. Nhìn hai nút Sửa và Xoá trên thẻ việc', 'Hai nút cao bằng nhau, chữ Xoá không bị vắt xuống dòng dưới icon thùng rác.', '', ''],
-    ['WIG-16', 'P2', 'GVCN', '/wig', 'Đặt mục tiêu tuần quá cao', '1. Đặt mục tiêu việc lớn hơn số lượt tick tối đa cả lớp có thể làm', 'Có cảnh báo "quá nhiều", nhưng VẪN lưu được — là cảnh báo, không phải rào chắn.', '', ''],
-    ['WIG-17', 'P1', 'Học sinh', 'class.vietanh.org', 'Đã được ghi danh vào lớp', '1. Đăng nhập Google lần đầu', 'Vào thẳng bảng của mình, đúng lớp, không phải chờ ai duyệt.', '', ''],
-    ['WIG-18', 'P1', 'Học sinh', '/student', 'Lớp đã có việc để tick trong tuần', '1. Tick một việc của hôm nay', 'Số tăng ngay. Tiến độ mục tiêu tuần / tháng / năm cộng theo.', '', ''],
-    ['WIG-19', 'P1', 'GVCN', '/wig/chi-tiet', 'Vài em đã tick', '1. Mở màn Chi tiết tuần', 'Thấy từng em: ai đã góp, ai chưa. Số khớp với số em vừa tick.', '', ''],
-    ['WIG-20', 'P2', 'Học sinh', '/student', 'Đã tick hôm qua', '1. Thử gỡ lượt tick của hôm qua', 'Không tự gỡ được — chỉ ghi được cho ngày hôm nay. Em phải gửi yêu cầu cho GVCN.', '', ''],
-    ['WIG-21', 'P2', 'Học sinh', '/student', 'Đang xem mục tiêu của mình', '1. Thử đổi mục tiêu / target của chính mình', 'Không có đường nào để tự đổi. Chỉ gửi được yêu cầu.', '', ''],
-    ['WIG-22', 'P2', 'GVCN', '/student/[id]', 'Có yêu cầu sửa đang chờ', '1. Mở yêu cầu, duyệt hoặc từ chối', 'Trạng thái yêu cầu đổi, và nếu duyệt thì thay đổi có hiệu lực ngay.', '', ''],
-    ['WIG-23', 'P3', 'GVCN', '/scoreboard', 'Các em đã tick vài ngày', '1. Mở bảng thi đua', 'Điểm 4 lĩnh vực khớp với số lượt tick; lĩnh vực lấy từ chính mục tiêu, không phải khai lại.', '', ''],
+    ['H-01', '★', 'Giáo viên', 'WIG › Phòng họp', 'Mở phòng họp', 'Mở đúng TUẦN VỪA XONG, không phải tuần đang chạy', '', ''],
+    ['H-02', '★', 'Giáo viên', 'Phòng họp', 'Đọc bước 1', 'Liệt kê từng việc kèm con số đạt được và bao nhiêu em đã góp. Không có ô nào sửa số tay', '', ''],
+    ['H-03', '★', 'Cả lớp', 'Phòng họp', 'Chấm Thắng / Chưa đạt cho từng việc, ghi rút ra điều gì', 'Ghi nhận được. Việc chưa chấm thì nói rõ là chưa chấm', '', ''],
+    ['H-04', '', 'Giáo viên', 'Phòng họp', 'Nhìn đầu bước 1', 'Hiện lại câu cam kết của buổi họp tuần trước', '', ''],
+    ['H-05', '★', 'Cả lớp', 'Phòng họp', 'Bước 2: điền chiêm nghiệm + một câu cam kết', 'Cả hai ô giữ nguyên nội dung khi cuộn qua bước khác', '', ''],
+    ['H-06', '★', 'Cả lớp', 'Phòng họp', 'Bước 3: đặt mục tiêu tuần tới', 'Điền ngay tại đây được, không phải sang trang khác', '', ''],
+    ['H-07', '★', 'Giáo viên', 'Phòng họp', 'Sang bước 3 khi chưa có mục tiêu của tháng tới', 'Nói rõ đang thiếu, và cho đặt luôn tại chỗ', '', ''],
+    ['H-08', '', 'Giáo viên', 'Phòng họp', 'Sang bước 3 khi lớp chưa có mục tiêu năm', 'Nói rõ và chỉ đường sang trang WIG để tạo', '', ''],
+    ['H-09', '', 'Giáo viên', 'Phòng họp', 'Xem danh sách việc ở bước 3', 'Việc tuần trước được mang sang sẵn, sửa hay xoá đều được', '', ''],
+    ['H-10', '★', 'Giáo viên', 'Phòng họp', 'Bấm "Kết thúc buổi họp & lưu"', 'Lưu xong cả ba bước: có biên bản, có mục tiêu tuần mới, tick tuần cũ được chốt', '', ''],
+    ['H-11', '★', 'Học sinh', 'Bảng của em', 'Vào lại sau khi thầy cô kết thúc buổi họp', 'Thấy mục tiêu và việc của TUẦN MỚI, tick được ngay', '', ''],
+    ['H-12', '', 'Giáo viên', 'Phòng họp', 'Mở lại tuần đã kết thúc', 'Hiện biên bản đã lưu, có nút gỡ biên bản', '', ''],
+    ['H-13', '', 'Giáo viên', 'Phòng họp', 'Gỡ biên bản một tuần', 'Biên bản mất, các em tick lại được. Có hỏi xác nhận trước', '', ''],
+    ['H-14', '', 'Giáo viên', 'Phòng họp', 'Bấm Tuần trước / Tuần sau / Về tuần vừa xong', 'Chuyển đúng tuần', '', ''],
+    ['H-15', '', 'Ban giám hiệu', 'Biên bản họp', 'Mở biên bản của một lớp', 'Xem được, không có nút lưu — việc chấm là của giáo viên lớp', '', ''],
+    ['H-16', '★', 'Phụ huynh', 'Báo cáo', 'Chọn đúng tuần vừa họp', 'Thấy kết quả tuần của con, chiêm nghiệm và việc tuần sau', '', ''],
+    ['H-17', '', 'Giáo viên', 'Phòng họp', 'Mở một tuần lớp không có việc chung nào', 'Nói rõ tuần đó không có gì để tổng kết', '', ''],
   ],
-  {
-    tieuDe: 'TEST CASE — WIG (ƯU TIÊN)',
-    dan: 'Chạy theo đúng thứ tự WIG-01 → WIG-23: mỗi ca dựng tiền đề cho ca sau. Nhóm WIG-05 đến WIG-13 là chuỗi năm → tháng → tuần → việc, mắt xích nào đứt thì các em không có gì để tick.',
-  },
+  'THỬ — HỌP WIG CUỐI TUẦN  ·  chạy được H-01 → H-11 là khép kín một vòng',
 );
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
-// 7 · TC — HỌP WIG
+// 5 · KIỂM THỬ — LỚP & TÀI KHOẢN
 // ══════════════════════════════════════════════════════════════════════════════════════════
 trang(
-  '7 · TC Họp WIG',
-  COT_TC,
+  '5 · Thử · Lớp & tài khoản',
+  COT,
   [
-    ['HOP-01', 'P1', 'GVCN', '/wig → /wig/hop', 'Tuần vừa rồi lớp có mục tiêu và có lượt tick', '1. Từ /wig bấm nút vào phòng họp', 'Phòng họp mở ĐÚNG TUẦN VỪA XONG (không phải tuần đang chạy). Tên tuần hiện trên đầu.', '', ''],
-    ['HOP-02', 'P1', 'GVCN', '/wig/hop', 'Đang ở HOP-01', '1. Đọc bước 1', 'Bảng liệt kê từng việc chung của tuần đó, kèm con số đã đạt và "N/tổng em đã góp". Con số này máy đếm, không có ô nào sửa tay được.', '', ''],
-    ['HOP-03', 'P1', 'GVCN', '/wig/hop', 'Đang ở bước 1', '1. Chấm Thắng / Chưa đạt cho từng việc\n2. Ghi "Rút ra điều gì"', 'Lựa chọn được ghi nhận; chưa chấm thì hiện "Buổi họp chưa chấm việc này".', '', ''],
-    ['HOP-04', 'P2', 'GVCN', '/wig/hop', 'Tuần trước có cam kết', '1. Nhìn đầu bước 1', 'Hiện lại câu "Tuần … lớp đã hứa" — cam kết của buổi họp trước.', '', ''],
-    ['HOP-05', 'P1', 'GVCN', '/wig/hop', 'Đang ở bước 2', '1. Điền "Chiêm nghiệm tuần qua"\n2. Điền một câu cam kết cho tuần tới', 'Cả hai ô nhận nội dung dài, không bị mất khi cuộn qua bước khác.', '', ''],
-    ['HOP-06', 'P1', 'GVCN', '/wig/hop', 'Lớp đã có mục tiêu năm và tháng', '1. Sang bước 3\n2. Điền mục tiêu tuần TỚI (tên, số, đơn vị)', 'Điền được ngay tại đây, không phải quay lại trang WIG.', '', ''],
-    ['HOP-07', 'P1', 'GVCN', '/wig/hop', 'Lớp CHƯA có mục tiêu tháng của tháng tới', '1. Sang bước 3', 'Nói rõ "Chưa có mục tiêu tháng …" và cho đặt LUÔN tại chỗ, không đá người dùng đi nơi khác.', '', ''],
-    ['HOP-08', 'P2', 'GVCN', '/wig/hop', 'Lớp CHƯA có mục tiêu năm nào', '1. Sang bước 3', 'Nói rõ "Lớp chưa có mục tiêu năm nào" kèm nút sang trang WIG để tạo. Đây là trường hợp duy nhất phải rời phòng họp.', '', ''],
-    ['HOP-09', 'P2', 'GVCN', '/wig/hop', 'Tuần trước đã có việc để tick', '1. Sang bước 3, soi danh sách việc', 'Việc của tuần trước được mang sang sẵn, có ghi chú "Mang từ tuần trước sang" — sửa hay xoá đều được.', '', ''],
-    ['HOP-10', 'P1', 'GVCN', '/wig/hop', 'Đã làm xong ba bước', '1. Bấm "Kết thúc buổi họp & lưu"', 'Một lần lưu xong cả ba bước: biên bản được ghi, mục tiêu tuần mới được tạo, tick tuần cũ bị chốt.', '', ''],
-    ['HOP-11', 'P1', 'Học sinh', '/student', 'GVCN vừa kết thúc buổi họp ở HOP-10', '1. Đăng nhập, mở bảng của mình', 'Thấy mục tiêu và việc của TUẦN MỚI, tick được ngay.', '', ''],
-    ['HOP-12', 'P2', 'GVCN', '/wig/hop', 'Đã kết thúc buổi họp', '1. Mở lại phòng họp của tuần đó', 'Hiện lại biên bản đã lưu, không cho chấm lại lung tung; có nút "Gỡ biên bản tuần …".', '', ''],
-    ['HOP-13', 'P2', 'GVCN', '/wig/hop', 'Đã kết thúc nhầm tuần', '1. Bấm "Gỡ biên bản tuần …"\n2. Xác nhận', 'Biên bản bị gỡ, tick tuần ấy MỞ LẠI cho các em. Hộp xác nhận nói rõ không hoàn tác được.', '', ''],
-    ['HOP-14', 'P2', 'GVCN', '/wig/hop', 'Muốn xem tuần khác', '1. Bấm "Tuần trước" / "Tuần sau" / "Về tuần vừa xong"', 'Chuyển đúng tuần, và nút "Về tuần vừa xong" luôn đưa về tuần mặc định.', '', ''],
-    ['HOP-15', 'P2', 'Ban giám hiệu', '/meeting', 'Lớp đã có biên bản', '1. Mở /meeting', 'Thấy bản CHỈ ĐỌC kèm câu giải thích rằng việc chấm và đặt mục tiêu thuộc về GVCN. Không có nút lưu.', '', ''],
-    ['HOP-16', 'P2', 'GVCN', '/meeting', 'Đã đăng nhập', '1. Gõ /meeting lên thanh địa chỉ', 'Bị đưa thẳng sang /wig/hop — chỉ có MỘT màn sửa được buổi họp, không dựng bản sao thứ hai.', '', ''],
-    ['HOP-17', 'P1', 'Phụ huynh', '/report', 'Buổi họp đã kết thúc và con có mục tiêu tuần', '1. Mở báo cáo, chọn đúng tuần', 'Thấy kết quả tuần của con, "Chiêm nghiệm tuần" và "Việc tuần sau". Không thấy dữ liệu em khác.', '', ''],
-    ['HOP-18', 'P3', 'GVCN', '/wig/hop', 'Tuần đó lớp không có việc chung nào', '1. Mở phòng họp tuần ấy', 'Nói rõ "Tuần … lớp không có việc chung nào để tổng kết" thay vì bảng trống không giải thích.', '', ''],
+    ['L-01', '★', 'Quản trị viên', 'Quản trị', 'Khai một cơ sở', 'Cơ sở hiện ra, khối lớp có sẵn không phải gõ tay', '', ''],
+    ['L-02', '★', 'Quản trị viên', 'Quản trị', 'Tạo lớp: tên, khối, năm học 2026-2027', 'Lớp hiện ra, chưa có chủ nhiệm', '', ''],
+    ['L-03', '★', 'Quản trị viên', 'Môn học', 'Khai vài môn cho một khối', 'Môn chọn được khi nhập điểm và xếp thời khoá biểu', '', ''],
+    ['L-04', '', 'Quản trị viên', 'Thời khoá biểu', 'Xếp vài tiết cho một lớp', 'Lưu được, mở lại đúng', '', ''],
+    ['L-05', '★', 'Quản trị viên', 'Quản trị', 'Mời giáo viên chủ nhiệm và học sinh theo lớp', 'Báo đã mời, tên hiện trong danh sách chờ', '', ''],
+    ['L-06', '', 'Quản trị viên', 'Quản trị', 'Mời lại một email với vai khác', 'Vai được đổi, không sinh dòng thứ hai', '', ''],
+    ['L-07', '★', 'Quản trị viên', 'Quản trị', 'Xem cột chủ nhiệm của lớp sắp giao cho giáo viên mới', 'Phải TRỐNG. Còn tên ai đó thì phân lại trước', '', ''],
+    ['L-08', '', 'Người chưa được mời', 'class.vietanh.org', 'Đăng nhập bằng email trường nhưng chưa được mời', 'Thấy màn "Tài khoản chưa được cấp quyền"', '', ''],
+    ['L-09', '', 'Quản trị viên', 'Quản trị', 'Cấp vai cho người đang chờ', 'Họ tải lại trang là vào được', '', ''],
+    ['L-10', '★', 'Ban giám hiệu', 'Cơ sở', 'Đăng nhập lần đầu rồi mở trang Cơ sở', 'Thấy các lớp trong cơ sở mình. Trống trơn nghĩa là lời mời thiếu cơ sở', '', ''],
+    ['L-11', '', 'Ban giám hiệu', 'Danh sách lớp', 'Mở danh sách một lớp', 'Thấy tên và email, KHÔNG thấy ngày sinh và số điện thoại phụ huynh', '', ''],
+    ['L-12', '', 'Ban giám hiệu', 'WIG', 'Thử mở trang WIG', 'Bị đưa về trang chủ — đặt mục tiêu không phải việc của ban giám hiệu', '', ''],
+    ['L-13', '★', 'Quản trị viên', 'Quản trị', 'Mời phụ huynh, chọn con', 'Báo đã mời. Chưa em nào đăng nhập thì danh sách chọn con trống', '', ''],
+    ['L-14', '★', 'Phụ huynh', 'Báo cáo', 'Đăng nhập lần đầu bằng email riêng rồi mở Báo cáo', 'Vào đúng vai phụ huynh, thấy báo cáo con mình', '', ''],
+    ['L-15', '★', 'Phụ huynh', 'Báo cáo', 'Xem kỹ cả trang', 'Chỉ có dữ liệu con mình. Không có tên em khác, không có ghi chú nội bộ lớp', '', ''],
+    ['L-16', '', 'Phụ huynh', 'Danh sách lớp', 'Thử mở danh sách lớp', 'Bị đưa về — phụ huynh không xem danh sách lớp', '', ''],
+    ['L-17', '', 'Giáo viên', 'Danh sách lớp', 'Đề nghị dời một em sang lớp khác', 'Báo đã gửi. Em VẪN ở lớp cũ cho tới khi lớp bên kia duyệt', '', ''],
+    ['L-18', '', 'Giáo viên lớp đích', 'Danh sách lớp', 'Duyệt đề nghị dời lớp', 'Em sang lớp mới, hai danh sách cùng đổi', '', ''],
+    ['L-19', '', 'Quản trị viên', 'Danh sách lớp', 'Dời một em bằng tài khoản quản trị', 'Chuyển thẳng, không cần duyệt', '', ''],
   ],
-  {
-    tieuDe: 'TEST CASE — HỌP WIG (ƯU TIÊN)',
-    dan: 'Nhịp cuối tuần. Chạy được từ HOP-01 tới HOP-11 là coi như vòng vận hành khép kín: tuần cũ được chốt, tuần mới có mục tiêu, các em tick tiếp được.',
-  },
+  'THỬ — DỰNG LỚP VÀ TÀI KHOẢN',
 );
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
-// 8 · TC — VẬN HÀNH KHÁC
+// 6 · KIỂM THỬ — HẰNG NGÀY
 // ══════════════════════════════════════════════════════════════════════════════════════════
 trang(
-  '8 · TC Vận hành khác',
-  COT_TC,
+  '6 · Thử · Hằng ngày',
+  COT,
   [
-    ['DD-01', 'P1', 'GVCN', '/attendance', 'Lớp đã có học sinh đăng nhập', '1. Điểm danh hôm nay cho cả lớp', 'Lưu được, mở lại thấy đúng.', '', ''],
-    ['DD-02', 'P1', 'GVCN', '/attendance', 'Đã điểm danh hôm nay', '1. Lùi về một ngày trong 7 ngày gần nhất, sửa', 'Sửa được.', '', ''],
-    ['DD-03', 'P2', 'GVCN', '/attendance', 'Muốn sửa ngày cũ hơn 7 ngày', '1. Lùi quá 7 ngày, thử sửa', 'Không sửa được — quá hạn thì chỉ quản trị viên làm được.', '', ''],
-    ['DD-04', 'P2', 'GVCN', '/roster', 'Một em đã đăng nhập', '1. Chọn em đó làm trưởng điểm danh', 'Em cũ (nếu có) tự được gỡ; mỗi lớp đúng một trưởng.', '', ''],
-    ['DD-05', 'P2', 'Trưởng điểm danh', '/attendance', 'Vừa được chọn ở DD-04', '1. Đăng nhập, mở tab Điểm danh\n2. Điểm danh hôm nay', 'Ghi được HÔM NAY. Thử sửa ngày cũ thì không được.', '', ''],
-    ['DD-06', 'P2', 'Học sinh thường', '/attendance', 'KHÔNG phải trưởng điểm danh', '1. Gõ thẳng /attendance', 'Không có tab, và vào thẳng cũng không ghi được.', '', ''],
-    ['BB-01', 'P2', 'GVCN', '/homework', 'Đã có lớp', '1. Đăng một bài tập về nhà cho hôm nay', 'Bài hiện trong danh sách của lớp.', '', ''],
-    ['BB-02', 'P2', 'Học sinh', '/homework', 'GVCN vừa đăng ở BB-01', '1. Mở tab Báo bài', 'Thấy đúng bài của lớp mình.', '', ''],
-    ['BB-03', 'P2', 'Phụ huynh', '/homework', 'Con thuộc lớp ấy', '1. Mở tab Báo bài', 'Thấy bài của lớp con.', '', ''],
-    ['HB-01', 'P2', 'Quản trị viên', '/grades', 'Đã có môn và lớp', '1. Khai một đợt đánh giá cho năm học', 'Đợt hiện ra và chọn được khi nhập điểm.', '', ''],
-    ['HB-02', 'P2', 'GVCN', '/grades', 'Đã có đợt đánh giá', '1. Nhập điểm một môn cho vài em\n2. Ghi nhận xét', 'Lưu được; mở lại đúng.', '', ''],
-    ['HB-03', 'P2', 'Phụ huynh', '/grades', 'GVCN đã nhập ở HB-02', '1. Mở tab Học bạ', 'Thấy điểm và nhận xét CỦA CON MÌNH, không thấy em khác.', '', ''],
-    ['LL-01', 'P2', 'Phụ huynh', '/inbox', 'Đã đăng nhập', '1. Bấm icon Liên lạc, gửi một tin cho GVCN', 'Tin gửi đi; GVCN thấy chấm đỏ.', '', ''],
-    ['LL-02', 'P2', 'GVCN', '/inbox', 'Có tin ở LL-01', '1. Mở Liên lạc, trả lời', 'Phụ huynh nhận được; chấm đỏ tắt sau khi đọc.', '', ''],
-    ['PH-01', 'P1', 'Quản trị viên', '/admin', 'Học sinh đã đăng nhập lần đầu', '1. Mời phụ huynh: email + chọn đúng con', 'Báo "Đã mời". Nếu chưa em nào đăng nhập thì danh sách chọn con TRỐNG — đó là lý do việc này ở nhịp 5.', '', ''],
-    ['PH-02', 'P1', 'Phụ huynh', '/report', 'Đã được mời ở PH-01, dùng email NGOÀI miền trường', '1. Đăng nhập lần đầu\n2. Mở /report', 'Vào đúng vai phụ huynh, thấy báo cáo con mình. Nếu thấy "Tài khoản chưa được cấp quyền" → xem bẫy PH-1.', '', ''],
-    ['PH-03', 'P1', 'Phụ huynh', '/report', 'Đã vào được', '1. Soi kỹ trang', 'Chỉ thấy dữ liệu con mình: điểm danh cộng dồn, tiến độ WIG tuần, chiêm nghiệm, việc tuần sau. KHÔNG có tên em khác, không có ghi chú nội bộ lớp.', '', ''],
-    ['PH-04', 'P2', 'Phụ huynh', '/roster', 'Đã đăng nhập', '1. Gõ thẳng /roster', 'Bị đá về — phụ huynh không xem danh sách lớp.', '', ''],
-    ['DL-01', 'P3', 'GVCN', '/roster', 'Em cần chuyển sang lớp khác', '1. Bấm "Dời lớp", chọn lớp đích, gửi đề nghị', 'Báo đã gửi đề nghị; em VẪN ở lớp cũ cho tới khi lớp bên kia duyệt.', '', ''],
-    ['DL-02', 'P3', 'GVCN lớp đích', '/roster', 'Có đề nghị ở DL-01', '1. Duyệt đề nghị', 'Em sang lớp mới; danh sách hai lớp cùng cập nhật.', '', ''],
-    ['DL-03', 'P3', 'Quản trị viên', '/roster', 'Có em cần chuyển', '1. Dời lớp bằng tài khoản quản trị', 'Chuyển THẲNG, không qua duyệt.', '', ''],
+    ['N-01', '★', 'Giáo viên', 'Điểm danh', 'Điểm danh hôm nay cho cả lớp', 'Lưu được, mở lại đúng', '', ''],
+    ['N-02', '★', 'Giáo viên', 'Điểm danh', 'Lùi về một ngày trong 7 ngày gần nhất rồi sửa', 'Sửa được', '', ''],
+    ['N-03', '', 'Giáo viên', 'Điểm danh', 'Lùi quá 7 ngày rồi thử sửa', 'Không sửa được — nhờ quản trị viên', '', ''],
+    ['N-04', '', 'Giáo viên', 'Danh sách lớp', 'Chọn một em làm trưởng điểm danh', 'Em cũ tự được gỡ, mỗi lớp một em', '', ''],
+    ['N-05', '', 'Trưởng điểm danh', 'Điểm danh', 'Điểm danh hôm nay', 'Ghi được hôm nay. Ngày cũ thì không', '', ''],
+    ['N-06', '', 'Học sinh thường', 'Điểm danh', 'Thử vào trang điểm danh', 'Không có tab, vào thẳng cũng không ghi được', '', ''],
+    ['N-07', '', 'Giáo viên', 'Báo bài', 'Đăng một bài tập về nhà', 'Bài hiện trong danh sách của lớp', '', ''],
+    ['N-08', '', 'Học sinh', 'Báo bài', 'Mở tab Báo bài', 'Thấy đúng bài của lớp mình', '', ''],
+    ['N-09', '', 'Phụ huynh', 'Báo bài', 'Mở tab Báo bài', 'Thấy bài của lớp con', '', ''],
+    ['N-10', '', 'Quản trị viên', 'Học bạ', 'Khai một đợt đánh giá', 'Đợt chọn được khi nhập điểm', '', ''],
+    ['N-11', '', 'Giáo viên', 'Học bạ', 'Nhập điểm một môn và ghi nhận xét', 'Lưu được, mở lại đúng', '', ''],
+    ['N-12', '', 'Phụ huynh', 'Học bạ', 'Mở tab Học bạ', 'Thấy điểm và nhận xét của con mình, không thấy em khác', '', ''],
+    ['N-13', '', 'Phụ huynh', 'Liên lạc', 'Gửi một tin cho giáo viên', 'Tin gửi đi, giáo viên thấy chấm đỏ', '', ''],
+    ['N-14', '', 'Giáo viên', 'Liên lạc', 'Trả lời tin nhắn', 'Phụ huynh nhận được, chấm đỏ tắt sau khi đọc', '', ''],
   ],
-  {
-    tieuDe: 'TEST CASE — VẬN HÀNH KHÁC',
-    dan: 'Điểm danh, báo bài, học bạ, liên lạc, phụ huynh, dời lớp. Nhóm PH là P1 vì phụ huynh là vai duy nhất người ngoài trường nhìn thấy — hỏng ở đây là hỏng trước mặt khách.',
-  },
+  'THỬ — ĐIỂM DANH, BÁO BÀI, HỌC BẠ, LIÊN LẠC',
 );
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
-// 9 · CẠM BẪY ĐÃ BIẾT
+// 7 · HAY VƯỚNG
 // ══════════════════════════════════════════════════════════════════════════════════════════
 trang(
-  '9 · Cạm bẫy đã biết',
+  '7 · Hay vướng',
   [
-    {ten: 'Mã', rong: 9},
-    {ten: 'Bẫy', rong: 34},
-    {ten: 'Triệu chứng người dùng thấy', rong: 44},
-    {ten: 'Vì sao', rong: 52},
-    {ten: 'Cách tránh / chữa', rong: 46},
+    {ten: 'Người dùng thấy gì', rong: 46},
+    {ten: 'Vì sao', rong: 46},
+    {ten: 'Làm sao', rong: 50},
   ],
   [
-    ['GV-1', 'Lớp đã có người đứng tên chủ nhiệm thì giáo viên được mời KHÔNG nhận được lớp', 'Cô giáo đăng nhập, đúng vai giáo viên, nhưng mở app ra thấy "Chưa có lớp". Không có thông báo lỗi nào.', 'Trigger lúc đăng nhập chỉ gán lớp khi lớp CHƯA ai chủ nhiệm (chốt này sinh ra để giáo viên không cướp lớp của nhau). Lời mời bị xoá ngay sau lần đăng nhập đầu, nên không có lần thứ hai.', 'TRƯỚC khi cho giáo viên đăng nhập: kiểm cột chủ nhiệm của lớp phải TRỐNG (test NEN-07). Lỡ rồi thì quản trị viên vào /admin phân công lại GVCN — vẫn chữa được, chỉ mất một bước.'],
-    ['PH-1', 'Email @truongvietanh.com không dùng làm phụ huynh được', 'Người được mời làm phụ huynh đăng nhập xong thấy màn "Tài khoản chưa được cấp quyền".', 'Lúc đăng nhập, hệ thống tra MIỀN email trước. Miền truongvietanh.com đã có vai mặc định là "pending", nên nhánh kiểm lời mời phụ huynh bị bỏ qua hoàn toàn.', 'Dùng email thật của phụ huynh, hoặc một gmail bất kỳ để thử — miền ngoài trường thì đúng luồng.'],
-    ['BGH-1', 'Lời mời ban giám hiệu thiếu cơ sở', 'BGH đăng nhập, vai đúng là hiệu trưởng, nhưng mở màn nào cũng trống trơn.', 'Quyền của BGH là "mọi lớp TRONG CƠ SỞ MÌNH". Không có cơ sở thì tập hợp lớp họ nhìn thấy là tập rỗng.', 'Khi mời BGH phải chọn cơ sở. Lỡ rồi thì quản trị viên sửa hồ sơ của họ, gán cơ sở.'],
-    ['HS-1', 'Học sinh đăng nhập trước khi được ghi danh', 'Em thấy màn "Tài khoản chưa được cấp quyền", hoặc vào được nhưng không thuộc lớp nào.', 'Lớp của em do lời mời / ghi danh quyết định. Không có dòng nào thì không có lớp nào.', 'Ghi danh xong mới bảo các em đăng nhập. Lỡ rồi thì GVCN ghi danh lại bằng đúng email đó — em vào lớp ở lần đăng nhập sau.'],
-    ['WIG-1', 'Có mục tiêu tuần nhưng không có việc để tick', 'Màn hình học sinh trống trơn, các em không có gì để bấm; cuối tuần họp thì không có số nào.', 'Mục tiêu tuần chỉ là cái đích. Thứ các em chạm vào hằng ngày là "việc để các em tick" (lead measure) — hai thứ khác nhau.', 'Sau khi tạo mục tiêu tuần, LUÔN thêm ít nhất một việc (test WIG-13). Trang /wig có nói ra khi tuần chưa có việc nào.'],
-    ['WIG-2', 'Tick không ghi được cho ngày hôm qua', 'Em quên tick, hôm sau vào tick bù thì không được.', 'Cố ý: số liệu 4DX phải là số ghi nóng trong ngày, không phải nhớ lại cuối tuần. Nhớ lại thì con số đẹp mà vô nghĩa.', 'Em gửi yêu cầu, GVCN thêm giúp. Nhắc các em tick cuối mỗi buổi học.'],
-    ['WIG-3', 'Mục tiêu tuần rơi vào tháng khác', 'Vừa tạo mục tiêu tuần xong thì thấy nó nằm ở tuần cách hôm nay cả tháng.', 'Đã sửa 06/08/2026: trước đó mục tiêu cha chọn sẵn là cái ĐẦU DANH SÁCH, nên lớp nào tạo mục tiêu tháng 9 trước tháng 8 thì bị kéo theo tháng 9.', 'Bản đang chạy đã chọn cha theo tuần đang đứng. Vẫn nên soi lại ô "Thuộc mục tiêu tháng" trước khi Lưu (test WIG-09).'],
-    ['NH-1', 'Năm học bắt đầu 01/07, không phải 01/09', 'Mục tiêu năm tạo trong tháng 7 hoặc 8 mà nhận ngày bắt đầu 01/09 thì mọi mục tiêu tháng/tuần bị đẩy về sau tháng 9.', 'Đã sửa 06/08/2026. Trước đó nhãn năm học đổi ở tháng 6 còn khoảng ngày lại là 01/09 → 31/05 — hai mốc nói hai chuyện khác nhau.', 'Bản đang chạy: 2026-2027 = 01/07/2026 → 30/06/2027. Kiểm bằng test WIG-06.'],
-    ['HOP-1', 'Họp nhầm tuần', 'Chốt xong mới nhận ra đang tổng kết tuần khác.', 'Phòng họp mặc định mở tuần vừa xong, nhưng vẫn đi qua lại tuần khác được.', 'Bấm "Gỡ biên bản tuần …" — tick tuần ấy mở lại. Không hoàn tác được nên đọc kỹ hộp xác nhận (test HOP-13).'],
-    ['DL-1', 'Dời lớp không thấy có hiệu lực', 'GVCN gửi đề nghị dời lớp rồi mà em vẫn nằm ở lớp cũ.', 'Đúng thiết kế: lớp ĐÍCH phải duyệt thì em mới sang. Trong lúc chờ em vẫn thuộc lớp cũ để không mất điểm danh, WIG.', 'Nhắc GVCN lớp đích vào duyệt. Quản trị viên thì chuyển thẳng không cần duyệt.'],
-    ['DATA-1', 'Lớp 10A1 còn dữ liệu thử', 'Lớp thật mở ra đã có sẵn mục tiêu và một học sinh không ai biết là ai.', 'Vết của đợt dò lỗi đầu tháng 8: 4 mục tiêu WIG và alex@truongvietanh.com.', 'Bỏ chú thích khối cuối trong scripts/phan-vai-van-hanh-thu.sql rồi chạy — nhớ là xoá WIG là xoá cả lượt tick bên trong.'],
+    ['Giáo viên đăng nhập xong thấy "Chưa có lớp"', 'Lớp đó đã có người khác đứng tên chủ nhiệm', 'Quản trị viên vào Quản trị › Lớp, phân lại chủ nhiệm. Lần sau nhớ để lớp trống trước khi mời'],
+    ['Ban giám hiệu vào, màn nào cũng trống', 'Lời mời quên chọn cơ sở', 'Quản trị viên gán cơ sở cho họ'],
+    ['Phụ huynh vào thấy "Tài khoản chưa được cấp quyền"', 'Đang dùng email của trường làm tài khoản phụ huynh', 'Mời lại bằng email riêng của phụ huynh (gmail…)'],
+    ['Chưa mời được phụ huynh, danh sách chọn con trống', 'Con chưa đăng nhập lần nào', 'Đợi em đăng nhập rồi mời'],
+    ['Học sinh vào không thuộc lớp nào', 'Chưa được ghi danh', 'Giáo viên ghi danh bằng đúng email đó, em vào lớp ở lần đăng nhập sau'],
+    ['Các em mở app ra không có gì để tick', 'Có mục tiêu tuần nhưng chưa thêm việc nào', 'Vào WIG › Thêm việc. Mục tiêu là cái đích, việc mới là thứ các em bấm mỗi ngày'],
+    ['Em quên tick hôm qua, hôm nay tick bù không được', 'Cố ý — chỉ ghi được cho hôm nay', 'Em gửi yêu cầu, thầy cô thêm giúp. Nhắc các em tick cuối mỗi buổi'],
+    ['Mục tiêu tuần vừa tạo lại rơi vào tuần cách cả tháng', 'Chọn nhầm mục tiêu tháng ở ô "Thuộc mục tiêu tháng"', 'Xoá rồi tạo lại, xem kỹ ô đó trước khi lưu'],
+    ['Họp nhầm tuần, đã bấm kết thúc', '', 'Bấm gỡ biên bản tuần đó — các em tick lại được. Không lấy lại được nên hỏi kỹ trước khi gỡ'],
+    ['Đề nghị dời lớp mãi không thấy có hiệu lực', 'Lớp bên kia chưa duyệt', 'Nhắc giáo viên lớp đích vào duyệt, hoặc nhờ quản trị viên chuyển thẳng'],
+    ['Không nhập được điểm, không thấy môn nào', 'Chưa khai môn cho khối đó', 'Quản trị viên vào Môn học khai trước'],
   ],
-  {
-    tieuDe: 'CẠM BẪY ĐÃ BIẾT — ĐỌC TRƯỚC KHI CHẠY THẬT',
-    dan: 'Mỗi dòng ở đây là một chuyện ĐÃ xảy ra thật hoặc chắc chắn sẽ xảy ra với cấu hình hiện tại. GV-1 và PH-1 là hai cái chặn cả đợt vận hành nếu không biết trước.',
-  },
+  'HAY VƯỚNG — VÀ CÁCH GỠ',
 );
 
 const duong = process.argv[2] ?? 'So_tay_van_hanh_Viet_Anh_Class.xlsx';
