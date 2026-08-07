@@ -20,6 +20,10 @@ export async function assignAttendanceLeader(
   classId: string,
   studentId: string | null,
 ): Promise<{ok: boolean; error?: string}> {
+  // KHÔNG mở cho ban giám hiệu, khác với mọi việc khác trong file này (0094 mở cho họ ghi danh,
+  // sửa thông tin, cho rời lớp). Trưởng điểm danh là một vai TRONG LỚP, do người dạy lớp ấy
+  // chọn — và luật dưới CSDL cũng chỉ cho GVCN ghi vào cột này. Mở ở đây mà dưới vẫn chặn thì
+  // BGH bấm xong nhận đúng một câu "không có quyền", tệ hơn là không thấy nút.
   await requireRole(['teacher', 'admin']);
   if (!classId) return {ok: false, error: 'Thiếu lớp'};
   const supabase = await createClient();
@@ -128,7 +132,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Ghi danh học sinh (theo email) vào lớp — cũng dùng để CHUYỂN LỚP (tắt lớp cũ).
 // INLINE validation (useActionState): lỗi hiện cạnh field, giữ nguyên email, báo thành công ngay.
 export async function enrollStudent(_prev: EnrollState, formData: FormData): Promise<EnrollState> {
-  const me = await requireRole(['teacher', 'admin']);
+  const me = await requireRole(['teacher', 'admin', 'principal']);
   const classId = String(formData.get('class_id') ?? '');
   const fields = readStudentFields(formData);
   const email = fields.email;
@@ -218,7 +222,7 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
 // vừa mời. Một hàng dữ liệu duy nhất, khoá theo email, nên quản trị viên mở lên là thấy ngay bản
 // vừa sửa; không có bản sao thứ hai để hai bên lệch nhau.
 export async function capNhatHocSinh(_prev: EnrollState, formData: FormData): Promise<EnrollState> {
-  await requireRole(['teacher', 'admin']);
+  await requireRole(['teacher', 'admin', 'principal']);
   const classId = String(formData.get('class_id') ?? '');
   const fields = readStudentFields(formData);
   const email = fields.email.toLowerCase();
@@ -269,7 +273,7 @@ export async function capNhatHocSinh(_prev: EnrollState, formData: FormData): Pr
 // Thông tin đã điền (student_details) thì GIỮ LẠI, không xoá theo: nếu chỉ gõ sai lớp rồi mời
 // lại đúng lớp, giáo viên không phải điền lại 5 trường.
 export async function cancelStudentInvite(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
+  await requireRole(['teacher', 'admin', 'principal']);
   const classId = String(formData.get('classId') ?? '');
   const email = String(formData.get('email') ?? '').trim();
   if (!classId || !email) rosterFlash(classId, 'Thiếu thông tin');
@@ -294,7 +298,7 @@ export async function cancelStudentInvite(formData: FormData) {
 
 // Cho học sinh rời lớp (is_active=false) — không xoá dữ liệu.
 export async function removeStudent(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
+  await requireRole(['teacher', 'admin', 'principal']);
   const classId = String(formData.get('classId') ?? '');
   const studentId = String(formData.get('studentId') ?? '');
   if (!classId || !studentId) rosterFlash(classId, 'Thiếu thông tin');

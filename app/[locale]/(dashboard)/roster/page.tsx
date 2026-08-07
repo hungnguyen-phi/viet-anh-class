@@ -57,7 +57,13 @@ export default async function RosterPage({
   setRequestLocale(locale);
   const profile = await requireRole(['teacher', 'admin', 'principal']);
   // BGH chỉ XEM (danh sách + mở từng em); GVCN/Admin mới quản lý (ghi danh, tổ trưởng, xoá).
-  const canManage = profile.role === 'teacher' || profile.role === 'admin';
+  // Ai được DỰNG danh sách lớp: GVCN của lớp, quản trị viên, và từ 0094 là cả ban giám hiệu
+  // trong cơ sở mình — chủ dự án chốt "BGH phải tạo được khối, lớp, học sinh".
+  const canManage =
+    profile.role === 'teacher' || profile.role === 'admin' || profile.role === 'principal';
+  // Trưởng điểm danh là vai TRONG LỚP, do người dạy lớp ấy chọn — luật dưới CSDL cũng chỉ cho
+  // GVCN ghi vào cột ấy. Bày nút cho BGH thì họ bấm xong nhận đúng một câu "không có quyền".
+  const chonToTruong = profile.role === 'teacher' || profile.role === 'admin';
   // BỐN CỘT CHI TIẾT CHỈ HIỆN VỚI NGƯỜI ĐỌC ĐƯỢC CHÚNG.
   //
   // student_details bị RLS giới hạn cho GVCN của chính lớp đó + quản trị viên (0058). Hiệu trưởng
@@ -272,16 +278,14 @@ export default async function RosterPage({
       <Flash />
 
       {/* Ghi danh / chuyển lớp: nhập email học sinh (đã có tài khoản) — chỉ GVCN/Admin */}
-      {canManage && (
-        <>
-          <EnrollForm classId={myClass.id} />
-          {/* Tổ trưởng điểm danh gom về MỘT chỗ (trước đây mỗi dòng một nút) */}
-          <AttendanceLeaderPicker
-            classId={myClass.id}
-            students={candidates}
-            currentLeaderId={leaderId}
-          />
-        </>
+      {canManage && <EnrollForm classId={myClass.id} />}
+      {/* Tổ trưởng điểm danh gom về MỘT chỗ (trước đây mỗi dòng một nút) */}
+      {chonToTruong && (
+        <AttendanceLeaderPicker
+          classId={myClass.id}
+          students={candidates}
+          currentLeaderId={leaderId}
+        />
       )}
 
       <div className="glass overflow-x-auto rounded-[20px]">
