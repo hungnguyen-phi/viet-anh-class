@@ -204,10 +204,23 @@ const VIEC_THEO_VAI = {
   'Phụ huynh': 'L-14, L-15, L-16 · H-16 · N-09, N-12, N-13',
 };
 
+const vung = (cot, n) => `DanhMuc!$${cot}$2:$${cot}$${n + 1}`;
+const xo = (ws, cot, dauDong, soDong, congThuc) => {
+  ws.dataValidations.add(`${cot}${dauDong}:${cot}${dauDong + soDong - 1}`, {
+    type: 'list',
+    allowBlank: true,
+    formulae: [congThuc],
+    showErrorMessage: true,
+    errorStyle: 'warning',
+    errorTitle: 'Không có trong danh sách',
+    error: 'Chọn một giá trị trong ô xổ xuống, hoặc báo người phụ trách thêm vào.',
+  });
+};
+
 // ══════════════════════════════════════════════════════════════════════════════════════════
 // 2 · TÌM TÊN MÌNH
 // ══════════════════════════════════════════════════════════════════════════════════════════
-trang(
+const wsTim = trang(
   '2 · Tìm tên mình',
   [
     {ten: 'STT', rong: 6},
@@ -226,6 +239,8 @@ trang(
   'TÌM EMAIL CỦA BẠN — điền họ tên, và chọn "Rồi" khi đã đăng nhập được',
   {dien: [2, 8], caoDong: 30},
 );
+
+xo(wsTim, 'H', 4, NGUOI.length + 12, '"Rồi,Chưa"');
 
 const COT = [
   {ten: 'Mã', rong: 8},
@@ -336,23 +351,8 @@ trang('6 · Thử · Hằng ngày', COT, TC_NGAY, 'VIỆC CẦN THỬ — ĐIỂ
 // ══════════════════════════════════════════════════════════════════════════════════════════
 const MA_CA = [...TC_WIG, ...TC_HOP, ...TC_LOP, ...TC_NGAY].map((r) => r[0]);
 const KET_QUA = ['Đạt', 'Không đạt', 'Chưa thử được'];
-const MUC_DO = ['Chặn hẳn — không làm tiếp được', 'Khó chịu — vẫn làm được nhưng vướng', 'Nhỏ — chữ nghĩa, giao diện', 'Góp ý thêm'];
+const MUC_DO = ['Chặn hẳn — không làm tiếp được', 'Khó chịu — vẫn làm được nhưng vướng', 'Nhỏ — chữ nghĩa hoặc giao diện', 'Góp ý thêm'];
 const TRANG_THAI = ['Mới ghi', 'Đang xử lý', 'Đã sửa', 'Không sửa (giải thích)'];
-
-const vung = (cot, n) => `'DM (danh mục)'!$${cot}$2:$${cot}$${n + 1}`;
-const xo = (ws, cot, dauDong, soDong, congThuc) => {
-  for (let r = dauDong; r < dauDong + soDong; r++) {
-    ws.getCell(`${cot}${r}`).dataValidation = {
-      type: 'list',
-      allowBlank: true,
-      formulae: [congThuc],
-      showErrorMessage: true,
-      errorStyle: 'warning',
-      errorTitle: 'Không có trong danh sách',
-      error: 'Chọn một giá trị trong ô xổ xuống, hoặc báo người phụ trách thêm vào.',
-    };
-  }
-};
 
 const SO_DONG_GHI = 400;
 const wsG = trang(
@@ -374,11 +374,11 @@ const wsG = trang(
   'GẶP GÌ LẠ THÌ GHI Ở ĐÂY — mỗi lần thử một dòng. Ba cột giữa cứ viết dài thoải mái',
   {dien: [1, 2, 3, 4, 5, 6, 7, 8], caoDong: 30},
 );
-xo(wsG, 'B', 4, SO_DONG_GHI, `=${vung('A', Math.max(NGUOI.length, 1))}`);
-xo(wsG, 'C', 4, SO_DONG_GHI, `=${vung('B', MA_CA.length)}`);
-xo(wsG, 'D', 4, SO_DONG_GHI, `=${vung('C', KET_QUA.length)}`);
-xo(wsG, 'H', 4, SO_DONG_GHI, `=${vung('D', MUC_DO.length)}`);
-xo(wsG, 'J', 4, SO_DONG_GHI, `=${vung('E', TRANG_THAI.length)}`);
+xo(wsG, 'B', 4, SO_DONG_GHI, `${vung('A', Math.max(NGUOI.length, 1))}`);
+xo(wsG, 'C', 4, SO_DONG_GHI, `${vung('B', MA_CA.length)}`);
+xo(wsG, 'D', 4, SO_DONG_GHI, `"${KET_QUA.join(',')}"`);
+xo(wsG, 'H', 4, SO_DONG_GHI, `"${MUC_DO.join(',')}"`);
+xo(wsG, 'J', 4, SO_DONG_GHI, `"${TRANG_THAI.join(',')}"`);
 for (let r = 4; r < 4 + SO_DONG_GHI; r++) wsG.getCell(`A${r}`).numFmt = 'dd/mm/yyyy';
 
 const SO_DONG_GY = 150;
@@ -395,8 +395,8 @@ const wsY = trang(
   'GÓP Ý TỰ DO — chỗ cho những gì không nằm trong mục thử nào',
   {dien: [1, 2, 3, 4], caoDong: 34},
 );
-xo(wsY, 'B', 4, SO_DONG_GY, `=${vung('A', Math.max(NGUOI.length, 1))}`);
-xo(wsY, 'D', 4, SO_DONG_GY, `=${vung('D', MUC_DO.length)}`);
+xo(wsY, 'B', 4, SO_DONG_GY, `${vung('A', Math.max(NGUOI.length, 1))}`);
+xo(wsY, 'D', 4, SO_DONG_GY, `"${MUC_DO.join(',')}"`);
 xo(wsY, 'E', 4, SO_DONG_GY, '"Chưa đọc,Đã đọc,Đã trả lời"');
 for (let r = 4; r < 4 + SO_DONG_GY; r++) wsY.getCell(`A${r}`).numFmt = 'dd/mm/yyyy';
 
@@ -542,7 +542,7 @@ trang(
 );
 
 // ── Bảng danh mục nuôi các ô xổ xuống. Ẩn, và đặt cuối cùng. ───────────────────────────────
-const dm = wb.addWorksheet('DM (danh mục)');
+const dm = wb.addWorksheet('DanhMuc');
 dm.state = 'hidden';
 [44, 16, 30, 44, 24].forEach((w, i) => (dm.getColumn(i + 1).width = w));
 dm.getRow(1).values = ['Email người thử', 'Mã mục', 'Kết quả', 'Mức độ', 'Trạng thái xử lý'];
