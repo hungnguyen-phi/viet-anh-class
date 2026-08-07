@@ -262,7 +262,18 @@ export async function inviteUser(formData: FormData) {
 
   const supabase = await createClient();
   const class_id = role === 'teacher' || role === 'student' ? classId : null;
-  const rows = valid.map((email) => ({email, role, class_id, invited_by: me.id}));
+  // GHI LUÔN CƠ SỞ CỦA LỚP.
+  //
+  // Thiếu nó thì lời mời vô hình với hiệu trưởng: luật đọc của họ (0049) nhận diện bằng đúng cột
+  // này. Đã thấy hậu quả thật — hiệu trưởng mở một lớp có 10 em đã mời mà chỉ thấy một dòng.
+  // 0095 thêm đường đọc theo LỚP nên không còn phụ thuộc cột này nữa, nhưng vẫn ghi cho đúng:
+  // một hàng dữ liệu khai đủ thì mọi chỗ đọc nó đều đúng, không phải nhớ chỗ nào đọc kiểu gì.
+  let campus_id: string | null = null;
+  if (class_id) {
+    const {data: lop} = await supabase.from('classes').select('campus_id').eq('id', class_id).maybeSingle();
+    campus_id = lop?.campus_id ?? null;
+  }
+  const rows = valid.map((email) => ({email, role, class_id, campus_id, invited_by: me.id}));
   const {error} = await supabase.from('pending_user_grants').upsert(rows, {onConflict: 'email'});
   if (!error) {
     await supabase.rpc('log_audit', {

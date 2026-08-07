@@ -18,7 +18,7 @@ do $$
 declare
   v_bgh uuid; v_cs_minh uuid; v_lop_minh uuid;
   v_cs_khac uuid; v_lop_khac uuid; v_khoi_khac uuid;
-  v_email_hs text; v_ket text; v_duoc boolean;
+  v_email_hs text; v_ket text; v_duoc boolean; n int;
 begin
   -- Lấy một hiệu trưởng CÓ cơ sở. Không đóng cứng id: dữ liệu đổi lúc nào không ai báo.
   select id, campus_id into v_bgh, v_cs_minh
@@ -91,6 +91,15 @@ begin
   select can_manage_student_email('kiem.rls.ngoai@student.truongvietanh.com') into v_duoc;
   insert into kq values ('BGH sửa thông tin em ở cơ sở KHÁC', 'false', v_duoc::text);
 
+  -- 6b. THẤY ĐƯỢC DANH SÁCH EM ĐÃ MỜI trong lớp của cơ sở mình.
+  --
+  -- Bẫy đã sập thật ngay sau 0094: quyền GHI thì mở rồi, nhưng quyền ĐỌC lời mời lại nhận diện
+  -- bằng cột campus_id của chính hàng lời mời — mà hàm mời hàng loạt không ghi cột ấy. Hiệu
+  -- trưởng mở lớp có 10 em đã mời ra chỉ thấy một dòng, không câu nào nói vì sao. Nên từ nay
+  -- hỏi thẳng bằng số dòng đọc được, chứ không tin là "mở ghi thì ắt đọc được".
+  select count(*) into n from pending_user_grants where class_id = v_lop_minh;
+  insert into kq values ('BGH đọc được danh sách em đã mời trong lớp mình', 'ít nhất 1 dòng', n || ' dòng');
+
   -- 7. Không được tự nâng vai: 0049 chặn BGH mời admin/principal. Kiểm lại vì bản này đụng vào
   --    đúng vùng quyền ấy.
   begin
@@ -114,6 +123,7 @@ select buoc,
          when ky_vong = 'bị chặn' and thuc_te like 'bị chặn%' then 'ĐẠT'
          when ky_vong like 'qua được%' and thuc_te like 'qua được%' then 'ĐẠT'
          when ky_vong = 'ghi được' and thuc_te = 'ghi được' then 'ĐẠT'
+         when ky_vong = 'ít nhất 1 dòng' and thuc_te <> '0 dòng' then 'ĐẠT'
          else 'SAI'
        end as ket_luan
   from kq;
