@@ -41,6 +41,7 @@ export type ViecItem = {
 export function ViecTuan({
   wigId,
   wigUnit,
+  wigArea,
   viec,
   dayShort,
   weekParam,
@@ -50,6 +51,8 @@ export function ViecTuan({
   // việc được, và thẻ trống phải nói ra lý do thay vì chỉ biến mất.
   wigId: string | null;
   wigUnit: string;
+  // Lĩnh vực của mục tiêu (đã dịch) — form dùng để NÓI RA rằng lĩnh vực lấy sẵn từ đây.
+  wigArea: string;
   viec: ViecItem[];
   dayShort: string[];
   weekParam: string;
@@ -69,6 +72,7 @@ export function ViecTuan({
         key={mo}
         wigId={wigId}
         wigUnit={wigUnit}
+        wigArea={wigArea}
         viec={dangSua}
         dayShort={dayShort}
         onDong={() => setMo('none')}
@@ -153,12 +157,14 @@ export function ViecTuan({
 function ViecForm({
   wigId,
   wigUnit,
+  wigArea,
   viec,
   dayShort,
   onDong,
 }: {
   wigId: string | null;
   wigUnit: string;
+  wigArea: string;
   viec?: ViecItem;
   dayShort: string[];
   onDong: () => void;
@@ -200,9 +206,9 @@ function ViecForm({
             id="viec-target"
             name="target_value"
             type="number"
-            step="any"
-            min="0.01"
-            inputMode="decimal"
+            step="1"
+            min="1"
+            inputMode="numeric"
             defaultValue={viec?.target_value ?? ''}
             aria-invalid={state.fieldError === 'target_value'}
             className={ctlWithBorder(state.fieldError === 'target_value')}
@@ -217,7 +223,19 @@ function ViecForm({
             className={inputCls}
           />
         </Field>
-        <Field label={t('subCat')} htmlFor="viec-sub" className="col-span-2 sm:col-span-1">
+        {/* LĨNH VỰC KHÔNG PHẢI ĐIỀN — Ô NÀY LÀ NHÓM NHỎ BÊN TRONG NÓ.
+            Nhãn cũ đóng cứng chữ "Nhóm (Kỹ năng)" ở mọi lĩnh vực: mục tiêu thuộc Kiến thức mà ô
+            vẫn ghi "Kỹ năng", nên đọc thành "khai lại lĩnh vực đi, và lĩnh vực là Kỹ năng". Chủ
+            dự án hỏi đúng: "nhóm kĩ năng thì nó phải lấy từ thằng wig trên luôn chứ".
+            Nó LẤY SẴN RỒI — bảng điểm ghép category = wig.area (hàm class_scoreboard, 0028), ô này
+            chỉ để tách nhỏ thêm (5 Giá trị / 7 Thói quen / DEAR). Nay nhãn nói ra đúng lĩnh vực
+            của mục tiêu và nói rõ là không bắt buộc. */}
+        <Field
+          label={t('subCat', {area: wigArea})}
+          hint={t('subCatHint', {area: wigArea})}
+          htmlFor="viec-sub"
+          className="col-span-2 sm:col-span-1"
+        >
           <input id="viec-sub" name="sub_category" defaultValue={viec?.sub_category ?? ''} className={inputCls} />
         </Field>
       </div>

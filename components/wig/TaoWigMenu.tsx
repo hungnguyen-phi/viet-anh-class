@@ -293,9 +293,9 @@ export function TaoWigMenu({
                   id="wig-baseline"
                   name="baseline"
                   type="number"
-                  step="any"
+                  step="1"
                   min="0"
-                  inputMode="decimal"
+                  inputMode="numeric"
                   placeholder="0"
                   aria-invalid={state.fieldError === 'baseline'}
                   className={ctlWithBorder(state.fieldError === 'baseline')}
@@ -306,9 +306,9 @@ export function TaoWigMenu({
                   id="wig-target"
                   name="target_value"
                   type="number"
-                  step="any"
-                  min="0.01"
-                  inputMode="decimal"
+                  step="1"
+                  min="1"
+                  inputMode="numeric"
                   aria-invalid={state.fieldError === 'target_value'}
                   className={ctlWithBorder(state.fieldError === 'target_value')}
                 />

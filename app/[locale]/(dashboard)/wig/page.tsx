@@ -474,6 +474,7 @@ export default async function WigPage({
                   <ViecTuan
                     wigId={w.id}
                     wigUnit={w.unit}
+                    wigArea={areaLabel(areaMeta[w.area as Area], locale)}
                     viec={viec}
                     dayShort={t.raw('dayShort') as string[]}
                     weekParam={weekQ}

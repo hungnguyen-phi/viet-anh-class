@@ -5,6 +5,7 @@ import {notFound} from 'next/navigation';
 import {Baloo_2, Nunito} from 'next/font/google';
 import {routing} from '@/i18n/routing';
 import {SITE_URL, SCHOOL} from '@/lib/site';
+import {KhoaLanChuotTrenSo} from '@/components/ui/KhoaLanChuotTrenSo';
 import '../globals.css';
 
 // Design system v3: Baloo 2 (display, bo tròn, có tiếng Việt) + Nunito (body).
@@ -121,6 +122,9 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} className={`${baloo.variable} ${nunito.variable}`}>
       <body className="min-h-screen font-body text-ink antialiased">
+        {/* Đặt ở lớp ngoài cùng vì nó che MỌI ô số của app, kể cả ô nằm trong server component
+            — chỗ không gắn được onWheel. Xem ghi chú trong chính file ấy. */}
+        <KhoaLanChuotTrenSo />
         <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
       </body>
     </html>

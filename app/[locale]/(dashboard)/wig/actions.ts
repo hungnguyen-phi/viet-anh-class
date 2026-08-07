@@ -112,8 +112,19 @@ export async function luuViec(_prev: CreateWigState, formData: FormData): Promis
   if (!id && !wig_id) return {ok: false, error: 'Chưa rõ việc này thuộc mục tiêu tuần nào.'};
   if (!title) return {ok: false, fieldError: 'title', error: 'Hãy đặt tên cho việc này.'};
   if (title.length > 160) return {ok: false, fieldError: 'title', error: 'Tên việc tối đa 160 ký tự.'};
+  // MỤC TIÊU LÀ SỐ NGUYÊN.
+  //
+  // Đếm bài, buổi, lần — không có nửa bài. Trước đây ô này nhận số lẻ (step="any"), nên một phím
+  // gõ nhầm biến "5" thành "5.1" và không có gì cản: dữ liệu vẫn hợp lệ, server vẫn nhận, chỉ có
+  // người dùng là ngơ ngác. Chủ dự án bắt được đúng cảnh ấy: "chỗ mục tiêu số tự nhiên nó hiển
+  // thị lên 5.1 mà tôi chưa ấn".
+  //
+  // Chặn ở CẢ HAI đầu: ô nhập để trình duyệt nói ngay tại chỗ, và ở đây để không ai lách qua
+  // trình duyệt. Ô nhập một mình là rào chắn bằng giấy.
   if (!target_raw || !Number.isFinite(target_value) || target_value <= 0)
     return {ok: false, fieldError: 'target_value', error: 'Mục tiêu phải là số lớn hơn 0.'};
+  if (!Number.isInteger(target_value))
+    return {ok: false, fieldError: 'target_value', error: 'Mục tiêu phải là số nguyên (không có phần thập phân).'};
   // Ô "mỗi lần tick đáng" bỏ trống khi TẠO MỚI thì lấy 1; khi SỬA thì giữ nguyên giá trị đang có
   // (xem ghi chú dài ở parseUnitPerTick — ghi đè bằng 1 là chia cả lịch sử tick cho hệ số cũ).
   const supabase = await createClient();
@@ -173,11 +184,26 @@ export async function suaWig(_prev: CreateWigState, formData: FormData): Promise
   if (!title) return {ok: false, fieldError: 'title', error: 'Hãy đặt tên cho mục tiêu.'};
   if (title.length > 160)
     return {ok: false, fieldError: 'title', error: 'Tên mục tiêu tối đa 160 ký tự.'};
+  // MỤC TIÊU LÀ SỐ NGUYÊN.
+  //
+  // Đếm bài, buổi, lần — không có nửa bài. Trước đây ô này nhận số lẻ (step="any"), nên một phím
+  // gõ nhầm biến "5" thành "5.1" và không có gì cản: dữ liệu vẫn hợp lệ, server vẫn nhận, chỉ có
+  // người dùng là ngơ ngác. Chủ dự án bắt được đúng cảnh ấy: "chỗ mục tiêu số tự nhiên nó hiển
+  // thị lên 5.1 mà tôi chưa ấn".
+  //
+  // Chặn ở CẢ HAI đầu: ô nhập để trình duyệt nói ngay tại chỗ, và ở đây để không ai lách qua
+  // trình duyệt. Ô nhập một mình là rào chắn bằng giấy.
   if (!target_raw || !Number.isFinite(target_value) || target_value <= 0)
     return {ok: false, fieldError: 'target_value', error: 'Mục tiêu phải là số lớn hơn 0.'};
+  if (!Number.isInteger(target_value))
+    return {ok: false, fieldError: 'target_value', error: 'Mục tiêu phải là số nguyên (không có phần thập phân).'};
   const baseline = baseline_raw === '' ? null : Number(baseline_raw);
   if (baseline !== null && (!Number.isFinite(baseline) || baseline < 0))
     return {ok: false, fieldError: 'baseline', error: 'Mốc xuất phát phải là số từ 0 trở lên.'};
+  // Cùng một luật với mục tiêu: hai đầu của một câu "nâng từ X lên Y" mà một đầu cho số lẻ còn
+  // đầu kia không thì chính câu ấy tự mâu thuẫn.
+  if (baseline !== null && !Number.isInteger(baseline))
+    return {ok: false, fieldError: 'baseline', error: 'Mốc xuất phát phải là số nguyên (không có phần thập phân).'};
   if (baseline !== null && baseline >= target_value)
     return {ok: false, fieldError: 'baseline', error: 'Mốc xuất phát phải nhỏ hơn mục tiêu.'};
   if (!unit) return {ok: false, fieldError: 'unit', error: 'Hãy nhập đơn vị (vd điểm, buổi, lần).'};
