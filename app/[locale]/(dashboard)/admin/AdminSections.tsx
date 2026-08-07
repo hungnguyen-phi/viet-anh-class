@@ -7,10 +7,11 @@ import {AREAS, buildAreaMeta} from '@/lib/areas';
 import {clientIp} from '@/lib/ip';
 import {schoolYearLabel} from '@/lib/dates';
 import {setCampusActive, setGradeActive, setClassActive} from './actions';
-import {layDanhMuc, layPhuTro} from './admin-data';
+import {layDanhMuc, layPhuTro, layHocSinhChuaCoLop} from './admin-data';
 import {AreaConfigForm} from './AreaConfigForm';
 import {CampusTree} from './CampusTree';
 import {Disclosure} from './Disclosure';
+import {HocSinhChuaCoLop} from './HocSinhChuaCoLop';
 import {SchoolNetworkManager} from './SchoolNetworkManager';
 
 const cardTitle = 'mb-3 font-display text-[15px] font-bold text-navy';
@@ -27,10 +28,8 @@ export async function AdminSections() {
   const tn = await getTranslations('nav');
   const tcommon = await getTranslations('common');
 
-  const [{allCampuses, allGrades, allClasses, staffList}, {areaCfg, networks}] = await Promise.all([
-    layDanhMuc(),
-    layPhuTro(),
-  ]);
+  const [{allCampuses, allGrades, allClasses, staffList}, {areaCfg, networks}, hocSinhChuaCoLop] =
+    await Promise.all([layDanhMuc(), layPhuTro(), layHocSinhChuaCoLop()]);
   const currentIp = clientIp(await headers());
 
   const campusName = new Map(allCampuses.map((c) => [c.id, c.name]));
@@ -136,6 +135,22 @@ export async function AdminSections() {
           networks={networks.map((n) => ({...n, cidr: String(n.cidr)}))}
           campuses={campusOptions}
           currentIp={currentIp}
+        />
+      </Disclosure>
+
+      {/* Học sinh đã đăng nhập mà chưa thuộc lớp nào.
+          MỞ SẴN khi đang có em nào lơ lửng, gấp lại khi không — đây là việc phải xử lý trong ngày
+          (em ấy mở app ra không thấy gì cả), nhưng ngày thường thì danh sách rỗng và một mục rỗng
+          mở toang chỉ tổ chiếm chỗ. */}
+      <Disclosure
+        title="Học sinh chưa vào lớp nào"
+        hint="Em đã đăng nhập được nhưng chưa ai xếp lớp — chọn lớp rồi xếp ngay tại đây."
+        count={hocSinhChuaCoLop.length}
+        defaultOpen={hocSinhChuaCoLop.length > 0}
+      >
+        <HocSinhChuaCoLop
+          hocSinh={hocSinhChuaCoLop}
+          lops={activeClasses.map((c) => ({id: c.id, name: c.name, school_year: c.school_year}))}
         />
       </Disclosure>
 

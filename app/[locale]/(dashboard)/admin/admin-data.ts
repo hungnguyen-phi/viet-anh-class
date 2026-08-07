@@ -43,6 +43,25 @@ export const layDanhMuc = cache(async () => {
   };
 });
 
+// HỌC SINH ĐÃ CÓ TÀI KHOẢN NHƯNG CHƯA THUỘC LỚP NÀO.
+//
+// Vì sao phải có: có em tự đăng nhập từ ngoài, quản trị viên duyệt cho vai học sinh xong là em
+// nằm im ở đó — không lớp, không ai biết để xếp. Chủ dự án gặp đúng cảnh ấy: "tôi duyệt xong ko
+// biết rơi vào đâu". Trước bản này không màn nào liệt kê những em như vậy, nên họ vô hình.
+//
+// Hỏi bằng HAI truy vấn rồi trừ nhau trong bộ nhớ, không phải một truy vấn lồng: PostgREST không
+// có "not exists" trên bảng khác, và lọc bằng .not('id','in',...) thì danh sách id nhét vào URL —
+// trường vài trăm em là URL vượt giới hạn, gãy im.
+export const layHocSinhChuaCoLop = cache(async () => {
+  const supabase = await createClient();
+  const [{data: hocSinh}, {data: dangHoc}] = await Promise.all([
+    supabase.from('profiles').select('id, full_name, email').eq('role', 'student').order('email').limit(2000),
+    supabase.from('enrollments').select('student_id').eq('is_active', true).limit(5000),
+  ]);
+  const coLop = new Set((dangHoc ?? []).map((e) => e.student_id));
+  return (hocSinh ?? []).filter((h) => !coLop.has(h.id));
+});
+
 export const layPhuTro = cache(async () => {
   const supabase = await createClient();
   const [{data: grants}, {data: invites}, {data: areaCfg}, {data: networks}] = await Promise.all([

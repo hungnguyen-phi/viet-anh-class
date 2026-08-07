@@ -290,6 +290,35 @@ export async function inviteUser(formData: FormData) {
   flash(error ? loi(friendlyError(error)) : okMsg + suffix);
 }
 
+// XẾP LỚP CHO MỘT EM ĐÃ CÓ TÀI KHOẢN NHƯNG CHƯA THUỘC LỚP NÀO.
+//
+// Cảnh sinh ra hàm này: em tự đăng nhập từ ngoài, quản trị viên duyệt cho vai học sinh, rồi em
+// nằm im — không lớp, không màn nào liệt kê, không ai biết để xếp.
+//
+// Đi qua ĐÚNG cái RPC mà màn Danh sách lớp vẫn dùng, không tự viết insert riêng: ở đó mới có luật
+// "một em chỉ học một lớp" (vào lớp mới thì tắt lớp cũ) và mới kiểm quyền theo lớp. Hai đường ghi
+// vào cùng một bảng là hai cơ hội trôi khỏi nhau.
+export async function xepLopChoHocSinh(formData: FormData) {
+  await requireRole(['admin', 'principal']);
+  const email = String(formData.get('email') ?? '').trim();
+  const classId = String(formData.get('class_id') ?? '');
+  if (!email || !classId) flash(loi('Thiếu học sinh hoặc lớp'));
+
+  const supabase = await createClient();
+  const {data, error} = await supabase.rpc('enroll_student_by_email', {p_class: classId, p_email: email});
+  revalidatePath('/[locale]/admin', 'page');
+  revalidatePath('/[locale]/roster', 'page');
+  if (error) flash(loi(friendlyError(error)));
+  // 'not_found' ở đây KHÁC với ở màn ghi danh: bên đó email lạ thì tạo lời mời, còn ở đây danh
+  // sách chỉ gồm em ĐÃ có tài khoản — trả về not_found nghĩa là hồ sơ vừa bị đổi vai hoặc bị xoá
+  // giữa chừng, và nói thẳng ra vẫn hơn là báo "đã xếp lớp" cho một việc không xảy ra.
+  flash(
+    data === 'ok'
+      ? `Đã xếp ${email} vào lớp`
+      : loi(`Không xếp được ${email} — em này không còn ở vai học sinh nữa.`),
+  );
+}
+
 // Phân công GVCN: đặt 1 người làm giáo viên chủ nhiệm của lớp (đồng thời set role=teacher).
 export async function assignGvcn(formData: FormData) {
   await requireRole(['admin']);
