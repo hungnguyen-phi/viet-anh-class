@@ -131,10 +131,21 @@ const doi = async (bt, han = 60) => {
   return null;
 };
 
-const moForm = await doi(`(() => {
-  const b = [...document.querySelectorAll('button')].find(x => /Thêm việc/i.test(x.textContent));
-  if (!b) return ''; b.click(); return 'mo';
-})()`, 40);
+// BẤM LẠI CHO TỚI KHI FORM THẬT SỰ MỞ, không phải bấm một lần rồi coi như xong.
+//
+// Trên production trang dựng xong rất nhanh nhưng React chưa gắn xong tay nghe: cú bấm đầu rơi
+// vào một cái nút chưa biết nghe, form không mở, và mọi phép kiểm bên dưới hỏi một ô KHÔNG TỒN
+// TẠI rồi báo đỏ vì lý do sai. Bản dev chậm nên hydrate xong trước — tức lỗi này chỉ lộ ra ở
+// đúng nơi mình cần tin tưởng nhất.
+let moForm = '';
+for (let i = 0; i < 30 && moForm !== 'mo'; i++) {
+  await chay(`(() => {
+    const b = [...document.querySelectorAll('button')].find(x => /Thêm việc/i.test(x.textContent));
+    if (b) b.click();
+  })()`);
+  await new Promise((r) => setTimeout(r, 1000));
+  if (await chay(`!!document.querySelector('#viec-target')`)) moForm = 'mo';
+}
 ok('Mở được form thêm việc', moForm === 'mo');
 
 if (moForm === 'mo') {
@@ -168,7 +179,8 @@ if (moForm === 'mo') {
     const f = o?.closest('div')?.parentElement;
     return f ? f.textContent.trim().slice(0, 220) : '';
   })()`);
-  ok('Nhãn nhóm nhỏ không còn đóng cứng chữ "(Kỹ năng)"', !/Nhóm \(Kỹ năng\)/.test(nhan), nhan.slice(0, 80));
+  // `nhan` rỗng nghĩa là không tìm thấy ô — phép kiểm phủ định sẽ xanh vì lý do sai. Đòi có chữ.
+  ok('Nhãn nhóm nhỏ không còn đóng cứng chữ "(Kỹ năng)"', nhan.length > 0 && !/Nhóm \(Kỹ năng\)/.test(nhan), nhan.slice(0, 80));
   ok('Nhãn nói rõ lĩnh vực đã lấy sẵn từ mục tiêu', /đã lấy sẵn từ mục tiêu/.test(nhan), nhan.slice(0, 120));
 }
 
