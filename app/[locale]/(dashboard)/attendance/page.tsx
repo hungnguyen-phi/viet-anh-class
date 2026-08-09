@@ -1,7 +1,7 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {redirect} from 'next/navigation';
 import {Lock, CalendarDays, Users} from 'lucide-react';
-import {Link} from '@/i18n/navigation';
+import {NutDoiTrang} from '@/components/ui/NutDoiTrang';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
@@ -168,8 +168,11 @@ export default async function AttendancePage({
             const isToday = d === realToday;
             const label = new Date(d + 'T00:00:00Z');
             const dow = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][label.getUTCDay()];
+            // NutDoiTrang chứ không phải <Link>: đổi ngày phải chạy lại truy vấn điểm danh, và
+            // người thử 08/2026 báo "bấm lùi rất chậm, như kiểu nút không ăn" — nút giờ mờ đi
+            // ngay khi bấm thay vì đứng im chờ server.
             return (
-              <Link
+              <NutDoiTrang
                 key={d}
                 href={{pathname: '/attendance', query: {...(classParam ? {class: classParam} : {}), date: d}}}
                 className={`inline-flex flex-col items-center rounded-[10px] px-2.5 py-1.5 text-[11px] font-extrabold leading-tight transition-all ${
@@ -180,9 +183,16 @@ export default async function AttendancePage({
               >
                 <span>{isToday ? t('todayLabel') : dow}</span>
                 <span className="text-[10px] font-bold opacity-70">{d.slice(5)}</span>
-              </Link>
+              </NutDoiTrang>
             );
           })}
+
+          {/* Người thử tưởng "chỉ hiện 7 ngày" là lỗi — nó là luật, nói thẳng ra thì hết hiểu lầm. */}
+          {!canPickAnyDate && (
+            <span className="self-center pl-1 text-[11px] font-semibold italic text-grey-mid">
+              Chỉ sửa được 7 ngày gần nhất — ngày cũ hơn nhờ quản trị viên.
+            </span>
+          )}
 
           {/* Quản trị viên: chọn ngày bất kỳ. Form GET → chỉ đổi ?date= trên URL, không cần
               server action. Giữ luôn ?class= để không nhảy sang lớp khác khi đang xem một lớp. */}

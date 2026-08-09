@@ -6,6 +6,7 @@ import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {taoMotWig, chuanHoaThu, chuanHoaHeSo} from '@/lib/wig-tao';
+import {AREAS} from '@/lib/areas';
 import type {Database} from '@/lib/database.types';
 
 type Area = Database['public']['Enums']['wig_area'];
@@ -207,16 +208,31 @@ export async function suaWig(_prev: CreateWigState, formData: FormData): Promise
   if (baseline !== null && baseline >= target_value)
     return {ok: false, fieldError: 'baseline', error: 'Mốc xuất phát phải nhỏ hơn mục tiêu.'};
   if (!unit) return {ok: false, fieldError: 'unit', error: 'Hãy nhập đơn vị (vd điểm, buổi, lần).'};
+  // LĨNH VỰC chỉ form sửa mục tiêu NĂM gửi lên (người thử 08/2026 xin đổi được 4 lĩnh vực khi
+  // sửa). Không gửi thì giữ nguyên — form tháng/tuần không có ô này.
+  const area_raw = String(formData.get('area') ?? '').trim();
+  if (area_raw && !AREAS.includes(area_raw as (typeof AREAS)[number]))
+    return {ok: false, error: 'Lĩnh vực không hợp lệ.'};
 
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('wigs')
-    .update({title, baseline, target_value, unit})
+    .update({title, baseline, target_value, unit, ...(area_raw ? {area: area_raw as Area} : {})})
     .eq('id', id)
     .select('id');
   if (error) return {ok: false, error: (friendlyError(error))};
   if (!data || data.length === 0)
     return {ok: false, error: 'Không sửa được mục tiêu này (không có quyền hoặc đã bị xoá).'};
+
+  // Lan lĩnh vực mới xuống con (tháng) và cháu (tuần): trang WIG nhóm cả chuỗi theo area của
+  // từng dòng, đổi mỗi cấp năm thì tháng/tuần cũ trôi sang nhóm lĩnh vực khác.
+  if (area_raw) {
+    const {data: con} = await supabase.from('wigs').select('id').eq('parent_wig_id', id);
+    await supabase
+      .from('wigs')
+      .update({area: area_raw as Area})
+      .in('parent_wig_id', [id, ...(con ?? []).map((c) => c.id)]);
+  }
 
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]', 'page');

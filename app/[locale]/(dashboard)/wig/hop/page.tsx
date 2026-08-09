@@ -5,6 +5,7 @@ import {createClient} from '@/lib/supabase/server';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext} from '@/lib/queries';
 import {Link} from '@/i18n/navigation';
+import {NutDoiTrang} from '@/components/ui/NutDoiTrang';
 import {isValidDayVN, isoWeekLabel, mondayOf, todayInVN, shiftWeeks, vnNoon} from '@/lib/dates';
 import {layDuLieuHop} from '@/lib/hop-data';
 import {PhongHop} from '@/components/wig/PhongHop';
@@ -89,31 +90,39 @@ export default async function HopPage({
       {/* Chọn TUẦN ĐANG TỔNG KẾT. Riêng với thanh tuần của trang /wig: ở đó là "đang xem tuần
           nào", ở đây là "đang họp về tuần nào" — hai câu hỏi khác nhau, và trộn chung chính là
           thứ khiến sáng thứ Hai mở ra thấy toàn số 0. */}
+      {/* NutDoiTrang chứ không phải <Link>: đổi tuần phải chạy lại cả loạt truy vấn của
+          layDuLieuHop, và người thử 08/2026 báo "không bấm di chuyển tuần được" — thật ra là bấm
+          được nhưng không có gì phản hồi trong lúc chờ. */}
       <section className="glass flex flex-wrap items-center justify-center gap-2 rounded-[20px] p-3">
-        <Link href={linkHop(shiftWeeks(hopMonday, -1))} className={nut} aria-label={t('prevWeek')}>
+        <NutDoiTrang href={linkHop(shiftWeeks(hopMonday, -1))} className={nut} ariaLabel={t('prevWeek')}>
           <ChevronLeft size={16} strokeWidth={2.5} />
-        </Link>
+        </NutDoiTrang>
         <span className="text-[13px] font-extrabold text-navy">
           {t('summarising', {week: d.hop.label})}
         </span>
         <span className="text-[11.5px] font-bold tabular-nums text-grey-mid">
           {dm(d.hop.start)} → {dm(d.hop.end)}
         </span>
-        <Link href={linkHop(shiftWeeks(hopMonday, 1))} className={nut} aria-label={t('nextWeek')}>
+        <NutDoiTrang href={linkHop(shiftWeeks(hopMonday, 1))} className={nut} ariaLabel={t('nextWeek')}>
           <ChevronRight size={16} strokeWidth={2.5} />
-        </Link>
+        </NutDoiTrang>
         {!laTuanVuaXong && (
-          <Link
+          <NutDoiTrang
             href={linkHop(macDinh)}
             className="inline-flex items-center gap-1 rounded-full bg-navy/[0.06] px-3 py-1.5 text-[11.5px] font-extrabold text-navy transition-all hover:bg-navy/[0.12]"
           >
             <RotateCcw size={12} strokeWidth={2.5} />
             {t('backToLastWeek')}
-          </Link>
+          </NutDoiTrang>
         )}
       </section>
 
+      {/* key ép remount khi đổi tuần đang tổng kết. Thiếu nó thì đổi ?hop= giữ nguyên instance
+          client, mà mọi ô chấm/ghi chú/cam kết khởi tạo bằng useState(() => …) chỉ chạy đúng một
+          lần lúc mount — tiêu đề đổi tuần còn ruột form vẫn là tuần cũ, người thử đọc thành "bấm
+          không ăn". Cùng mẫu với attendance/page.tsx. */}
       <PhongHop
+        key={`${myClass.id}-${hopMonday}`}
         classId={myClass.id}
         hopStart={d.hop.start}
         hopLabel={d.hop.label}
@@ -135,6 +144,13 @@ export default async function HopPage({
         dayShort={tw.raw('dayShort') as string[]}
         canManage
         quayVe={quayVe}
+        // Trỏ thẳng vào TUẦN MỚI trên trang WIG. Trước đây sau khi lưu chỉ có "Về trang WIG"
+        // (tuần đang xem cũ) — người thử tạo xong mục tiêu tuần tới, bấm vào và thấy "nhảy về
+        // trang wig" chứ không thấy mục tiêu mình vừa tạo.
+        xemTuanMoi={{
+          pathname: '/wig',
+          query: {...(classParam ? {class: classParam} : {}), week: shiftWeeks(hopMonday, 1)},
+        }}
       />
     </div>
   );

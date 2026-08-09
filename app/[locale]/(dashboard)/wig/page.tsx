@@ -272,6 +272,7 @@ export default async function WigPage({
         actual: 0,
         pct: 0,
         status: null,
+        area: null,
       };
     }
     const p = progByWig.get(w.id);
@@ -286,6 +287,7 @@ export default async function WigPage({
       actual: Number(p?.actual ?? 0),
       pct: Number(p?.pct ?? 0),
       status: p?.status ?? null,
+      area: w.area ?? null,
     };
   };
 
@@ -507,7 +509,7 @@ export default async function WigPage({
 
         <section className="glass rounded-[20px] p-[18px]">
           <h2 className="mb-3 font-display text-[15px] font-bold text-navy">{t('progressRail')}</h2>
-          <BangTienDo nhom={nhomTienDo} weekParam={weekQ} classParam={classParam} />
+          <BangTienDo nhom={nhomTienDo} weekParam={weekQ} classParam={classParam} areaOptions={areaOptions} />
         </section>
       </div>
 

@@ -73,6 +73,7 @@ export function PhongHop({
   canManage,
   daCoBienBan,
   quayVe,
+  xemTuanMoi = null,
 }: {
   classId: string;
   hopStart: string;
@@ -101,6 +102,9 @@ export function PhongHop({
   // Đường về trang WIG. null với ban giám hiệu — họ KHÔNG vào được /wig, nên vẽ một liên kết tới
   // đó là vẽ một cái cửa dẫn thẳng tới màn hình "bạn không có quyền".
   quayVe: {pathname: '/wig'; query: Record<string, string>} | null;
+  // Trang WIG mở sẵn TUẦN MỚI — đích đến sau khi lưu, nơi mục tiêu tuần vừa tạo nằm. Cùng luật
+  // null với quayVe.
+  xemTuanMoi?: {pathname: '/wig'; query: Record<string, string>} | null;
 }) {
   const t = useTranslations('meeting');
   const tw = useTranslations('wig');
@@ -249,18 +253,25 @@ export function PhongHop({
       <section className="glass rounded-[20px] p-[18px]">
         {buoc(1, t('step1', {week: hopLabel}), t('step1Hint', {range: hopRange}))}
 
-        {/* Nhịp 4DX mở đầu bằng "tuần trước hứa gì" — đặt TRƯỚC bảng để đọc theo đúng thứ tự ấy. */}
-        {loiHuaTruoc && (
-          <div className="mb-3 flex flex-wrap items-start gap-2 rounded-[14px] border-[1.5px] border-gold-deep/25 bg-gold/[0.12] px-3.5 py-2.5">
-            <ArrowRight size={14} strokeWidth={2.5} className="mt-0.5 shrink-0 text-gold-deep" />
-            <div className="min-w-0 flex-1">
-              <span className="text-[11px] font-extrabold uppercase tracking-wide text-gold-text">
-                {t('promisedLastWeek', {week: nhanTuanTruoc})}
-              </span>
+        {/* Nhịp 4DX mở đầu bằng "tuần trước hứa gì" — đặt TRƯỚC bảng để đọc theo đúng thứ tự ấy.
+            Tuần trước KHÔNG có cam kết thì vẫn hiện khung, ghi rõ là chưa có: ẩn hẳn đi thì người
+            mới dùng tưởng thiếu tính năng — người thử 08/2026 báo đúng chữ "không thấy câu cam
+            kết". */}
+        <div className="mb-3 flex flex-wrap items-start gap-2 rounded-[14px] border-[1.5px] border-gold-deep/25 bg-gold/[0.12] px-3.5 py-2.5">
+          <ArrowRight size={14} strokeWidth={2.5} className="mt-0.5 shrink-0 text-gold-deep" />
+          <div className="min-w-0 flex-1">
+            <span className="text-[11px] font-extrabold uppercase tracking-wide text-gold-text">
+              {t('promisedLastWeek', {week: nhanTuanTruoc})}
+            </span>
+            {loiHuaTruoc ? (
               <p className="mt-0.5 text-[12.5px] font-semibold leading-relaxed text-navy">{loiHuaTruoc}</p>
-            </div>
+            ) : (
+              <p className="mt-0.5 text-[12.5px] font-semibold italic leading-relaxed text-grey-mid">
+                {t('noPromiseLastWeek')}
+              </p>
+            )}
           </div>
-        )}
+        </div>
 
         {viecTuanQua.length === 0 ? (
           <p className="rounded-[14px] border-[1.5px] border-dashed border-navy/15 p-4 text-center text-[12.5px] font-semibold italic leading-relaxed text-grey-mid">
@@ -673,8 +684,23 @@ export function PhongHop({
         <div className="flex flex-wrap items-center gap-2 rounded-[12px] bg-success/[0.10] px-3 py-2.5">
           <CheckCircle2 size={15} strokeWidth={2.5} className="shrink-0 text-success" />
           <span className="text-[13px] font-bold text-success-dark">{state.message}</span>
+          {/* Link ĐẦU trỏ vào tuần mới — nơi mục tiêu vừa tạo nằm. Trước đây chỉ có "Về trang
+              WIG" (tuần đang xem cũ): người thử bấm vào và thấy "nhảy về trang wig" chứ không
+              thấy thứ mình vừa tạo. */}
+          {xemTuanMoi && (
+            <Link
+              href={xemTuanMoi}
+              className="ml-auto inline-flex min-h-[24px] items-center gap-1 text-[12.5px] font-extrabold text-navy underline"
+            >
+              {t('viewNewWeekGoal', {week: dichLabel})}
+              <ArrowRight size={13} strokeWidth={2.5} />
+            </Link>
+          )}
           {quayVe && (
-            <Link href={quayVe} className="ml-auto inline-flex min-h-[24px] items-center gap-1 text-[12.5px] font-extrabold text-navy underline">
+            <Link
+              href={quayVe}
+              className={`${xemTuanMoi ? '' : 'ml-auto '}inline-flex min-h-[24px] items-center gap-1 text-[12.5px] font-extrabold text-navy underline`}
+            >
               {t('backToWig')}
               <ArrowRight size={13} strokeWidth={2.5} />
             </Link>

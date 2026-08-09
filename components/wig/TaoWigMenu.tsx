@@ -114,7 +114,13 @@ export function TaoWigMenu({
   const [thangDangChon, setThangDangChon] = useState('');
   const nhanThang = thangDangChon || kyMacDinh.month;
   const thangHienThi = thangOptions.find((o) => o.label === nhanThang);
+  // Năm học cũng phải nói rõ nó chạy từ hôm nào tới hôm nào — nhãn "2026-2027" một mình không trả
+  // lời được câu người thử hỏi: "chưa thấy thời gian năm học nằm ở đâu". Ngày kèm năm vì khoảng
+  // này vắt qua hai năm dương lịch.
+  const [namChon, setNamChon] = useState(kyMacDinh.year);
+  const namHienThi = namOptions.find((o) => o.label === namChon);
   const dm = (x: string) => `${x.slice(8, 10)}/${x.slice(5, 7)}`;
+  const dmy = (x: string) => `${x.slice(8, 10)}/${x.slice(5, 7)}/${x.slice(0, 4)}`;
   const chaOptions = loai === 'month' ? wigNam : wigThang;
 
   // ── LỊCH BỊ RÀNG VÀO KHOẢNG CỦA MỤC TIÊU CHA ─────────────────────────────────────────────
@@ -374,13 +380,27 @@ export function TaoWigMenu({
                   )}
                 </>
               ) : (
-                <select id="wig-ky" name="period_label" className={selectCls} defaultValue={kyMacDinh.year}>
-                  {kyOptions.map((o) => (
-                    <option key={o.label} value={o.label}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    id="wig-ky"
+                    name="period_label"
+                    className={selectCls}
+                    value={namChon}
+                    onChange={(e) => setNamChon(e.target.value)}
+                    aria-describedby="wig-ky-ghi"
+                  >
+                    {kyOptions.map((o) => (
+                      <option key={o.label} value={o.label}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                  {namHienThi && (
+                    <p id="wig-ky-ghi" className="mt-1 text-[12px] font-semibold text-grey-mid">
+                      {dmy(namHienThi.start)} → {dmy(namHienThi.end)}
+                    </p>
+                  )}
+                </>
               )}
             </Field>
 
@@ -391,10 +411,19 @@ export function TaoWigMenu({
               </p>
             )}
             {state.ok && state.message && (
-              <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-success/[0.10] px-2.5 py-2 text-[12.5px] font-bold text-success-dark">
+              <div className="flex flex-wrap items-start gap-1.5 rounded-[10px] bg-success/[0.10] px-2.5 py-2 text-[12.5px] font-bold text-success-dark">
                 <CheckCircle2 size={14} strokeWidth={2.5} className="mt-px shrink-0" />
-                {state.message}
-              </p>
+                <span className="min-w-0 flex-1">{state.message}</span>
+                {/* Form cố ý KHÔNG tự đóng (người ta hay tạo mấy cái liền tay — xem ghi chú trên),
+                    nhưng người tạo xong một cái thì phải có đường đóng ngay tại chỗ vừa nhìn. */}
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="shrink-0 cursor-pointer font-extrabold text-navy underline underline-offset-2"
+                >
+                  {t('doneClose')}
+                </button>
+              </div>
             )}
 
             <div className="flex justify-end gap-2">

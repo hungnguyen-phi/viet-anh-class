@@ -125,12 +125,26 @@ export default async function RosterPage({
     .map((e) => e.toLowerCase());
 
   // Lớp trống thì bỏ hẳn truy vấn — `.in('email', [])` vẫn là một chặng mạng vô ích.
-  const {data: details} = wanted.length
-    ? await supabase
-        .from('student_details')
-        .select('email, full_name, student_code, date_of_birth, parent_phone, note')
-        .in('email', [...new Set(wanted)])
-    : {data: []};
+  const enrolledIds = ((enrolls ?? []) as unknown as EnrRow[]).map((r) => r.student_id);
+  const [{data: details}, {data: yeuCauCho}] = await Promise.all([
+    wanted.length
+      ? supabase
+          .from('student_details')
+          .select('email, full_name, student_code, date_of_birth, parent_phone, note')
+          .in('email', [...new Set(wanted)])
+      : Promise.resolve({data: []}),
+    // Yêu cầu sửa của học sinh đang chờ duyệt. Chỗ duyệt duy nhất là trang cá nhân từng em
+    // (RequestInbox), và nó TỰ ẨN khi trống — nên không có gì ở cấp lớp báo "đang có việc chờ".
+    // Người thử 08/2026 tìm không ra: "Không thấy trang của em". Sổ lớp là đường vào tự nhiên
+    // (bấm tên em → trang em) nên đếm và báo ở đây.
+    canManage && enrolledIds.length
+      ? supabase.from('edit_requests').select('student_id').eq('status', 'pending').in('student_id', enrolledIds)
+      : Promise.resolve({data: []}),
+  ]);
+
+  const choDuyet = new Map<string, number>();
+  for (const r of yeuCauCho ?? []) choDuyet.set(r.student_id, (choDuyet.get(r.student_id) ?? 0) + 1);
+  const tongChoDuyet = [...choDuyet.values()].reduce((a, b) => a + b, 0);
 
   const byEmail = new Map(
     (details ?? []).map((d) => [d.email.toLowerCase(), d] as const),
@@ -277,6 +291,12 @@ export default async function RosterPage({
 
       <Flash />
 
+      {tongChoDuyet > 0 && (
+        <p className="rounded-[12px] border-[1.5px] border-gold-deep/30 bg-gold/[0.12] px-3.5 py-2.5 text-[12.5px] font-bold text-navy">
+          Có {tongChoDuyet} yêu cầu của học sinh đang chờ duyệt — bấm tên em có nhãn vàng để xem và duyệt.
+        </p>
+      )}
+
       {/* Ghi danh / chuyển lớp: nhập email học sinh (đã có tài khoản) — chỉ GVCN/Admin */}
       {canManage && <EnrollForm classId={myClass.id} />}
       {/* Tổ trưởng điểm danh gom về MỘT chỗ (trước đây mỗi dòng một nút) */}
@@ -353,6 +373,14 @@ export default async function RosterPage({
                   className="inline-flex min-w-0 shrink items-center gap-1 truncate rounded-full bg-gold/20 px-2 py-0.5 text-[10.5px] font-extrabold text-navy"
                 >
                   ★ {t('attendanceLeader')}
+                </span>
+              )}
+              {r.studentId && (choDuyet.get(r.studentId) ?? 0) > 0 && (
+                <span
+                  title="Em này có yêu cầu đang chờ duyệt — bấm vào tên để xem và duyệt."
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text"
+                >
+                  {choDuyet.get(r.studentId)} chờ duyệt
                 </span>
               )}
               {!r.studentId && (

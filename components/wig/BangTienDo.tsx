@@ -5,7 +5,7 @@ import {useTranslations} from 'next-intl';
 import {AlertCircle, Pencil, Trash2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
-import {Field, ctlWithBorder, inputCls, btnGold, btnGhost} from '@/components/ui/Field';
+import {Field, ctlWithBorder, inputCls, selectCls, btnGold, btnGhost} from '@/components/ui/Field';
 import {suaWig, deleteWig} from '@/app/[locale]/(dashboard)/wig/actions';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -34,6 +34,8 @@ export type DongTienDo = {
   actual: number;
   pct: number;
   status: string | null;
+  // Lĩnh vực hiện tại — chỉ form sửa của cấp NĂM dùng (tháng/tuần thừa hưởng từ cha).
+  area: string | null;
 };
 
 const MAU: Record<string, string> = {
@@ -46,11 +48,14 @@ export function BangTienDo({
   nhom,
   weekParam,
   classParam,
+  areaOptions,
 }: {
   // Một nhóm = một mục tiêu NĂM và cả chuỗi tháng → tuần của nó trong tuần đang xem.
   nhom: {areaLabel: string; areaHex: string; areaSoft: string; dong: DongTienDo[]}[];
   weekParam: string;
   classParam?: string;
+  // Bốn lĩnh vực (kiến thức/kĩ năng/tiếng Anh/thể chất) — cho ô đổi lĩnh vực trong form sửa.
+  areaOptions: {value: string; label: string}[];
 }) {
   const t = useTranslations('wig');
   const [sua, setSua] = useState<string>('');
@@ -79,7 +84,7 @@ export function BangTienDo({
 
           {g.dong.map((d) => {
             if (sua && d.id === sua) {
-              return <SuaForm key={d.cap} dong={d} onDong={() => setSua('')} />;
+              return <SuaForm key={d.cap} dong={d} areaOptions={areaOptions} onDong={() => setSua('')} />;
             }
             const pct = Math.round(d.pct * 100);
             return (
@@ -158,7 +163,17 @@ export function BangTienDo({
 
 // Sửa tên / mốc xuất phát / mục tiêu / đơn vị. KHÔNG có ô ngày — xem ghi chú ở suaWig: ngày sinh
 // ra từ nhãn kỳ, cho sửa tay là mở lại đúng cái cửa đã gây sự cố lệch tuần.
-function SuaForm({dong, onDong}: {dong: DongTienDo; onDong: () => void}) {
+// Cấp NĂM sửa được cả LĨNH VỰC (người thử 08/2026 xin đúng thứ này) — tháng/tuần thì không, chúng
+// thừa hưởng lĩnh vực từ mục tiêu năm, và server tự lan lĩnh vực mới xuống các con.
+function SuaForm({
+  dong,
+  areaOptions,
+  onDong,
+}: {
+  dong: DongTienDo;
+  areaOptions: {value: string; label: string}[];
+  onDong: () => void;
+}) {
   const t = useTranslations('wig');
   const [state, formAction] = useActionState(suaWig, {ok: false});
 
@@ -174,6 +189,18 @@ function SuaForm({dong, onDong}: {dong: DongTienDo; onDong: () => void}) {
       <h2 className="font-display text-[13px] font-bold text-navy">
         {t('editWig')} · {dong.periodLabel ?? ''}
       </h2>
+
+      {dong.cap === 'year' && (
+        <Field label={t('area')} htmlFor={`sw-a-${dong.id}`}>
+          <select id={`sw-a-${dong.id}`} name="area" defaultValue={dong.area ?? ''} className={selectCls}>
+            {areaOptions.map((a) => (
+              <option key={a.value} value={a.value}>
+                {a.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
 
       <Field label={t('wigTitle')} htmlFor={`sw-t-${dong.id}`} error={err('title')}>
         <input
