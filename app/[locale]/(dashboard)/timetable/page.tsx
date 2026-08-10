@@ -1,5 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
-import {CalendarDays, MapPin, UserRound, ArrowRight} from 'lucide-react';
+import {CalendarDays, MapPin, UserRound, ArrowRight, Plus} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
@@ -8,8 +8,9 @@ import {getClassContext, getChildren, conDangXem} from '@/lib/queries';
 import {todayInVN, weekRangeVN} from '@/lib/dates';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {SubmitButton} from '@/components/ui/SubmitButton';
+import {TietProvider, NutTiet} from '@/components/timetable/OTiet';
 import {OverrideForm} from './OverrideForm';
-import {saveSlot, deleteSlot, deleteOverride, seedSubjects} from './actions';
+import {deleteSlot, deleteOverride, seedSubjects} from './actions';
 import {Flash} from '@/components/ui/Flash';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 
@@ -56,11 +57,10 @@ export default async function TimetablePage({
   searchParams,
 }: {
   params: Promise<{locale: string}>;
-  searchParams: Promise<{class?: string; child?: string; week?: string; editSlot?: string}>;
+  searchParams: Promise<{class?: string; child?: string; week?: string}>;
 }) {
   const {locale} = await params;
-  const {class: classParam, child: childParam, week: weekParam, editSlot: editSlotId} =
-    await searchParams;
+  const {class: classParam, child: childParam, week: weekParam} = await searchParams;
   setRequestLocale(locale);
   const profile = await requireProfile();
   const t = await getTranslations('timetable');
@@ -148,10 +148,6 @@ export default async function TimetablePage({
   const overrides = ((overData ?? []) as Override[]).filter((o) => slotById.has(o.slot_id));
   const overByKey = new Map(overrides.map((o) => [`${o.slot_id}|${o.date}`, o]));
 
-  // Ô đang sửa (?editSlot=) — theo đúng lối ?editWig= của /wig: điền sẵn panel bên dưới thay vì
-  // dựng 48 form inline trên lưới.
-  const editing = editSlotId ? slotById.get(editSlotId) ?? null : null;
-
   const dayLabel = (d: number) => (d === 7 ? t('sat') : `${t('dayShort')}${d}`);
   const cellInput =
     'w-full rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy';
@@ -171,6 +167,30 @@ export default async function TimetablePage({
       label: `${dayLabel(s.day_of_week)} · ${t('period')} ${s.period_no} · ${tenMon(s)}`,
       date: dateOf(s.day_of_week),
     }));
+
+  // Nhãn cho hộp thoại sửa ô — dựng ở máy chủ, xem ghi chú đầu components/timetable/OTiet.tsx.
+  const nhanTiet = {
+    them: t('addSlot'),
+    sua: t('editSlot'),
+    mon: t('subject'),
+    phong: t('room'),
+    giaoVien: t('teacher'),
+    loaiTiet: t('kindLabel'),
+    luu: t('save'),
+    huy: t('cancel'),
+    ghiChu: t('slotPopupHint'),
+    loai: (['regular', 'practice', 'exam'] as const).map((k) => ({value: k, label: t(`kind_${k}`)})),
+  };
+  const monChon = monLop.map((m) => ({id: m.id, name: m.name}));
+  // Toạ độ của ô, gói sẵn cho hộp thoại: bấm ô nào thì thứ/tiết của ô đó đi theo.
+  const oCua = (d: number, p: number, s?: Slot) => ({
+    day: d,
+    period: p,
+    nhanO: `${dayLabel(d)} · ${t('period')} ${p}`,
+    slot: s
+      ? {subjectId: s.subject_id, room: s.room, teacher: s.teacher_name, kind: s.kind}
+      : null,
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -252,7 +272,14 @@ export default async function TimetablePage({
         </span>
       </div>
 
-      {/* Lưới TKB: hàng = tiết, cột = thứ (kèm ngày thật của tuần đang xem) */}
+      {/* Lưới TKB: hàng = tiết, cột = thứ (kèm ngày thật của tuần đang xem).
+          Bọc trong TietProvider: mỗi ô là một nút mở hộp thoại sửa đúng ô ấy. */}
+      <TietProvider
+        classId={myClass.id}
+        monHoc={monChon}
+        nhan={nhanTiet}
+        batDuoc={canManage && monChon.length > 0}
+      >
       <div className="glass overflow-x-auto rounded-[20px] p-2">
         <div className="min-w-[860px]">
           <div className="flex">
@@ -295,50 +322,40 @@ export default async function TimetablePage({
                           ov?.status === 'cancelled' ? 'opacity-55' : ''
                         }`}
                       >
-                        {/* Bấm tên môn để sửa ô ngay (điền sẵn panel bên dưới) */}
-                        {canManage ? (
-                          <Link
-                            href={{
-                              pathname: '/timetable',
-                              query: {
-                                ...(classParam ? {class: classParam} : {}),
-                                ...(weekParam ? {week: weekParam} : {}),
-                                editSlot: s.id,
-                              },
-                            }}
+                        {/* CẢ Ô LÀ NÚT SỬA. Trước đây chỉ mỗi tên môn là liên kết, và nó điền
+                            sẵn một khung nhập tận cuối trang — xa chỗ vừa bấm đến mức người
+                            dùng không nối được hai thứ với nhau. Nay bấm vào ô là hộp thoại
+                            của đúng ô ấy mở ra tại chỗ. */}
+                        <NutTiet
+                          o={oCua(d, p, s)}
+                          title={`${t('editSlot')} · ${tenMon(s)}`}
+                          className="block w-full cursor-pointer text-left"
+                        >
+                          <span
                             title={tenMon(s)}
-                            className={`flex min-h-[24px] items-center truncate text-[12.5px] font-bold text-navy underline-offset-2 hover:underline ${
+                            className={`flex min-h-[24px] items-center truncate text-[12.5px] font-bold text-navy ${
                               ov?.status === 'cancelled' ? 'line-through' : ''
                             }`}
                           >
                             {tenMonNgan(s)}
-                          </Link>
-                        ) : (
-                          <div
-                            title={tenMon(s)}
-                            className={`truncate text-[12.5px] font-bold text-navy ${
-                              ov?.status === 'cancelled' ? 'line-through' : ''
-                            }`}
-                          >
-                            {tenMonNgan(s)}
-                          </div>
-                        )}
-                        {(s.room || s.teacher_name) && (
-                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10.5px] font-semibold text-grey-mid">
-                            {s.room && (
-                              <span className="inline-flex items-center gap-0.5">
-                                <MapPin size={10} strokeWidth={2.5} />
-                                {s.room}
-                              </span>
-                            )}
-                            {s.teacher_name && (
-                              <span className="inline-flex min-w-0 items-center gap-0.5">
-                                <UserRound size={10} strokeWidth={2.5} />
-                                <span className="truncate">{s.teacher_name}</span>
-                              </span>
-                            )}
-                          </div>
-                        )}
+                          </span>
+                          {(s.room || s.teacher_name) && (
+                            <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10.5px] font-semibold text-grey-mid">
+                              {s.room && (
+                                <span className="inline-flex items-center gap-0.5">
+                                  <MapPin size={10} strokeWidth={2.5} />
+                                  {s.room}
+                                </span>
+                              )}
+                              {s.teacher_name && (
+                                <span className="inline-flex min-w-0 items-center gap-0.5">
+                                  <UserRound size={10} strokeWidth={2.5} />
+                                  <span className="truncate">{s.teacher_name}</span>
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </NutTiet>
                         {/* Ngoại lệ của đúng ngày này */}
                         {ov && (
                           <div className="mt-1 flex flex-wrap items-center gap-1">
@@ -388,6 +405,16 @@ export default async function TimetablePage({
                           </form>
                         )}
                       </div>
+                    ) : canManage && monChon.length > 0 ? (
+                      /* Ô TRỐNG LÀ MỘT DẤU CỘNG BẤM ĐƯỢC. Dấu chấm mờ cũ không nói được rằng
+                         chỗ này thêm tiết được — nó đọc như một ô hỏng. */
+                      <NutTiet
+                        o={oCua(d, p)}
+                        title={`${t('addSlot')} · ${dayLabel(d)} · ${t('period')} ${p}`}
+                        className="grid w-full cursor-pointer place-items-center rounded-[10px] border-[1.5px] border-dashed border-navy/15 py-2 text-navy/25 transition-colors hover:border-navy/45 hover:bg-navy/[0.04] hover:text-navy"
+                      >
+                        <Plus size={14} strokeWidth={2.5} />
+                      </NutTiet>
                     ) : (
                       <div className="rounded-[10px] py-1.5 text-center text-[11px] text-navy/15">·</div>
                     )}
@@ -398,125 +425,35 @@ export default async function TimetablePage({
           ))}
         </div>
       </div>
+      </TietProvider>
 
-      {/* GVCN/Admin: thêm hoặc sửa 1 ô của MẪU TUẦN */}
-      {canManage && (
+      {/* KHUNG NHẬP Ở CUỐI TRANG ĐÃ BỎ (09/08/2026).
+          Nó bắt người xếp lịch khai lại bằng lời cái toạ độ mà mắt vừa nhìn thấy trên lưới —
+          chọn thứ trong một ô xổ, chọn tiết trong một ô xổ nữa — rồi mới tới môn. Nay bấm thẳng
+          vào ô cần xếp, thứ và tiết đi theo ô đó. Chỉ còn lại đây lời nhắc khai môn, vì không có
+          môn thì hộp thoại kia mở ra cũng chỉ có một ô chọn rỗng. */}
+      {canManage && monChon.length === 0 && (
         <div className="glass rounded-[20px] p-4">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <span className="font-display text-[15px] font-bold text-navy">
-              {editing ? `${t('editSlot')} · ${dayLabel(editing.day_of_week)} · ${t('period')} ${editing.period_no}` : t('addSlot')}
-            </span>
-            {editing && (
-              <Link
-                href={{
-                  pathname: '/timetable',
-                  query: {
-                    ...(classParam ? {class: classParam} : {}),
-                    ...(weekParam ? {week: weekParam} : {}),
-                  },
-                }}
-                className="inline-flex min-h-[24px] items-center text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
+          {/* RPC seed_class_subjects gieo cả bộ môn đang dùng của cơ sở, gọi lại bao nhiêu lần
+              cũng an toàn. */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <p className="min-w-[240px] flex-1 text-[12.5px] font-semibold leading-[1.55] text-txt">
+              {/* Câu này trước đây gõ THẲNG tiếng Việt vào JSX, nên bản tiếng Anh của trang
+                  cũng hiện ra một đoạn tiếng Việt. Bộ kiểm khoá dịch không bắt được: nó chỉ
+                  soi những khoá ĐƯỢC GỌI có tồn tại hay không, chứ không biết chỗ nào lẽ ra
+                  phải gọi mà lại gõ tay. */}
+              {t('noSubjects')}
+            </p>
+            <form action={seedSubjects}>
+              <input type="hidden" name="class_id" value={myClass.id} />
+              <SubmitButton
+                className="btn-gold h-11 cursor-pointer rounded-[10px] px-4 text-sm font-extrabold"
+                wrapClass="contents"
               >
-                {t('editCancel')}
-              </Link>
-            )}
+                Thêm bộ môn cho lớp
+              </SubmitButton>
+            </form>
           </div>
-          {monLop.length === 0 ? (
-            /* Lớp CHƯA khai môn nào → ô chọn sẽ rỗng. Đừng để giáo viên nhìn một ô trống rồi
-               đoán: nói thẳng phải làm gì, và đặt sẵn nút làm hộ. RPC seed_class_subjects gieo cả
-               bộ môn đang dùng của cơ sở, gọi lại bao nhiêu lần cũng an toàn. */
-            <div className="flex flex-wrap items-center gap-2.5">
-              <p className="min-w-[240px] flex-1 text-[12.5px] font-semibold leading-[1.55] text-txt">
-                {/* Câu này trước đây gõ THẲNG tiếng Việt vào JSX, nên bản tiếng Anh của trang
-                    cũng hiện ra một đoạn tiếng Việt. Bộ kiểm khoá dịch không bắt được: nó chỉ
-                    soi những khoá ĐƯỢC GỌI có tồn tại hay không, chứ không biết chỗ nào lẽ ra
-                    phải gọi mà lại gõ tay. */}
-                {t('noSubjects')}
-              </p>
-              <form action={seedSubjects}>
-                <input type="hidden" name="class_id" value={myClass.id} />
-                <SubmitButton
-                  className="btn-gold h-11 cursor-pointer rounded-[10px] px-4 text-sm font-extrabold"
-                  wrapClass="contents"
-                >
-                  Thêm bộ môn cho lớp
-                </SubmitButton>
-              </form>
-            </div>
-          ) : (
-            <>
-              {/* key ép remount khi đổi ô đang sửa → defaultValue nạp lại đúng ô mới */}
-              <form key={editing?.id ?? 'new'} action={saveSlot} className="flex flex-wrap items-end gap-2">
-                <input type="hidden" name="class_id" value={myClass.id} />
-                {editing ? (
-                  // Đang sửa: KHOÁ thứ/tiết. saveSlot upsert theo (class, day, period) nên đổi hai ô
-                  // này sẽ tạo ô MỚI chứ không "dời" ô cũ — dời lịch là việc của ngoại lệ theo ngày.
-                  <>
-                    <input type="hidden" name="day_of_week" value={editing.day_of_week} />
-                    <input type="hidden" name="period_no" value={editing.period_no} />
-                  </>
-                ) : (
-                  <>
-                    <select name="day_of_week" aria-label={t('dayLabel')} defaultValue="2" className={`${cellInput} w-24 cursor-pointer`}>
-                      {DAYS.map((d) => (
-                        <option key={d} value={d}>
-                          {dayLabel(d)}
-                        </option>
-                      ))}
-                    </select>
-                    <select name="period_no" aria-label={t('period')} defaultValue="1" className={`${cellInput} w-24 cursor-pointer`}>
-                      {PERIODS.map((p) => (
-                        <option key={p} value={p}>
-                          {t('period')} {p}
-                        </option>
-                      ))}
-                    </select>
-                  </>
-                )}
-                {/* MÔN: chọn từ danh mục, không gõ tay nữa. Trước 0069 hai lớp gõ "Ngữ văn"/"Ngữ Văn"
-                    thành hai môn khác nhau, và thời khoá biểu không nối được với bảng điểm. */}
-                <select
-                  name="subject_id"
-                  aria-label={t('subject')}
-                  defaultValue={editing?.subject_id ?? ''}
-                  className={`${cellInput} min-w-[130px] flex-1 cursor-pointer`}
-                  required
-                >
-                  {/* Bắt buộc chọn: bỏ trống thì trình duyệt chặn ngay, không phải chờ máy chủ trả lỗi. */}
-                  <option value="">— {t('subject')} —</option>
-                  {monLop.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-                <input name="room" placeholder={t('room')} aria-label={t('room')} defaultValue={editing?.room ?? ''} className={`${cellInput} w-24`} />
-                <input
-                  name="teacher_name"
-                  placeholder={t('teacher')} aria-label={t('teacher')}
-                  defaultValue={editing?.teacher_name ?? ''}
-                  className={`${cellInput} w-36`}
-                />
-                <select name="kind" aria-label={t('kindLabel')} defaultValue={editing?.kind ?? 'regular'} className={`${cellInput} w-32 cursor-pointer`}>
-                  {(['regular', 'practice', 'exam'] as const).map((k) => (
-                    <option key={k} value={k}>
-                      {t(`kind_${k}`)}
-                    </option>
-                  ))}
-                </select>
-                <SubmitButton className="btn-gold h-11 cursor-pointer rounded-[10px] px-4 text-sm font-extrabold" wrapClass="contents">
-                  {t('save')}
-                </SubmitButton>
-              </form>
-              {/* Câu hướng dẫn thêm ô viết thẳng tiếng Việt: khoá cũ trong messages/*.json còn ghi
-                  "nhập môn", nay là CHỌN môn trong danh mục — để nguyên là chỉ đường sai. */}
-              <p className="mt-1.5 text-[11px] italic text-grey-mid">
-                {editing
-                  ? t('editHint')
-                  : 'Chọn thứ + tiết, chọn môn trong danh mục của lớp (và phòng nếu có) rồi Lưu. Lưu lại cùng một ô sẽ ghi đè.'}
-              </p>
-            </>
-          )}
         </div>
       )}
 

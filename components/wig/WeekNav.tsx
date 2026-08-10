@@ -108,10 +108,9 @@ export async function WeekNav({
           </Link>
         </div>
       )}
-
-      <p className="mt-2 text-center text-[11px] font-semibold italic leading-relaxed text-grey-mid">
-        {t('weekNavHint')}
-      </p>
+      {/* Câu "Mọi khối bên dưới … đều thuộc tuần đang chọn ở đây" ĐÃ BỎ theo yêu cầu chủ dự án
+          (09/08/2026): nhãn tuần kèm dải ngày ngay trên đầu đã nói đủ, thêm một dòng giải thích
+          nữa chỉ làm thanh này dày lên. */}
     </section>
   );
 }

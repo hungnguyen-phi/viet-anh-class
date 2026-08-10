@@ -218,12 +218,15 @@ export default async function WigPage({
       if (iso > w.end_date) break;
       if (thu.has(d.getUTCDay() === 0 ? 7 : d.getUTCDay())) soNgay += 1;
     }
-    // TRẦN PHẢI NHÂN SỐ NGƯỜI: cả lớp cùng tick vào một việc nên trần là "số ngày × sĩ số".
-    // Bản đầu quên vế này — 7B1 chỉ có 3 em nên 7×3=21 vẫn nhỏ hơn mục tiêu 30 và cảnh báo vẫn
-    // đúng, lỗi ẩn sau một lớp nhỏ. Lớp 24 em thì trần là 168 và mọi mục tiêu từ 8 tới 168 bị
-    // kêu oan. Báo động giả tệ hơn không báo.
+    // TRẦN LÀ TRẦN CỦA MỘT EM (0098). Mục tiêu nay là "mỗi em bao nhiêu", nên số em không dự
+    // phần vào phép tính nữa: một em nhiều nhất cũng chỉ tick được mỗi ngày một lượt, nên trần
+    // đúng bằng số ngày việc ấy áp dụng. Lớp 30 em hay 3 em thì mục tiêu 10 lượt trong một tuần
+    // có 5 ngày học đều là bất khả.
+    //
+    // Bản trước nhân với sĩ số vì hồi ấy cả lớp đổ chung vào một bộ đếm — nay giữ lại phép nhân
+    // ấy là bỏ sót đúng những mục tiêu không em nào đạt nổi ở lớp đông.
     const soNguoi = studentCount > 0 ? studentCount : 1;
-    const tran = soNgay * soNguoi;
+    const tran = soNgay;
     return {
       soTickCan,
       soNgay,

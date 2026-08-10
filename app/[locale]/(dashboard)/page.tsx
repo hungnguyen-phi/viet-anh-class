@@ -34,6 +34,9 @@ type ClassLeadRow = {
   title: string;
   target_value: number | string;
   class_total: number | string;
+  // 0098 — thước đo của một việc là SỐ EM ĐÃ ĐỦ, không phải tổng tick của cả lớp.
+  students_done: number | string;
+  class_size: number | string;
 };
 
 // AREAS + màu/icon/nhãn lĩnh vực ("Môn") lấy từ lib/areas (đọc area_config, fallback = giá trị cũ).
@@ -148,15 +151,20 @@ export default async function ClassPage({
   // Gọi class_lead_board (0074) thay vì chép lại luật lọc: nó đã ràng cả hai đầu — WIG phải giao
   // với tuần, và tick phải nằm trong bảy ngày ấy. Một luật, ba màn hình, không thể trôi khỏi nhau.
   const {data: boardData} = await supabase.rpc('class_lead_board', {p_class: myClass.id});
+  // MỘT VIỆC XONG KHI MỌI EM ĐỦ PHẦN CỦA MÌNH (0098), không phải khi tổng tick chạm mục tiêu.
+  //
+  // Mục tiêu nay là của MỖI EM ("mỗi em 3 bài"), nên tổng của cả lớp không trả lời được câu hỏi
+  // mà ô này đặt ra. Lớp 30 em mà 3 lượt tick đầu tiên đã tô xanh "xong" là đúng cảnh chủ dự án
+  // bắt được ở màn hình học sinh — trang chủ của GVCN cũng đọc chung một con số ấy.
   const leads = ((boardData ?? []) as ClassLeadRow[]).map((l) => {
-    const actual = Number(l.class_total ?? 0);
-    const target = Number(l.target_value);
+    const duEm = Number(l.students_done ?? 0);
+    const siSo = Number(l.class_size ?? 0);
     return {
       id: l.lead_measure_id,
       title: l.title,
-      target,
-      actual,
-      done: target > 0 && actual >= target,
+      target: siSo,
+      actual: duEm,
+      done: siSo > 0 && duEm >= siSo,
     };
   });
   const leadsDone = leads.filter((l) => l.done).length;
@@ -472,7 +480,9 @@ export default async function ClassPage({
                     </div>
                     <span className="shrink-0 font-display text-base font-bold text-navy">
                       {l.actual}
-                      <span className="text-xs font-bold text-grey-mid">/{l.target}</span>
+                      <span className="text-xs font-bold text-grey-mid">
+                        /{l.target} {t('class.studentsDoneUnit')}
+                      </span>
                     </span>
                   </div>
                 );

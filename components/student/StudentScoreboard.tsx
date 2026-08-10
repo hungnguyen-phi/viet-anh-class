@@ -80,6 +80,9 @@ type ClassLeadRow = {
   contributors: number | string;
   class_size: number | string;
   my_dates: string[] | null;
+  // 0098 — hai con số của cách đo MỖI EM MỘT BỘ ĐẾM: tổng của chính em, và số em đã đạt đủ.
+  my_total: number | string;
+  students_done: number | string;
 };
 
 function initialsOf(name: string): string {
@@ -407,6 +410,8 @@ export async function StudentScoreboard({
       classTotal: Number(l.class_total),
       contributors: Number(l.contributors),
       classSize: Number(l.class_size),
+      myTotal: Number(l.my_total),
+      studentsDone: Number(l.students_done),
     })),
     ...leadRows.map((l) => ({
       id: l.id,
@@ -437,6 +442,8 @@ export async function StudentScoreboard({
       classTotal: null,
       contributors: null,
       classSize: null,
+      myTotal: null,
+      studentsDone: null,
     })),
   ];
   // Chỉ việc RIÊNG mới xin đổi tên được: việc chung là của cả lớp, một em đổi tên là đổi cho

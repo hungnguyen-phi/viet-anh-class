@@ -31,6 +31,9 @@ type BoardRow = {
   active_weekdays: number[] | null;
   class_total: number | string;
   contributors: number | string;
+  // 0098 — mục tiêu là của MỖI EM, nên con số ở góc phải phải là "mấy em đã đủ".
+  students_done: number | string;
+  class_size: number | string;
 };
 
 type MatrixRow = {
@@ -121,8 +124,14 @@ export async function ChiTietTuan({classId, weekStart}: {classId: string; weekSt
               <span className="rounded-full bg-navy/[0.05] px-2 py-0.5 text-[10.5px] font-bold text-grey-mid">
                 {ngay.map((d) => dayShort[isoDowVN(d) - 1]).join(' · ')}
               </span>
+              {/* Trước đây là tổng tick của cả lớp so với mục tiêu — con số ấy đọc như "gần
+                  xong" trong khi có thể chưa em nào đủ. Nay nói thẳng: mấy em đã đủ phần mình,
+                  và mỗi em phải đủ bao nhiêu. */}
               <span className="ml-auto text-[13px] font-extrabold tabular-nums text-navy">
-                {Number(l.class_total)}/{Number(l.target_value)} {l.unit ?? ''}
+                {Number(l.students_done)}/{Number(l.class_size)} {t('studentsDoneUnit')}
+                <span className="ml-1.5 text-[11px] font-bold text-grey-mid">
+                  ({t('perStudentTarget', {n: Number(l.target_value), unit: l.unit ?? ''})})
+                </span>
               </span>
             </div>
 

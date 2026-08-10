@@ -20,8 +20,15 @@ const KINDS = ['regular', 'practice', 'exam'] as const;
 // hiểu, thay vì để Postgres trả 22P02 rồi friendlyError chỉ nói được "Đã xảy ra lỗi".
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+export type LuuOState = {ok: boolean; error?: string; message?: string};
+
 // Lưu (tạo/sửa) 1 ô thời khoá biểu. RLS tt_manage: chỉ GVCN lớp/admin.
-export async function saveSlot(formData: FormData) {
+//
+// TRẢ STATE, KHÔNG CHUYỂN TRANG. Form này nay nằm trong hộp thoại mở ra từ chính ô lịch: chuyển
+// trang kèm một câu lỗi ở đầu trang có nghĩa là hộp thoại biến mất, chữ vừa gõ mất theo, và câu
+// lỗi hiện ở chỗ cách xa nơi vừa bấm. Trả state thì lỗi hiện ngay trong hộp, còn lưu xong thì
+// hộp tự đóng (cùng lối đã dùng cho form sửa mục tiêu ở /wig).
+export async function luuOTiet(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
   await requireRole(['teacher', 'admin', 'principal']);
   const class_id = String(formData.get('class_id') ?? '');
   const day_of_week = Number(formData.get('day_of_week') ?? 0);
@@ -32,8 +39,9 @@ export async function saveSlot(formData: FormData) {
   const kindRaw = String(formData.get('kind') ?? 'regular');
   // Giá trị lạ từ form → về 'regular' cho khỏi dính CHECK ở DB rồi báo lỗi khó hiểu.
   const kind = (KINDS as readonly string[]).includes(kindRaw) ? kindRaw : 'regular';
-  if (!class_id || !day_of_week || !period_no) flash(class_id, 'Thiếu thông tin ô thời khoá biểu');
-  if (!UUID.test(subject_id)) flash(class_id, 'Hãy chọn môn cho ô này');
+  if (!class_id || !day_of_week || !period_no)
+    return {ok: false, error: 'Thiếu thông tin ô thời khoá biểu'};
+  if (!UUID.test(subject_id)) return {ok: false, error: 'Hãy chọn môn cho ô này'};
   const supabase = await createClient();
   const {error} = await supabase
     .from('timetable_slots')
@@ -44,8 +52,9 @@ export async function saveSlot(formData: FormData) {
       {class_id, day_of_week, period_no, subject_id, room, teacher_name, kind},
       {onConflict: 'class_id,day_of_week,period_no'},
     );
+  if (error) return {ok: false, error: friendlyError(error)};
   revalidatePath('/[locale]/timetable', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : 'Đã lưu ô thời khoá biểu');
+  return {ok: true, message: 'Đã lưu ô thời khoá biểu'};
 }
 
 // Gieo cả bộ môn của cơ sở vào chương trình lớp (class_subjects), để ô chọn môn thôi rỗng.

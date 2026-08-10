@@ -31,6 +31,10 @@ export type TickerLead = {
   classTotal: number | null;
   contributors: number | null;
   classSize: number | null;
+  // 0098 — MỖI EM MỘT BỘ ĐẾM. `myTotal` là tổng của CHÍNH EM (đã nhân hệ số) và là thứ thanh
+  // tiến độ đo từ nay; `studentsDone` là số bạn đã đạt đủ, dùng cho dòng "cả lớp".
+  myTotal: number | null;
+  studentsDone: number | null;
 };
 
 type Action = {leadId: string; date: string; on: boolean};
@@ -81,15 +85,21 @@ export function LeadTicker({
       const set = new Set(l.myDates);
       if (a.on) set.add(a.date);
       else set.delete(a.date);
+      // Nhích đúng bằng hệ số, không phải 1: các con số này tính theo ĐƠN VỊ của mục tiêu (SQL
+      // đã nhân sẵn), nên cộng 1 vào đó là lệch ngay lúc bấm rồi lại nhảy về khi dữ liệu thật tới.
+      const buoc = a.on ? l.unitPerTick : -l.unitPerTick;
+      const moi = l.myTotal === null ? null : l.myTotal + buoc;
+      // Vừa bấm mà em đủ (hoặc vừa bỏ tick mà tụt xuống dưới mục tiêu) thì dòng "n bạn đã đủ"
+      // phải đổi theo ngay — nếu không, em đạt đủ 3/3 mà cả lớp vẫn ghi 0/2, đọc như tick hụt.
+      const duTruoc = l.myTotal !== null && l.target > 0 && l.myTotal >= l.target;
+      const duSau = moi !== null && l.target > 0 && moi >= l.target;
       return {
         ...l,
         myDates: [...set].sort(),
-        // Tổng của lớp cũng nhích theo — nếu không thì em bấm xong thấy ô mình sáng lên mà tỷ số
-        // chung đứng yên, tưởng lượt tick của mình không được tính.
-        //
-        // Nhích đúng bằng hệ số, không phải 1: classTotal tính theo đơn vị của mục tiêu (SQL đã
-        // nhân sẵn), nên cộng 1 vào đó là lệch ngay lúc bấm rồi lại nhảy về khi dữ liệu thật tới.
-        classTotal: l.classTotal === null ? null : l.classTotal + (a.on ? l.unitPerTick : -l.unitPerTick),
+        myTotal: moi,
+        classTotal: l.classTotal === null ? null : l.classTotal + buoc,
+        studentsDone:
+          l.studentsDone === null ? null : l.studentsDone + (duSau ? 1 : 0) - (duTruoc ? 1 : 0),
       };
     }),
   );
@@ -157,17 +167,22 @@ export function LeadTicker({
 
   // ---- Một việc: tiến độ + dải ngày ----
   const leadCard = (l: TickerLead) => {
-    // Quy về đơn vị của mục tiêu: 5 tối × 30 phút = 150 phút, không phải 5.
+    // THƯỚC ĐO LÀ CỦA CHÍNH EM (0098), không phải tổng cả lớp.
     //
-    // CHỈ dùng cho phép so với `target` và thanh tiến độ. Câu "em góp N lượt" bên dưới phải đếm
-    // theo LẦN BẤM (myDates.length): em nhìn thấy 3 ô vàng mà đọc "em góp 90 lượt" thì con số
-    // trên màn hình không còn nói về thứ em vừa làm nữa.
-    const mine = l.myDates.length * l.unitPerTick;
-    const total = l.classTotal ?? mine;
-    const pct = l.target > 0 ? Math.min(1, total / l.target) : 0;
-    const done = l.target > 0 && total >= l.target;
+    // Trước đây thanh này đo tổng tick của mọi bạn so với mục tiêu, nên Claudia tick một lượt
+    // thấy 1/3, Alex tick một lượt thì màn của Claudia nhảy lên 2/3 — công của bạn hiện trên
+    // thẻ của mình. Nay mục tiêu là "mỗi em 3 bài": em nào cũng phải tự đi hết quãng của mình.
+    //
+    // Quy về đơn vị của mục tiêu: 5 tối × 30 phút = 150 phút, không phải 5. Câu "em góp N lượt"
+    // bên dưới vẫn đếm theo LẦN BẤM (myDates.length) — em nhìn 3 ô vàng mà đọc "em góp 90 lượt"
+    // thì con số không còn nói về thứ em vừa làm nữa.
+    const mine = l.myTotal ?? l.myDates.length * l.unitPerTick;
+    const pct = l.target > 0 ? Math.min(1, mine / l.target) : 0;
+    const done = l.target > 0 && mine >= l.target;
     const streak = streakOf(l);
-    const left = Math.max(0, l.target - total);
+    const left = Math.max(0, l.target - mine);
+    // Còn mấy bạn nữa thì cả lớp mới thắng việc này.
+    const banConThieu = Math.max(0, (l.classSize ?? 0) - (l.studentsDone ?? 0));
 
     return (
       <div key={l.id} className="rounded-[16px] border-[1.5px] border-navy/10 bg-white p-3.5">
@@ -191,7 +206,10 @@ export function LeadTicker({
             </span>
           )}
           <span className="shrink-0 text-[12.5px] font-extrabold tabular-nums text-grey-mid">
-            {Math.min(total, l.target)}/{l.target} {l.unit ?? ''}
+            {/* Ghi rõ "Em:" ở việc chung — cùng một thẻ mà có hai con số (của em và của lớp),
+                không gắn nhãn thì lại đọc nhầm y như bản cũ. */}
+            {l.kind === 'class' ? `${t('mineLabel')}: ` : ''}
+            {Math.min(mine, l.target)}/{l.target} {l.unit ?? ''}
           </span>
         </div>
 
@@ -211,18 +229,21 @@ export function LeadTicker({
             <>
               <span className="inline-flex items-center gap-1">
                 <Users size={12} strokeWidth={2.5} />
-                {t('classContrib', {n: l.contributors ?? 0, total: l.classSize ?? 0})}
+                {t('classDone', {n: l.studentsDone ?? 0, total: l.classSize ?? 0})}
               </span>
               <span>· {t('myContrib', {n: l.myDates.length})}</span>
             </>
           ) : (
             <span>{t('myContrib', {n: l.myDates.length})}</span>
           )}
-          {/* Việc chung thì đích là của CẢ LỚP, việc riêng thì của em — không dùng chung một câu,
-              nếu không thì mục tiêu cá nhân lại hiện "còn 5 nữa là lớp thắng". */}
+          {/* Chưa đủ thì nói phần CỦA EM còn thiếu. Em đủ rồi mà lớp chưa thắng thì nói còn chờ
+              mấy bạn — để em biết việc của mình xong, và lớp vẫn chưa xong. */}
           {!done && left > 0 && (
+            <span className="ml-auto font-bold text-navy/70">{t('remainingMine', {n: left})}</span>
+          )}
+          {done && l.kind === 'class' && banConThieu > 0 && (
             <span className="ml-auto font-bold text-navy/70">
-              {l.kind === 'class' ? t('remaining', {n: left}) : t('remainingMine', {n: left})}
+              {t('remainingFriends', {n: banConThieu})}
             </span>
           )}
         </div>

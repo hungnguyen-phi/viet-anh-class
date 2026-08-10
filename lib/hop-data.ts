@@ -15,6 +15,9 @@ type Sb = Awaited<ReturnType<typeof createClient>>;
 //
 // Đặt ở lib/ để cả hai trang gọi cùng một hàm. Lệch nhau thì phải lệch ở đây, tức là không lệch.
 
+// Đơn vị đếm người ở cột kết quả — tách hằng để không rải chữ trong chuỗi ghép.
+const DON_VI_EM = 'em đủ';
+
 type BoardRow = {
   lead_measure_id: string;
   title: string;
@@ -25,6 +28,8 @@ type BoardRow = {
   class_total: number | string;
   contributors: number | string;
   class_size: number | string;
+  // 0098 — số em đã đạt ĐỦ phần của mình. Đây mới là con số quyết định thắng/thua của một việc.
+  students_done: number | string;
 };
 
 type MatrixRow = {
@@ -122,7 +127,12 @@ export async function layDuLieuHop(
     return {
       id: r.lead_measure_id,
       title: r.title,
-      ketQua: `${Number(r.class_total)}/${Number(r.target_value)} ${r.unit ?? ''}`.trim(),
+      // KẾT QUẢ CỦA MỘT VIỆC = BAO NHIÊU EM ĐÃ ĐỦ (0098), không phải tổng tick của cả lớp.
+      //
+      // Mục tiêu nay là của MỖI EM, nên "2/3 bài" của bản cũ trả lời sai câu hỏi mà buổi họp đặt
+      // ra: lớp có làm được việc này không. Hai em mỗi em tick một lượt thì tổng là 2, trông như
+      // gần xong, trong khi thật ra CHƯA EM NÀO đủ.
+      ketQua: `${Number(r.students_done)}/${Number(r.class_size)} ${DON_VI_EM}`,
       daGop: Number(r.contributors),
       siSo: Number(r.class_size),
       verdict: gc?.verdict === 'win' || gc?.verdict === 'lose' ? gc.verdict : null,

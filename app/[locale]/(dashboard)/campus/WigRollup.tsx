@@ -56,9 +56,17 @@ export async function WigRollup({
   // Dưới 640px: mỗi dòng thành một thẻ hai tầng — tầng trên lớp + GVCN, tầng dưới bốn con số kèm
   // nhãn ngắn (nhãn chỉ hiện ở dạng thẻ, vì ở dạng bảng đã có hàng tiêu đề). Từ 640px: y nguyên
   // bảng sáu cột như cũ, nhờ `sm:contents` làm cái bọc tầng dưới biến mất.
-  const colClass = 'min-w-0 basis-full sm:basis-auto sm:flex-[1.5]';
-  const colTeacher = 'min-w-0 flex-1 sm:flex-[1.2]';
-  const colNum = 'flex-1';
+  // Từ 640px trở lên là LƯỚI SÁU CỘT khai một lần, hàng tiêu đề và mọi dòng dùng chung.
+  //
+  // Trước đây mỗi ô tự co bằng flex với `sm:basis-auto`, tức là bề rộng cột chạy theo NỘI DUNG
+  // của chính dòng ấy: ô tiêu đề ghi "LỚP" còn ô dữ liệu ghi "10A1 Khối 10", nên cột đầu của
+  // dòng rộng hơn cột đầu của tiêu đề 44px và cả năm cột sau xô lệch theo. Lưới thì cột do khai
+  // báo quyết định. minmax(0,…fr) — không phải `1.5fr` trần — để nội dung dài không đẩy cột ra.
+  const luoiSm =
+    'sm:grid sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]';
+  const colClass = 'min-w-0 basis-full sm:basis-auto';
+  const colTeacher = 'min-w-0 flex-1';
+  const colNum = 'min-w-0 flex-1';
   const tangSo = 'flex w-full min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:contents';
   const nhanNho = 'text-[10px] font-extrabold uppercase tracking-wide text-grey-mid sm:hidden';
 
@@ -71,7 +79,7 @@ export async function WigRollup({
 
       <div className="sm:overflow-x-auto">
         {/* Hàng tiêu đề chỉ có nghĩa khi còn là bảng; ở dạng thẻ, mỗi con số tự mang nhãn. */}
-        <div className="hidden min-w-[680px] items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5 sm:flex">
+        <div className={`hidden min-w-[680px] items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5 ${luoiSm}`}>
           <span className={`text-[11px] font-extrabold uppercase text-grey-mid ${colClass}`}>
             {t('class')}
           </span>
@@ -105,7 +113,7 @@ export async function WigRollup({
             <Link
               key={r.class_id}
               href={{pathname: canOpenWig ? '/wig' : '/meeting', query: {class: r.class_id}}}
-              className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-navy/[0.08] px-[18px] py-2.5 transition-colors hover:bg-navy/[0.03] sm:min-w-[680px] sm:flex-nowrap sm:gap-2"
+              className={`flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-navy/[0.08] px-[18px] py-2.5 transition-colors hover:bg-navy/[0.03] sm:min-w-[680px] sm:items-center sm:gap-2 ${luoiSm}`}
             >
               <span className={`text-[13.5px] font-bold text-navy ${colClass}`}>
                 {r.class_name}

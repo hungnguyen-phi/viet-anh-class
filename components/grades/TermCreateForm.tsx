@@ -46,6 +46,10 @@ export async function TermCreateForm({
         Khai báo đợt đánh giá · năm học {schoolYear}
       </h2>
 
+      {/* NÚT PHẢI ĐỨNG CÙNG HÀNG VỚI CÁC Ô NHẬP.
+          Trước đây ô "Tên hiển thị" mang thêm một dòng gợi ý bên dưới, nên ô ấy cao hơn ba ô còn
+          lại; nút Tạo đợt căn đáy (items-end) liền tụt xuống ngang dòng gợi ý — nhìn như bị rớt
+          khỏi hàng. Dời câu gợi ý xuống chân form là bốn ô cao bằng nhau, nút về đúng hàng. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1.2fr_1.4fr_1fr_1fr_auto]">
         <Field label={t('fTermKind')} htmlFor="term-kind">
           <select id="term-kind" name="kind" defaultValue={conLai[0]} className={selectCls}>
@@ -57,11 +61,7 @@ export async function TermCreateForm({
           </select>
         </Field>
 
-        <Field
-          label={t('fTermName')}
-          htmlFor="term-name"
-          hint={t('hTermName')}
-        >
+        <Field label={t('fTermName')} htmlFor="term-name">
           <input id="term-name" name="name" maxLength={80} className={inputCls} />
         </Field>
 
@@ -76,16 +76,16 @@ export async function TermCreateForm({
           <input id="term-end" name="end_date" type="date" className={inputCls} />
         </Field>
 
-        <div className="flex items-end">
-          <SubmitButton className={btnGold} wrapClass="contents">
+        {/* Hai cột trên màn hẹp: nút chiếm trọn dòng thay vì đứng lẻ một nửa dòng cuối. */}
+        <div className="col-span-2 flex items-end sm:col-span-1">
+          <SubmitButton className={`${btnGold} w-full sm:w-auto`} wrapClass="contents">
             + Tạo đợt
           </SubmitButton>
         </div>
       </div>
 
       <p className="mt-2 text-[11px] italic text-grey-mid">
-        {t('termCreateHint')}
-        mới nhập điểm được.
+        {t('hTermName')} {t('termCreateHint')}
       </p>
     </form>
   );

@@ -2349,6 +2349,8 @@ export type Database = {
           contributors: number
           lead_measure_id: string
           my_dates: string[]
+          my_total: number
+          students_done: number
           target_value: number
           title: string
           unit: string

@@ -237,6 +237,25 @@ export default async function RosterPage({
   const lopDichList = (lopDich ?? []) as unknown as LopDich[];
   const laAdmin = profile.role === 'admin';
 
+  // CÁC CỘT KHAI MỘT LẦN, HÀNG TIÊU ĐỀ VÀ MỌI DÒNG DÙNG CHUNG.
+  //
+  // Bản cũ dựng bằng flex, và dòng của em ĐÃ CÓ TÀI KHOẢN có thêm một ô "Dời lớp" mà hàng tiêu
+  // đề không có. Ô thừa ấy ăn mất một phần bề rộng, nên đúng những dòng đó bị kéo lệch khỏi các
+  // dòng còn lại — chủ dự án thấy email và ngày sinh của hai em đầu không thẳng hàng với các em
+  // bên dưới. Nay nút dời lớp nằm gọn trong ô thao tác cuối dòng, và bề rộng cột do lưới quyết
+  // định chứ không do nội dung từng dòng.
+  const cot = {
+    gridTemplateColumns: [
+      '22px', // #
+      'minmax(0,1.4fr)', // họ tên
+      ...(xemChiTiet ? ['110px'] : []), // mã HS
+      'minmax(0,1.4fr)', // email
+      ...(xemChiTiet ? ['100px', '110px', 'minmax(0,1fr)'] : []), // ngày sinh · sđt · ghi chú
+      canManage ? '208px' : '104px', // dời lớp + sửa + xoá
+    ].join(' '),
+  } as const;
+  const hang = `grid ${xemChiTiet ? 'min-w-[900px]' : 'min-w-[420px]'} items-center gap-2 px-[18px]`;
+
   return (
     <div className="space-y-4">
       {/* ẢNH BÌA LỚP.
@@ -310,46 +329,49 @@ export default async function RosterPage({
 
       <div className="glass overflow-x-auto rounded-[20px]">
         {/* Header */}
-        <div className={`flex ${xemChiTiet ? 'min-w-[900px]' : 'min-w-[420px]'} items-center gap-2 bg-navy/[0.03] px-[18px] py-[10px]`}>
-          <span className="w-[22px] flex-none text-[11px] font-extrabold text-grey-mid">#</span>
-          <span className="flex-[1.4] text-[11px] font-extrabold uppercase text-grey-mid">
+        <div className={`${hang} bg-navy/[0.03] py-[10px]`} style={cot}>
+          <span className="text-[11px] font-extrabold text-grey-mid">#</span>
+          <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
             {t('name')}
           </span>
           {xemChiTiet && (
-            <span className="w-[110px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
+            <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
               Mã HS
             </span>
           )}
-          <span className="flex-[1.4] text-[11px] font-extrabold uppercase text-grey-mid">
+          <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
             {t('email')}
           </span>
           {xemChiTiet && (
             <>
-              <span className="w-[100px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
+              <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
                 Ngày sinh
               </span>
-              <span className="w-[110px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
+              <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
                 SĐT phụ huynh
               </span>
-              <span className="flex-1 text-[11px] font-extrabold uppercase text-grey-mid">Ghi chú</span>
+              <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
+                Ghi chú
+              </span>
             </>
           )}
-          <span className="w-[104px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid" />
+          <span />
         </div>
 
         {/* Rows */}
         {rows.map((r, i) => (
           <div
             key={r.key}
-            className={`flex ${xemChiTiet ? 'min-w-[900px]' : 'min-w-[420px]'} items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2 transition-colors hover:bg-navy/[0.03]`}
+            className={`${hang} border-t border-navy/[0.08] py-2 transition-colors hover:bg-navy/[0.03]`}
+            style={cot}
           >
-            <span className="w-[22px] flex-none text-[12px] font-bold text-grey-mid">{i + 1}</span>
+            <span className="text-[12px] font-bold text-grey-mid">{i + 1}</span>
             {/* flex-wrap + tên được ưu tiên chỗ.
                 Audit mobile 2026-08-06, màn 360px: nhãn "○ chưa đăng nhập" (shrink-0, ~100px)
                 không bao giờ nhường chỗ, nên TÊN HỌC SINH lãnh trọn phần thiếu và bị cắt còn ba
                 ký tự — "chi…", "hie…", "phu…". Cả màn danh sách lớp trở thành một cột vô nghĩa,
                 đúng thứ giáo viên mở ra để đọc. Nay nhãn xuống dòng khi chật, tên giữ nguyên. */}
-            <span className="flex min-w-0 flex-[1.4] flex-wrap items-center gap-x-1.5 gap-y-0.5">
+            <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
               {/* Em đã có tài khoản → mở được trang cá nhân. Em chưa đăng nhập thì chưa có trang. */}
               {r.studentId ? (
                 <Link
@@ -393,33 +415,35 @@ export default async function RosterPage({
               )}
             </span>
             {xemChiTiet && (
-              <span className="w-[110px] flex-none truncate text-[12.5px] font-bold text-navy/70">
+              <span className="min-w-0 truncate text-[12.5px] font-bold text-navy/70">
                 {r.code ?? '—'}
               </span>
             )}
-            <span className="min-w-0 flex-[1.4] truncate text-[12.5px] font-semibold text-grey-mid">
+            <span className="min-w-0 truncate text-[12.5px] font-semibold text-grey-mid">
               {r.email}
             </span>
             {xemChiTiet && (
               <>
-                <span className="w-[100px] flex-none text-[12.5px] font-semibold text-grey-mid">
+                <span className="min-w-0 truncate text-[12.5px] font-semibold text-grey-mid">
                   {ngayVN(r.dob)}
                 </span>
-                <span className="w-[110px] flex-none truncate text-[12.5px] font-semibold text-grey-mid">
+                <span className="min-w-0 truncate text-[12.5px] font-semibold text-grey-mid">
                   {r.phone ?? '—'}
                 </span>
                 <span
-                  className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-grey-mid"
+                  className="min-w-0 truncate text-[12.5px] font-semibold text-grey-mid"
                   title={r.note ?? ''}
                 >
                   {r.note ?? '—'}
                 </span>
               </>
             )}
-            {/* Dời sang lớp khác. Chỉ cho em ĐÃ có tài khoản: em chưa đăng nhập lần nào thì chưa
-                có hàng ghi danh nào để dời — sửa lời mời là xong. */}
-            {canManage && r.studentId && (
-              <span className="flex min-w-0 basis-full flex-wrap items-center gap-1.5 sm:basis-auto">
+            {/* Ô THAO TÁC — dời lớp, sửa, xoá. Nút dời lớp nay nằm trong đây thay vì chiếm một ô
+                riêng chỉ có ở vài dòng (xem ghi chú ở phần khai cột). */}
+            <span className="flex min-w-0 items-center justify-end gap-1.5">
+              {/* Dời sang lớp khác. Chỉ cho em ĐÃ có tài khoản: em chưa đăng nhập lần nào thì
+                  chưa có hàng ghi danh nào để dời — sửa lời mời là xong. */}
+              {canManage && r.studentId && (
                 <TransferControl
                   classId={myClass.id}
                   studentId={r.studentId}
@@ -428,9 +452,7 @@ export default async function RosterPage({
                   pending={dangChoTheoEm.get(r.studentId)}
                   laAdmin={laAdmin}
                 />
-              </span>
-            )}
-            <span className="flex w-[104px] flex-none items-center justify-center gap-1.5">
+              )}
               {/* Sửa thông tin ngay trên dòng. Chỉ hiện với người quản lý được lớp — và cũng chỉ
                   họ đọc được student_details (RLS 0058), nên với hiệu trưởng nút này vô nghĩa. */}
               {canManage && (

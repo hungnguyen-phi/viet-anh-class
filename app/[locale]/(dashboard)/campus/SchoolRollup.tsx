@@ -42,25 +42,36 @@ export async function SchoolRollup({rows}: {rows: RollupRow[]}) {
   const avgScore = (list: RollupRow[]) =>
     list.length ? Math.round(sum(list, (r) => Number(r.score)) / list.length) : 0;
 
-  const colClass = {flex: 1.4};
-  // Cột số CĂN GIỮA (trước đây căn phải). Ban giám hiệu phản ánh ở vòng 2: sĩ số một chữ số
-// bị dạt hẳn sang mép, nhìn lệch so với dòng trên dưới nên khó dò theo hàng.
-const colNum = {flex: 1};
+  // BỐN CỘT KHAI MỘT LẦN, MỌI DÒNG DÙNG CHUNG.
+  //
+  // Bản cũ để mỗi ô tự co giãn bằng flex. Nhìn thì tưởng như nhau, nhưng ô tên lớp có thêm
+  // `pl-3` để thụt vào, mà với `flex-basis: 0%` thì phần đệm ấy được tính vào kích thước cơ sở
+  // của ô — cột tên lớp phình thêm 9px và ba cột số bên phải co lại 3px mỗi cột. Hệ quả: dòng
+  // LỚP lệch khỏi dòng KHỐI và khỏi hàng tiêu đề, đúng như chủ dự án thấy ("số không nằm thẳng
+  // trên cột"). Lưới thì chiều rộng cột do khai báo quyết định, nội dung bên trong ô — đệm,
+  // chữ dài, icon — không kéo cột đi đâu được nữa.
+  //
+  // minmax(0, …fr) chứ không phải 1.4fr trần: `1.4fr` ngầm là `minmax(auto, 1.4fr)`, tức là vẫn
+  // để nội dung dài đẩy cột rộng ra. Đúng cái bẫy vừa gỡ.
+  const luoi = 'grid min-w-[620px] items-center gap-2 px-[18px]';
+  const cot = {
+    gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)',
+  } as const;
 
   return (
     <div className="glass overflow-x-auto rounded-[20px]">
       {/* Header */}
-      <div className="flex min-w-[620px] items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5">
-        <span className="text-[11px] font-extrabold uppercase text-grey-mid" style={colClass}>
+      <div className={`${luoi} bg-navy/[0.03] py-2.5`} style={cot}>
+        <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
           {t('class')}
         </span>
-        <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid" style={colNum}>
+        <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid">
           {t('students')}
         </span>
-        <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid" style={colNum}>
+        <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid">
           {t('score')}
         </span>
-        <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid" style={colNum}>
+        <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid">
           {t('attToday')}
         </span>
       </div>
@@ -68,20 +79,20 @@ const colNum = {flex: 1};
       {[...byGrade.entries()].map(([gradeName, list]) => (
         <div key={gradeName}>
           {/* Dòng khối */}
-          <div className="flex min-w-[620px] items-center gap-2 border-t-[1.5px] border-navy/12 bg-navy/[0.05] px-[18px] py-2">
-            <span className="font-display text-[13.5px] font-bold text-navy" style={colClass}>
+          <div className={`${luoi} border-t-[1.5px] border-navy/12 bg-navy/[0.05] py-2`} style={cot}>
+            <span className="min-w-0 truncate font-display text-[13.5px] font-bold text-navy">
               {gradeName}
               <span className="ml-1.5 text-[11px] font-semibold text-grey-mid">
                 · {list.length} {t('classesShort')}
               </span>
             </span>
-            <span className="text-center text-[12.5px] font-bold text-navy" style={colNum}>
+            <span className="text-center text-[12.5px] font-bold text-navy">
               {sum(list, (r) => Number(r.student_count))}
             </span>
-            <span className="text-center font-display text-[14px] font-bold text-navy" style={colNum}>
+            <span className="text-center font-display text-[14px] font-bold text-navy">
               {avgScore(list)}
             </span>
-            <span className="text-center text-[12.5px] font-bold text-navy" style={colNum}>
+            <span className="text-center text-[12.5px] font-bold text-navy">
               {sum(list, (r) => Number(r.att_today))}
             </span>
           </div>
@@ -91,12 +102,13 @@ const colNum = {flex: 1};
             <Link
               key={r.class_id}
               href={{pathname: '/', query: {class: r.class_id}}}
-              className="flex min-w-[620px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2.5 transition-colors hover:bg-navy/[0.03]"
+              className={`${luoi} border-t border-navy/[0.08] py-2.5 transition-colors hover:bg-navy/[0.03]`}
+              style={cot}
             >
-              <span className="pl-3 text-[13.5px] font-bold text-navy" style={colClass}>
+              <span className="min-w-0 truncate pl-3 text-[13.5px] font-bold text-navy">
                 {r.class_name}
               </span>
-              <span className="text-center text-[12.5px] font-semibold text-grey-mid" style={colNum}>
+              <span className="text-center text-[12.5px] font-semibold text-grey-mid">
                 {r.student_count}
               </span>
               {/* CHƯA ĐẶT MỤC TIÊU ≠ ĐẶT RỒI MÀ ĐIỂM 0.
@@ -106,7 +118,6 @@ const colNum = {flex: 1};
                   bảng trên thì chưa — đúng kiểu chẩn đúng ở một chỗ rồi quên chỗ còn lại. */}
               <span
                 className="text-center font-display text-[15px] text-navy"
-                style={colNum}
                 title={Number(r.wig_count) === 0 ? t('noWigYet') : undefined}
               >
                 {Number(r.wig_count) === 0 ? (
@@ -117,7 +128,7 @@ const colNum = {flex: 1};
               </span>
               {/* "0/24" đọc thành "cả lớp nghỉ học", trong khi sự thật là chưa ai mở điểm danh.
                   Nói thẳng bằng chữ thì không đọc nhầm được. */}
-              <span className="text-center text-[12.5px] font-semibold text-grey-mid" style={colNum}>
+              <span className="text-center text-[12.5px] font-semibold text-grey-mid">
                 {Number(r.att_today) === 0 ? (
                   <span className="text-grey-soft">{t('attNotYet')}</span>
                 ) : (
@@ -130,20 +141,20 @@ const colNum = {flex: 1};
       ))}
 
       {/* Dòng toàn trường */}
-      <div className="flex min-w-[620px] items-center gap-2 border-t-[1.5px] border-navy/20 bg-gold/[0.10] px-[18px] py-2.5">
-        <span className="font-display text-[13.5px] font-extrabold text-navy" style={colClass}>
+      <div className={`${luoi} border-t-[1.5px] border-navy/20 bg-gold/[0.10] py-2.5`} style={cot}>
+        <span className="min-w-0 truncate font-display text-[13.5px] font-extrabold text-navy">
           {t('wholeSchool')}
           <span className="ml-1.5 text-[11px] font-semibold text-grey-mid">
             · {rows.length} {t('classesShort')}
           </span>
         </span>
-        <span className="text-center text-[13px] font-extrabold text-navy" style={colNum}>
+        <span className="text-center text-[13px] font-extrabold text-navy">
           {sum(rows, (r) => Number(r.student_count))}
         </span>
-        <span className="text-center font-display text-[15px] font-extrabold text-navy" style={colNum}>
+        <span className="text-center font-display text-[15px] font-extrabold text-navy">
           {avgScore(rows)}
         </span>
-        <span className="text-center text-[13px] font-extrabold text-navy" style={colNum}>
+        <span className="text-center text-[13px] font-extrabold text-navy">
           {sum(rows, (r) => Number(r.att_today))}/{sum(rows, (r) => Number(r.student_count))}
         </span>
       </div>
