@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {DonutRing} from '@/components/charts/DonutRing';
-import {AREAS, buildAreaMeta, areaLabel, areaIcon} from '@/lib/areas';
+import {AREAS, areaLabel, areaIcon} from '@/lib/areas';
+import {getAreaMeta} from '@/lib/area-config';
 
 type WigRow = {
   wig_id: string;
@@ -72,11 +73,11 @@ export default async function ClassPage({
   const t = await getTranslations();
   const supabase = await createClient();
   // Hai truy vấn độc lập — chạy song song, tránh waterfall.
-  const [{myClass, classes: accessible}, {data: areaCfg}] = await Promise.all([
+  const [{myClass, classes: accessible}, areaMetaFromCache] = await Promise.all([
     getClassContext(supabase, profile, classParam),
-    supabase.from('area_config').select('*').order('sort_order'),
+    getAreaMeta(),
   ]);
-  const areaMeta = buildAreaMeta(areaCfg);
+  const areaMeta = areaMetaFromCache;
 
   if (!myClass) {
     return (
@@ -97,7 +98,15 @@ export default async function ClassPage({
   // Tên khối/cơ sở: người thử báo "chỗ khối, cấp, campus hiện #1/1 không hiểu là gì". Thực ra
   // #1/1 là huy hiệu XẾP HẠNG (hạng 1 trong 1 lớp), còn TÊN khối và cơ sở thì trước nay không
   // được hiện ở đâu cả — nên nhãn "Khối" đứng cạnh "#1/1" bị đọc thành "khối = #1/1".
-  const [rosterRes, {data: wigRows}, {data: ranksData}, {data: classMeta}] = await Promise.all([
+  // MỘT ĐỢT, KHÔNG PHẢI HAI (audit tốc độ 10/08/2026).
+  //
+  // class_lead_board trước đây đứng riêng một vòng mạng SAU đợt này, dù nó chỉ cần myClass.id —
+  // đúng bằng đầu vào của cả bốn câu ở đây. Tức là người dùng chờ thêm trọn một vòng đi-về mà
+  // không đổi lấy điều gì. Kéo vào cùng đợt: bốn tầng chờ còn ba.
+  //
+  // Câu `classes` lấy tên khối + tên cơ sở cũng bỏ hẳn: getClassContext đã mang sẵn cả hai về
+  // (nay có thêm campuses(name)), hỏi lại là hỏi cùng một dòng hai lần trong một lượt tải.
+  const [rosterRes, {data: wigRows}, {data: ranksData}, {data: boardData}] = await Promise.all([
     profile.role === 'teacher'
       ? supabase
           .from('enrollments')
@@ -112,17 +121,16 @@ export default async function ClassPage({
       .eq('scope', 'class')
       .in('period', ['year', 'week']),
     supabase.rpc('class_ranks', {c: myClass.id}),
-    supabase
-      .from('classes')
-      .select('grade, grades(name), campuses(name)')
-      .eq('id', myClass.id)
-      .maybeSingle(),
+    supabase.rpc('class_lead_board', {p_class: myClass.id}),
   ]);
   const rosterCount: number | null = rosterRes ? (rosterRes.count ?? 0) : null;
   // grades(name) là khối đã khai chuẩn; cột `grade` (text) là bản gõ tay thời chưa có bảng khối.
-  const gradeName =
-    (classMeta as {grades?: {name?: string} | null} | null)?.grades?.name ?? myClass.grade ?? null;
-  const campusName = (classMeta as {campuses?: {name?: string} | null} | null)?.campuses?.name ?? null;
+  const lopDayDu = myClass as typeof myClass & {
+    grades?: {name?: string} | null;
+    campuses?: {name?: string} | null;
+  };
+  const gradeName = lopDayDu.grades?.name ?? myClass.grade ?? null;
+  const campusName = lopDayDu.campuses?.name ?? null;
 
   const rows = (wigRows ?? []) as WigRow[];
   const yearRows = rows.filter((r) => r.period === 'year');
@@ -150,7 +158,7 @@ export default async function ClassPage({
   //
   // Gọi class_lead_board (0074) thay vì chép lại luật lọc: nó đã ràng cả hai đầu — WIG phải giao
   // với tuần, và tick phải nằm trong bảy ngày ấy. Một luật, ba màn hình, không thể trôi khỏi nhau.
-  const {data: boardData} = await supabase.rpc('class_lead_board', {p_class: myClass.id});
+  // (Lượt gọi ấy nay nằm trong đợt song song ở đầu hàm — xem ghi chú tại đó.)
   // MỘT VIỆC XONG KHI MỌI EM ĐỦ PHẦN CỦA MÌNH (0098), không phải khi tổng tick chạm mục tiêu.
   //
   // Mục tiêu nay là của MỖI EM ("mỗi em 3 bài"), nên tổng của cả lớp không trả lời được câu hỏi

@@ -1,5 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
-import {requireProfile} from '@/lib/auth';
+import {requireProfile, getUserId} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {AppNav} from '@/components/shell/AppNav';
 import {IntroGuide} from '@/components/shell/IntroGuide';
@@ -21,14 +21,24 @@ export default async function DashboardLayout({
 
   const supabase = await createClient();
 
-  // Đếm thông báo chưa đọc KHÔNG cần biết người dùng là ai (RLS notif_own_read đã tự giới hạn
-  // user_id = auth.uid()) → phóng đi NGAY, chạy chồng lên lượt lấy hồ sơ bên dưới thay vì xếp
-  // hàng sau nó. Layout này nằm trên MỌI trang sau đăng nhập nên mỗi vòng mạng cắt được ở đây
-  // là cắt trên toàn app.
+  // ── VỎ TRANG: MỘT ĐỢT, KHÔNG PHẢI HAI (audit tốc độ 10/08/2026) ─────────────────────────
   //
-  // Phải gọi .then() mới thật sự bắn request: builder của supabase-js là "thenable" LƯỜI —
-  // chỉ dựng câu query mà chưa gửi đi cho tới khi có ai đó await/then nó. Nhánh lỗi trả về
-  // count rỗng để một sự cố mạng ở cái chuông không làm sập cả layout.
+  // Layout này chạy trên MỌI trang sau đăng nhập, nên mỗi TẦNG CHỜ cắt được ở đây là cắt trên
+  // toàn app. Bản cũ có hai tầng: đợt 1 (chuông + hồ sơ) rồi mới tới đợt 2 (cờ tổ trưởng HOẶC
+  // đếm tin nhắn), vì hai câu sau bị chặn sau `await requireProfile()` để đọc `profile.role`.
+  //
+  // Nhưng cả hai câu ấy KHÔNG cần hàng `profiles` — chúng chỉ cần biết mình là ai, mà điều đó đã
+  // nằm sẵn trong JWT: getClaims() verify cục bộ bằng khoá ES256, KHÔNG tốn vòng mạng nào (đo
+  // được: 1 lượt tải khoá công khai cho cả tiến trình, 0 lượt gọi /auth/v1/user). Nên vai trò chỉ
+  // còn là cái cổng "có nên hỏi không", và cái cổng ấy đang bắt cả trang xếp hàng thêm một vòng.
+  //
+  // Nay hỏi cả bốn thứ cùng lúc. Hai câu thừa cho vài vai (học sinh vẫn hỏi số tin nhắn, giáo
+  // viên vẫn hỏi cờ tổ trưởng) là cái giá rẻ: chúng chạy SONG SONG trên cùng bộ kết nối đã ấm,
+  // tốn thêm ~0ms thời gian chờ và dưới 2ms ở CSDL, đổi lấy việc bỏ hẳn một tầng đi-về cho mọi
+  // trang, mọi vai. RLS vẫn là thứ quyết định: câu nào không phải phận sự thì trả về rỗng.
+  const uid = await getUserId();
+
+  // Nhánh lỗi trả rỗng để một sự cố mạng ở cái chuông không làm sập cả layout.
   const unreadPromise = supabase
     .from('notifications')
     .select('id', {count: 'exact', head: true})
@@ -38,37 +48,32 @@ export default async function DashboardLayout({
       () => null,
     );
 
-  // Bắt buộc đã đăng nhập + đã được cấp quyền (không 'pending').
-  const profile = await requireProfile();
-
   // Học sinh chỉ thấy link "Điểm danh" nếu là tổ trưởng điểm danh (PRD §6.2 màn 3).
-  // Chỉ học sinh mới tốn query này; các vai khác không mất vòng mạng nào.
-  const leaderPromise =
-    profile.role === 'student'
-      ? supabase
-          .from('enrollments')
-          .select('is_attendance_leader')
-          .eq('student_id', profile.id)
-          .eq('is_active', true)
-          .eq('is_attendance_leader', true)
-          .limit(1)
-          .maybeSingle()
-          .then(
-            (r) => Boolean(r.data),
-            () => false,
-          )
-      : Promise.resolve(false);
+  const leaderPromise = uid
+    ? supabase
+        .from('enrollments')
+        .select('is_attendance_leader')
+        .eq('student_id', uid)
+        .eq('is_active', true)
+        .eq('is_attendance_leader', true)
+        .limit(1)
+        .maybeSingle()
+        .then(
+          (r) => Boolean(r.data),
+          () => false,
+        )
+    : Promise.resolve(false);
 
-  // Tin nhắn phụ huynh↔giáo viên chưa đọc — badge trên icon phong bì.
-  //
-  // Chỉ hai vai này mới có kênh đó (migration 0065 chặn admin/hiệu trưởng đọc nội dung), nên các
-  // vai khác không tốn vòng mạng nào — layout này chạy trên MỌI trang sau đăng nhập.
-  const msgPromise =
-    profile.role === 'teacher' || profile.role === 'parent'
-      ? getInboxUnreadCount(supabase)
-      : Promise.resolve(0);
+  // Tin nhắn phụ huynh↔giáo viên chưa đọc — badge trên icon phong bì. Hàm là SECURITY INVOKER,
+  // tự lọc theo auth.uid(), nên vai không có kênh liên lạc chỉ nhận về số 0.
+  const msgPromise = getInboxUnreadCount(supabase).catch(() => 0);
 
-  const [isAttendanceLeader, unreadCount, unreadMessages] = await Promise.all([
+  // Bắt buộc đã đăng nhập + đã được cấp quyền (không 'pending'). Bọc react cache() nên các trang
+  // gọi lại requireProfile()/requireRole() bên dưới KHÔNG đẻ thêm vòng mạng nào.
+  const profilePromise = requireProfile();
+
+  const [profile, isAttendanceLeader, unreadCount, unreadMessages] = await Promise.all([
+    profilePromise,
     leaderPromise,
     unreadPromise,
     msgPromise,

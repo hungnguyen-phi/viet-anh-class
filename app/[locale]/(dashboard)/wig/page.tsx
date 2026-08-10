@@ -24,7 +24,8 @@ import {WeekNav} from '@/components/wig/WeekNav';
 import {TaoWigMenu} from '@/components/wig/TaoWigMenu';
 import {ViecTuan, type ViecItem} from '@/components/wig/ViecTuan';
 import {BangTienDo, type DongTienDo} from '@/components/wig/BangTienDo';
-import {AREAS, buildAreaMeta, areaLabel, type Area} from '@/lib/areas';
+import {AREAS, areaLabel, type Area} from '@/lib/areas';
+import {getAreaMeta} from '@/lib/area-config';
 import {Flash} from '@/components/ui/Flash';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -87,11 +88,11 @@ export default async function WigPage({
   const profile = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('wig');
   const supabase = await createClient();
-  const [{myClass, classes: accessible}, {data: areaCfg}] = await Promise.all([
+  const [{myClass, classes: accessible}, areaMetaFromCache] = await Promise.all([
     getClassContext(supabase, profile, classParam),
-    supabase.from('area_config').select('*').order('sort_order'),
+    getAreaMeta(),
   ]);
-  const areaMeta = buildAreaMeta(areaCfg);
+  const areaMeta = areaMetaFromCache;
 
   if (!myClass) {
     return (

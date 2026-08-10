@@ -26,7 +26,8 @@ import {StudentWigManage, type ManageWig, type ManageLead} from '@/components/st
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {EditRequestButton} from '@/components/student/EditRequestButton';
 import {MeetingScoreboard} from '@/components/wig/MeetingScoreboard';
-import {AREAS, buildAreaMeta, areaLabel, areaIcon, type Area} from '@/lib/areas';
+import {AREAS, areaLabel, areaIcon, type Area} from '@/lib/areas';
+import {getAreaMeta} from '@/lib/area-config';
 
 // Màu/icon/nhãn môn lấy từ area_config (fallback = --color-subj-* cũ ⇒ parity).
 
@@ -131,7 +132,7 @@ export async function StudentScoreboard({
     {data: wigRows},
     {data: meetingRows},
     {data: moodRow},
-    {data: areaCfg},
+    areaMetaFromCache,
     {data: myRequestRows},
     {data: mWigs},
     {data: reqs},
@@ -139,7 +140,10 @@ export async function StudentScoreboard({
       supabase.from('profiles').select('id, full_name, email').eq('id', studentId).maybeSingle(),
       supabase
         .from('enrollments')
-        .select('class_id, classes(name, school_year, tick_lock_dow)')
+        // campus_id đi kèm luôn (audit tốc độ 10/08/2026): trước đây phải hỏi RIÊNG bảng classes
+        // một câu nữa chỉ để lấy đúng cột này, và câu ấy nằm ở một TẦNG CHỜ khác — cửa sổ
+        // check-in phải đợi nó xong mới hỏi được. Thêm một cột vào câu đã chạy sẵn thì miễn phí.
+        .select('class_id, classes(name, school_year, tick_lock_dow, campus_id)')
         .eq('student_id', studentId)
         .eq('is_active', true)
         // Có .order() rồi mới .limit(1) — em chuyển lớp giữa năm còn nhiều dòng ghi danh đang bật
@@ -168,7 +172,7 @@ export async function StudentScoreboard({
         .select('mood, buoi, created_at')
         .eq('student_id', studentId)
         .eq('date', today),
-      supabase.from('area_config').select('*').order('sort_order'),
+      getAreaMeta(),
       // Yêu-cầu-sửa của CHÍNH người đang xem. Trước đây nằm mãi cuối hàm, chạy SAU bốn đợt truy
       // vấn khác — mà nó chỉ phụ thuộc viewer.id, thứ đã biết từ trước khi hàm chạy. Tức là một
       // vòng mạng xếp hàng thuần tuý, không chờ gì cả. Kéo lên đây để chạy cùng đợt.
@@ -201,7 +205,7 @@ export async function StudentScoreboard({
             .order('created_at', {ascending: false})
         : Promise.resolve({data: null}),
     ]);
-  const areaMeta = buildAreaMeta(areaCfg);
+  const areaMeta = areaMetaFromCache;
 
   if (!student) {
     return (
@@ -213,7 +217,12 @@ export async function StudentScoreboard({
 
   const enrRow = enr as unknown as {
     class_id: string;
-    classes: {name: string; school_year: string; tick_lock_dow: number | null} | null;
+    classes: {
+      name: string;
+      school_year: string;
+      tick_lock_dow: number | null;
+      campus_id: string | null;
+    } | null;
   } | null;
   const cls = enrRow?.classes;
   const classId = enrRow?.class_id ?? null;
@@ -221,93 +230,16 @@ export async function StudentScoreboard({
   const moodChieu = (moodRow ?? []).find((r) => r.buoi === 'chieu') ?? null;
   const mood = (moodSang?.mood ?? null) as MoodKey | null;
 
+  // ── BỐN CÂU HỎI CÙNG MỘT ĐỢT (audit tốc độ 10/08/2026) ────────────────────────────────────
+  //
+  // Bốn thứ dưới đây trước nằm ở BA TẦNG CHỜ nối đuôi nhau — cửa sổ check-in (sau khi hỏi thêm
+  // bảng classes), rồi cổng check-in, rồi "tuần đã họp chưa" mãi cuối hàm — dù cả bốn chỉ cần
+  // những thứ đã biết ngay sau đợt truy vấn đầu tiên: classId, campus_id và địa chỉ IP. Ba tầng
+  // ấy là ba lần đi-về xếp hàng, trên đường mà mỗi lần đi-về tốn hàng trăm mili-giây.
+  //
   // BẮT BUỘC check-in: chỉ chặn khi CHÍNH em đó chưa check-in hôm nay VÀ đang ở trong mạng
   // trường. Ngoài mạng trường (ở nhà/4G) student_checkin() trả 'blocked' → nếu vẫn chặn thì em
   // bị khoá cứng không tự thoát được, nên cho vào xem read-only (quyết định 2026-07-26).
-  // CỬA SỔ CHECK-IN của cơ sở em đang học. Lấy một lần, dùng cho cả buổi sáng lẫn buổi chiều.
-  // Null khi em chưa có lớp (chưa biết cơ sở) → giao diện giữ nguyên hành vi cũ, không khoá gì.
-  let cuaSo: {moLuc: string; hetDungGio: string; hetMuon: string; chieuMo: string; chieuDong: string} | null =
-    null;
-  if (classId) {
-    const {createAdminClient: taoAdmin} = await import('@/lib/supabase/admin');
-    const {data: cls2} = await taoAdmin().from('classes').select('campus_id').eq('id', classId).maybeSingle();
-    if (cls2?.campus_id) {
-      const {data: w} = await taoAdmin().rpc('checkin_windows', {p_campus: cls2.campus_id});
-      const r = Array.isArray(w) ? w[0] : w;
-      if (r)
-        cuaSo = {
-          moLuc: r.mo_luc,
-          hetDungGio: r.het_dung_gio,
-          hetMuon: r.het_muon,
-          chieuMo: r.chieu_mo,
-          chieuDong: r.chieu_dong,
-        };
-    }
-  }
-
-  let mustCheckin = false;
-  if (canEditMood && mood === null) {
-    const ip = clientIp(await headers());
-    // PHẢI gọi bằng service_role: migration 0031 đã revoke ip_allowed khỏi vai 'authenticated'
-    // (để học sinh không dò được cấu hình mạng trường). Bản trước gọi bằng client thường nên
-    // Supabase trả 403 ở MỌI lần học sinh mở trang — thấy rõ trong log API. Lỗi này im lặng:
-    // data về undefined → mustCheckin=false → cổng không bao giờ chặn, mà mỗi lượt vẫn tốn một
-    // vòng mạng hỏng.
-    const {createAdminClient} = await import('@/lib/supabase/admin');
-    const admin = createAdminClient();
-    // HAI CÂU HỎI, KHÔNG PHẢI MỘT.
-    //
-    // ip_allowed() trả TRUE khi trường CHƯA khai dải mạng nào — "chưa cấu hình thì không chặn"
-    // (0031). Nhưng chỗ này dùng nó theo nghĩa ngược lại: "TRUE nghĩa là em đang đứng trong
-    // trường". Trường Việt Anh hiện chưa bật dải nào, nên mọi em ở mọi nơi đều được coi là đang
-    // ở trường: em mở app tối Chủ Nhật ở nhà là gặp một cổng chặn cứng cả màn hình, không Esc,
-    // không bấm nền, và bấm xong thì CSDL có thêm một dòng điểm danh "có mặt" — đã có 8 dòng
-    // như thế. Nay hỏi thêm một câu để phân biệt "đang ở trường" với "chưa ai khai gì" (0082).
-    const [{data: onSchoolNetwork}, {data: daKhaiMang}] = await Promise.all([
-      admin.rpc('ip_allowed', {p_ip: ip ?? ''}),
-      admin.rpc('truong_da_khai_mang'),
-    ]);
-    mustCheckin = daKhaiMang === true && onSchoolNetwork === true;
-  }
-
-  const meetings: StudentMeeting[] = (
-    (meetingRows ?? []) as unknown as {
-      id: string;
-      week_label: string;
-      results: string | null;
-      commitments: string | null;
-      next_actions: string | null;
-      buddy_note: string | null;
-      buddy_action: string | null;
-      buddy_focus_lead_id: string | null;
-      buddy_chat_open: boolean | null;
-      created_at: string;
-      buddy: {full_name: string | null} | null;
-      buddy_messages: {id: string; role: string; content: string; created_at: string}[] | null;
-    }[]
-  ).map((m) => ({
-    id: m.id,
-    week_label: m.week_label,
-    results: m.results,
-    commitments: m.commitments,
-    next_actions: m.next_actions,
-    buddy_note: m.buddy_note,
-    buddy_action: m.buddy_action,
-    // Tên lead measure sẽ được gán bên dưới, sau khi đã nạp tickerLeads.
-    buddy_focus_title: null,
-    buddy_chat_open: Boolean(m.buddy_chat_open),
-    buddy_messages: [...(m.buddy_messages ?? [])]
-      .sort((a, b) => a.created_at.localeCompare(b.created_at))
-      .map((x) => ({id: x.id, role: x.role, content: x.content})),
-    created_at: m.created_at,
-    buddy_name: m.buddy?.full_name ?? null,
-  }));
-  const focusIdByMeeting = new Map(
-    (
-      (meetingRows ?? []) as unknown as {id: string; buddy_focus_lead_id: string | null}[]
-    ).map((m) => [m.id, m.buddy_focus_lead_id]),
-  );
-
   const rows = (wigRows ?? []) as WigRow[];
   const yearRows = rows.filter((r) => r.period === 'year');
   const weekRows = rows
@@ -334,21 +266,61 @@ export async function StudentScoreboard({
   //
   // Vị ngữ dưới đây là bản chép ĐÚNG của class_lead_board: khoảng ngày của WIG giao với tuần lịch.
   const tuanNay = {dau: weekDays[0], cuoi: weekDays[6]};
-  const weekIds = weekRows
-    .filter((w) => w.start_date <= tuanNay.cuoi && w.end_date >= tuanNay.dau)
-    .map((w) => w.wig_id);
+  const wigTuanNay = weekRows.filter(
+    (w) => w.start_date <= tuanNay.cuoi && w.end_date >= tuanNay.dau,
+  );
+  const weekIds = wigTuanNay.map((w) => w.wig_id);
+  // Bảng điểm "cầm mà họp" ở cuối trang đọc từ ĐÂY, không tự hỏi lại CSDL nữa: cùng dải ngày,
+  // cùng dữ liệu, mà bớt được hai tầng chờ sâu nhất trang (xem MeetingScoreboard).
+  const wonByArea = new Map(wigTuanNay.map((w) => [w.area, Number(w.pct ?? 0) >= 1]));
 
-  // ĐỢT HAI — HAI CÂU CÒN LẠI, CHẠY CÙNG NHAU.
-  //
-  // Trước đây ba vòng mạng nối đuôi: bạn cùng lớp → chờ → lead_measures (bảng tick) → chờ →
-  // lead_measures (khối quản lý). Không câu nào cần kết quả của câu trước: bạn cùng lớp chỉ cần
-  // classId, hai câu lead chỉ cần weekIds — cả hai đã biết xong ngay sau đợt một.
-  //
-  // Và hai câu lead_measures ấy HỎI TRÙNG NHAU: cùng bảng, cùng `.in('wig_id', weekIds)`, chỉ
-  // khác bộ cột. Nay hỏi một lần với hợp của hai bộ (bảng tick cần value/created_at/logged_by,
-  // khối quản lý cần wig_id) rồi tách ở phía dưới. Ba vòng → một.
-  const [{data: mates}, {data: leadData}, {data: classLeadData}, {data: namLopData}] =
+
+  const campusId = cls?.campus_id ?? null;
+  const canGoiCong = canEditMood && mood === null;
+  const ipHienTai = canGoiCong ? clientIp(await headers()) : null;
+
+  // PHẢI gọi bằng service_role: migration 0031 đã revoke ip_allowed khỏi vai 'authenticated'
+  // (để học sinh không dò được cấu hình mạng trường). Bản trước gọi bằng client thường nên
+  // Supabase trả 403 ở MỌI lần học sinh mở trang — thấy rõ trong log API. Lỗi này im lặng:
+  // data về undefined → mustCheckin=false → cổng không bao giờ chặn, mà mỗi lượt vẫn tốn một
+  // vòng mạng hỏng.
+  const {createAdminClient} = canGoiCong || campusId
+    ? await import('@/lib/supabase/admin')
+    : {createAdminClient: null};
+  const admin = createAdminClient ? createAdminClient() : null;
+
+  const [cuaSoRes, ipRes, mangRes, daHopRes, matesRes, leadRes, classLeadRes, namLopRes] =
     await Promise.all([
+    // CỬA SỔ CHECK-IN của cơ sở em đang học. Lấy một lần, dùng cho cả buổi sáng lẫn buổi chiều.
+    // Null khi em chưa có lớp (chưa biết cơ sở) → giao diện giữ nguyên hành vi cũ, không khoá gì.
+    admin && campusId
+      ? admin.rpc('checkin_windows', {p_campus: campusId})
+      : Promise.resolve({data: null}),
+    // HAI CÂU HỎI, KHÔNG PHẢI MỘT.
+    //
+    // ip_allowed() trả TRUE khi trường CHƯA khai dải mạng nào — "chưa cấu hình thì không chặn"
+    // (0031). Nhưng chỗ này dùng nó theo nghĩa ngược lại: "TRUE nghĩa là em đang đứng trong
+    // trường". Trường Việt Anh hiện chưa bật dải nào, nên mọi em ở mọi nơi đều được coi là đang
+    // ở trường: em mở app tối Chủ Nhật ở nhà là gặp một cổng chặn cứng cả màn hình, không Esc,
+    // không bấm nền, và bấm xong thì CSDL có thêm một dòng điểm danh "có mặt" — đã có 8 dòng
+    // như thế. Nay hỏi thêm một câu để phân biệt "đang ở trường" với "chưa ai khai gì" (0082).
+    admin && canGoiCong
+      ? admin.rpc('ip_allowed', {p_ip: ipHienTai ?? ''})
+      : Promise.resolve({data: null}),
+    admin && canGoiCong ? admin.rpc('truong_da_khai_mang') : Promise.resolve({data: null}),
+    // Tuần còn mở cho sửa hay đã chốt — phải khớp luật RLS ở 0081: HỌP XONG LÀ CHỐT.
+    //
+    // Trước đây so hôm nay với `classes.tick_lock_dow`, một ngày giáo viên khai trước. Nay mốc
+    // chốt là việc thật sự xảy ra: lớp đã ghi nhận buổi họp cho tuần này thì thôi sửa tick. Hỏi
+    // đúng cái hàm mà RLS dùng, để màn hình không nói khác tầng chặn — bấm được rồi bị từ chối
+    // còn khó hiểu hơn là thấy nút xám ngay từ đầu.
+    classId
+      ? supabase.rpc('tuan_da_hop', {p_class: classId, d: today})
+      : Promise.resolve({data: false}),
+
+    // ── Bốn câu dưới đây trước là "ĐỢT HAI", một tầng chờ riêng ────────────────────────────
+    // Chúng chỉ cần classId và weekIds — cả hai đã biết xong ngay sau đợt truy vấn đầu tiên, nên
+    // đứng riêng một tầng là bắt người dùng chờ thêm một vòng đi-về không đổi lấy gì.
     canManage && classId
       ? supabase
           .from('enrollments')
@@ -388,6 +360,68 @@ export async function StudentScoreboard({
           .eq('period', 'year')
       : Promise.resolve({data: null}),
   ]);
+  const mates = matesRes.data;
+  const leadData = leadRes.data;
+  const classLeadData = classLeadRes.data;
+  const namLopData = namLopRes.data;
+
+  const cuaSoRaw = Array.isArray(cuaSoRes.data) ? cuaSoRes.data[0] : cuaSoRes.data;
+  const cuaSo: {
+    moLuc: string;
+    hetDungGio: string;
+    hetMuon: string;
+    chieuMo: string;
+    chieuDong: string;
+  } | null = cuaSoRaw
+    ? {
+        moLuc: cuaSoRaw.mo_luc,
+        hetDungGio: cuaSoRaw.het_dung_gio,
+        hetMuon: cuaSoRaw.het_muon,
+        chieuMo: cuaSoRaw.chieu_mo,
+        chieuDong: cuaSoRaw.chieu_dong,
+      }
+    : null;
+
+  const mustCheckin = mangRes.data === true && ipRes.data === true;
+  const tickOpen = !daHopRes.data;
+
+  const meetings: StudentMeeting[] = (
+    (meetingRows ?? []) as unknown as {
+      id: string;
+      week_label: string;
+      results: string | null;
+      commitments: string | null;
+      next_actions: string | null;
+      buddy_note: string | null;
+      buddy_action: string | null;
+      buddy_focus_lead_id: string | null;
+      buddy_chat_open: boolean | null;
+      created_at: string;
+      buddy: {full_name: string | null} | null;
+      buddy_messages: {id: string; role: string; content: string; created_at: string}[] | null;
+    }[]
+  ).map((m) => ({
+    id: m.id,
+    week_label: m.week_label,
+    results: m.results,
+    commitments: m.commitments,
+    next_actions: m.next_actions,
+    buddy_note: m.buddy_note,
+    buddy_action: m.buddy_action,
+    // Tên lead measure sẽ được gán bên dưới, sau khi đã nạp tickerLeads.
+    buddy_focus_title: null,
+    buddy_chat_open: Boolean(m.buddy_chat_open),
+    buddy_messages: [...(m.buddy_messages ?? [])]
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map((x) => ({id: x.id, role: x.role, content: x.content})),
+    created_at: m.created_at,
+    buddy_name: m.buddy?.full_name ?? null,
+  }));
+  const focusIdByMeeting = new Map(
+    (
+      (meetingRows ?? []) as unknown as {id: string; buddy_focus_lead_id: string | null}[]
+    ).map((m) => [m.id, m.buddy_focus_lead_id]),
+  );
 
   const classmates: Classmate[] = (
     (mates ?? []) as unknown as {student_id: string; profiles: {full_name: string | null} | null}[]
@@ -406,6 +440,22 @@ export async function StudentScoreboard({
   );
 
   const leadRows = (leadData ?? []) as unknown as LeadRow[];
+
+  // "Việc đã xong: 3/5" của bảng điểm họp — tính TẠI ĐÂY từ dữ liệu vừa lấy, thay cho một truy
+  // vấn lead_measures thứ hai ở tầng sâu nhất trang.
+  //
+  // Tick phải nằm trong TUẦN đang xét: không ràng thì một việc đã đạt ở tuần trước vẫn được đếm
+  // "hoàn thành" cho tuần này, và buổi họp đọc ra một con số không thuộc về tuần mình đang bàn.
+  // unit_per_tick (0076): một lượt tick đáng bao nhiêu đơn vị của mục tiêu — không nhân thì bảng
+  // họp hiện 3 trong khi thanh tiến độ ngay trên nó hiện 90.
+  const leadsTotal = leadRows.length;
+  const leadsDone = leadRows.filter((l) => {
+    const moiTick = Number(l.unit_per_tick ?? 1) || 1;
+    const dat = (l.lead_progress ?? [])
+      .filter((p) => p.logged_date >= tuanNay.dau && p.logged_date <= tuanNay.cuoi)
+      .reduce((s, p) => s + Number(p.value ?? 0) * moiTick, 0);
+    return Number(l.target_value) > 0 && dat >= Number(l.target_value);
+  }).length;
   const classLeadRows = (classLeadData ?? []) as unknown as ClassLeadRow[];
 
   // 7 ngày của tuần → còn những THỨ mà việc đó áp dụng (0073). Trước đây bảng tick luôn bày đủ
@@ -505,16 +555,8 @@ export async function StudentScoreboard({
   }
 
 
-  // Tuần còn mở cho sửa hay đã chốt — phải khớp luật RLS ở 0081: HỌP XONG LÀ CHỐT.
-  //
-  // Trước đây so hôm nay với `classes.tick_lock_dow`, một ngày giáo viên khai trước. Nay mốc chốt
-  // là việc thật sự xảy ra: lớp đã ghi nhận buổi họp cho tuần này thì thôi sửa tick. Hỏi đúng cái
-  // hàm mà RLS dùng, để màn hình không nói khác tầng chặn — bấm được rồi bị từ chối còn khó hiểu
-  // hơn là thấy nút xám ngay từ đầu.
-  const {data: daHop} = classId
-    ? await supabase.rpc('tuan_da_hop', {p_class: classId, d: today})
-    : {data: false};
-  const tickOpen = !daHop;
+  // (tickOpen đã tính ở đợt gộp phía trên — trước đây câu tuan_da_hop nằm đúng chỗ này và là
+  // một tầng chờ riêng, dù nó chỉ cần classId đã biết từ đầu hàm.)
 
   // Tên lead measure theo id — dùng cho "việc hôm nay" của Buddy và cho nhãn yêu cầu-sửa.
   const leadTitleById = new Map(tickerLeads.map((l) => [l.id, l.title]));
@@ -732,11 +774,11 @@ export async function StudentScoreboard({
                 trên nó, thay vì theo nhãn kỳ do người gõ. */}
             {classId && (
               <MeetingScoreboard
-                classId={classId}
-                studentId={studentId}
                 weekLabel={isoWeekLabel(new Date())}
-                weekStart={weekDays[0]}
-                weekEnd={weekDays[6]}
+                areaMeta={areaMeta}
+                wonByArea={wonByArea}
+                leadsDone={leadsDone}
+                leadsTotal={leadsTotal}
               />
             )}
             {/* PRD §7 "ghi chú Buddy" — Buddy là LLM. KHÔNG có nút: mở trang là tự sinh, server

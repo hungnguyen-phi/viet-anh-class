@@ -3,7 +3,8 @@ import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getClassContext} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
-import {AREAS, buildAreaMeta, areaLabel, areaIcon} from '@/lib/areas';
+import {AREAS, areaLabel, areaIcon} from '@/lib/areas';
+import {getAreaMeta} from '@/lib/area-config';
 import {Link} from '@/i18n/navigation';
 import {ArrowRight} from 'lucide-react';
 
@@ -28,11 +29,11 @@ export default async function ScoreboardPage({
   const tArea = await getTranslations('class');
   const supabase = await createClient();
 
-  const [{myClass, classes: accessible}, {data: areaCfg}] = await Promise.all([
+  const [{myClass, classes: accessible}, areaMetaFromCache] = await Promise.all([
     getClassContext(supabase, profile, classParam),
-    supabase.from('area_config').select('*').order('sort_order'),
+    getAreaMeta(),
   ]);
-  const areaMeta = buildAreaMeta(areaCfg);
+  const areaMeta = areaMetaFromCache;
   if (!myClass) {
     return (
       <div className="glass rounded-[20px] p-8 text-center">

@@ -183,7 +183,10 @@ export type ClassContext = {
   classes: ClassOption[];
 };
 
-type ClassRowWithGrade = ClassRow & {grades: {name: string; sort_order: number} | null};
+type ClassRowWithGrade = ClassRow & {
+  grades: {name: string; sort_order: number} | null;
+  campuses: {name: string} | null;
+};
 
 export async function getClassContext(
   supabase: SB,
@@ -202,7 +205,13 @@ export async function getClassContext(
   // `*` chứ không phải CLASS_SELECT: myClass được các trang dùng như một dòng `classes` đầy đủ
   // (campus_id, cover_image_url, tick_lock_dow...). Bảng có 11 cột, thêm vài cột rẻ hơn nhiều so
   // với thêm một vòng mạng.
-  let q = supabase.from('classes').select('*, grades(name, sort_order)').eq('is_active', true);
+  // campuses(name) đi kèm luôn: trang chủ vốn phải hỏi RIÊNG một câu `classes` nữa chỉ để lấy
+  // TÊN CƠ SỞ (audit tốc độ 10/08/2026). Một cột join thêm ở câu đã chạy sẵn rẻ hơn nhiều so với
+  // một vòng mạng — mà trên đường này mỗi vòng mạng là ~225ms.
+  let q = supabase
+    .from('classes')
+    .select('*, grades(name, sort_order), campuses(name)')
+    .eq('is_active', true);
   if (profile.role === 'teacher') q = q.eq('homeroom_teacher_id', profile.id);
   const {data} = await q.order('name');
   const rows = (data ?? []) as unknown as ClassRowWithGrade[];
@@ -286,35 +295,32 @@ export async function getClassContext(
 export type Con = {id: string; name: string; classId: string; className: string};
 
 export async function getChildren(supabase: SB): Promise<Con[]> {
-  // RLS pl_parent_self chỉ trả link của chính họ, nên không cần lọc thêm theo parent_id.
-  const {data: links} = await supabase
-    .from('parent_links')
-    .select('student_id, profiles!parent_links_student_id_fkey(full_name)');
-  const rows = (links ?? []) as unknown as {
-    student_id: string;
-    profiles: {full_name: string | null} | null;
-  }[];
-  if (rows.length === 0) return [];
-
-  const tenTheoId = new Map(rows.map((l) => [l.student_id, l.profiles?.full_name ?? l.student_id]));
+  // MỘT CÂU, KHÔNG PHẢI HAI (audit tốc độ 10/08/2026).
+  //
+  // Bản cũ hỏi parent_links để lấy danh sách id các con, RỒI mới hỏi enrollments với `.in(ids)`.
+  // Hai vòng mạng xếp hàng, mà vòng thứ nhất chỉ để dựng bộ lọc cho vòng thứ hai.
+  //
+  // Không cần: policy rls_select_enrollments (0048) đã có vế `is_my_child(student_id)` — phụ
+  // huynh hỏi enrollments mà không lọc gì thì CSDL tự trả đúng ghi danh của con họ, không hơn
+  // một dòng. Tên con lấy luôn bằng join sang profiles trong cùng câu ấy.
+  //
+  // Trên đường có 1,77% gói phải gửi lại, mỗi câu bỏ đi không chỉ tiết kiệm ~80ms mà còn bớt
+  // một lần rút thăm với cái đuôi một giây.
   const {data: enr} = await supabase
     .from('enrollments')
-    .select('student_id, class_id, classes(name)')
-    .in(
-      'student_id',
-      rows.map((l) => l.student_id),
-    )
+    .select('student_id, class_id, classes(name), profiles!enrollments_student_id_fkey(full_name)')
     .eq('is_active', true);
   const enrRows = (enr ?? []) as unknown as {
     student_id: string;
     class_id: string;
     classes: {name: string} | null;
+    profiles: {full_name: string | null} | null;
   }[];
 
   return enrRows
     .map((e) => ({
       id: e.student_id,
-      name: tenTheoId.get(e.student_id) ?? e.student_id,
+      name: e.profiles?.full_name ?? e.student_id,
       classId: e.class_id,
       className: e.classes?.name ?? '',
     }))

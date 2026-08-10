@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
   // An toàn vì app KHÔNG đọc file runtime qua process.cwd()/fs; message next-intl nạp bằng
   // dynamic import nên được Next tracer gói sẵn vào standalone.
   output: 'standalone',
+  // undici KHÔNG được đem vào bundle (xem instrumentation.ts — nó chỉnh bộ giữ kết nối tới
+  // Supabase). Webpack cố gói thì vỡ ngay lúc build: undici nạp 'node:console', 'node:crypto'…
+  // bằng scheme node: mà loader không xử lý. Khai external là Next để nguyên lời gọi require lúc
+  // chạy, và bộ tracer của standalone tự chép thư viện vào node_modules của bản gói.
+  serverExternalPackages: ['undici'],
   // DẤU PHIÊN BẢN BẢN BUILD — chữa lỗi "Ứng dụng gặp sự cố" sau mỗi lần deploy.
   //
   // Không có nó thì mỗi lần đẩy bản mới, MỌI TAB ĐANG MỞ đều hỏng: trình duyệt giữ mã của bản cũ,

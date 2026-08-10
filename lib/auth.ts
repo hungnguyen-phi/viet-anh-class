@@ -31,6 +31,21 @@ export function homeRouteForRole(role: Role): string {
 // trang. Vẫn an toàn phiên vì getClaims gọi getSession() bên trong, tự refresh
 // token khi gần/hết hạn. Với key đối xứng cũ (HS256), getClaims tự fallback sang
 // getUser() nên hành vi không đổi (không hồi quy khi chưa bật toggle).
+// AI ĐANG ĐĂNG NHẬP — KHÔNG TỐN VÒNG MẠNG NÀO.
+//
+// getClaims() verify JWT cục bộ bằng khoá ES256 (WebCrypto); khoá công khai tải đúng một lần cho
+// cả tiến trình rồi cache 10 phút. Đo trên 1026 lượt gọi: 1 lượt tải khoá, 0 lượt /auth/v1/user.
+//
+// Tách riêng khỏi getCurrentProfile vì nhiều chỗ chỉ cần BIẾT MÌNH LÀ AI để bắn truy vấn, chứ
+// không cần hàng `profiles` — mà chờ hàng ấy về là tự bắt mình xếp thêm một tầng mạng (xem vỏ
+// trang ở (dashboard)/layout.tsx). Bọc cache() theo request nên gọi bao nhiêu lần cũng chỉ verify
+// một lần.
+export const getUserId = cache(async (): Promise<string | null> => {
+  const supabase = await createClient();
+  const {data} = await supabase.auth.getClaims();
+  return data?.claims?.sub ?? null;
+});
+
 export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const {data} = await supabase.auth.getClaims();

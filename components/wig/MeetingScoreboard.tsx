@@ -1,92 +1,40 @@
 import {getTranslations, getLocale} from 'next-intl/server';
 import {Check, X} from 'lucide-react';
-import {createClient} from '@/lib/supabase/server';
-import {AREAS, buildAreaMeta, areaLabel} from '@/lib/areas';
+import {AREAS, areaLabel, type Area, type AreaMeta} from '@/lib/areas';
 
 // Panel "cầm scoreboard mà họp" (PRD Màn 5/6): WIG tuần thắng/thua ×4 + lead hoàn thành/tổng,
-// cho tuần đang họp. Dùng cho họp LỚP (classId) hoặc CÁ NHÂN (studentId).
+// cho tuần đang họp.
+//
+// CHỈ HIỂN THỊ, KHÔNG TỰ HỎI CSDL NỮA (audit tốc độ 10/08/2026).
+//
+// Bản cũ tự bắn ba truy vấn: wig_progress_v, area_config, rồi lead_measures — và vì nó là
+// component con render SAU khi cha đã xong, ba truy vấn ấy nằm ở HAI TẦNG CHỜ sâu nhất trang,
+// tức là người dùng đã chờ hết cả trang rồi mới bắt đầu chờ tiếp cái panel này. Tệ hơn: cả ba
+// đều hỏi lại đúng dữ liệu cha vừa lấy về (cùng view, cùng bảng, cùng khoảng tuần).
+//
+// Luật lọc theo NGÀY (không theo period_label) vẫn giữ nguyên, chỉ chuyển lên cha — xem chú thích
+// ở StudentScoreboard chỗ dựng `wonByArea`. Lý do của luật ấy: period_label là ô CHỮ TỰ DO trên
+// panel sửa WIG, sửa hai ô ngày mà quên ô nhãn là panel này mù, báo "chưa có số liệu tuần này"
+// trong khi bảng tick ngay dưới đang hiện 18/30 (sự cố 7B1).
 export async function MeetingScoreboard({
-  classId,
-  studentId,
   weekLabel,
-  weekStart,
-  weekEnd,
+  areaMeta,
+  wonByArea,
+  leadsDone,
+  leadsTotal,
 }: {
-  classId: string;
-  studentId?: string;
   weekLabel: string;
-  // Hai đầu mốc của tuần đang họp. Có thì lọc theo NGÀY; không có thì đành theo nhãn (xem dưới).
-  weekStart?: string;
-  weekEnd?: string;
+  /** Màu/nhãn 4 lĩnh vực — cha đã đọc area_config rồi, đừng đọc lại. */
+  areaMeta: Record<Area, AreaMeta>;
+  /** Lĩnh vực nào có WIG tuần này, và WIG ấy đã đạt chưa. Không có khoá = chưa đặt WIG. */
+  wonByArea: Map<string, boolean>;
+  leadsDone: number;
+  leadsTotal: number;
 }) {
   const t = await getTranslations('meeting');
   const locale = await getLocale();
-  const supabase = await createClient();
-  const scope = studentId ? 'student' : 'class';
 
-  // LỌC THEO NGÀY, không theo period_label.
-  //
-  // period_label là ô CHỮ TỰ DO trên panel sửa WIG (/wig), nằm tách rời hai ô ngày. Mọi thứ khác
-  // quanh panel này — danh sách WIG của /wig, class_lead_board, class_tick_matrix, màn hình học
-  // sinh — đều khớp theo start_date/end_date. Hai luật trên cùng một màn hình chính là thứ đã gây
-  // sự cố 7B1, và ở đây nó có lối vào rất tự nhiên: huy hiệu "Lệch tuần" mới bảo GVCN rằng ngày
-  // đang sai, họ vào sửa hai ô ngày, ô nhãn bên cạnh không ai đụng — thế là panel này mù, báo
-  // "chưa có số liệu tuần này" trong khi bảng tick ngay dưới đang hiện 18/30.
-  //
-  // 0073 cũng chọn ngày với đúng lý do ấy: "nhãn kỳ là chữ người gõ, có thể bỏ trống hoặc gõ khác
-  // quy ước, còn start_date/end_date thì luôn có".
-  let q = supabase
-    .from('wig_progress_v')
-    .select('wig_id, area, pct')
-    .eq('scope', scope)
-    .eq('period', 'week');
-  q =
-    weekStart && weekEnd
-      ? q.lte('start_date', weekEnd).gte('end_date', weekStart)
-      : q.eq('period_label', weekLabel);
-  q = studentId ? q.eq('student_id', studentId) : q.eq('class_id', classId);
-
-  const [{data: wrows}, {data: areaCfg}] = await Promise.all([
-    q,
-    supabase.from('area_config').select('*').order('sort_order'),
-  ]);
-  const areaMeta = buildAreaMeta(areaCfg);
-  const rows = (wrows ?? []) as {wig_id: string; area: string; pct: number | null}[];
-  const wonByArea = new Map(rows.map((r) => [r.area, Number(r.pct ?? 0) >= 1]));
-
-  const wigIds = rows.map((r) => r.wig_id);
-  let leadsDone = 0;
-  let leadsTotal = 0;
-  if (wigIds.length > 0) {
-    // Tick cũng phải nằm trong tuần đang họp. Không ràng thì một việc đã đạt ở tuần trước vẫn
-    // được đếm "hoàn thành" cho tuần này — buổi họp đọc ra một con số không thuộc về tuần mình
-    // đang bàn, mà đó đúng là con số PRD bảo cầm để họp.
-    // unit_per_tick (0076): một lượt tick đáng bao nhiêu đơn vị của WIG. Không nhân thì bảng họp
-    // hiện 3 trong khi thanh tiến độ ngay trên nó hiện 90 — hai nguồn sự thật, đúng con bệnh mà
-    // 0074/0075 vừa dẹp.
-    let lq = supabase
-      .from('lead_measures')
-      .select('target_value, unit_per_tick, lead_progress(value)')
-      .in('wig_id', wigIds);
-    if (weekStart && weekEnd) {
-      lq = lq
-        .gte('lead_progress.logged_date', weekStart)
-        .lte('lead_progress.logged_date', weekEnd);
-    }
-    const {data: leadData} = await lq;
-    for (const l of (leadData ?? []) as {
-      target_value: number;
-      unit_per_tick: number | null;
-      lead_progress: {value: number}[] | null;
-    }[]) {
-      leadsTotal += 1;
-      const moiTick = Number(l.unit_per_tick ?? 1) || 1;
-      const actual = (l.lead_progress ?? []).reduce((s, p) => s + Number(p.value ?? 0) * moiTick, 0);
-      if (Number(l.target_value) > 0 && actual >= Number(l.target_value)) leadsDone += 1;
-    }
-  }
-
-  const hasData = rows.length > 0 || leadsTotal > 0;
+  const hasData = wonByArea.size > 0 || leadsTotal > 0;
 
   return (
     <div className="glass rounded-[20px] p-4">

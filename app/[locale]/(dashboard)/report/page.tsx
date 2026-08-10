@@ -7,7 +7,8 @@ import {TodayMenuCard} from '@/components/menu/TodayMenuCard';
 import {Link} from '@/i18n/navigation';
 import {DonutRing} from '@/components/charts/DonutRing';
 import {WeekPicker} from '@/components/report/WeekPicker';
-import {AREAS, buildAreaMeta, areaLabel} from '@/lib/areas';
+import {AREAS, areaLabel} from '@/lib/areas';
+import {getAreaMeta} from '@/lib/area-config';
 import {weekRangeVN} from '@/lib/dates';
 
 type WeekReportRow = {
@@ -39,12 +40,12 @@ export default async function ReportPage({
 
   // Hai câu này KHÔNG phụ thuộc nhau — trước đây await lần lượt, tức là hai vòng mạng xếp hàng
   // cho không. Cấu hình lĩnh vực và danh sách con là hai thứ chẳng liên quan gì.
-  const [{data: areaCfg}, {data: links}] = await Promise.all([
-    supabase.from('area_config').select('*').order('sort_order'),
+  const [areaMetaFromCache, {data: links}] = await Promise.all([
+    getAreaMeta(),
     // TẤT CẢ con của phụ huynh (RLS pl_parent_self chỉ trả link của chính họ).
     supabase.from('parent_links').select('student_id, profiles!parent_links_student_id_fkey(full_name)'),
   ]);
-  const areaMeta = buildAreaMeta(areaCfg);
+  const areaMeta = areaMetaFromCache;
   const children = ((links ?? []) as unknown as {student_id: string; profiles: {full_name: string | null} | null}[])
     .map((l) => ({id: l.student_id, name: l.profiles?.full_name ?? l.student_id}))
     .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
