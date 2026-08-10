@@ -347,7 +347,8 @@ export async function StudentScoreboard({
   // Và hai câu lead_measures ấy HỎI TRÙNG NHAU: cùng bảng, cùng `.in('wig_id', weekIds)`, chỉ
   // khác bộ cột. Nay hỏi một lần với hợp của hai bộ (bảng tick cần value/created_at/logged_by,
   // khối quản lý cần wig_id) rồi tách ở phía dưới. Ba vòng → một.
-  const [{data: mates}, {data: leadData}, {data: classLeadData}] = await Promise.all([
+  const [{data: mates}, {data: leadData}, {data: classLeadData}, {data: namLopData}] =
+    await Promise.all([
     canManage && classId
       ? supabase
           .from('enrollments')
@@ -376,6 +377,16 @@ export async function StudentScoreboard({
           p_student: studentId,
         })
       : Promise.resolve({data: null}),
+    // MỤC TIÊU NĂM CỦA LỚP — nguồn sinh ra WIG năm của em (0099). Chỉ GVCN/Admin cần: khối thiết
+    // lập chỉ hiện với họ, hỏi thêm cho người khác là một vòng mạng cho không.
+    canManage && classId
+      ? supabase
+          .from('wigs')
+          .select('id, area, title, target_value, unit')
+          .eq('class_id', classId)
+          .eq('scope', 'class')
+          .eq('period', 'year')
+      : Promise.resolve({data: null}),
   ]);
 
   const classmates: Classmate[] = (
@@ -383,6 +394,16 @@ export async function StudentScoreboard({
   )
     .map((r) => ({id: r.student_id, name: r.profiles?.full_name ?? r.student_id}))
     .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+
+  const wigNamLop = ((namLopData ?? []) as {id: string; area: string; title: string | null; target_value: number; unit: string | null}[]).map(
+    (w) => ({
+      id: w.id,
+      area: w.area as Area,
+      title: w.title ?? '',
+      target: Number(w.target_value),
+      unit: w.unit ?? '',
+    }),
+  );
 
   const leadRows = (leadData ?? []) as unknown as LeadRow[];
   const classLeadRows = (classLeadData ?? []) as unknown as ClassLeadRow[];
@@ -567,6 +588,10 @@ export async function StudentScoreboard({
           hasYear={hasYear}
           hasThisWeek={hasThisWeek}
           weekLabel={thisWeekLabel}
+          wigNamLop={wigNamLop}
+          // Sĩ số = các bạn cùng lớp + chính em. `classmates` đã lọc đúng em đang học.
+          siSo={classmates.length + 1}
+          duongToiWigLop={{pathname: '/wig', query: {class: classId}}}
         />
       )}
 

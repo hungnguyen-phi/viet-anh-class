@@ -2,16 +2,10 @@ import {getLocale, getTranslations} from 'next-intl/server';
 import {Users, Sparkles} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {createClassStudentWigs} from '@/app/[locale]/(dashboard)/student/actions';
-import {AREAS, areaLabel, type Area} from '@/lib/areas';
+import {areaLabel, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
-
-// Đơn vị mặc định khi admin chưa cấu hình area_config — khớp với StudentWigSetup (từng em).
-const FALLBACK_UNIT: Record<Area, string> = {
-  knowledge: 'buổi',
-  skills: 'lần',
-  english: 'buổi',
-  physical: 'buổi',
-};
+import {chiaTheoSiSo, mucTieuCuaEm, type CachChia} from '@/lib/wig-ca-nhan';
+import type {WigNamLop} from '@/components/student/StudentWigSetup';
 
 // Tạo WIG CÁ NHÂN cho CẢ LỚP — đặt trên trang WIG, nơi giáo viên thật sự làm việc.
 //
@@ -26,6 +20,7 @@ export async function ClassStudentWigSetup({
   laTuanNay,
   studentCount,
   readyCount,
+  wigNamLop,
 }: {
   classId: string;
   weekLabel: string;
@@ -39,6 +34,8 @@ export async function ClassStudentWigSetup({
   // Sĩ số đang học và số em ĐÃ có WIG cá nhân của tuần đang xem — để nói thẳng còn thiếu bao nhiêu.
   studentCount: number;
   readyCount: number;
+  // Mục tiêu NĂM của lớp — nguồn sinh ra mục tiêu của từng em (0099). Rỗng = lớp chưa đặt.
+  wigNamLop: WigNamLop[];
 }) {
   const locale = await getLocale();
   // Cả khối này trước đây viết tiếng Việt gõ thẳng vào JSX — mười một chuỗi, kể cả nhãn nút và
@@ -79,6 +76,10 @@ export async function ClassStudentWigSetup({
               đã khiến GVCN tin lớp đang có việc trong khi máy các em trống trơn. */}
           {laTuanNay ? t('csAllSetNow') : t('csAllSetOther')}
         </p>
+      ) : wigNamLop.length === 0 ? (
+        <p className="mt-2.5 text-[12.5px] font-semibold leading-relaxed text-navy/70">
+          {t('csNeedClassYear')}
+        </p>
       ) : (
         <form action={createClassStudentWigs} className="mt-3">
           <input type="hidden" name="class_id" value={classId} />
@@ -95,28 +96,45 @@ export async function ClassStudentWigSetup({
             })}
           </p>
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {AREAS.map((a) => {
-              const label = areaLabel(areaMeta[a], locale);
+          {/* SINH TỪ MỤC TIÊU NĂM CỦA LỚP, không gõ tay nữa (0099).
+              Bản cũ bày bốn ô số mặc định 100 cho mọi lớp, mọi lĩnh vực — con số ấy không dính
+              dáng gì tới mục tiêu lớp vừa đặt, nên tầng cá nhân và tầng lớp là hai thứ rời nhau
+              ngay từ lúc tạo. Nay mỗi dòng là một mục tiêu năm của lớp, chỉ chọn cách chia. */}
+          <div className="flex flex-col gap-2">
+            {wigNamLop.map((w) => {
+              const label = areaLabel(areaMeta[w.area], locale);
+              const macDinh: CachChia = chiaTheoSiSo(w.unit) ? 'chia' : 'muc';
+              const soChia = mucTieuCuaEm(w.target, studentCount, 'chia');
               return (
-                <div key={a} className="rounded-[12px] bg-navy/[0.03] p-2.5">
-                  <div className="mb-1.5 text-[12.5px] font-extrabold text-navy">{label}</div>
-                  <div className="flex gap-1.5">
-                    <input
-                      type="number"
-                      step="any"
-                      min="0.01"
-                      defaultValue={100}
-                      name={`target_${a}`}
-                      className={input}
-                      aria-label={t('csYearTargetFor', {area: label})}
-                    />
-                    <input
-                      name={`unit_${a}`}
-                      defaultValue={areaMeta[a].default_unit ?? FALLBACK_UNIT[a]}
-                      className={`${input} min-w-[104px] flex-1`}
-                      aria-label={t('csUnitFor', {area: label})}
-                    />
+                <div key={w.id} className="rounded-[12px] bg-navy/[0.03] p-2.5">
+                  <input type="hidden" name="parent_id" value={w.id} />
+                  <div className="flex flex-wrap items-baseline gap-x-2">
+                    <span className="text-[12.5px] font-extrabold text-navy">{label}</span>
+                    <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-grey-mid">
+                      {w.title}
+                    </span>
+                    <span className="text-[12px] font-bold text-navy/70">
+                      {t('csClassTarget', {n: w.target, unit: w.unit})}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {(['muc', 'chia'] as const).map((cach) => (
+                      <label
+                        key={cach}
+                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-[11.5px] font-bold text-navy transition-all has-[:checked]:border-navy has-[:checked]:bg-navy/[0.06]"
+                      >
+                        <input
+                          type="radio"
+                          name={`cach_${w.id}`}
+                          value={cach}
+                          defaultChecked={macDinh === cach}
+                          className="accent-navy"
+                        />
+                        {cach === 'muc'
+                          ? t('csRuleSame', {n: w.target, unit: w.unit})
+                          : t('csRuleSplit', {n: soChia, unit: w.unit, si: studentCount})}
+                      </label>
+                    ))}
                   </div>
                 </div>
               );

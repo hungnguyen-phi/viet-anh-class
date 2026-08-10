@@ -9,6 +9,7 @@ import {isValidDayVN, mondayOf, todayInVN, weekFromMonday} from '@/lib/dates';
 import {WeekNav} from '@/components/wig/WeekNav';
 import {ChiTietTuan} from '@/components/wig/ChiTietTuan';
 import {ClassStudentWigSetup} from '@/components/wig/ClassStudentWigSetup';
+import type {Area} from '@/lib/areas';
 import {Flash} from '@/components/ui/Flash';
 
 // /wig/chi-tiet — "em nào làm tới đâu, quên hôm nào".
@@ -44,7 +45,8 @@ export default async function ChiTietPage({
   const weekQ = laTuanNay ? '' : monday;
 
   // Sĩ số + số em đã có việc RIÊNG của tuần này — cho khối cuối trang.
-  const [{data: enrolled}, {data: readyWigs}] = await Promise.all([
+  // Kèm MỤC TIÊU NĂM CỦA LỚP: từ 0099, WIG cá nhân sinh ra từ đó chứ không gõ tay nữa.
+  const [{data: enrolled}, {data: readyWigs}, {data: namLop}] = await Promise.all([
     supabase.from('enrollments').select('student_id').eq('class_id', myClass.id).eq('is_active', true),
     supabase
       .from('wigs')
@@ -53,6 +55,12 @@ export default async function ChiTietPage({
       .eq('scope', 'student')
       .eq('period', 'week')
       .eq('period_label', wk.label),
+    supabase
+      .from('wigs')
+      .select('id, area, title, target_value, unit')
+      .eq('class_id', myClass.id)
+      .eq('scope', 'class')
+      .eq('period', 'year'),
   ]);
 
   return (
@@ -97,6 +105,13 @@ export default async function ChiTietPage({
         laTuanNay={laTuanNay}
         studentCount={(enrolled ?? []).length}
         readyCount={new Set((readyWigs ?? []).map((w) => w.student_id)).size}
+        wigNamLop={(namLop ?? []).map((w) => ({
+          id: w.id,
+          area: w.area as Area,
+          title: w.title ?? '',
+          target: Number(w.target_value),
+          unit: w.unit ?? '',
+        }))}
       />
     </div>
   );

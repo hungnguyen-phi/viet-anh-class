@@ -228,7 +228,13 @@
     "confirmDeleteWig": "Xoá WIG cá nhân này (kèm WIG tuần/lead bên trong)? Không thể hoàn tác.",
     "titleLabel": "Tên mục tiêu",
     "deleteWig": "Xoá WIG",
-    "deleteLead": "Xoá việc dẫn dắt"
+    "deleteLead": "Xoá việc dẫn dắt",
+    "yearFromClass": "Mục tiêu năm của em chia ra từ mục tiêu năm của lớp (lớp đang có {n} em). Chọn cách chia cho từng lĩnh vực rồi bấm tạo.",
+    "needClassYear": "Lớp chưa đặt mục tiêu năm nào, nên chưa có gì để chia xuống cho em. Đặt mục tiêu năm của lớp trước đã.",
+    "goSetClassYear": "Sang trang WIG của lớp",
+    "classTarget": "Lớp: {n} {unit}",
+    "ruleSame": "Em cũng {n} {unit}",
+    "ruleSplit": "Chia đều: {n} {unit} (÷ {si} em)"
   },
   "admin": {
     "title": "Quản trị hệ thống",
@@ -522,7 +528,11 @@
     "detailSoFar": "Tới giờ trong tuần này",
     "detailDenominator": "Mẫu số chỉ tính những ngày ĐÃ QUA — chưa trừ điểm ai vì ngày chưa tới. Bấm tên em để mở trang riêng.",
     "tickBoardStudent": "Học sinh",
-    "periodWhich": "Kỳ"
+    "periodWhich": "Kỳ",
+    "csClassTarget": "Lớp: {n} {unit}",
+    "csRuleSame": "Mỗi em {n} {unit}",
+    "csRuleSplit": "Chia đều: {n} {unit} (÷ {si} em)",
+    "csNeedClassYear": "Lớp chưa đặt mục tiêu năm nào. Mục tiêu của từng em chia ra từ mục tiêu năm của lớp, nên hãy đặt mục tiêu năm trước."
   },
   "meeting": {
     "title": "Họp WIG tuần",

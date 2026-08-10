@@ -228,7 +228,13 @@
     "confirmDeleteWig": "Delete this personal WIG (incl. its weekly WIGs/leads)? Cannot be undone.",
     "titleLabel": "Goal name",
     "deleteWig": "Delete WIG",
-    "deleteLead": "Delete lead measure"
+    "deleteLead": "Delete lead measure",
+    "yearFromClass": "This student's yearly goals are derived from the class goals (the class has {n} students). Pick how each area is shared out, then create.",
+    "needClassYear": "The class has no yearly goal yet, so there is nothing to share out. Set the class yearly goals first.",
+    "goSetClassYear": "Go to the class WIG page",
+    "classTarget": "Class: {n} {unit}",
+    "ruleSame": "Same: {n} {unit}",
+    "ruleSplit": "Split: {n} {unit} (÷ {si})"
   },
   "admin": {
     "title": "System administration",
@@ -522,7 +528,11 @@
     "detailSoFar": "So far this week",
     "detailDenominator": "The denominator counts only days that have PASSED — nobody is marked down for a day that has not arrived. Tap a name to open their page.",
     "tickBoardStudent": "Student",
-    "periodWhich": "Period"
+    "periodWhich": "Period",
+    "csClassTarget": "Class: {n} {unit}",
+    "csRuleSame": "Each student {n} {unit}",
+    "csRuleSplit": "Split: {n} {unit} (÷ {si})",
+    "csNeedClassYear": "The class has no yearly goal yet. Each student’s goal is derived from it, so set the class yearly goals first."
   },
   "meeting": {
     "title": "Weekly WIG meeting",

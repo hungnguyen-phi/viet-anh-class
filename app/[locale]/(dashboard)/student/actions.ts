@@ -9,6 +9,7 @@ import {getCurrentProfile, requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
 import {buddyNote, buddyChat, type BuddyContext, type BuddyLead} from '@/lib/buddy';
+import {mucTieuCuaEm, type CachChia} from '@/lib/wig-ca-nhan';
 import {
   weekRangeVN,
   nextWeekRangeVN,
@@ -364,32 +365,59 @@ export async function createStudentYearWigs(formData: FormData) {
     veTrangEm(student_id, m);
   if (!student_id || !class_id) back('Thiếu học sinh hoặc lớp');
 
-  const {label, start, end} = schoolYearRangeVN();
-  const rows = AREAS.map((area) => ({
-    area,
-    target: Number(formData.get(`target_${area}`) ?? 0),
-    unit: String(formData.get(`unit_${area}`) ?? '').trim(),
-  })).filter((r) => r.target > 0 && r.unit);
-  if (rows.length === 0) back('Nhập mục tiêu + đơn vị cho ít nhất 1 lĩnh vực');
-
   const supabase = await createClient();
-  const {error} = await supabase.from('wigs').insert(
-    rows.map((r) => ({
+
+  // MỤC TIÊU CỦA EM SINH RA TỪ MỤC TIÊU CỦA LỚP (4DX là hình tháp).
+  //
+  // Form chỉ gửi lên: WIG năm nào của lớp, và chia theo cách nào. CON SỐ THÌ SERVER TỰ TÍNH —
+  // đọc mục tiêu lớp từ CSDL và đếm sĩ số tại chỗ. Nhận số do trình duyệt gửi là mở cửa cho một
+  // em có mục tiêu 1 bài/năm mà không ai biết, và cũng là dựng lại đúng cái bệnh hai nguồn.
+  const parentIds = formData.getAll('parent_id').map(String).filter(Boolean);
+  if (parentIds.length === 0) back('Lớp chưa có mục tiêu năm nào để chia xuống cho em');
+
+  const [{data: wigLop}, {count: siSo}] = await Promise.all([
+    supabase
+      .from('wigs')
+      .select('id, area, target_value, unit')
+      .eq('class_id', class_id)
+      .eq('scope', 'class')
+      .eq('period', 'year')
+      .in('id', parentIds),
+    supabase
+      .from('enrollments')
+      .select('student_id', {count: 'exact', head: true})
+      .eq('class_id', class_id)
+      .eq('is_active', true),
+  ]);
+
+  const cha = (wigLop ?? []) as {id: string; area: string; target_value: number; unit: string}[];
+  if (cha.length === 0) back('Không đọc được mục tiêu năm của lớp');
+
+  const {label, start, end} = schoolYearRangeVN();
+  const rows = cha.map((w) => {
+    const cach: CachChia = String(formData.get(`cach_${w.id}`) ?? '') === 'muc' ? 'muc' : 'chia';
+    return {
       class_id,
       student_id,
       scope: 'student' as const,
-      title: DEFAULT_WIG_TITLE[r.area] ?? 'Mục tiêu năm',
-      area: r.area,
+      title: DEFAULT_WIG_TITLE[w.area as (typeof AREAS)[number]] ?? 'Mục tiêu năm',
+      area: w.area as (typeof AREAS)[number],
       period: 'year' as const,
       period_label: label,
-      target_value: r.target,
-      unit: r.unit,
+      target_value: mucTieuCuaEm(Number(w.target_value), siSo ?? 0, cach),
+      unit: w.unit,
       start_date: start,
       end_date: end,
-    })),
-  );
+      // ĐÂY LÀ SỢI DÂY. Có nó thì nhìn WIG của em là biết nó phục vụ mục tiêu nào của lớp; thiếu
+      // nó thì hai tầng trôi khỏi nhau đúng như bản cũ. Tiến độ KHÔNG tràn qua sợi dây này —
+      // private.wig_actual chỉ cộng con cùng scope (xem migration 0099).
+      parent_wig_id: w.id,
+    };
+  });
+
+  const {error} = await supabase.from('wigs').insert(rows);
   revalidatePath('/[locale]/student/[id]', 'page');
-  back(error ? loi(friendlyError(error)) : `Đã tạo ${rows.length} WIG năm cá nhân`);
+  back(error ? loi(friendlyError(error)) : `Đã tạo ${rows.length} WIG năm cá nhân từ mục tiêu của lớp`);
 }
 
 // C6 — 1 chạm: sinh WIG TUẦN NÀY (+ lead measure mặc định) cho mỗi WIG năm của em.
@@ -979,13 +1007,13 @@ export async function createClassStudentWigs(formData: FormData) {
     );
   if (!class_id) back('Thiếu lớp');
 
-  // Mục tiêu + đơn vị cho từng lĩnh vực, áp chung cho cả lớp; GVCN sửa riêng từng em sau.
-  const areaRows = AREAS.map((area) => ({
-    area,
-    target: Number(formData.get(`target_${area}`) ?? 0),
-    unit: String(formData.get(`unit_${area}`) ?? '').trim(),
-  })).filter((r) => r.target > 0 && r.unit);
-  if (areaRows.length === 0) back('Nhập mục tiêu + đơn vị cho ít nhất 1 lĩnh vực');
+  // MỤC TIÊU LẤY TỪ WIG NĂM CỦA LỚP, không nhận số do trình duyệt gửi (0099).
+  //
+  // Form chỉ nói: chia từ mục tiêu năm nào, và chia theo cách nào. Con số thì đọc từ CSDL rồi
+  // tính bằng lib/wig-ca-nhan — cùng một hàm với chỗ hiện số cho giáo viên soát, nên thứ họ nhìn
+  // thấy và thứ được ghi xuống không thể lệch nhau.
+  const parentIds = formData.getAll('parent_id').map(String).filter(Boolean);
+  if (parentIds.length === 0) back('Lớp chưa có mục tiêu năm nào để chia xuống cho các em');
 
   const supabase = await createClient();
   const year = schoolYearRangeVN();
@@ -1000,6 +1028,27 @@ export async function createClassStudentWigs(formData: FormData) {
     .eq('is_active', true);
   const studentIds = (enr ?? []).map((e) => e.student_id);
   if (studentIds.length === 0) back('Lớp chưa có học sinh nào đang học');
+
+  const {data: chaData} = await supabase
+    .from('wigs')
+    .select('id, area, target_value, unit')
+    .eq('class_id', class_id)
+    .eq('scope', 'class')
+    .eq('period', 'year')
+    .in('id', parentIds);
+  const cha = (chaData ?? []) as {id: string; area: string; target_value: number; unit: string}[];
+  if (cha.length === 0) back('Không đọc được mục tiêu năm của lớp');
+
+  // Sĩ số dùng để chia là sĩ số THẬT lúc bấm, không phải con số form gửi lên.
+  const areaRows = cha.map((w) => {
+    const cach: CachChia = String(formData.get(`cach_${w.id}`) ?? '') === 'muc' ? 'muc' : 'chia';
+    return {
+      parent_wig_id: w.id,
+      area: w.area as (typeof AREAS)[number],
+      target: mucTieuCuaEm(Number(w.target_value), studentIds.length, cach),
+      unit: w.unit,
+    };
+  });
 
   // ---- WIG NĂM: chỉ tạo cho (em, lĩnh vực) chưa có ----
   const {data: haveYear} = await supabase
@@ -1026,6 +1075,8 @@ export async function createClassStudentWigs(formData: FormData) {
         unit: r.unit,
         start_date: year.start,
         end_date: year.end,
+        // Sợi dây nối lên mục tiêu năm của lớp. Tiến độ KHÔNG tràn qua đây (migration 0099).
+        parent_wig_id: r.parent_wig_id,
       })),
   );
   if (yearRows.length > 0) {
