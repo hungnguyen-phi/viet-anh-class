@@ -693,7 +693,6 @@ export async function luuMucTieuCuaEm(
   const baseline_raw = String(formData.get('baseline') ?? '').trim();
   const target_raw = String(formData.get('target_value') ?? '').trim();
   const han = String(formData.get('due_on') ?? '').trim();
-  const area = String(formData.get('area') ?? 'knowledge');
   const source_wig_id = String(formData.get('source_wig_id') ?? '').trim();
   const viec_title = String(formData.get('viec_title') ?? '').trim();
   const viec_target_raw = String(formData.get('viec_target') ?? '').trim();
@@ -744,6 +743,26 @@ export async function luuMucTieuCuaEm(
   // cũng chặn, đây chỉ là lớp thứ nhất để câu báo lỗi dễ hiểu hơn.
   const soi = kind === 'academic' && source_wig_id ? source_wig_id : null;
 
+  // LĨNH VỰC SUY RA, không hỏi. Trước đây form có một ô <select> ẩn chỉ để gửi giá trị này lên —
+  // một ô không ai thấy, không ai đổi được, mà vẫn hiện chữ "knowledge" trên bản đọc màn hình.
+  // Em đã chọn mục tiêu lớp mình góp sức rồi thì lĩnh vực chính là của mục tiêu ấy; không chọn
+  // gì thì đây là mục tiêu riêng, xếp vào Kiến thức.
+  //
+  // Lấy từ CSDL chứ không tin ô trên form: đây là cột quyết định mục tiêu của em nằm ở nhánh nào
+  // của cây, và cũng là chỗ khoá wigs_em_uidx dựa vào.
+  let area: Database['public']['Enums']['wig_area'] = 'knowledge';
+  if (soi) {
+    const {data: chaLop} = await supabase
+      .from('wigs')
+      .select('area')
+      .eq('id', soi)
+      .eq('class_id', class_id)
+      .eq('scope', 'class')
+      .maybeSingle();
+    if (!chaLop) return {ok: false, error: 'Mục tiêu của lớp này không còn nữa — chọn lại.'};
+    area = chaLop.area;
+  }
+
   const ban = {
     class_id,
     student_id,
@@ -754,7 +773,7 @@ export async function luuMucTieuCuaEm(
     set_by: laChinhEm ? 'student' : 'teacher',
     measure_by,
     title,
-    area: area as Database['public']['Enums']['wig_area'],
+    area,
     period: 'year' as const,
     period_label: nam.label,
     baseline,

@@ -66,6 +66,18 @@ export function MucTieuCuaCon({
   const [moForm, setMoForm] = useState(!hocTap);
   const [thu, setThu] = useState<number[]>(hocTap?.viec?.active_weekdays ?? [1, 3, 5]);
 
+  // Bốn ô rời rạc rất khó ráp lại thành một ý trong đầu, nhất là với học sinh. Giữ giá trị ở đây
+  // để ghép chúng thành MỘT CÂU HOÀN CHỈNH ngay dưới nút Gửi — em đọc câu ấy là biết mình vừa
+  // hứa cái gì, không phải tự ghép trong đầu từ bốn ô.
+  const [g, setG] = useState({
+    title: hocTap?.title ?? '',
+    baseline: hocTap?.baseline != null ? String(hocTap.baseline) : '',
+    target: hocTap?.target_value != null ? String(hocTap.target_value) : '',
+    unit: hocTap?.unit ?? '',
+    due: hocTap?.end_date ?? '',
+  });
+  const duCau = Boolean(g.title && g.target && g.unit && g.due);
+
   const err = (f: string) => (state.fieldError === f ? state.error : null);
   const doiThu = (d: number) =>
     setThu((p) => (p.includes(d) ? p.filter((x) => x !== d) : [...p, d].sort((a, b) => a - b)));
@@ -192,12 +204,24 @@ export function MucTieuCuaCon({
             <input key={d} type="hidden" name="viec_days" value={d} />
           ))}
 
-          {/* ① Con đang ở đâu — câu này đứng đầu vì cả mô hình xoay quanh nó: mục tiêu của em là
-              KHOẢNG CÁCH CỦA CHÍNH EM, không phải mẩu cắt từ con số của lớp. */}
+          {/* ① Con muốn tiến bộ ở việc gì.
+              Trước đây bước ① hỏi "con đang ở đâu" và giữ ô SỐ BẮT ĐẦU, còn số đích thì nằm mãi
+              bước ②. Hai đầu của một câu "từ X đến Y" bị tách qua hai bước — em điền xong ô đầu
+              không biết nó đi đâu. Nay ① hỏi VIỆC, ② giữ trọn "từ X đến Y trước ngày nào". */}
           <div className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
             <p className={labelCls}>{t('step1')}</p>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-[2fr_1fr]">
-              <Field label={t('joinBattle')} htmlFor="mt-source" className="col-span-2 sm:col-span-1">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              <Field label={t('what')} htmlFor="mt-title" error={err('title')}>
+                <input
+                  id="mt-title"
+                  name="title"
+                  value={g.title}
+                  onChange={(e) => setG((p) => ({...p, title: e.target.value}))}
+                  placeholder={t('whatPlaceholder')}
+                  className={ctlWithBorder(state.fieldError === 'title')}
+                />
+              </Field>
+              <Field label={t('joinBattle')} htmlFor="mt-source">
                 <select id="mt-source" name="source_wig_id" defaultValue={hocTap?.source_wig_id ?? ''} className={selectCls}>
                   <option value="">{t('noBattle')}</option>
                   {wigLop.map((w) => (
@@ -207,6 +231,14 @@ export function MucTieuCuaCon({
                   ))}
                 </select>
               </Field>
+            </div>
+          </div>
+
+          {/* ② "Từ X đến Y trước ngày nào" — công thức của canon, nay nằm gọn một hàng đọc như
+              một câu chứ không phải bốn ô rời. */}
+          <div className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
+            <p className={labelCls}>{t('step2')}</p>
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-[1fr_1fr_1fr_1.4fr]">
               <Field label={t('now')} htmlFor="mt-baseline" error={err('baseline')}>
                 <input
                   id="mt-baseline"
@@ -215,25 +247,10 @@ export function MucTieuCuaCon({
                   step="any"
                   min="0"
                   inputMode="decimal"
-                  defaultValue={hocTap?.baseline ?? ''}
+                  value={g.baseline}
+                  onChange={(e) => setG((p) => ({...p, baseline: e.target.value}))}
                   placeholder="0"
                   className={ctlWithBorder(state.fieldError === 'baseline')}
-                />
-              </Field>
-            </div>
-          </div>
-
-          {/* ② Con muốn tới đâu, trước khi nào — công thức "từ X đến Y trước ngày" của canon. */}
-          <div className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-            <p className={labelCls}>{t('step2')}</p>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-[2fr_1fr_1fr_1.2fr]">
-              <Field label={t('what')} htmlFor="mt-title" error={err('title')} className="col-span-2 sm:col-span-1">
-                <input
-                  id="mt-title"
-                  name="title"
-                  defaultValue={hocTap?.title ?? ''}
-                  placeholder={t('whatPlaceholder')}
-                  className={ctlWithBorder(state.fieldError === 'title')}
                 />
               </Field>
               <Field label={t('to')} htmlFor="mt-target" error={err('target_value')}>
@@ -244,7 +261,8 @@ export function MucTieuCuaCon({
                   step="any"
                   min="0.01"
                   inputMode="decimal"
-                  defaultValue={hocTap?.target_value ?? ''}
+                  value={g.target}
+                  onChange={(e) => setG((p) => ({...p, target: e.target.value}))}
                   className={ctlWithBorder(state.fieldError === 'target_value')}
                 />
               </Field>
@@ -252,7 +270,8 @@ export function MucTieuCuaCon({
                 <input
                   id="mt-unit"
                   name="unit"
-                  defaultValue={hocTap?.unit ?? ''}
+                  value={g.unit}
+                  onChange={(e) => setG((p) => ({...p, unit: e.target.value}))}
                   placeholder={t('unitPlaceholder')}
                   className={ctlWithBorder(state.fieldError === 'unit')}
                 />
@@ -262,14 +281,12 @@ export function MucTieuCuaCon({
                   id="mt-due"
                   name="due_on"
                   type="date"
-                  defaultValue={hocTap?.end_date ?? ''}
+                  value={g.due}
+                  onChange={(e) => setG((p) => ({...p, due: e.target.value}))}
                   className={ctlWithBorder(state.fieldError === 'due_on')}
                 />
               </Field>
             </div>
-            <select name="area" defaultValue={hocTap?.area ?? 'knowledge'} className="sr-only" tabIndex={-1} aria-hidden>
-              <option value="knowledge">knowledge</option>
-            </select>
           </div>
 
           {/* ③ Mỗi tuần con làm gì — hai tính chất bắt buộc của lead measure, nói bằng lời trẻ hiểu.
@@ -322,6 +339,24 @@ export function MucTieuCuaCon({
             <p className="mt-2 text-[11px] font-semibold italic leading-relaxed text-grey-mid">
               {t('leadRule')}
             </p>
+          </div>
+
+          {/* CÂU MỤC TIÊU — ráp từ chính những ô em vừa gõ. Đây là chỗ ba bước hợp lại thành một
+              ý, và cũng là cách rẻ nhất để em tự thấy mục tiêu của mình đã rõ ràng hay chưa. */}
+          <div
+            className={`rounded-[14px] px-3.5 py-3 text-[13px] font-bold leading-relaxed ${
+              duCau ? 'bg-gold/[0.14] text-navy' : 'bg-navy/[0.04] italic text-grey-mid'
+            }`}
+          >
+            {duCau
+              ? t('preview', {
+                  what: g.title,
+                  from: g.baseline || '0',
+                  to: g.target,
+                  unit: g.unit,
+                  due: g.due,
+                })
+              : t('previewEmpty')}
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
