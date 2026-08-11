@@ -25,6 +25,7 @@ import {BuddyAuto} from '@/components/student/BuddyAuto';
 import {StudentWigManage, type ManageWig, type ManageLead} from '@/components/student/StudentWigManage';
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {EditRequestButton} from '@/components/student/EditRequestButton';
+import {MucTieuCuaCon, type MucTieuCuaEm} from '@/components/student/MucTieuCuaCon';
 import {MeetingScoreboard} from '@/components/wig/MeetingScoreboard';
 import {AREAS, areaLabel, areaIcon, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
@@ -295,7 +296,7 @@ export async function StudentScoreboard({
     : {createAdminClient: null};
   const admin = createAdminClient ? createAdminClient() : null;
 
-  const [cuaSoRes, ipRes, mangRes, daHopRes, matesRes, leadRes, classLeadRes] =
+  const [cuaSoRes, ipRes, mangRes, daHopRes, matesRes, leadRes, classLeadRes, mucTieuRes, wigLopRes] =
     await Promise.all([
     // CỬA SỔ CHECK-IN của cơ sở em đang học. Lấy một lần, dùng cho cả buổi sáng lẫn buổi chiều.
     // Null khi em chưa có lớp (chưa biết cơ sở) → giao diện giữ nguyên hành vi cũ, không khoá gì.
@@ -354,6 +355,27 @@ export async function StudentScoreboard({
           // đang xem. Hàm tự kiểm quyền; truyền id bừa thì rơi về chính mình.
           p_student: studentId,
         })
+      : Promise.resolve({data: null}),
+    // MỤC TIÊU CỦA EM (0100). Không lấy từ wig_progress_v được: view ấy không mang kind/status/
+    // set_by xuống, mà cả ba đều cần để bày đúng — "chờ cô duyệt", "cô đặt giúp con", và phân
+    // biệt mục tiêu học tập với mục tiêu riêng.
+    supabase
+      .from('wigs')
+      .select(
+        'id, kind, status, set_by, measure_by, title, baseline, target_value, unit, area, end_date, achieved_at, source_wig_id, lead_measures(title, target_value, active_weekdays)',
+      )
+      .eq('student_id', studentId)
+      .eq('scope', 'student')
+      .eq('period', 'year'),
+    // Trận đánh của lớp — để em chọn mình đang góp vào cái nào. Đây là LIÊN KẾT HƯỚNG ĐI, không
+    // phải phép chia: con số của em do em đặt, không suy ra từ con số của lớp.
+    classId
+      ? supabase
+          .from('wigs')
+          .select('id, area, title')
+          .eq('class_id', classId)
+          .eq('scope', 'class')
+          .eq('period', 'year')
       : Promise.resolve({data: null}),
   ]);
   const mates = matesRes.data;
@@ -563,6 +585,19 @@ export async function StudentScoreboard({
   const displayName = student.full_name ?? student.email;
   const hasWeek = weekRows.length > 0;
 
+  // Mục tiêu của em + trận đánh của lớp để chọn — cho khối MucTieuCuaCon.
+  const mucTieuCuaEm = ((mucTieuRes.data ?? []) as unknown as (Omit<MucTieuCuaEm, 'viec'> & {
+    lead_measures: {title: string; target_value: number; active_weekdays: number[] | null}[] | null;
+  })[]).map((m) => ({
+    ...m,
+    // Mỗi mục tiêu của em chỉ một việc — trigger chan_viec_thu_hai (0100) chặn cái thứ hai, nên
+    // lấy phần tử đầu là đủ, không cần lo còn sót cái nào.
+    viec: m.lead_measures?.[0] ?? null,
+  }));
+  const wigLopChon = ((wigLopRes.data ?? []) as {id: string; area: string; title: string | null}[]).map(
+    (w) => ({id: w.id, area: w.area, title: w.title ?? w.area}),
+  );
+
   return (
     <div className="mt-4 flex flex-col gap-[22px]">
       {/* Lớp chặn bắt buộc check-in — đặt NGOÀI hero (hero có backdrop-filter, sẽ phá position:fixed) */}
@@ -604,9 +639,20 @@ export async function StudentScoreboard({
         </div>
       </div>
 
-      {/* Khối "GVCN thiết lập WIG cá nhân 1 chạm" từng đứng ở đây — đặt WIG năm cho em bằng cách
-          chia mục tiêu lớp cho sĩ số. Bỏ cùng đợt 0100; thay bằng tiết đặt mục tiêu, nơi chính em
-          gõ khoảng cách của mình. Xem docs/MO_HINH_WIG.md §6.2. */}
+      {/* MỤC TIÊU CỦA CON — thay khối "GVCN thiết lập WIG cá nhân 1 chạm" đã xoá ở 0100. Chỗ ấy
+          chia mục tiêu lớp cho sĩ số rồi ghi xuống bản ghi của em; chỗ này hỏi chính em bốn câu.
+          Xem docs/MO_HINH_WIG.md §6.2. */}
+      {classId && (
+        <MucTieuCuaCon
+          studentId={studentId}
+          classId={classId}
+          mucTieu={mucTieuCuaEm}
+          wigLop={wigLopChon}
+          laChinhEm={canTick}
+          canManage={canManage}
+          dayShort={tc.raw('dayShort') as string[]}
+        />
+      )}
 
       {/* GVCN/Admin: yêu cầu-sửa đang chờ + quản lý WIG/lead/tick cá nhân (hết ngõ cụt) */}
       {canManage && <RequestInbox studentId={studentId} requests={requests} />}
