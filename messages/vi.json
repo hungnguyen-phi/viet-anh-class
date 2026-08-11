@@ -654,7 +654,7 @@
     "buddyChatNotice": "Buddy chỉ nói về mục tiêu tuần này. Đừng viết thông tin cá nhân — GVCN đọc lại được toàn bộ đoạn này.",
     "buddyChatTranscript": "Xem lại hội thoại Buddy",
     "buddyChatStudent": "Học sinh",
-    "buddyErrNoWig": "Chưa có WIG tuần này nên Buddy chưa có gì để xem. Nhờ GVCN đặt WIG tuần trước nhé.",
+    "buddyErrNoWig": "Con chưa đặt mục tiêu nên Buddy chưa có gì để xem. Kéo lên khối “Mục tiêu của con” để đặt nhé.",
     "buddyErrNoClass": "Bạn chưa được xếp lớp nên Buddy chưa xem được.",
     "buddyErrRateLimited": "Hôm nay Buddy đã nhắn rồi — mai quay lại nhé.",
     "buddyErrNoKey": "Buddy chưa được bật. Nhờ nhà trường cấu hình giúp.",
@@ -696,8 +696,7 @@
       "low": "Đừng lo nhé, tuần này mình cùng cố gắng hơn!",
       "bad": "Không sao đâu! Mỗi ngôi sao nhỏ đều giúp em tiến lên."
     },
-    "wigYear": "WIG năm của em (4 lĩnh vực)",
-    "wigWeek": "WIG tuần của em",
+    "wigYear": "Mục tiêu năm của con",
     "noWig": "GVCN chưa thiết lập WIG cá nhân.",
     "leads": "Việc của em — tick mỗi ngày",
     "noLeads": "Tuần này em chưa có việc riêng nào. Việc chung của lớp (nếu có) nằm ngay bên trên.",
@@ -1283,6 +1282,7 @@
     "journalEmpty": "Tuần này chưa có ghi chép nào.",
     "paceTitle": "Chỉnh nhịp các tháng",
     "paceTotal": "Tổng: {tong} / {can} {unit}",
-    "paceSave": "Lưu nhịp"
+    "paceSave": "Lưu nhịp",
+    "noClassWig": "Lớp chưa đặt mục tiêu năm nào."
   }
 }

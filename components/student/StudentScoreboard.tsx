@@ -248,6 +248,7 @@ export async function StudentScoreboard({
     .filter((r) => r.period === 'week')
     .sort((a, b) => a.end_date.localeCompare(b.end_date));
   const wigByArea = new Map(yearRows.map((r) => [r.area, r]));
+  const areaCoMucTieu = AREAS.filter((a) => wigByArea.has(a));
   const weeksByArea = new Map<string, WigRow[]>();
   for (const w of weekRows) {
     const arr = weeksByArea.get(w.area) ?? [];
@@ -592,7 +593,6 @@ export async function StudentScoreboard({
     (myRequestRows ?? []) as {id: string; kind: string; ref_id: string | null; message: string | null}[]
   ).map((r) => ({...r, leadTitle: r.ref_id ? leadTitleById.get(r.ref_id) ?? null : null}));
   const displayName = student.full_name ?? student.email;
-  const hasWeek = weekRows.length > 0;
 
   // Mục tiêu của em + trận đánh của lớp để chọn — cho khối MucTieuCuaCon.
   const mucTieuCuaEm = ((mucTieuRes.data ?? []) as unknown as (Omit<MucTieuCuaEm, 'viec'> & {
@@ -659,7 +659,7 @@ export async function StudentScoreboard({
           wigLop={wigLopChon}
           laChinhEm={canTick}
           canManage={canManage}
-          dayShort={tc.raw('dayShort') as string[]}
+          dayShort={t.raw('dayShort') as string[]}
         />
       )}
 
@@ -671,14 +671,20 @@ export async function StudentScoreboard({
       {canManage && <RequestInbox studentId={studentId} requests={requests} />}
       {canManage && <StudentWigManage studentId={studentId} wigs={manageWigs} leads={manageLeads} />}
 
-      {/* WIG năm — bento ring theo màu môn */}
+      {/* Vòng tiến độ mục tiêu của em.
+          Trước 0100 khối này luôn bày đủ BỐN ô — em phải có WIG ở cả bốn lĩnh vực. Nay em có tối
+          đa HAI mục tiêu (một học tập, một của riêng em) và CSDL chặn cái thứ ba, nên bày bốn ô
+          là giục em làm một thứ đã bị cấm; ba ô kia sẽ hiện "Chưa thiết lập WIG" vĩnh viễn.
+          Chỉ vẽ lĩnh vực em THẬT SỰ có mục tiêu. Chưa có cái nào thì ẩn hẳn — khối "Mục tiêu của
+          con" ở trên đã có sẵn ô để đặt, không cần một lời nhắc thứ hai. */}
+      {areaCoMucTieu.length > 0 && (
       <section>
         <h2 className="font-display text-[17px] font-bold text-navy">{t('wigYear')}</h2>
         <p className="mb-3 mt-0.5 max-w-[640px] text-[12px] font-semibold leading-relaxed text-grey-mid">
           {tc('wigGloss')}
         </p>
         <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-          {AREAS.map((a) => {
+          {areaCoMucTieu.map((a) => {
             const w = wigByArea.get(a);
             const s = areaMeta[a];
             const Icon = areaIcon(s);
@@ -707,6 +713,7 @@ export async function StudentScoreboard({
           })}
         </div>
       </section>
+      )}
 
       {/* Lead measure tuần + WIG tuần + Họp WIG (2 cột) */}
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
@@ -742,64 +749,10 @@ export async function StudentScoreboard({
         </section>
 
         <div className="flex flex-col gap-[22px]">
-          <section>
-            <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('wigWeek')}</h2>
-            {hasWeek ? (
-              <div className="glass rounded-[20px]">
-                {AREAS.map((a, i) => {
-                  const weeks = weeksByArea.get(a) ?? [];
-                  const wins = weeks.filter((w) => Number(w.pct ?? 0) >= 1).length;
-                  const s = areaMeta[a];
-                  return (
-                    <div
-                      key={a}
-                      className={`flex flex-wrap items-center gap-x-[9px] gap-y-1.5 px-3.5 py-3 ${
-                        i < AREAS.length - 1 ? 'border-b border-navy/[0.08]' : ''
-                      }`}
-                    >
-                      <span className="h-[9px] w-[9px] shrink-0 rounded-full" style={{background: s.hex}} />
-                      <span className="whitespace-nowrap text-[13px] font-extrabold text-navy">
-                        {areaLabel(s, locale)}
-                      </span>
-                      <span className="flex-1" />
-                      <span className="flex gap-[3px]">
-                        {weeks.length === 0 ? (
-                          <span className="text-xs italic text-grey-mid">{tc('noWeekWig')}</span>
-                        ) : (
-                          weeks.slice(-5).map((w) => {
-                            const won = Number(w.pct ?? 0) >= 1;
-                            return (
-                              <svg
-                                key={w.wig_id}
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill={won ? '#f9dd0e' : 'transparent'}
-                                stroke={won ? '#e3b400' : 'rgba(38,39,93,0.2)'}
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                              </svg>
-                            );
-                          })
-                        )}
-                      </span>
-                      {weeks.length > 0 && (
-                        <span className="w-9 text-right font-display text-[15px] font-bold" style={{color: s.hex}}>
-                          {wins}
-                          <span className="text-[11.5px] text-grey-mid">/{weeks.length}</span>
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-sm italic text-grey-mid">{tc('noWig')}</p>
-            )}
-          </section>
+          {/* Khối "WIG tuần của em" từng đứng ở đây — năm dòng pip thắng/thua theo bốn lĩnh
+              vực. Từ 0100 em KHÔNG còn WIG tuần nữa: mục tiêu của em sống cả học kỳ, còn nhịp
+              hằng tuần nằm ở việc để tick. Để lại thì nó vĩnh viễn hiện "Chưa thiết lập WIG"
+              và giục em đi làm một thứ CSDL đã cấm. Xem docs/MO_HINH_WIG.md §1. */}
 
           <section className="flex flex-col gap-3">
             <h2 className="font-display text-[17px] font-bold text-navy">{t('meetings')}</h2>

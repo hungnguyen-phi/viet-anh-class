@@ -48,7 +48,6 @@ export async function TuongWig({
   siSo: number;
 }) {
   const t = await getTranslations('goal');
-  const tw = await getTranslations('wig');
 
   const hocTap = mucTieu.filter((m) => m.kind === 'academic');
   const choDuyet = mucTieu.filter((m) => m.status === 'sent');
@@ -114,7 +113,7 @@ export async function TuongWig({
       {/* Trận đánh của lớp — cái đích chung mà mọi mục tiêu bên dưới đang phục vụ. */}
       <div className="flex flex-col gap-1 rounded-[14px] border-[1.5px] border-navy/10 p-3">
         {wigLop.length === 0 ? (
-          <p className="text-[12.5px] italic text-grey-mid">{tw('noWig')}</p>
+          <p className="text-[12.5px] italic text-grey-mid">{t('noClassWig')}</p>
         ) : (
           wigLop.map((w) => (
             <p key={w.id} className="text-[13px] font-extrabold tabular-nums text-navy">

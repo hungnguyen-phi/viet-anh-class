@@ -43,6 +43,24 @@ const VET_LOI = [
   'This page could not be found',
 ];
 
+// KHOÁ DỊCH LỌT RA MÀN HÌNH — "goal.title" thay vì "Mục tiêu của con".
+//
+// HAI nguyên nhân, và cùng một biểu hiện:
+//   · client component dùng namespace chưa có trong NAMESPACE_CHO_CLIENT (app/[locale]/layout.tsx)
+//   · gọi một khoá không tồn tại (vd tw('noWig') trong khi 'noWig' nằm ở namespace `class`)
+//
+// Cả hai đều KHÔNG ném lỗi: trang vẫn 200, không dấu vết nào trong log, next-intl lặng lẽ in ra
+// cái khoá. Mọi phép kiểm cũ đều xanh — đó chính là cách nó lọt lên production ngày 11/08/2026,
+// và người phát hiện là chủ dự án chứ không phải bộ kiểm.
+//
+// Bắt bằng chính danh sách namespace, để không nhận nhầm chữ thường có dấu chấm trong nội dung.
+const NAMESPACE = [
+  'admin', 'attendance', 'campusReport', 'class', 'common', 'gallery', 'goal', 'grades',
+  'homework', 'inbox', 'login', 'meeting', 'menu', 'nav', 'notif', 'report', 'roster',
+  'scoreboard', 'student', 'studentWig', 'subjects', 'timetable', 'values', 'wig',
+];
+const KHOA_THO = new RegExp(`>\\s*(?:${NAMESPACE.join('|')})\\.[a-zA-Z][a-zA-Z0-9]*\\s*<`);
+
 // GVCN có lớp thật (10A1). KHÔNG dùng test1.gvcn — tài khoản ấy không chủ nhiệm lớp nào, nên mọi
 // trang WIG rơi vào nhánh "chưa có lớp" và phép kiểm xanh mà chẳng kiểm được gì.
 const GVCN = 'tham.nguyen@truongvietanh.com';
@@ -60,18 +78,21 @@ async function xem(ten, duong, cookie, phaiCo) {
   }
   const body = await r.text();
   const loi = VET_LOI.find((v) => body.includes(v));
+  const kho = body.match(KHOA_THO);
   const thieu = phaiCo.filter((s) => !body.includes(s));
   ketQua.push({
     ten,
-    dat: r.status === 200 && !loi && thieu.length === 0,
+    dat: r.status === 200 && !loi && !kho && thieu.length === 0,
     chiTiet:
       r.status !== 200
         ? `HTTP ${r.status}`
         : loi
           ? `trang lỗi: "${loi}"`
-          : thieu.length
-            ? `thiếu dấu vết: ${thieu.join(' | ')}`
-            : `200, ${Math.round(body.length / 1024)} KB`,
+          : kho
+            ? `KHOÁ DỊCH LỌT RA MÀN HÌNH: ${kho[0].replace(/[><]/g, '').trim()} — namespace chưa khai trong layout, hoặc khoá không tồn tại`
+            : thieu.length
+              ? `thiếu dấu vết: ${thieu.join(' | ')}`
+              : `200, ${Math.round(body.length / 1024)} KB`,
   });
 }
 

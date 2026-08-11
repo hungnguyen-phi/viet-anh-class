@@ -35,6 +35,7 @@ const NAMESPACE_CHO_CLIENT = [
   'campusReport',
   'common',
   'gallery',
+  'goal',
   'grades',
   'homework',
   'inbox',

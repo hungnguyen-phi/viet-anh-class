@@ -654,7 +654,7 @@
     "buddyChatNotice": "Buddy only talks about this week's goals. Don't share personal details — your teacher can read this whole conversation.",
     "buddyChatTranscript": "Review Buddy conversation",
     "buddyChatStudent": "Student",
-    "buddyErrNoWig": "No weekly WIG yet, so Buddy has nothing to look at. Ask your teacher to set one.",
+    "buddyErrNoWig": "You have not set a goal yet, so Buddy has nothing to look at. Scroll up to “My goal” to set one.",
     "buddyErrNoClass": "You're not enrolled in a class yet, so Buddy can't help.",
     "buddyErrRateLimited": "Buddy already wrote to you today — come back tomorrow.",
     "buddyErrNoKey": "Buddy isn't enabled yet. Ask the school to configure it.",
@@ -696,8 +696,7 @@
       "low": "Don't worry, let's do better together this week!",
       "bad": "It's okay! Every little star helps you move up."
     },
-    "wigYear": "My yearly WIGs (4 areas)",
-    "wigWeek": "My weekly WIGs",
+    "wigYear": "My goal for the year",
     "noWig": "Your homeroom teacher hasn't set personal WIGs yet.",
     "leads": "Your tasks — tick each day",
     "noLeads": "You have no personal tasks this week. Your class tasks, if any, are just above.",
@@ -1283,6 +1282,7 @@
     "journalEmpty": "Nothing written this week yet.",
     "paceTitle": "Adjust the monthly pace",
     "paceTotal": "Total: {tong} / {can} {unit}",
-    "paceSave": "Save pace"
+    "paceSave": "Save pace",
+    "noClassWig": "This class has no year goal yet."
   }
 }
