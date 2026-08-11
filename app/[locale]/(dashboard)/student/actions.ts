@@ -9,16 +9,7 @@ import {getCurrentProfile, requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
 import {buddyNote, buddyChat, type BuddyContext, type BuddyLead} from '@/lib/buddy';
-import {mucTieuCuaEm, type CachChia} from '@/lib/wig-ca-nhan';
-import {
-  weekRangeVN,
-  nextWeekRangeVN,
-  schoolYearRangeVN,
-  todayInVN,
-  isValidDayVN,
-  mondayOf,
-  weekFromMonday,
-} from '@/lib/dates';
+import {weekRangeVN, todayInVN} from '@/lib/dates';
 import type {Database} from '@/lib/database.types';
 
 type Mood = Database['public']['Enums']['mood_level'];
@@ -73,27 +64,6 @@ export async function checkinMood(mood: Mood, buoi: 'sang' | 'chieu' = 'sang'): 
   return {ok: true, late: data === 'late'};
 }
 
-const AREAS = ['knowledge', 'skills', 'english', 'physical'] as const;
-
-// Tiêu đề lead measure mặc định theo lĩnh vực (GVCN có thể đổi sau).
-// Tên WIG cá nhân mặc định theo lĩnh vực.
-// WIG cá nhân được sinh HÀNG LOẠT (4 lĩnh vực một lượt, hoặc 1 chạm cho cả tuần), nên bắt GVCN
-// gõ 4 cái tên mỗi lần là không thực tế. Nhưng để trống thì màn hình của em lại hiện ra một con
-// số trần không rõ là gì — đúng lỗi đang đi sửa. Đặt tên mặc định đọc được, GVCN sửa sau nếu muốn.
-const DEFAULT_WIG_TITLE: Record<(typeof AREAS)[number], string> = {
-  knowledge: 'Tiến bộ kiến thức',
-  skills: 'Rèn kỹ năng & hành vi',
-  english: 'Tiến bộ tiếng Anh',
-  physical: 'Rèn luyện thể chất',
-};
-
-const DEFAULT_LEAD_TITLE: Record<(typeof AREAS)[number], string> = {
-  knowledge: 'Buổi học / tutor',
-  skills: 'Hành vi văn hoá tốt',
-  english: 'Luyện tiếng Anh',
-  physical: 'Buổi tập thể thao',
-};
-
 // State trả về cho useActionState → hiện lỗi/thành công INLINE (không redirect, giữ nguyên input).
 export type StudentMeetingState = {
   ok: boolean;
@@ -119,33 +89,24 @@ export async function saveStudentMeeting(
   const results = String(formData.get('results') ?? '').trim();
   const commitments = String(formData.get('commitments') ?? '').trim();
   const next_actions = String(formData.get('next_actions') ?? '').trim();
-  // Kế hoạch tuần sau ở dạng CÓ CẤU TRÚC (JSON từ form nhiều dòng), thay ô chữ tự do cũ.
-  const planRows = parsePlan(String(formData.get('plan') ?? ''));
   // Giữ lại input để trả về khi có lỗi (không mất nội dung đã gõ).
   const values = {week_label, buddy_id, results, commitments, next_actions};
 
   if (!student_id || !class_id) return {ok: false, error: (friendlyError(null)), values};
   if (!week_label) return {ok: false, fieldError: 'week_label', error: 'Hãy chọn tuần.', values};
-  if (!results && !commitments && !next_actions && planRows.length === 0)
+  if (!results && !commitments && !next_actions)
     return {
       ok: false,
       fieldError: 'results',
-      error: 'Nhập ít nhất một nội dung: chiêm nghiệm, cam kết, hoặc kế hoạch tuần sau.',
+      error: 'Nhập ít nhất một nội dung: chiêm nghiệm, cam kết, hoặc việc cần làm.',
       values,
     };
 
   const supabase = await createClient();
 
-  // Sinh WIG tuần sau TRƯỚC khi lưu biên bản: nếu bước này lỗi (vd chưa có WIG năm) thì không
-  // lưu một biên bản nói rằng đã có kế hoạch trong khi thực tế chưa tạo được gì.
-  let planMsg = '';
-  let planSummary = '';
-  if (planRows.length > 0) {
-    const applied = await applyNextWeekPlan(supabase, student_id, class_id, planRows);
-    if (applied.error) return {ok: false, error: applied.error, values};
-    planSummary = applied.summary ?? '';
-    planMsg = `Đã tạo kế hoạch tuần ${nextWeekRangeVN().label} (${planRows.length} việc).`;
-  }
+  // Ô "kế hoạch tuần sau" từng SINH RA WIG tuần cho em ngay tại đây (applyNextWeekPlan). Bỏ cùng
+  // đợt 0100: mục tiêu của em nay là khoảng cách của chính em, đặt 2–3 lần một năm trong tiết đặt
+  // mục tiêu — không phải thứ đẻ ra mỗi tuần từ biên bản họp. Xem docs/MO_HINH_WIG.md §1 và §6.2.
 
   // 1 biên bản / (học sinh, tuần): đã có thì SỬA (cho phép sửa lại), chưa có thì tạo.
   const {data: existing} = await supabase
@@ -175,7 +136,7 @@ export async function saveStudentMeeting(
     commitments: commitments || null,
     // Vẫn ghi next_actions dạng chữ, sinh TỪ kế hoạch có cấu trúc — để báo cáo phụ huynh và
     // mục Họp WIG của học sinh đọc được câu tự nhiên mà không phải sửa gì ở hai chỗ đó.
-    next_actions: planSummary || next_actions || null,
+    next_actions: next_actions || null,
     coach_id: me.id,
   };
   // Idempotent/đồng thời: race 2 lần lưu 1 tuần → dính unique (HS,tuần) → tự chuyển update.
@@ -202,288 +163,8 @@ export async function saveStudentMeeting(
   revalidatePath('/[locale]', 'page');
   return {
     ok: true,
-    message:
-      (existing ? 'Đã cập nhật biên bản họp cá nhân.' : 'Đã lưu biên bản họp cá nhân.') +
-      (planMsg ? ` ${planMsg}` : ''),
+    message: existing ? 'Đã cập nhật biên bản họp cá nhân.' : 'Đã lưu biên bản họp cá nhân.',
   };
-}
-
-// ============================================================
-// Kế hoạch tuần sau: biến cam kết trong buổi họp thành DỮ LIỆU THẬT.
-//
-// Trước đây có hai nửa rời nhau: ô "WIG & Lead measure tuần sau" trong biên bản chỉ là CHỮ (học
-// sinh đọc được, không tick được, không tính điểm), còn nút "Tạo WIG tuần" thì tạo bản ghi thật
-// nhưng bằng giá trị CỨNG — target_value 5 cho mọi lĩnh vực, đúng 1 lead measure mỗi lĩnh vực với
-// tên lấy từ bảng DEFAULT_LEAD_TITLE. Nên GVCN không nói được tuần này em cam kết gì.
-// Nay GVCN điền form có cấu trúc một lần, app sinh đúng thứ đó.
-//
-// "Tự tạo" = APP tạo bản ghi từ thứ GVCN vừa nhập, lúc GVCN bấm Lưu. Không phải AI, không phải
-// học sinh. Luôn nhắm TUẦN SAU tính từ hôm nay → tuần đó chưa thể có tiến độ, nên ghi đè an toàn.
-// ============================================================
-// area phải là 1 trong 4 lĩnh vực cố định (enum wig_area) — không nhận chuỗi tuỳ ý từ client.
-export type PlanRow = {area: (typeof AREAS)[number]; title: string; target: number; unit: string};
-
-function parsePlan(raw: string): PlanRow[] {
-  if (!raw.trim()) return [];
-  let arr: unknown;
-  try {
-    arr = JSON.parse(raw);
-  } catch {
-    return [];
-  }
-  if (!Array.isArray(arr)) return [];
-  return arr
-    .map((r) => {
-      const o = r as Record<string, unknown>;
-      return {
-        area: String(o.area ?? '').trim() as (typeof AREAS)[number],
-        title: String(o.title ?? '').trim().slice(0, 200),
-        target: Number(o.target ?? 0),
-        unit: String(o.unit ?? '').trim().slice(0, 40),
-      };
-    })
-    .filter(
-      (r) =>
-        (AREAS as readonly string[]).includes(r.area) &&
-        r.title &&
-        Number.isFinite(r.target) &&
-        r.target > 0,
-    );
-}
-
-async function applyNextWeekPlan(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  student_id: string,
-  class_id: string,
-  rows: PlanRow[],
-): Promise<{error?: string; summary?: string}> {
-  if (rows.length === 0) return {};
-
-  // WIG tuần BẮT BUỘC có parent_wig_id trỏ về WIG năm cùng lĩnh vực → thiếu là không tạo được.
-  const {data: yearWigs, error: yErr} = await supabase
-    .from('wigs')
-    .select('id, area')
-    .eq('student_id', student_id)
-    .eq('scope', 'student')
-    .eq('period', 'year');
-  if (yErr) return {error: (friendlyError(yErr))};
-  const parentByArea = new Map((yearWigs ?? []).map((y) => [y.area as string, y.id]));
-
-  const missing = [...new Set(rows.map((r) => r.area))].filter((a) => !parentByArea.has(a));
-  if (missing.length > 0)
-    return {error: `Chưa có WIG năm ở lĩnh vực: ${missing.join(', ')} — đặt WIG năm trước đã.`};
-
-  const {label, start, end} = nextWeekRangeVN();
-
-  // Gom theo lĩnh vực: mỗi lĩnh vực 1 WIG tuần, trong đó n lead measure.
-  const byArea = new Map<PlanRow['area'], PlanRow[]>();
-  for (const r of rows) byArea.set(r.area, [...(byArea.get(r.area) ?? []), r]);
-
-  for (const [area, list] of byArea) {
-    // Mục tiêu WIG tuần = TỔNG mục tiêu các lead measure của nó → khỏi nhập 2 lần, khỏi lệch.
-    const target = list.reduce((s, r) => s + r.target, 0);
-    // wigs.unit là NOT NULL → luôn có giá trị, mặc định "lần" nếu GVCN để trống.
-    const unit = list[0].unit || 'lần';
-
-    const {data: found, error: fErr} = await supabase
-      .from('wigs')
-      .select('id')
-      .eq('student_id', student_id)
-      .eq('scope', 'student')
-      .eq('period', 'week')
-      .eq('period_label', label)
-      .eq('area', area)
-      .maybeSingle();
-    if (fErr) return {error: (friendlyError(fErr))};
-
-    let wigId = found?.id ?? null;
-    if (wigId) {
-      const {error} = await supabase
-        .from('wigs')
-        .update({target_value: target, unit, start_date: start, end_date: end, parent_wig_id: parentByArea.get(area)})
-        .eq('id', wigId);
-      if (error) return {error: (friendlyError(error))};
-    } else {
-      const {data, error} = await supabase
-        .from('wigs')
-        .insert({
-          class_id,
-          student_id,
-          scope: 'student' as const,
-          title: DEFAULT_WIG_TITLE[area as (typeof AREAS)[number]] ?? 'Mục tiêu tuần',
-          area,
-          period: 'week' as const,
-          period_label: label,
-          parent_wig_id: parentByArea.get(area),
-          target_value: target,
-          unit,
-          start_date: start,
-          end_date: end,
-        })
-        .select('id')
-        .single();
-      if (error || !data) return {error: (friendlyError(error))};
-      wigId = data.id;
-    }
-
-    // Thay lead measure của WIG tuần đó. Tuần sau chưa thể có tiến độ, nhưng vẫn kiểm cho chắc:
-    // có tiến độ thì KHÔNG xoá (mất tick của học sinh là hỏng dữ liệu thật).
-    const {data: olds, error: oErr} = await supabase
-      .from('lead_measures')
-      .select('id, lead_progress(id)')
-      .eq('wig_id', wigId);
-    if (oErr) return {error: (friendlyError(oErr))};
-    const hasProgress = (olds ?? []).some(
-      (l) => ((l as {lead_progress: unknown[] | null}).lead_progress ?? []).length > 0,
-    );
-    if (hasProgress)
-      return {error: `Tuần ${label} đã có tiến độ của học sinh — không ghi đè. Sửa trực tiếp ở trang WIG.`};
-
-    if ((olds ?? []).length > 0) {
-      const {error} = await supabase
-        .from('lead_measures')
-        .delete()
-        .in('id', (olds ?? []).map((l) => l.id));
-      if (error) return {error: (friendlyError(error))};
-    }
-    const {error: insErr} = await supabase.from('lead_measures').insert(
-      list.map((r) => ({wig_id: wigId!, title: r.title, target_value: r.target, unit: r.unit || null})),
-    );
-    if (insErr) return {error: (friendlyError(insErr))};
-  }
-
-  const summary = rows.map((r) => `${r.title} — ${r.target} ${r.unit}`.trim()).join('; ');
-  return {summary};
-}
-
-// C6 — GVCN đặt WIG NĂM cá nhân 4 lĩnh vực cho 1 học sinh (làm 1 lần đầu năm).
-export async function createStudentYearWigs(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
-  const student_id = String(formData.get('student_id') ?? '');
-  const class_id = String(formData.get('class_id') ?? '');
-  const back = (m: string): never =>
-    veTrangEm(student_id, m);
-  if (!student_id || !class_id) back('Thiếu học sinh hoặc lớp');
-
-  const supabase = await createClient();
-
-  // MỤC TIÊU CỦA EM SINH RA TỪ MỤC TIÊU CỦA LỚP (4DX là hình tháp).
-  //
-  // Form chỉ gửi lên: WIG năm nào của lớp, và chia theo cách nào. CON SỐ THÌ SERVER TỰ TÍNH —
-  // đọc mục tiêu lớp từ CSDL và đếm sĩ số tại chỗ. Nhận số do trình duyệt gửi là mở cửa cho một
-  // em có mục tiêu 1 bài/năm mà không ai biết, và cũng là dựng lại đúng cái bệnh hai nguồn.
-  const parentIds = formData.getAll('parent_id').map(String).filter(Boolean);
-  if (parentIds.length === 0) back('Lớp chưa có mục tiêu năm nào để chia xuống cho em');
-
-  const [{data: wigLop}, {count: siSo}] = await Promise.all([
-    supabase
-      .from('wigs')
-      .select('id, area, target_value, unit')
-      .eq('class_id', class_id)
-      .eq('scope', 'class')
-      .eq('period', 'year')
-      .in('id', parentIds),
-    supabase
-      .from('enrollments')
-      .select('student_id', {count: 'exact', head: true})
-      .eq('class_id', class_id)
-      .eq('is_active', true),
-  ]);
-
-  const cha = (wigLop ?? []) as {id: string; area: string; target_value: number; unit: string}[];
-  if (cha.length === 0) back('Không đọc được mục tiêu năm của lớp');
-
-  const {label, start, end} = schoolYearRangeVN();
-  const rows = cha.map((w) => {
-    const cach: CachChia = String(formData.get(`cach_${w.id}`) ?? '') === 'muc' ? 'muc' : 'chia';
-    return {
-      class_id,
-      student_id,
-      scope: 'student' as const,
-      title: DEFAULT_WIG_TITLE[w.area as (typeof AREAS)[number]] ?? 'Mục tiêu năm',
-      area: w.area as (typeof AREAS)[number],
-      period: 'year' as const,
-      period_label: label,
-      target_value: mucTieuCuaEm(Number(w.target_value), siSo ?? 0, cach),
-      unit: w.unit,
-      start_date: start,
-      end_date: end,
-      // ĐÂY LÀ SỢI DÂY. Có nó thì nhìn WIG của em là biết nó phục vụ mục tiêu nào của lớp; thiếu
-      // nó thì hai tầng trôi khỏi nhau đúng như bản cũ. Tiến độ KHÔNG tràn qua sợi dây này —
-      // private.wig_actual chỉ cộng con cùng scope (xem migration 0099).
-      parent_wig_id: w.id,
-    };
-  });
-
-  const {error} = await supabase.from('wigs').insert(rows);
-  revalidatePath('/[locale]/student/[id]', 'page');
-  back(error ? loi(friendlyError(error)) : `Đã tạo ${rows.length} WIG năm cá nhân từ mục tiêu của lớp`);
-}
-
-// C6 — 1 chạm: sinh WIG TUẦN NÀY (+ lead measure mặc định) cho mỗi WIG năm của em.
-// Idempotent: bỏ qua lĩnh vực đã có WIG tuần này.
-export async function createStudentWeekWigs(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
-  const student_id = String(formData.get('student_id') ?? '');
-  const class_id = String(formData.get('class_id') ?? '');
-  const back = (m: string): never =>
-    veTrangEm(student_id, m);
-  if (!student_id || !class_id) back('Thiếu học sinh hoặc lớp');
-
-  const supabase = await createClient();
-  const {label, start, end} = weekRangeVN();
-
-  const {data: yearWigs} = await supabase
-    .from('wigs')
-    .select('id, area, unit')
-    .eq('student_id', student_id)
-    .eq('scope', 'student')
-    .eq('period', 'year');
-  if (!yearWigs || yearWigs.length === 0) back('Chưa có WIG năm — hãy đặt WIG năm trước');
-
-  const {data: existing} = await supabase
-    .from('wigs')
-    .select('area')
-    .eq('student_id', student_id)
-    .eq('scope', 'student')
-    .eq('period', 'week')
-    .eq('period_label', label);
-  const done = new Set((existing ?? []).map((e) => e.area));
-  const toCreate = (yearWigs ?? []).filter((y) => !done.has(y.area));
-  if (toCreate.length === 0) back(`Tuần ${label} đã có đủ WIG cho em này`);
-
-  const {data: inserted, error} = await supabase
-    .from('wigs')
-    .insert(
-      toCreate.map((y) => ({
-        class_id,
-        student_id,
-        scope: 'student' as const,
-        title: DEFAULT_WIG_TITLE[y.area as (typeof AREAS)[number]] ?? 'Mục tiêu tuần',
-        area: y.area,
-        period: 'week' as const,
-        period_label: label,
-        parent_wig_id: y.id,
-        target_value: 5,
-        unit: y.unit,
-        start_date: start,
-        end_date: end,
-      })),
-    )
-    .select('id, area, unit');
-  if (error || !inserted) return back(loi(friendlyError(error)));
-
-  await supabase.from('lead_measures').insert(
-    inserted.map((w) => ({
-      wig_id: w.id,
-      title: DEFAULT_LEAD_TITLE[w.area as (typeof AREAS)[number]] ?? 'Tiến độ tuần',
-      target_value: 5,
-      unit: w.unit,
-    })),
-  );
-
-  revalidatePath('/[locale]/student/[id]', 'page');
-  back(`Đã tạo ${inserted.length} WIG tuần ${label} cho em`);
 }
 
 // ============================================================
@@ -972,182 +653,3 @@ export async function resolveEditRequest(formData: FormData) {
   backToStudent(student_id, decision === 'approved' ? 'Đã duyệt yêu cầu' : 'Đã từ chối yêu cầu');
 }
 
-// ============================================================
-// C6 — Tạo WIG CÁ NHÂN cho CẢ LỚP một lượt.
-//
-// VÌ SAO PHẢI CÓ HÀM NÀY (lỗi cả 3 người thử đều gặp):
-// Màn hình của học sinh chỉ hiện việc để tick khi em đó có WIG cá nhân (scope='student') của
-// ĐÚNG tuần này. Nhưng trước đây chỉ có một đường tạo ra chúng: mở trang chi tiết TỪNG em
-// (/student/<id>) rồi bấm hai lần. Trang WIG chính — nơi giáo viên thực sự làm việc — chỉ tạo
-// WIG của LỚP, không tạo WIG cá nhân. Giáo viên đi theo đường tự nhiên đó thì không em nào có
-// WIG cá nhân, nên màn hình học sinh luôn trống và không có gì để tick.
-//
-// Hàm này gom cả lớp vào ~6 vòng truy vấn CỐ ĐỊNH (không nhân theo sĩ số): lấy danh sách em →
-// đọc WIG năm đã có → chèn WIG năm còn thiếu → đọc WIG tuần đã có → chèn WIG tuần → chèn lead
-// measure. Lớp 40 em cũng chỉ tốn chừng đó vòng.
-//
-// Idempotent: chạy lại chỉ bù phần còn thiếu, không đẻ trùng.
-export async function createClassStudentWigs(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
-  const class_id = String(formData.get('class_id') ?? '');
-  // Tuần do trang /wig gửi lên (nút ← → đang đứng ở tuần nào thì tạo cho tuần đó).
-  //
-  // Bắt buộc phải nhận tham số này: khối gọi nó hiện "x/y em đã có việc" ĐẾM THEO TUẦN ĐANG XEM,
-  // nên nếu ở đây vẫn cứng weekRangeVN() như trước thì con số và cái nút nói hai chuyện khác nhau
-  // — bấm ở tuần sau lại đi tạo cho tuần này, rồi tuần sau vẫn báo thiếu. Chuẩn hoá về thứ Hai và
-  // chặn chuỗi rác vì giá trị này đi thẳng từ trình duyệt vào phép dựng Date.
-  const weekStartRaw = String(formData.get('week_start') ?? '');
-  const weekStart = isValidDayVN(weekStartRaw) ? mondayOf(weekStartRaw) : '';
-  // Chú thích kiểu TƯỜNG MINH trên biến (không chỉ trên hàm mũi tên): TypeScript chỉ chịu coi
-  // một lời gọi là "không bao giờ trả về" — để thu hẹp kiểu ở các dòng sau — khi chính BIẾN được
-  // khai báo kiểu. Thiếu nó thì sau `if (!x) back(...)` TS vẫn nghĩ code chạy tiếp.
-  const back: (m: string) => never = (m) =>
-    redirect(
-      `/wig?class=${class_id}${weekStart ? `&week=${weekStart}` : ''}&${tachLoi(m).laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(tachLoi(m).msg)}`,
-    );
-  if (!class_id) back('Thiếu lớp');
-
-  // MỤC TIÊU LẤY TỪ WIG NĂM CỦA LỚP, không nhận số do trình duyệt gửi (0099).
-  //
-  // Form chỉ nói: chia từ mục tiêu năm nào, và chia theo cách nào. Con số thì đọc từ CSDL rồi
-  // tính bằng lib/wig-ca-nhan — cùng một hàm với chỗ hiện số cho giáo viên soát, nên thứ họ nhìn
-  // thấy và thứ được ghi xuống không thể lệch nhau.
-  const parentIds = formData.getAll('parent_id').map(String).filter(Boolean);
-  if (parentIds.length === 0) back('Lớp chưa có mục tiêu năm nào để chia xuống cho các em');
-
-  const supabase = await createClient();
-  const year = schoolYearRangeVN();
-  // weekFromMonday() và weekRangeVN() trả về cùng một hình dạng {start, end, label} — cái đi từ
-  // chuỗi ngày, cái đi từ "bây giờ" — nên phần dưới không phải biết mình đang ở nhánh nào.
-  const week = weekStart ? weekFromMonday(weekStart) : weekRangeVN();
-
-  const {data: enr} = await supabase
-    .from('enrollments')
-    .select('student_id')
-    .eq('class_id', class_id)
-    .eq('is_active', true);
-  const studentIds = (enr ?? []).map((e) => e.student_id);
-  if (studentIds.length === 0) back('Lớp chưa có học sinh nào đang học');
-
-  const {data: chaData} = await supabase
-    .from('wigs')
-    .select('id, area, target_value, unit')
-    .eq('class_id', class_id)
-    .eq('scope', 'class')
-    .eq('period', 'year')
-    .in('id', parentIds);
-  const cha = (chaData ?? []) as {id: string; area: string; target_value: number; unit: string}[];
-  if (cha.length === 0) back('Không đọc được mục tiêu năm của lớp');
-
-  // Sĩ số dùng để chia là sĩ số THẬT lúc bấm, không phải con số form gửi lên.
-  const areaRows = cha.map((w) => {
-    const cach: CachChia = String(formData.get(`cach_${w.id}`) ?? '') === 'muc' ? 'muc' : 'chia';
-    return {
-      parent_wig_id: w.id,
-      area: w.area as (typeof AREAS)[number],
-      target: mucTieuCuaEm(Number(w.target_value), studentIds.length, cach),
-      unit: w.unit,
-    };
-  });
-
-  // ---- WIG NĂM: chỉ tạo cho (em, lĩnh vực) chưa có ----
-  const {data: haveYear} = await supabase
-    .from('wigs')
-    .select('student_id, area')
-    .eq('scope', 'student')
-    .eq('period', 'year')
-    .eq('period_label', year.label)
-    .in('student_id', studentIds);
-  const yearDone = new Set((haveYear ?? []).map((w) => `${w.student_id}|${w.area}`));
-
-  const yearRows = studentIds.flatMap((sid) =>
-    areaRows
-      .filter((r) => !yearDone.has(`${sid}|${r.area}`))
-      .map((r) => ({
-        class_id,
-        student_id: sid,
-        scope: 'student' as const,
-        title: DEFAULT_WIG_TITLE[r.area] ?? 'Mục tiêu năm',
-        area: r.area,
-        period: 'year' as const,
-        period_label: year.label,
-        target_value: r.target,
-        unit: r.unit,
-        start_date: year.start,
-        end_date: year.end,
-        // Sợi dây nối lên mục tiêu năm của lớp. Tiến độ KHÔNG tràn qua đây (migration 0099).
-        parent_wig_id: r.parent_wig_id,
-      })),
-  );
-  if (yearRows.length > 0) {
-    const {error} = await supabase.from('wigs').insert(yearRows);
-    if (error) back(loi(friendlyError(error)));
-  }
-
-  // ---- WIG TUẦN: mỗi WIG năm sinh ra một WIG tuần, bỏ qua tuần đã có ----
-  const {data: allYear} = await supabase
-    .from('wigs')
-    .select('id, student_id, area, unit')
-    .eq('scope', 'student')
-    .eq('period', 'year')
-    .eq('period_label', year.label)
-    .in('student_id', studentIds);
-
-  const {data: haveWeek} = await supabase
-    .from('wigs')
-    .select('student_id, area')
-    .eq('scope', 'student')
-    .eq('period', 'week')
-    .eq('period_label', week.label)
-    .in('student_id', studentIds);
-  const weekDone = new Set((haveWeek ?? []).map((w) => `${w.student_id}|${w.area}`));
-
-  const weekTarget = Number(formData.get('week_target') ?? 5) || 5;
-  const weekRows = (allYear ?? [])
-    .filter((y) => !weekDone.has(`${y.student_id}|${y.area}`))
-    .map((y) => ({
-      class_id,
-      student_id: y.student_id,
-      scope: 'student' as const,
-      title: DEFAULT_WIG_TITLE[y.area as (typeof AREAS)[number]] ?? 'Mục tiêu tuần',
-      area: y.area,
-      period: 'week' as const,
-      period_label: week.label,
-      parent_wig_id: y.id,
-      target_value: weekTarget,
-      unit: y.unit,
-      start_date: week.start,
-      end_date: week.end,
-    }));
-
-  if (weekRows.length === 0) {
-    revalidatePath('/[locale]/wig', 'page');
-    back(`Tuần ${week.label} đã có đủ WIG cá nhân cho cả lớp`);
-  }
-
-  const {data: insertedRaw, error: wErr} = await supabase
-    .from('wigs')
-    .insert(weekRows)
-    .select('id, area, unit');
-  if (wErr || !insertedRaw) back(loi(friendlyError(wErr)));
-  const inserted = insertedRaw;
-
-  // Lead measure là thứ học sinh THẤY và TICK — thiếu nó thì WIG tuần vẫn vô hình với các em.
-  const {error: lErr} = await supabase.from('lead_measures').insert(
-    inserted.map((w) => ({
-      wig_id: w.id,
-      title: DEFAULT_LEAD_TITLE[w.area as (typeof AREAS)[number]] ?? 'Tiến độ tuần',
-      target_value: weekTarget,
-      unit: w.unit,
-    })),
-  );
-  if (lErr) back(loi(friendlyError(lErr)));
-
-  revalidatePath('/[locale]/wig', 'page');
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  back(
-    `Đã tạo WIG cá nhân tuần ${week.label} cho ${studentIds.length} em ` +
-      `(${inserted.length} mục tiêu). Các em vào "Bảng điểm của tôi" là tick được ngay.`,
-  );
-}

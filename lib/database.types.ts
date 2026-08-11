@@ -1522,6 +1522,51 @@ export type Database = {
           },
         ]
       }
+      student_reflections: {
+        Row: {
+          body: string
+          class_id: string
+          created_at: string
+          id: string
+          student_id: string
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          body: string
+          class_id: string
+          created_at?: string
+          id?: string
+          student_id: string
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          body?: string
+          class_id?: string
+          created_at?: string
+          id?: string
+          student_id?: string
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_reflections_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_reflections_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_term_reviews: {
         Row: {
           class_id: string
@@ -2072,60 +2117,88 @@ export type Database = {
       }
       wigs: {
         Row: {
+          achieved_at: string | null
+          achieved_by: string | null
           area: Database["public"]["Enums"]["wig_area"]
           baseline: number | null
           class_id: string
           created_at: string
           end_date: string
           id: string
+          kind: string | null
+          measure_by: string
           note: string | null
           parent_wig_id: string | null
           period: Database["public"]["Enums"]["wig_period"]
           period_label: string | null
           scope: Database["public"]["Enums"]["wig_scope"]
+          set_by: string | null
+          source_wig_id: string | null
           start_date: string
+          status: string
           student_id: string | null
           target_value: number
           title: string
           unit: string
         }
         Insert: {
+          achieved_at?: string | null
+          achieved_by?: string | null
           area: Database["public"]["Enums"]["wig_area"]
           baseline?: number | null
           class_id: string
           created_at?: string
           end_date: string
           id?: string
+          kind?: string | null
+          measure_by?: string
           note?: string | null
           parent_wig_id?: string | null
           period: Database["public"]["Enums"]["wig_period"]
           period_label?: string | null
           scope: Database["public"]["Enums"]["wig_scope"]
+          set_by?: string | null
+          source_wig_id?: string | null
           start_date: string
+          status?: string
           student_id?: string | null
           target_value: number
           title: string
           unit: string
         }
         Update: {
+          achieved_at?: string | null
+          achieved_by?: string | null
           area?: Database["public"]["Enums"]["wig_area"]
           baseline?: number | null
           class_id?: string
           created_at?: string
           end_date?: string
           id?: string
+          kind?: string | null
+          measure_by?: string
           note?: string | null
           parent_wig_id?: string | null
           period?: Database["public"]["Enums"]["wig_period"]
           period_label?: string | null
           scope?: Database["public"]["Enums"]["wig_scope"]
+          set_by?: string | null
+          source_wig_id?: string | null
           start_date?: string
+          status?: string
           student_id?: string | null
           target_value?: number
           title?: string
           unit?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "wigs_achieved_by_fkey"
+            columns: ["achieved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "wigs_class_id_fkey"
             columns: ["class_id"]
@@ -2143,6 +2216,20 @@ export type Database = {
           {
             foreignKeyName: "wigs_parent_wig_id_fkey"
             columns: ["parent_wig_id"]
+            isOneToOne: false
+            referencedRelation: "wigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wigs_source_wig_id_fkey"
+            columns: ["source_wig_id"]
+            isOneToOne: false
+            referencedRelation: "wig_progress_v"
+            referencedColumns: ["wig_id"]
+          },
+          {
+            foreignKeyName: "wigs_source_wig_id_fkey"
+            columns: ["source_wig_id"]
             isOneToOne: false
             referencedRelation: "wigs"
             referencedColumns: ["id"]
@@ -2187,11 +2274,13 @@ export type Database = {
       }
       wig_progress_v: {
         Row: {
+          achieved_at: string | null
           actual: number | null
           area: Database["public"]["Enums"]["wig_area"] | null
           class_id: string | null
           end_date: string | null
           expected_pct: number | null
+          measure_by: string | null
           pct: number | null
           period: Database["public"]["Enums"]["wig_period"] | null
           period_label: string | null

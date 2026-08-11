@@ -79,93 +79,90 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
   const supabase = await createClient();
   const lam: string[] = [];
 
-  // ── 1. MỤC TIÊU TUẦN TỚI (nếu có điền) ───────────────────────────────────────────────────
-  const mt_title = String(formData.get('mt_title') ?? '').trim();
-  if (mt_title) {
-    if (!dich_label) return {ok: false, fieldError: 'mt_title', error: 'Không rõ đang đặt mục tiêu cho tuần nào.'};
+  // ── 1. VIỆC CHO TUẦN TỚI ─────────────────────────────────────────────────────────────────
+  //
+  // Bước này KHÔNG tạo mục tiêu nữa. Trước đây nó đẻ ra một WIG tuần mới mỗi tuần (và cả một WIG
+  // tháng nếu thiếu mắt xích) — nghĩa là mỗi tuần một mục tiêu rời, số lượng phình theo thời gian,
+  // mỗi cái có thể lệch đơn vị với cha nó. Cả 4DX lẫn Individual WIG Plan đều đặt mục tiêu MỘT
+  // LẦN cho cả kỳ; buổi họp chỉ báo cáo → nhìn bảng điểm → dọn đường.
+  //
+  // Từ 0100, mốc tuần đã được app rải sẵn ngay khi cô khai mục tiêu năm (lib/wig-nhip.ts). Ở đây
+  // chỉ còn hai việc: chỉnh chỉ tiêu của mốc nếu tuần ấy đặc biệt, và gắn việc cho các em tick.
+  const moc_target_raw = String(formData.get('moc_target') ?? '').trim();
+  let mocId = String(formData.get('moc_id') ?? '').trim();
+  const buMoc = String(formData.get('bu_moc') ?? '') === '1';
 
-    // Đã có mục tiêu cho tuần ấy rồi thì KHÔNG tạo cái thứ hai. Hai mục tiêu tuần cùng kỳ là hai
-    // thanh tiến độ cho một việc, và không màn hình nào nói được cái nào mới là thật.
-    const {data: daCo} = await supabase
-      .from('wigs')
-      .select('id')
-      .eq('class_id', class_id)
-      .eq('scope', 'class')
-      .eq('period', 'week')
-      .eq('period_label', dich_label)
-      .limit(1);
-    if (daCo && daCo.length > 0)
-      return {
-        ok: false,
-        fieldError: 'mt_title',
-        error: `Tuần ${dich_label} đã có mục tiêu rồi — sửa nó ở trang WIG thay vì tạo thêm một cái nữa.`,
-      };
+  if (mocId || buMoc) {
+    if (!dich_label) return {ok: false, fieldError: 'moc_target', error: 'Không rõ đang họp cho tuần nào.'};
 
-    // 1a. Chuỗi năm → tháng → tuần: thiếu mắt xích tháng thì tạo luôn tại đây, không đá người
-    // đang họp sang trang khác rồi bắt quay lại.
-    let parentId = String(formData.get('mt_parent') ?? '').trim();
-    if (String(formData.get('thang_can') ?? '') === '1') {
-      const kqThang = await taoMotWig(supabase, {
+    const moc_target = Number(moc_target_raw);
+    if (!Number.isFinite(moc_target) || moc_target <= 0)
+      return {ok: false, fieldError: 'moc_target', error: 'Chỉ tiêu của tuần phải là số lớn hơn 0.'};
+
+    // 1a. BÙ MỐC — chỉ xảy ra khi cô khai mục tiêu năm SAU khi tuần này đã trôi qua, nên nhịp app
+    // rải không phủ tới. Bù đúng một mốc, không đẻ mục tiêu mới.
+    if (buMoc) {
+      const kq = await taoMotWig(supabase, {
         class_id,
-        period: 'month',
-        title: String(formData.get('thang_title') ?? '').trim(),
+        period: 'week',
+        // Thừa kế tên và đơn vị của mục tiêu năm — không có ô cho cô gõ, vì gõ lệch cha một chữ là
+        // mốc rơi khỏi cây tổng hợp mà nhìn màn hình vẫn thấy nằm đúng chỗ.
+        title: String(formData.get('bu_title') ?? '').trim() || `Tuần ${dich_label}`,
         baseline: null,
-        target_value: Number(String(formData.get('thang_target') ?? '').trim()),
-        unit: String(formData.get('thang_unit') ?? '').trim(),
-        period_label: String(formData.get('thang_label') ?? '').trim(),
-        parent_wig_id: String(formData.get('thang_parent') ?? '').trim() || undefined,
+        target_value: moc_target,
+        unit: String(formData.get('bu_unit') ?? '').trim() || 'lần',
+        period_label: dich_label,
+        parent_wig_id: String(formData.get('bu_nam') ?? '').trim() || undefined,
       });
-      if (!kqThang.ok)
-        return {ok: false, fieldError: kqThang.field ? `thang_${kqThang.field}` : undefined, error: kqThang.loi};
-      parentId = kqThang.id;
-      lam.push('tạo mục tiêu tháng');
-      // LÀM MỚI TRANG NGAY SAU KHI TẠO ĐƯỢC THÁNG.
-      //
-      // Nếu bước tạo TUẦN ngay dưới đây hỏng, hàm trả về lỗi và form vẫn còn nguyên trên màn —
-      // kèm ô ẩn thang_can="1". Bấm Lưu lần nữa là tạo thêm một mục tiêu tháng THỨ HAI cho cùng
-      // một tháng, và từ đó tiến độ tháng tách làm đôi mà không ai hiểu vì sao. Revalidate ở đây
-      // buộc trang dựng lại: lần sau mở ra, tháng đã tồn tại nên khối "tạo tháng" tự biến mất và
-      // ô chọn mục tiêu tháng hiện ra thay vào.
-      revalidatePath('/[locale]/wig/hop', 'page');
-      revalidatePath('/[locale]/wig', 'page');
+      if (!kq.ok) return {ok: false, fieldError: 'moc_target', error: kq.loi};
+      mocId = kq.id;
+      lam.push(`bù mốc tuần ${dich_label}`);
+    } else {
+      // 1b. CHỈNH chỉ tiêu của mốc đã có. .select() để phân biệt "RLS chặn" với "đã ghi" — thiếu
+      // nó thì lớp không thuộc quyền mình vẫn báo thành công.
+      const {data, error} = await supabase
+        .from('wigs')
+        .update({target_value: moc_target})
+        .eq('id', mocId)
+        .eq('class_id', class_id)
+        .eq('scope', 'class')
+        .select('id')
+        .maybeSingle();
+      if (error) return {ok: false, fieldError: 'moc_target', error: friendlyError(error)};
+      if (!data)
+        return {ok: false, fieldError: 'moc_target', error: 'Không sửa được mốc tuần này (không có quyền với lớp).'};
+      lam.push(`chỉnh chỉ tiêu tuần ${dich_label}`);
     }
 
-    const baseline_raw = String(formData.get('mt_baseline') ?? '').trim();
-    const kqTuan = await taoMotWig(supabase, {
-      class_id,
-      period: 'week',
-      title: mt_title,
-      baseline: baseline_raw === '' ? null : Number(baseline_raw),
-      target_value: Number(String(formData.get('mt_target') ?? '').trim()),
-      unit: String(formData.get('mt_unit') ?? '').trim(),
-      period_label: dich_label,
-      parent_wig_id: parentId || undefined,
-    });
-    if (!kqTuan.ok)
-      return {
-        ok: false,
-        fieldError: kqTuan.field ? `mt_${kqTuan.field}` : undefined,
-        // Kể ra phần ĐÃ ghi được. Im lặng ở đây là để người dùng tin rằng chưa có gì xảy ra, rồi
-        // họ bấm lại và sinh ra bản sao — đúng lỗi vừa chặn ở trên.
-        error: lam.length > 0 ? `${kqTuan.loi} (đã ${lam.join(', ')})` : kqTuan.loi,
-      };
-    lam.push(`đặt mục tiêu tuần ${dich_label}`);
-
+    // 1c. VIỆC cho các em tick. THAY toàn bộ việc của mốc ấy, không cộng dồn: buổi họp mở ra đã
+    // điền sẵn việc của tuần rồi (viecMau), nên nếu chỉ chèn thêm thì mỗi lần lưu lại là một bộ
+    // việc trùng nữa, và bảng tick của em dài gấp đôi sau hai tuần.
     const viec = docViec(formData);
     const hong = viec.find((v) => !Number.isFinite(v.target_value) || v.target_value <= 0);
     if (hong)
       return {
         ok: false,
         fieldError: 'viec',
-        error: `Việc “${hong.title}” chưa có mục tiêu hợp lệ (phải là số lớn hơn 0). Mục tiêu tuần ĐÃ được tạo — sửa số rồi lưu lại, lần này chỉ cần thêm việc.`,
+        error: `Việc “${hong.title}” chưa có mục tiêu hợp lệ (phải là số lớn hơn 0). Chỉ tiêu tuần ĐÃ lưu — sửa số rồi lưu lại, lần này chỉ cần thêm việc.`,
       };
     if (viec.length > 0) {
+      // Chỉ xoá những việc CHƯA CÓ TICK NÀO. Xoá một việc đã có tick là xoá dữ liệu thật của học
+      // sinh — thà để lại một dòng thừa còn hơn mất lịch sử làm bài của các em.
+      const {data: cu} = await supabase
+        .from('lead_measures')
+        .select('id, lead_progress(id)')
+        .eq('wig_id', mocId);
+      const trong = (cu ?? [])
+        .filter((l) => ((l.lead_progress as unknown[]) ?? []).length === 0)
+        .map((l) => l.id);
+      if (trong.length > 0) await supabase.from('lead_measures').delete().in('id', trong);
+
       const {data, error} = await supabase
         .from('lead_measures')
-        .insert(viec.map((v) => ({wig_id: kqTuan.id, ...v})))
+        .insert(viec.map((v) => ({wig_id: mocId, ...v})))
         .select('id');
       if (error) return {ok: false, error: (friendlyError(error))};
-      lam.push(`thêm ${data?.length ?? 0} việc cho các em tick`);
+      lam.push(`đặt ${data?.length ?? 0} việc cho các em tick`);
     }
   }
 

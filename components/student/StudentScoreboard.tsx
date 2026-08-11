@@ -19,7 +19,7 @@ import {
   type StudentMeeting,
   type Classmate,
 } from '@/components/student/StudentMeetings';
-import {StudentWigSetup} from '@/components/student/StudentWigSetup';
+
 import {MyRequests, type MyRequest} from '@/components/student/MyRequests';
 import {BuddyAuto} from '@/components/student/BuddyAuto';
 import {StudentWigManage, type ManageWig, type ManageLead} from '@/components/student/StudentWigManage';
@@ -269,7 +269,13 @@ export async function StudentScoreboard({
   const wigTuanNay = weekRows.filter(
     (w) => w.start_date <= tuanNay.cuoi && w.end_date >= tuanNay.dau,
   );
-  const weekIds = wigTuanNay.map((w) => w.wig_id);
+  // Việc RIÊNG của em treo ở đâu — hai chỗ, và phải hỏi cả hai.
+  //
+  //   · WIG tuần cá nhân (đời cũ, trước 0100): việc treo dưới mốc tuần của em.
+  //   · Mục tiêu của em (từ 0100): việc treo thẳng dưới chính mục tiêu ấy, vốn là period='year'.
+  //     Mục tiêu của em nay sống cả học kỳ chứ không đẻ lại mỗi tuần, nên nếu chỉ hỏi WIG tuần
+  //     thì bảng tick của em trống trơn trong khi em vừa tự đặt việc xong.
+  const weekIds = [...wigTuanNay.map((w) => w.wig_id), ...yearRows.map((w) => w.wig_id)];
   // Bảng điểm "cầm mà họp" ở cuối trang đọc từ ĐÂY, không tự hỏi lại CSDL nữa: cùng dải ngày,
   // cùng dữ liệu, mà bớt được hai tầng chờ sâu nhất trang (xem MeetingScoreboard).
   const wonByArea = new Map(wigTuanNay.map((w) => [w.area, Number(w.pct ?? 0) >= 1]));
@@ -289,7 +295,7 @@ export async function StudentScoreboard({
     : {createAdminClient: null};
   const admin = createAdminClient ? createAdminClient() : null;
 
-  const [cuaSoRes, ipRes, mangRes, daHopRes, matesRes, leadRes, classLeadRes, namLopRes] =
+  const [cuaSoRes, ipRes, mangRes, daHopRes, matesRes, leadRes, classLeadRes] =
     await Promise.all([
     // CỬA SỔ CHECK-IN của cơ sở em đang học. Lấy một lần, dùng cho cả buổi sáng lẫn buổi chiều.
     // Null khi em chưa có lớp (chưa biết cơ sở) → giao diện giữ nguyên hành vi cũ, không khoá gì.
@@ -349,21 +355,10 @@ export async function StudentScoreboard({
           p_student: studentId,
         })
       : Promise.resolve({data: null}),
-    // MỤC TIÊU NĂM CỦA LỚP — nguồn sinh ra WIG năm của em (0099). Chỉ GVCN/Admin cần: khối thiết
-    // lập chỉ hiện với họ, hỏi thêm cho người khác là một vòng mạng cho không.
-    canManage && classId
-      ? supabase
-          .from('wigs')
-          .select('id, area, title, target_value, unit')
-          .eq('class_id', classId)
-          .eq('scope', 'class')
-          .eq('period', 'year')
-      : Promise.resolve({data: null}),
   ]);
   const mates = matesRes.data;
   const leadData = leadRes.data;
   const classLeadData = classLeadRes.data;
-  const namLopData = namLopRes.data;
 
   const cuaSoRaw = Array.isArray(cuaSoRes.data) ? cuaSoRes.data[0] : cuaSoRes.data;
   const cuaSo: {
@@ -429,15 +424,6 @@ export async function StudentScoreboard({
     .map((r) => ({id: r.student_id, name: r.profiles?.full_name ?? r.student_id}))
     .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
 
-  const wigNamLop = ((namLopData ?? []) as {id: string; area: string; title: string | null; target_value: number; unit: string | null}[]).map(
-    (w) => ({
-      id: w.id,
-      area: w.area as Area,
-      title: w.title ?? '',
-      target: Number(w.target_value),
-      unit: w.unit ?? '',
-    }),
-  );
 
   const leadRows = (leadData ?? []) as unknown as LeadRow[];
 
@@ -576,10 +562,6 @@ export async function StudentScoreboard({
   ).map((r) => ({...r, leadTitle: r.ref_id ? leadTitleById.get(r.ref_id) ?? null : null}));
   const displayName = student.full_name ?? student.email;
   const hasWeek = weekRows.length > 0;
-  // C6 — trạng thái WIG cá nhân để hiện bảng thiết lập cho GVCN.
-  const hasYear = yearRows.length > 0;
-  const thisWeekLabel = isoWeekLabel(new Date());
-  const hasThisWeek = weekRows.some((w) => w.period_label === thisWeekLabel);
 
   return (
     <div className="mt-4 flex flex-col gap-[22px]">
@@ -622,20 +604,9 @@ export async function StudentScoreboard({
         </div>
       </div>
 
-      {/* C6 — GVCN thiết lập WIG cá nhân (đặt WIG năm / tạo WIG tuần 1 chạm) */}
-      {canManage && classId && (
-        <StudentWigSetup
-          studentId={studentId}
-          classId={classId}
-          hasYear={hasYear}
-          hasThisWeek={hasThisWeek}
-          weekLabel={thisWeekLabel}
-          wigNamLop={wigNamLop}
-          // Sĩ số = các bạn cùng lớp + chính em. `classmates` đã lọc đúng em đang học.
-          siSo={classmates.length + 1}
-          duongToiWigLop={{pathname: '/wig', query: {class: classId}}}
-        />
-      )}
+      {/* Khối "GVCN thiết lập WIG cá nhân 1 chạm" từng đứng ở đây — đặt WIG năm cho em bằng cách
+          chia mục tiêu lớp cho sĩ số. Bỏ cùng đợt 0100; thay bằng tiết đặt mục tiêu, nơi chính em
+          gõ khoảng cách của mình. Xem docs/MO_HINH_WIG.md §6.2. */}
 
       {/* GVCN/Admin: yêu cầu-sửa đang chờ + quản lý WIG/lead/tick cá nhân (hết ngõ cụt) */}
       {canManage && <RequestInbox studentId={studentId} requests={requests} />}
@@ -691,7 +662,12 @@ export async function StudentScoreboard({
             <LeadTicker
               leads={tickerLeads}
               studentId={studentId}
-              canTick={canTick}
+              // GVCN/Admin tick HỘ được — chủ dự án chốt 10/08/2026 ("vẫn có gv tick hộ"), cho
+              // em nghỉ ốm, quên máy, hoặc lớp nhỏ chưa dùng điện thoại. Quyền ở CSDL đã mở sẵn
+              // (rls_all_lead_progress); trước bản này màn hình chỉ có đường GỠ tick.
+              canTick={canTick || canManage}
+              // Công vẫn thuộc về EM (student_id), chỉ ghi lại ai là người bấm.
+              nguoiGhi={viewer.id}
               today={today}
               tickOpen={tickOpen}
             />

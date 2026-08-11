@@ -136,10 +136,8 @@ export default async function HopPage({
         chiemNghiemCu={d.chiemNghiemCu}
         camKetCu={d.camKetCu}
         daCoBienBan={d.daCoBienBan}
-        mucTieuDaCo={d.mucTieuDaCo}
-        thangHienCo={d.thangHienCo}
+        mocDich={d.mocDich}
         namHienCo={d.namHienCo}
-        thangLabelCanTao={d.thangLabelCanTao}
         viecMau={d.viecMau}
         dayShort={tw.raw('dayShort') as string[]}
         canManage

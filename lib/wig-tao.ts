@@ -1,4 +1,5 @@
 import {ngayCuaKy} from '@/lib/dates';
+import {chiaNhip} from '@/lib/wig-nhip';
 import {friendlyError} from '@/lib/errors';
 import type {createClient} from '@/lib/supabase/server';
 import type {Database} from '@/lib/database.types';
@@ -59,6 +60,13 @@ export type ThongTinWig = {
   target_value: number;
   unit: string;
   period_label: string;
+  // 'tick'   — đích ĐẾM ĐƯỢC ("1200 bài"): máy đếm từ lượt tick, có vạch tiến độ thật.
+  // 'manual' — đích GHI NHẬN NGOÀI ("điểm TB 8,0"): cô và trò tự theo dõi, đạt thì tick một ô.
+  //
+  // Phân biệt này có vì app KHÔNG có dữ liệu điểm môn (bảng điểm 0 dòng ngày 11/08/2026). Cho
+  // một mục tiêu điểm số chạy ở chế độ 'tick' là để nó hiện một phần trăm suy ra từ số lượt tick,
+  // tức là suy ra từ thứ chẳng liên quan gì tới điểm. Xem docs/MO_HINH_WIG.md §5.0 và 0101.
+  measure_by?: 'tick' | 'manual';
   // Bắt buộc với tháng/tuần, bỏ qua với năm.
   parent_wig_id?: string;
   // Bắt buộc với năm; tháng/tuần thừa kế của cha.
@@ -177,6 +185,7 @@ export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao
       start_date: ky.start,
       end_date: ky.end,
       parent_wig_id: w.period === 'year' ? null : w.parent_wig_id,
+      measure_by: w.measure_by ?? 'tick',
     })
     .select('id')
     .maybeSingle();
@@ -184,5 +193,103 @@ export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao
   // .select() để phân biệt "RLS chặn" với "đã tạo": không có nó thì lớp không thuộc quyền mình
   // vẫn báo thành công, và người dùng đi tìm một mục tiêu chưa từng được ghi.
   if (!data) return {ok: false, loi: 'Không tạo được mục tiêu (không có quyền với lớp này).'};
+
+  // Mục tiêu NĂM thì rải luôn nhịp tháng + tuần. Cô khai một lần thay vì 12 lượt (3 cấp × 4 lĩnh
+  // vực), và mọi tuần trong năm có sẵn chỗ để gắn việc — xem lib/wig-nhip.ts.
+  if (w.period === 'year') {
+    const loiNhip = await sinhNhip(supabase, data.id, {
+      class_id: w.class_id,
+      area,
+      title: w.title,
+      unit: w.unit,
+      start: ky.start,
+      end: ky.end,
+      // Rải phần PHẢI ĐI THÊM, không rải cả phần đã có sẵn.
+      tong: w.target_value - (w.baseline ?? 0),
+      measure_by: w.measure_by ?? 'tick',
+    });
+    // Mục tiêu năm đã ghi được rồi — nhịp hỏng thì KHÔNG nuốt lỗi, nhưng cũng không giả vờ là
+    // chưa tạo gì. Nói đúng cả hai vế để cô biết mình đang đứng ở đâu.
+    if (loiNhip)
+      return {
+        ok: false,
+        loi: `Đã tạo mục tiêu năm nhưng chưa rải được nhịp tháng/tuần: ${loiNhip}`,
+      };
+  }
+
   return {ok: true, id: data.id};
+}
+
+/**
+ * Sinh mốc tháng + mốc tuần dưới một mục tiêu năm vừa tạo.
+ *
+ * Ghi tháng TRƯỚC rồi mới tới tuần, vì tuần phải trỏ `parent_wig_id` về đúng tháng chứa nó. Cả
+ * hai đợt đều là MỘT câu insert nhiều dòng — một năm học có ~52 tuần, bắn 52 câu lẻ qua đường
+ * tới Supabase là chỗ chờ dài nhất mà đợt audit tốc độ vừa rồi đã đi dọn.
+ *
+ * Trả về chuỗi lỗi nếu hỏng, `null` nếu xong.
+ */
+async function sinhNhip(
+  supabase: Sb,
+  namId: string,
+  w: {
+    class_id: string;
+    area: Area;
+    title: string;
+    unit: string;
+    start: string;
+    end: string;
+    tong: number;
+    measure_by: 'tick' | 'manual';
+  },
+): Promise<string | null> {
+  const nhip = chiaNhip(w.start, w.end, w.tong);
+  if (nhip.tuan.length === 0) return null;
+
+  const chung = {
+    class_id: w.class_id,
+    scope: 'class' as const,
+    area: w.area,
+    title: w.title,
+    unit: w.unit,
+    baseline: null,
+    // Mốc thừa kế kiểu đo của mục tiêu năm. Để mốc là 'tick' trong khi năm là 'manual' thì mốc
+    // tháng/tuần lại vẽ vạch suy ra từ lượt tick — đúng cái nói dối mà 0101 đi dẹp.
+    measure_by: w.measure_by,
+  };
+
+  const {data: thang, error: eThang} = await supabase
+    .from('wigs')
+    .insert(
+      nhip.thang.map((m) => ({
+        ...chung,
+        period: 'month' as const,
+        period_label: m.label,
+        target_value: m.target,
+        start_date: m.start,
+        end_date: m.end,
+        parent_wig_id: namId,
+      })),
+    )
+    .select('id, period_label');
+  if (eThang) return friendlyError(eThang);
+
+  const idTheoThang = new Map((thang ?? []).map((m) => [m.period_label as string, m.id]));
+
+  const {error: eTuan} = await supabase.from('wigs').insert(
+    nhip.tuan.map((t) => ({
+      ...chung,
+      period: 'week' as const,
+      period_label: t.label,
+      target_value: t.target,
+      start_date: t.start,
+      end_date: t.end,
+      // Tuần thuộc tháng chứa ngày ĐẦU của nó — cùng luật với lib/wig-nhip.ts, nếu không thì một
+      // tuần vắt qua hai tháng sẽ treo nhầm cha và tiến độ tháng lệch mà không ai thấy.
+      parent_wig_id: idTheoThang.get(t.start.slice(0, 7)) ?? namId,
+    })),
+  );
+  if (eTuan) return friendlyError(eTuan);
+
+  return null;
 }

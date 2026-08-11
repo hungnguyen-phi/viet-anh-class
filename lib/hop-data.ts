@@ -43,6 +43,7 @@ type MatrixRow = {
 type W = {
   id: string;
   title: string | null;
+  area: string;
   period: string;
   period_label: string | null;
   target_value: number;
@@ -63,10 +64,13 @@ export type DuLieuHop = {
   // Tuần này đã có biên bản chưa. Chính dòng ấy là thứ khoá tick (0081), nên phòng họp phải biết
   // để bày đường gỡ — không có nó thì họp nhầm tuần là khoá tick một tuần đang chạy, không lối ra.
   daCoBienBan: boolean;
-  mucTieuDaCo: {title: string; target: number; unit: string} | null;
+  // MỐC TUẦN ĐÍCH — app đã rải sẵn khi cô khai mục tiêu năm (lib/wig-nhip.ts), mỗi lĩnh vực một
+  // cái. Buổi họp CHỈNH nó, không tạo mới: trong 4DX mục tiêu đặt một lần cho cả kỳ, còn buổi họp
+  // chỉ báo cáo → nhìn bảng điểm → dọn đường. Xem docs/MO_HINH_WIG.md §6.4.
+  mocDich: {id: string; area: string; title: string; target: number; unit: string}[];
+  // Chỉ dùng khi mốc tuần đích BỊ THIẾU — cô khai mục tiêu năm sau khi tuần ấy đã trôi qua, nên
+  // nhịp không phủ tới. Để BÙ đúng một mốc, không phải để đẻ mục tiêu mới.
   namHienCo: WigOption[];
-  thangHienCo: WigOption[];
-  thangLabelCanTao: string;
   viecMau: ViecMau[];
 };
 
@@ -109,7 +113,7 @@ export async function layDuLieuHop(
       // mục tiêu chưa. Một câu thay ba.
       supabase
         .from('wigs')
-        .select('id, title, period, period_label, target_value, unit, start_date, end_date')
+        .select('id, title, area, period, period_label, target_value, unit, start_date, end_date')
         .eq('class_id', classId)
         .eq('scope', 'class'),
     ]);
@@ -173,7 +177,6 @@ export async function layDuLieuHop(
 
   const wigs = (wigData ?? []) as W[];
   const phuDich = (w: W) => w.start_date <= dichWk.end && w.end_date >= dichWk.start;
-  const tuanDaCo = wigs.find((w) => w.period === 'week' && w.period_label === dichWk.label);
 
   return {
     hop: hopWk,
@@ -189,17 +192,18 @@ export async function layDuLieuHop(
     chiemNghiemCu: bienBan?.results ?? '',
     camKetCu: bienBan?.commitments ?? '',
     daCoBienBan: Boolean(bienBan),
-    mucTieuDaCo: tuanDaCo
-      ? {title: tuanDaCo.title ?? nhan.week, target: Number(tuanDaCo.target_value), unit: tuanDaCo.unit}
-      : null,
+    mocDich: wigs
+      .filter((w) => w.period === 'week' && w.period_label === dichWk.label)
+      .map((w) => ({
+        id: w.id,
+        area: w.area,
+        title: w.title ?? nhan.week,
+        target: Number(w.target_value),
+        unit: w.unit,
+      })),
     namHienCo: wigs
       .filter((w) => w.period === 'year' && phuDich(w))
       .map((w) => ({id: w.id, title: w.title ?? w.period_label ?? nhan.year})),
-    thangHienCo: wigs
-      .filter((w) => w.period === 'month' && phuDich(w))
-      .map((w) => ({id: w.id, title: `${w.title ?? nhan.month} · ${w.period_label ?? ''}`})),
-    // Nhãn tháng chứa tuần đích — dùng khi phải tạo mắt xích tháng ngay trong buổi họp.
-    thangLabelCanTao: dichWk.start.slice(0, 7),
     // 4DX bảo thước đo dẫn dắt phải bền — đổi mỗi tuần thì không đo được xu hướng gì. Nên mặc
     // định là chép lại việc của tuần vừa rồi, còn sửa hay xoá thì tuỳ buổi họp.
     viecMau: board.map((r) => ({

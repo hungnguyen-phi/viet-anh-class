@@ -6,6 +6,10 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    // Cho phép ghi rõ đuôi .ts trong import. Cần cho các lib THUẦN (không chạm React/Next) để
+    // bộ kiểm đơn vị chạy thẳng bằng `node --experimental-strip-types` — node ESM bắt buộc có
+    // đuôi, còn tsc thì mặc định cấm. Xem scripts/test-wig-nhip.mjs.
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",

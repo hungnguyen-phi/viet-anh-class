@@ -59,12 +59,23 @@ export function LeadTicker({
   leads,
   studentId,
   canTick,
+  nguoiGhi,
   today,
   tickOpen,
 }: {
   leads: TickerLead[];
   studentId: string;
   canTick: boolean;
+  // AI ĐANG BẤM — không phải lúc nào cũng là chính em.
+  //
+  // Chủ dự án chốt 10/08/2026: "ai cũng có điện thoại, vẫn có gv tick hộ". Trước bản này giao
+  // diện chỉ có đường GỠ tick (removeLeadEntry) — cô gỡ được nhưng không thêm được, dù RLS
+  // (rls_all_lead_progress) đã cho GVCN toàn quyền với lớp mình từ lâu. Thiếu đúng một đường trên
+  // màn hình.
+  //
+  // `student_id` luôn là EM (công thuộc về em, mọi bảng đếm theo cột này); `logged_by` là người
+  // bấm. Tách hai cột chính là thứ cho phép tick hộ mà không làm sai một con số nào.
+  nguoiGhi: string;
   // Hôm nay theo GIỜ VN.
   today: string;
   // Tuần còn cho sửa không (theo ngày chốt của lớp).
@@ -120,7 +131,7 @@ export function LeadTicker({
         const {error} = await supabase.from('lead_progress').insert({
           lead_measure_id: lead.id,
           student_id: studentId,
-          logged_by: studentId,
+          logged_by: nguoiGhi,
           value: 1,
           logged_date: date,
         });
@@ -368,24 +379,19 @@ export function LeadTicker({
         </div>
       )}
 
-      {/* ---- VIỆC CHUNG CỦA LỚP ---- */}
-      {classLeads.length > 0 && (
+      {/* ---- MỘT BẢNG TICK, HAI NHÃN ----
+           Trước đây đây là HAI khối rời có hai tiêu đề riêng: "việc chung của lớp" và "việc riêng
+           của em". Chủ dự án gọi đúng tên vấn đề — em mở app ra thấy hai bảng chồng nhau và không
+           biết dòng nào của dòng nào. Mỗi thẻ vốn đã mang sẵn nhãn "của lớp"/"của con", nên gộp
+           lại là đủ để phân biệt mà không cần chia đôi màn hình.
+           Việc CHUNG đứng trước: đó là thứ quyết định lớp thắng hay thua tuần này. */}
+      {view.length > 0 && (
         <section className="flex flex-col gap-2">
           <div className="flex flex-wrap items-baseline gap-x-2">
             <h3 className="font-display text-[15px] font-bold text-navy">{t('classLeadsTitle')}</h3>
             <span className="text-[11.5px] font-semibold text-grey-mid">{t('classLeadsHint')}</span>
           </div>
           {classLeads.map(leadCard)}
-        </section>
-      )}
-
-      {/* ---- VIỆC RIÊNG CỦA EM ---- */}
-      {myLeads.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-baseline gap-x-2">
-            <h3 className="font-display text-[15px] font-bold text-navy">{t('myLeadsTitle')}</h3>
-            <span className="text-[11.5px] font-semibold text-grey-mid">{t('myLeadsHint')}</span>
-          </div>
           {myLeads.map(leadCard)}
         </section>
       )}

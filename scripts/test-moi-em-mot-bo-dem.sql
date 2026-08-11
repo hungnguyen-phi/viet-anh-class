@@ -94,7 +94,18 @@ begin
   -- ── 3. TIẾN ĐỘ WIG = TRUNG BÌNH MỨC ĐẠT: (1 + 1)/2 = 1 trên mục tiêu 3 ──────────────────
   v_actual := private.wig_actual(v_week);
   insert into ket_qua values
-    ('Mỗi em 1 bài → tiến độ tuần là 1/3', '1', v_actual::text, v_actual = 1);
+    ('Mỗi em 1 bài → tiến độ tuần = TỔNG hai em = 2', '2', v_actual::text, v_actual = 2);
+
+  -- ⚠ CÁC CON SỐ DƯỚI ĐÂY ĐÃ ĐỔI Ở 0100 — và đổi là ĐÚNG, không phải phép kiểm hỏng.
+  --
+  -- 0098 (bản này) chốt: mục tiêu của một VIỆC là mục tiêu CỦA MỖI EM, và một em chăm không gánh
+  -- được phần bạn. Điều đó vẫn nguyên. Cái đổi là bước cuối: 0098 cộng đóng góp các em rồi CHIA
+  -- CHO SĨ SỐ, trong khi wigs.target_value là con số của CẢ LỚP — hai vế của phép chia không cùng
+  -- thang, nên lớp thắng tuyệt đối vẫn hiện 12% và bảng thi đua toàn trường là một cột 0,0x%.
+  --
+  -- 0100 bỏ phép chia ấy. Từ nay tiến độ lớp = TỔNG đóng góp các em, cùng thang với mục tiêu.
+  -- Với lớp thử 2 em, mục tiêu mỗi em 3: cả hai đủ → 6, đúng bằng "mỗi bạn 3 bài × 2 bạn".
+  -- Xem docs/MO_HINH_WIG.md §5 và supabase/migrations/0100_moi_em_mot_khoang_cach.sql §4.
 
   -- ── 4. MỘT EM CHĂM KHÔNG GÁNH ĐƯỢC PHẦN BẠN ────────────────────────────────────────────
   -- A tick thêm 4 lượt nữa (tổng 5, vượt mục tiêu 3). Phần vượt phải bị chặn trần.
@@ -106,7 +117,7 @@ begin
 
   v_actual := private.wig_actual(v_week);
   insert into ket_qua values
-    ('A làm 5 bài, B làm 1 → vẫn là (3+1)/2 = 2, KHÔNG phải 3', '2', v_actual::text, v_actual = 2);
+    ('A làm 5 bài (chặn trần 3), B làm 1 → 3+1 = 4', '4', v_actual::text, v_actual = 4);
 
   select b.students_done into v_done
   from class_lead_board(v_class, '2026-03-02'::date) b where b.lead_measure_id = v_lead;
@@ -120,7 +131,7 @@ begin
 
   v_actual := private.wig_actual(v_week);
   insert into ket_qua values
-    ('Cả hai em đủ 3 → tiến độ đúng 3/3', '3', v_actual::text, v_actual = 3);
+    ('Cả hai em đủ 3 → 3+3 = 6, bằng đúng mục tiêu lớp', '6', v_actual::text, v_actual = 6);
 
   select b.students_done into v_done
   from class_lead_board(v_class, '2026-03-02'::date) b where b.lead_measure_id = v_lead;
@@ -132,12 +143,12 @@ begin
   values (v_lead, v_a, 1, '2026-03-09', v_a);
   v_actual := private.wig_actual(v_week);
   insert into ket_qua values
-    ('Tick thêm ngoài tuần cũng không đẩy quá mục tiêu', '3', v_actual::text, v_actual = 3);
+    ('Tick thêm ngoài tuần cũng không đẩy quá mục tiêu', '6', v_actual::text, v_actual = 6);
 
   -- ── 6. WIG NĂM CỘNG ĐỆ QUY QUA WIG TUẦN, cùng luật chặn trần ───────────────────────────
   v_actual := private.wig_actual(v_year);
   insert into ket_qua values
-    ('WIG năm cộng đệ quy đúng luật mới', '3', v_actual::text, v_actual = 3);
+    ('WIG năm cộng đệ quy đúng luật mới', '6', v_actual::text, v_actual = 6);
 
   -- ── 7. CẢNH BÁO TÍNH THEO TRẦN CỦA MỘT EM ──────────────────────────────────────────────
   -- Mục tiêu 3 bài, tuần có 5 ngày tick được → vừa sức, KHÔNG cảnh báo.

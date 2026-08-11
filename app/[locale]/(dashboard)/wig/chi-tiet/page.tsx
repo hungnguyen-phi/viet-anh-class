@@ -8,8 +8,6 @@ import {Link} from '@/i18n/navigation';
 import {isValidDayVN, mondayOf, todayInVN, weekFromMonday} from '@/lib/dates';
 import {WeekNav} from '@/components/wig/WeekNav';
 import {ChiTietTuan} from '@/components/wig/ChiTietTuan';
-import {ClassStudentWigSetup} from '@/components/wig/ClassStudentWigSetup';
-import type {Area} from '@/lib/areas';
 import {Flash} from '@/components/ui/Flash';
 
 // /wig/chi-tiet — "em nào làm tới đâu, quên hôm nào".
@@ -44,24 +42,9 @@ export default async function ChiTietPage({
   const laTuanNay = monday === thisMonday;
   const weekQ = laTuanNay ? '' : monday;
 
-  // Sĩ số + số em đã có việc RIÊNG của tuần này — cho khối cuối trang.
-  // Kèm MỤC TIÊU NĂM CỦA LỚP: từ 0099, WIG cá nhân sinh ra từ đó chứ không gõ tay nữa.
-  const [{data: enrolled}, {data: readyWigs}, {data: namLop}] = await Promise.all([
-    supabase.from('enrollments').select('student_id').eq('class_id', myClass.id).eq('is_active', true),
-    supabase
-      .from('wigs')
-      .select('student_id')
-      .eq('class_id', myClass.id)
-      .eq('scope', 'student')
-      .eq('period', 'week')
-      .eq('period_label', wk.label),
-    supabase
-      .from('wigs')
-      .select('id, area, title, target_value, unit')
-      .eq('class_id', myClass.id)
-      .eq('scope', 'class')
-      .eq('period', 'year'),
-  ]);
+  // Ba câu truy vấn từng đứng ở đây (sĩ số · em nào đã có WIG tuần · mục tiêu năm của lớp) chỉ
+  // phục vụ khối tạo WIG cá nhân hàng loạt. Khối ấy đi rồi thì chúng thành ba vòng mạng không ai
+  // đọc kết quả — xoá cùng lúc, đừng để lại.
 
   return (
     <div className="flex flex-col gap-4">
@@ -95,24 +78,10 @@ export default async function ChiTietPage({
 
       <ChiTietTuan classId={myClass.id} weekStart={monday} />
 
-      {/* Việc RIÊNG của từng em. Chuyển từ /wig sang đây: nó là chuyện quản lý theo em, cùng họ
-          với mọi thứ trên màn này, và trên trang hằng ngày thì nó chiếm một khối lớn cho một thao
-          tác mỗi tuần bấm nhiều nhất một lần. */}
-      <ClassStudentWigSetup
-        classId={myClass.id}
-        weekLabel={wk.label}
-        weekStart={monday}
-        laTuanNay={laTuanNay}
-        studentCount={(enrolled ?? []).length}
-        readyCount={new Set((readyWigs ?? []).map((w) => w.student_id)).size}
-        wigNamLop={(namLop ?? []).map((w) => ({
-          id: w.id,
-          area: w.area as Area,
-          title: w.title ?? '',
-          target: Number(w.target_value),
-          unit: w.unit ?? '',
-        }))}
-      />
+      {/* Khối "tạo WIG cá nhân cho cả lớp" từng đứng ở đây: nó chia mục tiêu của lớp cho sĩ số
+          rồi ghi con số ấy xuống bản ghi của từng em. Bỏ cùng đợt 0100 — mục tiêu của em nay là
+          khoảng cách của chính em, đặt trong tiết đặt mục tiêu 2–3 lần một năm, không suy ra từ
+          một phép chia. Xem docs/MO_HINH_WIG.md §1. */}
     </div>
   );
 }

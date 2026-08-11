@@ -64,10 +64,8 @@ export function PhongHop({
   nhanTuanTruoc,
   chiemNghiemCu,
   camKetCu,
-  mucTieuDaCo,
-  thangHienCo,
+  mocDich,
   namHienCo,
-  thangLabelCanTao,
   viecMau,
   dayShort,
   canManage,
@@ -87,12 +85,11 @@ export function PhongHop({
   nhanTuanTruoc: string;
   chiemNghiemCu: string;
   camKetCu: string;
-  // Tuần tới đã có mục tiêu rồi thì bước 3 chỉ hiện nó ra, không đẻ thêm cái thứ hai.
-  mucTieuDaCo: {title: string; target: number; unit: string} | null;
-  // Mục tiêu tháng phủ tuần tới. Rỗng = thiếu mắt xích, phải tạo ngay trong bước 3.
-  thangHienCo: WigOption[];
+  // Mốc tuần đích, mỗi lĩnh vực một cái — app đã rải sẵn từ mục tiêu năm. Buổi họp chỉnh chỉ tiêu
+  // của mốc, KHÔNG tạo mục tiêu mới.
+  mocDich: {id: string; area: string; title: string; target: number; unit: string}[];
+  // Chỉ dùng khi mocDich rỗng: bù đúng một mốc cho tuần này.
   namHienCo: WigOption[];
-  thangLabelCanTao: string;
   viecMau: ViecMau[];
   dayShort: string[];
   canManage: boolean;
@@ -115,15 +112,11 @@ export function PhongHop({
     const o: Record<string, string> = {
       chiem_nghiem: chiemNghiemCu,
       cam_ket: camKetCu,
-      mt_title: '',
-      mt_baseline: '',
-      mt_target: '',
-      mt_unit: '',
-      mt_parent: thangHienCo[0]?.id ?? '',
-      thang_parent: namHienCo[0]?.id ?? '',
-      thang_title: '',
-      thang_target: '',
-      thang_unit: '',
+      // Mốc tuần đích và chỉ tiêu của nó — điền sẵn con số app đã rải, cô chỉ sửa khi tuần ấy
+      // đặc biệt (nghỉ Tết, tuần thi). Không có ô nào để TẠO mục tiêu nữa.
+      moc_id: mocDich[0]?.id ?? '',
+      moc_target: mocDich[0] ? String(mocDich[0].target) : '',
+      bu_nam: namHienCo[0]?.id ?? '',
     };
     for (const r of viecTuanQua) {
       o[`verdict_${r.id}`] = r.verdict ?? '';
@@ -177,8 +170,6 @@ export function PhongHop({
   const xoaDong = (k: string) => setDong((p) => p.filter((r) => r.k !== k));
 
   const err = (f: string) => (state.fieldError === f ? state.error : null);
-  const canTaoThang = thangHienCo.length === 0 && namHienCo.length > 0;
-  const thieuNam = thangHienCo.length === 0 && namHienCo.length === 0;
 
   const buoc = (so: number, tieuDe: string, phu?: string) => (
     <div className="mb-3">
@@ -428,146 +419,81 @@ export function PhongHop({
         <section className="glass rounded-[20px] p-[18px]">
           {buoc(3, t('step3', {week: dichLabel}), t('step3Hint', {range: dichRange}))}
 
-          {mucTieuDaCo ? (
-            <div className="rounded-[14px] border-[1.5px] border-success/30 bg-success/[0.08] p-3.5">
-              <p className="text-[12.5px] font-bold text-navy">
-                {t('goalAlready', {
-                  week: dichLabel,
-                  title: mucTieuDaCo.title,
-                  target: mucTieuDaCo.target,
-                  unit: mucTieuDaCo.unit,
-                })}
-              </p>
-              {quayVe && (
-                <Link
-                  href={quayVe}
-                  className="mt-1.5 inline-flex min-h-[24px] items-center gap-1 text-[12px] font-extrabold text-navy underline"
-                >
-                  {t('goalEditThere')}
-                  <ArrowRight size={12} strokeWidth={2.5} />
-                </Link>
-              )}
-            </div>
-          ) : thieuNam ? (
-            <div className="rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-4 text-center">
-              <p className="text-[12.5px] font-bold text-navy">{t('needYearWig')}</p>
-              {quayVe && (
-                <Link
-                  href={quayVe}
-                  className="mt-1.5 inline-flex min-h-[24px] items-center gap-1 text-[12px] font-extrabold text-navy underline"
-                >
-                  {t('goToWig')}
-                  <ArrowRight size={12} strokeWidth={2.5} />
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {/* Thiếu mắt xích THÁNG thì tạo luôn ở đây. Đá người đang họp sang trang khác rồi
-                  bắt quay lại là cách chắc chắn nhất để buổi họp đứt mạch. */}
-              {canTaoThang && (
-                <div className="rounded-[14px] border-[1.5px] border-gold/50 bg-gold/[0.08] p-3">
-                  <p className="mb-2.5 text-[11.5px] font-semibold leading-relaxed text-navy">
-                    {t('needMonthWig', {month: thangLabelCanTao})}
-                  </p>
-                  <input type="hidden" name="thang_can" value="1" />
-                  <input type="hidden" name="thang_label" value={thangLabelCanTao} />
-                  <div className="flex flex-col gap-2.5">
-                    <Field label={tw('parentYear')} htmlFor="thang-parent" error={err('thang_parent_wig_id')}>
-                      <select id="thang-parent" name="thang_parent" {...oNhap('thang_parent')} className={selectCls}>
-                        {namHienCo.map((o) => (
-                          <option key={o.id} value={o.id}>
-                            {o.title}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-[2fr_1fr_1fr]">
-                      <Field label={tw('wigTitle')} htmlFor="thang-title" error={err('thang_title')} className="col-span-2 sm:col-span-1">
-                        <input
-                          id="thang-title"
-                          name="thang_title"
-                          {...oNhap('thang_title')}
-                          className={ctlWithBorder(state.fieldError === 'thang_title')}
-                        />
-                      </Field>
-                      <Field label={tw('targetTo')} htmlFor="thang-target" error={err('thang_target_value')}>
-                        <input
-                          id="thang-target"
-                          name="thang_target"
-                          type="number"
-                          step="any"
-                          min="0.01"
-                          inputMode="decimal"
-                          {...oNhap('thang_target')}
-                          className={ctlWithBorder(state.fieldError === 'thang_target_value')}
-                        />
-                      </Field>
-                      <Field label={tw('unit')} htmlFor="thang-unit" error={err('thang_unit')}>
-                        <input id="thang-unit" name="thang_unit" {...oNhap('thang_unit')} className={inputCls} />
-                      </Field>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {!canTaoThang && (
-                <Field label={tw('parentMonth')} htmlFor="mt-parent" error={err('mt_parent_wig_id')}>
-                  <select id="mt-parent" name="mt_parent" {...oNhap('mt_parent')} className={selectCls}>
-                    {thangHienCo.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.title}
+          {/* MỐC TUẦN ĐÍCH — app đã rải sẵn từ mục tiêu năm; buổi họp CHỈNH chứ không TẠO.
+              Trong 4DX mục tiêu đặt một lần cho cả kỳ, buổi họp chỉ báo cáo → nhìn bảng điểm →
+              dọn đường. Trước đây khối này tạo một WIG tuần MỚI mỗi tuần, nên số mục tiêu phình
+              theo thời gian và mỗi cái có thể lệch đơn vị với cha nó. */}
+          <div className="flex flex-col gap-3">
+            {mocDich.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-[2fr_1fr]">
+                <Field label={t('milestonePick')} htmlFor="moc-id" className="col-span-2 sm:col-span-1">
+                  <select id="moc-id" name="moc_id" {...oNhap('moc_id')} className={selectCls}>
+                    {mocDich.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.title}
                       </option>
                     ))}
                   </select>
                 </Field>
-              )}
-
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-[2fr_1fr_1fr_1.2fr]">
-                <Field label={tw('wigTitle')} htmlFor="mt-title" error={err('mt_title')} className="col-span-2 sm:col-span-1">
+                <Field label={t('milestoneTarget')} htmlFor="moc-target" error={err('moc_target')}>
                   <input
-                    id="mt-title"
-                    name="mt_title"
-                    {...oNhap('mt_title')}
-                    placeholder={tw('wigTitlePlaceholder')}
-                    className={ctlWithBorder(state.fieldError === 'mt_title')}
-                  />
-                </Field>
-                <Field label={tw('baseline')} htmlFor="mt-baseline" error={err('mt_baseline')}>
-                  <input
-                    id="mt-baseline"
-                    name="mt_baseline"
-                    type="number"
-                    step="any"
-                    min="0"
-                    inputMode="decimal"
-                    placeholder="0"
-                    {...oNhap('mt_baseline')}
-                    className={ctlWithBorder(state.fieldError === 'mt_baseline')}
-                  />
-                </Field>
-                <Field label={tw('targetTo')} htmlFor="mt-target" error={err('mt_target_value')}>
-                  <input
-                    id="mt-target"
-                    name="mt_target"
+                    id="moc-target"
+                    name="moc_target"
                     type="number"
                     step="any"
                     min="0.01"
                     inputMode="decimal"
-                    {...oNhap('mt_target')}
-                    className={ctlWithBorder(state.fieldError === 'mt_target_value')}
-                  />
-                </Field>
-                <Field label={tw('unit')} htmlFor="mt-unit" error={err('mt_unit')} className="col-span-2 sm:col-span-1">
-                  <input
-                    id="mt-unit"
-                    name="mt_unit"
-                    {...oNhap('mt_unit')}
-                    placeholder={tw('unitPlaceholder')}
-                    className={ctlWithBorder(state.fieldError === 'mt_unit')}
+                    {...oNhap('moc_target')}
+                    className={ctlWithBorder(state.fieldError === 'moc_target')}
                   />
                 </Field>
               </div>
+            ) : namHienCo.length > 0 ? (
+              /* Mốc thiếu — cô khai mục tiêu năm sau khi tuần này đã trôi qua, nên nhịp không phủ
+                 tới. BÙ đúng một mốc, không đẻ mục tiêu mới. */
+              <div className="rounded-[14px] border-[1.5px] border-gold/50 bg-gold/[0.08] p-3">
+                <p className="mb-2.5 text-[11.5px] font-semibold leading-relaxed text-navy">
+                  {t('milestoneMissing', {week: dichLabel})}
+                </p>
+                <input type="hidden" name="bu_moc" value="1" />
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-[2fr_1fr]">
+                  <Field label={tw('parentYear')} htmlFor="bu-nam" className="col-span-2 sm:col-span-1">
+                    <select id="bu-nam" name="bu_nam" {...oNhap('bu_nam')} className={selectCls}>
+                      {namHienCo.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.title}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label={t('milestoneTarget')} htmlFor="bu-target" error={err('moc_target')}>
+                    <input
+                      id="bu-target"
+                      name="moc_target"
+                      type="number"
+                      step="any"
+                      min="0.01"
+                      inputMode="decimal"
+                      {...oNhap('moc_target')}
+                      className={ctlWithBorder(state.fieldError === 'moc_target')}
+                    />
+                  </Field>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-4 text-center">
+                <p className="text-[12.5px] font-bold text-navy">{t('needYearWig')}</p>
+                {quayVe && (
+                  <Link
+                    href={quayVe}
+                    className="mt-1.5 inline-flex min-h-[24px] items-center gap-1 text-[12px] font-extrabold text-navy underline"
+                  >
+                    {t('goToWig')}
+                    <ArrowRight size={12} strokeWidth={2.5} />
+                  </Link>
+                )}
+              </div>
+            )}
 
               <div>
                 <span className={labelCls}>{tw('workToTick')}</span>
@@ -658,7 +584,6 @@ export function PhongHop({
                 )}
               </div>
             </div>
-          )}
         </section>
       )}
 
