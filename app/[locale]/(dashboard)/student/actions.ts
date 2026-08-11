@@ -868,3 +868,103 @@ export async function danhDauDaDat(formData: FormData) {
   revalidatePath('/[locale]/student/[id]', 'page');
   veTrangEm(student_id, bo ? 'Đã bỏ đánh dấu' : 'Đã đánh dấu ĐẠT');
 }
+
+// ── SỔ CỦA CON ───────────────────────────────────────────────────────────────────────────────
+//
+// Trong Leader in Me, cuốn sổ THUỘC VỀ HỌC SINH — không phải hồ sơ của giáo viên. Đó là toàn bộ
+// lý do nó có tác dụng, nên phân quyền phải nói đúng điều ấy: em viết, người lớn đọc. Chính sách
+// rls_write_student_reflections (0100) là chốt cuối; hàm này chỉ là cửa.
+//
+// Khác mọi thứ còn lại trong mô hình: cô KHÔNG viết hộ được ở đây. Mục tiêu thì cô đặt hộ được
+// (docs/MO_HINH_WIG.md §4), nhưng một cuốn sổ ai cũng viết được thì không còn là sổ của em nữa.
+export async function luuSoCuaCon(_prev: MucTieuState, formData: FormData): Promise<MucTieuState> {
+  const me = await getCurrentProfile();
+  if (!me || me.role !== 'student') return {ok: false, error: 'Chỉ chính em mới viết được sổ này.'};
+
+  const class_id = String(formData.get('class_id') ?? '');
+  const body = String(formData.get('body') ?? '').trim();
+  if (!body) return {ok: false, fieldError: 'body', error: 'Con viết vài chữ đã nhé.'};
+  if (body.length > 2000) return {ok: false, fieldError: 'body', error: 'Tối đa 2000 ký tự.'};
+
+  const supabase = await createClient();
+  const tuan = weekRangeVN();
+
+  // Một dòng cho mỗi (em, tuần) — khoá duy nhất ở CSDL. Viết lại trong cùng tuần là SỬA, không đẻ
+  // thêm dòng; 23505 nghĩa là hai tab cùng gửi, chuyển sang cập nhật chứ không báo lỗi cho em.
+  const {error} = await supabase
+    .from('student_reflections')
+    .insert({student_id: me.id, class_id, week_start: tuan.start, body});
+  if (error && (error as {code?: string}).code === '23505') {
+    const {error: e2} = await supabase
+      .from('student_reflections')
+      .update({body, updated_at: new Date().toISOString()})
+      .eq('student_id', me.id)
+      .eq('week_start', tuan.start);
+    if (e2) return {ok: false, error: (friendlyError(e2))};
+  } else if (error) {
+    return {ok: false, error: (friendlyError(error))};
+  }
+
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  return {ok: true, message: 'Đã lưu vào sổ của con.'};
+}
+
+// ── CHỈNH NHỊP ───────────────────────────────────────────────────────────────────────────────
+//
+// App rải mốc tháng đều nhau khi cô khai mục tiêu năm (lib/wig-nhip.ts). Nhưng năm học không đều:
+// có Tết, có tuần thi, có tháng vào hè. Hàm này cho cô kéo lại.
+//
+// LUẬT DUY NHẤT: tổng các tháng phải bằng đúng đích năm. Không có luật ấy thì "nhịp" thành một
+// dãy số rời rạc, và cảnh báo lệch nhịp — thứ đắt giá nhất của cả đợt sửa — sẽ nói dối theo hướng
+// không ai đoán được. Kéo tháng này lên thì phải hạ tháng khác xuống; app không tự bù, vì tự bù
+// nghĩa là sửa một con số cô không nhìn thấy.
+export async function chinhNhip(_prev: MucTieuState, formData: FormData): Promise<MucTieuState> {
+  await requireRole(['teacher', 'admin']);
+  const nam_id = String(formData.get('nam_id') ?? '');
+  const supabase = await createClient();
+
+  const {data: nam} = await supabase
+    .from('wigs')
+    .select('id, target_value, baseline')
+    .eq('id', nam_id)
+    .eq('scope', 'class')
+    .eq('period', 'year')
+    .maybeSingle();
+  if (!nam) return {ok: false, error: 'Mục tiêu năm này không còn nữa.'};
+
+  const {data: thang} = await supabase
+    .from('wigs')
+    .select('id')
+    .eq('parent_wig_id', nam_id)
+    .eq('period', 'month');
+
+  const moi = new Map<string, number>();
+  for (const m of thang ?? []) {
+    const raw = String(formData.get(`moc_${m.id}`) ?? '').trim();
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0)
+      return {ok: false, fieldError: `moc_${m.id}`, error: 'Mỗi tháng phải là số lớn hơn 0.'};
+    moi.set(m.id, n);
+  }
+  if (moi.size === 0) return {ok: false, error: 'Mục tiêu năm này chưa có mốc tháng nào.'};
+
+  const tong = [...moi.values()].reduce((s, n) => s + n, 0);
+  const can = Number(nam.target_value) - Number(nam.baseline ?? 0);
+  if (Math.round(tong) !== Math.round(can))
+    return {
+      ok: false,
+      error: `Tổng các tháng đang là ${Math.round(tong)}, phải bằng ${Math.round(can)}. Kéo tháng này lên thì hạ tháng khác xuống.`,
+    };
+
+  // Ghi từng tháng. Không gộp thành một câu được vì mỗi dòng một giá trị khác nhau; đổi lại con số
+  // ở đây tối đa là 12, không phải 52.
+  for (const [id, n] of moi) {
+    const {error} = await supabase.from('wigs').update({target_value: n}).eq('id', id);
+    if (error) return {ok: false, error: (friendlyError(error))};
+  }
+
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]/wig/chi-tiet', 'page');
+  return {ok: true, message: 'Đã chỉnh nhịp các tháng.'};
+}

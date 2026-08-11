@@ -584,7 +584,8 @@
     "confirmUndo": "Gỡ toàn bộ ghi nhận và biên bản của tuần {week}? Tick tuần đó sẽ mở lại. Không thể hoàn tác.",
     "scoreThisWeek": "Bảng tuần này",
     "leadDone": "Việc đã đạt",
-    "noWeekData": "Chưa có số liệu WIG của tuần này."
+    "noWeekData": "Chưa có số liệu WIG của tuần này.",
+    "paceWarn": "Nhịp tuần cần {can}, việc đang giao chỉ cho tối đa {cho} — hụt {thieu}. Tăng chỉ tiêu việc, hoặc hạ mốc tuần xuống cho khớp sức lớp."
   },
   "report": {
     "title": "Báo cáo phụ huynh",
@@ -1269,6 +1270,19 @@
     "notYet": "Chưa đạt",
     "markAchieved": "Đánh dấu ĐÃ ĐẠT",
     "undoAchieved": "Bỏ đánh dấu",
-    "none": "Em chưa đặt mục tiêu nào."
+    "none": "Em chưa đặt mục tiêu nào.",
+    "wallTitle": "Bức tường WIG",
+    "wallCount": "{n}/{si} em đã đặt mục tiêu",
+    "wallEmpty": "Chưa em nào đặt mục tiêu. Các em vào Bảng điểm của tôi là đặt được.",
+    "queue": "{n} mục tiêu đang chờ cô duyệt",
+    "selfSetRate": "{n}% mục tiêu do chính em đặt",
+    "journal": "Sổ của con",
+    "journalHint": "Tuần này con thấy sao? Chỉ con viết được, cô và bố mẹ đọc.",
+    "journalPlaceholder": "vd: tuần này con làm bài đều hơn, nhưng thứ Sáu con quên…",
+    "journalSave": "Lưu vào sổ",
+    "journalEmpty": "Tuần này chưa có ghi chép nào.",
+    "paceTitle": "Chỉnh nhịp các tháng",
+    "paceTotal": "Tổng: {tong} / {can} {unit}",
+    "paceSave": "Lưu nhịp"
   }
 }

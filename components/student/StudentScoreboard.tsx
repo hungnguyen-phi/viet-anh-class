@@ -26,6 +26,7 @@ import {StudentWigManage, type ManageWig, type ManageLead} from '@/components/st
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {EditRequestButton} from '@/components/student/EditRequestButton';
 import {MucTieuCuaCon, type MucTieuCuaEm} from '@/components/student/MucTieuCuaCon';
+import {SoCuaCon} from '@/components/student/SoCuaCon';
 import {MeetingScoreboard} from '@/components/wig/MeetingScoreboard';
 import {AREAS, areaLabel, areaIcon, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
@@ -296,7 +297,7 @@ export async function StudentScoreboard({
     : {createAdminClient: null};
   const admin = createAdminClient ? createAdminClient() : null;
 
-  const [cuaSoRes, ipRes, mangRes, daHopRes, matesRes, leadRes, classLeadRes, mucTieuRes, wigLopRes] =
+  const [cuaSoRes, ipRes, mangRes, daHopRes, matesRes, leadRes, classLeadRes, mucTieuRes, wigLopRes, soRes] =
     await Promise.all([
     // CỬA SỔ CHECK-IN của cơ sở em đang học. Lấy một lần, dùng cho cả buổi sáng lẫn buổi chiều.
     // Null khi em chưa có lớp (chưa biết cơ sở) → giao diện giữ nguyên hành vi cũ, không khoá gì.
@@ -377,6 +378,14 @@ export async function StudentScoreboard({
           .eq('scope', 'class')
           .eq('period', 'year')
       : Promise.resolve({data: null}),
+    // SỔ CỦA CON — chỉ dòng của TUẦN NÀY. Cả năm thì là một trang nhật ký, mà chỗ này là ô để
+    // viết cho tuần đang chạy; lịch sử để dành cho màn khác nếu sau này cần.
+    supabase
+      .from('student_reflections')
+      .select('body')
+      .eq('student_id', studentId)
+      .eq('week_start', weekDays[0])
+      .maybeSingle(),
   ]);
   const mates = matesRes.data;
   const leadData = leadRes.data;
@@ -652,6 +661,10 @@ export async function StudentScoreboard({
           canManage={canManage}
           dayShort={tc.raw('dayShort') as string[]}
         />
+      )}
+
+      {classId && (
+        <SoCuaCon classId={classId} banDau={soRes.data?.body ?? ''} laChinhEm={canTick} />
       )}
 
       {/* GVCN/Admin: yêu cầu-sửa đang chờ + quản lý WIG/lead/tick cá nhân (hết ngõ cụt) */}

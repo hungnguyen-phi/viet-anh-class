@@ -8,6 +8,8 @@ import {Link} from '@/i18n/navigation';
 import {isValidDayVN, mondayOf, todayInVN, weekFromMonday} from '@/lib/dates';
 import {WeekNav} from '@/components/wig/WeekNav';
 import {ChiTietTuan} from '@/components/wig/ChiTietTuan';
+import {TuongWig, type MucTieuTrenTuong} from '@/components/wig/TuongWig';
+import {ChinhNhip} from '@/components/wig/ChinhNhip';
 import {Flash} from '@/components/ui/Flash';
 
 // /wig/chi-tiet — "em nào làm tới đâu, quên hôm nào".
@@ -42,9 +44,57 @@ export default async function ChiTietPage({
   const laTuanNay = monday === thisMonday;
   const weekQ = laTuanNay ? '' : monday;
 
-  // Ba câu truy vấn từng đứng ở đây (sĩ số · em nào đã có WIG tuần · mục tiêu năm của lớp) chỉ
-  // phục vụ khối tạo WIG cá nhân hàng loạt. Khối ấy đi rồi thì chúng thành ba vòng mạng không ai
-  // đọc kết quả — xoá cùng lúc, đừng để lại.
+  // Dữ liệu cho BỨC TƯỜNG WIG — trận đánh của lớp, mục tiêu của từng em, và sĩ số để nói được
+  // "bao nhiêu em đã đặt". Ba câu chạy song song vì không câu nào cần kết quả của câu kia.
+  const [{data: wigLop}, {data: mucTieuRows}, {count: siSo}, {data: thangRows}] = await Promise.all([
+    supabase
+      .from('wigs')
+      .select('id, title, target_value, baseline, unit')
+      .eq('class_id', myClass.id)
+      .eq('scope', 'class')
+      .eq('period', 'year'),
+    supabase
+      .from('wigs')
+      .select(
+        'id, student_id, kind, status, set_by, measure_by, title, baseline, target_value, unit, end_date, achieved_at, source_wig_id, profiles!wigs_student_id_fkey(full_name)',
+      )
+      .eq('class_id', myClass.id)
+      .eq('scope', 'student')
+      .eq('period', 'year'),
+    supabase
+      .from('enrollments')
+      .select('student_id', {count: 'exact', head: true})
+      .eq('class_id', myClass.id)
+      .eq('is_active', true),
+    // Mốc THÁNG cho khối chỉnh nhịp. Hỏi cả lớp một lần rồi gom theo cha ở JS — rẻ hơn nhiều so
+    // với bốn câu, mỗi câu một mục tiêu năm.
+    supabase
+      .from('wigs')
+      .select('id, parent_wig_id, period_label, target_value')
+      .eq('class_id', myClass.id)
+      .eq('scope', 'class')
+      .eq('period', 'month')
+      .order('period_label'),
+  ]);
+
+  const thangTheoNam = new Map<string, {id: string; period_label: string | null; target_value: number}[]>();
+  for (const m of (thangRows ?? []) as {
+    id: string;
+    parent_wig_id: string | null;
+    period_label: string | null;
+    target_value: number;
+  }[]) {
+    if (!m.parent_wig_id) continue;
+    thangTheoNam.set(m.parent_wig_id, [...(thangTheoNam.get(m.parent_wig_id) ?? []), m]);
+  }
+
+  const mucTieu: MucTieuTrenTuong[] = (
+    (mucTieuRows ?? []) as unknown as (Omit<MucTieuTrenTuong, 'ten'> & {
+      profiles: {full_name: string | null} | null;
+    })[]
+  )
+    .map((m) => ({...m, ten: m.profiles?.full_name ?? '—'}))
+    .sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
 
   return (
     <div className="flex flex-col gap-4">
@@ -79,9 +129,30 @@ export default async function ChiTietPage({
       <ChiTietTuan classId={myClass.id} weekStart={monday} />
 
       {/* Khối "tạo WIG cá nhân cho cả lớp" từng đứng ở đây: nó chia mục tiêu của lớp cho sĩ số
-          rồi ghi con số ấy xuống bản ghi của từng em. Bỏ cùng đợt 0100 — mục tiêu của em nay là
-          khoảng cách của chính em, đặt trong tiết đặt mục tiêu 2–3 lần một năm, không suy ra từ
-          một phép chia. Xem docs/MO_HINH_WIG.md §1. */}
+          rồi ghi con số ấy xuống bản ghi của từng em. Bỏ ở 0100 — thay bằng bức tường dưới đây,
+          nơi mục tiêu của em là khoảng cách của chính em và cô duyệt ngay tại chỗ. */}
+      <TuongWig wigLop={wigLop ?? []} mucTieu={mucTieu} siSo={siSo ?? 0} />
+
+      {/* Chỉnh nhịp — app rải đều 12 tháng khi cô khai mục tiêu năm; đây là chỗ kéo lại cho khớp
+          năm học thật (hạ tháng Tết, hạ tháng thi). Đóng sẵn: mỗi năm mở một hai lần. */}
+      {(wigLop ?? []).map((w) => {
+        const ds = (thangTheoNam.get(w.id) ?? []).map((m) => ({
+          id: m.id,
+          label: m.period_label ?? '',
+          target: Number(m.target_value),
+        }));
+        if (ds.length === 0) return null;
+        return (
+          <ChinhNhip
+            key={w.id}
+            namId={w.id}
+            tieuDe={w.title ?? ''}
+            can={Number(w.target_value) - Number(w.baseline ?? 0)}
+            unit={w.unit}
+            thang={ds}
+          />
+        );
+      })}
     </div>
   );
 }

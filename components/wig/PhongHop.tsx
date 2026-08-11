@@ -171,6 +171,17 @@ export function PhongHop({
 
   const err = (f: string) => (state.fieldError === f ? state.error : null);
 
+  // ── NHỊP: mốc tuần CẦN bao nhiêu, việc đang giao CHO được bao nhiêu ────────────────────────
+  //
+  // Mục tiêu của một VIỆC là mục tiêu CỦA MỖI EM (0098), nên trần mà cả lớp có thể đạt trong tuần
+  // là tổng mục tiêu các việc NHÂN sĩ số. So nó với mốc tuần thì ra ngay khoảng hụt — phép so này
+  // trước 0100 không làm được vì hai vế khác thang.
+  const siSo = tungEm.length;
+  const mocCan = Number(v.moc_target) || mocDich.find((m) => m.id === v.moc_id)?.target || 0;
+  const tongViecCho =
+    dong.reduce((s, r) => s + (Number(viecVal[`viec_${r.k}_target`]) || 0), 0) * siSo;
+  const thieuNhip = tongViecCho > 0 && mocCan > 0 ? Math.round(mocCan - tongViecCho) : 0;
+
   const buoc = (so: number, tieuDe: string, phu?: string) => (
     <div className="mb-3">
       <h2 className="flex items-center gap-2 font-display text-[16px] font-bold text-navy">
@@ -579,6 +590,18 @@ export function PhongHop({
                     {tw('addWork')}
                   </button>
                 </div>
+                {/* CẢNH BÁO LỆCH NHỊP — Kỷ luật 3 ở dạng cụ thể nhất, và là thứ đáng giá nhất
+                    của cả đợt sửa. App vẫn luôn nói "đang ở đâu"; chưa bao giờ nói "lẽ ra phải ở
+                    đâu". Trên lớp mẫu: mốc tuần cần 25 bài, việc "mỗi bạn 3 bài" × 3 em cho tối
+                    đa 9 — hụt 64%, và không màn hình nào nói ra. Nay nó hiện NGAY LÚC CÔ ĐANG GÕ,
+                    không phải trong một báo cáo cuối kỳ.
+                    Phép so này chỉ làm được từ 0100, khi hai vế về cùng thang. */}
+                {thieuNhip > 0 && (
+                  <p className="mt-2 inline-flex items-start gap-1.5 rounded-[10px] bg-gold/[0.14] px-2.5 py-2 text-[11.5px] font-bold text-navy">
+                    <AlertTriangle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+                    {t('paceWarn', {can: mocCan, cho: tongViecCho, thieu: thieuNhip})}
+                  </p>
+                )}
                 {viecMau.length > 0 && (
                   <p className="mt-2 text-[11px] font-semibold italic text-grey-mid">{t('carriedOver')}</p>
                 )}

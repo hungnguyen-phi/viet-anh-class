@@ -584,7 +584,8 @@
     "confirmUndo": "Remove all scoring and minutes for week {week}? Ticking for that week reopens. This cannot be undone.",
     "scoreThisWeek": "This week",
     "leadDone": "Tasks completed",
-    "noWeekData": "No WIG data for this week yet."
+    "noWeekData": "No WIG data for this week yet.",
+    "paceWarn": "This week needs {can}, but the actions only allow {cho} — short by {thieu}. Raise the action target, or lower the week milestone to match."
   },
   "report": {
     "title": "Parent report",
@@ -1269,6 +1270,19 @@
     "notYet": "Not yet",
     "markAchieved": "Mark as ACHIEVED",
     "undoAchieved": "Undo",
-    "none": "No goal set yet."
+    "none": "No goal set yet.",
+    "wallTitle": "WIG wall",
+    "wallCount": "{n}/{si} students have set a goal",
+    "wallEmpty": "No goals yet. Students can set one from My scoreboard.",
+    "queue": "{n} goals awaiting your approval",
+    "selfSetRate": "{n}% of goals were set by the students themselves",
+    "journal": "My journal",
+    "journalHint": "How did this week go? Only you can write here; your teacher and parents can read it.",
+    "journalPlaceholder": "e.g. I worked more steadily this week, but I forgot on Friday…",
+    "journalSave": "Save to journal",
+    "journalEmpty": "Nothing written this week yet.",
+    "paceTitle": "Adjust the monthly pace",
+    "paceTotal": "Total: {tong} / {can} {unit}",
+    "paceSave": "Save pace"
   }
 }
