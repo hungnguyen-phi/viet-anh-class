@@ -505,6 +505,8 @@
     "editWork": "Sửa việc",
     "addWorkNeedsWig": "Chưa có mục tiêu tuần thì chưa thêm việc được — việc phải thuộc về một mục tiêu nào đó.",
     "progressRail": "Lớp đang đi tới đâu",
+    "studentList": "Danh sách học sinh",
+    "studentListEmpty": "Lớp chưa có học sinh nào.",
     "emptyYear": "chưa đặt mục tiêu năm",
     "monthOtherPeriod": "đã đặt cho {label}, chưa phải tuần này",
     "emptyMonth": "chưa đặt mục tiêu tháng",

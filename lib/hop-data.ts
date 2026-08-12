@@ -30,6 +30,10 @@ type BoardRow = {
   class_size: number | string;
   // 0098 — số em đã đạt ĐỦ phần của mình. Đây mới là con số quyết định thắng/thua của một việc.
   students_done: number | string;
+  // area — để biết việc này thuộc LĨNH VỰC nào khi mang sang tuần tới (0106: mỗi lĩnh vực một
+  // khối). KHÔNG dùng wig_id: board là của tuần VỪA XONG (hopMonday), còn khối cần khớp là mốc
+  // tuần TỚI (dichWk) — hai tuần là hai WIG khác id dù cùng lĩnh vực. Lĩnh vực mới là thứ bền.
+  area: string;
 };
 
 type MatrixRow = {
@@ -206,12 +210,17 @@ export async function layDuLieuHop(
       .map((w) => ({id: w.id, title: w.title ?? w.period_label ?? nhan.year})),
     // 4DX bảo thước đo dẫn dắt phải bền — đổi mỗi tuần thì không đo được xu hướng gì. Nên mặc
     // định là chép lại việc của tuần vừa rồi, còn sửa hay xoá thì tuỳ buổi họp.
+    //
+    // MANG THEO area — 0106: PhongHop nay bày MỘT KHỐI CHO MỖI LĨNH VỰC, nên việc mang sang phải
+    // biết mình thuộc lĩnh vực nào để khớp đúng khối. Thiếu nó thì việc của Thể chất trôi vào
+    // khối Kiến thức.
     viecMau: board.map((r) => ({
       title: r.title,
       target: String(Number(r.target_value)),
       unit: r.unit ?? '',
       upt: String(Number(r.unit_per_tick ?? 1)),
       days: (r.active_weekdays ?? [1, 2, 3, 4, 5]).map(Number),
+      area: r.area,
     })),
   };
 }

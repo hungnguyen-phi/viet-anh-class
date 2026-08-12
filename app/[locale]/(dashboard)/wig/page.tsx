@@ -138,9 +138,10 @@ export default async function WigPage({
         .or(
           `period.in.(year,month),and(period.eq.week,start_date.lte.${wk.end},end_date.gte.${wk.start})`,
         ),
+      // Tên kèm luôn — khối "Danh sách học sinh" bên dưới cần đọc ra tên, không chỉ đếm sĩ số.
       supabase
         .from('enrollments')
-        .select('student_id')
+        .select('student_id, profiles!enrollments_student_id_fkey(full_name)')
         .eq('class_id', myClass.id)
         .eq('is_active', true),
       // Ma trận (em × việc) của tuần đang xem — chỉ để đếm "mấy em chưa tick lần nào". Đó là con
@@ -158,6 +159,11 @@ export default async function WigPage({
     ]);
 
   const studentCount = (enrolled ?? []).length;
+  const danhSachHocSinh = (
+    (enrolled ?? []) as unknown as {student_id: string; profiles: {full_name: string | null} | null}[]
+  )
+    .map((e) => ({id: e.student_id, ten: e.profiles?.full_name ?? '—'}))
+    .sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
   const wigsKemLead = (wigsData ?? []) as unknown as (Wig & {lead_measures: Lead[] | null})[];
   const wigs = wigsKemLead as Wig[];
   const progByWig = new Map((progData ?? []).map((p) => [p.wig_id, p as unknown as Prog]));
@@ -270,6 +276,8 @@ export default async function WigPage({
         cap,
         title: khiTrong,
         periodLabel: null,
+        startDate: null,
+        endDate: null,
         baseline: null,
         target: 0,
         unit: '',
@@ -285,6 +293,8 @@ export default async function WigPage({
       cap,
       title: w.title ?? areaLabel(areaMeta[w.area as Area], locale),
       periodLabel: w.period_label,
+      startDate: w.start_date,
+      endDate: w.end_date,
       baseline: w.baseline == null ? null : Number(w.baseline),
       target: Number(w.target_value),
       unit: w.unit,
@@ -516,6 +526,28 @@ export default async function WigPage({
           <BangTienDo nhom={nhomTienDo} weekParam={weekQ} classParam={classParam} areaOptions={areaOptions} />
         </section>
       </div>
+
+      {/* DANH SÁCH HỌC SINH — bấm vào tên là sang thẳng /student/{id}, xem WIG của riêng em đó.
+          GVCN/admin hay cần tra một em cụ thể giữa buổi, trước đây không có lối tắt nào từ trang
+          lớp mà phải tự gõ URL. */}
+      <section className="glass rounded-[20px] p-[18px]">
+        <h2 className="mb-3 font-display text-[15px] font-bold text-navy">{t('studentList')}</h2>
+        {danhSachHocSinh.length === 0 ? (
+          <p className="text-[12.5px] font-semibold text-grey-mid">{t('studentListEmpty')}</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {danhSachHocSinh.map((s) => (
+              <Link
+                key={s.id}
+                href={`/student/${s.id}`}
+                className="inline-flex items-center rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 py-1.5 text-[12.5px] font-bold text-navy transition-all hover:border-navy hover:bg-navy/[0.04]"
+              >
+                {s.ten}
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* MỘT NÚT. Nhịp họp là việc quan trọng nhất của tuần trong 4DX, và trước đây nó là một khối
           dài chôn giữa trang cùng năm khối khác. Nay đứng riêng, không lẫn vào đâu được. */}

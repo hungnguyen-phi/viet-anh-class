@@ -8,6 +8,7 @@ import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, ctlWithBorder, inputCls, selectCls, btnGold, labelCls} from '@/components/ui/Field';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {ketThucBuoiHop, xoaBienBan} from '@/app/[locale]/(dashboard)/wig/hop/actions';
+import {areaLabel, type Area, type AreaMeta} from '@/lib/areas';
 
 // ════════════════════════════════════════════════════════════════════════════
 // PHÒNG HỌP WIG — ba bước, một nút, một lần lưu.
@@ -47,6 +48,8 @@ export type ViecMau = {
   unit: string;
   upt: string;
   days: number[];
+  // Lĩnh vực việc này thuộc về — để khớp đúng khối mốc tuần tới (0106).
+  area: string;
 };
 
 const DOW = [1, 2, 3, 4, 5, 6, 7] as const;
@@ -67,6 +70,8 @@ export function PhongHop({
   mocDich,
   namHienCo,
   viecMau,
+  areaMeta,
+  locale,
   dayShort,
   canManage,
   daCoBienBan,
@@ -91,6 +96,9 @@ export function PhongHop({
   // Chỉ dùng khi mocDich rỗng: bù đúng một mốc cho tuần này.
   namHienCo: WigOption[];
   viecMau: ViecMau[];
+  // Tên + màu 4 lĩnh vực, cho nhãn màu trên mỗi khối mốc (0106).
+  areaMeta: Record<Area, AreaMeta>;
+  locale: string;
   dayShort: string[];
   canManage: boolean;
   // Tuần này đã có biên bản chưa — quyết định có bày nút gỡ hay không. Bày nút gỡ khi chưa có gì
@@ -112,12 +120,11 @@ export function PhongHop({
     const o: Record<string, string> = {
       chiem_nghiem: chiemNghiemCu,
       cam_ket: camKetCu,
-      // Mốc tuần đích và chỉ tiêu của nó — điền sẵn con số app đã rải, cô chỉ sửa khi tuần ấy
-      // đặc biệt (nghỉ Tết, tuần thi). Không có ô nào để TẠO mục tiêu nữa.
-      moc_id: mocDich[0]?.id ?? '',
-      moc_target: mocDich[0] ? String(mocDich[0].target) : '',
       bu_nam: namHienCo[0]?.id ?? '',
     };
+    // MỖI LĨNH VỰC MỘT CHỈ TIÊU — 0106. Trước đây chỉ ô đầu tiên (moc_id/moc_target) được điền,
+    // ba lĩnh vực còn lại im lặng suốt phòng họp. Nay mỗi mốc trong mocDich giữ đúng ô của nó.
+    for (const m of mocDich) o[`moc_target_${m.id}`] = String(m.target);
     for (const r of viecTuanQua) {
       o[`verdict_${r.id}`] = r.verdict ?? '';
       o[`note_${r.id}`] = r.note;
@@ -134,8 +141,12 @@ export function PhongHop({
   // ── DÒNG VIỆC CHO TUẦN TỚI ───────────────────────────────────────────────────────────────
   // Mang sẵn việc của tuần vừa rồi sang: 4DX bảo thước đo dẫn dắt phải bền, đổi mỗi tuần thì
   // không đo được gì. Nhưng vẫn sửa và xoá được — mang sẵn là gợi ý, không phải ép.
-  const [dong, setDong] = useState<{k: string; days: number[]}[]>(() =>
-    viecMau.map((m, i) => ({k: `m${i}`, days: m.days})),
+  //
+  // MỖI DÒNG GIỮ `area` — 0106: một mảng phẳng duy nhất cho cả bốn lĩnh vực, lọc theo lĩnh vực
+  // lúc vẽ từng khối mốc. Một mảng, không phải bốn state riêng: xoá/thêm dòng không phải viết
+  // bốn lần logic giống hệt nhau.
+  const [dong, setDong] = useState<{k: string; area: string; days: number[]}[]>(() =>
+    viecMau.map((m, i) => ({k: `m${i}`, area: m.area, days: m.days})),
   );
   const [viecVal, setViecVal] = useState<Record<string, string>>(() => {
     const o: Record<string, string> = {};
@@ -161,10 +172,10 @@ export function PhongHop({
           : r,
       ),
     );
-  const themDong = () => {
+  const themDong = (area: string) => {
     const k = `n${demMoi}`;
     setDemMoi((n) => n + 1);
-    setDong((p) => [...p, {k, days: [1, 2, 3, 4, 5]}]);
+    setDong((p) => [...p, {k, area, days: [1, 2, 3, 4, 5]}]);
     setViecVal((p) => ({...p, [`viec_${k}_upt`]: '1'}));
   };
   const xoaDong = (k: string) => setDong((p) => p.filter((r) => r.k !== k));
@@ -176,11 +187,16 @@ export function PhongHop({
   // Mục tiêu của một VIỆC là mục tiêu CỦA MỖI EM (0098), nên trần mà cả lớp có thể đạt trong tuần
   // là tổng mục tiêu các việc NHÂN sĩ số. So nó với mốc tuần thì ra ngay khoảng hụt — phép so này
   // trước 0100 không làm được vì hai vế khác thang.
+  //
+  // TÍNH RIÊNG CHO TỪNG LĨNH VỰC (0106): bốn mốc độc lập, hụt nhịp của Thể chất không lẫn vào
+  // Kiến thức. Hàm nhỏ này gọi lại bên trong vòng lặp render mỗi khối mốc.
   const siSo = tungEm.length;
-  const mocCan = Number(v.moc_target) || mocDich.find((m) => m.id === v.moc_id)?.target || 0;
-  const tongViecCho =
-    dong.reduce((s, r) => s + (Number(viecVal[`viec_${r.k}_target`]) || 0), 0) * siSo;
-  const thieuNhip = tongViecCho > 0 && mocCan > 0 ? Math.round(mocCan - tongViecCho) : 0;
+  const nhipCuaMoc = (m: {id: string; area: string; target: number}) => {
+    const rows = dong.filter((r) => r.area === m.area);
+    const mocCan = Number(v[`moc_target_${m.id}`]) || m.target;
+    const tongViecCho = rows.reduce((s, r) => s + (Number(viecVal[`viec_${r.k}_target`]) || 0), 0) * siSo;
+    return {mocCan, tongViecCho, thieuNhip: tongViecCho > 0 && mocCan > 0 ? Math.round(mocCan - tongViecCho) : 0};
+  };
 
   const buoc = (so: number, tieuDe: string, phu?: string) => (
     <div className="mb-3">
@@ -433,35 +449,148 @@ export function PhongHop({
           {/* MỐC TUẦN ĐÍCH — app đã rải sẵn từ mục tiêu năm; buổi họp CHỈNH chứ không TẠO.
               Trong 4DX mục tiêu đặt một lần cho cả kỳ, buổi họp chỉ báo cáo → nhìn bảng điểm →
               dọn đường. Trước đây khối này tạo một WIG tuần MỚI mỗi tuần, nên số mục tiêu phình
-              theo thời gian và mỗi cái có thể lệch đơn vị với cha nó. */}
+              theo thời gian và mỗi cái có thể lệch đơn vị với cha nó.
+
+              MỘT KHỐI CHO MỖI LĨNH VỰC (0106) — trước đây một ô <select> chỉ cho chỉnh MỘT mốc
+              mỗi lần họp; ba lĩnh vực còn lại không có cách nào được đụng tới trong phòng họp,
+              và việc của chúng không bao giờ cập nhật qua đây. Chủ dự án bắt đúng chỗ này. */}
           <div className="flex flex-col gap-3">
+            {err('viec') && (
+              <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
+                <AlertCircle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+                {err('viec')}
+              </p>
+            )}
             {mocDich.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-[2fr_1fr]">
-                <Field label={t('milestonePick')} htmlFor="moc-id" className="col-span-2 sm:col-span-1">
-                  <select id="moc-id" name="moc_id" {...oNhap('moc_id')} className={selectCls}>
-                    {mocDich.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.title}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label={t('milestoneTarget')} htmlFor="moc-target" error={err('moc_target')}>
-                  <input
-                    id="moc-target"
-                    name="moc_target"
-                    type="number"
-                    step="any"
-                    min="0.01"
-                    inputMode="decimal"
-                    {...oNhap('moc_target')}
-                    className={ctlWithBorder(state.fieldError === 'moc_target')}
-                  />
-                </Field>
-              </div>
+              mocDich.map((m) => {
+                const meta = areaMeta[m.area as Area];
+                const {mocCan, tongViecCho, thieuNhip} = nhipCuaMoc(m);
+                const rows = dong.filter((r) => r.area === m.area);
+                return (
+                  <div key={m.id} className="rounded-[16px] border-[1.5px] border-navy/10 p-3.5">
+                    <div className="mb-2.5 flex flex-wrap items-baseline gap-2">
+                      <span
+                        className="inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[10.5px] font-extrabold"
+                        style={{background: meta.soft, color: meta.hex}}
+                      >
+                        {areaLabel(meta, locale)}
+                      </span>
+                      <span className="text-[13px] font-bold text-navy">{m.title}</span>
+                    </div>
+
+                    <Field
+                      label={t('milestoneTarget')}
+                      htmlFor={`moc-target-${m.id}`}
+                      error={err(`moc_target_${m.id}`)}
+                      className="max-w-[180px]"
+                    >
+                      <input
+                        id={`moc-target-${m.id}`}
+                        name={`moc_target_${m.id}`}
+                        type="number"
+                        step="any"
+                        min="0.01"
+                        inputMode="decimal"
+                        {...oNhap(`moc_target_${m.id}`)}
+                        className={ctlWithBorder(state.fieldError === `moc_target_${m.id}`)}
+                      />
+                    </Field>
+
+                    <div className="mt-3">
+                      <span className={labelCls}>{tw('workToTick')}</span>
+                      <div className="flex flex-col gap-2">
+                        {rows.map((r) => (
+                          <div key={r.k} className="rounded-[12px] border-[1.5px] border-navy/10 p-2.5">
+                            <input type="hidden" name={`viec_${r.k}_moc`} value={m.id} />
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-[2fr_1fr_1fr_1.2fr_auto]">
+                              <Field label={tw('leadTitle')} htmlFor={`v-${r.k}-t`} className="col-span-2 sm:col-span-1">
+                                <input id={`v-${r.k}-t`} name={`viec_${r.k}_title`} {...oViec(`viec_${r.k}_title`)} className={inputCls} />
+                              </Field>
+                              <Field label={tw('target')} htmlFor={`v-${r.k}-m`}>
+                                <input
+                                  id={`v-${r.k}-m`}
+                                  name={`viec_${r.k}_target`}
+                                  type="number"
+                                  step="any"
+                                  min="0.01"
+                                  inputMode="decimal"
+                                  {...oViec(`viec_${r.k}_target`)}
+                                  className={inputCls}
+                                />
+                              </Field>
+                              <Field label={tw('unit')} htmlFor={`v-${r.k}-u`}>
+                                <input id={`v-${r.k}-u`} name={`viec_${r.k}_unit`} {...oViec(`viec_${r.k}_unit`)} className={inputCls} />
+                              </Field>
+                              <Field label={tw('unitPerTick')} htmlFor={`v-${r.k}-p`}>
+                                <input
+                                  id={`v-${r.k}-p`}
+                                  name={`viec_${r.k}_upt`}
+                                  type="number"
+                                  step="any"
+                                  min="0.01"
+                                  inputMode="decimal"
+                                  {...oViec(`viec_${r.k}_upt`)}
+                                  className={inputCls}
+                                />
+                              </Field>
+                              <div className="flex items-end">
+                                <button
+                                  type="button"
+                                  onClick={() => xoaDong(r.k)}
+                                  aria-label={tw('deleteLead')}
+                                  className="ctl-h grid w-11 cursor-pointer place-items-center rounded-[10px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.06] text-status-bad transition-all hover:bg-status-bad/[0.14]"
+                                >
+                                  <Trash2 size={14} strokeWidth={2.5} />
+                                </button>
+                              </div>
+                            </div>
+                            <div className="mt-2">
+                              <span className={labelCls}>{tw('weekdays')}</span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {DOW.map((d, i) => (
+                                  <label key={d} className="cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      name={`viec_${r.k}_days`}
+                                      value={d}
+                                      checked={r.days.includes(d)}
+                                      onChange={() => doiThu(r.k, d)}
+                                      className="peer sr-only"
+                                    />
+                                    <span className="grid h-9 w-11 select-none place-items-center rounded-[10px] border-[1.5px] border-navy/15 bg-white text-[11.5px] font-extrabold text-navy/60 transition-all hover:border-navy peer-checked:border-transparent peer-checked:bg-gold peer-checked:text-navy peer-focus-visible:ring-2 peer-focus-visible:ring-navy/40">
+                                      {dayShort[i]}
+                                    </span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => themDong(m.area)}
+                          className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-[12px] border-[1.5px] border-dashed border-navy/25 px-3 py-2.5 text-[12.5px] font-extrabold text-navy/60 transition-all hover:border-navy/50 hover:bg-navy/[0.03] hover:text-navy"
+                        >
+                          <Plus size={14} strokeWidth={2.5} />
+                          {tw('addWork')}
+                        </button>
+                      </div>
+                      {/* CẢNH BÁO LỆCH NHỊP — Kỷ luật 3 ở dạng cụ thể nhất, và là thứ đáng giá
+                          nhất của cả đợt sửa. Nay tính riêng cho TỪNG lĩnh vực. */}
+                      {thieuNhip > 0 && (
+                        <p className="mt-2 inline-flex items-start gap-1.5 rounded-[10px] bg-gold/[0.14] px-2.5 py-2 text-[11.5px] font-bold text-navy">
+                          <AlertTriangle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+                          {t('paceWarn', {can: mocCan, cho: tongViecCho, thieu: thieuNhip})}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
             ) : namHienCo.length > 0 ? (
               /* Mốc thiếu — cô khai mục tiêu năm sau khi tuần này đã trôi qua, nên nhịp không phủ
-                 tới. BÙ đúng một mốc, không đẻ mục tiêu mới. */
+                 tới. BÙ đúng một mốc, không đẻ mục tiêu mới. Trường hợp hiếm, giữ nguyên một khối
+                 dùng chung — chưa cần tách theo lĩnh vực vì lúc này CHƯA lĩnh vực nào có mốc cả. */
               <div className="rounded-[14px] border-[1.5px] border-gold/50 bg-gold/[0.08] p-3">
                 <p className="mb-2.5 text-[11.5px] font-semibold leading-relaxed text-navy">
                   {t('milestoneMissing', {week: dichLabel})}
@@ -490,6 +619,86 @@ export function PhongHop({
                     />
                   </Field>
                 </div>
+
+                <div className="mt-3">
+                  <span className={labelCls}>{tw('workToTick')}</span>
+                  <div className="flex flex-col gap-2">
+                    {dong.map((r) => (
+                      <div key={r.k} className="rounded-[12px] border-[1.5px] border-navy/10 bg-white p-2.5">
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-[2fr_1fr_1fr_1.2fr_auto]">
+                          <Field label={tw('leadTitle')} htmlFor={`v-${r.k}-t`} className="col-span-2 sm:col-span-1">
+                            <input id={`v-${r.k}-t`} name={`viec_${r.k}_title`} {...oViec(`viec_${r.k}_title`)} className={inputCls} />
+                          </Field>
+                          <Field label={tw('target')} htmlFor={`v-${r.k}-m`}>
+                            <input
+                              id={`v-${r.k}-m`}
+                              name={`viec_${r.k}_target`}
+                              type="number"
+                              step="any"
+                              min="0.01"
+                              inputMode="decimal"
+                              {...oViec(`viec_${r.k}_target`)}
+                              className={inputCls}
+                            />
+                          </Field>
+                          <Field label={tw('unit')} htmlFor={`v-${r.k}-u`}>
+                            <input id={`v-${r.k}-u`} name={`viec_${r.k}_unit`} {...oViec(`viec_${r.k}_unit`)} className={inputCls} />
+                          </Field>
+                          <Field label={tw('unitPerTick')} htmlFor={`v-${r.k}-p`}>
+                            <input
+                              id={`v-${r.k}-p`}
+                              name={`viec_${r.k}_upt`}
+                              type="number"
+                              step="any"
+                              min="0.01"
+                              inputMode="decimal"
+                              {...oViec(`viec_${r.k}_upt`)}
+                              className={inputCls}
+                            />
+                          </Field>
+                          <div className="flex items-end">
+                            <button
+                              type="button"
+                              onClick={() => xoaDong(r.k)}
+                              aria-label={tw('deleteLead')}
+                              className="ctl-h grid w-11 cursor-pointer place-items-center rounded-[10px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.06] text-status-bad transition-all hover:bg-status-bad/[0.14]"
+                            >
+                              <Trash2 size={14} strokeWidth={2.5} />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="mt-2">
+                          <span className={labelCls}>{tw('weekdays')}</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {DOW.map((d, i) => (
+                              <label key={d} className="cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  name={`viec_${r.k}_days`}
+                                  value={d}
+                                  checked={r.days.includes(d)}
+                                  onChange={() => doiThu(r.k, d)}
+                                  className="peer sr-only"
+                                />
+                                <span className="grid h-9 w-11 select-none place-items-center rounded-[10px] border-[1.5px] border-navy/15 bg-white text-[11.5px] font-extrabold text-navy/60 transition-all hover:border-navy peer-checked:border-transparent peer-checked:bg-gold peer-checked:text-navy peer-focus-visible:ring-2 peer-focus-visible:ring-navy/40">
+                                  {dayShort[i]}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => themDong('')}
+                      className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-[12px] border-[1.5px] border-dashed border-navy/25 bg-white px-3 py-2.5 text-[12.5px] font-extrabold text-navy/60 transition-all hover:border-navy/50 hover:text-navy"
+                    >
+                      <Plus size={14} strokeWidth={2.5} />
+                      {tw('addWork')}
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-4 text-center">
@@ -505,108 +714,10 @@ export function PhongHop({
                 )}
               </div>
             )}
-
-              <div>
-                <span className={labelCls}>{tw('workToTick')}</span>
-                {err('viec') && (
-                  <p className="mb-2 inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
-                    <AlertCircle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
-                    {err('viec')}
-                  </p>
-                )}
-                <div className="flex flex-col gap-2">
-                  {dong.map((r) => (
-                    <div key={r.k} className="rounded-[12px] border-[1.5px] border-navy/10 p-2.5">
-                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-[2fr_1fr_1fr_1.2fr_auto]">
-                        <Field label={tw('leadTitle')} htmlFor={`v-${r.k}-t`} className="col-span-2 sm:col-span-1">
-                          <input id={`v-${r.k}-t`} name={`viec_${r.k}_title`} {...oViec(`viec_${r.k}_title`)} className={inputCls} />
-                        </Field>
-                        <Field label={tw('target')} htmlFor={`v-${r.k}-m`}>
-                          <input
-                            id={`v-${r.k}-m`}
-                            name={`viec_${r.k}_target`}
-                            type="number"
-                            step="any"
-                            min="0.01"
-                            inputMode="decimal"
-                            {...oViec(`viec_${r.k}_target`)}
-                            className={inputCls}
-                          />
-                        </Field>
-                        <Field label={tw('unit')} htmlFor={`v-${r.k}-u`}>
-                          <input id={`v-${r.k}-u`} name={`viec_${r.k}_unit`} {...oViec(`viec_${r.k}_unit`)} className={inputCls} />
-                        </Field>
-                        <Field label={tw('unitPerTick')} htmlFor={`v-${r.k}-p`}>
-                          <input
-                            id={`v-${r.k}-p`}
-                            name={`viec_${r.k}_upt`}
-                            type="number"
-                            step="any"
-                            min="0.01"
-                            inputMode="decimal"
-                            {...oViec(`viec_${r.k}_upt`)}
-                            className={inputCls}
-                          />
-                        </Field>
-                        <div className="flex items-end">
-                          <button
-                            type="button"
-                            onClick={() => xoaDong(r.k)}
-                            aria-label={tw('deleteLead')}
-                            className="ctl-h grid w-11 cursor-pointer place-items-center rounded-[10px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.06] text-status-bad transition-all hover:bg-status-bad/[0.14]"
-                          >
-                            <Trash2 size={14} strokeWidth={2.5} />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="mt-2">
-                        <span className={labelCls}>{tw('weekdays')}</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {DOW.map((d, i) => (
-                            <label key={d} className="cursor-pointer">
-                              <input
-                                type="checkbox"
-                                name={`viec_${r.k}_days`}
-                                value={d}
-                                checked={r.days.includes(d)}
-                                onChange={() => doiThu(r.k, d)}
-                                className="peer sr-only"
-                              />
-                              <span className="grid h-9 w-11 select-none place-items-center rounded-[10px] border-[1.5px] border-navy/15 bg-white text-[11.5px] font-extrabold text-navy/60 transition-all hover:border-navy peer-checked:border-transparent peer-checked:bg-gold peer-checked:text-navy peer-focus-visible:ring-2 peer-focus-visible:ring-navy/40">
-                                {dayShort[i]}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={themDong}
-                    className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-[12px] border-[1.5px] border-dashed border-navy/25 px-3 py-2.5 text-[12.5px] font-extrabold text-navy/60 transition-all hover:border-navy/50 hover:bg-navy/[0.03] hover:text-navy"
-                  >
-                    <Plus size={14} strokeWidth={2.5} />
-                    {tw('addWork')}
-                  </button>
-                </div>
-                {/* CẢNH BÁO LỆCH NHỊP — Kỷ luật 3 ở dạng cụ thể nhất, và là thứ đáng giá nhất
-                    của cả đợt sửa. App vẫn luôn nói "đang ở đâu"; chưa bao giờ nói "lẽ ra phải ở
-                    đâu". Trên lớp mẫu: mốc tuần cần 25 bài, việc "mỗi bạn 3 bài" × 3 em cho tối
-                    đa 9 — hụt 64%, và không màn hình nào nói ra. Nay nó hiện NGAY LÚC CÔ ĐANG GÕ,
-                    không phải trong một báo cáo cuối kỳ.
-                    Phép so này chỉ làm được từ 0100, khi hai vế về cùng thang. */}
-                {thieuNhip > 0 && (
-                  <p className="mt-2 inline-flex items-start gap-1.5 rounded-[10px] bg-gold/[0.14] px-2.5 py-2 text-[11.5px] font-bold text-navy">
-                    <AlertTriangle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
-                    {t('paceWarn', {can: mocCan, cho: tongViecCho, thieu: thieuNhip})}
-                  </p>
-                )}
-                {viecMau.length > 0 && (
-                  <p className="mt-2 text-[11px] font-semibold italic text-grey-mid">{t('carriedOver')}</p>
-                )}
-              </div>
-            </div>
+            {viecMau.length > 0 && (
+              <p className="text-[11px] font-semibold italic text-grey-mid">{t('carriedOver')}</p>
+            )}
+          </div>
         </section>
       )}
 

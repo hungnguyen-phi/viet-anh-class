@@ -28,6 +28,10 @@ export type DongTienDo = {
   cap: 'year' | 'month' | 'week';
   title: string;
   periodLabel: string | null;
+  // Ngày bắt đầu/kết thúc thật của kỳ — nhãn (VD "W33-2026") không tự nói ra ngày, người đọc phải
+  // tự quy đổi trong đầu. null khi cấp này chưa có mục tiêu.
+  startDate: string | null;
+  endDate: string | null;
   baseline: number | null;
   target: number;
   unit: string;
@@ -70,6 +74,7 @@ export function BangTienDo({
 
   const tenCap = (c: DongTienDo['cap']) =>
     c === 'year' ? t('year') : c === 'month' ? t('month') : t('week');
+  const dm = (x: string) => `${x.slice(8, 10)}/${x.slice(5, 7)}`;
 
   return (
     <div className="flex flex-col gap-4">
@@ -93,6 +98,7 @@ export function BangTienDo({
                   <span className="text-[10px] font-extrabold uppercase tracking-wide text-grey-soft">
                     {tenCap(d.cap)}
                     {d.periodLabel ? ` · ${d.periodLabel}` : ''}
+                    {d.startDate && d.endDate ? ` · ${dm(d.startDate)}→${dm(d.endDate)}` : ''}
                   </span>
                   {d.id && (
                     <span className="ml-auto flex shrink-0 items-center gap-1">

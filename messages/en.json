@@ -505,6 +505,8 @@
     "editWork": "Edit task",
     "addWorkNeedsWig": "No week goal yet, so there is nothing to attach a task to.",
     "progressRail": "Where the class stands",
+    "studentList": "Student list",
+    "studentListEmpty": "No students in this class yet.",
     "emptyYear": "no year goal yet",
     "monthOtherPeriod": "set for {label}, not this week",
     "emptyMonth": "no month goal yet",
