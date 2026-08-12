@@ -50,9 +50,14 @@ def bang(ws, r, cot, rong):
     for i, ten in enumerate(cot, start=1):
         o = ws.cell(r, i, ten)
         o.font, o.fill, o.alignment, o.border = dam, nen_dau, tren, vien
+    # Sheet nhiều bảng dùng chung một bộ cột — lấy bề rộng LỚN NHẤT, đừng để bảng sau đè bảng trước.
     for i, w in enumerate(rong, start=1):
-        ws.column_dimensions[get_column_letter(i)].width = w
-    ws.freeze_panes = ws.cell(r + 1, 1)
+        c = ws.column_dimensions[get_column_letter(i)]
+        c.width = max(w, c.width or 0)
+    # Chỉ đóng băng ở bảng ĐẦU của sheet: sheet nhiều bảng mà đóng băng theo bảng cuối thì
+    # cuộn lên là mất hết nửa trên.
+    if ws.freeze_panes is None:
+        ws.freeze_panes = ws.cell(r + 1, 1)
     return r + 1
 
 
@@ -74,17 +79,77 @@ def dai(ws, r, chu, font=None):
 
 # ══ Dữ liệu ══════════════════════════════════════════════════════════════════════════════════
 
-# ① Những gì ĐÃ XONG trước buổi demo 23/07 — đây là cái "checklist hoàn thành" của giai đoạn 1.
-TRUOC_DEMO = [
-    ("Nền tảng", "Khung app Next.js + Supabase, migrations 0001–0016", "✅", "Cả CSDL lẫn app dựng cùng lúc, chưa tách môi trường"),
-    ("Đăng nhập", "Đăng nhập chạy được — nhưng CÒN NÚT DEMO", "⚠️", "Demo login là lỗ hổng, phải chờ 28/07 mới bỏ"),
-    ("Điểm danh", "Điểm danh theo ngày + bảng cảm xúc", "✅", "Chưa có cửa sổ giờ, chưa phân loại đúng giờ/muộn"),
-    ("4DX", "WIG + lead measure CẤP LỚP, tick và tiến độ", "✅", "WIG cá nhân của từng em CHƯA có"),
-    ("4DX", "Scoreboard 4DX cho học sinh", "✅", "Bản đầu, chưa tính từ tick thật của học sinh"),
-    ("4DX", "Họp WIG — biên bản, cam kết", "✅", "Chưa neo theo tuần, chưa đủ 4 lĩnh vực"),
-    ("Phân quyền", "Vai admin / giáo viên / học sinh / phụ huynh", "⚠️", "RLS còn lỗ — audit 22/07 chấm 35/100"),
-    ("Báo cáo", "Báo cáo phụ huynh theo tuần", "✅", ""),
-    ("Giao diện", "Redesign v3 'glass on gradient' + mood check-in", "✅", "Đây là bộ giao diện đang đóng băng, không đổi nữa"),
+# ① Ba mốc dựng nên bản demo. Giai đoạn ① chỉ có 3 commit, nhưng mỗi commit là một mẻ lớn.
+MOC_TRUOC_DEMO = [
+    ("2026-07-15", "f6443a7", "Dựng cả app trong một commit",
+     "16 migration (0001–0013) + 10 màn + i18n Việt/Anh + 6 tài liệu (ROLE_MATRIX, DATA_GOVERNANCE, "
+     "PILOT_SUCCESS_METRICS, M8_HARDENING, SETUP_AUTH, SETUP_EMAIL). Đây là bộ xương."),
+    ("2026-07-21", "eca6961", "Trải nghiệm học sinh + scoreboard 4DX + báo cáo phụ huynh",
+     "Thêm màn /student và /student/[id], scoreboard, LeadTicker, biên bản họp; migration 0014–0015."),
+    ("2026-07-21", "d404200", "Redesign v3 'glass on gradient' + mood check-in",
+     "Bộ giao diện ĐANG ĐÓNG BĂNG hiện nay ra đời ở đây. Thêm login đám đông học sinh (85 ảnh), "
+     "MoodCheckin, migration 0016."),
+    ("2026-07-23", "—", "Chốt bản demo", "Không commit thêm — 15→23/07 là 9 ngày, đủ ngưỡng 7 ngày."),
+]
+
+# ① Checklist theo MÀN HÌNH: bản demo có những màn nào, mỗi màn làm được gì và chưa được gì.
+MAN_TRUOC_DEMO = [
+    ("/login", "Đăng nhập + màn 'đám đông học sinh' chọn mặt", "⚠️",
+     "CÒN NÚT DEMO LOGIN — bấm là vào thẳng, không cần tài khoản. Lỗ go-live số 1, mãi 28/07 mới bỏ."),
+    ("/ (dashboard)", "Trang chủ theo vai", "✅", ""),
+    ("/attendance", "Điểm danh theo ngày, có trưởng điểm danh + realtime", "⚠️",
+     "Chưa có cửa sổ giờ → không phân loại được đúng giờ/muộn/vắng. Và đang ghi SAI NGÀY ở buổi sáng "
+     "(múi giờ) — lỗi này phải tới 05/08 mới lộ."),
+    ("/wig", "Đặt WIG + lead measure CẤP LỚP, tick, tiến độ", "⚠️",
+     "Chỉ có WIG lớp. WIG cá nhân của từng em CHƯA có — cả nhánh này xây sau (10–11/08). "
+     "Tiến độ WIG lớp còn do giáo viên GÕ TAY, không tính từ tick thật."),
+    ("/meeting", "Phòng họp WIG — biên bản, cam kết", "⚠️",
+     "Chưa neo theo tuần (nhãn chữ, không có ngày thật), chưa chỉnh đủ 4 lĩnh vực."),
+    ("/student", "Trang của em: scoreboard 4DX, LeadTicker, mood check-in", "✅",
+     "Scoreboard chạy nhưng xếp hạng tính từ số người lớn gõ vào."),
+    ("/student/[id]", "GVCN mở trang từng em", "✅", ""),
+    ("/roster", "Danh sách lớp, ghi danh học sinh", "⚠️",
+     "Chưa sửa/xoá được từng dòng, chưa dời lớp, chưa xếp lớp cho em lơ lửng."),
+    ("/report", "Báo cáo phụ huynh theo tuần", "✅", ""),
+    ("/campus", "Xem theo cơ sở", "⚠️", "Chưa có tầng quản trị Cơ sở→Khối→Lớp thật sự."),
+    ("/admin", "Trang quản trị", "⚠️",
+     "Mới là khung. Toàn bộ trang quản trị dùng được là dựng lại từ 05/08."),
+    ("/guide", "Trang hướng dẫn", "✅", ""),
+]
+
+# ① Checklist theo CSDL: 16 migration đầu đã dựng những bảng nào.
+CSDL_TRUOC_DEMO = [
+    ("0001–0002", "Bảng lõi: campuses, profiles, classes, enrollments", "✅", ""),
+    ("0002", "4DX: wigs, lead_measures, lead_progress, wig_meetings", "⚠️",
+     "wigs chưa có scope cá nhân, chưa có cây năm→tháng→tuần (mãi 0100 mới có)."),
+    ("0002", "attendance_records, scoreboard_entries", "✅", ""),
+    ("0002", "parent_links, parent_invitations, signup_email_domains", "✅", ""),
+    ("0003–0004", "Hàm hỗ trợ + chính sách RLS", "❌",
+     "ĐÂY LÀ CHỖ HỎNG NẶNG NHẤT: audit 22/07 chấm 35/100, có lỗ rò dữ liệu trẻ em sang lớp/vai khác."),
+    ("0005", "Trigger tạo profile khi có tài khoản mới", "⚠️",
+     "Ba hàm trigger còn để quyền anon + chưa ghim search_path — vá ngày 30/07."),
+    ("0006", "Storage bucket (ảnh bìa lớp, ảnh học sinh)", "⚠️", "Chính sách bucket sai, vá 25/07."),
+    ("0007", "Trưởng điểm danh + realtime", "✅", ""),
+    ("0008", "pending_user_grants — khai sẵn tài khoản trước khi đăng nhập lần đầu", "⚠️",
+     "Có bảng nhưng chưa có màn nào dùng; giao diện khai sẵn dựng 05–06/08."),
+    ("0009–0012", "View tiến độ WIG, xếp hạng scoreboard, audit_log, rollup", "⚠️",
+     "wig_actual còn lỗi, vá ở 0038."),
+    ("0013", "Hardening đợt 1", "⚠️", "Chưa đủ — audit 22/07 vẫn 35/100."),
+    ("0014–0015", "Báo cáo phụ huynh theo tuần + grants theo bảng", "✅", ""),
+    ("0016", "mood_checkins — bảng cảm xúc", "✅", "Sau này gộp cảm xúc = điểm danh (24/07)."),
+]
+
+# ① Những gì ĐÃ BIẾT là còn thiếu ngay tại buổi demo — đây chính là đầu vào của giai đoạn ②.
+LO_KHI_DEMO = [
+    ("Nút demo login còn nguyên", "Bấm là vào app không cần tài khoản", "Bỏ 28/07, bỏ nốt mật khẩu 05/08"),
+    ("RLS chấm 35/100 (audit 22/07)", "Rò dữ liệu trẻ em, mất điểm danh, sai múi giờ", "Vá 25/07, 26/07, 30/07, 07/08"),
+    ("WIG cá nhân chết", "Mỗi em chưa có mục tiêu riêng, chỉ có WIG lớp", "Dựng 10–11/08, sinh từ WIG lớp"),
+    ("Tiến độ WIG do người lớn gõ tay", "Thắng/thua không phản ánh việc học sinh làm", "Đổi 02/08, kèm dọn 27 dòng gõ tay"),
+    ("Chưa deploy được", "Chỉ chạy máy cá nhân, chưa có hạ tầng", "VPS/container + CI 25/07"),
+    ("Chưa có tầng quản trị", "Chưa khai được Cơ sở→Khối→Lớp→Môn", "Dựng 24/07, làm lại 05/08"),
+    ("Chưa có Buddy thật", "Buddy chưa gọi LLM", "Buddy LLM 26/07, neo lead measure 27/07"),
+    ("Chưa có bộ kiểm tự động", "Không có cách chứng minh trang chạy được", "Nay 51 script chạy thẳng lên production"),
+    ("Chưa dùng được trên điện thoại", "Chưa ai đo ở 360–430px", "Audit mobile 06/08"),
 ]
 
 # ② Sau demo: SỬA. Gom theo chủ đề, mỗi dòng là việc có commit thật.
@@ -173,8 +238,9 @@ r += 1
 r = bang(ws, r, ["Giai đoạn", "Bắt đầu", "Kết thúc", "Số ngày", "Ngưỡng", "Trạng thái", "Nội dung chính"],
          [30, 12, 12, 9, 16, 34, 78])
 r = dong(ws, r, ["① Demo", "2026-07-15", "2026-07-23", 9, "9/7 ngày", "✅ Đã qua",
-                 "Dựng khung app, đăng nhập, điểm danh, WIG/lead cấp lớp, scoreboard, họp WIG, "
-                 "phân quyền, báo cáo — bản chốt 23/07. Chi tiết ở sheet '① Trước demo'."], XANH)
+                 "3 commit dựng nên 12 màn + 16 migration: đăng nhập, điểm danh, WIG/lead CẤP LỚP, "
+                 "scoreboard, họp WIG, báo cáo phụ huynh, giao diện v3. Nhưng 9 lỗ đã biết trước "
+                 "khi demo (demo login, RLS 35/100, WIG cá nhân chết…). Chi tiết ở sheet '① Trước demo'."], XANH)
 r = dong(ws, r, ["② Xây & thử liên tục", "2026-07-24", "đang chạy", (HOM_NAY - date(2026, 7, 24)).days,
                  f"chuỗi yên: {chuoi_yen}/{NGUONG_YEN} ngày",
                  f"🔶 Đang chạy — sửa lớn gần nhất {LAN_SUA_LON_CUOI:%Y-%m-%d}",
@@ -188,11 +254,35 @@ r = dong(ws, r, ["③ Go-live (học sinh dùng thật liên tục)", "—", "�
 # ── Sheet 2: ① Trước demo ───────────────────────────────────────────────────────────────────
 ws = wb.create_sheet("① Trước demo")
 r = dai(ws, 1, "① TRƯỚC BUỔI DEMO 23/07 — CHECKLIST ĐÃ HOÀN THÀNH NHỮNG GÌ")
-r = dai(ws, r, "⚠️ = có chạy nhưng CHƯA đủ để dùng thật; đó chính là danh sách việc giai đoạn ② phải gánh.", nho)
+r = dai(ws, r,
+        "✅ = xong và dùng được · ⚠️ = chạy được nhưng CHƯA đủ dùng thật · ❌ = hỏng, biết là hỏng. "
+        "Cột cuối chỉ thẳng sang giai đoạn ② — mỗi ⚠️/❌ ở đây là một việc ② phải gánh.", nho)
 r += 1
-r = bang(ws, r, ["Mảng", "Đã xong ở bản demo", "Đủ dùng thật?", "Còn thiếu gì"], [22, 62, 14, 62])
-for m, v, ok, thieu in TRUOC_DEMO:
-    r = dong(ws, r, [m, v, ok, thieu], XANH if ok == "✅" else CAM)
+
+r = dai(ws, r, "1 · BA MỐC DỰNG NÊN BẢN DEMO", tieu_de)
+r = bang(ws, r, ["Ngày", "Commit", "Mốc", "Nội dung"], [13, 11, 44, 96])
+for ngay, sha, moc, nd in MOC_TRUOC_DEMO:
+    r = dong(ws, r, [ngay, sha, moc, nd])
+r += 1
+
+r = dai(ws, r, "2 · BẢN DEMO CÓ NHỮNG MÀN NÀO — LÀM ĐƯỢC GÌ, CHƯA ĐƯỢC GÌ", tieu_de)
+r = bang(ws, r, ["Màn", "Đã có ở bản demo", "Đủ dùng thật?", "Còn thiếu gì → ② gánh"], [17, 52, 14, 84])
+for man, co, ok, thieu in MAN_TRUOC_DEMO:
+    r = dong(ws, r, [man, co, ok, thieu], XANH if ok == "✅" else CAM)
+r += 1
+
+r = dai(ws, r, "3 · CSDL: 16 MIGRATION ĐẦU ĐÃ DỰNG NHỮNG GÌ", tieu_de)
+r = bang(ws, r, ["Migration", "Dựng cái gì", "Đủ dùng thật?", "Còn thiếu gì → ② gánh"], [17, 52, 14, 84])
+for mg, co, ok, thieu in CSDL_TRUOC_DEMO:
+    r = dong(ws, r, [mg, co, ok, thieu], XANH if ok == "✅" else ("C0392B" if ok == "❌" else CAM))
+r += 1
+
+r = dai(ws, r, "4 · NHỮNG LỖ ĐÃ BIẾT NGAY TẠI BUỔI DEMO — ĐẦU VÀO CỦA GIAI ĐOẠN ②", tieu_de)
+r = dai(ws, r, "Demo 'xong' không có nghĩa là đủ. 9 mục dưới đây là những chỗ biết trước là còn hở, "
+               "và cột cuối là nơi từng mục được đóng lại.", nho)
+r = bang(ws, r, ["Lỗ còn hở khi demo", "Nghĩa là gì", "Đóng lại lúc nào"], [40, 62, 62])
+for lo, nghia, dong_lai in LO_KHI_DEMO:
+    r = dong(ws, r, [lo, nghia, dong_lai], CAM)
 
 # ── Sheet 3: ② Đã sửa ───────────────────────────────────────────────────────────────────────
 ws = wb.create_sheet("② Đã sửa")
