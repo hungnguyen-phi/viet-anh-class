@@ -1298,6 +1298,16 @@
     "paceSave": "Lưu nhịp",
     "noClassWig": "Lớp chưa đặt mục tiêu năm nào.",
     "preview": "Con sẽ {what}, từ {from} đến {to} {unit}, trước {due}.",
-    "previewEmpty": "Điền vào ba bước trên, câu mục tiêu của con sẽ hiện ở đây."
+    "previewEmpty": "Điền vào ba bước trên, câu mục tiêu của con sẽ hiện ở đây.",
+    "journalWeek": "Tuần này: {dau}–{cuoi}",
+    "journalReset": "Sang thứ Hai là một trang mới; chữ tuần này vẫn giữ lại, con mở phần “Các tuần trước” là đọc được.",
+    "journalOpen": "Viết vào sổ",
+    "journalEdit": "Viết tiếp / sửa",
+    "journalRead": "Mở sổ đọc",
+    "journalHistory": "Các tuần trước",
+    "journalNoHistory": "Chưa có tuần nào trước đó.",
+    "journalHistoryCount": "{n} tuần đã viết",
+    "journalWeekOf": "Tuần {dau}",
+    "yearScope": "cả năm học {nam}"
   }
 }

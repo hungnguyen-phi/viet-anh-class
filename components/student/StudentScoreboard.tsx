@@ -22,7 +22,7 @@ import {StudentWigManage, type ManageWig, type ManageLead} from '@/components/st
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {EditRequestButton} from '@/components/student/EditRequestButton';
 import {MucTieuCuaCon, type MucTieuCuaEm} from '@/components/student/MucTieuCuaCon';
-import {SoCuaCon} from '@/components/student/SoCuaCon';
+import {SoCuaCon, type TrangSo} from '@/components/student/SoCuaCon';
 import {MeetingScoreboard} from '@/components/wig/MeetingScoreboard';
 import {AREAS, areaLabel, areaIcon, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
@@ -371,14 +371,18 @@ export async function StudentScoreboard({
           .eq('scope', 'class')
           .eq('period', 'year')
       : Promise.resolve({data: null}),
-    // SỔ CỦA CON — chỉ dòng của TUẦN NÀY. Cả năm thì là một trang nhật ký, mà chỗ này là ô để
-    // viết cho tuần đang chạy; lịch sử để dành cho màn khác nếu sau này cần.
+    // SỔ CỦA CON — tuần này VÀ các tuần đã viết.
+    //
+    // Trước 12/08/2026 chỗ này chỉ lấy đúng dòng của tuần đang chạy, nên sáng thứ Hai em mở ra
+    // thấy ô trống và không có đường nào đọc lại chữ tuần trước — chữ vẫn nằm nguyên trong CSDL,
+    // chỉ là không màn nào hỏi tới. Nay lấy cả xấp, mới nhất trước. Chặn 20 tuần: đủ gần hết một
+    // học kỳ, mà không để một em viết đều ba năm kéo theo một cục dữ liệu mỗi lần mở trang.
     supabase
       .from('student_reflections')
-      .select('body')
+      .select('week_start, body')
       .eq('student_id', studentId)
-      .eq('week_start', weekDays[0])
-      .maybeSingle(),
+      .order('week_start', {ascending: false})
+      .limit(20),
   ]);
   const leadData = leadRes.data;
   const classLeadData = classLeadRes.data;
@@ -585,6 +589,8 @@ export async function StudentScoreboard({
     // lấy phần tử đầu là đủ, không cần lo còn sót cái nào.
     viec: m.lead_measures?.[0] ?? null,
   }));
+  // Sổ của con — mới nhất trước; thẻ tự tách trang của tuần đang chạy ra khỏi phần lịch sử.
+  const trangSo = (soRes.data ?? []) as TrangSo[];
   const wigLopChon = ((wigLopRes.data ?? []) as {id: string; area: string; title: string | null}[]).map(
     (w) => ({id: w.id, area: w.area, title: w.title ?? w.area}),
   );
@@ -630,24 +636,41 @@ export async function StudentScoreboard({
         </div>
       </div>
 
-      {/* MỤC TIÊU CỦA CON — thay khối "GVCN thiết lập WIG cá nhân 1 chạm" đã xoá ở 0100. Chỗ ấy
-          chia mục tiêu lớp cho sĩ số rồi ghi xuống bản ghi của em; chỗ này hỏi chính em bốn câu.
-          Xem docs/MO_HINH_WIG.md §6.2. */}
-      {classId && (
-        <MucTieuCuaCon
-          studentId={studentId}
-          classId={classId}
-          mucTieu={mucTieuCuaEm}
-          wigLop={wigLopChon}
-          laChinhEm={canTick}
-          canManage={canManage}
-          dayShort={t.raw('dayShort') as string[]}
-        />
-      )}
-
-      {classId && (
-        <SoCuaCon classId={classId} banDau={soRes.data?.body ?? ''} laChinhEm={canTick} />
-      )}
+      {/* ── VIỆC HÔM NAY, NGAY DƯỚI HERO ────────────────────────────────────────────────────
+          Đây là việc DUY NHẤT em làm mỗi ngày, nên nó phải là thứ đầu tiên em chạm được khi mở
+          trang — vào phát là tick được ngay, không cuộn. Trước 12/08/2026 nó nằm ở cột trái của
+          lưới cuối trang, sau hero, hai thẻ lớn (mục tiêu + sổ), khối của giáo viên và cả dãy
+          vòng tròn lĩnh vực; còn hai thứ em chỉ đụng vài lần một kỳ thì chiếm chỗ trên cùng. */}
+      <section>
+        <div className="mb-3 flex items-baseline gap-2">
+          <h2 className="font-display text-[17px] font-bold text-navy">{t('leads')}</h2>
+          <span className="text-xs font-bold text-grey-mid">{t('leadsHint')}</span>
+        </div>
+        {tickerLeads.length === 0 ? (
+          <p className="text-sm italic text-grey-mid">{t('noLeads')}</p>
+        ) : (
+          <LeadTicker
+            leads={tickerLeads}
+            studentId={studentId}
+            // GVCN/Admin tick HỘ được — chủ dự án chốt 10/08/2026 ("vẫn có gv tick hộ"), cho
+            // em nghỉ ốm, quên máy, hoặc lớp nhỏ chưa dùng điện thoại. Quyền ở CSDL đã mở sẵn
+            // (rls_all_lead_progress); trước bản này màn hình chỉ có đường GỠ tick.
+            canTick={canTick || canManage}
+            // Công vẫn thuộc về EM (student_id), chỉ ghi lại ai là người bấm.
+            nguoiGhi={viewer.id}
+            today={today}
+            tickOpen={tickOpen}
+          />
+        )}
+        {/* Học sinh: xin GVCN sửa (vd gỡ tick của ngày đã qua, đổi mục tiêu) — hết ngõ cụt phía HS */}
+        {canTick && classId && (
+          <div className="mt-3">
+            <EditRequestButton studentId={studentId} classId={classId} leads={myLeadOptions} />
+          </div>
+        )}
+        {/* Yêu cầu đã gửi mà GVCN chưa xử lý → còn sửa/rút lại được */}
+        {canTick && <MyRequests studentId={studentId} requests={myRequests} />}
+      </section>
 
       {/* GVCN/Admin: yêu cầu-sửa đang chờ + quản lý WIG/lead/tick cá nhân (hết ngõ cụt) */}
       {canManage && <RequestInbox studentId={studentId} requests={requests} />}
@@ -697,38 +720,38 @@ export async function StudentScoreboard({
       </section>
       )}
 
-      {/* Lead measure tuần + WIG tuần + Họp WIG (2 cột) */}
+      {/* Họp WIG + THẺ NHỎ "mục tiêu & sổ" (2 cột).
+          Khối tick từng đứng ở cột trái chỗ này — nay đã lên ngay dưới hero. */}
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
-        <section>
-          <div className="mb-3 flex items-baseline gap-2">
-            <h2 className="font-display text-[17px] font-bold text-navy">{t('leads')}</h2>
-            <span className="text-xs font-bold text-grey-mid">{t('leadsHint')}</span>
-          </div>
-          {tickerLeads.length === 0 ? (
-            <p className="text-sm italic text-grey-mid">{t('noLeads')}</p>
-          ) : (
-            <LeadTicker
-              leads={tickerLeads}
+        {/* ── MỘT THẺ NHỎ: MỤC TIÊU CỦA CON + SỔ CỦA CON ───────────────────────────────────
+            Hai khối này từng chiếm nguyên hai thẻ lớn ngay dưới hero — chỗ đắt nhất của trang.
+            Sai về thứ tự ưu tiên: đặt mục tiêu là việc MỖI HỌC KỲ MỘT LẦN, viết sổ là việc mỗi
+            tuần một lần, còn tick việc là việc MỖI NGÀY — mà cái mỗi-ngày lại nằm dưới cùng.
+            Chủ dự án chốt 12/08/2026: gộp thành một thẻ nhỏ, đẩy xuống, ưu tiên việc tick.
+            Cả hai nửa đều mở chi tiết bằng hộp thoại nên thẻ này luôn cao vài dòng. */}
+        {classId && (
+          <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
+            <MucTieuCuaCon
               studentId={studentId}
-              // GVCN/Admin tick HỘ được — chủ dự án chốt 10/08/2026 ("vẫn có gv tick hộ"), cho
-              // em nghỉ ốm, quên máy, hoặc lớp nhỏ chưa dùng điện thoại. Quyền ở CSDL đã mở sẵn
-              // (rls_all_lead_progress); trước bản này màn hình chỉ có đường GỠ tick.
-              canTick={canTick || canManage}
-              // Công vẫn thuộc về EM (student_id), chỉ ghi lại ai là người bấm.
-              nguoiGhi={viewer.id}
-              today={today}
-              tickOpen={tickOpen}
+              classId={classId}
+              mucTieu={mucTieuCuaEm}
+              wigLop={wigLopChon}
+              laChinhEm={canTick}
+              canManage={canManage}
+              dayShort={t.raw('dayShort') as string[]}
+              namHoc={cls?.school_year ?? null}
             />
-          )}
-          {/* Học sinh: xin GVCN sửa (vd gỡ tick của ngày đã qua, đổi mục tiêu) — hết ngõ cụt phía HS */}
-          {canTick && classId && (
-            <div className="mt-3">
-              <EditRequestButton studentId={studentId} classId={classId} leads={myLeadOptions} />
+            <div className="border-t border-navy/10 pt-3">
+              <SoCuaCon
+                classId={classId}
+                tuanDau={weekDays[0]}
+                tuanCuoi={weekDays[6]}
+                lichSu={trangSo}
+                laChinhEm={canTick}
+              />
             </div>
-          )}
-          {/* Yêu cầu đã gửi mà GVCN chưa xử lý → còn sửa/rút lại được */}
-          {canTick && <MyRequests studentId={studentId} requests={myRequests} />}
-        </section>
+          </section>
+        )}
 
         <div className="flex flex-col gap-[22px]">
           {/* Khối "WIG tuần của em" từng đứng ở đây — năm dòng pip thắng/thua theo bốn lĩnh

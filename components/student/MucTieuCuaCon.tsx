@@ -24,6 +24,18 @@ import {
 // đồng thời "đã gửi cô xem" và một form còn nguyên chữ; (2) mỗi ngày em vào tick việc hôm nay đều
 // phải cuộn qua nửa màn hình ô trống. Nay mặc định chỉ có MỘT THẺ — câu mục tiêu, hạn, việc mỗi
 // tuần — còn form thì mở ra khi thật sự cần sửa.
+//
+// TỪ 12/08/2026 KHỐI NÀY LÀ MỘT NỬA CỦA THẺ CHUNG, KHÔNG CÒN LÀ MỘT KHỐI RIÊNG.
+// Nó đứng cạnh "Sổ của con" trong cùng một thẻ ở CUỐI trang, dưới ô tick. Lý do là thứ tự ưu
+// tiên: đặt mục tiêu là việc mỗi học kỳ một lần, tick việc là việc mỗi ngày — mà bản cũ để cái
+// một-lần nằm trên cùng còn cái mỗi-ngày nằm dưới ba khối. Nên ở đây không còn <section
+// className="glass"> bọc ngoài (thẻ chung lo phần đó) và tiêu đề hạ xuống <h3>.
+//
+// NHÃN NĂM HỌC. `luuMucTieuCuaEm` ghi period='year', start_date = đầu năm học, và kẹp hạn không
+// cho thò ra ngoài năm — tức mục tiêu của em SỐNG CẢ NĂM. Màn hình cũ không nói ra, nên nhìn vào
+// tưởng là mục tiêu ngắn hạn và sinh câu hỏi "sao không có năm/tháng/tuần?". Nhịp tuần đã nằm ở
+// "việc của con" với các thứ được bật; tầng năm/tháng/tuần thật thì thuộc về MỤC TIÊU LỚP
+// (parent_wig_id, 3 tầng) — với học sinh, 0100 cố tình làm phẳng. Xem docs/MO_HINH_WIG.md §1.
 
 export type MucTieuCuaEm = {
   id: string;
@@ -55,6 +67,7 @@ export function MucTieuCuaCon({
   laChinhEm,
   canManage,
   dayShort,
+  namHoc,
 }: {
   studentId: string;
   classId: string;
@@ -63,6 +76,9 @@ export function MucTieuCuaCon({
   laChinhEm: boolean;
   canManage: boolean;
   dayShort: string[];
+  // Nhãn năm học của lớp ("2026–2027") — để nói rõ mục tiêu này sống bao lâu. Không có lớp thì
+  // thôi, đừng bịa một khoảng thời gian ra.
+  namHoc: string | null;
 }) {
   const t = useTranslations('goal');
   const hocTap = mucTieu.find((m) => m.kind === 'academic') ?? null;
@@ -83,12 +99,18 @@ export function MucTieuCuaCon({
   const emSuaDuoc = canManage || (laChinhEm && conMo);
 
   return (
-    <section className="glass rounded-[20px] p-[18px]">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <h2 className="flex items-center gap-2 font-display text-[16px] font-bold text-navy">
-          <Target size={16} strokeWidth={2.5} />
+    <div className="flex min-w-0 flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <h3 className="flex items-center gap-1.5 font-display text-[14px] font-bold text-navy">
+          <Target size={14} strokeWidth={2.5} />
           {t('title')}
-        </h2>
+        </h3>
+        {/* Mục tiêu này sống cả năm học — nói ra, đừng để em đoán. */}
+        {namHoc && (
+          <span className="text-[11px] font-extrabold text-gold-text">
+            {t('yearScope', {nam: namHoc})}
+          </span>
+        )}
         {!hocTap && canGhi && (
           <button type="button" onClick={() => setMoForm(true)} className={`${btnGold} ml-auto`}>
             <Plus size={14} strokeWidth={2.5} />
@@ -98,7 +120,7 @@ export function MucTieuCuaCon({
       </div>
 
       {bao && (
-        <p className="mb-3 inline-flex items-start gap-1.5 rounded-[10px] bg-success/[0.10] px-2.5 py-2 text-[12px] font-bold text-success-dark">
+        <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-success/[0.10] px-2.5 py-2 text-[12px] font-bold text-success-dark">
           <CheckCircle2 size={13} strokeWidth={2.5} className="mt-px shrink-0" />
           {bao}
         </p>
@@ -233,6 +255,6 @@ export function MucTieuCuaCon({
           onDone={setBao}
         />
       )}
-    </section>
+    </div>
   );
 }

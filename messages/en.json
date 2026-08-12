@@ -1298,6 +1298,16 @@
     "paceSave": "Save pace",
     "noClassWig": "This class has no year goal yet.",
     "preview": "I will {what}, from {from} to {to} {unit}, by {due}.",
-    "previewEmpty": "Fill in the three steps above and your goal sentence will appear here."
+    "previewEmpty": "Fill in the three steps above and your goal sentence will appear here.",
+    "journalWeek": "This week: {dau}–{cuoi}",
+    "journalReset": "Monday starts a fresh page. This week's note is kept — open “Earlier weeks” to read it again.",
+    "journalOpen": "Write in journal",
+    "journalEdit": "Write more / edit",
+    "journalRead": "Open journal",
+    "journalHistory": "Earlier weeks",
+    "journalNoHistory": "No earlier weeks yet.",
+    "journalHistoryCount": "{n} weeks written",
+    "journalWeekOf": "Week of {dau}",
+    "yearScope": "whole school year {nam}"
   }
 }
