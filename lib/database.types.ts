@@ -194,6 +194,55 @@ export type Database = {
           },
         ]
       }
+      buddy_pairs: {
+        Row: {
+          buddy_id: string
+          class_id: string
+          created_at: string
+          id: string
+          student_id: string
+          week_start: string
+        }
+        Insert: {
+          buddy_id: string
+          class_id: string
+          created_at?: string
+          id?: string
+          student_id: string
+          week_start: string
+        }
+        Update: {
+          buddy_id?: string
+          class_id?: string
+          created_at?: string
+          id?: string
+          student_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buddy_pairs_buddy_id_fkey"
+            columns: ["buddy_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buddy_pairs_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buddy_pairs_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buddy_messages: {
         Row: {
           content: string

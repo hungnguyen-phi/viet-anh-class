@@ -26,6 +26,7 @@ export function StudentMeetingForm({
   studentId,
   classId,
   defaultWeek,
+  defaultBuddyId,
   weekOptions,
   classmates,
   planAreas,
@@ -34,6 +35,8 @@ export function StudentMeetingForm({
   studentId: string;
   classId: string;
   defaultWeek: string;
+  // Bạn đồng hành app đã ghép cho tuần này (0104) — chọn sẵn, cô vẫn đổi được nếu muốn.
+  defaultBuddyId: string;
   // Nhãn tuần để CHỌN, thay ô nhập text tự do (gõ sai định dạng là WIG không khớp tuần nào).
   weekOptions: string[];
   classmates: Classmate[];
@@ -46,7 +49,7 @@ export function StudentMeetingForm({
   const formRef = useRef<HTMLFormElement>(null);
 
   const [week, setWeek] = useState(defaultWeek);
-  const [buddyId, setBuddyId] = useState('');
+  const [buddyId, setBuddyId] = useState(defaultBuddyId);
   const [results, setResults] = useState('');
   const [commitments, setCommitments] = useState('');
   const [rows, setRows] = useState<Row[]>([]);

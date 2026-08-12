@@ -32,6 +32,7 @@ export async function StudentMeetings({
   classId,
   meetings,
   classmates,
+  banDongHanh,
   canManage,
   canChat,
   defaultWeek,
@@ -43,6 +44,8 @@ export async function StudentMeetings({
   classId: string | null;
   meetings: StudentMeeting[];
   classmates: Classmate[];
+  /** Bạn đồng hành app đã ghép cho tuần này (0104) — null nếu GVCN chưa ghép. */
+  banDongHanh: {id: string; name: string} | null;
   canManage: boolean;
   // true = chính em học sinh đó đang xem → được chat khi GVCN mở.
   canChat: boolean;
@@ -55,11 +58,22 @@ export async function StudentMeetings({
 
   return (
     <div className="flex flex-col gap-3">
+      {/* App đã ghép sẵn — mọi vai đều thấy, không chỉ lúc GVCN mở form. Trước đây chỉ hiện tên
+          bạn đồng hành SAU KHI đã có biên bản với buddy_id; em không có cách nào biết ai là bạn
+          đồng hành của mình tuần này trước khi buổi họp diễn ra. */}
+      {banDongHanh && (
+        <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-gold/15 px-3 py-1.5 text-[12px] font-bold text-navy">
+          <UserRound size={13} strokeWidth={2.5} />
+          {t('buddyThisWeek')}: {banDongHanh.name}
+        </div>
+      )}
+
       {canManage && classId && (
         <StudentMeetingForm
           studentId={studentId}
           classId={classId}
           defaultWeek={defaultWeek}
+          defaultBuddyId={banDongHanh?.id ?? ''}
           weekOptions={weekOptions}
           classmates={classmates}
           planAreas={planAreas}

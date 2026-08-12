@@ -10,6 +10,7 @@ import {
   recentWeekLabels,
   weekDaysVN,
   isoDowVN,
+  mondayOf,
 } from '@/lib/dates';
 import {DonutRing} from '@/components/charts/DonutRing';
 import {MoodCheckin, MoodGate, type MoodKey} from '@/components/student/MoodCheckin';
@@ -298,7 +299,7 @@ export async function StudentScoreboard({
     : {createAdminClient: null};
   const admin = createAdminClient ? createAdminClient() : null;
 
-  const [cuaSoRes, ipRes, mangRes, daHopRes, matesRes, leadRes, classLeadRes, mucTieuRes, wigLopRes, soRes] =
+  const [cuaSoRes, ipRes, mangRes, daHopRes, matesRes, banDongHanhRes, leadRes, classLeadRes, mucTieuRes, wigLopRes, soRes] =
     await Promise.all([
     // CỬA SỔ CHECK-IN của cơ sở em đang học. Lấy một lần, dùng cho cả buổi sáng lẫn buổi chiều.
     // Null khi em chưa có lớp (chưa biết cơ sở) → giao diện giữ nguyên hành vi cũ, không khoá gì.
@@ -337,6 +338,17 @@ export async function StudentScoreboard({
           .eq('class_id', classId)
           .eq('is_active', true)
           .neq('student_id', studentId)
+      : Promise.resolve({data: null}),
+    // BẠN ĐỒNG HÀNH tuần này (0104) — để mặc định sẵn trong ô chọn buddy của biên bản họp, và để
+    // em thấy ngay ai là bạn đồng hành của mình mà không cần mở form.
+    classId
+      ? supabase
+          .from('buddy_pairs')
+          .select('buddy_id, profiles!buddy_pairs_buddy_id_fkey(full_name)')
+          .eq('class_id', classId)
+          .eq('student_id', studentId)
+          .eq('week_start', mondayOf(today))
+          .maybeSingle()
       : Promise.resolve({data: null}),
     weekIds.length > 0
       ? supabase
@@ -455,6 +467,10 @@ export async function StudentScoreboard({
   )
     .map((r) => ({id: r.student_id, name: r.profiles?.full_name ?? r.student_id}))
     .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+
+  const banDongHanh = banDongHanhRes.data as unknown as
+    | {buddy_id: string; profiles: {full_name: string | null} | null}
+    | null;
 
 
   const leadRows = (leadData ?? []) as unknown as LeadRow[];
@@ -783,6 +799,9 @@ export async function StudentScoreboard({
               classId={classId}
               meetings={meetings}
               classmates={classmates}
+              banDongHanh={
+                banDongHanh ? {id: banDongHanh.buddy_id, name: banDongHanh.profiles?.full_name ?? '—'} : null
+              }
               canManage={canManage}
               canChat={canTick}
               defaultWeek={isoWeekLabel(new Date())}

@@ -112,6 +112,19 @@ App cũ bày ra 12 mục tiêu mỗi lớp. Không bao giờ quay lại con số
 Cô có **toàn quyền** với mục tiêu của em — chủ dự án chốt vậy để triệt rủi ro "em không gõ thì màn
 trống".
 
+### 4.0 Bạn đồng hành hằng tuần (0104)
+
+Individual WIG Plan có "accountability partner" — mỗi em một bạn đồng hành cố định trong tuần,
+không phải chọn tuỳ hứng mỗi lần họp. Trước 0104, `buddy_id` chỉ sống trong `wig_meetings`: cô gõ
+tay mỗi lần lưu biên bản, không có gì nhớ ai đi với ai tuần trước.
+
+Bảng `buddy_pairs` lưu một dòng / (lớp, tuần, học sinh). GVCN bấm nút **Ghép cặp** ở phòng họp
+(`/wig/hop`, khối "Bạn đồng hành tuần tới") — thuật toán (`lib/buddy-pair.ts`) xáo ngẫu nhiên, tránh
+lặp lại đúng bạn tuần trước khi còn cách khác, và dồn em lẻ thành một vòng ba (A→B→C→A). Không
+cron/edge function — bài học cũ "attendance-reminders chưa deploy" vì phụ thuộc hạ tầng ngoài
+Next.js. Nhịp thứ Sáu là quy ước vận hành (cô ghép cho tuần tới vào cuối tuần), không phải luật app
+ép. Học sinh thấy "Bạn đồng hành tuần này: X" ngay trên màn của mình, không cần mở biên bản họp.
+
 ### 4.1 Cửa sổ một ngày — em được nói lại (0102)
 
 Cô đặt hộ thì mục tiêu vào thẳng `approved`, tức là nếu không có gì thêm, em **mở mắt ra đã thấy

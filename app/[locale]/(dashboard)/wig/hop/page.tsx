@@ -9,6 +9,7 @@ import {NutDoiTrang} from '@/components/ui/NutDoiTrang';
 import {isValidDayVN, isoWeekLabel, mondayOf, todayInVN, shiftWeeks, vnNoon} from '@/lib/dates';
 import {layDuLieuHop} from '@/lib/hop-data';
 import {PhongHop} from '@/components/wig/PhongHop';
+import {BanDongHanh} from '@/components/wig/BanDongHanh';
 
 // ════════════════════════════════════════════════════════════════════════════
 // /wig/hop — PHÒNG HỌP WIG
@@ -52,6 +53,30 @@ export default async function HopPage({
     month: tw('month'),
     week: tw('week'),
   });
+
+  // BẠN ĐỒNG HÀNH đã ghép cho tuần TỚI (0104) — cùng tuần với khối "cam kết tuần sau" bên dưới.
+  const {data: capRows} = await supabase
+    .from('buddy_pairs')
+    .select(
+      'student_id, buddy_id, hoc_sinh:profiles!buddy_pairs_student_id_fkey(full_name), ban:profiles!buddy_pairs_buddy_id_fkey(full_name)',
+    )
+    .eq('class_id', myClass.id)
+    .eq('week_start', d.dich.start);
+  // Mỗi cặp lưu HAI dòng (A→B, B→A) — chỉ hiện một dòng cho mỗi cặp, tránh lặp "A↔B" rồi "B↔A".
+  const daHien = new Set<string>();
+  const capHienCo = ((capRows ?? []) as unknown as {
+    student_id: string;
+    buddy_id: string;
+    hoc_sinh: {full_name: string | null} | null;
+    ban: {full_name: string | null} | null;
+  }[])
+    .filter((r) => {
+      const khoa = [r.student_id, r.buddy_id].sort().join('|');
+      if (daHien.has(khoa)) return false;
+      daHien.add(khoa);
+      return true;
+    })
+    .map((r) => ({ten: r.hoc_sinh?.full_name ?? '—', banTen: r.ban?.full_name ?? '—'}));
 
   const dm = (x: string) => `${x.slice(8, 10)}/${x.slice(5, 7)}`;
   const linkHop = (m: string) => ({
@@ -121,6 +146,13 @@ export default async function HopPage({
           client, mà mọi ô chấm/ghi chú/cam kết khởi tạo bằng useState(() => …) chỉ chạy đúng một
           lần lúc mount — tiêu đề đổi tuần còn ruột form vẫn là tuần cũ, người thử đọc thành "bấm
           không ăn". Cùng mẫu với attendance/page.tsx. */}
+      <BanDongHanh
+        classId={myClass.id}
+        weekStart={d.dich.start}
+        weekLabel={d.dich.label}
+        capHienCo={capHienCo}
+      />
+
       <PhongHop
         key={`${myClass.id}-${hopMonday}`}
         classId={myClass.id}

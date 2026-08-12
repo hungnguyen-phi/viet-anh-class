@@ -10,7 +10,8 @@ import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
 import {chuanHoaThu} from '@/lib/wig-tao';
 import {buddyNote, buddyChat, type BuddyContext, type BuddyLead} from '@/lib/buddy';
-import {weekRangeVN, todayInVN, schoolYearRangeVN} from '@/lib/dates';
+import {ghepCapBuddy} from '@/lib/buddy-pair';
+import {weekRangeVN, todayInVN, schoolYearRangeVN, mondayOf, shiftWeeks} from '@/lib/dates';
 import type {Database} from '@/lib/database.types';
 
 type Mood = Database['public']['Enums']['mood_level'];
@@ -1052,4 +1053,54 @@ export async function chinhNhip(_prev: MucTieuState, formData: FormData): Promis
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]/wig/chi-tiet', 'page');
   return {ok: true, message: 'Đã chỉnh nhịp các tháng.'};
+}
+
+// ── BẠN ĐỒNG HÀNH HẰNG TUẦN ──────────────────────────────────────────────────────────────────
+//
+// GVCN bấm ghép cho MỘT tuần (0104). Không cron, không edge function — bấm là chạy ngay, đúng
+// cách dự án này đã chọn ở mọi chỗ khác cần "sinh lại theo lịch" (rollup, nhịp tháng…). Quy ước
+// vận hành đề xuất: chiều thứ Sáu, ghép cho tuần TỚI — nhưng app không ép, ghép tuần nào cũng được.
+export async function ghepBuddyTuan(_prev: MucTieuState, formData: FormData): Promise<MucTieuState> {
+  await requireRole(['teacher', 'admin']);
+  const class_id = String(formData.get('class_id') ?? '');
+  const week_raw = String(formData.get('week_start') ?? '').trim();
+  if (!class_id) return {ok: false, error: 'Thiếu lớp.'};
+  const week_start = /^\d{4}-\d{2}-\d{2}$/.test(week_raw) ? mondayOf(week_raw) : mondayOf(todayInVN());
+
+  const supabase = await createClient();
+  const {data: emRows} = await supabase
+    .from('enrollments')
+    .select('student_id')
+    .eq('class_id', class_id)
+    .eq('is_active', true);
+  const danhSach = (emRows ?? []).map((e) => e.student_id);
+  if (danhSach.length < 2)
+    return {ok: false, error: 'Lớp cần ít nhất 2 em đang học để ghép cặp.'};
+
+  // Tuần liền trước — để thuật toán TRÁNH LẶP đúng bạn tuần trước khi còn cách khác.
+  const {data: tuanTruocRows} = await supabase
+    .from('buddy_pairs')
+    .select('student_id, buddy_id')
+    .eq('class_id', class_id)
+    .eq('week_start', shiftWeeks(week_start, -1));
+  const tuanTruoc = new Map((tuanTruocRows ?? []).map((r) => [r.student_id, r.buddy_id]));
+
+  const capMoi = ghepCapBuddy(danhSach, tuanTruoc);
+  const rows = [...capMoi.entries()].map(([student_id, buddy_id]) => ({
+    class_id,
+    week_start,
+    student_id,
+    buddy_id,
+  }));
+
+  // Ghép lại tuần đã có thì THAY — upsert theo khoá (class_id, week_start, student_id) ở 0104.
+  const {error} = await supabase
+    .from('buddy_pairs')
+    .upsert(rows, {onConflict: 'class_id,week_start,student_id'});
+  if (error) return {ok: false, error: (friendlyError(error))};
+
+  revalidatePath('/[locale]/wig/hop', 'page');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  return {ok: true, message: `Đã ghép ${rows.length} em thành bạn đồng hành cho tuần ${week_start}.`};
 }
