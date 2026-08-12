@@ -62,8 +62,9 @@ export async function StudentMeetings({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Buddy của em là con sư tử AI — hiện ngay đây để không ai còn đi tìm một bạn cùng lớp.
-          Khung ghi chú Buddy bên dưới mỗi biên bản mới là chỗ nó nói. */}
+      {/* Buddy của em là con sư tử AI — nói bằng HÌNH, không bằng chữ giải thích (yêu cầu
+          12/08/2026): icon đầu sư tử đứng cạnh chữ đã đủ, thêm "là chú sư tử AI" thành ra giảng
+          giải. Khung ghi chú Buddy bên dưới mỗi biên bản mới là chỗ nó nói. */}
       <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-gold/15 px-3 py-1.5 text-[12px] font-bold text-navy">
         <SuTu size={15} />
         {t('buddyIsLion')}
