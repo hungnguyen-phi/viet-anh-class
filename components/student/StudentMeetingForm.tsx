@@ -5,7 +5,6 @@ import {useTranslations} from 'next-intl';
 import {CheckCircle2, AlertCircle, Plus, Trash2, Target} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {saveStudentMeeting} from '@/app/[locale]/(dashboard)/student/actions';
-import type {Classmate} from './StudentMeetings';
 
 // Ô nhập to hơn bản cũ (py-2.5 -> py-3, text-sm -> 14.5px) cho dễ điền, theo yêu cầu 2026-07-27.
 const inputCls =
@@ -26,20 +25,15 @@ export function StudentMeetingForm({
   studentId,
   classId,
   defaultWeek,
-  defaultBuddyId,
   weekOptions,
-  classmates,
   planAreas,
   nextWeekLabel,
 }: {
   studentId: string;
   classId: string;
   defaultWeek: string;
-  // Bạn đồng hành app đã ghép cho tuần này (0104) — chọn sẵn, cô vẫn đổi được nếu muốn.
-  defaultBuddyId: string;
   // Nhãn tuần để CHỌN, thay ô nhập text tự do (gõ sai định dạng là WIG không khớp tuần nào).
   weekOptions: string[];
-  classmates: Classmate[];
   // Chỉ những lĩnh vực đã có WIG NĂM — vì WIG tuần bắt buộc có parent_wig_id trỏ về WIG năm.
   planAreas: PlanArea[];
   nextWeekLabel: string;
@@ -49,7 +43,6 @@ export function StudentMeetingForm({
   const formRef = useRef<HTMLFormElement>(null);
 
   const [week, setWeek] = useState(defaultWeek);
-  const [buddyId, setBuddyId] = useState(defaultBuddyId);
   const [results, setResults] = useState('');
   const [commitments, setCommitments] = useState('');
   const [rows, setRows] = useState<Row[]>([]);
@@ -105,7 +98,9 @@ export function StudentMeetingForm({
       <input type="hidden" name="plan" value={planPayload} />
       <p className="text-xs italic text-grey-mid">{t('meetingHint')}</p>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      {/* Chỉ còn ô tuần: ô chọn "Bạn đồng hành" đã bỏ (12/08/2026) — Buddy là con sư tử AI, không
+          phải bạn cùng lớp để cô chọn. Xem ghi chú ở StudentMeetings. */}
+      <div className="grid gap-3">
         <label className="block">
           <span className={labelSpanCls}>{t('week')}</span>
           <select
@@ -122,22 +117,6 @@ export function StudentMeetingForm({
             ))}
           </select>
           {err('week_label') && <FieldError msg={err('week_label')!} />}
-        </label>
-        <label className="block">
-          <span className={labelSpanCls}>{t('buddy')}</span>
-          <select
-            name="buddy_id"
-            value={buddyId}
-            onChange={(e) => setBuddyId(e.target.value)}
-            className={`${inputCls} cursor-pointer`}
-          >
-            <option value="">{t('noBuddy')}</option>
-            {classmates.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
         </label>
       </div>
 

@@ -1,6 +1,7 @@
 import {getTranslations} from 'next-intl/server';
-import {MessagesSquare, UserRound, Sparkles, Target, Lock, Unlock} from 'lucide-react';
+import {MessagesSquare, Sparkles, Target, Lock, Unlock} from 'lucide-react';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {SuTu} from '@/components/ui/SuTu';
 import {btnIconDanger} from '@/components/ui/Field';
 import {deleteStudentMeeting, toggleBuddyChat} from '@/app/[locale]/(dashboard)/student/actions';
 import {StudentMeetingForm, type PlanArea} from './StudentMeetingForm';
@@ -15,7 +16,6 @@ export type StudentMeeting = {
   results: string | null;
   commitments: string | null;
   next_actions: string | null;
-  buddy_name: string | null;
   // Ghi chú Buddy do LLM sinh (0042). Ghi ở server bằng service_role — học sinh chỉ đọc.
   buddy_note: string | null;
   // "Việc hôm nay" Buddy chọn — đã được server kiểm là lead measure thật của em (0043).
@@ -25,14 +25,21 @@ export type StudentMeeting = {
   buddy_messages: BuddyMessage[];
   created_at: string;
 };
-export type Classmate = {id: string; name: string};
 
+// MỘT CHỮ BUDDY, MỘT NGHĨA — con sư tử AI, không phải bạn ngồi cùng lớp.
+//
+// Trước 12/08/2026 app mang HAI khái niệm cùng tên "Buddy" trên cùng một trang: (a) Buddy LLM
+// (lib/buddy.ts — sinh ghi chú mỗi ngày, chat trong buổi họp) và (b) một bạn cùng lớp được ghép
+// cặp hằng tuần (bảng buddy_pairs, huy hiệu "Bạn đồng hành tuần này", ô chọn bạn trong biên bản).
+// Người dùng đọc "Bạn đồng hành: Mạnh Hùng Lê Quý" rồi hỏi lại vì sao Buddy không phải con sư tử
+// — đúng chỗ hai nghĩa đá nhau. Chủ dự án chốt: bỏ nghĩa (b), giữ nghĩa (a).
+//
+// Bảng buddy_pairs và cột wig_meetings.buddy_id KHÔNG xoá — dữ liệu cũ vẫn còn nguyên, chỉ thôi
+// đọc và thôi ghi. Xoá cột là mất biên bản cũ mà không đổi lại được gì.
 export async function StudentMeetings({
   studentId,
   classId,
   meetings,
-  classmates,
-  banDongHanh,
   canManage,
   canChat,
   defaultWeek,
@@ -43,9 +50,6 @@ export async function StudentMeetings({
   studentId: string;
   classId: string | null;
   meetings: StudentMeeting[];
-  classmates: Classmate[];
-  /** Bạn đồng hành app đã ghép cho tuần này (0104) — null nếu GVCN chưa ghép. */
-  banDongHanh: {id: string; name: string} | null;
   canManage: boolean;
   // true = chính em học sinh đó đang xem → được chat khi GVCN mở.
   canChat: boolean;
@@ -58,24 +62,19 @@ export async function StudentMeetings({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* App đã ghép sẵn — mọi vai đều thấy, không chỉ lúc GVCN mở form. Trước đây chỉ hiện tên
-          bạn đồng hành SAU KHI đã có biên bản với buddy_id; em không có cách nào biết ai là bạn
-          đồng hành của mình tuần này trước khi buổi họp diễn ra. */}
-      {banDongHanh && (
-        <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-gold/15 px-3 py-1.5 text-[12px] font-bold text-navy">
-          <UserRound size={13} strokeWidth={2.5} />
-          {t('buddyThisWeek')}: {banDongHanh.name}
-        </div>
-      )}
+      {/* Buddy của em là con sư tử AI — hiện ngay đây để không ai còn đi tìm một bạn cùng lớp.
+          Khung ghi chú Buddy bên dưới mỗi biên bản mới là chỗ nó nói. */}
+      <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-gold/15 px-3 py-1.5 text-[12px] font-bold text-navy">
+        <SuTu size={15} />
+        {t('buddyIsLion')}
+      </div>
 
       {canManage && classId && (
         <StudentMeetingForm
           studentId={studentId}
           classId={classId}
           defaultWeek={defaultWeek}
-          defaultBuddyId={banDongHanh?.id ?? ''}
           weekOptions={weekOptions}
-          classmates={classmates}
           planAreas={planAreas}
           nextWeekLabel={nextWeekLabel}
         />
@@ -94,12 +93,6 @@ export async function StudentMeetings({
                   <MessagesSquare size={12} strokeWidth={2.5} />
                   {m.week_label}
                 </span>
-                {m.buddy_name && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/15 px-2.5 py-1 text-[11px] font-bold text-navy">
-                    <UserRound size={12} strokeWidth={2.5} />
-                    {t('buddy')}: {m.buddy_name}
-                  </span>
-                )}
                 {canManage && (
                   <form action={deleteStudentMeeting} className="ml-auto">
                     <input type="hidden" name="student_id" value={studentId} />

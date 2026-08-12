@@ -10,8 +10,7 @@ import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
 import {chuanHoaThu} from '@/lib/wig-tao';
 import {buddyNote, buddyChat, type BuddyContext, type BuddyLead} from '@/lib/buddy';
-import {ghepCapBuddy} from '@/lib/buddy-pair';
-import {weekRangeVN, todayInVN, schoolYearRangeVN, mondayOf, shiftWeeks} from '@/lib/dates';
+import {weekRangeVN, todayInVN, schoolYearRangeVN} from '@/lib/dates';
 import type {Database} from '@/lib/database.types';
 
 type Mood = Database['public']['Enums']['mood_level'];
@@ -72,7 +71,7 @@ export type StudentMeetingState = {
   message?: string; // báo thành công
   error?: string; // lỗi chung (server/DB)
   fieldError?: string; // tên field lỗi để tô đỏ + hiện dưới field
-  values?: {week_label: string; buddy_id: string; results: string; commitments: string; next_actions: string};
+  values?: {week_label: string; results: string; commitments: string; next_actions: string};
 };
 
 // initial state {ok:false} định nghĩa trong client form ('use server' chỉ export async function).
@@ -87,12 +86,11 @@ export async function saveStudentMeeting(
   const student_id = String(formData.get('student_id') ?? '');
   const class_id = String(formData.get('class_id') ?? '');
   const week_label = String(formData.get('week_label') ?? '').trim();
-  const buddy_id = String(formData.get('buddy_id') ?? '').trim();
   const results = String(formData.get('results') ?? '').trim();
   const commitments = String(formData.get('commitments') ?? '').trim();
   const next_actions = String(formData.get('next_actions') ?? '').trim();
   // Giữ lại input để trả về khi có lỗi (không mất nội dung đã gõ).
-  const values = {week_label, buddy_id, results, commitments, next_actions};
+  const values = {week_label, results, commitments, next_actions};
 
   if (!student_id || !class_id) return {ok: false, error: (friendlyError(null)), values};
   if (!week_label) return {ok: false, fieldError: 'week_label', error: 'Hãy chọn tuần.', values};
@@ -133,7 +131,8 @@ export async function saveStudentMeeting(
     student_id,
     week_label,
     week_start,
-    buddy_id: buddy_id || null,
+    // KHÔNG ghi buddy_id nữa (12/08/2026): Buddy là con sư tử AI, không phải bạn cùng lớp. Cột
+    // vẫn còn trong CSDL cho biên bản cũ đọc lại được — chỉ thôi ghi. Xem StudentMeetings.
     results: results || null,
     commitments: commitments || null,
     // Vẫn ghi next_actions dạng chữ, sinh TỪ kế hoạch có cấu trúc — để báo cáo phụ huynh và
@@ -1055,52 +1054,8 @@ export async function chinhNhip(_prev: MucTieuState, formData: FormData): Promis
   return {ok: true, message: 'Đã chỉnh nhịp các tháng.'};
 }
 
-// ── BẠN ĐỒNG HÀNH HẰNG TUẦN ──────────────────────────────────────────────────────────────────
+// BẠN ĐỒNG HÀNH kiểu ghép-cặp-bạn-cùng-lớp ĐÃ BỎ (12/08/2026).
 //
-// GVCN bấm ghép cho MỘT tuần (0104). Không cron, không edge function — bấm là chạy ngay, đúng
-// cách dự án này đã chọn ở mọi chỗ khác cần "sinh lại theo lịch" (rollup, nhịp tháng…). Quy ước
-// vận hành đề xuất: chiều thứ Sáu, ghép cho tuần TỚI — nhưng app không ép, ghép tuần nào cũng được.
-export async function ghepBuddyTuan(_prev: MucTieuState, formData: FormData): Promise<MucTieuState> {
-  await requireRole(['teacher', 'admin']);
-  const class_id = String(formData.get('class_id') ?? '');
-  const week_raw = String(formData.get('week_start') ?? '').trim();
-  if (!class_id) return {ok: false, error: 'Thiếu lớp.'};
-  const week_start = /^\d{4}-\d{2}-\d{2}$/.test(week_raw) ? mondayOf(week_raw) : mondayOf(todayInVN());
-
-  const supabase = await createClient();
-  const {data: emRows} = await supabase
-    .from('enrollments')
-    .select('student_id')
-    .eq('class_id', class_id)
-    .eq('is_active', true);
-  const danhSach = (emRows ?? []).map((e) => e.student_id);
-  if (danhSach.length < 2)
-    return {ok: false, error: 'Lớp cần ít nhất 2 em đang học để ghép cặp.'};
-
-  // Tuần liền trước — để thuật toán TRÁNH LẶP đúng bạn tuần trước khi còn cách khác.
-  const {data: tuanTruocRows} = await supabase
-    .from('buddy_pairs')
-    .select('student_id, buddy_id')
-    .eq('class_id', class_id)
-    .eq('week_start', shiftWeeks(week_start, -1));
-  const tuanTruoc = new Map((tuanTruocRows ?? []).map((r) => [r.student_id, r.buddy_id]));
-
-  const capMoi = ghepCapBuddy(danhSach, tuanTruoc);
-  const rows = [...capMoi.entries()].map(([student_id, buddy_id]) => ({
-    class_id,
-    week_start,
-    student_id,
-    buddy_id,
-  }));
-
-  // Ghép lại tuần đã có thì THAY — upsert theo khoá (class_id, week_start, student_id) ở 0104.
-  const {error} = await supabase
-    .from('buddy_pairs')
-    .upsert(rows, {onConflict: 'class_id,week_start,student_id'});
-  if (error) return {ok: false, error: (friendlyError(error))};
-
-  revalidatePath('/[locale]/wig/hop', 'page');
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  return {ok: true, message: `Đã ghép ${rows.length} em thành bạn đồng hành cho tuần ${week_start}.`};
-}
+// Hàm ghepBuddyTuan và components/wig/BanDongHanh.tsx gỡ khỏi mã nguồn: app chỉ còn MỘT nghĩa
+// Buddy — con sư tử AI (lib/buddy.ts). Bảng buddy_pairs vẫn nằm nguyên trong CSDL cùng dữ liệu
+// đã ghép; không xoá, chỉ thôi đọc và thôi ghi. Xem ghi chú ở components/student/StudentMeetings.

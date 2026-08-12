@@ -10,16 +10,11 @@ import {
   recentWeekLabels,
   weekDaysVN,
   isoDowVN,
-  mondayOf,
 } from '@/lib/dates';
 import {DonutRing} from '@/components/charts/DonutRing';
 import {MoodCheckin, MoodGate, type MoodKey} from '@/components/student/MoodCheckin';
 import {LeadTicker, type TickerLead} from '@/components/student/LeadTicker';
-import {
-  StudentMeetings,
-  type StudentMeeting,
-  type Classmate,
-} from '@/components/student/StudentMeetings';
+import {StudentMeetings, type StudentMeeting} from '@/components/student/StudentMeetings';
 
 import {MyRequests, type MyRequest} from '@/components/student/MyRequests';
 import {BuddyAuto} from '@/components/student/BuddyAuto';
@@ -164,7 +159,7 @@ export async function StudentScoreboard({
       supabase
         .from('wig_meetings')
         .select(
-          'id, week_label, results, commitments, next_actions, buddy_note, buddy_action, buddy_focus_lead_id, buddy_chat_open, created_at, buddy:profiles!wig_meetings_buddy_id_fkey(full_name), buddy_messages(id, role, content, created_at)',
+          'id, week_label, results, commitments, next_actions, buddy_note, buddy_action, buddy_focus_lead_id, buddy_chat_open, created_at, buddy_messages(id, role, content, created_at)',
         )
         .eq('student_id', studentId)
         .order('created_at', {ascending: false}),
@@ -299,7 +294,7 @@ export async function StudentScoreboard({
     : {createAdminClient: null};
   const admin = createAdminClient ? createAdminClient() : null;
 
-  const [cuaSoRes, ipRes, mangRes, daHopRes, matesRes, banDongHanhRes, leadRes, classLeadRes, mucTieuRes, wigLopRes, soRes] =
+  const [cuaSoRes, ipRes, mangRes, daHopRes, leadRes, classLeadRes, mucTieuRes, wigLopRes, soRes] =
     await Promise.all([
     // CỬA SỔ CHECK-IN của cơ sở em đang học. Lấy một lần, dùng cho cả buổi sáng lẫn buổi chiều.
     // Null khi em chưa có lớp (chưa biết cơ sở) → giao diện giữ nguyên hành vi cũ, không khoá gì.
@@ -328,28 +323,13 @@ export async function StudentScoreboard({
       ? supabase.rpc('tuan_da_hop', {p_class: classId, d: today})
       : Promise.resolve({data: false}),
 
-    // ── Bốn câu dưới đây trước là "ĐỢT HAI", một tầng chờ riêng ────────────────────────────
+    // ── Hai câu dưới đây trước là "ĐỢT HAI", một tầng chờ riêng ────────────────────────────
     // Chúng chỉ cần classId và weekIds — cả hai đã biết xong ngay sau đợt truy vấn đầu tiên, nên
     // đứng riêng một tầng là bắt người dùng chờ thêm một vòng đi-về không đổi lấy gì.
-    canManage && classId
-      ? supabase
-          .from('enrollments')
-          .select('student_id, profiles!enrollments_student_id_fkey(full_name)')
-          .eq('class_id', classId)
-          .eq('is_active', true)
-          .neq('student_id', studentId)
-      : Promise.resolve({data: null}),
-    // BẠN ĐỒNG HÀNH tuần này (0104) — để mặc định sẵn trong ô chọn buddy của biên bản họp, và để
-    // em thấy ngay ai là bạn đồng hành của mình mà không cần mở form.
-    classId
-      ? supabase
-          .from('buddy_pairs')
-          .select('buddy_id, profiles!buddy_pairs_buddy_id_fkey(full_name)')
-          .eq('class_id', classId)
-          .eq('student_id', studentId)
-          .eq('week_start', mondayOf(today))
-          .maybeSingle()
-      : Promise.resolve({data: null}),
+    //
+    // KHÔNG CÒN hỏi danh sách bạn cùng lớp và bảng buddy_pairs (12/08/2026): Buddy của em là con
+    // sư tử AI, không phải bạn ngồi bên cạnh. Xem ghi chú "MỘT CHỮ BUDDY, MỘT NGHĨA" ở
+    // StudentMeetings. Bỏ được luôn hai vòng đi-về mỗi lần mở trang.
     weekIds.length > 0
       ? supabase
           .from('lead_measures')
@@ -400,7 +380,6 @@ export async function StudentScoreboard({
       .eq('week_start', weekDays[0])
       .maybeSingle(),
   ]);
-  const mates = matesRes.data;
   const leadData = leadRes.data;
   const classLeadData = classLeadRes.data;
 
@@ -436,7 +415,6 @@ export async function StudentScoreboard({
       buddy_focus_lead_id: string | null;
       buddy_chat_open: boolean | null;
       created_at: string;
-      buddy: {full_name: string | null} | null;
       buddy_messages: {id: string; role: string; content: string; created_at: string}[] | null;
     }[]
   ).map((m) => ({
@@ -454,24 +432,12 @@ export async function StudentScoreboard({
       .sort((a, b) => a.created_at.localeCompare(b.created_at))
       .map((x) => ({id: x.id, role: x.role, content: x.content})),
     created_at: m.created_at,
-    buddy_name: m.buddy?.full_name ?? null,
   }));
   const focusIdByMeeting = new Map(
     (
       (meetingRows ?? []) as unknown as {id: string; buddy_focus_lead_id: string | null}[]
     ).map((m) => [m.id, m.buddy_focus_lead_id]),
   );
-
-  const classmates: Classmate[] = (
-    (mates ?? []) as unknown as {student_id: string; profiles: {full_name: string | null} | null}[]
-  )
-    .map((r) => ({id: r.student_id, name: r.profiles?.full_name ?? r.student_id}))
-    .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
-
-  const banDongHanh = banDongHanhRes.data as unknown as
-    | {buddy_id: string; profiles: {full_name: string | null} | null}
-    | null;
-
 
   const leadRows = (leadData ?? []) as unknown as LeadRow[];
 
@@ -798,10 +764,6 @@ export async function StudentScoreboard({
               studentId={studentId}
               classId={classId}
               meetings={meetings}
-              classmates={classmates}
-              banDongHanh={
-                banDongHanh ? {id: banDongHanh.buddy_id, name: banDongHanh.profiles?.full_name ?? '—'} : null
-              }
               canManage={canManage}
               canChat={canTick}
               defaultWeek={isoWeekLabel(new Date())}
