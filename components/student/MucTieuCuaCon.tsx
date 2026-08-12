@@ -159,8 +159,9 @@ function MotMucTieu({
           <Target size={14} strokeWidth={2.5} />
           {laRieng ? t('titlePersonal') : t('title')}
         </h3>
-        {/* Mục tiêu này sống cả năm học — nói ra, đừng để em đoán. */}
-        {namHoc && (
+        {/* Mục tiêu này sống cả năm học — nói ra, đừng để em đoán. Nhưng chỉ nói MỘT lần: khối
+            riêng nằm ngay dưới khối học tập, cùng một năm học, nên nhắc lại chỉ thành trùng. */}
+        {namHoc && !laRieng && (
           <span className="text-[11px] font-extrabold text-gold-text">
             {t('yearScope', {nam: namHoc})}
           </span>
@@ -293,7 +294,10 @@ function MotMucTieu({
           </div>
         </div>
       ) : (
-        <p className="text-[12.5px] italic text-grey-mid">{canGhi ? t('hint') : t('none')}</p>
+        /* Câu dẫn "ba câu là xong" chỉ thuộc về mục tiêu học tập — cái bắt buộc. Mục tiêu riêng
+           là tuỳ chọn, và nút của nó ("Con muốn thêm một mục tiêu của riêng con") đã tự nói đủ;
+           lặp lại y hệt câu bên trên chỉ làm hai khối trông như một khối bị nhân đôi. */
+        !laRieng && <p className="text-[12.5px] italic text-grey-mid">{canGhi ? t('hint') : t('none')}</p>
       )}
 
       {moForm && (
