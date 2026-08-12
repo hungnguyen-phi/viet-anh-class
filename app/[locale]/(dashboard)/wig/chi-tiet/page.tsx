@@ -8,7 +8,8 @@ import {Link} from '@/i18n/navigation';
 import {isValidDayVN, mondayOf, todayInVN, weekFromMonday} from '@/lib/dates';
 import {WeekNav} from '@/components/wig/WeekNav';
 import {ChiTietTuan} from '@/components/wig/ChiTietTuan';
-import {TuongWig, type MucTieuTrenTuong} from '@/components/wig/TuongWig';
+import {TuongWig} from '@/components/wig/TuongWig';
+import type {EmTrongLop} from '@/components/wig/DanhSachDatHo';
 import {ChinhNhip} from '@/components/wig/ChinhNhip';
 import {Flash} from '@/components/ui/Flash';
 
@@ -46,24 +47,26 @@ export default async function ChiTietPage({
 
   // Dữ liệu cho BỨC TƯỜNG WIG — trận đánh của lớp, mục tiêu của từng em, và sĩ số để nói được
   // "bao nhiêu em đã đặt". Ba câu chạy song song vì không câu nào cần kết quả của câu kia.
-  const [{data: wigLop}, {data: mucTieuRows}, {count: siSo}, {data: thangRows}] = await Promise.all([
+  const [{data: wigLop}, {data: mucTieuRows}, {data: emRows}, {data: thangRows}] = await Promise.all([
     supabase
       .from('wigs')
-      .select('id, title, target_value, baseline, unit')
+      .select('id, title, area, target_value, baseline, unit')
       .eq('class_id', myClass.id)
       .eq('scope', 'class')
       .eq('period', 'year'),
     supabase
       .from('wigs')
       .select(
-        'id, student_id, kind, status, set_by, measure_by, title, baseline, target_value, unit, end_date, achieved_at, source_wig_id, profiles!wigs_student_id_fkey(full_name)',
+        'id, student_id, kind, status, set_by, measure_by, title, baseline, target_value, unit, end_date, created_at, achieved_at, source_wig_id, lead_measures(title, target_value, active_weekdays)',
       )
       .eq('class_id', myClass.id)
       .eq('scope', 'student')
       .eq('period', 'year'),
+    // CẢ LỚP, không chỉ những em đã đặt. Câu hỏi thật của cô là "còn ai chưa" — xem ghi chú đầu
+    // components/wig/DanhSachDatHo.tsx.
     supabase
       .from('enrollments')
-      .select('student_id', {count: 'exact', head: true})
+      .select('student_id, profiles!enrollments_student_id_fkey(full_name)')
       .eq('class_id', myClass.id)
       .eq('is_active', true),
     // Mốc THÁNG cho khối chỉnh nhịp. Hỏi cả lớp một lần rồi gom theo cha ở JS — rẻ hơn nhiều so
@@ -88,13 +91,61 @@ export default async function ChiTietPage({
     thangTheoNam.set(m.parent_wig_id, [...(thangTheoNam.get(m.parent_wig_id) ?? []), m]);
   }
 
-  const mucTieu: MucTieuTrenTuong[] = (
-    (mucTieuRows ?? []) as unknown as (Omit<MucTieuTrenTuong, 'ten'> & {
+  // Mục tiêu HỌC TẬP của từng em, gom theo student_id. `lead_measures` là mảng vì PostgREST trả
+  // quan hệ 1-nhiều; trigger chan_viec_thu_hai (0100) đảm bảo tối đa một phần tử.
+  type HangMucTieu = {
+    id: string;
+    student_id: string | null;
+    kind: string | null;
+    status: string;
+    set_by: string | null;
+    title: string;
+    baseline: number | null;
+    target_value: number;
+    unit: string;
+    end_date: string;
+    created_at: string;
+    achieved_at: string | null;
+    source_wig_id: string | null;
+    lead_measures: {title: string; target_value: number; active_weekdays: number[] | null}[] | null;
+  };
+
+  const theoEm = new Map<string, EmTrongLop['mucTieu']>();
+  for (const m of (mucTieuRows ?? []) as unknown as HangMucTieu[]) {
+    if (!m.student_id || m.kind !== 'academic') continue;
+    theoEm.set(m.student_id, {
+      id: m.id,
+      status: m.status,
+      set_by: m.set_by,
+      title: m.title,
+      baseline: m.baseline,
+      target_value: m.target_value,
+      unit: m.unit,
+      end_date: m.end_date,
+      achieved_at: m.achieved_at,
+      source_wig_id: m.source_wig_id,
+      viec: m.lead_measures?.[0] ?? null,
+    });
+  }
+
+  const danhSach: EmTrongLop[] = (
+    (emRows ?? []) as unknown as {
+      student_id: string;
       profiles: {full_name: string | null} | null;
-    })[]
+    }[]
   )
-    .map((m) => ({...m, ten: m.profiles?.full_name ?? '—'}))
+    .map((e) => ({
+      id: e.student_id,
+      ten: e.profiles?.full_name ?? '—',
+      mucTieu: theoEm.get(e.student_id) ?? null,
+    }))
     .sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
+
+  const wigLopChon = (wigLop ?? []).map((w) => ({
+    id: w.id,
+    area: w.area as string,
+    title: w.title ?? '',
+  }));
 
   return (
     <div className="flex flex-col gap-4">
@@ -131,7 +182,13 @@ export default async function ChiTietPage({
       {/* Khối "tạo WIG cá nhân cho cả lớp" từng đứng ở đây: nó chia mục tiêu của lớp cho sĩ số
           rồi ghi con số ấy xuống bản ghi của từng em. Bỏ ở 0100 — thay bằng bức tường dưới đây,
           nơi mục tiêu của em là khoảng cách của chính em và cô duyệt ngay tại chỗ. */}
-      <TuongWig wigLop={wigLop ?? []} mucTieu={mucTieu} siSo={siSo ?? 0} />
+      <TuongWig
+        classId={myClass.id}
+        wigLop={wigLop ?? []}
+        wigLopChon={wigLopChon}
+        danhSach={danhSach}
+        dayShort={t.raw('dayShort') as string[]}
+      />
 
       {/* Chỉnh nhịp — app rải đều 12 tháng khi cô khai mục tiêu năm; đây là chỗ kéo lại cho khớp
           năm học thật (hạ tháng Tết, hạ tháng thi). Đóng sẵn: mỗi năm mở một hai lần. */}

@@ -1,8 +1,9 @@
 import {getTranslations} from 'next-intl/server';
-import {Check, Clock} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {btnGold} from '@/components/ui/Field';
 import {duyetMucTieu} from '@/app/[locale]/(dashboard)/student/actions';
+import {DanhSachDatHo, type EmTrongLop} from '@/components/wig/DanhSachDatHo';
+import type {WigLop} from '@/components/student/FormMucTieu';
 
 // ════════════════════════════════════════════════════════════════════════════
 // BỨC TƯỜNG WIG — trận đánh của lớp ở trên, mục tiêu của từng em ở dưới
@@ -21,71 +22,33 @@ import {duyetMucTieu} from '@/app/[locale]/(dashboard)/student/actions';
 // hộ được (docs/MO_HINH_WIG.md §4), nhưng nếu cô gõ hộ hết thì mô hình quay về đúng bản cũ chỉ
 // khác cái tên — và chuyện đó phải nhìn thấy được, không phải phát hiện sau sáu tháng.
 
-export type MucTieuTrenTuong = {
-  id: string;
-  student_id: string;
-  ten: string;
-  kind: string;
-  status: string;
-  set_by: string | null;
-  measure_by: string;
-  title: string;
-  baseline: number | null;
-  target_value: number;
-  unit: string;
-  end_date: string;
-  achieved_at: string | null;
-  source_wig_id: string | null;
-};
-
 export async function TuongWig({
+  classId,
   wigLop,
-  mucTieu,
-  siSo,
+  wigLopChon,
+  danhSach,
+  dayShort,
 }: {
+  classId: string;
   wigLop: {id: string; title: string; target_value: number; unit: string}[];
-  mucTieu: MucTieuTrenTuong[];
-  siSo: number;
+  /** Cùng danh sách trên, rút gọn cho ô "việc này giúp lớp ở mục tiêu nào" trong form. */
+  wigLopChon: WigLop[];
+  danhSach: EmTrongLop[];
+  dayShort: string[];
 }) {
   const t = await getTranslations('goal');
 
-  const hocTap = mucTieu.filter((m) => m.kind === 'academic');
-  const choDuyet = mucTieu.filter((m) => m.status === 'sent');
+  const mucTieu = danhSach.map((e) => e.mucTieu).filter((m) => m !== null);
+  const choDuyet = danhSach.filter((e) => e.mucTieu?.status === 'sent');
   const tuDat = mucTieu.filter((m) => m.set_by === 'student').length;
   const tyLe = mucTieu.length > 0 ? Math.round((tuDat / mucTieu.length) * 100) : 0;
-
-  const theTen = (m: MucTieuTrenTuong) => (
-    <div key={m.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-1.5">
-      <span className="min-w-[110px] text-[12.5px] font-extrabold text-navy">{m.ten}</span>
-      <span className="min-w-0 flex-1 text-[12.5px] font-semibold text-grey-mid">
-        {m.title} · {t('fromTo', {from: m.baseline ?? 0, to: m.target_value, unit: m.unit, due: m.end_date})}
-      </span>
-      {m.achieved_at && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
-          <Check size={11} strokeWidth={3} />
-          {t('achieved')}
-        </span>
-      )}
-      {m.status === 'sent' && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text">
-          <Clock size={11} strokeWidth={3} />
-          {t('waiting')}
-        </span>
-      )}
-      {m.set_by === 'teacher' && (
-        <span className="rounded-full bg-navy/[0.07] px-2 py-0.5 text-[10.5px] font-extrabold text-grey-mid">
-          {t('setByTeacher')}
-        </span>
-      )}
-    </div>
-  );
 
   return (
     <section className="glass rounded-[20px] p-[18px]">
       <div className="mb-3 flex flex-wrap items-baseline gap-2">
         <h2 className="font-display text-[16px] font-bold text-navy">{t('wallTitle')}</h2>
         <span className="text-[11.5px] font-semibold text-grey-mid">
-          {t('wallCount', {n: hocTap.length, si: siSo})}
+          {t('wallCount', {n: mucTieu.length, si: danhSach.length})}
         </span>
       </div>
 
@@ -93,14 +56,19 @@ export async function TuongWig({
       {choDuyet.length > 0 && (
         <div className="mb-3 flex flex-col gap-2 rounded-[14px] border-[1.5px] border-gold/50 bg-gold/[0.08] p-3">
           <p className="text-[12px] font-extrabold text-navy">{t('queue', {n: choDuyet.length})}</p>
-          {choDuyet.map((m) => (
-            <form key={m.id} action={duyetMucTieu} className="flex flex-wrap items-center gap-2">
-              <input type="hidden" name="wig_id" value={m.id} />
-              <input type="hidden" name="student_id" value={m.student_id} />
-              <span className="min-w-[110px] text-[12.5px] font-extrabold text-navy">{m.ten}</span>
+          {choDuyet.map((e) => (
+            <form key={e.id} action={duyetMucTieu} className="flex flex-wrap items-center gap-2">
+              <input type="hidden" name="wig_id" value={e.mucTieu!.id} />
+              <input type="hidden" name="student_id" value={e.id} />
+              <span className="min-w-[110px] text-[12.5px] font-extrabold text-navy">{e.ten}</span>
               <span className="min-w-0 flex-1 text-[12.5px] font-semibold text-grey-mid">
-                {m.title} ·{' '}
-                {t('fromTo', {from: m.baseline ?? 0, to: m.target_value, unit: m.unit, due: m.end_date})}
+                {e.mucTieu!.title} ·{' '}
+                {t('fromTo', {
+                  from: e.mucTieu!.baseline ?? 0,
+                  to: e.mucTieu!.target_value,
+                  unit: e.mucTieu!.unit,
+                  due: e.mucTieu!.end_date,
+                })}
               </span>
               <SubmitButton className={btnGold} wrapClass="contents">
                 {t('approve')}
@@ -122,12 +90,14 @@ export async function TuongWig({
           ))
         )}
 
+        {/* DANH SÁCH CẢ LỚP — kể cả em chưa đặt, kèm nút đặt hộ ngay tại chỗ. */}
         <div className="mt-2 border-t border-navy/[0.08] pt-2">
-          {hocTap.length === 0 ? (
-            <p className="text-[12.5px] italic text-grey-mid">{t('wallEmpty')}</p>
-          ) : (
-            hocTap.map(theTen)
-          )}
+          <DanhSachDatHo
+            classId={classId}
+            danhSach={danhSach}
+            wigLop={wigLopChon}
+            dayShort={dayShort}
+          />
         </div>
       </div>
 

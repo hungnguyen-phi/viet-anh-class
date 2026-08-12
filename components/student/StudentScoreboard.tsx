@@ -364,7 +364,7 @@ export async function StudentScoreboard({
     supabase
       .from('wigs')
       .select(
-        'id, kind, status, set_by, measure_by, title, baseline, target_value, unit, area, end_date, achieved_at, source_wig_id, lead_measures(title, target_value, active_weekdays)',
+        'id, kind, status, set_by, measure_by, title, baseline, target_value, unit, area, end_date, created_at, achieved_at, source_wig_id, lead_measures(title, target_value, active_weekdays)',
       )
       .eq('student_id', studentId)
       .eq('scope', 'student')

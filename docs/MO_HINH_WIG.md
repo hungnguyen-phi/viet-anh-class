@@ -112,6 +112,21 @@ App cũ bày ra 12 mục tiêu mỗi lớp. Không bao giờ quay lại con số
 Cô có **toàn quyền** với mục tiêu của em — chủ dự án chốt vậy để triệt rủi ro "em không gõ thì màn
 trống".
 
+### 4.1 Cửa sổ một ngày — em được nói lại (0102)
+
+Cô đặt hộ thì mục tiêu vào thẳng `approved`, tức là nếu không có gì thêm, em **mở mắt ra đã thấy
+một mục tiêu mang tên mình mà không sửa nổi một chữ**. Đó đúng là thứ 4DX gọi là *dictate*, chỉ
+khác là lần này nó có vẻ ngoài của một món quà.
+
+| | 24 giờ đầu | Sau đó |
+|---|---|---|
+| **Em** | sửa · **xoá** (= "con không nhận") | chỉ xin cô đổi |
+| **Cô** | sửa · xoá · thêm | sửa · xoá · thêm |
+
+24 giờ đầu mục tiêu vẫn là **đề nghị**; qua đó nó thành **cam kết** — một cam kết sửa được lúc nào
+cũng được thì không phải cam kết. Chốt nằm ở RLS (`rls_update_wig_cua_em`, `rls_delete_wig_cua_em`),
+không ở giao diện. Phép kiểm: `scripts/test-cua-so-mot-ngay.sql`.
+
 ### Van an toàn ấy có thể nuốt cả thiết kế — nên phải làm cho nó LỘ RA
 
 Nếu cô cứ gõ hộ cho nhanh thì mô hình này thành đúng bản PRD cũ, chỉ khác cái tên, và không ai
@@ -222,7 +237,8 @@ mình. Cô dạy một tiết rồi duyệt tại chỗ, không nhập hộ 30 e
     Con sẽ [ nâng điểm Toán ]  từ [ 5,8 ] đến [ 7,0 ]  trước ngày [ 31/12 ]
 
 ③ Mỗi tuần con làm gì để tới đó?
-    [ Làm lại bài sai sau mỗi buổi kiểm tra ]   [ 3 ] lần/tuần · [2][4][6]
+    [ Làm lại bài sai sau mỗi buổi kiểm tra ]
+    Con làm vào những thứ nào?  [2][4][6]  → vậy là 3 lần mỗi tuần.
     ⓘ Việc phải là thứ CON TỰ LÀM ĐƯỢC, không phải chờ ai.
 
 ④ [ Gửi cô xem ]   + [ Con muốn thêm một mục tiêu của riêng con ]

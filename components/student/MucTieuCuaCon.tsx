@@ -1,26 +1,29 @@
 'use client';
 
-import {useActionState, useState} from 'react';
+import {useState} from 'react';
 import {useTranslations} from 'next-intl';
-import {AlertCircle, Check, CheckCircle2, Target} from 'lucide-react';
+import {Check, CheckCircle2, Pencil, Plus, Target, Trash2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {Field, ctlWithBorder, inputCls, selectCls, btnGold, labelCls} from '@/components/ui/Field';
-import {luuMucTieuCuaEm, duyetMucTieu, danhDauDaDat, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
+import {btnGhost, btnGold} from '@/components/ui/Field';
+import {FormMucTieu, type WigLop} from '@/components/student/FormMucTieu';
+import {
+  duyetMucTieu,
+  danhDauDaDat,
+  xoaMucTieuCuaEm,
+} from '@/app/[locale]/(dashboard)/student/actions';
 
 // ════════════════════════════════════════════════════════════════════════════
-// MỤC TIÊU CỦA CON — bốn bước có dẫn dắt
+// MỤC TIÊU CỦA CON — một thẻ nhỏ đọc trong ba giây, form nằm sau một cú bấm
 // ════════════════════════════════════════════════════════════════════════════
 //
 // Đây là thứ thay cho khối "GVCN đặt WIG năm cho từng em" đã xoá ở 0100. Khác biệt không nằm ở
 // giao diện mà ở việc AI CẦM BÚT: bản cũ cho cô một ô số đã điền sẵn `mục tiêu lớp ÷ sĩ số`; bản
-// này hỏi CHÍNH EM bốn câu, và câu đầu tiên là "con đang ở đâu".
+// này hỏi CHÍNH EM ba câu, và chúng nằm trong hộp thoại FormMucTieu.
 //
-// Bốn bước bám đúng công thức của Leader in Me — "từ X đến Y, trước ngày nào" — và bước ba là hai
-// tính chất bắt buộc của một lead measure trong 4DX (dự báo được · tự làm được), viết lại thành
-// câu một đứa trẻ hiểu.
-//
-// Cô mở đúng form này để gõ hộ khi em vắng hoặc chưa có máy; khi ấy app ghi `set_by='teacher'` và
-// màn của em hiện rõ "cô đặt giúp con". Xem docs/MO_HINH_WIG.md §4 — van an toàn phải LỘ RA.
+// Bản đầu để cả form nằm mở giữa màn của em. Hỏng hai đường: (1) đặt xong form vẫn mở, màn hình có
+// đồng thời "đã gửi cô xem" và một form còn nguyên chữ; (2) mỗi ngày em vào tick việc hôm nay đều
+// phải cuộn qua nửa màn hình ô trống. Nay mặc định chỉ có MỘT THẺ — câu mục tiêu, hạn, việc mỗi
+// tuần — còn form thì mở ra khi thật sự cần sửa.
 
 export type MucTieuCuaEm = {
   id: string;
@@ -34,14 +37,15 @@ export type MucTieuCuaEm = {
   unit: string;
   area: string;
   end_date: string;
+  created_at: string;
   achieved_at: string | null;
   source_wig_id: string | null;
   viec: {title: string; target_value: number; active_weekdays: number[] | null} | null;
 };
 
-export type WigLop = {id: string; area: string; title: string};
+export type {WigLop};
 
-const DOW = [1, 2, 3, 4, 5, 6, 7];
+const CUA_SO_MS = 24 * 60 * 60 * 1000;
 
 export function MucTieuCuaCon({
   studentId,
@@ -61,55 +65,47 @@ export function MucTieuCuaCon({
   dayShort: string[];
 }) {
   const t = useTranslations('goal');
-  const [state, formAction] = useActionState<MucTieuState, FormData>(luuMucTieuCuaEm, {ok: false});
   const hocTap = mucTieu.find((m) => m.kind === 'academic') ?? null;
-  const [moForm, setMoForm] = useState(!hocTap);
-  const [thu, setThu] = useState<number[]>(hocTap?.viec?.active_weekdays ?? [1, 3, 5]);
-
-  // Bốn ô rời rạc rất khó ráp lại thành một ý trong đầu, nhất là với học sinh. Giữ giá trị ở đây
-  // để ghép chúng thành MỘT CÂU HOÀN CHỈNH ngay dưới nút Gửi — em đọc câu ấy là biết mình vừa
-  // hứa cái gì, không phải tự ghép trong đầu từ bốn ô.
-  const [g, setG] = useState({
-    title: hocTap?.title ?? '',
-    baseline: hocTap?.baseline != null ? String(hocTap.baseline) : '',
-    target: hocTap?.target_value != null ? String(hocTap.target_value) : '',
-    unit: hocTap?.unit ?? '',
-    due: hocTap?.end_date ?? '',
-  });
-  const duCau = Boolean(g.title && g.target && g.unit && g.due);
-
-  const err = (f: string) => (state.fieldError === f ? state.error : null);
-  const doiThu = (d: number) =>
-    setThu((p) => (p.includes(d) ? p.filter((x) => x !== d) : [...p, d].sort((a, b) => a - b)));
+  const [moForm, setMoForm] = useState(false);
+  const [bao, setBao] = useState('');
 
   // Ai cũng ĐỌC được khối này (phụ huynh, BGH), nhưng chỉ chính em và nhân sự mới GHI.
   const canGhi = laChinhEm || canManage;
 
+  // CỬA SỔ MỘT NGÀY (0102). Cô sửa/xoá lúc nào cũng được; em thì chỉ khi mục tiêu còn là đề nghị —
+  // chưa duyệt, hoặc vừa tạo chưa quá 24 giờ. Tính ở đây chỉ để giao diện nói trước; chốt thật nằm
+  // ở RLS và ở hàm máy chủ.
+  const conMo =
+    !hocTap ||
+    hocTap.status === 'draft' ||
+    hocTap.status === 'sent' ||
+    Date.now() - new Date(hocTap.created_at).getTime() < CUA_SO_MS;
+  const emSuaDuoc = canManage || (laChinhEm && conMo);
+
   return (
     <section className="glass rounded-[20px] p-[18px]">
-      <div className="mb-3 flex flex-wrap items-baseline gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <h2 className="flex items-center gap-2 font-display text-[16px] font-bold text-navy">
           <Target size={16} strokeWidth={2.5} />
           {t('title')}
         </h2>
-        <span className="text-[11.5px] font-semibold text-grey-mid">{t('hint')}</span>
+        {!hocTap && canGhi && (
+          <button type="button" onClick={() => setMoForm(true)} className={`${btnGold} ml-auto`}>
+            <Plus size={14} strokeWidth={2.5} />
+            {laChinhEm ? t('openForm') : t('openFormFor')}
+          </button>
+        )}
       </div>
 
-      {state.error && !state.fieldError && (
-        <p className="mb-3 inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
-          <AlertCircle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
-          {state.error}
-        </p>
-      )}
-      {state.ok && state.message && (
+      {bao && (
         <p className="mb-3 inline-flex items-start gap-1.5 rounded-[10px] bg-success/[0.10] px-2.5 py-2 text-[12px] font-bold text-success-dark">
           <CheckCircle2 size={13} strokeWidth={2.5} className="mt-px shrink-0" />
-          {state.message}
+          {bao}
         </p>
       )}
 
-      {/* ── MỤC TIÊU ĐANG CÓ ─────────────────────────────────────────────────────────────── */}
-      {hocTap && !moForm && (
+      {/* ── THẺ MỤC TIÊU ─────────────────────────────────────────────────────────────────── */}
+      {hocTap ? (
         <div className="flex flex-col gap-2.5 rounded-[14px] border-[1.5px] border-navy/10 p-3.5">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[13.5px] font-extrabold text-navy">{hocTap.title}</span>
@@ -154,7 +150,10 @@ export function MucTieuCuaCon({
                   {canGhi && (
                     <>
                       <input type="hidden" name="bo" value="1" />
-                      <SubmitButton className="text-[11.5px] font-extrabold text-navy underline" wrapClass="contents">
+                      <SubmitButton
+                        className="text-[11.5px] font-extrabold text-navy underline"
+                        wrapClass="contents"
+                      >
                         {t('undoAchieved')}
                       </SubmitButton>
                     </>
@@ -170,17 +169,8 @@ export function MucTieuCuaCon({
             </form>
           )}
 
-          <div className="flex flex-wrap gap-2">
-            {canGhi && (
-              <button
-                type="button"
-                onClick={() => setMoForm(true)}
-                className="cursor-pointer text-[12px] font-extrabold text-navy underline"
-              >
-                {t('edit')}
-              </button>
-            )}
-            {/* Cô duyệt — duyệt xong em mới tick được. */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Cô duyệt — duyệt xong em mới tick được. Đứng trước vì đây là việc cần làm ngay. */}
             {canManage && hocTap.status === 'sent' && (
               <form action={duyetMucTieu}>
                 <input type="hidden" name="wig_id" value={hocTap.id} />
@@ -190,193 +180,59 @@ export function MucTieuCuaCon({
                 </SubmitButton>
               </form>
             )}
-          </div>
-        </div>
-      )}
 
-      {/* ── BỐN BƯỚC ─────────────────────────────────────────────────────────────────────── */}
-      {canGhi && moForm && (
-        <form action={formAction} className="flex flex-col gap-3.5">
-          <input type="hidden" name="student_id" value={studentId} />
-          <input type="hidden" name="class_id" value={classId} />
-          <input type="hidden" name="kind" value="academic" />
-          {thu.map((d) => (
-            <input key={d} type="hidden" name="viec_days" value={d} />
-          ))}
-
-          {/* ① Con muốn tiến bộ ở việc gì.
-              Trước đây bước ① hỏi "con đang ở đâu" và giữ ô SỐ BẮT ĐẦU, còn số đích thì nằm mãi
-              bước ②. Hai đầu của một câu "từ X đến Y" bị tách qua hai bước — em điền xong ô đầu
-              không biết nó đi đâu. Nay ① hỏi VIỆC, ② giữ trọn "từ X đến Y trước ngày nào". */}
-          <div className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-            <p className={labelCls}>{t('step1')}</p>
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-              <Field label={t('what')} htmlFor="mt-title" error={err('title')}>
-                <input
-                  id="mt-title"
-                  name="title"
-                  value={g.title}
-                  onChange={(e) => setG((p) => ({...p, title: e.target.value}))}
-                  placeholder={t('whatPlaceholder')}
-                  className={ctlWithBorder(state.fieldError === 'title')}
-                />
-              </Field>
-              <Field label={t('joinBattle')} htmlFor="mt-source">
-                <select id="mt-source" name="source_wig_id" defaultValue={hocTap?.source_wig_id ?? ''} className={selectCls}>
-                  <option value="">{t('noBattle')}</option>
-                  {wigLop.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.title}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </div>
-          </div>
-
-          {/* ② "Từ X đến Y trước ngày nào" — công thức của canon, nay nằm gọn một hàng đọc như
-              một câu chứ không phải bốn ô rời. */}
-          <div className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-            <p className={labelCls}>{t('step2')}</p>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-[1fr_1fr_1fr_1.4fr]">
-              <Field label={t('now')} htmlFor="mt-baseline" error={err('baseline')}>
-                <input
-                  id="mt-baseline"
-                  name="baseline"
-                  type="number"
-                  step="any"
-                  min="0"
-                  inputMode="decimal"
-                  value={g.baseline}
-                  onChange={(e) => setG((p) => ({...p, baseline: e.target.value}))}
-                  placeholder="0"
-                  className={ctlWithBorder(state.fieldError === 'baseline')}
-                />
-              </Field>
-              <Field label={t('to')} htmlFor="mt-target" error={err('target_value')}>
-                <input
-                  id="mt-target"
-                  name="target_value"
-                  type="number"
-                  step="any"
-                  min="0.01"
-                  inputMode="decimal"
-                  value={g.target}
-                  onChange={(e) => setG((p) => ({...p, target: e.target.value}))}
-                  className={ctlWithBorder(state.fieldError === 'target_value')}
-                />
-              </Field>
-              <Field label={t('unit')} htmlFor="mt-unit" error={err('unit')}>
-                <input
-                  id="mt-unit"
-                  name="unit"
-                  value={g.unit}
-                  onChange={(e) => setG((p) => ({...p, unit: e.target.value}))}
-                  placeholder={t('unitPlaceholder')}
-                  className={ctlWithBorder(state.fieldError === 'unit')}
-                />
-              </Field>
-              <Field label={t('due')} htmlFor="mt-due" error={err('due_on')} className="col-span-2 sm:col-span-1">
-                <input
-                  id="mt-due"
-                  name="due_on"
-                  type="date"
-                  value={g.due}
-                  onChange={(e) => setG((p) => ({...p, due: e.target.value}))}
-                  className={ctlWithBorder(state.fieldError === 'due_on')}
-                />
-              </Field>
-            </div>
-          </div>
-
-          {/* ③ Mỗi tuần con làm gì — hai tính chất bắt buộc của lead measure, nói bằng lời trẻ hiểu.
-              Bỏ trống được: khi ấy đây là đích ghi nhận ngoài, cô và trò tự theo dõi (0101). */}
-          <div className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-            <p className={labelCls}>{t('step3')}</p>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-[2fr_1fr]">
-              <Field label={t('workTitle')} htmlFor="mt-viec" className="col-span-2 sm:col-span-1">
-                <input
-                  id="mt-viec"
-                  name="viec_title"
-                  defaultValue={hocTap?.viec?.title ?? ''}
-                  placeholder={t('workPlaceholder')}
-                  className={inputCls}
-                />
-              </Field>
-              <Field label={t('timesPerWeek')} htmlFor="mt-viec-n" error={err('viec_target')}>
-                <input
-                  id="mt-viec-n"
-                  name="viec_target"
-                  type="number"
-                  step="1"
-                  min="1"
-                  inputMode="numeric"
-                  defaultValue={hocTap?.viec?.target_value ?? 3}
-                  className={ctlWithBorder(state.fieldError === 'viec_target')}
-                />
-              </Field>
-            </div>
-            <div className="mt-2">
-              <span className={labelCls}>{t('weekdays')}</span>
-              <div className="flex flex-wrap gap-1.5">
-                {DOW.map((d, i) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => doiThu(d)}
-                    aria-pressed={thu.includes(d)}
-                    className={`grid h-9 w-11 cursor-pointer select-none place-items-center rounded-[10px] border-[1.5px] text-[11.5px] font-extrabold transition-all ${
-                      thu.includes(d)
-                        ? 'border-transparent bg-gold text-navy'
-                        : 'border-navy/15 bg-white text-navy/60 hover:border-navy'
-                    }`}
+            {emSuaDuoc && (
+              <>
+                <button type="button" onClick={() => setMoForm(true)} className={btnGhost}>
+                  <Pencil size={13} strokeWidth={2.5} />
+                  {t('edit')}
+                </button>
+                {/* XOÁ — với em, đây là đường "con không nhận mục tiêu này" khi cô đặt hộ. Nó chỉ
+                    mở trong 24 giờ đầu, nên không cần hộp xác nhận riêng: confirm là đủ. */}
+                <form
+                  action={xoaMucTieuCuaEm}
+                  onSubmit={(e) => {
+                    if (!window.confirm(t('confirmDelete'))) e.preventDefault();
+                  }}
+                >
+                  <input type="hidden" name="wig_id" value={hocTap.id} />
+                  <input type="hidden" name="student_id" value={studentId} />
+                  <SubmitButton
+                    className="inline-flex cursor-pointer items-center gap-1 text-[12px] font-extrabold text-status-bad underline"
+                    wrapClass="contents"
                   >
-                    {dayShort[i]}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <p className="mt-2 text-[11px] font-semibold italic leading-relaxed text-grey-mid">
-              {t('leadRule')}
-            </p>
-          </div>
+                    <Trash2 size={13} strokeWidth={2.5} />
+                    {t('deleteGoal')}
+                  </SubmitButton>
+                </form>
+              </>
+            )}
 
-          {/* CÂU MỤC TIÊU — ráp từ chính những ô em vừa gõ. Đây là chỗ ba bước hợp lại thành một
-              ý, và cũng là cách rẻ nhất để em tự thấy mục tiêu của mình đã rõ ràng hay chưa. */}
-          <div
-            className={`rounded-[14px] px-3.5 py-3 text-[13px] font-bold leading-relaxed ${
-              duCau ? 'bg-gold/[0.14] text-navy' : 'bg-navy/[0.04] italic text-grey-mid'
-            }`}
-          >
-            {duCau
-              ? t('preview', {
-                  what: g.title,
-                  from: g.baseline || '0',
-                  to: g.target,
-                  unit: g.unit,
-                  due: g.due,
-                })
-              : t('previewEmpty')}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <SubmitButton className={btnGold} wrapClass="contents">
-              {laChinhEm ? t('send') : t('saveForStudent')}
-            </SubmitButton>
-            {hocTap && (
-              <button
-                type="button"
-                onClick={() => setMoForm(false)}
-                className="cursor-pointer text-[12px] font-extrabold text-grey-mid underline"
-              >
-                {t('cancel')}
-              </button>
+            {/* Hết cửa sổ: nói rõ vì sao không còn nút, và đi đâu để đổi. Không có câu này thì hai
+                em ngồi cạnh nhau thấy hai màn khác nhau mà không ai giải thích được. */}
+            {laChinhEm && !emSuaDuoc && (
+              <span className="text-[11.5px] font-semibold italic text-grey-mid">
+                {t('lockedHint')}
+              </span>
             )}
           </div>
-        </form>
+        </div>
+      ) : (
+        <p className="text-[12.5px] italic text-grey-mid">{canGhi ? t('hint') : t('none')}</p>
       )}
 
-      {!hocTap && !canGhi && <p className="text-[12.5px] italic text-grey-mid">{t('none')}</p>}
+      {moForm && (
+        <FormMucTieu
+          studentId={studentId}
+          classId={classId}
+          wigLop={wigLop}
+          dangSua={hocTap}
+          laChinhEm={laChinhEm}
+          dayShort={dayShort}
+          onClose={() => setMoForm(false)}
+          onDone={setBao}
+        />
+      )}
     </section>
   );
 }

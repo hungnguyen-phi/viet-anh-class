@@ -678,6 +678,26 @@ export type MucTieuState = {
   fieldError?: string;
 };
 
+/**
+ * CỬA SỔ MỘT NGÀY — em còn tự sửa/xoá mục tiêu của mình được không.
+ *
+ * 24 giờ đầu mục tiêu vẫn là ĐỀ NGHỊ (nhất là khi cô đặt hộ: nó vào thẳng `approved`, em không kịp
+ * nói gì); qua đó nó thành CAM KẾT, muốn đổi thì xin cô. Người lớn không bị cửa sổ này chặn.
+ *
+ * Chốt thật nằm ở RLS (0102). Bản TypeScript này chỉ để câu báo lỗi nói đúng chuyện.
+ *
+ * KHÔNG `export` hằng số này: tệp đang ở trong 'use server', mà tệp 'use server' chỉ được export
+ * hàm async — export một con số làm cả trang đổ 500 ngay lúc dựng. `tsc` và `next build` đều xanh
+ * khi ấy; chỉ trang thật mới nói ra.
+ */
+const CUA_SO_MS = 24 * 60 * 60 * 1000;
+
+function conTrongCuaSo(w: {status: string; created_at: string} | null | undefined): boolean {
+  if (!w) return true;
+  if (w.status === 'draft' || w.status === 'sent') return true;
+  return Date.now() - new Date(w.created_at).getTime() < CUA_SO_MS;
+}
+
 export async function luuMucTieuCuaEm(
   _prev: MucTieuState,
   formData: FormData,
@@ -695,7 +715,6 @@ export async function luuMucTieuCuaEm(
   const han = String(formData.get('due_on') ?? '').trim();
   const source_wig_id = String(formData.get('source_wig_id') ?? '').trim();
   const viec_title = String(formData.get('viec_title') ?? '').trim();
-  const viec_target_raw = String(formData.get('viec_target') ?? '').trim();
   const viec_days = chuanHoaThu(formData.getAll('viec_days'));
 
   // AI ĐANG GÕ. Chính em thì set_by='student'; cô hoặc quản trị gõ hộ thì 'teacher'. KHÔNG suy từ
@@ -732,9 +751,16 @@ export async function luuMucTieuCuaEm(
   // bình 8,0"), cô và trò tự theo dõi, đạt thì tick một ô → 'manual'. App KHÔNG có dữ liệu điểm
   // môn, nên vẽ vạch tiến độ cho loại thứ hai là bịa — 0101 đã chặn ở tầng view.
   const measure_by = viec_title ? 'tick' : 'manual';
-  const viec_target = Number(viec_target_raw);
-  if (viec_title && (!Number.isFinite(viec_target) || viec_target <= 0))
-    return {ok: false, fieldError: 'viec_target', error: 'Mỗi tuần con làm bao nhiêu lần?'};
+
+  // MỖI TUẦN BAO NHIÊU LẦN = ĐẾM SỐ THỨ EM ĐÃ CHỌN. Không hỏi thành một ô riêng nữa.
+  //
+  // Ô ấy nói dối được, và đã nói dối: uq_lead_progress_daily (0020) chỉ cho MỘT lượt tick mỗi
+  // (việc, em, ngày), nên số lần tối đa trong tuần đúng bằng số thứ được bật. Em chọn 5 thứ rồi
+  // gõ 3 vào ô "mấy lần/tuần" thì tick đủ cả tuần vẫn hiện 5/3; gõ 7 thì vạch không bao giờ đầy
+  // dù em không bỏ buổi nào. Chủ dự án bắt đúng chỗ này 12/08/2026 ("rất vô lí").
+  const viec_target = viec_days.length;
+  if (viec_title && viec_target === 0)
+    return {ok: false, fieldError: 'viec_days', error: 'Con chọn ít nhất một thứ trong tuần nhé.'};
 
   const supabase = await createClient();
   const nam = schoolYearRangeVN();
@@ -790,7 +816,7 @@ export async function luuMucTieuCuaEm(
   // nói được cái nào mới là thật.
   const {data: daCo} = await supabase
     .from('wigs')
-    .select('id, status')
+    .select('id, status, created_at')
     .eq('student_id', student_id)
     .eq('scope', 'student')
     .eq('kind', kind)
@@ -799,10 +825,13 @@ export async function luuMucTieuCuaEm(
 
   let wigId = daCo?.id ?? null;
   if (wigId) {
-    // Em KHÔNG sửa được mục tiêu đã duyệt — muốn đổi thì xin cô. Chính sách RLS cũng chặn, đây là
-    // lớp thứ nhất để câu báo lỗi nói đúng chuyện thay vì "không có quyền".
-    if (laChinhEm && daCo?.status === 'approved')
-      return {ok: false, error: 'Mục tiêu này cô đã duyệt rồi. Con muốn đổi thì nhắn cô nhé.'};
+    // CỬA SỔ MỘT NGÀY — xem supabase/migrations/0102 để biết vì sao. Chính sách RLS mới là chốt
+    // thật; đây là lớp thứ nhất, để câu báo lỗi nói đúng chuyện thay vì "không có quyền".
+    if (laChinhEm && !conTrongCuaSo(daCo))
+      return {
+        ok: false,
+        error: 'Mục tiêu này đã chốt rồi (quá 1 ngày). Con muốn đổi thì nhắn cô nhé.',
+      };
     const {error} = await supabase.from('wigs').update(ban).eq('id', wigId);
     if (error) return {ok: false, error: (friendlyError(error))};
   } else {
@@ -863,6 +892,43 @@ export async function duyetMucTieu(formData: FormData) {
   revalidatePath('/[locale]/wig/chi-tiet', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   veTrangEm(student_id, 'Đã duyệt mục tiêu của em');
+}
+
+// Xoá mục tiêu của em.
+//
+// Hai người xoá được, vì hai lý do khác nhau:
+//   · CÔ — bất cứ lúc nào, như mọi bản ghi khác của lớp (rls_all_wigs).
+//   · CHÍNH EM — chỉ trong cửa sổ một ngày. Đây là đường "con không nhận mục tiêu này": cô đặt hộ
+//     xong em thấy không phải chuyện của mình thì bỏ thẳng, không phải viết đơn xin sửa rồi ngồi
+//     chờ. Qua 24 giờ thì hết đường ấy — xem 0102.
+export async function xoaMucTieuCuaEm(formData: FormData) {
+  const me = await getCurrentProfile();
+  if (!me) return;
+  const wig_id = String(formData.get('wig_id') ?? '');
+  const student_id = String(formData.get('student_id') ?? '');
+  if (!wig_id) veTrangEm(student_id, loi('Thiếu mục tiêu.'));
+
+  const supabase = await createClient();
+  const {data: w} = await supabase
+    .from('wigs')
+    .select('id, status, created_at')
+    .eq('id', wig_id)
+    .eq('scope', 'student')
+    .maybeSingle();
+  if (!w) veTrangEm(student_id, loi('Mục tiêu này không còn nữa.'));
+
+  const laChinhEm = me.id === student_id && me.role === 'student';
+  if (laChinhEm && !conTrongCuaSo(w))
+    veTrangEm(student_id, loi('Mục tiêu này đã chốt rồi (quá 1 ngày). Con muốn bỏ thì nhắn cô nhé.'));
+
+  // lead_measures và lead_progress dưới nó đi theo (on delete cascade, 0002).
+  const {error} = await supabase.from('wigs').delete().eq('id', wig_id).eq('scope', 'student');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig/chi-tiet', 'page');
+  veTrangEm(student_id, 'Đã xoá mục tiêu');
 }
 
 // Tick "đã đạt" cho đích ghi nhận ngoài. Cô và trò tự theo dõi ở ngoài app (bài kiểm tra, sổ liên
