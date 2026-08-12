@@ -245,8 +245,13 @@ export async function suaWig(_prev: CreateWigState, formData: FormData): Promise
 // wig_actual() cộng lên như cũ. Cần chữa sai sót thì sửa/xoá tick của em (RLS lp_staff_manage
 // vẫn cho GVCN toàn quyền), chứ không cộng thêm một con số không thuộc về ai.
 
-// Xoá WIG (sửa sai sót làm méo xếp hạng). WIG năm: xoá WIG tuần con trước
-// (parent_wig_id không cascade); lead_measures + lead_progress tự cascade theo wig_id.
+// Xoá WIG (sửa sai sót làm méo xếp hạng).
+//
+// Cây WIG SÂU BA TẦNG: năm → tháng → tuần (sinhNhip rải 12 tháng rồi ~52 tuần dưới tháng).
+// parent_wig_id KHÔNG cascade (khoá ngoại để NO ACTION), nên phải xoá từ dưới lên: cháu → con →
+// gốc. Bản cũ chỉ gỡ MỘT tầng con, thành ra xoá mục tiêu năm luôn thất bại — 12 mốc tháng vẫn
+// còn cháu là mốc tuần treo dưới, cả hai lệnh xoá đều vướng khoá ngoại và WIG năm sống nguyên.
+// lead_measures + lead_progress vẫn tự cascade theo wig_id nên không cần đụng tới.
 export async function deleteWig(formData: FormData) {
   await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '') || undefined;
@@ -255,7 +260,21 @@ export async function deleteWig(formData: FormData) {
   const wig_id = String(formData.get('wig_id') ?? '');
   if (!wig_id) flash('Thiếu WIG cần xoá');
   const supabase = await createClient();
-  await supabase.from('wigs').delete().eq('parent_wig_id', wig_id); // WIG con (nếu là WIG năm)
+
+  // Lần lượt đi xuống từng tầng để biết ĐÍCH DANH id phải xoá, rồi xoá ngược lên.
+  const conCua = async (ids: string[]) => {
+    if (ids.length === 0) return [];
+    const {data} = await supabase.from('wigs').select('id').in('parent_wig_id', ids);
+    return (data ?? []).map((w) => w.id as string);
+  };
+  const con = await conCua([wig_id]);
+  const chau = await conCua(con);
+  for (const tang of [chau, con]) {
+    if (tang.length === 0) continue;
+    const {error: eTang} = await supabase.from('wigs').delete().in('id', tang);
+    // Dừng ngay: đi tiếp thì lệnh xoá gốc chỉ báo "còn dữ liệu liên quan", giấu mất lỗi thật.
+    if (eTang) flash(loi(friendlyError(eTang)));
+  }
   const {error} = await supabase.from('wigs').delete().eq('id', wig_id);
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]', 'page');
