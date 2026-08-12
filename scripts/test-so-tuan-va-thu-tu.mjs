@@ -32,13 +32,57 @@ const {data: em} = await admin
   .limit(1)
   .single();
 const {data: hs} = await admin.from('profiles').select('email').eq('id', em.student_id).single();
+const {data: lop} = await admin
+  .from('classes')
+  .select('homeroom_teacher_id')
+  .eq('id', em.class_id)
+  .single();
+const {data: gv} = await admin
+  .from('profiles')
+  .select('email')
+  .eq('id', lop.homeroom_teacher_id)
+  .single();
 
-const {data: g} = await admin.auth.admin.generateLink({type: 'magiclink', email: hs.email});
-const {data: v} = await anon.auth.verifyOtp({type: 'email', token_hash: g.properties.hashed_token});
-const cookie = `sb-${REF}-auth-token=base64-${Buffer.from(JSON.stringify(v.session)).toString('base64url')}`;
+const cookieCua = async (email) => {
+  const {data: g} = await admin.auth.admin.generateLink({type: 'magiclink', email});
+  const {data: v} = await anon.auth.verifyOtp({type: 'email', token_hash: g.properties.hashed_token});
+  return `sb-${REF}-auth-token=base64-${Buffer.from(JSON.stringify(v.session)).toString('base64url')}`;
+};
+const dung = async (email, duong) => {
+  const r = await fetch(BASE + duong, {headers: {cookie: await cookieCua(email)}, redirect: 'manual'});
+  return {st: r.status, html: await r.text()};
+};
 
-const r = await fetch(BASE + '/student', {headers: {cookie}, redirect: 'manual'});
-const html = await r.text();
+// ── GIEO BA TUẦN SỔ ──────────────────────────────────────────────────────────────────────────
+// Lịch sử chỉ chứng minh được khi CÓ lịch sử. Em thật trong CSDL có thể chưa viết dòng nào, lúc
+// ấy phần "các tuần trước" rỗng và bài kiểm xanh mà chẳng chứng minh gì. Nên tự gieo tuần này +
+// hai tuần trước, mang dấu ZZTEST để nhận ra, và dọn sạch ở cuối dù đạt hay không.
+const homNay = new Date();
+const dow = (homNay.getUTCDay() + 6) % 7;
+const thuHai = new Date(
+  Date.UTC(homNay.getUTCFullYear(), homNay.getUTCMonth(), homNay.getUTCDate() - dow),
+);
+const isoNgay = (d) => d.toISOString().slice(0, 10);
+const tuanGieo = [0, 1, 2].map((k) => isoNgay(new Date(thuHai.getTime() - k * 7 * 86400000)));
+const dauVet = tuanGieo.map((w, i) => `ZZTEST-so-tuan-${i}-${w}`);
+for (const [i, w] of tuanGieo.entries())
+  await admin
+    .from('student_reflections')
+    .upsert(
+      {student_id: em.student_id, class_id: em.class_id, week_start: w, body: dauVet[i]},
+      {onConflict: 'student_id,week_start'},
+    );
+const don = async () => {
+  for (const w of tuanGieo)
+    await admin
+      .from('student_reflections')
+      .delete()
+      .eq('student_id', em.student_id)
+      .eq('week_start', w);
+};
+
+const {st, html} = await dung(hs.email, '/student');
+const r = {status: st};
 dat(r.status === 200, 'trang dựng được', `HTTP ${r.status}`);
 
 if (r.status === 200) {
@@ -85,7 +129,60 @@ if (r.status === 200) {
     !/<h2[^>]*>\s*(?:<[^>]+>\s*)*Mục tiêu của con/.test(hien),
     '"Mục tiêu của con" không còn là tiêu đề khối lớn (<h2>)',
   );
+
+  // ── NHÃN TUẦN PHẢI TRỎ ĐÚNG TUẦN SERVER GHI VÀO ────────────────────────────────────────────
+  // Nhãn tính từ weekDaysVN(todayInVN()), còn luuSoCuaCon ghi theo weekRangeVN() — HAI đường
+  // tính khác nhau cho cùng một khái niệm "tuần này". Hôm nay chúng khớp, nhưng không có gì
+  // buộc chúng khớp mãi, và lệch một ngày thì em viết vào tuần A mà màn hình dán nhãn tuần B.
+  // So thẳng nhãn với thứ Hai của tuần chứa dòng em vừa ghi.
+  const nhan = hien.match(/Tuần này: (\d\d)\/(\d\d)–/);
+  dat(Boolean(nhan), 'đọc được nhãn tuần trên thẻ');
+  if (nhan)
+    dat(
+      `${nhan[2]}` === tuanGieo[0].slice(5, 7) && `${nhan[1]}` === tuanGieo[0].slice(8, 10),
+      'nhãn tuần trỏ ĐÚNG tuần mà server ghi vào',
+      `nhãn ${nhan[1]}/${nhan[2]} vs week_start ${tuanGieo[0]}`,
+    );
+
+  // ── LỊCH SỬ THẬT SỰ TỚI ĐƯỢC MÀN HÌNH ──────────────────────────────────────────────────────
+  // Có nút mở sổ chưa chứng minh chữ tuần trước đi tới nơi: hộp thoại dựng ở client, dữ liệu
+  // phải nằm sẵn trong trang. Cả ba tuần vừa gieo phải có mặt trong HTML.
+  for (const [i, d] of dauVet.entries())
+    dat(html.includes(d), `chữ của tuần ${i === 0 ? 'này' : `trước ${i}`} có trong trang của em`);
 }
+
+// ── NGƯỜI LỚN: ĐỌC ĐƯỢC, KHÔNG VIẾT ĐƯỢC ─────────────────────────────────────────────────────
+// Sổ là chỗ DUY NHẤT trong cả mô hình mà người lớn không có quyền ghi (rls_write_student_
+// reflections, 0100). Thẻ mới đổi ô nhập thành nút mở hộp thoại — dễ lỡ tay cho cả GVCN thấy
+// nút viết, mà lúc ấy cô bấm vào sẽ bị CSDL từ chối, còn khó hiểu hơn là không có nút.
+const cg = await dung(gv.email, `/student/${em.student_id}`);
+const hienGV = cg.html.replace(/<script[\s\S]*?<\/script>/g, '');
+dat(cg.st === 200, '[GVCN] trang của em dựng được', `HTTP ${cg.st}`);
+dat(dauVet.every((d) => cg.html.includes(d)), '[GVCN] đọc được cả sổ tuần này lẫn các tuần trước');
+dat(!/Viết vào sổ|Viết tiếp \/ sửa/.test(hienGV), '[GVCN] KHÔNG có nút viết vào sổ');
+dat(/Mở sổ đọc/.test(hienGV), '[GVCN] có nút mở sổ để đọc');
+
+// ── KHÔNG RÒ SANG EM KHÁC ────────────────────────────────────────────────────────────────────
+// Cuốn sổ là chữ riêng của một đứa trẻ. Lấy 20 tuần thay vì 1 dòng nghĩa là mỗi lần mở trang nay
+// mang nhiều dữ liệu hơn hẳn — càng phải chứng minh nó không sang được màn của người ngoài.
+const {data: khac} = await admin
+  .from('enrollments')
+  .select('student_id')
+  .eq('is_active', true)
+  .neq('class_id', em.class_id)
+  .limit(1)
+  .maybeSingle();
+if (khac) {
+  const {data: hs2} = await admin.from('profiles').select('email').eq('id', khac.student_id).single();
+  const ck = await dung(hs2.email, `/student/${em.student_id}`);
+  dat(
+    !dauVet.some((d) => ck.html.includes(d)),
+    'em lớp khác KHÔNG đọc được sổ của em này',
+    `HTTP ${ck.st}`,
+  );
+}
+
+await don();
 
 for (const k of kq) console.log(k.ok ? 'OK  ' : 'SAI ', k.ten, k.ghi ? '— ' + k.ghi : '');
 const so = kq.filter((k) => k.ok).length;
