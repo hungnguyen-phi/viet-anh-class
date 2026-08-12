@@ -285,7 +285,15 @@ export async function StudentScoreboard({
   const weekIds = [...wigTuanNay.map((w) => w.wig_id), ...yearRows.map((w) => w.wig_id)];
   // Bảng điểm "cầm mà họp" ở cuối trang đọc từ ĐÂY, không tự hỏi lại CSDL nữa: cùng dải ngày,
   // cùng dữ liệu, mà bớt được hai tầng chờ sâu nhất trang (xem MeetingScoreboard).
-  const wonByArea = new Map(wigTuanNay.map((w) => [w.area, Number(w.pct ?? 0) >= 1]));
+  //
+  // MỤC TIÊU NĂM CŨNG TÍNH — nếu không thì bảng này vĩnh viễn trống. Từ 0100 em KHÔNG còn WIG
+  // tuần; mục tiêu của em sống cả học kỳ (period='year'). Bản cũ chỉ đọc `wigTuanNay`, tức là
+  // chỉ đọc một loại dữ liệu CSDL đã thôi sinh ra — nên "Bảng tuần này" luôn báo "Chưa có số
+  // liệu WIG của tuần này" ngay cả khi em vừa đặt mục tiêu và đang tick đều. Vẫn giữ WIG tuần
+  // đời cũ trong phép gộp: dữ liệu trước 0100 còn nguyên và vẫn phải đọc được.
+  const wonByArea = new Map(
+    [...wigTuanNay, ...yearRows].map((w) => [w.area, Number(w.pct ?? 0) >= 1]),
+  );
 
 
   const campusId = cls?.campus_id ?? null;

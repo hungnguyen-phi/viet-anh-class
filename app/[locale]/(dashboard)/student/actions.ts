@@ -313,14 +313,23 @@ async function buddyContextFor(
   studentId: string,
   weekLabel: string,
 ): Promise<{ctx: BuddyContext; leadIds: string[]} | null> {
-  const {data: weekWigs} = await supabase
+  // HAI CHỖ MỤC TIÊU CỦA EM TREO, PHẢI HỎI CẢ HAI (cùng luật với `weekIds` ở StudentScoreboard).
+  //
+  //   · period='week' — WIG tuần cá nhân đời cũ, trước 0100. Dữ liệu cũ còn nguyên.
+  //   · period='year' — mục tiêu của em từ 0100: sống cả học kỳ, không đẻ lại mỗi tuần.
+  //
+  // Bản cũ chỉ hỏi vế đầu, tức chỉ hỏi loại dữ liệu CSDL đã thôi sinh ra — nên Buddy trả
+  // `no_wig` cho MỌI em, và màn hình nói "Con chưa đặt mục tiêu nên Buddy chưa có gì để xem"
+  // ngay bên dưới khối mục tiêu em vừa đặt xong. App đổ lỗi cho em vì lỗi của chính nó.
+  const {data: emWigs} = await supabase
     .from('wigs')
-    .select('id')
+    .select('id, period, period_label')
     .eq('student_id', studentId)
     .eq('scope', 'student')
-    .eq('period', 'week')
-    .eq('period_label', weekLabel);
-  const wigIds = (weekWigs ?? []).map((w) => w.id);
+    .in('period', ['week', 'year']);
+  const wigIds = (emWigs ?? [])
+    .filter((w) => w.period === 'year' || w.period_label === weekLabel)
+    .map((w) => w.id);
   if (wigIds.length === 0) return null;
 
   const {data: leadRows} = await supabase
