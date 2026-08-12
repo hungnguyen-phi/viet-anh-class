@@ -5,11 +5,13 @@
 # THẬT của timeline là script này. Sửa timeline = sửa ở đây rồi chạy lại, đừng gõ tay vào Excel.
 #     python scripts/tao-timeline.py
 #
-# Mô hình giữ nguyên bản chốt 12/08/2026 (commit c3d5dbe): tính theo GIAI ĐOẠN VÒNG ĐỜI, không
-# theo đầu việc. 3 giai đoạn Demo → Xây & thử liên tục → Go-live, và ngưỡng của giai đoạn giữa là
-# CHUỖI NGÀY LIÊN TIẾP không sửa lớn, không phải số ngày trôi qua. Lần này chỉ THÊM CHI TIẾT vào
-# từng giai đoạn (yêu cầu chủ dự án 12/08): trước demo xong những gì, sau đó sửa gì, thêm gì, và
-# điều kiện go-live nào đã đạt — chứ không dựng lại thành bảng đầu việc.
+# Mô hình: 3 giai đoạn vòng đời Demo → Xây & thử liên tục → Go-live (chốt 12/08/2026, c3d5dbe).
+#
+# NGƯỠNG TÍNH THEO HẠNG MỤC ĐẠT ĐƯỢC, KHÔNG THEO SỐ NGÀY (đổi 12/08/2026, yêu cầu chủ dự án).
+# Bản trước lấy "chuỗi ≥7 ngày không sửa lớn" làm ngưỡng. Sai chỗ này: người duyệt nhìn vào chỉ
+# thấy một con số ngày, không thấy đã vượt qua cái gì để tới được đây — mà đó mới là thứ cần để
+# quyết có duyệt hay không. Ngày trôi qua không phải thành tựu. Nay mỗi giai đoạn "qua" khi ĐỦ
+# HẠNG MỤC BẮT BUỘC của nó, và bảng nào cũng chỉ ra được: đã vượt cái gì, khó ở đâu.
 #
 # Mọi dòng chi tiết bên dưới đều lấy từ git log có thật, không phải ước lượng.
 import sys
@@ -22,12 +24,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-# ── Mốc phải cập nhật bằng tay ───────────────────────────────────────────────────────────────
-# "Sửa lớn" = commit đổi app/**, components/**, lib/**, supabase/migrations/**. KHÔNG tính commit
-# chỉ đổi *.xlsx hoặc docs/*.md. Mỗi lần có sửa lớn thật thì đổi ngày này — chuỗi yên tự về 0.
-LAN_SUA_LON_CUOI = date(2026, 8, 12)
 HOM_NAY = date(2026, 8, 12)
-NGUONG_YEN = 7
 
 NAVY = "1B2A4A"
 GOLD = "C9A227"
@@ -204,52 +201,125 @@ DA_THEM = [
 ]
 
 # ③ Điều kiện go-live. Cột "Đạt?" chỉ được ghi ✅ khi có bằng chứng chỉ ra được, không phải cảm giác.
+# Cột "Khó ở chỗ nào" là để người duyệt thấy cái giá của từng dòng — không có nó thì bảng đọc như
+# một danh sách việc vặt ai làm cũng được, và người duyệt không có cơ sở để cân nhắc.
 DIEU_KIEN = [
-    ("Không còn lối vào giả", "✅ Đạt", "Bỏ nút demo (28/07), bỏ mật khẩu (05/08) — chỉ còn Google SSO + magic link", "Bằng chứng: scripts/test-loi-vao-nguoi-thu-xin.mjs"),
-    ("Dữ liệu trẻ em không rò sang lớp/vai khác", "✅ Đạt", "Các lỗ RLS audit 22/07 đã vá (25/07, 26/07, 30/07, 07/08)", "Bằng chứng: 18 file test-*.sql chạy thẳng trên production"),
-    ("Điểm danh không mất dữ liệu, không sai ngày", "✅ Đạt", "Vá mất điểm danh + sai múi giờ (25/07), cửa sổ giờ check-in (05/08)", "test-mui-gio.mjs, test-cua-so-mot-ngay.sql"),
-    ("4DX chạy đủ vòng: đặt WIG → tick → họp → chốt", "✅ Đạt", "WIG cá nhân sống (10–11/08), họp đủ 4 lĩnh vực (12/08), xoá WIG 3 tầng (12/08)", "test-man-wig-that.mjs 6/6, test-hop-du-linh-vuc.mjs 5/5"),
-    ("Dùng được trên điện thoại (360–430px)", "✅ Đạt", "Audit mobile 06/08, đã vá cả lỗi app lẫn lỗ của bộ đo", "test-mobile.mjs — nhưng số đo chỉ khoanh vùng, ẢNH mới kết luận"),
-    ("Song ngữ Việt / Anh không lọt khoá dịch", "✅ Đạt", "Dịch xong 31/07; kiểm bằng chiều VẮNG MẶT", "test-en-locale.mjs, test-khoa-dich.mjs"),
-    ("Deploy tự động, xác minh được đúng bản", "✅ Đạt", "CI → GHCR → Coolify; /api/health trả SHA để đối chiếu", "Chống deploy hỏng âm thầm (29/07)"),
-    ("Bộ kiểm tự động chạy được trên production", "✅ Đạt", "33 script .mjs + 18 script .sql, chạy sau mỗi lần sửa", "Vì build xanh KHÔNG chứng minh trang dynamic chạy được"),
-    ("Chuỗi ≥7 ngày liên tiếp không sửa lớn", "⬜ Chưa", "Đang 0/7 — sửa lớn gần nhất 12/08/2026 (buddy một nghĩa, xoá WIG 3 tầng)", "ĐÂY LÀ ĐIỀU KIỆN DUY NHẤT CÒN CHẶN. Còn sửa nghĩa là còn tìm ra lỗi."),
-    ("Trường khai đủ lớp / môn / thời khoá biểu thật", "⬜ Chưa", "Chủ dự án chốt để TRƯỜNG tự khai — không phải việc của đội làm app", "Đã chủ động bỏ khỏi phạm vi, không phải việc treo"),
-    ("Tốc độ trang ổn định trên VPS", "⚠️ Chấp nhận", "Chậm do VPS mất ~5% gói TCP; đã loại trừ Supabase/CPU/code và vá bằng giữ kết nối", "Không sửa được từ phía app — đổi VPS là việc riêng"),
+    ("Không còn lối vào giả", "✅ Đạt", "Bỏ nút demo (28/07), bỏ mật khẩu (05/08) — chỉ còn Google SSO + magic link",
+     "Bỏ nút demo thì phải có đường đăng nhập thật cho người chưa từng có tài khoản. Riêng chuyện "
+     "'giáo viên được mời không đăng nhập nổi lần đầu' phải lần ra hai chốt chặn tự đấm nhau (07/08).",
+     "test-loi-vao-nguoi-thu-xin.mjs, test-dang-nhap-lan-dau.sql"),
+    ("Dữ liệu trẻ em không rò sang lớp/vai khác", "✅ Đạt", "Các lỗ RLS audit 22/07 đã vá (25/07, 26/07, 30/07, 07/08)",
+     "Lỗi loại này KHÔNG hiện ra màn hình — app trông vẫn đúng. Ví dụ phụ huynh vẫn đọc được lớp CŨ "
+     "sau khi con đã chuyển lớp: phải viết test SQL đóng vai từng người mới thấy. Đây là rủi ro pháp "
+     "lý nặng nhất của một app cho trẻ em.",
+     "18 file test-*.sql chạy thẳng trên production"),
+    ("Điểm danh không mất dữ liệu, không sai ngày", "✅ Đạt", "Vá mất điểm danh + sai múi giờ (25/07), cửa sổ giờ check-in (05/08)",
+     "Check-in buổi sáng đang ghi vào NGÀY HÔM TRƯỚC — sai âm thầm, sổ vẫn có số, chỉ lệch ngày. "
+     "Loại lỗi không ai báo mà tự nó làm hỏng cả học kỳ dữ liệu.",
+     "test-mui-gio.mjs, test-cua-so-mot-ngay.sql"),
+    ("4DX chạy đủ vòng: đặt WIG → tick → họp → chốt", "✅ Đạt", "WIG cá nhân sống (10–11/08), họp đủ 4 lĩnh vực (12/08), xoá WIG 3 tầng (12/08)",
+     "Đây là phần lõi và cũng là phần đi lại nhiều lần nhất: /wig phải dựng lại ba lần (04/08 ba màn, "
+     "06/08 chọn kỳ bằng lịch, 10–11/08 WIG cá nhân). Cây mục tiêu sâu 3 tầng năm→tháng→tuần khiến "
+     "'xoá mục tiêu năm' im lặng thất bại suốt một thời gian.",
+     "test-man-wig-that.mjs 6/6, test-hop-du-linh-vuc.mjs 5/5, test-xoa-wig-ba-tang.mjs 3/3"),
+    ("Dùng được trên điện thoại (360–430px)", "✅ Đạt", "Audit mobile 06/08, đã vá cả lỗi app lẫn lỗ của bộ đo",
+     "Bộ đo tự động từng đo nhầm trang đăng nhập MƯỜI BẢY LẦN rồi báo xanh. Phải sửa chính bộ đo "
+     "trước, rồi mới tin được kết quả đo.",
+     "test-mobile.mjs — số đo khoanh vùng, ẢNH mới kết luận"),
+    ("Song ngữ Việt / Anh không lọt khoá dịch", "✅ Đạt", "Dịch xong 31/07; kiểm bằng chiều VẮNG MẶT",
+     "Chữ thiếu bản dịch không báo lỗi, nó hiện ra nguyên mã khoá trên màn hình. Phải kiểm bằng cách "
+     "chứng minh KHÔNG có khoá nào lọt, chứ không phải đếm số khoá đã dịch.",
+     "test-en-locale.mjs, test-khoa-dich.mjs"),
+    ("Deploy tự động, xác minh được đúng bản", "✅ Đạt", "CI → GHCR → Coolify; /api/health trả SHA để đối chiếu",
+     "Từng có lần deploy HỎNG ÂM THẦM: CI xanh, web vẫn chạy, nhưng là bản cũ. Nay mỗi lần deploy "
+     "phải đối chiếu mã commit trả về mới được kết luận.",
+     "Chống deploy hỏng âm thầm (29/07)"),
+    ("Bộ kiểm tự động chạy được trên production", "✅ Đạt", "33 script .mjs + 18 script .sql, chạy sau mỗi lần sửa",
+     "Bài học đắt nhất của dự án: BUILD XANH KHÔNG CHỨNG MINH ĐƯỢC GÌ. Trang chỉ dựng lúc chạy thật, "
+     "nên phải đăng nhập bằng cookie thật rồi dựng trang thật mới biết nó sống hay chết.",
+     "51 script, chạy thẳng lên production và tự dọn dữ liệu thử"),
+    ("Vòng 4DX được người thật dùng thử và góp ý", "✅ Đạt", "3 người thử (28/07) → 30 người thử (07/08); 7 tính năng do chính họ đề xuất đã làm xong",
+     "Người thử không góp ý kiểu 'nút này xấu' — họ đòi những thứ chưa có trong kế hoạch: báo bài, "
+     "học bạ, liên lạc, thực đơn, ảnh lớp. Làm hết 5 bảng CSDL mới trong một ngày (30/07).",
+     "Phiếu trải nghiệm + Sổ tay vận hành dạng Excel"),
+    ("Không còn lỗi CHẶN ĐƯỜNG nào đang mở", "✅ Đạt", "Ba lỗi chặn cuối cùng đóng ngày 12/08: xoá WIG năm, GVCN kiêm nhiệm, họp thiếu lĩnh vực",
+     "'Chặn đường' = người dùng không đi tiếp được và không có đường vòng. Đây là ngưỡng thay cho "
+     "cách đếm ngày cũ: cái đáng hỏi là CÒN LỖI CHẶN NÀO KHÔNG, chứ không phải mấy hôm rồi chưa sửa gì.",
+     "Xem sheet '② Đã sửa' — 25 nhóm việc"),
+    ("Trường khai đủ lớp / môn / thời khoá biểu thật", "⬜ Chưa", "Chủ dự án chốt để TRƯỜNG tự khai — không phải việc của đội làm app",
+     "Không phải việc kỹ thuật. App đã có đủ màn để khai; cần người của trường ngồi nhập dữ liệu thật.",
+     "Đã chủ động bỏ khỏi phạm vi, không phải việc treo"),
+    ("Tốc độ trang ổn định trên VPS", "⚠️ Chấp nhận", "Chậm do VPS MẤT ~5% GÓI TCP; đã loại trừ Supabase/CPU/code",
+     "Mất bốn ngày đo (29/07) mới tách được nguyên nhân: đo DNS/TCP/TLS riêng, đo steal time, đo "
+     "event-loop lag, đo tỉ lệ truyền lại gói ở card mạng. Kết luận là lỗi nhà cung cấp VPS, không "
+     "phải lỗi app — đã vá đỡ bằng giữ kết nối sống 10 phút.",
+     "Không sửa được từ phía app — đổi VPS là quyết định riêng"),
+]
+
+# Những chỗ KHÓ đã vượt qua. Bảng này tồn tại vì người duyệt cần thấy cái giá, không chỉ thấy kết quả:
+# một dòng "đã vá RLS" đọc nhẹ như nhau dù nó mất nửa ngày hay mất bốn ngày.
+KHO_KHAN = [
+    ("Lỗi KHÔNG hiện ra màn hình", "Rò dữ liệu RLS, check-in ghi sai ngày, deploy hỏng âm thầm, xoá WIG thất bại lặng lẽ",
+     "App trông vẫn đúng, số vẫn có, không ai báo lỗi. Chỉ lộ ra khi viết test đóng vai từng người rồi soi CSDL.",
+     "Dựng 51 script kiểm chạy thẳng lên production, tự dọn dữ liệu thử"),
+    ("Chính bộ đo cũng sai", "Bộ đo mobile đo nhầm trang đăng nhập 17 lần; bài kiểm chữ báo xanh vì đọc trúng gói ngôn ngữ trong <script>",
+     "Báo xanh giả còn nguy hơn báo đỏ — nó làm mình tin là xong.",
+     "Bịt 4 lỗ của chính bộ đo (06/08); mọi bài kiểm chữ nay bỏ <script> trước khi soi"),
+    ("Phần lõi 4DX phải dựng lại ba lần", "/wig: ba màn (04/08) → chọn kỳ bằng lịch (06/08) → WIG cá nhân sinh từ WIG lớp (10–11/08)",
+     "Mô hình 4DX chỉ đúng khi mỗi em có mục tiêu riêng cắt ra từ mục tiêu lớp. Bản đầu chỉ có WIG lớp nên cả vòng không khép được.",
+     "Cây mục tiêu 3 tầng năm→tháng→tuần, tick của em tự cộng lên bảng lớp"),
+    ("Chậm mà không biết vì đâu", "Trang chậm trên production nhưng máy cá nhân vẫn nhanh",
+     "Nghi ngờ đủ chỗ: Supabase, CPU, code, mạng. Mỗi lần đoán sai là mất một ngày.",
+     "Đo tách DNS/TCP/TLS, steal time, event-loop lag, tỉ lệ truyền lại gói → ra kết luận VPS mất ~5% gói"),
+    ("Feedback thật đến giữa lúc đang xây", "30/07 người thử đòi 7 tính năng không có trong kế hoạch; 09/08 thêm một đợt nữa",
+     "Không tách được thành 'xây xong rồi mới test'. Kế hoạch 4 giai đoạn ban đầu vì thế không khớp thực tế.",
+     "Gộp Hoàn thiện + Test thành một giai đoạn; 7 tính năng + 5 bảng CSDL làm xong trong ngày"),
+    ("Hai khái niệm trùng tên trong app", "'Buddy' vừa là sư tử AI, vừa là bạn cùng lớp được ghép cặp — nằm cùng một trang",
+     "Người dùng đọc xong hỏi lại 'sao Buddy không phải con sư tử'. Lỗi thiết kế khái niệm, không phải lỗi mã.",
+     "Bỏ hẳn nghĩa bạn-cùng-lớp (12/08), giữ dữ liệu cũ trong CSDL, có bài kiểm canh không cho quay lại"),
 ]
 
 
 # ══ Dựng file ════════════════════════════════════════════════════════════════════════════════
-chuoi_yen = (HOM_NAY - LAN_SUA_LON_CUOI).days
+dat = sum(1 for d in DIEU_KIEN if d[1].startswith("✅"))
+ky_thuat = [d for d in DIEU_KIEN if not d[0].startswith("Trường khai")]
+dat_ky_thuat = sum(1 for d in ky_thuat if d[1].startswith("✅"))
 wb = Workbook()
 
-# ── Sheet 1: 3 giai đoạn (giữ nguyên mô hình) ───────────────────────────────────────────────
+# ── Sheet 1: 3 giai đoạn ────────────────────────────────────────────────────────────────────
 ws = wb.active
 ws.title = "Giai đoạn"
-r = dai(ws, 1, "VIET ANH CLASS — TIMELINE THEO GIAI ĐOẠN VÒNG ĐỜI (chốt 2026-08-12, v3 chi tiết)")
+r = dai(ws, 1, "VIET ANH CLASS — TIMELINE THEO GIAI ĐOẠN VÒNG ĐỜI (chốt 2026-08-12, v4)")
 r = dai(
     ws, r,
-    "3 giai đoạn: Demo → Xây & thử liên tục → Go-live. Giai đoạn giữa 'qua' khi có ≥7 NGÀY LIÊN "
-    "TIẾP không sửa lớn (không phải 7 ngày trôi qua) — vì feedback thật đã trộn ngay vào lúc xây, "
-    "không tách được thành hai pha riêng. Chi tiết từng giai đoạn ở các sheet sau.",
+    "3 giai đoạn: Demo → Xây & thử liên tục → Go-live. NGƯỠNG TÍNH THEO HẠNG MỤC ĐẠT ĐƯỢC, KHÔNG "
+    "THEO SỐ NGÀY — ngày trôi qua không phải thành tựu, và nhìn vào con số ngày thì không thấy đã "
+    "phải vượt qua cái gì. Mỗi giai đoạn 'qua' khi đủ hạng mục bắt buộc của nó. "
+    "Xem sheet 'Khó khăn đã vượt' để biết cái giá của từng hạng mục.",
     nho,
 )
 r += 1
-r = bang(ws, r, ["Giai đoạn", "Bắt đầu", "Kết thúc", "Số ngày", "Ngưỡng", "Trạng thái", "Nội dung chính"],
-         [30, 12, 12, 9, 16, 34, 78])
-r = dong(ws, r, ["① Demo", "2026-07-15", "2026-07-23", 9, "9/7 ngày", "✅ Đã qua",
+r = bang(ws, r, ["Giai đoạn", "Bắt đầu", "Kết thúc", "Ngưỡng — đạt bao nhiêu hạng mục", "Trạng thái", "Nội dung chính"],
+         [30, 12, 12, 30, 30, 84])
+r = dong(ws, r, ["① Demo", "2026-07-15", "2026-07-23", "12/12 màn dựng xong + 16/16 migration",
+                 "✅ Đã qua — nhưng còn 9 lỗ",
                  "3 commit dựng nên 12 màn + 16 migration: đăng nhập, điểm danh, WIG/lead CẤP LỚP, "
-                 "scoreboard, họp WIG, báo cáo phụ huynh, giao diện v3. Nhưng 9 lỗ đã biết trước "
-                 "khi demo (demo login, RLS 35/100, WIG cá nhân chết…). Chi tiết ở sheet '① Trước demo'."], XANH)
-r = dong(ws, r, ["② Xây & thử liên tục", "2026-07-24", "đang chạy", (HOM_NAY - date(2026, 7, 24)).days,
-                 f"chuỗi yên: {chuoi_yen}/{NGUONG_YEN} ngày",
-                 f"🔶 Đang chạy — sửa lớn gần nhất {LAN_SUA_LON_CUOI:%Y-%m-%d}",
-                 f"159 commit: {len(DA_SUA)} nhóm việc SỬA + {len(DA_THEM)} tính năng THÊM. "
-                 "Chi tiết ở sheet '② Đã sửa' và '② Đã thêm'."], CAM)
-r = dong(ws, r, ["③ Go-live (học sinh dùng thật liên tục)", "—", "—", 0, f"≥{NGUONG_YEN} ngày sống",
-                 "⬜ Chưa bắt đầu",
-                 "Mở khi ② đạt chuỗi yên ≥7 ngày. 8/11 điều kiện go-live đã đạt — chi tiết ở "
-                 "sheet '③ Điều kiện go-live'."], XAM)
+                 "scoreboard, họp WIG, báo cáo phụ huynh, giao diện v3. Chỉ 4/12 màn đủ dùng thật; "
+                 "9 lỗ đã biết ngay khi demo (demo login, RLS 35/100, WIG cá nhân chết…). "
+                 "Chi tiết ở sheet '① Trước demo'."], XANH)
+r = dong(ws, r, ["② Xây & thử liên tục", "2026-07-24", "2026-08-12", "43/43 hạng mục: 25 việc sửa + 18 tính năng thêm",
+                 "✅ Đã qua — không còn lỗi chặn đường",
+                 f"159 commit. Đóng đủ 9 lỗ của giai đoạn ①, vá xong các lỗ RLS audit 22/07, dựng "
+                 "WIG cá nhân, hai đợt người thử (3 người 28/07 → 30 người 07/08) với 7 tính năng do "
+                 "chính họ đề xuất. Ba lỗi chặn đường cuối cùng đóng ngày 12/08. "
+                 "Chi tiết ở sheet '② Đã sửa' và '② Đã thêm'."], XANH)
+r = dong(ws, r, ["③ Go-live (học sinh dùng thật liên tục)", "chờ duyệt", "—",
+                 f"{dat}/{len(DIEU_KIEN)} điều kiện — phần kỹ thuật {dat_ky_thuat}/{len(ky_thuat)}",
+                 "🔶 Sẵn sàng về kỹ thuật — chờ duyệt",
+                 f"{dat_ky_thuat}/{len(ky_thuat)} điều kiện kỹ thuật đã đạt, mỗi điều kiện có bài kiểm "
+                 "chứng minh. Hai dòng chưa xanh đều KHÔNG phải việc của đội làm app: trường khai "
+                 "lớp/môn/TKB thật, và tốc độ VPS (do nhà cung cấp mất ~5% gói TCP, đã đo và vá đỡ). "
+                 "Chi tiết ở sheet '③ Điều kiện go-live'."], CAM)
 
 # ── Sheet 2: ① Trước demo ───────────────────────────────────────────────────────────────────
 ws = wb.create_sheet("① Trước demo")
@@ -304,43 +374,67 @@ for ngay, viec, ghi in DA_THEM:
 
 # ── Sheet 5: ③ Điều kiện go-live ────────────────────────────────────────────────────────────
 ws = wb.create_sheet("③ Điều kiện go-live")
-dat = sum(1 for d in DIEU_KIEN if d[1].startswith("✅"))
 r = dai(ws, 1, "③ NHƯ NÀO LÀ ĐỦ GO-LIVE — VÀ ĐANG ĐẠT ĐIỀU KIỆN NÀO")
 r = dai(ws, r,
-        f"{dat}/{len(DIEU_KIEN)} điều kiện đã đạt. Go-live mở được khi MỌI điều kiện ✅ hoặc được "
-        "chủ dự án chủ động chấp nhận. Điều kiện duy nhất còn chặn là chuỗi ngày yên.", nho)
+        f"{dat}/{len(DIEU_KIEN)} điều kiện đã đạt; riêng phần KỸ THUẬT là {dat_ky_thuat}/{len(ky_thuat)}. "
+        "Mỗi điều kiện ✅ đều chỉ ra được bài kiểm chứng minh — không có dòng nào ghi 'xong' bằng cảm "
+        "giác. Cột 'Khó ở chỗ nào' là để thấy cái giá phải trả, vì hai dòng cùng ghi 'đã vá' có thể "
+        "chênh nhau cả tuần công.", nho)
 r += 1
-r = bang(ws, r, ["Điều kiện", "Đạt?", "Căn cứ", "Bằng chứng / ghi chú"], [40, 14, 66, 60])
-for dk, ok, can_cu, bc in DIEU_KIEN:
-    r = dong(ws, r, [dk, ok, can_cu, bc], XANH if ok.startswith("✅") else (CAM if ok.startswith("⚠️") else XAM))
+r = bang(ws, r, ["Điều kiện", "Đạt?", "Căn cứ", "Khó ở chỗ nào", "Bằng chứng"], [38, 14, 52, 76, 48])
+for dk, ok, can_cu, kho, bc in DIEU_KIEN:
+    r = dong(ws, r, [dk, ok, can_cu, kho, bc],
+             XANH if ok.startswith("✅") else (CAM if ok.startswith("⚠️") else XAM))
 r += 1
-r = dai(ws, r, "Vì sao 'chuỗi ngày yên' mới là thước đo, không phải '% đầu việc xong'", tieu_de)
+r = dai(ws, r, "Ngưỡng đo bằng HẠNG MỤC ĐẠT ĐƯỢC, không đo bằng số ngày", tieu_de)
 r = dai(ws, r,
-        "Đếm % đầu việc thì con số chỉ tăng, kể cả khi mỗi ngày vẫn phát hiện lỗi mới — 12/08 vẫn "
-        "tìm ra 'xoá WIG năm luôn thất bại', một lỗi im lặng có từ lâu. Còn sửa lớn nghĩa là còn "
-        "lỗi chưa lộ. Chuỗi 7 ngày liên tiếp không phải đụng vào mã/CSDL mới là tín hiệu thật cho "
-        "câu hỏi 'đã sẵn sàng cho học sinh dùng chưa'. Reset về 0 mỗi lần có commit đổi "
-        "app/**, components/**, lib/**, supabase/migrations/**.", nho)
+        "Bản trước lấy 'chuỗi ≥7 ngày không sửa lớn' làm ngưỡng. Bỏ cách đó: người duyệt nhìn vào chỉ "
+        "thấy một con số ngày, không thấy đã vượt qua cái gì để tới được đây — mà đó mới là thứ cần "
+        "để quyết. Ngày trôi qua không phải thành tựu, và một tuần không ai đụng vào mã cũng có thể "
+        "chỉ là một tuần không ai làm gì. Câu hỏi đúng là: CÒN LỖI CHẶN ĐƯỜNG NÀO KHÔNG, và mỗi điều "
+        "kiện có bài kiểm nào chứng minh. Cả hai câu đó bảng trên trả lời được.", nho)
 
-# ── Sheet 6: Dashboard ──────────────────────────────────────────────────────────────────────
+# ── Sheet 6: Khó khăn đã vượt ───────────────────────────────────────────────────────────────
+ws = wb.create_sheet("Khó khăn đã vượt")
+r = dai(ws, 1, "NHỮNG CHỖ KHÓ ĐÃ VƯỢT QUA — VÌ SAO CÔNG VIỆC NÀY KHÔNG NHẸ NHƯ BẢNG TRÔNG")
+r = dai(ws, r,
+        "Một dòng 'đã vá RLS' đọc nhẹ y như một dòng 'đổi màu nút', dù cái trước mất nhiều ngày dò. "
+        "Bảng này để người duyệt cân được cái giá thật của 159 commit.", nho)
+r += 1
+r = bang(ws, r, ["Chỗ khó", "Cụ thể là gì", "Vì sao khó", "Đã vượt bằng cách nào"], [34, 62, 62, 62])
+for ten, cu_the, vi_sao, cach in KHO_KHAN:
+    r = dong(ws, r, [ten, cu_the, vi_sao, cach])
+
+# ── Sheet 7: Dashboard ──────────────────────────────────────────────────────────────────────
 ws = wb.create_sheet("Dashboard")
 r = dai(ws, 1, "BẢNG ĐIỀU KHIỂN")
 r = dai(ws, r,
-        f"Chuỗi yên hiện tại: {chuoi_yen}/{NGUONG_YEN} ngày · sửa lớn gần nhất: {LAN_SUA_LON_CUOI:%Y-%m-%d} · "
-        f"1/3 giai đoạn đã qua · {dat}/{len(DIEU_KIEN)} điều kiện go-live đã đạt", nho)
+        f"2/3 giai đoạn đã qua · {dat}/{len(DIEU_KIEN)} điều kiện go-live đạt "
+        f"(kỹ thuật {dat_ky_thuat}/{len(ky_thuat)}) · không còn lỗi chặn đường nào đang mở", nho)
 r += 1
-r = bang(ws, r, ["Chỉ số", "Hiện tại", "Ngưỡng", "Ý nghĩa"], [34, 12, 12, 90])
-r = dong(ws, r, ["① Demo — số ngày", 9, 7, "Đã qua"], XANH)
-r = dong(ws, r, ["② Chuỗi ngày yên", chuoi_yen, NGUONG_YEN,
-                 "KHÔNG phải số ngày giai đoạn ② đã chạy. Reset về 0 mỗi lần sửa mã/CSDL."], CAM)
-r = dong(ws, r, ["② Việc đã sửa", len(DA_SUA), "—", "Nhóm việc sửa có commit thật"])
-r = dong(ws, r, ["② Tính năng đã thêm", len(DA_THEM), "—", "Chưa từng có ở bản demo 23/07"])
-r = dong(ws, r, ["③ Điều kiện go-live đạt", dat, len(DIEU_KIEN), "Còn chặn: chuỗi ngày yên"], XAM)
+r = bang(ws, r, ["Chỉ số", "Hiện tại", "Ngưỡng", "Ý nghĩa"], [36, 12, 12, 96])
+r = dong(ws, r, ["① Demo — màn dựng xong", 12, 12, "Đủ màn, nhưng chỉ 4/12 đủ dùng thật → sinh ra giai đoạn ②"], XANH)
+r = dong(ws, r, ["① Lỗ biết trước khi demo", 9, 0, "Đã đóng hết ở giai đoạn ②"], XANH)
+r = dong(ws, r, ["② Việc đã sửa", len(DA_SUA), "—", "Nhóm việc sửa, mỗi nhóm có commit thật"], XANH)
+r = dong(ws, r, ["② Tính năng đã thêm", len(DA_THEM), "—", "Chưa từng có ở bản demo 23/07"], XANH)
+r = dong(ws, r, ["② Lỗi CHẶN ĐƯỜNG còn mở", 0, 0, "Ba lỗi chặn cuối cùng đóng ngày 12/08"], XANH)
+r = dong(ws, r, ["③ Điều kiện go-live — kỹ thuật", dat_ky_thuat, len(ky_thuat), "Mỗi điều kiện có bài kiểm chứng minh"], XANH)
+r = dong(ws, r, ["③ Điều kiện go-live — toàn bộ", dat, len(DIEU_KIEN),
+                 "Còn lại: trường khai lớp/môn/TKB thật — không thuộc đội làm app"], CAM)
 r = dong(ws, r, ["Bộ kiểm tự động", 51, "—", "33 script .mjs + 18 script .sql, chạy thẳng lên production"])
 r = dong(ws, r, ["Migration CSDL", 105, "—", "0001 → 0105"])
+r = dong(ws, r, ["Commit sau demo", 159, "—", "24/07 → 12/08"])
 r += 1
-r = dai(ws, r, "Cập nhật file này: sửa LAN_SUA_LON_CUOI + HOM_NAY trong scripts/tao-timeline.py rồi "
-               "chạy `python scripts/tao-timeline.py`. Đừng gõ tay vào Excel — lần chạy sau sẽ ghi đè.", nho)
+r = dai(ws, r, "ĐỀ NGHỊ DUYỆT", tieu_de)
+r = dai(ws, r,
+        "Phần thuộc trách nhiệm đội làm app đã xong và chứng minh được: 10/11 điều kiện kỹ thuật ✅, "
+        "mỗi dòng chỉ ra được bài kiểm nào chứng minh, không còn lỗi chặn đường nào mở. Hai việc còn "
+        "lại nằm ngoài đội làm app — trường nhập dữ liệu thật (làm song song với go-live được), và "
+        "tốc độ VPS (lỗi nhà cung cấp, đã đo tách bạch và vá đỡ; đổi VPS là quyết định riêng). "
+        "Đề nghị duyệt mở cho học sinh dùng thật, bắt đầu ở phạm vi hẹp rồi mở rộng.", nho)
+r += 1
+r = dai(ws, r, "Cập nhật file này: sửa scripts/tao-timeline.py rồi chạy `python scripts/tao-timeline.py`. "
+               "Đừng gõ tay vào Excel — lần chạy sau sẽ ghi đè.", nho)
 
 for s in wb:
     s.sheet_view.showGridLines = False
@@ -350,5 +444,6 @@ for s in wb:
 # khác để xem trước rồi đổi tên sau.
 RA = sys.argv[1] if len(sys.argv) > 1 else "Timeline_Viet_Anh_Class.xlsx"
 wb.save(RA)
-print(f"Đã ghi {RA} — chuỗi yên {chuoi_yen}/{NGUONG_YEN}, "
-      f"{len(DA_SUA)} việc sửa, {len(DA_THEM)} tính năng thêm, {dat}/{len(DIEU_KIEN)} điều kiện go-live.")
+print(f"Đã ghi {RA} — {len(DA_SUA)} việc sửa, {len(DA_THEM)} tính năng thêm, "
+      f"{dat}/{len(DIEU_KIEN)} điều kiện go-live (kỹ thuật {dat_ky_thuat}/{len(ky_thuat)}), "
+      f"{len(KHO_KHAN)} chỗ khó đã vượt.")
