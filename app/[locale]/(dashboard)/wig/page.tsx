@@ -1,5 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
-import {AlertTriangle, ArrowRight, Users} from 'lucide-react';
+import {AlertTriangle, ArrowRight, Check, Users} from 'lucide-react';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
@@ -460,6 +460,10 @@ export default async function WigPage({
               const p = progByWig.get(w.id);
               const pct = Math.round(Number(p?.pct ?? 0) * 100);
               const viec = viecCuaWig(w);
+              // Mốc tuần thừa kế measure_by từ mục tiêu năm (lib/wig-tao). Mục tiêu năm đo bằng
+              // đích ghi nhận ngoài thì mốc tuần của nó cũng vậy — app không có lượt tick nào để
+              // đếm, nên "0 / 8,0 điểm" kèm một vạch xám là con số app tự bịa ra. §5.0.
+              const laManual = p?.measure_by === 'manual';
               return (
                 <div key={w.id} className="flex flex-col gap-2.5">
                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -475,7 +479,9 @@ export default async function WigPage({
                       </span>
                     )}
                     <span className="ml-auto text-[14px] font-extrabold tabular-nums text-navy">
-                      {Number(p?.actual ?? 0)} / {w.target_value} {w.unit}
+                      {laManual
+                        ? `→ ${w.target_value} ${w.unit}`
+                        : `${Number(p?.actual ?? 0)} / ${w.target_value} ${w.unit}`}
                     </span>
                   </div>
                   {w.baseline != null && (
@@ -483,20 +489,36 @@ export default async function WigPage({
                       {t('from')} {Number(w.baseline)} → {w.target_value} {w.unit}
                     </p>
                   )}
-                  <div className="h-[10px] w-full overflow-hidden rounded-[6px] bg-navy/[0.08]">
-                    <div
-                      className="h-full rounded-[6px]"
-                      style={{
-                        width: `${Math.min(100, pct)}%`,
-                        background:
-                          p?.status === 'on_track'
-                            ? 'var(--color-success)'
-                            : p?.status === 'off_track'
-                              ? 'var(--color-status-bad)'
-                              : 'linear-gradient(to right,#ffe94d,#f9dd0e)',
-                      }}
-                    />
-                  </div>
+                  {laManual ? (
+                    <p className="flex flex-wrap items-center gap-1.5 text-[12px] font-bold text-grey-mid">
+                      <span>{t('outsideApp')}</span>
+                      {p?.achieved_at ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-extrabold text-success-dark">
+                          <Check size={12} strokeWidth={3} />
+                          {t('achieved')}
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-navy/[0.07] px-2 py-0.5 text-[11px] font-extrabold text-grey-mid">
+                          {t('notYet')}
+                        </span>
+                      )}
+                    </p>
+                  ) : (
+                    <div className="h-[10px] w-full overflow-hidden rounded-[6px] bg-navy/[0.08]">
+                      <div
+                        className="h-full rounded-[6px]"
+                        style={{
+                          width: `${Math.min(100, pct)}%`,
+                          background:
+                            p?.status === 'on_track'
+                              ? 'var(--color-success)'
+                              : p?.status === 'off_track'
+                                ? 'var(--color-status-bad)'
+                                : 'linear-gradient(to right,#ffe94d,#f9dd0e)',
+                        }}
+                      />
+                    </div>
+                  )}
 
                   <h3 className="mt-1 font-display text-[13.5px] font-bold text-navy">
                     {t('workToTick')}
