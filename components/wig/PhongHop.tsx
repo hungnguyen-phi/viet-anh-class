@@ -9,6 +9,7 @@ import {Field, ctlWithBorder, inputCls, selectCls, btnGold, labelCls} from '@/co
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {ketThucBuoiHop, xoaBienBan} from '@/app/[locale]/(dashboard)/wig/hop/actions';
 import {areaLabel, type Area, type AreaMeta} from '@/lib/areas';
+import {nhipCuaMoc} from '@/lib/wig-nhip';
 
 // ════════════════════════════════════════════════════════════════════════════
 // PHÒNG HỌP WIG — ba bước, một nút, một lần lưu.
@@ -184,19 +185,23 @@ export function PhongHop({
 
   // ── NHỊP: mốc tuần CẦN bao nhiêu, việc đang giao CHO được bao nhiêu ────────────────────────
   //
-  // Mục tiêu của một VIỆC là mục tiêu CỦA MỖI EM (0098), nên trần mà cả lớp có thể đạt trong tuần
-  // là tổng mục tiêu các việc NHÂN sĩ số. So nó với mốc tuần thì ra ngay khoảng hụt — phép so này
-  // trước 0100 không làm được vì hai vế khác thang.
+  // Công thức đã dọn về lib/wig-nhip.ts (0106) để màn này và ViecTuan dùng CHUNG một nguồn. Bản
+  // cũ ở đây còn quên nhân unit_per_tick trong khi wig_actual có nhân — hai vế lệch thang; nay
+  // hệ số được truyền vào cùng mục tiêu.
   //
-  // TÍNH RIÊNG CHO TỪNG LĨNH VỰC (0106): bốn mốc độc lập, hụt nhịp của Thể chất không lẫn vào
-  // Kiến thức. Hàm nhỏ này gọi lại bên trong vòng lặp render mỗi khối mốc.
+  // TÍNH RIÊNG CHO TỪNG LĨNH VỰC: bốn mốc độc lập, hụt nhịp của Thể chất không lẫn vào Kiến thức.
   const siSo = tungEm.length;
-  const nhipCuaMoc = (m: {id: string; area: string; target: number}) => {
-    const rows = dong.filter((r) => r.area === m.area);
-    const mocCan = Number(v[`moc_target_${m.id}`]) || m.target;
-    const tongViecCho = rows.reduce((s, r) => s + (Number(viecVal[`viec_${r.k}_target`]) || 0), 0) * siSo;
-    return {mocCan, tongViecCho, thieuNhip: tongViecCho > 0 && mocCan > 0 ? Math.round(mocCan - tongViecCho) : 0};
-  };
+  const tinhNhip = (m: {id: string; area: string; target: number}) =>
+    nhipCuaMoc({
+      mocCan: Number(v[`moc_target_${m.id}`]) || m.target,
+      siSo,
+      viec: dong
+        .filter((r) => r.area === m.area)
+        .map((r) => ({
+          target: Number(viecVal[`viec_${r.k}_target`]) || 0,
+          upt: Number(viecVal[`viec_${r.k}_upt`]) || 1,
+        })),
+    });
 
   const buoc = (so: number, tieuDe: string, phu?: string) => (
     <div className="mb-3">
@@ -464,7 +469,7 @@ export function PhongHop({
             {mocDich.length > 0 ? (
               mocDich.map((m) => {
                 const meta = areaMeta[m.area as Area];
-                const {mocCan, tongViecCho, thieuNhip} = nhipCuaMoc(m);
+                const {mocCan, tongViecCho, thieuNhip} = tinhNhip(m);
                 const rows = dong.filter((r) => r.area === m.area);
                 return (
                   <div key={m.id} className="rounded-[16px] border-[1.5px] border-navy/10 p-3.5">

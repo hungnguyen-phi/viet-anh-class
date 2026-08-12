@@ -534,7 +534,13 @@
     "csClassTarget": "Lớp: {n} {unit}",
     "csRuleSame": "Mỗi em {n} {unit}",
     "csRuleSplit": "Chia đều: {n} {unit} (÷ {si} em)",
-    "csNeedClassYear": "Lớp chưa đặt mục tiêu năm nào. Mục tiêu của từng em chia ra từ mục tiêu năm của lớp, nên hãy đặt mục tiêu năm trước."
+    "csNeedClassYear": "Lớp chưa đặt mục tiêu năm nào. Mục tiêu của từng em chia ra từ mục tiêu năm của lớp, nên hãy đặt mục tiêu năm trước.",
+    "outsideApp": "Theo dõi ở ngoài app:",
+    "achieved": "Đã đạt",
+    "notYet": "Chưa đạt",
+    "measureBy": "Đo bằng gì",
+    "measureTick": "Máy đếm từ lượt tick của em",
+    "measureManual": "Cô trò tự ghi nhận, đạt thì đánh dấu"
   },
   "meeting": {
     "title": "Họp WIG tuần",
@@ -809,7 +815,8 @@
     "wigNoTeacher": "Chưa có GVCN",
     "wigIdleTick": "Lớp chưa đặt mục tiêu tuần này nên các em không có việc gì để tick.",
     "noWigYet": "Lớp chưa đặt mục tiêu năm nào — chưa vào cuộc, không phải đang thua.",
-    "attNotYet": "chưa mở"
+    "attNotYet": "chưa mở",
+    "wigSelfSet": "Em tự đặt"
   },
   "scoreboard": {
     "title": "Thi đua theo lĩnh vực",
@@ -1308,6 +1315,11 @@
     "journalNoHistory": "Chưa có tuần nào trước đó.",
     "journalHistoryCount": "{n} tuần đã viết",
     "journalWeekOf": "Tuần {dau}",
-    "yearScope": "cả năm học {nam}"
+    "yearScope": "cả năm học {nam}",
+    "step1Personal": "① Con muốn tiến bộ ở chuyện gì của riêng con?",
+    "formTitlePersonal": "Mục tiêu riêng của con",
+    "titlePersonal": "Mục tiêu riêng của con",
+    "openFormPersonal": "Con muốn thêm một mục tiêu của riêng con",
+    "openFormPersonalFor": "Thêm mục tiêu riêng cho em"
   }
 }

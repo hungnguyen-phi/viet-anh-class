@@ -8,6 +8,7 @@ import {Field, ctlWithBorder, inputCls, btnGold, btnGhost} from '@/components/ui
 import {WeekdayPicker} from '@/components/wig/WeekdayPicker';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {luuViec, deleteLeadMeasure} from '@/app/[locale]/(dashboard)/wig/actions';
+import {nhipCuaMoc} from '@/lib/wig-nhip';
 
 // ════════════════════════════════════════════════════════════════════════════
 // VIỆC ĐỂ CÁC EM TICK — mỗi việc một thẻ, sửa/xoá ngay tại thẻ.
@@ -46,6 +47,8 @@ export function ViecTuan({
   dayShort,
   weekParam,
   classParam,
+  mocTarget,
+  siSo,
 }: {
   // Mục tiêu tuần mà những việc này thuộc về. Rỗng = tuần này chưa có mục tiêu nào → không thêm
   // việc được, và thẻ trống phải nói ra lý do thay vì chỉ biến mất.
@@ -57,6 +60,9 @@ export function ViecTuan({
   dayShort: string[];
   weekParam: string;
   classParam?: string;
+  // Nhịp: mốc tuần cần bao nhiêu, lớp có mấy em (§6.1 bước 4 — cảnh báo phải hiện NGAY LÚC CÔ GÕ).
+  mocTarget: number;
+  siSo: number;
 }) {
   const t = useTranslations('wig');
   // 'none' | 'them' | <id việc đang sửa>
@@ -75,6 +81,9 @@ export function ViecTuan({
         wigArea={wigArea}
         viec={dangSua}
         dayShort={dayShort}
+        mocTarget={mocTarget}
+        siSo={siSo}
+        khac={viec.filter((x) => x.id !== mo)}
         onDong={() => setMo('none')}
       />
     );
@@ -160,6 +169,9 @@ function ViecForm({
   wigArea,
   viec,
   dayShort,
+  mocTarget,
+  siSo,
+  khac,
   onDong,
 }: {
   wigId: string | null;
@@ -167,10 +179,30 @@ function ViecForm({
   wigArea: string;
   viec?: ViecItem;
   dayShort: string[];
+  mocTarget: number;
+  siSo: number;
+  // Những việc KHÁC đang treo dưới cùng mốc tuần. Nhịp là phép cộng của cả nhóm: sửa một việc mà
+  // chỉ nhìn riêng nó thì con số hụt luôn sai.
+  khac: ViecItem[];
   onDong: () => void;
 }) {
   const t = useTranslations('wig');
+  const tm = useTranslations('meeting');
   const [state, formAction] = useActionState(luuViec, {ok: false});
+
+  // CẢNH BÁO LỆCH NHỊP, SỐNG THEO TỪNG PHÍM (§6.1 bước 4). Trước đây câu này chỉ có ở phòng họp —
+  // tức là hiện ra ở chỗ cô KHÔNG gõ mục tiêu của việc, và im ở chỗ cô gõ. Cùng một hàm với
+  // PhongHop (lib/wig-nhip) nên hai màn không bao giờ nói hai con số khác nhau.
+  const [oTarget, setOTarget] = useState(String(viec?.target_value ?? ''));
+  const [oUpt, setOUpt] = useState(String(Number(viec?.unit_per_tick ?? 1)));
+  const {mocCan, tongViecCho, thieuNhip} = nhipCuaMoc({
+    mocCan: mocTarget,
+    siSo,
+    viec: [
+      ...khac.map((k) => ({target: k.target_value, upt: Number(k.unit_per_tick ?? 1) || 1})),
+      {target: Number(oTarget) || 0, upt: Number(oUpt) || 1},
+    ],
+  });
 
   // Lưu xong thì đóng lại — trang đã được revalidate nên thẻ vừa sửa hiện ra ngay bên dưới.
   useEffect(() => {
@@ -209,7 +241,8 @@ function ViecForm({
             step="1"
             min="1"
             inputMode="numeric"
-            defaultValue={viec?.target_value ?? ''}
+            value={oTarget}
+            onChange={(e) => setOTarget(e.target.value)}
             aria-invalid={state.fieldError === 'target_value'}
             className={ctlWithBorder(state.fieldError === 'target_value')}
           />
@@ -252,7 +285,8 @@ function ViecForm({
           min="0.01"
           inputMode="decimal"
           required
-          defaultValue={Number(viec?.unit_per_tick ?? 1)}
+          value={oUpt}
+          onChange={(e) => setOUpt(e.target.value)}
           className={inputCls}
         />
       </Field>
@@ -263,6 +297,14 @@ function ViecForm({
         dayLabels={dayShort}
         selected={viec?.active_weekdays ?? undefined}
       />
+
+      {/* Cảnh báo, KHÔNG phải rào chắn — cô vẫn lưu được. */}
+      {thieuNhip > 0 && (
+        <p className="flex items-start gap-1.5 rounded-[10px] bg-gold/20 px-2.5 py-2 text-[11.5px] font-semibold leading-relaxed text-gold-text">
+          <AlertTriangle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+          {tm('paceWarn', {can: mocCan, cho: tongViecCho, thieu: thieuNhip})}
+        </p>
+      )}
 
       {state.error && !state.fieldError && (
         <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12.5px] font-bold text-status-bad">

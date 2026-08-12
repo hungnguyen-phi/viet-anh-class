@@ -86,10 +86,16 @@ async function chaHopLe(
   classId: string,
   parentId: string,
   canPeriod: 'year' | 'month',
-): Promise<{area: Area; unit: string; start_date: string; end_date: string} | null> {
+): Promise<{
+  area: Area;
+  unit: string;
+  measure_by: 'tick' | 'manual';
+  start_date: string;
+  end_date: string;
+} | null> {
   const {data} = await supabase
     .from('wigs')
-    .select('area, unit, period, start_date, end_date')
+    .select('area, unit, measure_by, period, start_date, end_date')
     .eq('id', parentId)
     .eq('class_id', classId)
     .eq('scope', 'class')
@@ -98,6 +104,7 @@ async function chaHopLe(
   return {
     area: data.area as Area,
     unit: data.unit,
+    measure_by: data.measure_by === 'manual' ? 'manual' : 'tick',
     start_date: data.start_date,
     end_date: data.end_date,
   };
@@ -123,7 +130,12 @@ export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao
       field: 'baseline',
       loi: 'Mốc xuất phát phải nhỏ hơn mục tiêu — nếu không thì không còn gì để cải thiện.',
     };
-  if (!w.unit) return {ok: false, field: 'unit', loi: 'Hãy nhập đơn vị (vd điểm, buổi, lần).'};
+  // ĐƠN VỊ CHỈ HỎI Ở CẤP NĂM. Mốc tháng/tuần THỪA KẾ đơn vị của mục tiêu năm — xem chỗ gán `unit`
+  // bên dưới. Trước đây mỗi người gọi tự truyền một đơn vị, và đường tạo mốc bù (wig/hop) không
+  // có ô nào cho cô gõ nên luôn rơi vào chuỗi mặc định 'lần': mục tiêu năm đếm "bài", mốc bù của
+  // chính nó lại đếm "lần" — cùng một cây, hai thang đo, cộng vào nhau ra một con số vô nghĩa.
+  if (w.period === 'year' && !w.unit)
+    return {ok: false, field: 'unit', loi: 'Hãy nhập đơn vị (vd điểm, buổi, lần).'};
 
   const ky = ngayCuaKy(w.period, w.period_label);
   if (!ky) return {ok: false, field: 'period_label', loi: 'Hãy chọn kỳ cho mục tiêu này.'};
@@ -131,6 +143,9 @@ export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao
   // Lĩnh vực: mục tiêu năm tự khai, con THỪA KẾ của cha. Trước đây con cũng có ô lĩnh vực riêng —
   // đặt lệch cha một cái là nó rơi khỏi cây tổng hợp mà nhìn trên màn hình vẫn thấy nằm đúng chỗ.
   let area: Area;
+  // Đơn vị và kiểu đo cũng thừa kế y như lĩnh vực: cùng một cây thì phải cùng một thang.
+  let unit = w.unit;
+  let measureBy: 'tick' | 'manual' = w.measure_by ?? 'tick';
   if (w.period === 'year') {
     if (!w.area) return {ok: false, field: 'area', loi: 'Hãy chọn lĩnh vực.'};
     area = w.area;
@@ -160,6 +175,8 @@ export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao
             : 'Mục tiêu tháng này không còn nữa — chọn lại.',
       };
     area = cha.area;
+    unit = cha.unit;
+    measureBy = cha.measure_by;
     // Kỳ con phải NẰM TRONG kỳ cha. Không kiểm thì một mục tiêu tuần của tháng 9 treo được dưới
     // mục tiêu tháng 8, và tiến độ tháng 8 cộng vào đó một tuần chưa từng thuộc về nó.
     if (ky.start < cha.start_date || ky.end > cha.end_date)
@@ -181,11 +198,11 @@ export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao
       period: w.period,
       period_label: w.period_label,
       target_value: w.target_value,
-      unit: w.unit,
+      unit,
       start_date: ky.start,
       end_date: ky.end,
       parent_wig_id: w.period === 'year' ? null : w.parent_wig_id,
-      measure_by: w.measure_by ?? 'tick',
+      measure_by: measureBy,
     })
     .select('id')
     .maybeSingle();

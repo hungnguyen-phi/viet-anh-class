@@ -92,3 +92,35 @@ export function chiaNhip(start: string, end: string, tong: number): Nhip {
 
   return {thang: [...gom.values()], tuan};
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// NHỊP CỦA MỘT MỐC — mốc tuần CẦN bao nhiêu, việc đang giao CHO được bao nhiêu
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Mục tiêu của một VIỆC là mục tiêu CỦA MỖI EM (0098), nên trần mà cả lớp có thể đạt trong tuần
+// là tổng mục tiêu các việc NHÂN sĩ số. So nó với mốc tuần thì ra ngay khoảng hụt.
+//
+// MỘT NGUỒN CHO HAI MÀN (0106). Công thức này trước nằm trong PhongHop.tsx, còn ViecTuan.tsx —
+// chỗ cô THẬT SỰ gõ mục tiêu của việc (§6.1 bước 4) — thì không có cảnh báo nào. Chép sang là
+// chép luôn cái bệnh "hai đường tính cho một khái niệm" mà repo đã dính một lần.
+//
+// NHÂN unit_per_tick: một lượt tick đáng bao nhiêu đơn vị của mục tiêu. private.wig_actual nhân
+// hệ số này khi đọc, nên bản cũ ở PhongHop (không nhân) so hai vế khác thang: việc "đọc 1 buổi =
+// 30 trang" bị đếm thành 1, và màn hình kêu hụt nhịp trong khi lớp đang thừa.
+export function nhipCuaMoc({
+  mocCan,
+  siSo,
+  viec,
+}: {
+  mocCan: number;
+  siSo: number;
+  viec: {target: number; upt?: number}[];
+}): {mocCan: number; tongViecCho: number; thieuNhip: number} {
+  const tongViecCho =
+    viec.reduce((s, v) => s + (Number(v.target) || 0) * (Number(v.upt ?? 1) || 1), 0) * siSo;
+  return {
+    mocCan,
+    tongViecCho: Math.round(tongViecCho),
+    thieuNhip: tongViecCho > 0 && mocCan > 0 ? Math.round(mocCan - tongViecCho) : 0,
+  };
+}

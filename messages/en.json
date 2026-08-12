@@ -534,7 +534,13 @@
     "csClassTarget": "Class: {n} {unit}",
     "csRuleSame": "Each student {n} {unit}",
     "csRuleSplit": "Split: {n} {unit} (÷ {si})",
-    "csNeedClassYear": "The class has no yearly goal yet. Each student’s goal is derived from it, so set the class yearly goals first."
+    "csNeedClassYear": "The class has no yearly goal yet. Each student’s goal is derived from it, so set the class yearly goals first.",
+    "outsideApp": "Tracked outside the app:",
+    "achieved": "Achieved",
+    "notYet": "Not yet",
+    "measureBy": "Measured how",
+    "measureTick": "Counted from student ticks",
+    "measureManual": "Recorded by teacher, mark when achieved"
   },
   "meeting": {
     "title": "Weekly WIG meeting",
@@ -809,7 +815,8 @@
     "wigNoTeacher": "No homeroom teacher",
     "wigIdleTick": "This class has no goal for the week, so students have nothing to tick.",
     "noWigYet": "This class has no year goal yet — not started, not losing.",
-    "attNotYet": "not taken"
+    "attNotYet": "not taken",
+    "wigSelfSet": "Self-set"
   },
   "scoreboard": {
     "title": "Competition by area",
@@ -1308,6 +1315,11 @@
     "journalNoHistory": "No earlier weeks yet.",
     "journalHistoryCount": "{n} weeks written",
     "journalWeekOf": "Week of {dau}",
-    "yearScope": "whole school year {nam}"
+    "yearScope": "whole school year {nam}",
+    "step1Personal": "① What do you want to get better at, just for yourself?",
+    "formTitlePersonal": "My own goal",
+    "titlePersonal": "My own goal",
+    "openFormPersonal": "I want to add a goal of my own",
+    "openFormPersonalFor": "Add a personal goal for this student"
   }
 }

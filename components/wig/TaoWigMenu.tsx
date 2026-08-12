@@ -293,6 +293,19 @@ export function TaoWigMenu({
               </Field>
             )}
 
+            {/* ĐO BẰNG GÌ — chỉ hỏi ở cấp NĂM, tháng/tuần thừa kế từ cha (lib/wig-tao.ts).
+                Trước đây luôn đóng cứng 'tick', nên "Điểm TB Toán 6,5 → 8,0" — chính ví dụ định
+                nghĩa đích ghi-nhận-ngoài trong tài liệu — không tạo nổi, và mọi mục tiêu kiểu ấy
+                bị app vẽ cho một vạch tiến độ mà nó không có cách nào biết đúng hay sai. */}
+            {loai === 'year' && (
+              <Field label={t('measureBy')} htmlFor="wig-measure">
+                <select id="wig-measure" name="measure_by" className={selectCls} defaultValue="tick">
+                  <option value="tick">{t('measureTick')}</option>
+                  <option value="manual">{t('measureManual')}</option>
+                </select>
+              </Field>
+            )}
+
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_1.3fr]">
               <Field label={t('baseline')} htmlFor="wig-baseline" error={err('baseline')}>
                 <input

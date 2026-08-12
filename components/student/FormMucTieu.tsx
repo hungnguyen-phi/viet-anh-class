@@ -41,6 +41,7 @@ const DOW = [1, 2, 3, 4, 5, 6, 7];
 export function FormMucTieu({
   studentId,
   classId,
+  kind = 'academic',
   tenEm,
   wigLop,
   dangSua,
@@ -51,6 +52,16 @@ export function FormMucTieu({
 }: {
   studentId: string;
   classId: string;
+  /**
+   * HỌC TẬP hay RIÊNG CỦA CON. Trước đây đóng cứng 'academic' ngay trong ô hidden, nên đường tạo
+   * mục tiêu riêng — máy chủ nhận được, CSDL cho phép (wigs_em_uidx: 1 academic + 1 personal) —
+   * không có một cái nút nào để đi tới.
+   *
+   * Mục tiêu RIÊNG không nối vào WIG lớp: wig_source_ck (0100) bắt source_wig_id phải null. Nên
+   * bước ① không hỏi "góp vào trận nào của lớp" nữa — hỏi một câu mà mọi câu trả lời đều bị CSDL
+   * từ chối là mời người dùng gõ vào một cái bẫy.
+   */
+  kind?: 'academic' | 'personal';
   /** Tên em — chỉ dùng khi cô đặt hộ, để tiêu đề hộp thoại nói rõ đang gõ cho AI. */
   tenEm?: string;
   wigLop: WigLop[];
@@ -92,14 +103,20 @@ export function FormMucTieu({
 
   return (
     <Popup
-      title={laChinhEm ? t('formTitle') : t('formTitleFor', {ten: tenEm ?? ''})}
+      title={
+        kind === 'personal'
+          ? t('formTitlePersonal')
+          : laChinhEm
+          ? t('formTitle')
+          : t('formTitleFor', {ten: tenEm ?? ''})
+      }
       onClose={onClose}
       width="max-w-[620px]"
     >
       <form action={formAction} className="flex flex-col gap-3">
         <input type="hidden" name="student_id" value={studentId} />
         <input type="hidden" name="class_id" value={classId} />
-        <input type="hidden" name="kind" value="academic" />
+        <input type="hidden" name="kind" value={kind} />
         {thu.map((d) => (
           <input key={d} type="hidden" name="viec_days" value={d} />
         ))}
@@ -113,7 +130,9 @@ export function FormMucTieu({
 
         {/* ① Con muốn tiến bộ ở việc gì. */}
         <div className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-          <p className="mb-2 text-[13px] font-extrabold text-navy">{t('step1')}</p>
+          <p className="mb-2 text-[13px] font-extrabold text-navy">
+            {kind === 'personal' ? t('step1Personal') : t('step1')}
+          </p>
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             <Field label={t('what')} htmlFor="mt-title" error={err('title')}>
               <input
@@ -125,21 +144,23 @@ export function FormMucTieu({
                 className={ctlWithBorder(state.fieldError === 'title')}
               />
             </Field>
-            <Field label={t('joinBattle')} htmlFor="mt-source">
-              <select
-                id="mt-source"
-                name="source_wig_id"
-                defaultValue={dangSua?.source_wig_id ?? ''}
-                className={selectCls}
-              >
-                <option value="">{t('noBattle')}</option>
-                {wigLop.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.title}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            {kind === 'academic' && (
+              <Field label={t('joinBattle')} htmlFor="mt-source">
+                <select
+                  id="mt-source"
+                  name="source_wig_id"
+                  defaultValue={dangSua?.source_wig_id ?? ''}
+                  className={selectCls}
+                >
+                  <option value="">{t('noBattle')}</option>
+                  {wigLop.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.title}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
           </div>
         </div>
 

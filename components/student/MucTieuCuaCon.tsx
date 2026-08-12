@@ -80,13 +80,67 @@ export function MucTieuCuaCon({
   // thôi, đừng bịa một khoảng thời gian ra.
   namHoc: string | null;
 }) {
-  const t = useTranslations('goal');
-  const hocTap = mucTieu.find((m) => m.kind === 'academic') ?? null;
-  const [moForm, setMoForm] = useState(false);
   const [bao, setBao] = useState('');
+  // HAI MỤC TIÊU, KHÔNG PHẢI MỘT. CSDL cho mỗi em đúng một `academic` và một `personal`
+  // (wigs_em_uidx, 0100) và máy chủ đã nhận cả hai từ lâu — chỉ màn hình này là chưa bao giờ hỏi
+  // tới cái thứ hai, nên "mục tiêu của riêng con" (§6.2 bước ④) không có đường nào đi tới.
+  const hocTap = mucTieu.find((m) => m.kind === 'academic') ?? null;
+  const rieng = mucTieu.find((m) => m.kind === 'personal') ?? null;
+
+  const chung = {studentId, classId, wigLop, laChinhEm, canManage, dayShort, namHoc, onBao: setBao};
+
+  return (
+    <div className="flex min-w-0 flex-col gap-4">
+      {bao && (
+        <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-success/[0.10] px-2.5 py-2 text-[12px] font-bold text-success-dark">
+          <CheckCircle2 size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+          {bao}
+        </p>
+      )}
+      <MotMucTieu kind="academic" mt={hocTap} {...chung} />
+      <MotMucTieu kind="personal" mt={rieng} {...chung} />
+    </div>
+  );
+}
+
+// MỘT MỤC TIÊU — dùng cho cả HỌC TẬP và RIÊNG CỦA CON.
+//
+// Một bản dùng chung thay vì hai khối chép tay: cửa sổ 24 giờ, đường duyệt, đích ghi-nhận-ngoài,
+// nút xoá — mọi luật ở đây đều tinh tế, và hai bản chép là hai chỗ để chúng trôi khỏi nhau.
+function MotMucTieu({
+  kind,
+  mt,
+  studentId,
+  classId,
+  wigLop,
+  laChinhEm,
+  canManage,
+  dayShort,
+  namHoc,
+  onBao,
+}: {
+  kind: 'academic' | 'personal';
+  mt: MucTieuCuaEm | null;
+  studentId: string;
+  classId: string;
+  wigLop: WigLop[];
+  laChinhEm: boolean;
+  canManage: boolean;
+  dayShort: string[];
+  namHoc: string | null;
+  onBao: (s: string) => void;
+}) {
+  const t = useTranslations('goal');
+  const hocTap = mt;
+  const laRieng = kind === 'personal';
+  const [moForm, setMoForm] = useState(false);
 
   // Ai cũng ĐỌC được khối này (phụ huynh, BGH), nhưng chỉ chính em và nhân sự mới GHI.
   const canGhi = laChinhEm || canManage;
+
+  // MỤC TIÊU RIÊNG CHƯA CÓ THÌ KHÔNG BÀY MỘT KHỐI TRỐNG. Nó là tuỳ chọn (§6.2 bước ④), khác với
+  // mục tiêu học tập — cái ấy thiếu là việc còn dở, phải nói ra.
+  if (laRieng && !hocTap && !canGhi) return null;
 
   // CỬA SỔ MỘT NGÀY (0102). Cô sửa/xoá lúc nào cũng được; em thì chỉ khi mục tiêu còn là đề nghị —
   // chưa duyệt, hoặc vừa tạo chưa quá 24 giờ. Tính ở đây chỉ để giao diện nói trước; chốt thật nằm
@@ -103,7 +157,7 @@ export function MucTieuCuaCon({
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <h3 className="flex items-center gap-1.5 font-display text-[14px] font-bold text-navy">
           <Target size={14} strokeWidth={2.5} />
-          {t('title')}
+          {laRieng ? t('titlePersonal') : t('title')}
         </h3>
         {/* Mục tiêu này sống cả năm học — nói ra, đừng để em đoán. */}
         {namHoc && (
@@ -114,17 +168,16 @@ export function MucTieuCuaCon({
         {!hocTap && canGhi && (
           <button type="button" onClick={() => setMoForm(true)} className={`${btnGold} ml-auto`}>
             <Plus size={14} strokeWidth={2.5} />
-            {laChinhEm ? t('openForm') : t('openFormFor')}
+            {laRieng
+              ? laChinhEm
+                ? t('openFormPersonal')
+                : t('openFormPersonalFor')
+              : laChinhEm
+              ? t('openForm')
+              : t('openFormFor')}
           </button>
         )}
       </div>
-
-      {bao && (
-        <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-success/[0.10] px-2.5 py-2 text-[12px] font-bold text-success-dark">
-          <CheckCircle2 size={13} strokeWidth={2.5} className="mt-px shrink-0" />
-          {bao}
-        </p>
-      )}
 
       {/* ── THẺ MỤC TIÊU ─────────────────────────────────────────────────────────────────── */}
       {hocTap ? (
@@ -247,12 +300,13 @@ export function MucTieuCuaCon({
         <FormMucTieu
           studentId={studentId}
           classId={classId}
+          kind={kind}
           wigLop={wigLop}
           dangSua={hocTap}
           laChinhEm={laChinhEm}
           dayShort={dayShort}
           onClose={() => setMoForm(false)}
-          onDone={setBao}
+          onDone={onBao}
         />
       )}
     </div>

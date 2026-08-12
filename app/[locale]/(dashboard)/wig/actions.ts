@@ -81,6 +81,9 @@ export async function taoWig(_prev: CreateWigState, formData: FormData): Promise
     period_label: String(formData.get('period_label') ?? '').trim(),
     parent_wig_id: String(formData.get('parent_wig_id') ?? '').trim() || undefined,
     area: (String(formData.get('area') ?? '') as Area) || undefined,
+    // Ô này chỉ có ở tab NĂM; tháng/tuần không gửi và thừa kế từ cha trong taoMotWig. Giá trị lạ
+    // rơi về 'tick' — mặc định của cột, và là cái duy nhất app tự đếm được.
+    measure_by: String(formData.get('measure_by') ?? '') === 'manual' ? 'manual' : 'tick',
   });
   if (!kq.ok) return {ok: false, error: kq.loi, fieldError: kq.field};
 

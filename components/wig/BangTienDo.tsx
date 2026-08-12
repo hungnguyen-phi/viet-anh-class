@@ -2,7 +2,7 @@
 
 import {useActionState, useEffect, useState} from 'react';
 import {useTranslations} from 'next-intl';
-import {AlertCircle, Pencil, Trash2} from 'lucide-react';
+import {AlertCircle, Check, Pencil, Trash2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {Field, ctlWithBorder, inputCls, selectCls, btnGold, btnGhost} from '@/components/ui/Field';
@@ -40,6 +40,10 @@ export type DongTienDo = {
   status: string | null;
   // Lĩnh vực hiện tại — chỉ form sửa của cấp NĂM dùng (tháng/tuần thừa hưởng từ cha).
   area: string | null;
+  // ĐO BẰNG GÌ. 'manual' = con số nằm ngoài app (điểm trung bình, kết quả thi): app không đếm
+  // được, nên KHÔNG vẽ vạch — vạch ấy là app nói dối. Chỉ có Đạt / Chưa đạt theo achievedAt.
+  measureBy: 'tick' | 'manual';
+  achievedAt: string | null;
 };
 
 const MAU: Record<string, string> = {
@@ -92,6 +96,8 @@ export function BangTienDo({
               return <SuaForm key={d.cap} dong={d} areaOptions={areaOptions} onDong={() => setSua('')} />;
             }
             const pct = Math.round(d.pct * 100);
+            // Dòng trống (chưa đặt mục tiêu) vẫn giữ vạch xám như cũ — nó nói "chỗ này còn thiếu".
+            const laManual = d.id != null && d.measureBy === 'manual';
             return (
               <div key={d.cap} className="group">
                 <div className="flex items-baseline gap-2">
@@ -140,19 +146,38 @@ export function BangTienDo({
                       d.id ? 'text-navy' : 'text-grey-soft'
                     }`}
                   >
-                    {d.id ? `${d.actual} / ${d.target} ${d.unit}` : '—'}
+                    {!d.id ? '—' : laManual ? `→ ${d.target} ${d.unit}` : `${d.actual} / ${d.target} ${d.unit}`}
                   </span>
                 </div>
 
-                <div className="mt-1.5 h-[8px] w-full overflow-hidden rounded-[5px] bg-navy/[0.08]">
-                  <div
-                    className="h-full rounded-[5px]"
-                    style={{
-                      width: `${Math.min(100, pct)}%`,
-                      background: MAU[d.status ?? ''] ?? 'var(--color-grey-soft)',
-                    }}
-                  />
-                </div>
+                {/* ĐÍCH GHI NHẬN NGOÀI: không vạch, không phần trăm — app không đếm được con số
+                    ấy thì mọi vạch nó vẽ ra đều là bịa. Chỉ nói Đạt hay Chưa đạt, y như màn của
+                    em đang làm đúng (MucTieuCuaCon). */}
+                {laManual ? (
+                  <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-grey-mid">
+                    <span>{t('outsideApp')}</span>
+                    {d.achievedAt ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
+                        <Check size={11} strokeWidth={3} />
+                        {t('achieved')}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-navy/[0.07] px-2 py-0.5 text-[10.5px] font-extrabold text-grey-mid">
+                        {t('notYet')}
+                      </span>
+                    )}
+                  </p>
+                ) : (
+                  <div className="mt-1.5 h-[8px] w-full overflow-hidden rounded-[5px] bg-navy/[0.08]">
+                    <div
+                      className="h-full rounded-[5px]"
+                      style={{
+                        width: `${Math.min(100, pct)}%`,
+                        background: MAU[d.status ?? ''] ?? 'var(--color-grey-soft)',
+                      }}
+                    />
+                  </div>
+                )}
                 {d.id && d.baseline != null && (
                   <p className="mt-1 text-[10.5px] font-semibold text-grey-mid">
                     {t('from')} {d.baseline} → {d.target} {d.unit}

@@ -41,6 +41,9 @@ type WigRow = {
   unit: string | null;
   pct: number | null;
   status: string | null;
+  // 'manual' = con số sống ngoài app → KHÔNG vẽ vòng phần trăm, chỉ Đạt/Chưa đạt.
+  measure_by: string | null;
+  achieved_at: string | null;
 };
 type LeadRow = {
   id: string;
@@ -102,6 +105,9 @@ export async function StudentScoreboard({
 }) {
   const t = await getTranslations('student');
   const tc = await getTranslations('class');
+  // Đích ghi-nhận-ngoài dùng chung chữ Đạt/Chưa đạt với khối "Mục tiêu của con" ngay dưới —
+  // hai cách gọi cho một trạng thái là hai chỗ để trôi khỏi nhau.
+  const tg = await getTranslations('goal');
   const tSW = await getTranslations('studentWig');
   const supabase = await createClient();
   const canManage = viewer.role === 'teacher' || viewer.role === 'admin';
@@ -152,7 +158,9 @@ export async function StudentScoreboard({
         .maybeSingle(),
       supabase
         .from('wig_progress_v')
-        .select('wig_id, area, period, period_label, start_date, end_date, unit, pct, status')
+        .select(
+          'wig_id, area, period, period_label, start_date, end_date, unit, pct, status, measure_by, achieved_at',
+        )
         .eq('student_id', studentId)
         .eq('scope', 'student')
         .in('period', ['year', 'week']),
@@ -705,7 +713,22 @@ export async function StudentScoreboard({
                   {areaLabel(s, locale)}
                 </div>
                 <div className="mt-3.5 flex justify-center">
-                  {w ? (
+                  {/* ĐÍCH GHI NHẬN NGOÀI: không vẽ vòng phần trăm. Con số ấy (điểm trung bình,
+                      kết quả thi) không nằm trong app, nên mọi % vòng tròn vẽ ra đều là bịa —
+                      §5.0 MO_HINH_WIG. Chỉ nói Đạt / Chưa đạt. */}
+                  {w && w.measure_by === 'manual' ? (
+                    <div className="grid h-[78px] place-items-center">
+                      <span
+                        className={`rounded-full px-3 py-1 text-[12px] font-extrabold ${
+                          w.achieved_at
+                            ? 'bg-success/15 text-success-dark'
+                            : 'bg-navy/[0.07] text-grey-mid'
+                        }`}
+                      >
+                        {w.achieved_at ? tg('achieved') : tg('notYet')}
+                      </span>
+                    </div>
+                  ) : w ? (
                     <DonutRing pct={Number(w.pct ?? 0)} color={s.hex} />
                   ) : (
                     <div className="grid h-[78px] place-items-center text-xs font-semibold text-grey-mid">

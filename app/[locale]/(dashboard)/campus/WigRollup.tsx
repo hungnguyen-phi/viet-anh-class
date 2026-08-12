@@ -14,6 +14,10 @@ export type WigRollupRow = {
   tick_students: number | string;
   tick_count: number | string;
   student_count: number | string;
+  // MỤC TIÊU CỦA EM (0106). muc_tieu_em = số mục tiêu năm đã duyệt của học sinh trong lớp;
+  // muc_tieu_em_tu_dat = trong đó bao nhiêu do CHÍNH EM đặt (set_by='student').
+  muc_tieu_em: number | string;
+  muc_tieu_em_tu_dat: number | string;
 };
 
 // Nhịp WIG toàn trường: tuần này lớp nào thắng mấy WIG, ai chủ nhiệm, bao nhiêu em thật sự tick.
@@ -63,7 +67,7 @@ export async function WigRollup({
   // dòng rộng hơn cột đầu của tiêu đề 44px và cả năm cột sau xô lệch theo. Lưới thì cột do khai
   // báo quyết định. minmax(0,…fr) — không phải `1.5fr` trần — để nội dung dài không đẩy cột ra.
   const luoiSm =
-    'sm:grid sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]';
+    'sm:grid sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)]';
   const colClass = 'min-w-0 basis-full sm:basis-auto';
   const colTeacher = 'min-w-0 flex-1';
   const colNum = 'min-w-0 flex-1';
@@ -79,7 +83,7 @@ export async function WigRollup({
 
       <div className="sm:overflow-x-auto">
         {/* Hàng tiêu đề chỉ có nghĩa khi còn là bảng; ở dạng thẻ, mỗi con số tự mang nhãn. */}
-        <div className={`hidden min-w-[680px] items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5 ${luoiSm}`}>
+        <div className={`hidden min-w-[800px] items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5 ${luoiSm}`}>
           <span className={`text-[11px] font-extrabold uppercase text-grey-mid ${colClass}`}>
             {t('class')}
           </span>
@@ -98,6 +102,9 @@ export async function WigRollup({
           <span className={`text-center text-[11px] font-extrabold uppercase text-grey-mid ${colNum}`}>
             {t('wigTicks')}
           </span>
+          <span className={`text-center text-[11px] font-extrabold uppercase text-grey-mid ${colNum}`}>
+            {t('wigSelfSet')}
+          </span>
         </div>
 
         {rows.map((r) => {
@@ -109,11 +116,14 @@ export async function WigRollup({
           // Lớp chưa đặt WIG tuần: không phải thua, mà là chưa vào cuộc — phải phân biệt, nếu
           // không thì nhìn bảng tưởng cả khối đang thua.
           const idle = total === 0;
+          const soEm = Number(r.muc_tieu_em);
+          const tuDat = Number(r.muc_tieu_em_tu_dat);
+          const tyLeTuDat = soEm > 0 ? Math.round((tuDat / soEm) * 100) : 0;
           return (
             <Link
               key={r.class_id}
               href={{pathname: canOpenWig ? '/wig' : '/meeting', query: {class: r.class_id}}}
-              className={`flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-navy/[0.08] px-[18px] py-2.5 transition-colors hover:bg-navy/[0.03] sm:min-w-[680px] sm:items-center sm:gap-2 ${luoiSm}`}
+              className={`flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-navy/[0.08] px-[18px] py-2.5 transition-colors hover:bg-navy/[0.03] sm:min-w-[800px] sm:items-center sm:gap-2 ${luoiSm}`}
             >
               <span className={`text-[13.5px] font-bold text-navy ${colClass}`}>
                 {r.class_name}
@@ -191,6 +201,30 @@ export async function WigRollup({
               >
                 <span className={nhanNho}>{t('wigTicks')}</span>
                 {Number(r.tick_count)}
+              </span>
+
+              {/* AI CẦM BÚT — chỉ số cảnh báo sớm của cả mô hình (§4, §10.2).
+                  Cô đặt hộ cả lớp thì mọi cột bên trái vẫn xanh: WIG đủ, tick đều, thi đua chạy
+                  — mà thứ chương trình dựng ra để tạo thì không có. Ngưỡng 70% và công thức chép
+                  đúng TuongWig (màn GVCN) để hai màn không bao giờ nói hai con số khác nhau.
+                  Chưa em nào có mục tiêu thì "—", KHÔNG phải 0%: mẫu số 0 không nói lên gì, mà
+                  một số 0 đỏ chót lại giục hiệu trưởng đi nhắc sai chuyện. */}
+              <span
+                className={`flex items-center justify-center gap-1 text-center text-[12.5px] font-bold tabular-nums ${colNum} ${
+                  soEm === 0 ? 'text-grey-soft' : tyLeTuDat >= 70 ? 'text-success-dark' : 'text-status-bad'
+                }`}
+              >
+                <span className={nhanNho}>{t('wigSelfSet')}</span>
+                {soEm === 0 ? (
+                  <span className="font-semibold">—</span>
+                ) : (
+                  <>
+                    {tyLeTuDat}%
+                    <span className="text-[11px] font-semibold text-grey-mid">
+                      ({tuDat}/{soEm})
+                    </span>
+                  </>
+                )}
               </span>
               </span>
             </Link>

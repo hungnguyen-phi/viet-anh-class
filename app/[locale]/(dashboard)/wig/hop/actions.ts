@@ -111,12 +111,15 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
     const kq = await taoMotWig(supabase, {
       class_id,
       period: 'week',
-      // Thừa kế tên và đơn vị của mục tiêu năm — không có ô cho cô gõ, vì gõ lệch cha một chữ là
-      // mốc rơi khỏi cây tổng hợp mà nhìn màn hình vẫn thấy nằm đúng chỗ.
-      title: String(formData.get('bu_title') ?? '').trim() || `Tuần ${dich_label}`,
+      // Không có ô cho cô gõ tên/đơn vị: gõ lệch cha một chữ là mốc rơi khỏi cây tổng hợp mà
+      // nhìn màn hình vẫn thấy nằm đúng chỗ. Trước đây hai dòng này ĐỌC hai trường `bu_title` /
+      // `bu_unit` mà PhongHop chưa từng dựng ra, nên đơn vị luôn rơi vào chuỗi bịa 'lần' — mục
+      // tiêu năm đếm "bài", mốc bù của chính nó đếm "lần". Nay taoMotWig tra cha và thừa kế
+      // đơn vị thật, nên ở đây để trống là đúng.
+      title: `Tuần ${dich_label}`,
       baseline: null,
       target_value: moc_target,
-      unit: String(formData.get('bu_unit') ?? '').trim() || 'lần',
+      unit: '',
       period_label: dich_label,
       parent_wig_id: String(formData.get('bu_nam') ?? '').trim() || undefined,
     });

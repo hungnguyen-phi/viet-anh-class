@@ -72,7 +72,15 @@ type Lead = {
   // 0076 — một lượt tick đáng bao nhiêu ĐƠN VỊ CỦA WIG cha. Mặc định 1.
   unit_per_tick: number | null;
 };
-type Prog = {actual: number | null; pct: number | null; status: string | null};
+type Prog = {
+  actual: number | null;
+  pct: number | null;
+  status: string | null;
+  // ĐÍCH ĐO BẰNG GÌ. 'manual' = con số sống ngoài app (điểm trung bình, kết quả thi) — app không
+  // đếm được nên KHÔNG ĐƯỢC vẽ vạch tiến độ cho nó (§5.0 MO_HINH_WIG). Chỉ có đạt hay chưa.
+  measure_by: string | null;
+  achieved_at: string | null;
+};
 type MatrixRow = {student_id: string; ticked_dates: string[] | null};
 
 export default async function WigPage({
@@ -132,7 +140,7 @@ export default async function WigPage({
       // Tiến độ: chỉ những mục tiêu thật sự được vẽ ra — năm, tháng, và tuần đang xem.
       supabase
         .from('wig_progress_v')
-        .select('wig_id, actual, pct, status')
+        .select('wig_id, actual, pct, status, measure_by, achieved_at')
         .eq('class_id', myClass.id)
         .eq('scope', 'class')
         .or(
@@ -285,6 +293,8 @@ export default async function WigPage({
         pct: 0,
         status: null,
         area: null,
+        measureBy: 'tick',
+        achievedAt: null,
       };
     }
     const p = progByWig.get(w.id);
@@ -302,6 +312,10 @@ export default async function WigPage({
       pct: Number(p?.pct ?? 0),
       status: p?.status ?? null,
       area: w.area ?? null,
+      // Thiếu dòng tiến độ thì coi như 'tick': mặc định của cột trong CSDL là 'tick', và đoán
+      // nhầm sang 'manual' sẽ giấu mất vạch của một đích máy đếm được thật.
+      measureBy: p?.measure_by === 'manual' ? 'manual' : 'tick',
+      achievedAt: p?.achieved_at ?? null,
     };
   };
 
@@ -495,6 +509,8 @@ export default async function WigPage({
                     dayShort={t.raw('dayShort') as string[]}
                     weekParam={weekQ}
                     classParam={classParam}
+                    mocTarget={Number(w.target_value ?? 0)}
+                    siSo={studentCount}
                   />
                 </div>
               );
