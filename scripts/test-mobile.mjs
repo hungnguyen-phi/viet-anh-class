@@ -100,7 +100,10 @@ const anon = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE
 //     test-admin-man.mjs: "KHÔNG bám cứng vào một email".
 // Nay: hỏi CSDL ai đang giữ vai ấy, ưu tiên tài khoản test*, và nếu không có ai thì NÓI RA rồi
 // bỏ qua vai đó — thay vì tự tạo một tài khoản mới trên production của trường.
-const VAI_DB = {gvcn: 'teacher', ph: 'parent', bgh: 'principal', admin: 'admin'};
+// `hs` thêm 13/08/2026: màn của học sinh là màn ĐÔNG NGƯỜI DÙNG NHẤT và các em xem bằng
+// điện thoại, mà bộ đo này lại không có vai ấy — nên bảng tick, form mục tiêu và phòng họp
+// của em chưa bao giờ được mở ở 360px.
+const VAI_DB = {gvcn: 'teacher', hs: 'student', ph: 'parent', bgh: 'principal', admin: 'admin'};
 // Chỉ định tay một tài khoản khi cần soi đúng dữ liệu của người đó:
 //   VA_TK_GVCN=claudia@truongvietanh.com node scripts/test-mobile.mjs …
 // Sinh ra vì lớp của tài khoản thử trống trơn, còn màn hình chỉ hiện ra khi có dữ liệu (form tạo
@@ -256,6 +259,7 @@ const TRANG = [
   ['gvcn', '/'], ['gvcn', '/wig'], ['gvcn', '/wig/chi-tiet'], ['gvcn', '/wig/hop'],
   ['gvcn', '/attendance'], ['gvcn', '/roster'], ['gvcn', '/homework'], ['gvcn', '/grades'],
   ['gvcn', '/timetable'], ['gvcn', '/scoreboard'], ['gvcn', '/inbox'],
+  ['hs', '/student'], ['hs', '/student/hop'],
   ['ph', '/report'], ['ph', '/timetable'], ['ph', '/homework'],
   ['bgh', '/campus'], ['bgh', '/meeting'],
   ['admin', '/admin'],
