@@ -1235,7 +1235,7 @@
   },
   "goal": {
     "title": "My goal",
-    "hint": "No goal yet. Tap “Set a goal” — three questions and you're done.",
+    "hint": "No goal yet.",
     "formTitle": "Set my goal",
     "formTitleFor": "Set a goal for {ten}",
     "openForm": "Set a goal",

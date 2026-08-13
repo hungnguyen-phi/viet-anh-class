@@ -1235,7 +1235,7 @@
   },
   "goal": {
     "title": "Mục tiêu của con",
-    "hint": "Con chưa có mục tiêu nào. Bấm “Đặt mục tiêu” — ba câu là xong.",
+    "hint": "Con chưa có mục tiêu nào.",
     "formTitle": "Đặt mục tiêu của con",
     "formTitleFor": "Đặt mục tiêu cho {ten}",
     "openForm": "Đặt mục tiêu",
