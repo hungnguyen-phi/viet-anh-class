@@ -113,7 +113,14 @@ export function MucTieuCuaCon({
         </p>
       )}
       <MotMucTieu kind="academic" mt={hocTap} {...chung} />
-      <MotMucTieu kind="personal" mt={rieng} {...chung} />
+      {/* MỤC TIÊU RIÊNG CHỈ XUẤT HIỆN KHI ĐÃ CÓ CÁI ĐỂ THÊM VÀO.
+          Em chưa đặt gì mà bày sẵn nút "Con muốn THÊM một mục tiêu của riêng con" thì màn hình có
+          hai cái nút cạnh nhau cùng mở một form đặt mục tiêu — đọc ra là một nút bị nhân đôi, chứ
+          không đọc ra là "cái bắt buộc" và "cái tuỳ chọn". Chữ "thêm" chỉ có nghĩa khi đã có một
+          cái rồi (§6.2 bước ④: mục tiêu riêng là phần THÊM sau khi đặt xong mục tiêu học tập).
+          Đã có mục tiêu riêng thì vẫn hiện, kể cả khi mục tiêu học tập bị xoá — không giấu đi một
+          thứ em đang có. */}
+      {(hocTap || rieng) && <MotMucTieu kind="personal" mt={rieng} {...chung} />}
     </div>
   );
 }

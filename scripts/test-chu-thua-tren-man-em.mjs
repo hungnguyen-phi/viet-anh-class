@@ -87,9 +87,25 @@ dau('còn nhãn "Lead Measure"', body.includes('Lead Measure'), body.includes('L
     .eq('kind', 'personal');
   const coTieuDe = body.includes('Mục tiêu riêng của con');
   const coNut = body.includes('Con muốn thêm một mục tiêu của riêng con');
-  if ((count ?? 0) === 0) {
+  // CHƯA CÓ MỤC TIÊU HỌC TẬP thì cũng KHÔNG bày nút "thêm mục tiêu riêng": hai nút cạnh nhau cùng
+  // mở một form đặt mục tiêu đọc ra là một nút bị nhân đôi. Chữ "thêm" chỉ có nghĩa khi đã có một
+  // cái rồi. Chủ dự án chỉ ra 13/08/2026 (lần thứ hai của cùng một khối này).
+  const {count: soHocTap} = await admin
+    .from('wigs')
+    .select('id', {count: 'exact', head: true})
+    .eq('student_id', em?.id ?? '')
+    .eq('scope', 'student')
+    .eq('kind', 'academic');
+
+  if ((count ?? 0) === 0 && (soHocTap ?? 0) === 0) {
     dau(
-      'chưa có mục tiêu riêng → chỉ một nút, KHÔNG dựng khối rỗng',
+      'chưa có mục tiêu nào → KHÔNG bày nút mục tiêu riêng',
+      !coTieuDe && !coNut,
+      coNut ? 'vẫn còn nút "thêm mục tiêu riêng" khi chưa có gì để thêm vào' : 'đúng: chỉ một nút Đặt mục tiêu',
+    );
+  } else if ((count ?? 0) === 0) {
+    dau(
+      'đã có mục tiêu học tập, chưa có riêng → chỉ một nút, KHÔNG dựng khối rỗng',
       !coTieuDe && coNut,
       coTieuDe ? 'vẫn còn tiêu đề "Mục tiêu riêng của con" cho một khối rỗng' : coNut ? 'đúng: chỉ có nút' : 'MẤT LUÔN nút mời đặt',
     );
