@@ -270,11 +270,15 @@ export function PhongHop({
             hs_go_luc: string | null;
           } | null;
           if (!r?.student_id || r.week_label !== hopLabel) return;
-          // LẤY GIỜ CỦA MÁY NÀY, không đọc dấu thời gian trong gói tin. Postgres trả
-          // "2026-08-13 10:52:14+00" (dấu cách, không phải chữ T) — Date.parse() không hứa
-          // đọc được dạng ấy, và khi nó trả NaN thì phép so sánh bên dưới luôn sai, nên chữ
-          // "đang điền…" không bao giờ hiện. Gói tin vừa tới thì "vừa xong" chính là bây giờ.
-          if (r.hs_go_luc) setDangGoLuc((p) => ({...p, [r.student_id!]: Date.now()}));
+          // GÓI TIN VỪA TỚI LÀ ĐỦ ĐỂ NÓI "vừa có người gõ" — không dò thêm cột nào.
+          //
+          // Hai lần hụt trước đó ở đúng chỗ này: bản đầu đọc `hs_go_luc` rồi Date.parse() nó,
+          // mà Postgres trả "2026-08-13 10:52:14+00" (dấu cách, không phải chữ T) nên parse ra
+          // NaN và phép so luôn sai; bản sau lấy giờ máy nhưng vẫn CHỜ có `hs_go_luc` trong gói,
+          // mà gói của Realtime không phải lúc nào cũng mang đủ cột. Chữ trong ô thì hiện đúng
+          // cả hai lần — mỗi cái chấm động đậy là không.
+          // Nay: có tin về dòng của em nào thì em ấy vừa gõ. Chấm hết.
+          setDangGoLuc((p) => ({...p, [r.student_id!]: Date.now()}));
           // KHÔNG giật chữ khỏi tay cô. Ô nào cô đang đặt con trỏ vào thì giữ nguyên chữ của cô;
           // hai người gõ cùng một ô là chuyện của buổi họp, không phải chuyện máy phải tự xử.
           setV((p) => {
