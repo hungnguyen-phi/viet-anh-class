@@ -293,7 +293,7 @@ export function FormMucTieu({
                       setG((p) => ({...p, unit: ''}));
                     } else setG((p) => ({...p, unit: v}));
                   }}
-                  danhSach={DON_VI.map((d) => ({ma: d.ma, nhom: t(`unitGroup_${d.kieu}`)}))}
+                  danhSach={DON_VI.map((d) => ({ma: d.ma}))}
                   chuaChon={t('unitPick')}
                   loi={state.fieldError === 'unit'}
                   cuoiDanhSach={{ma: '__khac__', nhan: t('unitOther')}}

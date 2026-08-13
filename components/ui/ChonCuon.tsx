@@ -8,7 +8,7 @@ import {Check, ChevronDown} from 'lucide-react';
 // ════════════════════════════════════════════════════════════════════════════
 //
 // Vì sao không dùng <select>: chiều cao danh sách bung ra của <select> do TRÌNH DUYỆT quyết định,
-// CSS không với tới. Mười bốn đơn vị chia ba nhóm thì Chrome bung một cột dài gần hết màn hình.
+// CSS không với tới. Mười bốn đơn vị thì Chrome bung một cột dài gần hết màn hình.
 // Chủ dự án 13/08/2026: "cái khung chứa dropdown ngắn lại, kéo nhiều hơn cũng được, chứ không
 // phải bỏ bớt đơn vị gợi ý" — muốn thế thì phải tự dựng.
 //
@@ -17,7 +17,7 @@ import {Check, ChevronDown} from 'lucide-react';
 //
 // Hàng cao 44px — cùng chuẩn chạm với mọi điều khiển khác (ctl-h, xem components/ui/Field.tsx).
 
-export type MucChon = {ma: string; nhan?: string; nhom?: string};
+export type MucChon = {ma: string; nhan?: string};
 
 export function ChonCuon({
   id,
@@ -113,31 +113,22 @@ export function ChonCuon({
           role="listbox"
           className="absolute z-30 mt-1 max-h-[216px] w-full overflow-y-auto rounded-[12px] bg-white py-1 shadow-pop ring-1 ring-navy/10"
         >
-          {muc.map((m, i) => {
-            const dauNhom = m.nhom && m.nhom !== muc[i - 1]?.nhom;
-            return (
-              <div key={m.ma}>
-                {dauNhom && (
-                  <p className="px-3 pb-0.5 pt-2 text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid">
-                    {m.nhom}
-                  </p>
-                )}
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={m.ma === value}
-                  onClick={() => chon(m.ma)}
-                  onMouseEnter={() => setConTro(i)}
-                  className={`flex h-11 w-full cursor-pointer items-center gap-2 px-3 text-left text-sm font-semibold transition-colors ${
-                    i === conTro ? 'bg-navy/[0.06]' : ''
-                  } ${m.ma === value ? 'text-navy' : 'text-navy/80'}`}
-                >
-                  <span className="min-w-0 flex-1 truncate">{m.nhan ?? m.ma}</span>
-                  {m.ma === value && <Check size={14} strokeWidth={3} className="shrink-0" />}
-                </button>
-              </div>
-            );
-          })}
+          {muc.map((m, i) => (
+            <button
+              key={m.ma}
+              type="button"
+              role="option"
+              aria-selected={m.ma === value}
+              onClick={() => chon(m.ma)}
+              onMouseEnter={() => setConTro(i)}
+              className={`flex h-11 w-full cursor-pointer items-center gap-2 px-3 text-left text-sm font-semibold transition-colors ${
+                i === conTro ? 'bg-navy/[0.06]' : ''
+              } ${m.ma === value ? 'text-navy' : 'text-navy/80'}`}
+            >
+              <span className="min-w-0 flex-1 truncate">{m.nhan ?? m.ma}</span>
+              {m.ma === value && <Check size={14} strokeWidth={3} className="shrink-0" />}
+            </button>
+          ))}
         </div>
       )}
     </div>

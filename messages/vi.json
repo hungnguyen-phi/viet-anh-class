@@ -1324,9 +1324,6 @@
     "perTickSum": "{n} lần × {moi} = {tuan} {unit} mỗi tuần.",
     "unitPick": "Chọn đơn vị",
     "unitOther": "Khác…",
-    "unitBack": "Chọn lại",
-    "unitGroup_luot": "Một lần là một đơn vị",
-    "unitGroup_luong": "Mỗi lần một lượng",
-    "unitGroup_do": "Đo lại, không cộng dồn"
+    "unitBack": "Chọn lại"
   }
 }

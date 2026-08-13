@@ -1324,9 +1324,6 @@
     "perTickSum": "{n} times × {moi} = {tuan} {unit} a week.",
     "unitPick": "Pick a unit",
     "unitOther": "Other…",
-    "unitBack": "Pick again",
-    "unitGroup_luot": "One time = one unit",
-    "unitGroup_luong": "An amount each time",
-    "unitGroup_do": "Re-measured, not added up"
+    "unitBack": "Pick again"
   }
 }
