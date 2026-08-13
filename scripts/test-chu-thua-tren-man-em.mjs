@@ -68,6 +68,36 @@ for (const [ten, chuoi] of PHAI_MAT) {
 
 dau('còn nhãn "Lead Measure"', body.includes('Lead Measure'), body.includes('Lead Measure') ? 'có' : 'MẤT NHÃN');
 
+// ── KHỐI MỤC TIÊU RIÊNG: CHƯA ĐẶT THÌ CHỈ LÀ MỘT NÚT ──────────────────────────────────────────
+// Bản trước dựng đủ bộ khung cho cái chưa tồn tại — cũng biểu tượng đích, cũng tiêu đề mở đầu bằng
+// "Mục tiêu … của con", cũng nút vàng — nên em chưa đặt gì thì màn hình có hai khối trông như nhau
+// nằm chồng, khối dưới rỗng. Hỏi thẳng CSDL rồi mới xét, đừng đóng đinh vào việc em này đang có
+// hay không có mục tiêu riêng: hôm nào dữ liệu đổi là bài kiểm đỏ oan.
+{
+  const {data: em} = await admin
+    .from('profiles')
+    .select('id')
+    .eq('email', HS)
+    .maybeSingle();
+  const {count} = await admin
+    .from('wigs')
+    .select('id', {count: 'exact', head: true})
+    .eq('student_id', em?.id ?? '')
+    .eq('scope', 'student')
+    .eq('kind', 'personal');
+  const coTieuDe = body.includes('Mục tiêu riêng của con');
+  const coNut = body.includes('Con muốn thêm một mục tiêu của riêng con');
+  if ((count ?? 0) === 0) {
+    dau(
+      'chưa có mục tiêu riêng → chỉ một nút, KHÔNG dựng khối rỗng',
+      !coTieuDe && coNut,
+      coTieuDe ? 'vẫn còn tiêu đề "Mục tiêu riêng của con" cho một khối rỗng' : coNut ? 'đúng: chỉ có nút' : 'MẤT LUÔN nút mời đặt',
+    );
+  } else {
+    dau('đã có mục tiêu riêng → có tiêu đề của nó', coTieuDe, coTieuDe ? 'có' : 'thiếu tiêu đề');
+  }
+}
+
 // Form đặt mục tiêu là client component, chỉ dựng khi em bấm nút — không soi được bằng HTML đầu
 // tiên. Soi thẳng bó dịch: hai câu ấy phải không còn tồn tại để không đường nào in ra được.
 const vi = JSON.parse(readFileSync('messages/vi.json', 'utf8'));

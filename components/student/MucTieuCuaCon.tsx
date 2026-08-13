@@ -138,9 +138,37 @@ function MotMucTieu({
   // Ai cũng ĐỌC được khối này (phụ huynh, BGH), nhưng chỉ chính em và nhân sự mới GHI.
   const canGhi = laChinhEm || canManage;
 
-  // MỤC TIÊU RIÊNG CHƯA CÓ THÌ KHÔNG BÀY MỘT KHỐI TRỐNG. Nó là tuỳ chọn (§6.2 bước ④), khác với
-  // mục tiêu học tập — cái ấy thiếu là việc còn dở, phải nói ra.
-  if (laRieng && !hocTap && !canGhi) return null;
+  // MỤC TIÊU RIÊNG CHƯA CÓ → MỘT CÁI NÚT, KHÔNG PHẢI MỘT KHỐI.
+  //
+  // Bản trước vẫn dựng đủ bộ khung cho cái chưa tồn tại: cũng biểu tượng đích, cũng tiêu đề mở đầu
+  // bằng "Mục tiêu … của con", cũng một nút vàng. Em chưa đặt gì thì màn hình có hai khối trông
+  // như nhau nằm chồng, và khối dưới thì rỗng — đọc ra thành một khối bị nhân đôi chứ không thành
+  // "còn một việc tuỳ chọn nữa". Mục tiêu riêng là TUỲ CHỌN (§6.2 bước ④): chưa có thì nó chỉ
+  // đáng một dòng mời, và chính chữ trên nút đã nói hết. Đặt rồi mới có tiêu đề và thẻ của nó.
+  if (laRieng && !hocTap) {
+    if (!canGhi) return null;
+    return (
+      <div className="flex min-w-0 flex-col gap-2">
+        <button type="button" onClick={() => setMoForm(true)} className={`${btnGhost} self-start`}>
+          <Plus size={14} strokeWidth={2.5} />
+          {laChinhEm ? t('openFormPersonal') : t('openFormPersonalFor')}
+        </button>
+        {moForm && (
+          <FormMucTieu
+            studentId={studentId}
+            classId={classId}
+            kind={kind}
+            wigLop={wigLop}
+            dangSua={null}
+            laChinhEm={laChinhEm}
+            dayShort={dayShort}
+            onClose={() => setMoForm(false)}
+            onDone={onBao}
+          />
+        )}
+      </div>
+    );
+  }
 
   // CỬA SỔ MỘT NGÀY (0102). Cô sửa/xoá lúc nào cũng được; em thì chỉ khi mục tiêu còn là đề nghị —
   // chưa duyệt, hoặc vừa tạo chưa quá 24 giờ. Tính ở đây chỉ để giao diện nói trước; chốt thật nằm
@@ -166,16 +194,12 @@ function MotMucTieu({
             {t('yearScope', {nam: namHoc})}
           </span>
         )}
+        {/* Chỉ còn nhánh HỌC TẬP: mục tiêu riêng chưa có thì không dựng tới đây (xem ghi chú ở
+            chỗ thoát sớm bên trên). */}
         {!hocTap && canGhi && (
           <button type="button" onClick={() => setMoForm(true)} className={`${btnGold} ml-auto`}>
             <Plus size={14} strokeWidth={2.5} />
-            {laRieng
-              ? laChinhEm
-                ? t('openFormPersonal')
-                : t('openFormPersonalFor')
-              : laChinhEm
-              ? t('openForm')
-              : t('openFormFor')}
+            {laChinhEm ? t('openForm') : t('openFormFor')}
           </button>
         )}
       </div>
@@ -294,10 +318,9 @@ function MotMucTieu({
           </div>
         </div>
       ) : (
-        /* Câu dẫn "ba câu là xong" chỉ thuộc về mục tiêu học tập — cái bắt buộc. Mục tiêu riêng
-           là tuỳ chọn, và nút của nó ("Con muốn thêm một mục tiêu của riêng con") đã tự nói đủ;
-           lặp lại y hệt câu bên trên chỉ làm hai khối trông như một khối bị nhân đôi. */
-        !laRieng && <p className="text-[12.5px] italic text-grey-mid">{canGhi ? t('hint') : t('none')}</p>
+        /* Chỉ còn mục tiêu HỌC TẬP đi tới được nhánh này — mục tiêu riêng chưa có thì đã thoát ở
+           trên, chỉ để lại cái nút. Học tập là cái BẮT BUỘC nên thiếu thì phải nói ra. */
+        <p className="text-[12.5px] italic text-grey-mid">{canGhi ? t('hint') : t('none')}</p>
       )}
 
       {moForm && (
