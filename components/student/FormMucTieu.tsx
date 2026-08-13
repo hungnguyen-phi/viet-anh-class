@@ -9,7 +9,8 @@ import {Field, ctlWithBorder, inputCls, selectCls, btnGold} from '@/components/u
 import {luuMucTieuCuaEm, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
 import {nhipCuaMucTieu} from '@/lib/wig-nhip';
 import {todayInVN} from '@/lib/dates';
-import {kieuDonVi, coTrongDanhSach, DON_VI_CHON} from '@/lib/don-vi';
+import {kieuDonVi, coTrongDanhSach, DON_VI} from '@/lib/don-vi';
+import {ChonCuon} from '@/components/ui/ChonCuon';
 
 // ════════════════════════════════════════════════════════════════════════════
 // FORM ĐẶT MỤC TIÊU — ba câu hỏi, nằm trong một hộp thoại
@@ -282,34 +283,21 @@ export function FormMucTieu({
                   </button>
                 </div>
               ) : (
-                <select
+                <ChonCuon
                   id="mt-unit"
                   name="unit"
                   value={g.unit}
-                  onChange={(e) => {
-                    if (e.target.value === '__khac__') {
+                  onChange={(v) => {
+                    if (v === '__khac__') {
                       setKhacDonVi(true);
                       setG((p) => ({...p, unit: ''}));
-                    } else setG((p) => ({...p, unit: e.target.value}));
+                    } else setG((p) => ({...p, unit: v}));
                   }}
-                  className={selectCls}
-                >
-                  <option value="">{t('unitPick')}</option>
-                  {/* CHIA NHÓM ngay trong dropdown. Mười bốn đơn vị bày phẳng thì phải chọn xong,
-                      đợi bước ③ đổi hình, mới đoán ra luật. Gom lại thì luật đọc được TRƯỚC khi
-                      chọn — và đó chính là ba câu chủ dự án mô tả: "buổi thì 1 tick 1 buổi", "tiết
-                      thì 1 tick bao nhiêu tiết", "điểm thì tự điền". */}
-                  {(['luot', 'luong', 'do'] as const).map((k) => (
-                    <optgroup key={k} label={t(`unitGroup_${k}`)}>
-                      {DON_VI_CHON.filter((d) => d.kieu === k).map((d) => (
-                        <option key={d.ma} value={d.ma}>
-                          {d.ma}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                  <option value="__khac__">{t('unitOther')}</option>
-                </select>
+                  danhSach={DON_VI.map((d) => ({ma: d.ma, nhom: t(`unitGroup_${d.kieu}`)}))}
+                  chuaChon={t('unitPick')}
+                  loi={state.fieldError === 'unit'}
+                  cuoiDanhSach={{ma: '__khac__', nhan: t('unitOther')}}
+                />
               )}
             </Field>
             <Field
