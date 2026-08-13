@@ -194,6 +194,38 @@ export type Database = {
           },
         ]
       }
+      buddy_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          meeting_id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          meeting_id: string
+          role: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buddy_messages_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "wig_meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buddy_pairs: {
         Row: {
           buddy_id: string
@@ -239,38 +271,6 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      buddy_messages: {
-        Row: {
-          content: string
-          created_at: string
-          id: string
-          meeting_id: string
-          role: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          id?: string
-          meeting_id: string
-          role: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          id?: string
-          meeting_id?: string
-          role?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "buddy_messages_meeting_id_fkey"
-            columns: ["meeting_id"]
-            isOneToOne: false
-            referencedRelation: "wig_meetings"
             referencedColumns: ["id"]
           },
         ]
@@ -2075,6 +2075,8 @@ export type Database = {
           buddy_note_at: string | null
           buddy_note_model: string | null
           buddy_tokens: number | null
+          chot_at: string | null
+          chot_by: string | null
           class_id: string
           coach_id: string | null
           commitments: string | null
@@ -2095,6 +2097,8 @@ export type Database = {
           buddy_note_at?: string | null
           buddy_note_model?: string | null
           buddy_tokens?: number | null
+          chot_at?: string | null
+          chot_by?: string | null
           class_id: string
           coach_id?: string | null
           commitments?: string | null
@@ -2115,6 +2119,8 @@ export type Database = {
           buddy_note_at?: string | null
           buddy_note_model?: string | null
           buddy_tokens?: number | null
+          chot_at?: string | null
+          chot_by?: string | null
           class_id?: string
           coach_id?: string | null
           commitments?: string | null
@@ -2142,6 +2148,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "wig_meetings_chot_by_fkey"
+            columns: ["chot_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "wig_meetings_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
@@ -2160,6 +2173,64 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wig_so_do: {
+        Row: {
+          created_at: string
+          ghi_chu: string | null
+          gia_tri: number
+          id: string
+          nguoi_nhap: string | null
+          updated_at: string
+          vai_tro: string
+          week_start: string
+          wig_id: string
+        }
+        Insert: {
+          created_at?: string
+          ghi_chu?: string | null
+          gia_tri: number
+          id?: string
+          nguoi_nhap?: string | null
+          updated_at?: string
+          vai_tro: string
+          week_start: string
+          wig_id: string
+        }
+        Update: {
+          created_at?: string
+          ghi_chu?: string | null
+          gia_tri?: number
+          id?: string
+          nguoi_nhap?: string | null
+          updated_at?: string
+          vai_tro?: string
+          week_start?: string
+          wig_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wig_so_do_nguoi_nhap_fkey"
+            columns: ["nguoi_nhap"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wig_so_do_wig_id_fkey"
+            columns: ["wig_id"]
+            isOneToOne: false
+            referencedRelation: "wig_progress_v"
+            referencedColumns: ["wig_id"]
+          },
+          {
+            foreignKeyName: "wig_so_do_wig_id_fkey"
+            columns: ["wig_id"]
+            isOneToOne: false
+            referencedRelation: "wigs"
             referencedColumns: ["id"]
           },
         ]
@@ -2672,6 +2743,8 @@ export type Database = {
           class_name: string
           grade_name: string
           grade_sort: number
+          muc_tieu_em: number
+          muc_tieu_em_tu_dat: number
           student_count: number
           teacher_name: string
           tick_count: number
@@ -2748,6 +2821,7 @@ export type Database = {
       vn_today: { Args: never; Returns: string }
       vn_week_start: { Args: { d?: string }; Returns: string }
       wig_class: { Args: { w: string }; Returns: string }
+      wig_student: { Args: { w: string }; Returns: string }
     }
     Enums: {
       assessment_term_kind:

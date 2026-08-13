@@ -269,10 +269,14 @@ begin
   if v_lead is not null then
     insert into wig_meeting_notes (class_id, week_start, lead_measure_id, verdict)
     values (v_class, '2026-04-06', v_lead, 'win');
-  else
-    insert into wig_meetings (class_id, week_label, week_start, results)
-    values (v_class, 'W15-2026', '2026-04-06', 'ZZ_TEST đã họp');
   end if;
+
+  -- TỪ 0108, GHI KHÔNG CÒN LÀ CHỐT. Trước bản ấy chỉ cần một dòng ghi nhận là `tuan_da_hop()` trả
+  -- true, nên phép kiểm này dừng ở chỗ chèn dòng. Nay tuần chỉ khoá khi buổi họp được BẤM CHỐT —
+  -- và đó chính là điều 0108 sinh ra để làm: cô lưu giữa chừng buổi họp thì các em vẫn tick và
+  -- vẫn nhập số đo được. Nên ở đây phải chốt thật, không thì phép kiểm đang canh một luật đã chết.
+  insert into wig_meetings (class_id, week_label, week_start, results, chot_at)
+  values (v_class, 'W15-2026', '2026-04-06', 'ZZ_TEST đã họp', now());
 
   insert into ket_qua values
     ('Họp xong thì tick chốt lại', 'đã chốt', case when tuan_da_hop(v_class,'2026-04-08') then 'đã chốt' else 'VẪN MỞ' end,

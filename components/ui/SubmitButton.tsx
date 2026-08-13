@@ -15,10 +15,21 @@ export function SubmitButton({
   className,
   children,
   label,
+  name,
+  value,
   wrapClass = 'inline-flex items-center gap-1.5',
 }: {
   className?: string;
   children: ReactNode;
+  /**
+   * TÊN/GIÁ TRỊ GỬI KÈM khi một form có NHIỀU nút gửi làm những việc khác nhau.
+   *
+   * Trình duyệt chỉ đính name/value của ĐÚNG cái nút được bấm vào FormData, nên đây là cách gọn
+   * nhất để một form phân biệt "Lưu tạm" với "Chốt buổi họp" mà không cần state riêng, không cần
+   * ô ẩn phải nhớ đặt lại. Bỏ trống ở nút thường — không có name thì không có gì được gửi.
+   */
+  name?: string;
+  value?: string;
   /**
    * TÊN ĐỌC ĐƯỢC riêng, khi chữ trên nút KHÔNG đủ để biết nút này tác động lên ai.
    *
@@ -42,6 +53,8 @@ export function SubmitButton({
         disabled={pending}
         aria-busy={pending}
         aria-label={label}
+        name={name}
+        value={value}
         className={`relative ${className ?? ''}`}
       >
         <span className={`${wrapClass} ${pending ? 'invisible' : ''}`}>{children}</span>

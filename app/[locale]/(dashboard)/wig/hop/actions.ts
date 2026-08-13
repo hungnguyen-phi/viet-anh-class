@@ -286,8 +286,19 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
     lam.push(`chấm ${data!.length} việc`);
   }
 
-  // ── 3. BIÊN BẢN — VÀ ĐÂY LÀ THỨ CHỐT TICK CỦA TUẦN VỪA QUA (0081) ────────────────────────
-  if (chiem_nghiem || cam_ket || rows.length > 0) {
+  // ── 3. BIÊN BẢN ─────────────────────────────────────────────────────────────────────────
+  //
+  // LƯU KHÔNG CÒN LÀ CHỐT (0108). Trước đây chỉ cần dòng biên bản tồn tại là `tuan_da_hop()` trả
+  // true và cả tuần khoá lại. Phòng họp chỉ có một nút nên thường điều đó trùng với lúc họp xong —
+  // nhưng cô lưu giữa chừng (chấm ba việc, lưu, họp tiếp) là các em hết tick được và ô số đo hết
+  // ghi được ngay giữa buổi họp, đúng lúc buổi họp cần chúng.
+  //
+  // Nay hai nút: Lưu tạm ghi mọi thứ nhưng để `chot_at` null; Chốt buổi họp mới đóng tuần.
+  const chot = String(formData.get('chot') ?? '') === '1';
+
+  // Bấm CHỐT thì luôn phải có dòng biên bản để mang dấu chốt — kể cả khi buổi họp không chấm việc
+  // nào và không ghi chữ nào. Chốt là một sự kiện, không phải một hệ quả của việc điền form.
+  if (chiem_nghiem || cam_ket || rows.length > 0 || chot) {
     // 1 biên bản / (lớp, tuần). Tìm theo NGÀY: nhãn là chữ để người đọc, ngày mới là khoá thật
     // (0080). Trước đây tra theo nhãn nên ai sửa tay thành "Tuần 31" là vòng cam kết đứt lặng lẽ.
     const {data: cu} = await supabase
@@ -309,16 +320,23 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
       // lại nó thành một câu văn là dựng bản sao thứ hai của cùng một thứ.
       next_actions: null,
       coach_id: me.id,
+      // Chỉ GHI dấu chốt, không bao giờ xoá nó ở đây: bỏ chốt là việc của nút gỡ biên bản, có hộp
+      // xác nhận riêng. Lưu tạm sau khi đã chốt mà lại âm thầm mở khoá tuần thì cô không hề biết
+      // mình vừa mở, còn các em thì đột nhiên tick lại được vào một tuần đã tổng kết.
+      ...(chot ? {chot_at: new Date().toISOString(), chot_by: me.id} : {}),
     };
     const {error} = cu
       ? await supabase.from('wig_meetings').update(payload).eq('id', cu.id)
       : await supabase.from('wig_meetings').insert(payload);
     if (error) return {ok: false, error: (friendlyError(error))};
-    lam.push(cu ? 'cập nhật biên bản' : 'lưu biên bản');
+    lam.push(chot ? 'chốt buổi họp' : cu ? 'cập nhật biên bản' : 'lưu biên bản');
   }
 
   if (lam.length === 0)
     return {ok: false, error: 'Chưa điền gì cả — chấm ít nhất một việc, hoặc ghi chiêm nghiệm/cam kết.'};
+
+  // Nói đúng cái vừa xảy ra. Câu "tick đã chốt" chỉ được nói khi tick THẬT SỰ đã chốt — bản trước
+  // nói câu ấy sau mọi lần lưu, nên cô lưu tạm cũng đọc thấy tuần đã đóng.
 
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]/wig/hop', 'page');
@@ -329,7 +347,9 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
 
   return {
     ok: true,
-    message: `Xong: ${lam.join(', ')}. Tick của tuần ${hop_label} đã chốt.`,
+    message: chot
+      ? `Xong: ${lam.join(', ')}. Tick và số đo của tuần ${hop_label} đã chốt.`
+      : `Đã lưu: ${lam.join(', ')}. Tuần ${hop_label} chưa chốt — các em vẫn tick và nhập số được.`,
   };
 }
 

@@ -68,6 +68,8 @@ export type DuLieuHop = {
   // Tuần này đã có biên bản chưa. Chính dòng ấy là thứ khoá tick (0081), nên phòng họp phải biết
   // để bày đường gỡ — không có nó thì họp nhầm tuần là khoá tick một tuần đang chạy, không lối ra.
   daCoBienBan: boolean;
+  /** Buổi họp đã được bấm CHỐT chưa — thứ thật sự khoá tick và số đo của tuần (0108). */
+  daChot: boolean;
   // MỐC TUẦN ĐÍCH — app đã rải sẵn khi cô khai mục tiêu năm (lib/wig-nhip.ts), mỗi lĩnh vực một
   // cái. Buổi họp CHỈNH nó, không tạo mới: trong 4DX mục tiêu đặt một lần cho cả kỳ, còn buổi họp
   // chỉ báo cáo → nhìn bảng điểm → dọn đường. Xem docs/MO_HINH_WIG.md §6.4.
@@ -101,7 +103,7 @@ export async function layDuLieuHop(
         .eq('week_start', hopMonday),
       supabase
         .from('wig_meetings')
-        .select('results, commitments')
+        .select('results, commitments, chot_at')
         .eq('class_id', classId)
         .is('student_id', null)
         .eq('week_start', hopMonday)
@@ -196,6 +198,9 @@ export async function layDuLieuHop(
     chiemNghiemCu: bienBan?.results ?? '',
     camKetCu: bienBan?.commitments ?? '',
     daCoBienBan: Boolean(bienBan),
+    // ĐÃ CHỐT hay CHƯA là hai chuyện khác nhau với "đã có biên bản" (0108). Lưu bao nhiêu lần cũng
+    // được; tuần chỉ khoá — hết tick, hết nhập số đo — khi có người bấm chốt.
+    daChot: Boolean(bienBan?.chot_at),
     mocDich: wigs
       .filter((w) => w.period === 'week' && w.period_label === dichWk.label)
       .map((w) => ({

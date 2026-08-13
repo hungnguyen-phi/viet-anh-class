@@ -5,7 +5,7 @@ import {useTranslations} from 'next-intl';
 import {AlertCircle, AlertTriangle, ArrowRight, Check, CheckCircle2, Minus, Plus, Trash2, X} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {Field, ctlWithBorder, inputCls, selectCls, btnGold, labelCls} from '@/components/ui/Field';
+import {Field, ctlWithBorder, inputCls, selectCls, btnGold, btnGhost, labelCls} from '@/components/ui/Field';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {ketThucBuoiHop, xoaBienBan} from '@/app/[locale]/(dashboard)/wig/hop/actions';
 import {areaLabel, type Area, type AreaMeta} from '@/lib/areas';
@@ -76,6 +76,7 @@ export function PhongHop({
   dayShort,
   canManage,
   daCoBienBan,
+  daChot,
   quayVe,
   xemTuanMoi = null,
 }: {
@@ -105,6 +106,9 @@ export function PhongHop({
   // Tuần này đã có biên bản chưa — quyết định có bày nút gỡ hay không. Bày nút gỡ khi chưa có gì
   // để gỡ là mời người ta bấm một nút chỉ biết báo lỗi.
   daCoBienBan: boolean;
+  // Đã bấm CHỐT chưa (0108). Khác "đã có biên bản": lưu tạm cũng sinh biên bản, nhưng chỉ chốt mới
+  // khoá tick và khoá ô số đo của tuần.
+  daChot: boolean;
   // Đường về trang WIG. null với ban giám hiệu — họ KHÔNG vào được /wig, nên vẽ một liên kết tới
   // đó là vẽ một cái cửa dẫn thẳng tới màn hình "bạn không có quyền".
   quayVe: {pathname: '/wig'; query: Record<string, string>} | null;
@@ -726,15 +730,26 @@ export function PhongHop({
         </section>
       )}
 
-      {/* ══ MỘT NÚT ══ */}
+      {/* ══ HAI NÚT: LƯU TẠM và CHỐT ══
+          0108 tách hai việc từng là một. Bản cũ chỉ có nút Lưu, và chính cái lưu ấy khoá tuần —
+          nên cô lưu giữa chừng buổi họp là các em hết tick được, ô số đo hết ghi được, ngay lúc
+          buổi họp đang cần chúng. Nay lưu bao nhiêu lần cũng được; chốt mới đóng tuần.
+          Nút chốt gửi kèm `chot=1` (name/value của chính nút submit), nên không cần state riêng. */}
       {canManage && (
         <div className="flex flex-wrap items-center gap-3 rounded-[20px] bg-navy/[0.04] p-4">
           <span className="min-w-0 flex-1 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
-            {t('finishHint', {week: hopLabel})}
+            {daChot ? t('closedHint', {week: hopLabel}) : t('finishHint', {week: hopLabel})}
           </span>
-          <SubmitButton className={btnGold} wrapClass="contents">
-            {t('finish')}
+          <SubmitButton className={btnGhost} wrapClass="contents">
+            {t('saveDraft')}
           </SubmitButton>
+          {/* Đã chốt rồi thì không bày nút chốt lần nữa: gỡ chốt là việc của nút gỡ biên bản cuối
+              trang, có hộp xác nhận riêng. */}
+          {!daChot && (
+            <SubmitButton name="chot" value="1" className={btnGold} wrapClass="contents">
+              {t('finish')}
+            </SubmitButton>
+          )}
         </div>
       )}
 

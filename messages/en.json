@@ -584,8 +584,8 @@
     "milestoneTarget": "Week target",
     "milestoneMissing": "Week {week} has no milestone — the year goal was set after this week began. Add one here without leaving the meeting.",
     "carriedOver": "Carried over from last week. The steadier a lead measure, the more it tells you — edit or remove as you like.",
-    "finish": "Finish the meeting & save",
-    "finishHint": "One save covers all three steps. Ticks for week {week} close, the new week goal is created, and students can tick right away.",
+    "finish": "Close the meeting",
+    "finishHint": "Save a draft as often as you like. Closing locks ticks and readings for week {week}.",
     "readOnlyNotice": "Read-only view for school leadership: how the class closed out last week. Scoring and goal-setting belong to the homeroom teacher.",
     "undo": "Undo week {week}",
     "undoHint": "Reviewed the wrong week? Undoing week {week} reopens ticking for that week.",
@@ -593,7 +593,9 @@
     "scoreThisWeek": "This week",
     "leadDone": "Tasks completed",
     "noWeekData": "No WIG data for this week yet.",
-    "paceWarn": "This week needs {can}, but the actions only allow {cho} — short by {thieu}. Raise the action target, or lower the week milestone to match."
+    "paceWarn": "This week needs {can}, but the actions only allow {cho} — short by {thieu}. Raise the action target, or lower the week milestone to match.",
+    "saveDraft": "Save draft",
+    "closedHint": "Week {week} is closed. Ticks and readings are locked — remove the minutes at the bottom to reopen."
   },
   "report": {
     "title": "Parent report",
