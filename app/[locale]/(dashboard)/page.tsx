@@ -308,12 +308,10 @@ export default async function ClassPage({
 
       {/* WIG năm — 4 lĩnh vực */}
       <section>
-        <h2 className="font-display text-[17px] font-bold text-navy">
+        {/* Câu định nghĩa "WIG = Wildly Important Goal…" đã bỏ cùng đợt với bản trên màn của em. */}
+        <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
           {t('class.wigYear')}
         </h2>
-        <p className="mb-3 mt-0.5 max-w-[640px] text-[12px] font-semibold leading-relaxed text-grey-mid">
-          {t('class.wigGloss')}
-        </p>
         <div
           className="grid gap-3.5"
           style={{gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))'}}

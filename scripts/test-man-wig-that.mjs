@@ -109,6 +109,10 @@ const {data: em} = await admin
   .limit(1)
   .maybeSingle();
 
+// TRANG CHỦ CỦA GVCN — trước 13/08/2026 KHÔNG bài nào soi nó, và đúng chỗ ấy lọt một khoá dịch
+// ra màn hình ("class.wigGloss") sau khi tôi xoá khoá mà bỏ sót một nơi dùng. Bộ kiểm có sẵn phép
+// bắt khoá-dịch-lọt nhưng chưa từng chĩa vào trang này; chính chủ dự án nhìn thấy nó trước.
+await xem('/ — trang chủ của GVCN', '/', cGV, []);
 await xem('/wig — trang WIG của lớp', '/wig', cGV, ['WIG', '10A1']);
 await xem('/wig/chi-tiet — em nào làm tới đâu', '/wig/chi-tiet', cGV, ['10A1']);
 await xem('/wig/hop — phòng họp (bước 3 nay CHỈNH mốc)', '/wig/hop', cGV, ['10A1']);
