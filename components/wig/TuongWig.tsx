@@ -4,6 +4,7 @@ import {btnGold} from '@/components/ui/Field';
 import {duyetMucTieu} from '@/app/[locale]/(dashboard)/student/actions';
 import {DanhSachDatHo, type EmTrongLop} from '@/components/wig/DanhSachDatHo';
 import type {WigLop} from '@/components/student/FormMucTieu';
+import {ngayVN} from '@/lib/dates';
 
 // ════════════════════════════════════════════════════════════════════════════
 // BỨC TƯỜNG WIG — trận đánh của lớp ở trên, mục tiêu của từng em ở dưới
@@ -67,7 +68,7 @@ export async function TuongWig({
                   from: e.mucTieu!.baseline ?? 0,
                   to: e.mucTieu!.target_value,
                   unit: e.mucTieu!.unit,
-                  due: e.mucTieu!.end_date,
+                  due: ngayVN(e.mucTieu!.end_date),
                 })}
               </span>
               <SubmitButton className={btnGold} wrapClass="contents">

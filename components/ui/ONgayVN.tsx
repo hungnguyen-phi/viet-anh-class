@@ -2,6 +2,7 @@
 
 import {useId, useRef, useState, type ChangeEvent} from 'react';
 import {inputCls} from '@/components/ui/Field';
+export {ngayVN} from '@/lib/dates';
 
 // Ô NGÀY KIỂU VIỆT NAM — ngày / tháng / năm, ba ô có nhãn.
 //
@@ -32,12 +33,6 @@ export function ghepNgay(day: string, month: string, year: string): string {
   const soNgay = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
   if (dd < 1 || dd > soNgay) return '';
   return `${yy}-${p2(mm)}-${p2(dd)}`;
-}
-
-/** "2027-06-30" → "30/06/2027". Chuỗi rỗng hoặc sai dạng thì trả lại nguyên xi. */
-export function ngayVN(iso: string | null | undefined): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso ?? '');
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso ?? '');
 }
 
 export function ONgayVN({

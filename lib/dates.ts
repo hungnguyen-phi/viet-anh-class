@@ -340,3 +340,15 @@ export function gioiHanChonKy(now: Date = new Date()): {
     month: {min: m[0].label, max: m[m.length - 1].label},
   };
 }
+
+/**
+ * "2027-06-30" → "30/06/2027".
+ *
+ * Người Việt đọc ngày theo thứ tự ngày/tháng/năm. Chuỗi ISO là dạng CSDL cất giữ, không phải dạng
+ * để bày ra cho một em lớp 6 đọc — thẻ mục tiêu từng in thẳng "trước 2027-06-30" ra màn của em.
+ * Chuỗi rỗng hoặc sai dạng thì trả lại nguyên xi, để không nuốt mất dữ liệu lạ.
+ */
+export function ngayVN(iso: string | null | undefined): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso ?? '');
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso ?? '');
+}

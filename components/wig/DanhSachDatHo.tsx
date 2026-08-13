@@ -6,6 +6,7 @@ import {Check, Clock, Pencil, Plus, Trash2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {FormMucTieu, type DangSua, type WigLop} from '@/components/student/FormMucTieu';
 import {xoaMucTieuCuaEm} from '@/app/[locale]/(dashboard)/student/actions';
+import {ngayVN} from '@/lib/dates';
 
 // ════════════════════════════════════════════════════════════════════════════
 // DANH SÁCH LỚP — cô nhìn thấy CẢ EM CHƯA ĐẶT, và đặt hộ ngay tại chỗ
@@ -70,7 +71,7 @@ export function DanhSachDatHo({
                   from: m.baseline ?? 0,
                   to: m.target_value,
                   unit: m.unit,
-                  due: m.end_date,
+                  due: ngayVN(m.end_date),
                 })}
               </span>
             ) : (

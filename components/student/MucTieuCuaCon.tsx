@@ -1,6 +1,7 @@
 'use client';
 
 import {useState} from 'react';
+import {ngayVN} from '@/lib/dates';
 import {useTranslations} from 'next-intl';
 import {Check, CheckCircle2, Pencil, Plus, Target, Trash2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
@@ -263,7 +264,7 @@ function MotMucTieu({
               from: hocTap.baseline ?? 0,
               to: hocTap.target_value,
               unit: hocTap.unit,
-              due: hocTap.end_date,
+              due: ngayVN(hocTap.end_date),
             })}
           </p>
           {hocTap.viec && (
