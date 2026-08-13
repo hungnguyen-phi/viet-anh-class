@@ -95,7 +95,7 @@ export function ONgayVN({
         placeholder={chuNgay}
         value={phan.day}
         onChange={doi('day')}
-        className={`${o} max-w-[76px]`}
+        className={`${o} max-w-[110px]`}
       />
       <span aria-hidden className="text-sm font-bold text-grey-soft">
         /
@@ -109,7 +109,7 @@ export function ONgayVN({
         placeholder={chuThang}
         value={phan.month}
         onChange={doi('month')}
-        className={`${o} max-w-[80px]`}
+        className={`${o} max-w-[110px]`}
       />
       <span aria-hidden className="text-sm font-bold text-grey-soft">
         /
@@ -123,7 +123,7 @@ export function ONgayVN({
         placeholder={chuNam}
         value={phan.year}
         onChange={doi('year')}
-        className={`${o} max-w-[92px]`}
+        className={`${o} max-w-[120px]`}
       />
     </div>
   );

@@ -227,7 +227,7 @@ export function FormMucTieu({
         {/* ② "Từ X đến Y trước ngày nào" — công thức của canon, nằm gọn một hàng. */}
         <div className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
           <p className="mb-2 text-[13px] font-extrabold text-navy">{t('step2')}</p>
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-[1fr_1fr_1fr_1.4fr]">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             <Field label={t('now')} htmlFor="mt-baseline" error={err('baseline')}>
               <input
                 id="mt-baseline"
@@ -304,7 +304,9 @@ export function FormMucTieu({
             {/* Không có htmlFor: đây là NHÓM ba ô, nhãn của nhóm đã gắn bằng role="group"
                 bên trong <ONgayVN>. Trỏ htmlFor vào một id không tồn tại thì bấm vào nhãn
                 không đưa được con trỏ đi đâu cả. */}
-            <Field label={t('due')} error={err('due_on')} className="col-span-2 sm:col-span-1">
+            {/* Cả một hàng riêng: ba ô ngày/tháng/năm cộng hai dấu gạch không nhét vừa một cột
+                của lưới bốn cột — chữ trong ô bị cắt thành "Ng / Th / Nă". */}
+            <Field label={t('due')} error={err('due_on')} className="col-span-2 sm:col-span-3">
               {/* NGÀY / THÁNG / NĂM, không phải <input type="date">: ô đó chạy theo ngôn ngữ
                   của trình duyệt nên máy cài tiếng Anh hiện `mm/dd/yyyy`, và một em lớp 6 đọc
                   "06/30/2027" thì không biết đó là ngày nào. Cùng luật với ngày sinh (lib/dob.ts). */}

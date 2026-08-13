@@ -73,6 +73,11 @@ export default async function PhongHopCuaEmPage({
   const daChot = Boolean(dongTuan?.chot_at);
 
   const dm = (x: string) => `${x.slice(8, 10)}/${x.slice(5, 7)}`;
+  // CHỦ NHẬT của tuần đang họp — không phải thứ Hai tuần sau. shiftWeeks(+1) nhảy đúng 7
+  // ngày nên dải hiện ra thành "10/08 → 17/08", tức là tám ngày.
+  const chuNhat = new Date(`${hopMonday}T00:00:00Z`);
+  chuNhat.setUTCDate(chuNhat.getUTCDate() + 6);
+  const chuNhatISO = chuNhat.toISOString().slice(0, 10);
   const link = (m: string) => ({
     pathname: '/student/hop' as const,
     query: m === macDinh ? {} : {hop: m},
@@ -98,7 +103,7 @@ export default async function PhongHopCuaEmPage({
         </Link>
         <span className="text-[13px] font-extrabold text-navy">{t('summarising', {week: hopLabel})}</span>
         <span className="text-[11.5px] font-bold tabular-nums text-grey-mid">
-          {dm(hopMonday)} → {dm(shiftWeeks(hopMonday, 1))}
+          {dm(hopMonday)} → {dm(chuNhatISO)}
         </span>
         <Link href={link(shiftWeeks(hopMonday, 1))} className={nut} aria-label={t('nextWeek')}>
           <ArrowRight size={14} strokeWidth={2.5} />
