@@ -1252,7 +1252,7 @@
     "lockedHint": "Mục tiêu đã chốt (quá 1 ngày). Con muốn đổi thì nhắn cô nhé.",
     "step1": "① Con muốn tiến bộ ở việc gì?",
     "step2": "② Từ đâu tới đâu, trước ngày nào?",
-    "step3": "③ Mỗi tuần con làm gì?",
+    "step3": "③ Tuần này con làm gì?",
     "joinBattle": "Việc này giúp lớp mình ở mục tiêu nào?",
     "noBattle": "— con tự chọn, không thuộc mục tiêu lớp —",
     "now": "Từ",
@@ -1312,6 +1312,12 @@
     "formTitlePersonal": "Mục tiêu riêng của con",
     "titlePersonal": "Mục tiêu riêng của con",
     "openFormPersonal": "Con muốn thêm một mục tiêu của riêng con",
-    "openFormPersonalFor": "Thêm mục tiêu riêng cho em"
+    "openFormPersonalFor": "Thêm mục tiêu riêng cho em",
+    "areaAsk": "Mục tiêu này thuộc lĩnh vực nào?",
+    "readingAsk": "Số của con tuần này",
+    "readingNow": "Số mới nhất:",
+    "readingSave": "Ghi",
+    "readingByStudent": "con tự ghi",
+    "readingByTeacher": "cô ghi"
   }
 }

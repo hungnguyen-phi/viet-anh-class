@@ -778,14 +778,24 @@ export async function luuMucTieuCuaEm(
   // cũng chặn, đây chỉ là lớp thứ nhất để câu báo lỗi dễ hiểu hơn.
   const soi = kind === 'academic' && source_wig_id ? source_wig_id : null;
 
-  // LĨNH VỰC SUY RA, không hỏi. Trước đây form có một ô <select> ẩn chỉ để gửi giá trị này lên —
-  // một ô không ai thấy, không ai đổi được, mà vẫn hiện chữ "knowledge" trên bản đọc màn hình.
-  // Em đã chọn mục tiêu lớp mình góp sức rồi thì lĩnh vực chính là của mục tiêu ấy; không chọn
-  // gì thì đây là mục tiêu riêng, xếp vào Kiến thức.
+  // LĨNH VỰC: nối vào mục tiêu lớp thì THỪA KẾ, tự chọn thì HỎI.
   //
-  // Lấy từ CSDL chứ không tin ô trên form: đây là cột quyết định mục tiêu của em nằm ở nhánh nào
-  // của cây, và cũng là chỗ khoá wigs_em_uidx dựa vào.
-  let area: Database['public']['Enums']['wig_area'] = 'knowledge';
+  // Bản trước không hỏi bao giờ cả: không nối vào mục tiêu lớp là lặng lẽ xếp vào Kiến thức. Nên
+  // "chạy bộ mỗi sáng" nằm ở cột Kiến thức trên bảng họp, "học đàn" cũng vậy — cả bốn vòng lĩnh
+  // vực trên màn của em đọc sai, và chính em không có cách nào sửa. Chủ dự án bắt đúng chỗ này
+  // 13/08/2026. Nay ô "— con tự chọn —" mở ra bốn lĩnh vực để em bấm.
+  //
+  // Nhánh THỪA KẾ vẫn lấy từ CSDL chứ không tin ô trên form: khi đã có mục tiêu cha thì lĩnh vực
+  // là chuyện của cha, và đây là cột quyết định mục tiêu của em nằm ở nhánh nào của cây.
+  const LINH_VUC = ['knowledge', 'skills', 'english', 'physical'] as const;
+  const area_raw = String(formData.get('area') ?? '').trim();
+  let area: Database['public']['Enums']['wig_area'] = (
+    LINH_VUC as readonly string[]
+  ).includes(area_raw)
+    ? (area_raw as Database['public']['Enums']['wig_area'])
+    : 'knowledge';
+  if (!soi && !area_raw)
+    return {ok: false, fieldError: 'area', error: 'Mục tiêu này thuộc lĩnh vực nào?'};
   if (soi) {
     const {data: chaLop} = await supabase
       .from('wigs')
@@ -961,6 +971,59 @@ export async function danhDauDaDat(formData: FormData) {
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   veTrangEm(student_id, bo ? 'Đã bỏ đánh dấu' : 'Đã đánh dấu ĐẠT');
+}
+
+// ── SỐ ĐO NGOÀI APP (0108) ───────────────────────────────────────────────────────────────────
+//
+// Mục tiêu `measure_by='manual'` — cân nặng, chiều cao, điểm trung bình môn — app không đếm được.
+// Tới 0108 nó chỉ có đúng một bit `achieved_at`, nên không ai đọc ra em đang đi nhanh hay chậm và
+// buổi họp không có gì để cầm. Nay mỗi tuần một dòng số.
+//
+// Chủ dự án chốt: EM ghi được, CÔ ghi được, KHÔNG có bước duyệt, và đến khi buổi họp WIG của lớp
+// được chốt thì khoá. Chốt thật nằm ở RLS (rls_insert/update_wig_so_do đọc `tuan_da_hop`); hàm này
+// chỉ là cửa, và nó cố tình KHÔNG kiểm lại điều kiện khoá — hai chỗ cùng phán một luật là hai chỗ
+// để chúng trôi khỏi nhau, mà tầng dưới mới là tầng có thẩm quyền.
+//
+// `vai_tro` do MÁY CHỦ suy từ người đang đăng nhập, không đọc từ form: nó là thứ màn hình dùng để
+// nói "em tự ghi" hay "cô ghi", và một con số tự khai mà khai sai cả nguồn thì tệ hơn là không có.
+export async function ghiSoDo(_prev: MucTieuState, formData: FormData): Promise<MucTieuState> {
+  const me = await getCurrentProfile();
+  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
+
+  const wig_id = String(formData.get('wig_id') ?? '');
+  const raw = String(formData.get('gia_tri') ?? '').trim();
+  if (!wig_id) return {ok: false, error: 'Không rõ đang ghi cho mục tiêu nào.'};
+  if (raw === '') return {ok: false, fieldError: 'gia_tri', error: 'Con điền số đã nhé.'};
+
+  const gia_tri = Number(raw);
+  if (!Number.isFinite(gia_tri) || gia_tri < 0)
+    return {ok: false, fieldError: 'gia_tri', error: 'Phải là một số từ 0 trở lên.'};
+
+  const vai_tro = me.role === 'student' ? 'student' : 'teacher';
+  const supabase = await createClient();
+  const tuan = weekRangeVN();
+
+  // Một dòng cho mỗi (mục tiêu, tuần). Ghi lại trong cùng tuần là SỬA — hai con số cho một tuần
+  // thì buổi họp không biết đọc cái nào. 23505 nghĩa là dòng đã có, chuyển sang cập nhật.
+  const ban = {wig_id, week_start: tuan.start, gia_tri, nguoi_nhap: me.id, vai_tro};
+  const {error} = await supabase.from('wig_so_do').insert(ban);
+  if (error) {
+    if (error.code !== '23505') return {ok: false, error: friendlyError(error)};
+    const {data, error: e2} = await supabase
+      .from('wig_so_do')
+      .update(ban)
+      .eq('wig_id', wig_id)
+      .eq('week_start', tuan.start)
+      .select('id');
+    if (e2) return {ok: false, error: friendlyError(e2)};
+    // .select() để phân biệt "RLS chặn" với "đã ghi": thiếu nó thì tuần đã chốt vẫn báo thành công.
+    if ((data?.length ?? 0) === 0)
+      return {ok: false, error: 'Tuần này lớp đã họp chốt rồi nên số không sửa được nữa.'};
+  }
+
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  return {ok: true, message: 'Đã ghi số của tuần này.'};
 }
 
 // ── SỔ CỦA CON ───────────────────────────────────────────────────────────────────────────────

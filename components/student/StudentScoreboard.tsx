@@ -21,7 +21,7 @@ import {BuddyAuto} from '@/components/student/BuddyAuto';
 import {StudentWigManage, type ManageWig, type ManageLead} from '@/components/student/StudentWigManage';
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {EditRequestButton} from '@/components/student/EditRequestButton';
-import {MucTieuCuaCon, type MucTieuCuaEm} from '@/components/student/MucTieuCuaCon';
+import {MucTieuCuaCon, type MucTieuCuaEm, type SoDoCuaTuan} from '@/components/student/MucTieuCuaCon';
 import {SoCuaCon, type TrangSo} from '@/components/student/SoCuaCon';
 import {MeetingScoreboard} from '@/components/wig/MeetingScoreboard';
 import {AREAS, areaLabel, areaIcon, type Area} from '@/lib/areas';
@@ -310,7 +310,7 @@ export async function StudentScoreboard({
     : {createAdminClient: null};
   const admin = createAdminClient ? createAdminClient() : null;
 
-  const [cuaSoRes, ipRes, mangRes, daHopRes, leadRes, classLeadRes, mucTieuRes, wigLopRes, soRes] =
+  const [cuaSoRes, ipRes, mangRes, daHopRes, leadRes, classLeadRes, mucTieuRes, soDoRes, wigLopRes, soRes] =
     await Promise.all([
     // CỬA SỔ CHECK-IN của cơ sở em đang học. Lấy một lần, dùng cho cả buổi sáng lẫn buổi chiều.
     // Null khi em chưa có lớp (chưa biết cơ sở) → giao diện giữ nguyên hành vi cũ, không khoá gì.
@@ -377,6 +377,17 @@ export async function StudentScoreboard({
       .eq('student_id', studentId)
       .eq('scope', 'student')
       .eq('period', 'year'),
+    // SỐ ĐO NGOÀI APP của TUẦN NÀY (0108) — cân nặng, chiều cao, điểm TB môn. Đi chung chuyến này
+    // chứ không hỏi trong MucTieuCuaCon: khối ấy là client component, hỏi ở đó là thêm một vòng
+    // đi-về sau khi cả trang đã dựng xong.
+    //
+    // Lọc theo NGÀY THỨ HAI của tuần, cùng khoá mà `ghiSoDo` ghi vào. Không lấy cả lịch sử: thẻ chỉ
+    // hiện số của tuần đang chạy, kéo về hai mươi tuần để vẽ một dòng là trả tiền cho thứ không ai
+    // nhìn — lịch sử thuộc về buổi họp và báo cáo, không thuộc về thẻ này.
+    supabase
+      .from('wig_so_do')
+      .select('wig_id, gia_tri, vai_tro, updated_at')
+      .eq('week_start', weekDays[0]),
     // Trận đánh của lớp — để em chọn mình đang góp vào cái nào. Đây là LIÊN KẾT HƯỚNG ĐI, không
     // phải phép chia: con số của em do em đặt, không suy ra từ con số của lớp.
     classId
@@ -605,6 +616,24 @@ export async function StudentScoreboard({
     // lấy phần tử đầu là đủ, không cần lo còn sót cái nào.
     viec: m.lead_measures?.[0] ?? null,
   }));
+
+  // SỐ ĐO TUẦN NÀY, tra theo id mục tiêu. Định dạng giờ ghi Ở ĐÂY chứ không ở component: khối kia
+  // là client component, để nó tự gọi toLocaleString là mời sai lệch máy chủ/trình duyệt in ra hai
+  // chuỗi khác nhau rồi React kêu hydrate lệch.
+  const soDoTheoWig: Record<string, SoDoCuaTuan> = {};
+  for (const r of (soDoRes.data ?? []) as {
+    wig_id: string;
+    gia_tri: number;
+    vai_tro: string;
+    updated_at: string;
+  }[]) {
+    soDoTheoWig[r.wig_id] = {
+      wig_id: r.wig_id,
+      gia_tri: Number(r.gia_tri),
+      vai_tro: r.vai_tro,
+      ghi_luc: r.updated_at ? r.updated_at.slice(0, 10) : null,
+    };
+  }
   // Sổ của con — mới nhất trước; thẻ tự tách trang của tuần đang chạy ra khỏi phần lịch sử.
   const trangSo = (soRes.data ?? []) as TrangSo[];
   const wigLopChon = ((wigLopRes.data ?? []) as {id: string; area: string; title: string | null}[]).map(
@@ -773,6 +802,10 @@ export async function StudentScoreboard({
               canManage={canManage}
               dayShort={t.raw('dayShort') as string[]}
               namHoc={cls?.school_year ?? null}
+              areaMeta={areaMeta}
+              locale={locale}
+              soDoTheoWig={soDoTheoWig}
+              tuanChuaChot={tickOpen}
             />
             <div className="border-t border-navy/10 pt-3">
               <SoCuaCon

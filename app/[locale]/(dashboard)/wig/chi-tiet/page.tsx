@@ -2,6 +2,7 @@ import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {ArrowLeft} from 'lucide-react';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
+import {getAreaMeta} from '@/lib/area-config';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext} from '@/lib/queries';
 import {Link} from '@/i18n/navigation';
@@ -47,7 +48,9 @@ export default async function ChiTietPage({
 
   // Dữ liệu cho BỨC TƯỜNG WIG — trận đánh của lớp, mục tiêu của từng em, và sĩ số để nói được
   // "bao nhiêu em đã đặt". Ba câu chạy song song vì không câu nào cần kết quả của câu kia.
-  const [{data: wigLop}, {data: mucTieuRows}, {data: emRows}, {data: thangRows}] = await Promise.all([
+  // areaMeta đi CHUNG chuyến này, không await riêng lúc dựng JSX: một await lẻ giữa phần render là
+  // đúng cái tầng chờ nối đuôi mà đợt audit tốc độ 10/08/2026 đi dọn.
+  const [{data: wigLop}, {data: mucTieuRows}, {data: emRows}, {data: thangRows}, areaMeta] = await Promise.all([
     supabase
       .from('wigs')
       .select('id, title, area, target_value, baseline, unit')
@@ -57,7 +60,7 @@ export default async function ChiTietPage({
     supabase
       .from('wigs')
       .select(
-        'id, student_id, kind, status, set_by, measure_by, title, baseline, target_value, unit, end_date, created_at, achieved_at, source_wig_id, lead_measures(title, target_value, active_weekdays)',
+        'id, student_id, kind, status, set_by, measure_by, title, baseline, target_value, unit, end_date, created_at, achieved_at, area, source_wig_id, lead_measures(title, target_value, active_weekdays)',
       )
       .eq('class_id', myClass.id)
       .eq('scope', 'student')
@@ -78,6 +81,7 @@ export default async function ChiTietPage({
       .eq('scope', 'class')
       .eq('period', 'month')
       .order('period_label'),
+    getAreaMeta(),
   ]);
 
   const thangTheoNam = new Map<string, {id: string; period_label: string | null; target_value: number}[]>();
@@ -106,6 +110,7 @@ export default async function ChiTietPage({
     end_date: string;
     created_at: string;
     achieved_at: string | null;
+    area: string;
     source_wig_id: string | null;
     lead_measures: {title: string; target_value: number; active_weekdays: number[] | null}[] | null;
   };
@@ -122,6 +127,7 @@ export default async function ChiTietPage({
       target_value: m.target_value,
       unit: m.unit,
       end_date: m.end_date,
+      area: m.area,
       achieved_at: m.achieved_at,
       source_wig_id: m.source_wig_id,
       viec: m.lead_measures?.[0] ?? null,
@@ -188,6 +194,8 @@ export default async function ChiTietPage({
         wigLopChon={wigLopChon}
         danhSach={danhSach}
         dayShort={t.raw('dayShort') as string[]}
+        areaMeta={areaMeta}
+        locale={locale}
       />
 
       {/* Chỉnh nhịp — app rải đều 12 tháng khi cô khai mục tiêu năm; đây là chỗ kéo lại cho khớp

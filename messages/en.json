@@ -1252,7 +1252,7 @@
     "lockedHint": "This goal is locked in (more than a day old). Ask your teacher to change it.",
     "step1": "① What do you want to get better at?",
     "step2": "② From where to where, and by when?",
-    "step3": "③ What will you do each week?",
+    "step3": "③ What will you do this week?",
     "joinBattle": "Which class goal does this help with?",
     "noBattle": "— my own choice, not a class goal —",
     "now": "From",
@@ -1312,6 +1312,12 @@
     "formTitlePersonal": "My own goal",
     "titlePersonal": "My own goal",
     "openFormPersonal": "I want to add a goal of my own",
-    "openFormPersonalFor": "Add a personal goal for this student"
+    "openFormPersonalFor": "Add a personal goal for this student",
+    "areaAsk": "Which area does this goal belong to?",
+    "readingAsk": "Your number this week",
+    "readingNow": "Latest:",
+    "readingSave": "Save",
+    "readingByStudent": "entered by you",
+    "readingByTeacher": "entered by your teacher"
   }
 }

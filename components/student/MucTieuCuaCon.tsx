@@ -6,6 +6,8 @@ import {Check, CheckCircle2, Pencil, Plus, Target, Trash2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {btnGhost, btnGold} from '@/components/ui/Field';
 import {FormMucTieu, type WigLop} from '@/components/student/FormMucTieu';
+import {OSoDo} from '@/components/student/OSoDo';
+import {type Area, type AreaMeta} from '@/lib/areas';
 import {
   duyetMucTieu,
   danhDauDaDat,
@@ -57,6 +59,9 @@ export type MucTieuCuaEm = {
 
 export type {WigLop};
 
+/** Số đo tuần này của một mục tiêu đo-ngoài-app (0108). `ghi_luc` đã định dạng sẵn ở máy chủ. */
+export type SoDoCuaTuan = {wig_id: string; gia_tri: number; vai_tro: string; ghi_luc: string | null};
+
 const CUA_SO_MS = 24 * 60 * 60 * 1000;
 
 export function MucTieuCuaCon({
@@ -68,6 +73,10 @@ export function MucTieuCuaCon({
   canManage,
   dayShort,
   namHoc,
+  areaMeta,
+  locale,
+  soDoTheoWig,
+  tuanChuaChot,
 }: {
   studentId: string;
   classId: string;
@@ -79,6 +88,13 @@ export function MucTieuCuaCon({
   // Nhãn năm học của lớp ("2026–2027") — để nói rõ mục tiêu này sống bao lâu. Không có lớp thì
   // thôi, đừng bịa một khoảng thời gian ra.
   namHoc: string | null;
+  /** Tên + màu 4 lĩnh vực — form hỏi lĩnh vực khi em tự chọn, không nối vào mục tiêu lớp. */
+  areaMeta: Record<Area, AreaMeta>;
+  locale: string;
+  /** Số đo của tuần này, tra theo id mục tiêu. */
+  soDoTheoWig: Record<string, SoDoCuaTuan>;
+  /** Lớp CHƯA bấm chốt buổi họp tuần này — còn ghi số được (0108). */
+  tuanChuaChot: boolean;
 }) {
   const [bao, setBao] = useState('');
   // HAI MỤC TIÊU, KHÔNG PHẢI MỘT. CSDL cho mỗi em đúng một `academic` và một `personal`
@@ -87,7 +103,8 @@ export function MucTieuCuaCon({
   const hocTap = mucTieu.find((m) => m.kind === 'academic') ?? null;
   const rieng = mucTieu.find((m) => m.kind === 'personal') ?? null;
 
-  const chung = {studentId, classId, wigLop, laChinhEm, canManage, dayShort, namHoc, onBao: setBao};
+  const chung = {studentId, classId, wigLop, laChinhEm, canManage, dayShort, namHoc,
+                 areaMeta, locale, soDoTheoWig, tuanChuaChot, onBao: setBao};
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -117,6 +134,10 @@ function MotMucTieu({
   canManage,
   dayShort,
   namHoc,
+  areaMeta,
+  locale,
+  soDoTheoWig,
+  tuanChuaChot,
   onBao,
 }: {
   kind: 'academic' | 'personal';
@@ -128,6 +149,10 @@ function MotMucTieu({
   canManage: boolean;
   dayShort: string[];
   namHoc: string | null;
+  areaMeta: Record<Area, AreaMeta>;
+  locale: string;
+  soDoTheoWig: Record<string, SoDoCuaTuan>;
+  tuanChuaChot: boolean;
   onBao: (s: string) => void;
 }) {
   const t = useTranslations('goal');
@@ -162,6 +187,8 @@ function MotMucTieu({
             dangSua={null}
             laChinhEm={laChinhEm}
             dayShort={dayShort}
+            areaMeta={areaMeta}
+            locale={locale}
             onClose={() => setMoForm(false)}
             onDone={onBao}
           />
@@ -179,6 +206,7 @@ function MotMucTieu({
     hocTap.status === 'sent' ||
     Date.now() - new Date(hocTap.created_at).getTime() < CUA_SO_MS;
   const emSuaDuoc = canManage || (laChinhEm && conMo);
+  const soDo = hocTap ? soDoTheoWig[hocTap.id] : undefined;
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
@@ -235,7 +263,20 @@ function MotMucTieu({
             </p>
           )}
 
-          {/* ĐÍCH GHI NHẬN NGOÀI — không vẽ vạch phần trăm, chỉ có đạt hay chưa (0101). */}
+          {/* ĐÍCH GHI NHẬN NGOÀI — không vẽ vạch phần trăm, chỉ có đạt hay chưa (0101).
+              Từ 0108 có thêm ô SỐ ĐO ở ngay trên: "đạt/chưa đạt" là một bit cho cả một năm học,
+              em cao thêm 3cm giữa kỳ thì không chỗ nào ghi và buổi họp không có gì để cầm. */}
+          {hocTap.measure_by === 'manual' && (
+            <OSoDo
+              wigId={hocTap.id}
+              unit={hocTap.unit}
+              soHienTai={soDo?.gia_tri ?? null}
+              nguoiGhi={soDo?.vai_tro ?? null}
+              ghiLuc={soDo?.ghi_luc ?? null}
+              moKhoa={tuanChuaChot}
+              canGhi={canGhi}
+            />
+          )}
           {hocTap.measure_by === 'manual' && (
             <form action={danhDauDaDat} className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="wig_id" value={hocTap.id} />
@@ -332,6 +373,8 @@ function MotMucTieu({
           dangSua={hocTap}
           laChinhEm={laChinhEm}
           dayShort={dayShort}
+          areaMeta={areaMeta}
+          locale={locale}
           onClose={() => setMoForm(false)}
           onDone={onBao}
         />
