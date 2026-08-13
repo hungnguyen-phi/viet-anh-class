@@ -1322,6 +1322,8 @@
     "readingByStudent": "con tự ghi",
     "readingByTeacher": "cô ghi",
     "monthPace": "Tháng này: {n} {unit}",
-    "pickBattle": "— chọn mục tiêu của lớp —"
+    "pickBattle": "— chọn mục tiêu của lớp —",
+    "paceTooEasy": "Với {n} lần mỗi tuần, con xong trong {can} tuần mà hạn còn {con} tuần — đặt đích cao hơn nhé?",
+    "paceTooHard": "Với {n} lần mỗi tuần, con cần {can} tuần mà hạn chỉ còn {con} tuần."
   }
 }

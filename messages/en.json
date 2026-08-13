@@ -1322,6 +1322,8 @@
     "readingByStudent": "entered by you",
     "readingByTeacher": "entered by your teacher",
     "monthPace": "This month: {n} {unit}",
-    "pickBattle": "— pick a class goal —"
+    "pickBattle": "— pick a class goal —",
+    "paceTooEasy": "At {n} times a week you finish in {can} weeks but have {con} — aim higher?",
+    "paceTooHard": "At {n} times a week you need {can} weeks but only have {con}."
   }
 }

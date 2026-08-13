@@ -124,3 +124,37 @@ export function nhipCuaMoc({
     thieuNhip: tongViecCho > 0 && mocCan > 0 ? Math.round(mocCan - tongViecCho) : 0,
   };
 }
+
+/**
+ * NHỊP CỦA MỘT MỤC TIÊU — quãng phải đi có khớp với việc mỗi tuần không.
+ *
+ * Sinh ra 13/08/2026 vì một chuyện thật: em đặt "từ 7 đến 9 tiết" (quãng 2) rồi giao cho mình
+ * "làm bài tập 4 lần mỗi tuần". Nửa tuần là xong, nhưng hạn thì đặt bảy tuần sau — và app nhận
+ * nguyên, không nói một chữ. Đến lúc tick hai cái thì vòng tròn nhảy 100% và nhìn như app hỏng,
+ * trong khi phép tính đúng: chính KẾ HOẠCH tự mâu thuẫn ngay từ lúc gõ vào.
+ *
+ * Đây là bản cho MỤC TIÊU (nhiều tuần); `nhipCuaMoc` ở trên là bản cho MỘT MỐC TUẦN của lớp.
+ * Hai phép khác nhau, cùng một câu hỏi: con số đặt ra và việc giao xuống có nói cùng một thứ không.
+ *
+ * `qua_de`: làm xong trong chưa tới nửa thời gian còn lại — mục tiêu đặt hụt, nên nâng đích.
+ * `khong_kip`: cả quãng thời gian còn lại cũng không đủ — nên hạ đích hoặc tăng số buổi.
+ */
+export function nhipCuaMucTieu({
+  quang,
+  moiTuan,
+  tuanCon,
+}: {
+  /** Đích trừ chỗ đang đứng. */
+  quang: number;
+  /** Số lượt tick mỗi tuần (= số thứ được bật), đã nhân hệ số nếu có. */
+  moiTuan: number;
+  /** Số tuần từ nay tới hạn. */
+  tuanCon: number;
+}): {tuanCan: number; qua_de: boolean; khong_kip: boolean} {
+  // Thiếu bất cứ vế nào thì KHÔNG phán gì. Em đang gõ dở dang là chuyện thường; bắn cảnh báo vào
+  // giữa lúc ấy chỉ làm em tưởng mình gõ sai.
+  if (!(quang > 0) || !(moiTuan > 0) || !(tuanCon > 0))
+    return {tuanCan: 0, qua_de: false, khong_kip: false};
+  const tuanCan = Math.ceil(quang / moiTuan);
+  return {tuanCan, qua_de: tuanCan * 2 <= tuanCon, khong_kip: tuanCan > tuanCon};
+}

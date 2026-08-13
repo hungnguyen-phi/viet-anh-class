@@ -7,6 +7,8 @@ import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder, inputCls, selectCls, btnGold} from '@/components/ui/Field';
 import {luuMucTieuCuaEm, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
+import {nhipCuaMucTieu} from '@/lib/wig-nhip';
+import {todayInVN} from '@/lib/dates';
 
 // ════════════════════════════════════════════════════════════════════════════
 // FORM ĐẶT MỤC TIÊU — ba câu hỏi, nằm trong một hộp thoại
@@ -106,6 +108,14 @@ export function FormMucTieu({
   const err = (f: string) => (state.fieldError === f ? state.error : null);
   const doiThu = (d: number) =>
     setThu((p) => (p.includes(d) ? p.filter((x) => x !== d) : [...p, d].sort((a, b) => a - b)));
+
+  // NHỊP: quãng phải đi so với việc mỗi tuần. Tính ở đây để cảnh báo hiện NGAY LÚC EM ĐANG GÕ,
+  // không đợi bấm Gửi rồi mới biết. Dùng chung lib/wig-nhip với phòng họp — một phép, một nguồn.
+  const quang = Math.max(Number(g.target || 0) - Number(g.baseline || 0), 0);
+  const tuanCon = g.due
+    ? Math.max(Math.ceil((Date.parse(g.due) - Date.parse(todayInVN())) / 604800000), 0)
+    : 0;
+  const nhip = nhipCuaMucTieu({quang, moiTuan: thu.length, tuanCon});
 
   return (
     <Popup
@@ -287,6 +297,23 @@ export function FormMucTieu({
               >
                 {thu.length === 0 ? t('pickADay') : t('perWeekCount', {n: thu.length})}
               </p>
+
+              {/* KẾ HOẠCH CÓ TỰ MÂU THUẪN KHÔNG — nói ngay lúc em đang gõ.
+                  Chuyện thật 13/08/2026: em đặt "từ 7 đến 9 tiết" (quãng 2) rồi giao cho mình 4
+                  lần mỗi tuần, hạn bảy tuần sau. Nửa tuần là xong. App nhận nguyên, không nói một
+                  chữ — rồi tick hai cái là vòng tròn nhảy 100% và nhìn như app hỏng, trong khi
+                  phép tính đúng: kế hoạch sai từ lúc gõ. Cảnh báo, KHÔNG chặn — đây là mục tiêu
+                  của em, app chỉ có quyền nói ra chỗ vênh. */}
+              {nhip.qua_de && (
+                <p className="mt-1.5 text-[12px] font-bold text-gold-text">
+                  {t('paceTooEasy', {n: thu.length, can: nhip.tuanCan, con: tuanCon})}
+                </p>
+              )}
+              {nhip.khong_kip && (
+                <p className="mt-1.5 text-[12px] font-bold text-status-bad">
+                  {t('paceTooHard', {n: thu.length, can: nhip.tuanCan, con: tuanCon})}
+                </p>
+              )}
             </div>
           )}
         </div>
