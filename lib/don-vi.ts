@@ -17,7 +17,18 @@
  */
 export type KieuDonVi = 'luot' | 'luong' | 'do';
 
-export type DonVi = {ma: string; kieu: KieuDonVi};
+export type DonVi = {
+  ma: string;
+  kieu: KieuDonVi;
+  /**
+   * Có bày trong dropdown không.
+   *
+   * DANH SÁCH BÀY RA và BẢNG PHÂN LOẠI là hai việc khác nhau. Dropdown phải ngắn — chủ dự án chốt
+   * 13/08/2026 — nhưng bảng phân loại thì phải đủ: bỏ "%" khỏi bảng là ai gõ tay "%" sẽ bị xếp
+   * nhầm sang loại cộng dồn, rồi app cộng 60% với 80% ra 140%.
+   */
+  phoBien?: boolean;
+};
 
 /**
  * DANH SÁCH ĐỂ CHỌN, thay cho ô gõ tay.
@@ -33,21 +44,26 @@ export type DonVi = {ma: string; kieu: KieuDonVi};
  * 'luong': hỏi "mỗi lần bao nhiêu" bao giờ cũng an toàn hơn là mặc định 1 rồi đếm sai.
  */
 export const DON_VI: DonVi[] = [
-  {ma: 'buổi', kieu: 'luot'},
-  {ma: 'lần', kieu: 'luot'},
-  {ma: 'ngày', kieu: 'luot'},
-  {ma: 'tiết', kieu: 'luong'},
-  {ma: 'giờ', kieu: 'luong'},
+  {ma: 'buổi', kieu: 'luot', phoBien: true},
+  {ma: 'lần', kieu: 'luot', phoBien: true},
+  {ma: 'ngày', kieu: 'luot', phoBien: true},
+  {ma: 'tiết', kieu: 'luong', phoBien: true},
+  {ma: 'giờ', kieu: 'luong', phoBien: true},
+  {ma: 'bài', kieu: 'luong', phoBien: true},
+  {ma: 'điểm', kieu: 'do', phoBien: true},
+  {ma: 'kg', kieu: 'do', phoBien: true},
+  {ma: 'cm', kieu: 'do', phoBien: true},
+  // Dưới đây KHÔNG bày trong dropdown (giữ nó ngắn), nhưng vẫn phải nằm trong bảng phân loại: em
+  // gõ tay qua ô "Khác…" thì chúng phải về đúng kiểu, không rơi vào mặc định.
   {ma: 'phút', kieu: 'luong'},
-  {ma: 'bài', kieu: 'luong'},
   {ma: 'trang', kieu: 'luong'},
   {ma: 'từ', kieu: 'luong'},
   {ma: 'km', kieu: 'luong'},
-  {ma: 'điểm', kieu: 'do'},
-  {ma: 'kg', kieu: 'do'},
-  {ma: 'cm', kieu: 'do'},
   {ma: '%', kieu: 'do'},
 ];
+
+/** Chỉ những đơn vị bày trong dropdown. */
+export const DON_VI_CHON = DON_VI.filter((d) => d.phoBien);
 
 const BO_DAU = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase().trim();

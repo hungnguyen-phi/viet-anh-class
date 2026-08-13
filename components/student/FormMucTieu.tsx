@@ -9,7 +9,7 @@ import {Field, ctlWithBorder, inputCls, selectCls, btnGold} from '@/components/u
 import {luuMucTieuCuaEm, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
 import {nhipCuaMucTieu} from '@/lib/wig-nhip';
 import {todayInVN} from '@/lib/dates';
-import {kieuDonVi, coTrongDanhSach, DON_VI} from '@/lib/don-vi';
+import {kieuDonVi, coTrongDanhSach, DON_VI_CHON} from '@/lib/don-vi';
 
 // ════════════════════════════════════════════════════════════════════════════
 // FORM ĐẶT MỤC TIÊU — ba câu hỏi, nằm trong một hộp thoại
@@ -301,7 +301,7 @@ export function FormMucTieu({
                       thì 1 tick bao nhiêu tiết", "điểm thì tự điền". */}
                   {(['luot', 'luong', 'do'] as const).map((k) => (
                     <optgroup key={k} label={t(`unitGroup_${k}`)}>
-                      {DON_VI.filter((d) => d.kieu === k).map((d) => (
+                      {DON_VI_CHON.filter((d) => d.kieu === k).map((d) => (
                         <option key={d.ma} value={d.ma}>
                           {d.ma}
                         </option>
