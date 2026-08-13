@@ -36,6 +36,15 @@ export type TickerLead = {
   // mấy bạn nữa" khi em đã xong phần mình.
   myTotal: number | null;
   studentsDone: number | null;
+  // 0110 — Ô NGÀY LÀ Ô ĐIỀN SỐ, không phải một chạm.
+  //
+  // Đơn vị đếm được bằng một lượt (ngày, buổi, tiết, lần) thì một chạm là đủ và là thứ phải giữ:
+  // đây là việc em làm MỖI NGÀY, thêm một bước gõ vào đúng chỗ ấy là thêm ma sát vào chỗ ít chịu
+  // được ma sát nhất. Đơn vị không đếm được bằng một lượt (giờ, bài, trang, lead) thì một chạm nói
+  // dối: em học 3 giờ hôm nay và 1 giờ hôm sau, tick đều ra 1-1. Chủ dự án chốt 13/08/2026.
+  nhapLuong: boolean;
+  /** Lượng của từng ngày em đã ghi. Chỉ dùng khi `nhapLuong`. */
+  myValues: Record<string, number>;
 };
 
 type Action = {leadId: string; date: string; on: boolean};
@@ -121,6 +130,59 @@ export function LeadTicker({
     const n = new Date(`${d}T00:00:00Z`).getUTCDay();
     return n === 0 ? 7 : n;
   };
+
+  // GHI LƯỢNG — cho việc đếm theo số (nhapLuong).
+  //
+  // KHÔNG cập nhật lạc quan ở đây, khác hẳn `toggle`. Lý do của useOptimistic là "bấm mà không
+  // thấy gì thì người ta bấm lại"; còn đây em GÕ một con số rồi rời ô, nên đã có phản hồi thị giác
+  // sẵn trong chính ô ấy. Đoán trước một con số do người gõ còn dễ nhảy số hơn là chờ.
+  //
+  // Ô để TRỐNG = xoá dòng của hôm đó, đúng nghĩa "hôm nay không làm". Không ghi 0: một dòng value=0
+  // vướng `lead_progress_value_pos`, và "có ghi nhận nhưng bằng 0" khác "không có ghi nhận".
+  function ghiLuong(lead: TickerLead, date: string, raw: string) {
+    if (!canTick || !tickOpen || date > today) return;
+    const cu = lead.myValues[date];
+    const val = raw.trim() === '' ? null : Number(raw);
+    if (val !== null && (!Number.isFinite(val) || val <= 0)) {
+      setErr(t('luongPhaiDuong'));
+      return;
+    }
+    if ((cu ?? null) === val) return;
+    setErr(null);
+    startTransition(async () => {
+      if (val === null) {
+        const {error} = await supabase
+          .from('lead_progress')
+          .delete()
+          .eq('lead_measure_id', lead.id)
+          .eq('student_id', studentId)
+          .eq('logged_date', date);
+        if (error) {
+          setErr(t('undoError'));
+          return;
+        }
+      } else {
+        // Một dòng mỗi (việc, em, ngày) — uq_lead_progress_daily. Ghi lại cùng ngày là SỬA.
+        const {error} = await supabase.from('lead_progress').upsert(
+          {
+            lead_measure_id: lead.id,
+            student_id: studentId,
+            logged_by: nguoiGhi,
+            value: val,
+            logged_date: date,
+          },
+          {onConflict: 'lead_measure_id,student_id,logged_date'},
+        );
+        if (error) {
+          // Trigger chan_luong_vo_ly (0110) chặn số lớn hơn cả chỉ tiêu một tuần — nói đúng chuyện
+          // đó thay vì câu lỗi chung, vì đây là lỗi người gõ sửa được ngay.
+          setErr(error.code === '23514' ? t('luongQuaLon', {n: lead.target}) : t('tickError'));
+          return;
+        }
+      }
+      router.refresh();
+    });
+  }
 
   function toggle(lead: TickerLead, date: string) {
     if (!canTick || !tickOpen || date > today) return;
@@ -256,6 +318,39 @@ export function LeadTicker({
             const future = d > today;
             const isToday = d === today;
             const disabled = !canTick || !tickOpen || future;
+
+            // ── Ô ĐIỀN SỐ (0110) ──
+            // Nhãn thứ nằm TRÊN ô, không thay chỗ ô: em phải thấy cả "thứ mấy" lẫn "bao nhiêu"
+            // cùng lúc. Ghi khi rời ô (onBlur) chứ không theo từng phím — gõ "12" mà ghi ngay ở
+            // phím đầu là ghi mất một dòng value=1 rồi sửa, và trigger chặn số vô lý sẽ nổ giữa
+            // chừng lúc em còn đang gõ dở.
+            if (l.nhapLuong)
+              return (
+                <label key={d} className="flex flex-col items-center gap-0.5">
+                  <span
+                    className={`text-[10.5px] font-extrabold ${isToday ? 'text-navy' : 'text-grey-mid'}`}
+                  >
+                    {dayShort[isoDow(d) - 1]}
+                  </span>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    inputMode="decimal"
+                    defaultValue={l.myValues[d] ?? ''}
+                    disabled={disabled}
+                    onBlur={(e) => ghiLuong(l, d, e.target.value)}
+                    aria-label={`${l.title} — ${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
+                    title={`${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
+                    className={`h-11 w-[52px] rounded-[12px] border-[1.5px] text-center text-[13px] font-extrabold tabular-nums transition-all ${
+                      l.myValues[d] ? 'border-transparent bg-gold text-navy' : 'border-navy/15 bg-white text-navy'
+                    } ${isToday && !l.myValues[d] ? 'border-navy ring-2 ring-navy/15' : ''} ${
+                      disabled ? 'cursor-default opacity-45' : ''
+                    }`}
+                  />
+                </label>
+              );
+
             return (
               <button
                 key={d}

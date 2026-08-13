@@ -9,6 +9,7 @@ import {Field, ctlWithBorder, inputCls, selectCls, btnGold} from '@/components/u
 import {luuMucTieuCuaEm, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
 import {nhipCuaMucTieu} from '@/lib/wig-nhip';
 import {todayInVN} from '@/lib/dates';
+import {kieuDonVi} from '@/lib/don-vi';
 
 // ════════════════════════════════════════════════════════════════════════════
 // FORM ĐẶT MỤC TIÊU — ba câu hỏi, nằm trong một hộp thoại
@@ -92,6 +93,7 @@ export function FormMucTieu({
     unit: dangSua?.unit ?? '',
     due: dangSua?.end_date ?? '',
     viec: dangSua?.viec?.title ?? '',
+    luong: dangSua?.viec?.target_value != null ? String(dangSua.viec.target_value) : '',
   });
   const duCau = Boolean(g.title && g.target && g.unit && g.due);
 
@@ -109,13 +111,18 @@ export function FormMucTieu({
   const doiThu = (d: number) =>
     setThu((p) => (p.includes(d) ? p.filter((x) => x !== d) : [...p, d].sort((a, b) => a - b)));
 
+  // KIỂU ĐƠN VỊ (0110) quyết định bước ③ trông ra sao. Máy chủ tự suy lại từ đơn vị nên đây chỉ
+  // là để bày đúng ô — không phải nguồn quyết định.
+  const kieu = kieuDonVi(g.unit);
+  const moiTuan = kieu === 'luong' ? Number(g.luong || 0) : thu.length;
+
   // NHỊP: quãng phải đi so với việc mỗi tuần. Tính ở đây để cảnh báo hiện NGAY LÚC EM ĐANG GÕ,
   // không đợi bấm Gửi rồi mới biết. Dùng chung lib/wig-nhip với phòng họp — một phép, một nguồn.
   const quang = Math.max(Number(g.target || 0) - Number(g.baseline || 0), 0);
   const tuanCon = g.due
     ? Math.max(Math.ceil((Date.parse(g.due) - Date.parse(todayInVN())) / 604800000), 0)
     : 0;
-  const nhip = nhipCuaMucTieu({quang, moiTuan: thu.length, tuanCon});
+  const nhip = nhipCuaMucTieu({quang, moiTuan, tuanCon});
 
   return (
     <Popup
@@ -252,7 +259,10 @@ export function FormMucTieu({
           </div>
         </div>
 
-        {/* ③ Mỗi tuần con làm gì. Bỏ trống được: khi ấy đây là đích ghi nhận ngoài (0101). */}
+        {/* ③ Tuần này con làm gì. Bỏ trống được: khi ấy đây là đích ghi nhận ngoài (0101).
+            ĐƠN VỊ ĐO LẠI (điểm, kg, cm) KHÔNG có bước này: cộng 7 điểm với 8 điểm ra 15 điểm là
+            con số app không có quyền bày. Loại ấy ghi con số thật ở ô số đo mỗi tuần (0108). */}
+        {kieu !== 'do' && (
         <div className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
           <p className="mb-2 text-[13px] font-extrabold text-navy">{t('step3')}</p>
           {/* Không còn `hint`. Câu cũ ("Để trống cũng được — xem dòng chữ nghiêng bên dưới") bắt
@@ -311,12 +321,44 @@ export function FormMucTieu({
               )}
               {nhip.khong_kip && (
                 <p className="mt-1.5 text-[12px] font-bold text-status-bad">
-                  {t('paceTooHard', {n: thu.length, can: nhip.tuanCan, con: tuanCon})}
+                  {t('paceTooHard', {n: moiTuan, can: nhip.tuanCan, con: tuanCon})}
                 </p>
+              )}
+
+              {/* ĐẾM THEO LƯỢNG (0110): "mấy thứ trong tuần" và "bao nhiêu {đơn vị} mỗi tuần" là
+                  HAI con số khác nhau — em học 5 buổi nhưng đặt 10 giờ. 0103 bỏ ô này đi là đúng
+                  cho một-chạm (số lần luôn bằng số thứ), và sai cho đếm-theo-lượng. */}
+              {kieu === 'luong' && (
+                <div className="mt-2.5">
+                  <Field
+                    label={t('weekAmount', {unit: g.unit})}
+                    htmlFor="mt-luong"
+                    error={err('viec_luong')}
+                  >
+                    <input
+                      id="mt-luong"
+                      name="viec_luong"
+                      type="number"
+                      step="any"
+                      min="0.01"
+                      inputMode="decimal"
+                      value={g.luong}
+                      onChange={(e) => setG((p) => ({...p, luong: e.target.value}))}
+                      className={ctlWithBorder(state.fieldError === 'viec_luong')}
+                    />
+                  </Field>
+                </div>
               )}
             </div>
           )}
         </div>
+        )}
+
+        {kieu === 'do' && g.unit && (
+          <p className="rounded-[10px] bg-navy/[0.05] px-2.5 py-2 text-[12px] font-semibold text-grey-mid">
+            {t('unitMeasured', {unit: g.unit})}
+          </p>
+        )}
 
         {/* CÂU MỤC TIÊU — ráp từ chính những ô em vừa gõ. */}
         <div

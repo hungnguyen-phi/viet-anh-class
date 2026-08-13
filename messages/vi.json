@@ -771,7 +771,9 @@
     "moodAt": "Đã điểm danh lúc {time}",
     "moodLate": "Muộn",
     "moodClosed": "Ngoài giờ check-in. Sáng nhận từ 6h30 đến 8h00, chiều từ 16h00.",
-    "moodLocked": "Đã khoá — cảm xúc buổi sáng chỉ sửa được trước 7h00."
+    "moodLocked": "Đã khoá — cảm xúc buổi sáng chỉ sửa được trước 7h00.",
+    "luongPhaiDuong": "Con điền một số lớn hơn 0 nhé.",
+    "luongQuaLon": "Một ngày không ghi được nhiều hơn chỉ tiêu cả tuần ({n})."
   },
   "campusReport": {
     "title": "Báo cáo cơ sở",
@@ -1324,6 +1326,8 @@
     "monthPace": "Tháng này: {n} {unit}",
     "pickBattle": "— chọn mục tiêu của lớp —",
     "paceTooEasy": "Với {n} lần mỗi tuần, con xong trong {can} tuần mà hạn còn {con} tuần — đặt đích cao hơn nhé?",
-    "paceTooHard": "Với {n} lần mỗi tuần, con cần {can} tuần mà hạn chỉ còn {con} tuần."
+    "paceTooHard": "Với {n} lần mỗi tuần, con cần {can} tuần mà hạn chỉ còn {con} tuần.",
+    "weekAmount": "Mỗi tuần bao nhiêu {unit}?",
+    "unitMeasured": "“{unit}” là số đo lại mỗi lần, không cộng dồn — con ghi số ở thẻ mục tiêu, mỗi tuần một lần."
   }
 }

@@ -851,6 +851,7 @@ export type Database = {
           active_weekdays: number[]
           created_at: string
           id: string
+          nhap_luong: boolean
           sub_category: string | null
           target_value: number
           title: string
@@ -862,6 +863,7 @@ export type Database = {
           active_weekdays?: number[]
           created_at?: string
           id?: string
+          nhap_luong?: boolean
           sub_category?: string | null
           target_value: number
           title: string
@@ -873,6 +875,7 @@ export type Database = {
           active_weekdays?: number[]
           created_at?: string
           id?: string
+          nhap_luong?: boolean
           sub_category?: string | null
           target_value?: number
           title?: string

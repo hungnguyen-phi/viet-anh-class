@@ -57,6 +57,8 @@ type LeadRow = {
   active_weekdays: number[] | null;
   // 0076 — một lượt tick đáng bao nhiêu đơn vị của mục tiêu.
   unit_per_tick: number | null;
+  // 0110 — ô ngày là ô ĐIỀN SỐ chứ không phải một chạm (giờ, bài, trang, lead…).
+  nhap_luong: boolean | null;
   lead_progress:
     | {
         id: string;
@@ -350,7 +352,7 @@ export async function StudentScoreboard({
       ? supabase
           .from('lead_measures')
           .select(
-            'id, wig_id, title, target_value, unit, active_weekdays, unit_per_tick, lead_progress(id, value, logged_date, created_at, logged_by, student_id)',
+            'id, wig_id, title, target_value, unit, active_weekdays, unit_per_tick, nhap_luong, lead_progress(id, value, logged_date, created_at, logged_by, student_id)',
           )
           .in('wig_id', weekIds)
       : Promise.resolve({data: null}),
@@ -516,6 +518,10 @@ export async function StudentScoreboard({
       kind: 'class' as const,
       days: daysFor(l.active_weekdays),
       myDates: l.my_dates ?? [],
+      // Việc CHUNG của lớp giữ một chạm: con số của lớp do class_lead_board cộng, và trần "mỗi em
+      // một bộ đếm" (0098) vẫn áp — mở ô điền số ở đây là mời một em tự khai cho cả lớp.
+      nhapLuong: false,
+      myValues: {},
       // class_total từ RPC ĐÃ nhân hệ số trong SQL (0076); truyền hệ số xuống chỉ để cập nhật lạc
       // quan lúc bấm nhích đúng bằng chừng ấy, không phải bằng 1.
       unitPerTick: Number(l.unit_per_tick ?? 1) || 1,
@@ -551,6 +557,14 @@ export async function StudentScoreboard({
             p.logged_date <= weekDays[6],
         )
         .map((p) => p.logged_date),
+      // 0110 — LƯỢNG của từng ngày. Ô một-chạm không cần (luôn là 1), ô điền số thì cần để mở lại
+      // đúng con số em đã gõ hôm ấy.
+      nhapLuong: Boolean(l.nhap_luong),
+      myValues: Object.fromEntries(
+        (l.lead_progress ?? [])
+          .filter((p) => p.student_id === studentId)
+          .map((p) => [p.logged_date, Number(p.value ?? 0)]),
+      ),
       classTotal: null,
       contributors: null,
       classSize: null,

@@ -771,7 +771,9 @@
     "moodAt": "Checked in at {time}",
     "moodLate": "Late",
     "moodClosed": "Outside check-in hours. Mornings 6:30–8:00, afternoons from 16:00.",
-    "moodLocked": "Locked — the morning mood can only be changed before 7:00."
+    "moodLocked": "Locked — the morning mood can only be changed before 7:00.",
+    "luongPhaiDuong": "Enter a number greater than 0.",
+    "luongQuaLon": "One day cannot exceed the whole week's target ({n})."
   },
   "campusReport": {
     "title": "Campus report",
@@ -1324,6 +1326,8 @@
     "monthPace": "This month: {n} {unit}",
     "pickBattle": "— pick a class goal —",
     "paceTooEasy": "At {n} times a week you finish in {can} weeks but have {con} — aim higher?",
-    "paceTooHard": "At {n} times a week you need {can} weeks but only have {con}."
+    "paceTooHard": "At {n} times a week you need {can} weeks but only have {con}.",
+    "weekAmount": "How many {unit} per week?",
+    "unitMeasured": "“{unit}” is re-measured, not added up — you'll enter it on your goal card once a week."
   }
 }
