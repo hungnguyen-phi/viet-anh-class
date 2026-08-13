@@ -1317,11 +1317,11 @@
     "pickBattle": "Pick a class goal",
     "paceTooEasy": "At {n} times a week you finish in {can} weeks but have {con} — aim higher?",
     "paceTooHard": "At {n} times a week you need {can} weeks but only have {con}.",
-    "weekAmount": "How many {unit} per week?",
+    "weekAmount": "How many {unit} do you aim for this week?",
     "unitMeasured": "“{unit}” is re-measured, not added up — you'll enter it on your goal card once a week.",
     "eachTimeVaries": "It varies — I'll type the number each day",
     "perTick": "How many {unit} per time?",
-    "perTickSum": "{n} times × {moi} = {tuan} {unit} a week.",
+    "perTickSum": "{n} times × {moi} = {tuan} {unit} this week.",
     "unitPick": "Pick a unit",
     "unitOther": "Other…",
     "unitBack": "Pick again"

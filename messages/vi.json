@@ -1317,11 +1317,11 @@
     "pickBattle": "Chọn mục tiêu của lớp",
     "paceTooEasy": "Với {n} lần mỗi tuần, con xong trong {can} tuần mà hạn còn {con} tuần — đặt đích cao hơn nhé?",
     "paceTooHard": "Với {n} lần mỗi tuần, con cần {can} tuần mà hạn chỉ còn {con} tuần.",
-    "weekAmount": "Mỗi tuần con làm bao nhiêu {unit}?",
+    "weekAmount": "Tuần này con mong muốn đạt bao nhiêu {unit}?",
     "unitMeasured": "“{unit}” là số đo lại mỗi lần, không cộng dồn — con ghi số ở thẻ mục tiêu, mỗi tuần một lần.",
     "eachTimeVaries": "Mỗi lần một khác — con tự điền số mỗi ngày",
     "perTick": "Mỗi lần con làm được bao nhiêu {unit}?",
-    "perTickSum": "{n} lần × {moi} = {tuan} {unit} mỗi tuần.",
+    "perTickSum": "{n} lần × {moi} = {tuan} {unit} tuần này.",
     "unitPick": "Chọn đơn vị",
     "unitOther": "Khác…",
     "unitBack": "Chọn lại"
