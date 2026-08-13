@@ -828,7 +828,7 @@ export function PhongHop({
                           onClick={() => doiThuEm(e.id, d)}
                           aria-pressed={(emThu[e.id] ?? []).includes(d)}
                           aria-label={`${e.ten} — ${dayShort[d - 1]}`}
-                          className={`grid h-8 w-10 cursor-pointer place-items-center rounded-[9px] border-[1.5px] text-[11px] font-extrabold transition-all ${
+                          className={`grid h-11 w-11 cursor-pointer place-items-center rounded-[9px] border-[1.5px] text-[11.5px] font-extrabold transition-all ${
                             (emThu[e.id] ?? []).includes(d)
                               ? 'border-transparent bg-gold text-navy'
                               : 'border-navy/15 bg-white text-navy/60 hover:border-navy'

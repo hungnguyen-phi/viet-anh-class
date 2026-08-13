@@ -363,7 +363,7 @@ export function FormMucTieu({
                     type="button"
                     onClick={() => doiThu(d)}
                     aria-pressed={thu.includes(d)}
-                    className={`grid h-9 w-11 cursor-pointer select-none place-items-center rounded-[10px] border-[1.5px] text-[11.5px] font-extrabold transition-all ${
+                    className={`grid h-11 w-11 cursor-pointer select-none place-items-center rounded-[10px] border-[1.5px] text-[11.5px] font-extrabold transition-all ${
                       thu.includes(d)
                         ? 'border-transparent bg-gold text-navy'
                         : 'border-navy/15 bg-white text-navy/60 hover:border-navy'
