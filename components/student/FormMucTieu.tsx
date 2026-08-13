@@ -6,7 +6,6 @@ import {AlertCircle} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder, inputCls, selectCls, btnGold} from '@/components/ui/Field';
-import {AREAS, areaLabel, type Area, type AreaMeta} from '@/lib/areas';
 import {luuMucTieuCuaEm, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -49,8 +48,6 @@ export function FormMucTieu({
   dangSua,
   laChinhEm,
   dayShort,
-  areaMeta,
-  locale,
   onClose,
   onDone,
 }: {
@@ -72,9 +69,6 @@ export function FormMucTieu({
   dangSua: DangSua;
   laChinhEm: boolean;
   dayShort: string[];
-  /** Tên + màu 4 lĩnh vực, cho ô "mục tiêu này thuộc lĩnh vực nào". */
-  areaMeta: Record<Area, AreaMeta>;
-  locale: string;
   onClose: () => void;
   onDone?: (message: string) => void;
 }) {
@@ -82,13 +76,10 @@ export function FormMucTieu({
   const [state, formAction] = useActionState<MucTieuState, FormData>(luuMucTieuCuaEm, {ok: false});
   const [thu, setThu] = useState<number[]>(dangSua?.viec?.active_weekdays ?? [1, 3, 5]);
 
-  // NGUỒN + LĨNH VỰC. Mục tiêu riêng không bao giờ nối vào mục tiêu lớp (wig_source_ck, 0100), nên
-  // nó luôn ở nhánh tự chọn và luôn phải tự khai lĩnh vực.
-  const [nguon, setNguon] = useState(kind === 'personal' ? '' : dangSua?.source_wig_id ?? '');
-  const tuChon = kind === 'personal' || !nguon;
-  const [area, setArea] = useState<Area>(
-    (dangSua?.area as Area | undefined) ?? AREAS[0],
-  );
+  // MỤC TIÊU LỚP mà việc này góp sức vào — nay BẮT BUỘC với cả hai loại, và là nguồn duy nhất của
+  // lĩnh vực. Mục tiêu riêng đang sửa thì không có `source_wig_id` để mở lại (CSDL bắt nó null),
+  // nên rơi về rỗng và em chọn lại — một cú bấm, đổi lấy việc bốn vòng lĩnh vực đọc đúng.
+  const [nguon, setNguon] = useState(dangSua?.source_wig_id ?? '');
 
   // Các ô rời rạc rất khó ráp lại thành một ý, nhất là với học sinh. Giữ giá trị ở đây để ghép
   // chúng thành MỘT CÂU HOÀN CHỈNH ngay dưới nút Gửi.
@@ -159,62 +150,37 @@ export function FormMucTieu({
                 className={ctlWithBorder(state.fieldError === 'title')}
               />
             </Field>
-            {kind === 'academic' && (
-              <Field label={t('joinBattle')} htmlFor="mt-source">
-                <select
-                  id="mt-source"
-                  name="source_wig_id"
-                  value={nguon}
-                  onChange={(e) => setNguon(e.target.value)}
-                  className={selectCls}
-                >
-                  <option value="">{t('noBattle')}</option>
-                  {wigLop.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.title}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            )}
+            {/* HỎI CẢ VỚI MỤC TIÊU RIÊNG, và không còn lựa chọn "để trống".
+                Lĩnh vực lấy từ đúng mục tiêu lớp em chọn ở đây — không hỏi em một câu riêng về
+                lĩnh vực nữa (chủ dự án chốt 13/08/2026: cô đã khai đủ bốn lĩnh vực rồi). Với mục
+                tiêu RIÊNG, máy chủ chỉ mượn lĩnh vực và bỏ liên kết đi: wig_source_ck bắt
+                source_wig_id phải null với kind='personal'. */}
+            <Field label={t('joinBattle')} htmlFor="mt-source" error={err('source_wig_id')}>
+              <select
+                id="mt-source"
+                name="source_wig_id"
+                value={nguon}
+                onChange={(e) => setNguon(e.target.value)}
+                className={selectCls}
+              >
+                <option value="">{t('pickBattle')}</option>
+                {wigLop.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.title}
+                  </option>
+                ))}
+              </select>
+            </Field>
           </div>
 
-          {/* LĨNH VỰC — chỉ hỏi khi KHÔNG nối vào mục tiêu lớp.
-              Nối rồi thì lĩnh vực là chuyện của mục tiêu cha, hỏi lại là mời em trả lời khác cha
-              mình. Còn tự chọn mà không hỏi thì app lặng lẽ xếp hết vào Kiến thức — "chạy bộ mỗi
-              sáng" nằm ở cột Kiến thức trên bảng họp, và chính em không có cách nào sửa. */}
-          {tuChon && (
-            <div className="mt-2.5">
-              <p className="mb-1.5 text-[12px] font-extrabold text-navy">{t('areaAsk')}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {AREAS.map((a) => (
-                  <button
-                    key={a}
-                    type="button"
-                    onClick={() => setArea(a)}
-                    aria-pressed={area === a}
-                    className={`inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] px-2.5 py-1.5 text-[12px] font-extrabold transition-all ${
-                      area === a
-                        ? 'border-transparent bg-gold text-navy'
-                        : 'border-navy/15 bg-white text-navy/60 hover:border-navy'
-                    }`}
-                  >
-                    <span
-                      className="h-[9px] w-[9px] shrink-0 rounded-full"
-                      style={{background: areaMeta[a].hex}}
-                    />
-                    {areaLabel(areaMeta[a], locale)}
-                  </button>
-                ))}
-              </div>
-              {err('area') && (
-                <p className="mt-1.5 text-[12px] font-bold text-status-bad">{err('area')}</p>
-              )}
-            </div>
+          {/* Lớp chưa có mục tiêu nào thì em không có gì để gắn vào. Nói thẳng ra và chỉ sang
+              người làm được việc ấy — im lặng để em bấm Gửi rồi nhận một câu lỗi thì tệ hơn. */}
+          {wigLop.length === 0 && (
+            <p className="mt-2 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
+              {t('noClassWig')}
+            </p>
           )}
-          {/* Gửi lên kể cả khi ô không hiện: nối vào mục tiêu lớp thì máy chủ bỏ qua giá trị này
-              và lấy lĩnh vực của cha, nên để trống ở đây chỉ tạo ra một nhánh lỗi vô cớ. */}
-          <input type="hidden" name="area" value={area} />
+
         </div>
 
         {/* ② "Từ X đến Y trước ngày nào" — công thức của canon, nằm gọn một hàng. */}

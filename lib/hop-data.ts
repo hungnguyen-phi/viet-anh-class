@@ -1,6 +1,6 @@
 import {shiftWeeks, weekFromMonday} from '@/lib/dates';
 import type {createClient} from '@/lib/supabase/server';
-import type {ViecTuanQua, EmTrongTuan, ViecMau, WigOption} from '@/components/wig/PhongHop';
+import type {ViecTuanQua, EmTrongTuan, EmHop, ViecMau, WigOption} from '@/components/wig/PhongHop';
 
 type Sb = Awaited<ReturnType<typeof createClient>>;
 
@@ -62,6 +62,8 @@ export type DuLieuHop = {
   truocMonday: string;
   viecTuanQua: ViecTuanQua[];
   tungEm: EmTrongTuan[];
+  /** CẢ LỚP — mỗi em một dòng để buổi họp hỏi lại "tuần này con làm gì" và ghi biên bản riêng. */
+  emHop: EmHop[];
   loiHuaTruoc: string | null;
   chiemNghiemCu: string;
   camKetCu: string;
@@ -92,8 +94,17 @@ export async function layDuLieuHop(
   const dichWk = weekFromMonday(shiftWeeks(hopMonday, 1));
   const truocMonday = shiftWeeks(hopMonday, -1);
 
-  const [{data: boardData}, {data: matrixData}, {data: ghiChu}, {data: bienBan}, {data: bienBanTruoc}, {data: wigData}] =
-    await Promise.all([
+  const [
+    {data: boardData},
+    {data: matrixData},
+    {data: ghiChu},
+    {data: bienBan},
+    {data: bienBanTruoc},
+    {data: wigData},
+    {data: emRows},
+    {data: mucTieuEmRows},
+    {data: bienBanEmRows},
+  ] = await Promise.all([
       supabase.rpc('class_lead_board', {p_class: classId, p_week_start: hopMonday}),
       supabase.rpc('class_tick_matrix', {p_class: classId, p_week_start: hopMonday}),
       supabase
@@ -122,6 +133,31 @@ export async function layDuLieuHop(
         .select('id, title, area, period, period_label, target_value, unit, start_date, end_date')
         .eq('class_id', classId)
         .eq('scope', 'class'),
+
+      // ── BA CÂU CHO KHỐI "TỪNG EM" (0108, lát 4+5) ──────────────────────────────────────
+      //
+      // CẢ LỚP, không chỉ những em có tên trong bảng tick. Buổi họp phải hỏi được MỌI em "tuần này
+      // con làm gì" — kể cả em chưa đặt mục tiêu, vì đó chính là em cần hỏi nhất.
+      supabase
+        .from('enrollments')
+        .select('student_id, profiles!enrollments_student_id_fkey(full_name)')
+        .eq('class_id', classId)
+        .eq('is_active', true),
+      // Mục tiêu năm của từng em kèm VIỆC treo dưới nó. `lead_measures` là mảng vì PostgREST trả
+      // quan hệ 1-nhiều; trigger chan_viec_thu_hai (0100) đảm bảo tối đa một phần tử.
+      supabase
+        .from('wigs')
+        .select('id, student_id, kind, lead_measures(id, title, target_value, unit, active_weekdays)')
+        .eq('class_id', classId)
+        .eq('scope', 'student')
+        .eq('period', 'year'),
+      // Biên bản CÁ NHÂN của tuần đang họp. Cùng bảng với biên bản lớp, khác nhau ở student_id.
+      supabase
+        .from('wig_meetings')
+        .select('student_id, results, commitments')
+        .eq('class_id', classId)
+        .eq('week_start', hopMonday)
+        .not('student_id', 'is', null),
     ]);
 
   const board = (boardData ?? []) as BoardRow[];
@@ -172,6 +208,56 @@ export async function layDuLieuHop(
     cur.can += soNgayApDung(m.active_weekdays);
     theoEm.set(m.student_id, cur);
   }
+  // ── TỪNG EM: việc tuần này + biên bản riêng ───────────────────────────────────────────────
+  //
+  // Dựng từ DANH SÁCH LỚP chứ không từ bảng tick: bảng tick chỉ có những em đã được giao việc, mà
+  // em chưa có việc nào mới là em buổi họp cần hỏi trước nhất.
+  const viecTheoEm = new Map<string, {wigId: string; leadId: string | null; title: string; unit: string | null; days: number[]}>();
+  for (const w of (mucTieuEmRows ?? []) as unknown as {
+    id: string;
+    student_id: string | null;
+    kind: string | null;
+    lead_measures: {id: string; title: string; target_value: number; unit: string | null; active_weekdays: number[] | null}[] | null;
+  }[]) {
+    // Chỉ mục tiêu HỌC TẬP mang việc để tick; mục tiêu riêng là chuyện của em, buổi họp không giao.
+    if (!w.student_id || w.kind !== 'academic') continue;
+    const lm = w.lead_measures?.[0] ?? null;
+    viecTheoEm.set(w.student_id, {
+      wigId: w.id,
+      leadId: lm?.id ?? null,
+      title: lm?.title ?? '',
+      unit: lm?.unit ?? null,
+      days: lm?.active_weekdays ?? [1, 3, 5],
+    });
+  }
+  const bbTheoEm = new Map<string, {results: string; commitments: string}>();
+  for (const b of (bienBanEmRows ?? []) as unknown as {
+    student_id: string | null;
+    results: string | null;
+    commitments: string | null;
+  }[]) {
+    if (b.student_id) bbTheoEm.set(b.student_id, {results: b.results ?? '', commitments: b.commitments ?? ''});
+  }
+  const emHop: EmHop[] = (
+    (emRows ?? []) as unknown as {student_id: string; profiles: {full_name: string | null} | null}[]
+  )
+    .map((e) => {
+      const vi = viecTheoEm.get(e.student_id);
+      const bb = bbTheoEm.get(e.student_id);
+      return {
+        id: e.student_id,
+        ten: e.profiles?.full_name ?? '—',
+        wigId: vi?.wigId ?? null,
+        leadId: vi?.leadId ?? null,
+        viecTitle: vi?.title ?? '',
+        viecUnit: vi?.unit ?? null,
+        viecDays: vi?.days ?? [1, 3, 5],
+        ketQua: bb?.results ?? '',
+        camKet: bb?.commitments ?? '',
+      };
+    })
+    .sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
+
   // Em làm ít nhất đứng đầu — buổi họp hỏi "ai chưa làm", đừng bắt giáo viên dò ba mươi cái tên.
   const tungEm: EmTrongTuan[] = [...theoEm.entries()]
     .map(([id, x]) => ({id, ...x}))
@@ -190,6 +276,7 @@ export async function layDuLieuHop(
     truocMonday,
     viecTuanQua,
     tungEm,
+    emHop,
     // Vòng cam kết của 4DX: đặt lời hứa tuần trước cạnh kết quả là đủ để buổi họp tự đối chiếu.
     // Đọc CAM KẾT trước, next_actions chỉ là đường lùi cho biên bản cũ (trước khi mục tiêu tuần
     // sau trở thành một WIG thật thay vì một ô chữ).

@@ -2,7 +2,6 @@ import {getTranslations} from 'next-intl/server';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {btnGold} from '@/components/ui/Field';
 import {duyetMucTieu} from '@/app/[locale]/(dashboard)/student/actions';
-import {type Area, type AreaMeta} from '@/lib/areas';
 import {DanhSachDatHo, type EmTrongLop} from '@/components/wig/DanhSachDatHo';
 import type {WigLop} from '@/components/student/FormMucTieu';
 
@@ -29,8 +28,6 @@ export async function TuongWig({
   wigLopChon,
   danhSach,
   dayShort,
-  areaMeta,
-  locale,
 }: {
   classId: string;
   wigLop: {id: string; title: string; target_value: number; unit: string}[];
@@ -38,9 +35,6 @@ export async function TuongWig({
   wigLopChon: WigLop[];
   danhSach: EmTrongLop[];
   dayShort: string[];
-  /** Tên + màu 4 lĩnh vực — form đặt hộ hỏi lĩnh vực khi mục tiêu không nối vào mục tiêu lớp. */
-  areaMeta: Record<Area, AreaMeta>;
-  locale: string;
 }) {
   const t = await getTranslations('goal');
 
@@ -103,8 +97,6 @@ export async function TuongWig({
             danhSach={danhSach}
             wigLop={wigLopChon}
             dayShort={dayShort}
-            areaMeta={areaMeta}
-            locale={locale}
           />
         </div>
       </div>

@@ -139,6 +139,7 @@ export default async function HopPage({
         dichRange={`${dm(d.dich.start)} → ${dm(d.dich.end)}`}
         viecTuanQua={d.viecTuanQua}
         tungEm={d.tungEm}
+        emHop={d.emHop}
         loiHuaTruoc={d.loiHuaTruoc}
         nhanTuanTruoc={isoWeekLabel(vnNoon(d.truocMonday))}
         chiemNghiemCu={d.chiemNghiemCu}

@@ -2,7 +2,6 @@ import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {ArrowLeft} from 'lucide-react';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
-import {getAreaMeta} from '@/lib/area-config';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext} from '@/lib/queries';
 import {Link} from '@/i18n/navigation';
@@ -48,9 +47,7 @@ export default async function ChiTietPage({
 
   // Dữ liệu cho BỨC TƯỜNG WIG — trận đánh của lớp, mục tiêu của từng em, và sĩ số để nói được
   // "bao nhiêu em đã đặt". Ba câu chạy song song vì không câu nào cần kết quả của câu kia.
-  // areaMeta đi CHUNG chuyến này, không await riêng lúc dựng JSX: một await lẻ giữa phần render là
-  // đúng cái tầng chờ nối đuôi mà đợt audit tốc độ 10/08/2026 đi dọn.
-  const [{data: wigLop}, {data: mucTieuRows}, {data: emRows}, {data: thangRows}, areaMeta] = await Promise.all([
+  const [{data: wigLop}, {data: mucTieuRows}, {data: emRows}, {data: thangRows}] = await Promise.all([
     supabase
       .from('wigs')
       .select('id, title, area, target_value, baseline, unit')
@@ -81,7 +78,6 @@ export default async function ChiTietPage({
       .eq('scope', 'class')
       .eq('period', 'month')
       .order('period_label'),
-    getAreaMeta(),
   ]);
 
   const thangTheoNam = new Map<string, {id: string; period_label: string | null; target_value: number}[]>();
@@ -194,8 +190,6 @@ export default async function ChiTietPage({
         wigLopChon={wigLopChon}
         danhSach={danhSach}
         dayShort={t.raw('dayShort') as string[]}
-        areaMeta={areaMeta}
-        locale={locale}
       />
 
       {/* Chỉnh nhịp — app rải đều 12 tháng khi cô khai mục tiêu năm; đây là chỗ kéo lại cho khớp

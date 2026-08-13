@@ -6,7 +6,6 @@ import {Check, Clock, Pencil, Plus, Trash2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {FormMucTieu, type DangSua, type WigLop} from '@/components/student/FormMucTieu';
 import {xoaMucTieuCuaEm} from '@/app/[locale]/(dashboard)/student/actions';
-import {type Area, type AreaMeta} from '@/lib/areas';
 
 // ════════════════════════════════════════════════════════════════════════════
 // DANH SÁCH LỚP — cô nhìn thấy CẢ EM CHƯA ĐẶT, và đặt hộ ngay tại chỗ
@@ -41,16 +40,11 @@ export function DanhSachDatHo({
   danhSach,
   wigLop,
   dayShort,
-  areaMeta,
-  locale,
 }: {
   classId: string;
   danhSach: EmTrongLop[];
   wigLop: WigLop[];
   dayShort: string[];
-  /** Tên + màu 4 lĩnh vực — form hỏi lĩnh vực khi mục tiêu không nối vào mục tiêu lớp. */
-  areaMeta: Record<Area, AreaMeta>;
-  locale: string;
 }) {
   const t = useTranslations('goal');
   const [dangMo, setDangMo] = useState<EmTrongLop | null>(null);
@@ -142,8 +136,6 @@ export function DanhSachDatHo({
           dangSua={dangMo.mucTieu}
           laChinhEm={false}
           dayShort={dayShort}
-          areaMeta={areaMeta}
-          locale={locale}
           onClose={() => setDangMo(null)}
         />
       )}

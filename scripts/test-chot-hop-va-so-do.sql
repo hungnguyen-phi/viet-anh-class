@@ -1,10 +1,10 @@
--- LƯU TẠM KHÔNG KHOÁ, CHỐT MỚI KHOÁ — và số đo tự nhập nghe đúng cái khoá ấy (0108).
+-- CHỈ DẤU CHỐT MỚI KHOÁ TUẦN — và số đo tự nhập nghe đúng cái khoá ấy (0108).
 --
 --   npm run sql -- scripts/test-chot-hop-va-so-do.sql
 --
 -- Luật đang kiểm:
 --   1. Chưa họp                    → tuần chưa khoá
---   2. LƯU TẠM (có biên bản, chưa chốt) → tuần VẪN chưa khoá  ← chính cái lỗ 0108 đi vá
+--   2. Có dòng biên bản mà CHƯA đóng dấu chốt → tuần VẪN chưa khoá
 --   3. Chưa chốt · CHÍNH EM ghi được số đo
 --   4. Chưa chốt · CÔ cũng ghi được (sửa đè lên dòng của em, không đẻ dòng thứ hai)
 --   5. Mục tiêu đếm bằng tick KHÔNG nhận số nhập tay
@@ -55,10 +55,14 @@ begin
   insert into kq values ('Chưa họp · tuần chưa khoá', 'false',
     tuan_da_hop(v_lop, v_thu2)::text, tuan_da_hop(v_lop, v_thu2) = false);
 
-  -- ② LƯU TẠM — có biên bản nhưng chot_at còn null
+  -- ② Có biên bản nhưng chot_at còn null.
+  -- Phòng họp nay chỉ có MỘT nút và nó luôn đóng dấu chốt (chủ dự án gộp lại 13/08/2026), nên
+  -- trạng thái này không còn đến từ giao diện. Vẫn kiểm, vì nó là ĐỊNH NGHĨA của cái khoá:
+  -- `tuan_da_hop` phải nhìn `chot_at`, không nhìn "có tồn tại dòng nào không". Dòng biên bản sinh
+  -- từ đường khác (vá dữ liệu cũ, khôi phục) không được khoá tick của một tuần đang chạy.
   insert into wig_meetings (class_id, week_label, week_start, results)
   values (v_lop, 'TEST-0108', v_thu2, 'ghi giữa chừng buổi họp');
-  insert into kq values ('LƯU TẠM · tuần VẪN chưa khoá', 'false',
+  insert into kq values ('Biên bản chưa đóng dấu · chưa khoá', 'false',
     tuan_da_hop(v_lop, v_thu2)::text, tuan_da_hop(v_lop, v_thu2) = false);
 
   -- ③ CHÍNH EM ghi số đo, qua RLS thật

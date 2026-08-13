@@ -548,7 +548,7 @@
     "commitments": "Commitments",
     "colWork": "Shared task",
     "colResult": "{week} result",
-    "perStudent": "Each student in {week}",
+    "perStudent": "Each student",
     "noneYet": "{n} students did nothing",
     "summarising": "Reviewing {week}",
     "backToLastWeek": "Back to last week",
@@ -585,7 +585,7 @@
     "milestoneMissing": "Week {week} has no milestone — the year goal was set after this week began. Add one here without leaving the meeting.",
     "carriedOver": "Carried over from last week. The steadier a lead measure, the more it tells you — edit or remove as you like.",
     "finish": "Close the meeting",
-    "finishHint": "Save a draft as often as you like. Closing locks ticks and readings for week {week}.",
+    "finishHint": "Closing saves everything you filled in and locks ticks and readings for week {week}.",
     "readOnlyNotice": "Read-only view for school leadership: how the class closed out last week. Scoring and goal-setting belong to the homeroom teacher.",
     "undo": "Undo week {week}",
     "undoHint": "Reviewed the wrong week? Undoing week {week} reopens ticking for that week.",
@@ -594,8 +594,12 @@
     "leadDone": "Tasks completed",
     "noWeekData": "No WIG data for this week yet.",
     "paceWarn": "This week needs {can}, but the actions only allow {cho} — short by {thieu}. Raise the action target, or lower the week milestone to match.",
-    "saveDraft": "Save draft",
-    "closedHint": "Week {week} is closed. Ticks and readings are locked — remove the minutes at the bottom to reopen."
+    "closedHint": "Week {week} is closed. Ticks and readings are locked — remove the minutes at the bottom to reopen.",
+    "perStudentCount": "{n} students",
+    "thisWeekWork": "What will you do this week",
+    "emResults": "Last week",
+    "emCommit": "Promise for next week",
+    "noGoalYet": "no goal set yet"
   },
   "report": {
     "title": "Parent report",
@@ -1254,7 +1258,6 @@
     "step2": "② From where to where, and by when?",
     "step3": "③ What will you do this week?",
     "joinBattle": "Which class goal does this help with?",
-    "noBattle": "— my own choice, not a class goal —",
     "now": "From",
     "what": "I want to",
     "whatPlaceholder": "e.g. raise my Maths score",
@@ -1295,7 +1298,7 @@
     "paceTitle": "Adjust the monthly pace",
     "paceTotal": "Total: {tong} / {can} {unit}",
     "paceSave": "Save pace",
-    "noClassWig": "This class has no year goal yet.",
+    "noClassWig": "Your class has no yearly goals yet. Ask your teacher to add one first.",
     "preview": "I will {what}, from {from} to {to} {unit}, by {due}.",
     "previewEmpty": "Fill in the three steps above and your goal sentence will appear here.",
     "journalWeek": "This week: {dau}–{cuoi}",
@@ -1313,12 +1316,12 @@
     "titlePersonal": "My own goal",
     "openFormPersonal": "I want to add a goal of my own",
     "openFormPersonalFor": "Add a personal goal for this student",
-    "areaAsk": "Which area does this goal belong to?",
     "readingAsk": "Your number this week",
     "readingNow": "Latest:",
     "readingSave": "Save",
     "readingByStudent": "entered by you",
     "readingByTeacher": "entered by your teacher",
-    "monthPace": "This month: {n} {unit}"
+    "monthPace": "This month: {n} {unit}",
+    "pickBattle": "— pick a class goal —"
   }
 }

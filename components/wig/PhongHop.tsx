@@ -42,6 +42,27 @@ export type ViecTuanQua = {
 };
 
 export type EmTrongTuan = {id: string; ten: string; lam: number; can: number};
+
+// MỘT EM TRONG BUỔI HỌP — việc tuần này của em, và biên bản riêng của em.
+//
+// Sinh ra ở 0108 (lát 4+5) cho hai việc chủ dự án chốt 13/08/2026:
+//   · "mỗi tuần con làm gì" đổi thành "TUẦN NÀY con làm gì", và tuần sau buổi họp hỏi lại — mặc
+//     định giữ nguyên câu cũ, đổi thì em chọn khác;
+//   · họp WIG của LỚP phải làm được mọi việc của họp Coach × Buddy, để GVCN vắng hoặc bận thì
+//     buổi họp vẫn ghi được biên bản cho từng em.
+export type EmHop = {
+  id: string;
+  ten: string;
+  /** Mục tiêu năm (học tập) của em — chỗ treo việc. null = em chưa đặt mục tiêu. */
+  wigId: string | null;
+  /** Việc đang có. null = chưa có việc nào, gõ tên vào là tạo mới. */
+  leadId: string | null;
+  viecTitle: string;
+  viecUnit: string | null;
+  viecDays: number[];
+  ketQua: string;
+  camKet: string;
+};
 export type WigOption = {id: string; title: string};
 export type ViecMau = {
   title: string;
@@ -64,6 +85,7 @@ export function PhongHop({
   dichRange,
   viecTuanQua,
   tungEm,
+  emHop,
   loiHuaTruoc,
   nhanTuanTruoc,
   chiemNghiemCu,
@@ -88,6 +110,7 @@ export function PhongHop({
   dichRange: string;
   viecTuanQua: ViecTuanQua[];
   tungEm: EmTrongTuan[];
+  emHop: EmHop[];
   loiHuaTruoc: string | null;
   nhanTuanTruoc: string;
   chiemNghiemCu: string;
@@ -134,8 +157,24 @@ export function PhongHop({
       o[`verdict_${r.id}`] = r.verdict ?? '';
       o[`note_${r.id}`] = r.note;
     }
+    // Ô của TỪNG EM. Điền sẵn câu cũ: "mặc định như cũ, có đổi thì chọn khác" — nên mở buổi họp ra
+    // là mọi ô đã đúng, cô chỉ chạm vào những em thật sự đổi.
+    for (const e of emHop) {
+      o[`em_${e.id}_viec`] = e.viecTitle;
+      o[`em_${e.id}_ketqua`] = e.ketQua;
+      o[`em_${e.id}_camket`] = e.camKet;
+    }
     return o;
   });
+  // Thứ trong tuần của từng em — mảng nên không nhét chung vào kho chuỗi ở trên.
+  const [emThu, setEmThu] = useState<Record<string, number[]>>(() =>
+    Object.fromEntries(emHop.map((e) => [e.id, e.viecDays])),
+  );
+  const doiThuEm = (id: string, d: number) =>
+    setEmThu((p) => {
+      const cu = p[id] ?? [];
+      return {...p, [id]: cu.includes(d) ? cu.filter((x) => x !== d) : [...cu, d].sort()};
+    });
   const set = (k: string, val: string) => setV((p) => ({...p, [k]: val}));
   const oNhap = (k: string) => ({
     value: v[k] ?? '',
@@ -730,26 +769,107 @@ export function PhongHop({
         </section>
       )}
 
-      {/* ══ HAI NÚT: LƯU TẠM và CHỐT ══
-          0108 tách hai việc từng là một. Bản cũ chỉ có nút Lưu, và chính cái lưu ấy khoá tuần —
-          nên cô lưu giữa chừng buổi họp là các em hết tick được, ô số đo hết ghi được, ngay lúc
-          buổi họp đang cần chúng. Nay lưu bao nhiêu lần cũng được; chốt mới đóng tuần.
-          Nút chốt gửi kèm `chot=1` (name/value của chính nút submit), nên không cần state riêng. */}
+      {/* ══ TỪNG EM — việc tuần này, và biên bản riêng ══
+          0108 lát 4+5. Hai việc chủ dự án chốt 13/08/2026, và chúng thuộc về cùng một chỗ:
+
+            · "mỗi tuần con làm gì" đổi thành "TUẦN NÀY con làm gì", tuần sau buổi họp HỎI LẠI. Ô
+              điền sẵn câu cũ — không đổi thì cứ để nguyên, đổi thì gõ đè. Nên mở buổi họp ra là
+              mọi ô đã đúng, cô chỉ chạm vào những em thật sự đổi.
+            · Họp lớp làm được mọi việc của họp Coach × Buddy, để GVCN vắng hoặc bận thì buổi họp
+              vẫn ghi được biên bản cho từng em. Cùng bảng `wig_meetings`, chỉ khác `student_id`.
+
+          ĐÓNG SẴN trong <details>: ba mươi em × bốn ô là một bức tường, mà phần lớn buổi họp chỉ
+          đụng tới vài em. Mở ra là việc của người chủ trì, không phải mặc định của trang. */}
+      {canManage && emHop.length > 0 && (
+        <details className="glass rounded-[20px] p-4">
+          <summary className="cursor-pointer select-none font-display text-[15px] font-bold text-navy">
+            {t('perStudent')}{' '}
+            <span className="text-[11.5px] font-semibold text-grey-mid">
+              {t('perStudentCount', {n: emHop.length})}
+            </span>
+          </summary>
+
+          <div className="mt-3 flex flex-col gap-2.5">
+            {emHop.map((e) => (
+              <div key={e.id} className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
+                <div className="mb-2 flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-[13.5px] font-extrabold text-navy">{e.ten}</span>
+                  {/* Em chưa đặt mục tiêu thì KHÔNG có chỗ treo việc. Nói ra ngay cạnh tên, đừng
+                      để cô gõ xong mới biết chữ vừa gõ không đi đâu cả. */}
+                  {!e.wigId && (
+                    <span className="text-[11px] font-bold text-status-bad">{t('noGoalYet')}</span>
+                  )}
+                </div>
+
+                {/* Tên đi cùng để câu báo lỗi gọi được đúng em ("Việc của Nguyễn Văn A chưa
+                    chọn thứ nào"). Máy chủ không có tên trong tay ở tầng này. */}
+                <input type="hidden" name={`em_${e.id}_ten`} value={e.ten} />
+                <input type="hidden" name={`em_${e.id}_wig`} value={e.wigId ?? ''} />
+                <input type="hidden" name={`em_${e.id}_lead`} value={e.leadId ?? ''} />
+                {(emThu[e.id] ?? []).map((d) => (
+                  <input key={d} type="hidden" name={`em_${e.id}_days`} value={d} />
+                ))}
+
+                {e.wigId && (
+                  <>
+                    <Field label={t('thisWeekWork')} htmlFor={`em-${e.id}-viec`}>
+                      <input
+                        id={`em-${e.id}-viec`}
+                        name={`em_${e.id}_viec`}
+                        {...oNhap(`em_${e.id}_viec`)}
+                        className={inputCls}
+                      />
+                    </Field>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {DOW.map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => doiThuEm(e.id, d)}
+                          aria-pressed={(emThu[e.id] ?? []).includes(d)}
+                          aria-label={`${e.ten} — ${dayShort[d - 1]}`}
+                          className={`grid h-8 w-10 cursor-pointer place-items-center rounded-[9px] border-[1.5px] text-[11px] font-extrabold transition-all ${
+                            (emThu[e.id] ?? []).includes(d)
+                              ? 'border-transparent bg-gold text-navy'
+                              : 'border-navy/15 bg-white text-navy/60 hover:border-navy'
+                          }`}
+                        >
+                          {dayShort[d - 1]}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <Field label={t('emResults')} htmlFor={`em-${e.id}-kq`}>
+                    <input id={`em-${e.id}-kq`} name={`em_${e.id}_ketqua`} {...oNhap(`em_${e.id}_ketqua`)} className={inputCls} />
+                  </Field>
+                  <Field label={t('emCommit')} htmlFor={`em-${e.id}-ck`}>
+                    <input id={`em-${e.id}-ck`} name={`em_${e.id}_camket`} {...oNhap(`em_${e.id}_camket`)} className={inputCls} />
+                  </Field>
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
+      {/* ══ MỘT NÚT: CUỐI BUỔI HỌP, LƯU LÀ CHỐT ══
+          Bản 0108 từng tách đôi thành "Lưu tạm" và "Chốt". Chủ dự án gộp lại 13/08/2026: buổi họp
+          chỉ có một thời điểm ghi, và đó là lúc họp xong. Hai nút cạnh nhau chỉ tạo ra câu hỏi
+          "bấm cái nào" cho một việc mỗi tuần làm một lần.
+          Cột `chot_at` ở CSDL vẫn giữ nguyên và vẫn là thứ khoá tuần — nay nút này luôn đóng dấu
+          nó. Giữ cột thay vì quay lại luật cũ ("có dòng nào là khoá") vì luật cũ khoá cả những
+          dòng biên bản sinh ra từ đường khác, và vì gỡ biên bản cần một chỗ để gỡ dấu. */}
       {canManage && (
         <div className="flex flex-wrap items-center gap-3 rounded-[20px] bg-navy/[0.04] p-4">
           <span className="min-w-0 flex-1 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
             {daChot ? t('closedHint', {week: hopLabel}) : t('finishHint', {week: hopLabel})}
           </span>
-          <SubmitButton className={btnGhost} wrapClass="contents">
-            {t('saveDraft')}
+          <SubmitButton className={btnGold} wrapClass="contents">
+            {t('finish')}
           </SubmitButton>
-          {/* Đã chốt rồi thì không bày nút chốt lần nữa: gỡ chốt là việc của nút gỡ biên bản cuối
-              trang, có hộp xác nhận riêng. */}
-          {!daChot && (
-            <SubmitButton name="chot" value="1" className={btnGold} wrapClass="contents">
-              {t('finish')}
-            </SubmitButton>
-          )}
         </div>
       )}
 

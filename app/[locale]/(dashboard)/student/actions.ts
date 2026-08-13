@@ -778,39 +778,43 @@ export async function luuMucTieuCuaEm(
   const supabase = await createClient();
   const nam = schoolYearRangeVN();
 
-  // Mục tiêu RIÊNG của em không treo vào lĩnh vực nào của lớp — ràng buộc wig_source_ck ở CSDL
-  // cũng chặn, đây chỉ là lớp thứ nhất để câu báo lỗi dễ hiểu hơn.
-  const soi = kind === 'academic' && source_wig_id ? source_wig_id : null;
+  // ── LĨNH VỰC KHÔNG CÒN LÀ CÂU HỎI ────────────────────────────────────────────────────────
+  //
+  // Mọi mục tiêu của em nay phải chỉ ra nó góp vào mục tiêu nào của lớp, và lĩnh vực lấy từ đúng
+  // mục tiêu ấy. Chủ dự án chốt 13/08/2026: "không cho con tự chọn nữa, vì các wig cô tạo đã có đủ
+  // 4 loại rồi" — cô đã khai đủ bốn lĩnh vực thì em luôn có chỗ để gắn vào, và hỏi thêm một câu
+  // lĩnh vực chỉ mở đường cho em trả lời khác cha mình.
+  //
+  // Bản trước để trống là lặng lẽ xếp vào Kiến thức, nên "chạy bộ mỗi sáng" nằm ở cột Kiến thức
+  // trên bảng họp mà chính em không có cách nào sửa. Nay không có đường nào để trống nữa.
+  //
+  // LẤY TỪ CSDL, không tin ô trên form: đây là cột quyết định mục tiêu của em nằm ở nhánh nào của
+  // cây, và cũng là chỗ khoá wigs_em_uidx dựa vào.
+  if (!source_wig_id)
+    return {
+      ok: false,
+      fieldError: 'source_wig_id',
+      error: 'Con chọn mục tiêu của lớp mà việc này góp sức vào nhé.',
+    };
+  const {data: chaLop} = await supabase
+    .from('wigs')
+    .select('area')
+    .eq('id', source_wig_id)
+    .eq('class_id', class_id)
+    .eq('scope', 'class')
+    .maybeSingle();
+  if (!chaLop)
+    return {
+      ok: false,
+      fieldError: 'source_wig_id',
+      error: 'Mục tiêu của lớp này không còn nữa — chọn lại.',
+    };
+  const area: Database['public']['Enums']['wig_area'] = chaLop.area;
 
-  // LĨNH VỰC: nối vào mục tiêu lớp thì THỪA KẾ, tự chọn thì HỎI.
-  //
-  // Bản trước không hỏi bao giờ cả: không nối vào mục tiêu lớp là lặng lẽ xếp vào Kiến thức. Nên
-  // "chạy bộ mỗi sáng" nằm ở cột Kiến thức trên bảng họp, "học đàn" cũng vậy — cả bốn vòng lĩnh
-  // vực trên màn của em đọc sai, và chính em không có cách nào sửa. Chủ dự án bắt đúng chỗ này
-  // 13/08/2026. Nay ô "— con tự chọn —" mở ra bốn lĩnh vực để em bấm.
-  //
-  // Nhánh THỪA KẾ vẫn lấy từ CSDL chứ không tin ô trên form: khi đã có mục tiêu cha thì lĩnh vực
-  // là chuyện của cha, và đây là cột quyết định mục tiêu của em nằm ở nhánh nào của cây.
-  const LINH_VUC = ['knowledge', 'skills', 'english', 'physical'] as const;
-  const area_raw = String(formData.get('area') ?? '').trim();
-  let area: Database['public']['Enums']['wig_area'] = (
-    LINH_VUC as readonly string[]
-  ).includes(area_raw)
-    ? (area_raw as Database['public']['Enums']['wig_area'])
-    : 'knowledge';
-  if (!soi && !area_raw)
-    return {ok: false, fieldError: 'area', error: 'Mục tiêu này thuộc lĩnh vực nào?'};
-  if (soi) {
-    const {data: chaLop} = await supabase
-      .from('wigs')
-      .select('area')
-      .eq('id', soi)
-      .eq('class_id', class_id)
-      .eq('scope', 'class')
-      .maybeSingle();
-    if (!chaLop) return {ok: false, error: 'Mục tiêu của lớp này không còn nữa — chọn lại.'};
-    area = chaLop.area;
-  }
+  // MỤC TIÊU RIÊNG CHỈ MƯỢN LĨNH VỰC, KHÔNG MANG LIÊN KẾT. `wig_source_ck` (0100) bắt
+  // source_wig_id phải null với kind='personal' — mục tiêu riêng không góp vào trận nào của lớp,
+  // nó chỉ được xếp vào cùng một lĩnh vực để bốn vòng tròn trên màn của em đọc đúng.
+  const soi = kind === 'academic' ? source_wig_id : null;
 
   const ban = {
     class_id,

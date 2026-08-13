@@ -822,8 +822,6 @@ export async function StudentScoreboard({
               canManage={canManage}
               dayShort={t.raw('dayShort') as string[]}
               namHoc={cls?.school_year ?? null}
-              areaMeta={areaMeta}
-              locale={locale}
               soDoTheoWig={soDoTheoWig}
               mocThangTheoWig={mocThangTheoWig}
               tuanChuaChot={tickOpen}

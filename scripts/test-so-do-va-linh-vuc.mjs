@@ -7,9 +7,10 @@
 //   A. Mục tiêu đo NGOÀI app phải có ô nhập số, NẰM TRONG thẻ mục tiêu, và phải nói ra AI GHI con
 //      số ấy. Đây là số tự khai chứ không phải phép đo của máy; bày ra mà giấu nguồn là đúng cái
 //      tội §5.0 mà 0101/0107 vừa đi dọn ở chỗ khác.
-//   B. Mục tiêu KHÔNG nối vào mục tiêu lớp thì phải tự khai lĩnh vực. Trước 13/08/2026 máy chủ
-//      lặng lẽ xếp hết vào Kiến thức, nên "chạy bộ mỗi sáng" nằm ở cột Kiến thức trên bảng họp và
-//      chính em không có cách nào sửa.
+//   B. MỌI mục tiêu của em phải chỉ ra nó góp vào mục tiêu nào của lớp, và lĩnh vực lấy từ đúng
+//      mục tiêu ấy. Trước 13/08/2026 để trống là lặng lẽ xếp vào Kiến thức, nên "chạy bộ mỗi sáng"
+//      nằm ở cột Kiến thức trên bảng họp mà chính em không có cách nào sửa. Chủ dự án chốt: không
+//      hỏi em lĩnh vực nữa — cô đã khai đủ bốn lĩnh vực thì em luôn có chỗ để gắn vào.
 //
 // HAI CÁI BẪY ĐÃ SẬP VÀO CHÍNH BÀI KIỂM NÀY, ghi lại để đừng ai đạp lại:
 //
@@ -79,7 +80,14 @@ try {
   wigId = ins.id;
 
   const ck = await cookieCua(HS);
-  const doc = async () => (await fetch(BASE + '/student', {headers: {cookie: ck}})).text();
+  // KIỂM MÃ HTTP MỖI LẦN LẤY TRANG. Không có nó thì trang 500 chỉ hiện ra dưới dạng "không tìm
+  // thấy ô nhập" và cả bài đỏ theo kiểu vô nghĩa — đã mất một vòng đi dò vì đúng chuyện này khi
+  // máy chủ dev sập worker. Trang hỏng thì nói trang hỏng.
+  const doc = async () => {
+    const r = await fetch(BASE + '/student', {headers: {cookie: ck}});
+    if (r.status !== 200) throw new Error(`/student trả HTTP ${r.status} — máy chủ đang hỏng, không kiểm được`);
+    return r.text();
+  };
 
   // ── A1. Ô nhập có thật, và thuộc ĐÚNG mục tiêu vừa gieo ──
   let dom = boScript(await doc());
@@ -113,27 +121,28 @@ try {
   dau('mục tiêu đếm bằng tick KHÔNG có ô nhập số', !dom.includes('name="gia_tri"'));
   await admin.from('wigs').update({measure_by: 'manual'}).eq('id', wigId);
 
-  // ── B. Lĩnh vực: máy chủ phải TỪ CHỐI mục tiêu tự chọn mà không khai lĩnh vực ──
-  // Kiểm ở tầng máy chủ chứ không ở màn hình: ô chọn là client component, chỉ dựng sau một cú bấm.
-  const {error: eThieu} = await admin.from('wigs').insert({
-    scope: 'student', kind: 'personal', period: 'year', period_label: 'TEST-0108b',
-    student_id: em.id, class_id: enr.class_id, area: 'knowledge',
-    title: 'ZZ_TEST lĩnh vực', target_value: 5, unit: 'lần',
-    start_date: '2026-08-01', end_date: '2027-05-31', status: 'approved',
-    set_by: 'student', measure_by: 'manual', source_wig_id: null,
-  });
-  // Dòng trên chỉ để chắc CSDL vẫn nhận `area` bất kỳ — luật "phải khai" nằm ở luuMucTieuCuaEm,
-  // nên kiểm bằng chính mã nguồn của hàm ấy thay vì gọi server action từ ngoài (nó cần Origin và
-  // cả một vòng xác thực form).
-  if (!eThieu) await admin.from('wigs').delete().eq('period_label', 'TEST-0108b').eq('student_id', em.id);
+  // ── B. Lĩnh vực: không còn đường nào để em tự khai ──
+  // Kiểm bằng chính mã nguồn của `luuMucTieuCuaEm`: gọi được server action ấy từ script thì phải
+  // dựng lại cả lối mã hoá hai-tham-số của useActionState, mà lối ấy đã thử và không truyền được
+  // FormData (xem đầu scripts/test-moc-thang-cua-em.mjs). Ở đây kiểm cái kiểm được: ba mệnh đề
+  // của luật phải còn nguyên trong mã, và ô chọn trên form không còn lựa chọn "để trống".
   const src = readFileSync('app/[locale]/(dashboard)/student/actions.ts', 'utf8');
   dau(
-    'máy chủ chặn mục tiêu tự chọn mà thiếu lĩnh vực',
-    /if \(!soi && !area_raw\)[\s\S]{0,140}fieldError: 'area'/.test(src),
+    'máy chủ BẮT BUỘC chọn mục tiêu lớp',
+    /if \(!source_wig_id\)[\s\S]{0,200}fieldError: 'source_wig_id'/.test(src),
   );
   dau(
-    'lĩnh vực nhận từ form được lọc theo danh sách trắng',
-    /LINH_VUC[\s\S]{0,200}includes\(area_raw\)/.test(src),
+    'lĩnh vực lấy từ mục tiêu lớp trong CSDL, không tin ô trên form',
+    /select\('area'\)[\s\S]{0,320}const area[^=]*= chaLop\.area/.test(src) && !/formData\.get\('area'\)/.test(src),
+  );
+  dau(
+    'mục tiêu riêng chỉ MƯỢN lĩnh vực, không mang liên kết',
+    /const soi = kind === 'academic' \? source_wig_id : null/.test(src),
+  );
+  const form = readFileSync('components/student/FormMucTieu.tsx', 'utf8');
+  dau(
+    'form không còn ô chọn lĩnh vực, và không còn lựa chọn để trống',
+    !/name="area"/.test(form) && !/noBattle/.test(form) && /pickBattle/.test(form),
   );
 } finally {
   if (wigId) {

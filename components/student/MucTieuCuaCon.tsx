@@ -7,7 +7,6 @@ import {SubmitButton} from '@/components/ui/SubmitButton';
 import {btnGhost, btnGold} from '@/components/ui/Field';
 import {FormMucTieu, type WigLop} from '@/components/student/FormMucTieu';
 import {OSoDo} from '@/components/student/OSoDo';
-import {type Area, type AreaMeta} from '@/lib/areas';
 import {
   duyetMucTieu,
   danhDauDaDat,
@@ -73,8 +72,6 @@ export function MucTieuCuaCon({
   canManage,
   dayShort,
   namHoc,
-  areaMeta,
-  locale,
   soDoTheoWig,
   mocThangTheoWig,
   tuanChuaChot,
@@ -89,9 +86,6 @@ export function MucTieuCuaCon({
   // Nhãn năm học của lớp ("2026–2027") — để nói rõ mục tiêu này sống bao lâu. Không có lớp thì
   // thôi, đừng bịa một khoảng thời gian ra.
   namHoc: string | null;
-  /** Tên + màu 4 lĩnh vực — form hỏi lĩnh vực khi em tự chọn, không nối vào mục tiêu lớp. */
-  areaMeta: Record<Area, AreaMeta>;
-  locale: string;
   /** Số đo của tuần này, tra theo id mục tiêu. */
   soDoTheoWig: Record<string, SoDoCuaTuan>;
   /** Mốc THÁNG NÀY, tra theo id mục tiêu năm. Chỉ mục tiêu đếm bằng tick mới có. */
@@ -107,7 +101,7 @@ export function MucTieuCuaCon({
   const rieng = mucTieu.find((m) => m.kind === 'personal') ?? null;
 
   const chung = {studentId, classId, wigLop, laChinhEm, canManage, dayShort, namHoc,
-                 areaMeta, locale, soDoTheoWig, mocThangTheoWig,
+                 soDoTheoWig, mocThangTheoWig,
                  tuanChuaChot, onBao: setBao};
 
   return (
@@ -138,8 +132,6 @@ function MotMucTieu({
   canManage,
   dayShort,
   namHoc,
-  areaMeta,
-  locale,
   soDoTheoWig,
   mocThangTheoWig,
   tuanChuaChot,
@@ -154,8 +146,6 @@ function MotMucTieu({
   canManage: boolean;
   dayShort: string[];
   namHoc: string | null;
-  areaMeta: Record<Area, AreaMeta>;
-  locale: string;
   soDoTheoWig: Record<string, SoDoCuaTuan>;
   mocThangTheoWig: Record<string, {target: number; unit: string}>;
   tuanChuaChot: boolean;
@@ -193,8 +183,6 @@ function MotMucTieu({
             dangSua={null}
             laChinhEm={laChinhEm}
             dayShort={dayShort}
-            areaMeta={areaMeta}
-            locale={locale}
             onClose={() => setMoForm(false)}
             onDone={onBao}
           />
@@ -389,8 +377,6 @@ function MotMucTieu({
           dangSua={hocTap}
           laChinhEm={laChinhEm}
           dayShort={dayShort}
-          areaMeta={areaMeta}
-          locale={locale}
           onClose={() => setMoForm(false)}
           onDone={onBao}
         />

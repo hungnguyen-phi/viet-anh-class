@@ -548,7 +548,7 @@
     "commitments": "Cam kết",
     "colWork": "Việc chung",
     "colResult": "Kết quả tuần {week}",
-    "perStudent": "Từng em trong tuần {week}",
+    "perStudent": "Từng em",
     "noneYet": "{n} em chưa làm gì",
     "summarising": "Đang tổng kết tuần {week}",
     "backToLastWeek": "Về tuần vừa xong",
@@ -585,7 +585,7 @@
     "milestoneMissing": "Tuần {week} chưa có mốc — mục tiêu năm được đặt sau khi tuần này bắt đầu. Bù một mốc ngay đây, khỏi rời buổi họp.",
     "carriedOver": "Mang từ tuần trước sang. Thước đo dẫn dắt càng bền thì càng đo được xu hướng — sửa hay xoá đều được.",
     "finish": "Chốt buổi họp",
-    "finishHint": "Lưu tạm bao nhiêu lần cũng được. Bấm chốt thì tick và số đo của tuần {week} khoá lại.",
+    "finishHint": "Bấm chốt là ghi hết những gì vừa điền, và tick + số đo của tuần {week} khoá lại.",
     "readOnlyNotice": "Bản chỉ đọc dành cho ban giám hiệu: xem lớp đã tổng kết tuần vừa rồi ra sao. Việc chấm và đặt mục tiêu thuộc về giáo viên chủ nhiệm.",
     "undo": "Gỡ biên bản tuần {week}",
     "undoHint": "Họp nhầm tuần? Gỡ biên bản tuần {week} thì tick tuần đó mở lại cho các em.",
@@ -594,8 +594,12 @@
     "leadDone": "Việc đã đạt",
     "noWeekData": "Chưa có số liệu WIG của tuần này.",
     "paceWarn": "Nhịp tuần cần {can}, việc đang giao chỉ cho tối đa {cho} — hụt {thieu}. Tăng chỉ tiêu việc, hoặc hạ mốc tuần xuống cho khớp sức lớp.",
-    "saveDraft": "Lưu tạm",
-    "closedHint": "Tuần {week} đã chốt. Tick và số đo đã khoá — muốn mở lại thì gỡ biên bản ở cuối trang."
+    "closedHint": "Tuần {week} đã chốt. Tick và số đo đã khoá — muốn mở lại thì gỡ biên bản ở cuối trang.",
+    "perStudentCount": "{n} em",
+    "thisWeekWork": "Tuần này con làm gì",
+    "emResults": "Tuần rồi",
+    "emCommit": "Tuần tới hứa",
+    "noGoalYet": "chưa đặt mục tiêu"
   },
   "report": {
     "title": "Báo cáo phụ huynh",
@@ -1254,7 +1258,6 @@
     "step2": "② Từ đâu tới đâu, trước ngày nào?",
     "step3": "③ Tuần này con làm gì?",
     "joinBattle": "Việc này giúp lớp mình ở mục tiêu nào?",
-    "noBattle": "— con tự chọn, không thuộc mục tiêu lớp —",
     "now": "Từ",
     "what": "Con muốn",
     "whatPlaceholder": "vd: nâng điểm Toán",
@@ -1295,7 +1298,7 @@
     "paceTitle": "Chỉnh nhịp các tháng",
     "paceTotal": "Tổng: {tong} / {can} {unit}",
     "paceSave": "Lưu nhịp",
-    "noClassWig": "Lớp chưa đặt mục tiêu năm nào.",
+    "noClassWig": "Lớp chưa có mục tiêu năm nào. Nhờ thầy cô tạo trước rồi con đặt nhé.",
     "preview": "Con sẽ {what}, từ {from} đến {to} {unit}, trước {due}.",
     "previewEmpty": "Điền vào ba bước trên, câu mục tiêu của con sẽ hiện ở đây.",
     "journalWeek": "Tuần này: {dau}–{cuoi}",
@@ -1313,12 +1316,12 @@
     "titlePersonal": "Mục tiêu riêng của con",
     "openFormPersonal": "Con muốn thêm một mục tiêu của riêng con",
     "openFormPersonalFor": "Thêm mục tiêu riêng cho em",
-    "areaAsk": "Mục tiêu này thuộc lĩnh vực nào?",
     "readingAsk": "Số của con tuần này",
     "readingNow": "Số mới nhất:",
     "readingSave": "Ghi",
     "readingByStudent": "con tự ghi",
     "readingByTeacher": "cô ghi",
-    "monthPace": "Tháng này: {n} {unit}"
+    "monthPace": "Tháng này: {n} {unit}",
+    "pickBattle": "— chọn mục tiêu của lớp —"
   }
 }

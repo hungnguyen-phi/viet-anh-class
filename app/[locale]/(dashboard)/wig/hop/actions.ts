@@ -286,19 +286,130 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
     lam.push(`chấm ${data!.length} việc`);
   }
 
-  // ── 3. BIÊN BẢN ─────────────────────────────────────────────────────────────────────────
+  // ── 2b. TỪNG EM: việc tuần này + biên bản riêng (0108, lát 4+5) ──────────────────────────
   //
-  // LƯU KHÔNG CÒN LÀ CHỐT (0108). Trước đây chỉ cần dòng biên bản tồn tại là `tuan_da_hop()` trả
-  // true và cả tuần khoá lại. Phòng họp chỉ có một nút nên thường điều đó trùng với lúc họp xong —
-  // nhưng cô lưu giữa chừng (chấm ba việc, lưu, họp tiếp) là các em hết tick được và ô số đo hết
-  // ghi được ngay giữa buổi họp, đúng lúc buổi họp cần chúng.
+  // Hai việc chủ dự án chốt 13/08/2026:
+  //   · "mỗi tuần con làm gì" thành "TUẦN NÀY con làm gì", tuần sau buổi họp hỏi lại. Form điền
+  //     sẵn câu cũ, nên KHÔNG ĐỔI thì mọi giá trị gửi lên y hệt cái đang có — và chỗ này chỉ ghi
+  //     khi thật sự khác. Không có luật ấy thì mỗi lần lưu là một lần UPDATE cho ba mươi em, và
+  //     `updated_at` của cả lớp nhảy dù chẳng ai đổi gì.
+  //   · Họp LỚP ghi được biên bản cá nhân, để GVCN vắng hoặc bận thì buổi họp vẫn không tắc. Cùng
+  //     bảng `wig_meetings` với biên bản lớp, chỉ khác `student_id`.
   //
-  // Nay hai nút: Lưu tạm ghi mọi thứ nhưng để `chot_at` null; Chốt buổi họp mới đóng tuần.
-  const chot = String(formData.get('chot') ?? '') === '1';
+  // Quét theo TÊN TRƯỜNG chứ không theo một danh sách id gửi kèm: danh sách ấy cũng do trình duyệt
+  // gửi, không đáng tin hơn, mà lại là chỗ để hai bên lệch nhau.
+  let soViec = 0;
+  let soBienBan = 0;
+  {
+    const emIds: string[] = [];
+    for (const key of formData.keys()) {
+      const m = key.match(/^em_([0-9a-f-]{36})_wig$/);
+      if (m && !emIds.includes(m[1])) emIds.push(m[1]);
+    }
 
-  // Bấm CHỐT thì luôn phải có dòng biên bản để mang dấu chốt — kể cả khi buổi họp không chấm việc
-  // nào và không ghi chữ nào. Chốt là một sự kiện, không phải một hệ quả của việc điền form.
-  if (chiem_nghiem || cam_ket || rows.length > 0 || chot) {
+    // CÁI ĐANG CÓ, lấy từ CSDL chứ không tin ô trên form: form điền sẵn giá trị cũ, nên nếu so với
+    // chính nó thì mọi thứ đều "không đổi". Hai câu cho cả lớp, không phải hai câu cho mỗi em.
+    const {data: leadHienCo} = await supabase
+      .from('lead_measures')
+      .select('id, title, active_weekdays')
+      .in('id', emIds.map((id) => String(formData.get(`em_${id}_lead`) ?? '')).filter(Boolean));
+    const leadCu = new Map(
+      (leadHienCo ?? []).map((l) => [l.id, {title: l.title, thu: (l.active_weekdays ?? []).join(',')}]),
+    );
+    const {data: bbHienCo} = await supabase
+      .from('wig_meetings')
+      .select('id, student_id, results, commitments')
+      .eq('class_id', class_id)
+      .eq('week_start', hop_start)
+      .in('student_id', emIds);
+    const bbCu = new Map(
+      (bbHienCo ?? [])
+        .filter((b) => b.student_id)
+        .map((b) => [b.student_id as string, {id: b.id, kq: b.results ?? '', ck: b.commitments ?? ''}]),
+    );
+
+    for (const emId of emIds) {
+      const wigId = String(formData.get(`em_${emId}_wig`) ?? '').trim();
+      const leadId = String(formData.get(`em_${emId}_lead`) ?? '').trim();
+      const viec = String(formData.get(`em_${emId}_viec`) ?? '').trim();
+      const thu = chuanHoaThu(formData.getAll(`em_${emId}_days`));
+      const ketQua = String(formData.get(`em_${emId}_ketqua`) ?? '').trim();
+      const camKet = String(formData.get(`em_${emId}_camket`) ?? '').trim();
+
+      // VIỆC TUẦN NÀY. Em chưa đặt mục tiêu thì không có chỗ treo — bỏ qua, giao diện đã nói.
+      //
+      // KHÔNG DÙNG `continue` Ở ĐÂY: biên bản riêng của em nằm ở nửa sau vòng lặp, nhảy qua là im
+      // lặng nuốt mất phần cô vừa gõ cho đúng em ấy.
+      const ten = String(formData.get(`em_${emId}_ten`) ?? '').trim() || 'một em';
+      if (wigId && viec) {
+        // Số lần mỗi tuần = SỐ THỨ ĐƯỢC BẬT, không hỏi thành ô riêng (0103). uq_lead_progress_daily
+        // chỉ cho một lượt tick mỗi (việc, em, ngày), nên hai con số ấy không thể lệch nhau.
+        if (thu.length === 0)
+          return {ok: false, error: `Việc của ${ten} chưa chọn thứ nào trong tuần — chọn ít nhất một thứ.`};
+        const noiDung = {title: viec, target_value: thu.length, active_weekdays: thu};
+        const cu = leadId ? leadCu.get(leadId) : undefined;
+        // KHÔNG ĐỔI THÌ KHÔNG GHI. Ô điền sẵn câu cũ, nên phần lớn buổi họp gửi lên ba mươi giá trị
+        // y hệt cái đang có; ghi hết là ba mươi câu UPDATE, `updated_at` của cả lớp nhảy trong khi
+        // chẳng ai đổi gì, rồi câu báo "giao việc tuần cho 30 em" kể về một việc không xảy ra.
+        const khac = !cu || cu.title !== viec || cu.thu !== thu.join(',');
+        if (leadId && khac) {
+          // SỬA cái đang có, không xoá rồi tạo lại: xoá là mất cả lịch sử tick treo dưới nó.
+          const {data, error} = await supabase
+            .from('lead_measures')
+            .update(noiDung)
+            .eq('id', leadId)
+            .eq('wig_id', wigId)
+            .select('id');
+          if (error) return {ok: false, error: friendlyError(error)};
+          if ((data?.length ?? 0) > 0) soViec += 1;
+        } else if (!leadId) {
+          const {error} = await supabase
+            .from('lead_measures')
+            .insert({wig_id: wigId, unit_per_tick: 1, ...noiDung});
+          if (error) return {ok: false, error: friendlyError(error)};
+          soViec += 1;
+        }
+      }
+
+      // BIÊN BẢN RIÊNG. Trống cả hai ô thì không đẻ ra một dòng "đã họp" rỗng; không đổi thì không
+      // ghi lại, cùng lý do với việc ở trên.
+      const bbCuEm = bbCu.get(emId);
+      if ((ketQua || camKet) && (!bbCuEm || bbCuEm.kq !== ketQua || bbCuEm.ck !== camKet)) {
+        const cuEm = bbCuEm ? {id: bbCuEm.id} : null;
+        const banEm = {
+          class_id,
+          student_id: emId,
+          week_label: hop_label || dich_label,
+          week_start: hop_start,
+          results: ketQua || null,
+          commitments: camKet || null,
+          coach_id: me.id,
+        };
+        const {error} = cuEm
+          ? await supabase.from('wig_meetings').update(banEm).eq('id', cuEm.id)
+          : await supabase.from('wig_meetings').insert(banEm);
+        if (error) return {ok: false, error: friendlyError(error)};
+        soBienBan += 1;
+      }
+    }
+    if (soViec > 0) lam.push(`giao việc tuần cho ${soViec} em`);
+    if (soBienBan > 0) lam.push(`ghi biên bản riêng cho ${soBienBan} em`);
+  }
+
+  // ── 3. BIÊN BẢN — VÀ ĐÂY LÀ THỨ CHỐT TUẦN ────────────────────────────────────────────────
+  //
+  // MỘT THỜI ĐIỂM GHI DUY NHẤT: cuối buổi họp, lưu tức là chốt. Bản 0108 từng tách đôi (Lưu tạm /
+  // Chốt) để cô lưu giữa chừng mà không khoá em; chủ dự án gộp lại 13/08/2026 — buổi họp chỉ có
+  // một lúc để ghi, hai nút chỉ tạo ra câu hỏi "bấm cái nào".
+  //
+  // Vẫn đóng dấu vào `chot_at` chứ không quay lại luật cũ ("có dòng biên bản nào là khoá"): luật cũ
+  // khoá lây cả những dòng sinh ra từ đường khác, và nút gỡ biên bản cần một chỗ cụ thể để gỡ dấu.
+  //
+  // ĐẾM CẢ PHẦN TỪNG EM. Bản đầu chỉ xét chiêm nghiệm / cam kết / chấm việc, nên một buổi họp chỉ
+  // giao việc tuần và ghi biên bản riêng cho các em — không chấm việc chung nào — thì KHÔNG sinh
+  // dòng biên bản lớp, và tuần không khoá dù cô đã bấm chốt. Bài kiểm test-hop-tung-em bắt đúng
+  // chỗ này ("Một nút: lưu cũng là CHỐT → chưa chốt").
+  if (chiem_nghiem || cam_ket || rows.length > 0 || soViec > 0 || soBienBan > 0) {
     // 1 biên bản / (lớp, tuần). Tìm theo NGÀY: nhãn là chữ để người đọc, ngày mới là khoá thật
     // (0080). Trước đây tra theo nhãn nên ai sửa tay thành "Tuần 31" là vòng cam kết đứt lặng lẽ.
     const {data: cu} = await supabase
@@ -320,23 +431,22 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
       // lại nó thành một câu văn là dựng bản sao thứ hai của cùng một thứ.
       next_actions: null,
       coach_id: me.id,
-      // Chỉ GHI dấu chốt, không bao giờ xoá nó ở đây: bỏ chốt là việc của nút gỡ biên bản, có hộp
-      // xác nhận riêng. Lưu tạm sau khi đã chốt mà lại âm thầm mở khoá tuần thì cô không hề biết
-      // mình vừa mở, còn các em thì đột nhiên tick lại được vào một tuần đã tổng kết.
-      ...(chot ? {chot_at: new Date().toISOString(), chot_by: me.id} : {}),
+      // Luôn đóng dấu chốt, và KHÔNG BAO GIỜ xoá dấu ở đây. Mở lại một tuần đã tổng kết là việc
+      // của nút gỡ biên bản, có hộp xác nhận riêng — nếu lưu lần hai âm thầm mở khoá thì cô không
+      // hề biết mình vừa mở, còn các em đột nhiên tick lại được vào tuần đã chốt.
+      chot_at: new Date().toISOString(),
+      chot_by: me.id,
     };
     const {error} = cu
       ? await supabase.from('wig_meetings').update(payload).eq('id', cu.id)
       : await supabase.from('wig_meetings').insert(payload);
     if (error) return {ok: false, error: (friendlyError(error))};
-    lam.push(chot ? 'chốt buổi họp' : cu ? 'cập nhật biên bản' : 'lưu biên bản');
+    lam.push(cu ? 'cập nhật biên bản' : 'lưu biên bản');
   }
 
   if (lam.length === 0)
     return {ok: false, error: 'Chưa điền gì cả — chấm ít nhất một việc, hoặc ghi chiêm nghiệm/cam kết.'};
 
-  // Nói đúng cái vừa xảy ra. Câu "tick đã chốt" chỉ được nói khi tick THẬT SỰ đã chốt — bản trước
-  // nói câu ấy sau mọi lần lưu, nên cô lưu tạm cũng đọc thấy tuần đã đóng.
 
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]/wig/hop', 'page');
@@ -347,9 +457,7 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
 
   return {
     ok: true,
-    message: chot
-      ? `Xong: ${lam.join(', ')}. Tick và số đo của tuần ${hop_label} đã chốt.`
-      : `Đã lưu: ${lam.join(', ')}. Tuần ${hop_label} chưa chốt — các em vẫn tick và nhập số được.`,
+    message: `Xong: ${lam.join(', ')}. Tick và số đo của tuần ${hop_label} đã chốt.`,
   };
 }
 
