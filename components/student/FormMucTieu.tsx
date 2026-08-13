@@ -24,7 +24,15 @@ import {kieuDonVi} from '@/lib/don-vi';
 // trống dài nửa màn hình mới tới việc hôm nay. Chủ dự án chốt 12/08/2026: "cho cái form thành cái
 // popup là được rồi".
 
-export type ViecCuaEm = {title: string; target_value: number; active_weekdays: number[] | null};
+export type ViecCuaEm = {
+  title: string;
+  target_value: number;
+  active_weekdays: number[] | null;
+  /** 0110 — một lượt tick đáng bao nhiêu đơn vị. */
+  unitPerTick?: number;
+  /** 0110 — ô ngày là ô điền số. */
+  nhapLuong?: boolean;
+};
 
 export type DangSua = {
   id: string;
@@ -94,6 +102,7 @@ export function FormMucTieu({
     due: dangSua?.end_date ?? '',
     viec: dangSua?.viec?.title ?? '',
     luong: dangSua?.viec?.target_value != null ? String(dangSua.viec.target_value) : '',
+    upt: dangSua?.viec?.unitPerTick != null ? String(dangSua.viec.unitPerTick) : '1',
   });
   const duCau = Boolean(g.title && g.target && g.unit && g.due);
 
@@ -114,7 +123,15 @@ export function FormMucTieu({
   // KIỂU ĐƠN VỊ (0110) quyết định bước ③ trông ra sao. Máy chủ tự suy lại từ đơn vị nên đây chỉ
   // là để bày đúng ô — không phải nguồn quyết định.
   const kieu = kieuDonVi(g.unit);
-  const moiTuan = kieu === 'luong' ? Number(g.luong || 0) : thu.length;
+  // "Mỗi lần một khác" = ô điền số mỗi ngày; ngược lại = một chạm, mỗi chạm đáng `upt` đơn vị.
+  const [moiLanKhac, setMoiLanKhac] = useState(Boolean(dangSua?.viec?.nhapLuong));
+  // Chỉ tiêu TUẦN, tính theo ĐƠN VỊ của mục tiêu — không phải theo số lần.
+  const moiTuan =
+    kieu !== 'luong'
+      ? thu.length
+      : moiLanKhac
+        ? Number(g.luong || 0)
+        : thu.length * (Number(g.upt || 0) || 0);
 
   // NHỊP: quãng phải đi so với việc mỗi tuần. Tính ở đây để cảnh báo hiện NGAY LÚC EM ĐANG GÕ,
   // không đợi bấm Gửi rồi mới biết. Dùng chung lib/wig-nhip với phòng họp — một phép, một nguồn.
@@ -325,28 +342,66 @@ export function FormMucTieu({
                 </p>
               )}
 
-              {/* ĐẾM THEO LƯỢNG (0110): "mấy thứ trong tuần" và "bao nhiêu {đơn vị} mỗi tuần" là
-                  HAI con số khác nhau — em học 5 buổi nhưng đặt 10 giờ. 0103 bỏ ô này đi là đúng
-                  cho một-chạm (số lần luôn bằng số thứ), và sai cho đếm-theo-lượng. */}
-              {kieu === 'luong' && (
-                <div className="mt-2.5">
-                  <Field
-                    label={t('weekAmount', {unit: g.unit})}
-                    htmlFor="mt-luong"
-                    error={err('viec_luong')}
-                  >
+              {/* MỘT CÂU HỎI, HAI CÂU TRẢ LỜI (0110) — và đây đúng là hai ví dụ chủ dự án đưa:
+                    · "10000 giờ học, 1 tick ngày = 3 giờ"  → trả lời 3   → vẫn MỘT CHẠM, mỗi chạm 3 giờ
+                    · "5000 lead, thứ Hai điền 10 lead"     → "mỗi lần một khác" → Ô ĐIỀN SỐ
+                  Bản trước hỏi "mỗi tuần bao nhiêu" — một con số thứ ba, không diễn đạt được vế
+                  nào trong hai vế trên.
+                  CHỈ HỎI KHI ĐÃ CÓ ĐƠN VỊ: chưa gõ đơn vị mà bày ô ra thì nhãn đọc thành "Mỗi lần
+                  con làm được bao nhiêu ?" — một câu hỏi cụt. */}
+              {kieu === 'luong' && g.unit && (
+                <div className="mt-2.5 rounded-[12px] bg-navy/[0.04] p-2.5">
+                  <label className="flex cursor-pointer items-center gap-2 text-[12px] font-bold text-navy">
                     <input
-                      id="mt-luong"
-                      name="viec_luong"
-                      type="number"
-                      step="any"
-                      min="0.01"
-                      inputMode="decimal"
-                      value={g.luong}
-                      onChange={(e) => setG((p) => ({...p, luong: e.target.value}))}
-                      className={ctlWithBorder(state.fieldError === 'viec_luong')}
+                      type="checkbox"
+                      checked={moiLanKhac}
+                      onChange={(e) => setMoiLanKhac(e.target.checked)}
+                      className="h-4 w-4 cursor-pointer accent-[var(--color-gold)]"
                     />
-                  </Field>
+                    {t('eachTimeVaries')}
+                  </label>
+
+                  {moiLanKhac ? (
+                    <div className="mt-2">
+                      <Field label={t('weekAmount', {unit: g.unit})} htmlFor="mt-luong" error={err('viec_luong')}>
+                        <input
+                          id="mt-luong"
+                          name="viec_luong"
+                          type="number"
+                          step="any"
+                          min="0.01"
+                          inputMode="decimal"
+                          value={g.luong}
+                          onChange={(e) => setG((p) => ({...p, luong: e.target.value}))}
+                          className={ctlWithBorder(state.fieldError === 'viec_luong')}
+                        />
+                      </Field>
+                    </div>
+                  ) : (
+                    <div className="mt-2">
+                      <Field label={t('perTick', {unit: g.unit})} htmlFor="mt-upt" error={err('viec_upt')}>
+                        <input
+                          id="mt-upt"
+                          name="viec_upt"
+                          type="number"
+                          step="any"
+                          min="0.01"
+                          inputMode="decimal"
+                          value={g.upt}
+                          onChange={(e) => setG((p) => ({...p, upt: e.target.value}))}
+                          className={ctlWithBorder(state.fieldError === 'viec_upt')}
+                        />
+                      </Field>
+                      {/* Nói ra con số RÁP LẠI, đừng bắt em tự nhân. Đây cũng là chỗ em nhìn ra
+                          kế hoạch của mình có hợp lý không trước khi bấm Gửi. */}
+                      {moiTuan > 0 && (
+                        <p className="mt-1.5 text-[12px] font-bold text-grey-mid">
+                          {t('perTickSum', {n: thu.length, moi: g.upt, tuan: moiTuan, unit: g.unit})}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  <input type="hidden" name="viec_nhap_luong" value={moiLanKhac ? '1' : ''} />
                 </div>
               )}
             </div>

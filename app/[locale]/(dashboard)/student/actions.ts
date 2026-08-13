@@ -767,7 +767,10 @@ export async function luuMucTieuCuaEm(
   //   'luong' (giờ, bài, trang) → ô ngày là ô ĐIỀN SỐ; chỉ tiêu tuần là một LƯỢNG em tự khai.
   //   'luot'  (ngày, buổi, tiết) → một chạm như cũ; chỉ tiêu tuần = số thứ được bật (0103).
   const kieu = kieuDonVi(unit);
-  const nhap_luong = kieu === 'luong';
+  // MỘT CÂU HỎI, HAI CÂU TRẢ LỜI — đúng hai ví dụ chủ dự án đưa 13/08/2026:
+  //   "10000 giờ học, 1 tick ngày = 3 giờ" → mỗi lần CỐ ĐỊNH 3 → một chạm, unit_per_tick = 3
+  //   "5000 lead, thứ Hai điền 10 lead"    → mỗi lần MỘT KHÁC   → ô điền số, lượng nằm ở value
+  const nhap_luong = kieu === 'luong' && String(formData.get('viec_nhap_luong') ?? '') === '1';
 
   // ĐO BẰNG GÌ, suy ra từ việc em điền chứ không hỏi thêm một câu nữa.
   //
@@ -786,10 +789,22 @@ export async function luuMucTieuCuaEm(
   // Với ô ĐIỀN SỐ thì hai con số ấy tách hẳn nhau: em chọn 5 thứ nhưng mỗi tuần 10 giờ. Nên loại
   // này hỏi thẳng "mỗi tuần bao nhiêu {đơn vị}" — 0103 bỏ ô ấy đi là đúng cho một-chạm, và sai
   // cho đếm-theo-lượng.
+  // MỖI LƯỢT TICK ĐÁNG BAO NHIÊU. Đơn vị đếm-được-bằng-lượt thì luôn 1 (một buổi là một buổi).
+  // Đơn vị theo lượng mà mỗi lần một khác thì lượng nằm thẳng trong `lead_progress.value`, nên hệ
+  // số cũng là 1 — nhân hai lần là đếm gấp đôi.
+  const upt_raw = String(formData.get('viec_upt') ?? '').trim();
+  const unit_per_tick = kieu === 'luong' && !nhap_luong ? Number(upt_raw) : 1;
+
+  // CHỈ TIÊU TUẦN tính theo ĐƠN VỊ của mục tiêu, không theo số lần:
+  //   một chạm  → số thứ được bật × mỗi lần bao nhiêu  (3 ngày × 3 giờ = 9 giờ/tuần)
+  //   điền số   → em tự khai, vì "5 buổi" và "10 giờ" là hai con số khác nhau
   const luong_raw = String(formData.get('viec_luong') ?? '').trim();
-  const viec_target = nhap_luong ? Number(luong_raw) : viec_days.length;
+  const viec_target = nhap_luong ? Number(luong_raw) : viec_days.length * unit_per_tick;
+
   if (viec_title && kieu !== 'do' && viec_days.length === 0)
     return {ok: false, fieldError: 'viec_days', error: 'Con chọn ít nhất một thứ trong tuần nhé.'};
+  if (viec_title && kieu === 'luong' && !nhap_luong && (!Number.isFinite(unit_per_tick) || unit_per_tick <= 0))
+    return {ok: false, fieldError: 'viec_upt', error: `Mỗi lần con làm được bao nhiêu ${unit}?`};
   if (viec_title && nhap_luong && (!Number.isFinite(viec_target) || viec_target <= 0))
     return {ok: false, fieldError: 'viec_luong', error: `Mỗi tuần con làm bao nhiêu ${unit}?`};
 
@@ -901,9 +916,7 @@ export async function luuMucTieuCuaEm(
       target_value: viec_target,
       unit,
       active_weekdays: viec_days,
-      // unit_per_tick giữ 1: với ô điền số, LƯỢNG đã nằm thẳng trong `lead_progress.value` nên
-      // không còn cần hệ số quy đổi — chính cái hệ số ấy là thứ 0110 đi thay.
-      unit_per_tick: 1,
+      unit_per_tick,
       nhap_luong,
     };
     const {error} = cu

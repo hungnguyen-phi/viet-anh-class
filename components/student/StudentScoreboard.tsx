@@ -374,7 +374,7 @@ export async function StudentScoreboard({
     supabase
       .from('wigs')
       .select(
-        'id, kind, status, set_by, measure_by, title, baseline, target_value, unit, area, end_date, created_at, achieved_at, source_wig_id, lead_measures(title, target_value, active_weekdays)',
+        'id, kind, status, set_by, measure_by, title, baseline, target_value, unit, area, end_date, created_at, achieved_at, source_wig_id, lead_measures(title, target_value, active_weekdays, unit_per_tick, nhap_luong)',
       )
       .eq('student_id', studentId)
       .eq('scope', 'student')
@@ -633,12 +633,28 @@ export async function StudentScoreboard({
 
   // Mục tiêu của em + trận đánh của lớp để chọn — cho khối MucTieuCuaCon.
   const mucTieuCuaEm = ((mucTieuRes.data ?? []) as unknown as (Omit<MucTieuCuaEm, 'viec'> & {
-    lead_measures: {title: string; target_value: number; active_weekdays: number[] | null}[] | null;
+    lead_measures:
+      | {
+          title: string;
+          target_value: number;
+          active_weekdays: number[] | null;
+          unit_per_tick: number | null;
+          nhap_luong: boolean | null;
+        }[]
+      | null;
   })[]).map((m) => ({
     ...m,
     // Mỗi mục tiêu của em chỉ một việc — trigger chan_viec_thu_hai (0100) chặn cái thứ hai, nên
     // lấy phần tử đầu là đủ, không cần lo còn sót cái nào.
-    viec: m.lead_measures?.[0] ?? null,
+    viec: m.lead_measures?.[0]
+      ? {
+          title: m.lead_measures[0].title,
+          target_value: m.lead_measures[0].target_value,
+          active_weekdays: m.lead_measures[0].active_weekdays,
+          unitPerTick: Number(m.lead_measures[0].unit_per_tick ?? 1) || 1,
+          nhapLuong: Boolean(m.lead_measures[0].nhap_luong),
+        }
+      : null,
   }));
 
   // SỐ ĐO TUẦN NÀY, tra theo id mục tiêu. Định dạng giờ ghi Ở ĐÂY chứ không ở component: khối kia

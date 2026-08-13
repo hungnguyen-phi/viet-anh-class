@@ -53,7 +53,14 @@ export type MucTieuCuaEm = {
   created_at: string;
   achieved_at: string | null;
   source_wig_id: string | null;
-  viec: {title: string; target_value: number; active_weekdays: number[] | null} | null;
+  viec: {
+    title: string;
+    target_value: number;
+    active_weekdays: number[] | null;
+    // 0110 — mở lại form sửa phải bày đúng cái em đã khai: mỗi lần bao nhiêu, hay mỗi lần một khác.
+    unitPerTick?: number;
+    nhapLuong?: boolean;
+  } | null;
 };
 
 export type {WigLop};

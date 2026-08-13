@@ -23,6 +23,7 @@ create temp table kq (buoc text, ky_vong text, thuc_te text, dat boolean) on com
 do $$
 declare
   v_em uuid; v_lop uuid; v_wig uuid; v_viec uuid; v_wlop uuid; v_vlop uuid;
+  v_wig2 uuid; v_viec2 uuid;
   v_thu2 date := vn_week_start(); a numeric; p numeric;
 begin
   select e.student_id, e.class_id into v_em, v_lop
@@ -76,7 +77,23 @@ begin
     insert into kq values ('Dồn cả tuần vào một hôm (=30) · vẫn lọt', 'lọt', 'BỊ CHẶN OAN', false);
   end;
 
-  -- ⑤ WIG CỦA LỚP: trần vẫn còn (0098). Việc 3 lượt/tuần, em tick 3 hôm rồi cố góp thêm.
+  -- ⑤ MỘT CHẠM, MỖI CHẠM ĐÁNG NHIỀU ĐƠN VỊ — ví dụ thứ hai của chủ dự án:
+  -- "năm có 10000 giờ học, 1 tick ngày = 3 giờ, thì mỗi lần tick là 3h/10000 giờ".
+  insert into wigs (class_id, student_id, scope, kind, status, set_by, measure_by, area,
+                    period, period_label, title, baseline, target_value, unit, start_date, end_date)
+  values (v_lop, v_em, 'student', 'personal', 'approved', 'student', 'tick', 'physical',
+          'year', 'TEST-0110B', 'thử 1 tick = 3 giờ', 0, 10000, 'giờ', v_thu2 - 7, v_thu2 + 300)
+  returning id into v_wig2;
+  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays, unit_per_tick, nhap_luong)
+  values (v_wig2, 'học bài', 9, 'giờ', array[1,3,5], 3, false) returning id into v_viec2;
+  insert into lead_progress (lead_measure_id, student_id, logged_by, logged_date, value)
+  values (v_viec2, v_em, v_em, v_thu2, 1);
+  select private.wig_actual(v_wig2) into a;
+  insert into kq values ('1 tick = 3 giờ → cộng 3, không phải 1', '3', a::text, a = 3);
+  select pct into p from wig_progress_v where wig_id = v_wig2;
+  insert into kq values ('Vòng tròn năm = 3/10000', '0.0003', p::text, p = 0.0003);
+
+  -- ⑥ WIG CỦA LỚP: trần vẫn còn (0098). Việc 3 lượt/tuần, em tick 3 hôm rồi cố góp thêm.
   insert into wigs (class_id, scope, status, measure_by, area, period, period_label,
                     title, baseline, target_value, unit, start_date, end_date)
   values (v_lop, 'class', 'approved', 'tick', 'knowledge', 'week', 'TEST-0110W',
