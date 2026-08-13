@@ -9,6 +9,10 @@ import {getCurrentProfile, requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
 import {chuanHoaThu} from '@/lib/wig-tao';
+// MỘT nguồn duy nhất cho phép chia nhịp — cùng hàm mà mục tiêu LỚP đang dùng (lib/wig-tao gọi nó
+// trong sinhNhip). Chép một bản riêng cho học sinh là dựng đúng cái bệnh "hai đường tính cho một
+// khái niệm" mà repo này đã dính nhiều lần.
+import {chiaNhip} from '@/lib/wig-nhip';
 import {buddyNote, buddyChat, type BuddyContext, type BuddyLead} from '@/lib/buddy';
 import {weekRangeVN, todayInVN, schoolYearRangeVN} from '@/lib/dates';
 import type {Database} from '@/lib/database.types';
@@ -880,6 +884,66 @@ export async function luuMucTieuCuaEm(
       ? await supabase.from('lead_measures').update(noiDung).eq('id', cu.id)
       : await supabase.from('lead_measures').insert(noiDung);
     if (error) return {ok: false, error: (friendlyError(error))};
+  }
+
+  // ── MỐC THÁNG CỦA EM ─────────────────────────────────────────────────────────────────────
+  //
+  // "100 bài trước tháng Năm" là một con số không ai bấm được vào. Chia ra thì tháng này em cần 12
+  // bài — đó mới là thứ một đứa trẻ nhìn vào biết mình đang kịp hay đang chậm, và là thứ buổi họp
+  // WIG cầm lên đọc. Chủ dự án chốt 13/08/2026: sau mục tiêu năm thì chia ra tháng bao nhiêu lần.
+  //
+  // CHỈ VỚI ĐÍCH ĐẾM ĐƯỢC. Cân nặng, chiều cao, điểm trung bình môn (`manual`) không rải được:
+  // chia "34kg" cho chín tháng ra "3,8kg mỗi tháng" là một câu vô nghĩa. Loại ấy có ô số đo của
+  // 0108 để ghi con số thật theo từng kỳ — xem ghiSoDo.
+  //
+  // MỐC LÀ THỨ ĐỂ XEM NHỊP, KHÔNG PHẢI THỨ ĐỂ TICK. Em vẫn chỉ có đúng MỘT việc (trigger
+  // chan_viec_thu_hai), treo dưới mục tiêu năm. Mốc tháng không mang việc nào cả — đẻ việc cho mỗi
+  // tháng là phá trần 4DX, biến một cam kết thành mười hai.
+  if (measure_by === 'tick') {
+    const {thang} = chiaNhip(ban.start_date, ban.end_date, target_value - (baseline ?? 0));
+
+    // XOÁ RỒI RẢI LẠI, không cập nhật từng dòng. Em sửa đích hoặc sửa hạn là toàn bộ nhịp đổi, và
+    // mốc cũ nằm ngoài khoảng mới thì không có gì dọn chúng đi. Mốc không mang tick nào treo dưới
+    // (xem trên) nên xoá không mất dữ liệu của ai.
+    await supabase
+      .from('wigs')
+      .delete()
+      .eq('student_id', student_id)
+      .eq('scope', 'student')
+      .eq('period', 'month')
+      .eq('parent_wig_id', wigId);
+
+    if (thang.length > 0) {
+      const {error} = await supabase.from('wigs').insert(
+        thang.map((m) => ({
+          class_id,
+          student_id,
+          scope: 'student' as const,
+          kind,
+          // Mốc thừa kế TRẠNG THÁI của mục tiêu năm: em chưa được duyệt thì mốc cũng chưa.
+          status: ban.status,
+          set_by: ban.set_by,
+          measure_by,
+          title,
+          area,
+          period: 'month' as const,
+          period_label: m.label,
+          baseline: null,
+          target_value: m.target,
+          unit,
+          start_date: m.start,
+          end_date: m.end,
+          parent_wig_id: wigId,
+          // Mốc KHÔNG nối vào mục tiêu lớp: wig_source_ck chỉ cho mục tiêu năm mang liên kết ấy,
+          // và một mũi tên vẽ mười hai lần thì không còn là một mũi tên.
+          source_wig_id: null,
+        })),
+      );
+      // Mục tiêu năm ĐÃ ghi được rồi. Nhịp hỏng thì không nuốt lỗi, nhưng cũng không giả vờ là chưa
+      // lưu gì — nói đúng cả hai vế để em biết mình đang đứng ở đâu.
+      if (error)
+        return {ok: false, error: `Đã lưu mục tiêu nhưng chưa chia được mốc tháng: ${friendlyError(error)}`};
+    }
   }
 
   revalidatePath('/[locale]/student', 'page');

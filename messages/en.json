@@ -1318,6 +1318,7 @@
     "readingNow": "Latest:",
     "readingSave": "Save",
     "readingByStudent": "entered by you",
-    "readingByTeacher": "entered by your teacher"
+    "readingByTeacher": "entered by your teacher",
+    "monthPace": "This month: {n} {unit}"
   }
 }

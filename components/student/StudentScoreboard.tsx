@@ -310,7 +310,7 @@ export async function StudentScoreboard({
     : {createAdminClient: null};
   const admin = createAdminClient ? createAdminClient() : null;
 
-  const [cuaSoRes, ipRes, mangRes, daHopRes, leadRes, classLeadRes, mucTieuRes, soDoRes, wigLopRes, soRes] =
+  const [cuaSoRes, ipRes, mangRes, daHopRes, leadRes, classLeadRes, mucTieuRes, soDoRes, mocThangRes, wigLopRes, soRes] =
     await Promise.all([
     // CỬA SỔ CHECK-IN của cơ sở em đang học. Lấy một lần, dùng cho cả buổi sáng lẫn buổi chiều.
     // Null khi em chưa có lớp (chưa biết cơ sở) → giao diện giữ nguyên hành vi cũ, không khoá gì.
@@ -388,6 +388,16 @@ export async function StudentScoreboard({
       .from('wig_so_do')
       .select('wig_id, gia_tri, vai_tro, updated_at')
       .eq('week_start', weekDays[0]),
+    // MỐC THÁNG NÀY của em — "100 bài trước tháng Năm" không ai bấm được vào, "tháng này 12 bài"
+    // thì có. Lọc theo NGÀY chứ không theo nhãn: nhãn là chữ, ngày mới là khoá thật (sự cố 7B1).
+    supabase
+      .from('wigs')
+      .select('parent_wig_id, target_value, unit, start_date, end_date')
+      .eq('student_id', studentId)
+      .eq('scope', 'student')
+      .eq('period', 'month')
+      .lte('start_date', today)
+      .gte('end_date', today),
     // Trận đánh của lớp — để em chọn mình đang góp vào cái nào. Đây là LIÊN KẾT HƯỚNG ĐI, không
     // phải phép chia: con số của em do em đặt, không suy ra từ con số của lớp.
     classId
@@ -620,6 +630,16 @@ export async function StudentScoreboard({
   // SỐ ĐO TUẦN NÀY, tra theo id mục tiêu. Định dạng giờ ghi Ở ĐÂY chứ không ở component: khối kia
   // là client component, để nó tự gọi toLocaleString là mời sai lệch máy chủ/trình duyệt in ra hai
   // chuỗi khác nhau rồi React kêu hydrate lệch.
+  // MỐC THÁNG NÀY, tra theo id mục tiêu năm (cha của mốc).
+  const mocThangTheoWig: Record<string, {target: number; unit: string}> = {};
+  for (const m of (mocThangRes.data ?? []) as {
+    parent_wig_id: string | null;
+    target_value: number;
+    unit: string;
+  }[]) {
+    if (m.parent_wig_id) mocThangTheoWig[m.parent_wig_id] = {target: Number(m.target_value), unit: m.unit};
+  }
+
   const soDoTheoWig: Record<string, SoDoCuaTuan> = {};
   for (const r of (soDoRes.data ?? []) as {
     wig_id: string;
@@ -805,6 +825,7 @@ export async function StudentScoreboard({
               areaMeta={areaMeta}
               locale={locale}
               soDoTheoWig={soDoTheoWig}
+              mocThangTheoWig={mocThangTheoWig}
               tuanChuaChot={tickOpen}
             />
             <div className="border-t border-navy/10 pt-3">

@@ -1318,6 +1318,7 @@
     "readingNow": "Số mới nhất:",
     "readingSave": "Ghi",
     "readingByStudent": "con tự ghi",
-    "readingByTeacher": "cô ghi"
+    "readingByTeacher": "cô ghi",
+    "monthPace": "Tháng này: {n} {unit}"
   }
 }
