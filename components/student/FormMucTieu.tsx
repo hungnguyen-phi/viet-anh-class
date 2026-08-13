@@ -226,7 +226,10 @@ export function FormMucTieu({
         {/* ③ Mỗi tuần con làm gì. Bỏ trống được: khi ấy đây là đích ghi nhận ngoài (0101). */}
         <div className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
           <p className="mb-2 text-[13px] font-extrabold text-navy">{t('step3')}</p>
-          <Field label={t('workTitle')} htmlFor="mt-viec" hint={t('workOptional')}>
+          {/* Không còn `hint`. Câu cũ ("Để trống cũng được — xem dòng chữ nghiêng bên dưới") bắt
+              em đọc một câu chỉ để được chỉ sang một câu khác, rồi câu kia lại dài bốn dòng. Ô này
+              vốn đã không bắt buộc: bỏ trống thì bước ④ không hiện, gửi vẫn được. */}
+          <Field label={t('workTitle')} htmlFor="mt-viec">
             <input
               id="mt-viec"
               name="viec_title"
@@ -267,10 +270,6 @@ export function FormMucTieu({
               </p>
             </div>
           )}
-
-          <p className="mt-2 text-[11px] font-semibold italic leading-relaxed text-grey-mid">
-            {t('leadRule')}
-          </p>
         </div>
 
         {/* CÂU MỤC TIÊU — ráp từ chính những ô em vừa gõ. */}

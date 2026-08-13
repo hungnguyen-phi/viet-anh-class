@@ -658,10 +658,12 @@ export async function StudentScoreboard({
           lưới cuối trang, sau hero, hai thẻ lớn (mục tiêu + sổ), khối của giáo viên và cả dãy
           vòng tròn lĩnh vực; còn hai thứ em chỉ đụng vài lần một kỳ thì chiếm chỗ trên cùng. */}
       <section>
-        <div className="mb-3 flex items-baseline gap-2">
-          <h2 className="font-display text-[17px] font-bold text-navy">{t('leads')}</h2>
-          <span className="text-xs font-bold text-grey-mid">{t('leadsHint')}</span>
-        </div>
+        {/* MỘT nhãn, không giải thích. Trước đây chỗ này là bốn dòng chữ chồng nhau: tiêu đề
+            "Việc của em — tick mỗi ngày", câu phụ "tick mỗi ngày" lặp lại y hệt nửa sau tiêu đề,
+            rồi LeadTicker bên dưới lại tự dựng thêm một tiêu đề + một câu phụ nữa. Bốn dòng để
+            giới thiệu một bảng mà bản thân mỗi thẻ đã ghi rõ "của lớp"/"của em" và có sẵn dải ô
+            ngày để bấm. Chủ dự án chốt: chỉ ghi Lead Measure. */}
+        <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('leads')}</h2>
         {tickerLeads.length === 0 ? (
           <p className="text-sm italic text-grey-mid">{t('noLeads')}</p>
         ) : (

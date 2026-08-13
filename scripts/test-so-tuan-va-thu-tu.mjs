@@ -91,9 +91,11 @@ if (r.status === 200) {
   const hien = html.replace(/<script[\s\S]*?<\/script>/g, '');
 
   // ── THỨ TỰ. So VỊ TRÍ chứ không chỉ so có/không: cả ba khối đều tồn tại từ trước, cái đổi là
-  // chúng đứng đâu. Mốc lấy tiêu đề khối tick ("Việc của con tuần này") và tiêu đề hai nửa thẻ.
+  // chúng đứng đâu. Mốc lấy tiêu đề khối tick và tiêu đề hai nửa thẻ.
+  // Tiêu đề khối tick nay là "Lead Measure" — 13/08/2026 chủ dự án cắt bốn dòng chữ giới thiệu
+  // ("Việc của em — tick mỗi ngày" + câu phụ, rồi một tiêu đề nữa bên trong LeadTicker) còn một.
   const viTri = (re) => hien.search(re);
-  const oTick = viTri(/Việc của em — tick mỗi ngày/);
+  const oTick = viTri(/Lead Measure/);
   const oMucTieu = viTri(/Mục tiêu của con/);
   const oSo = viTri(/Sổ của con/);
   dat(oTick >= 0, 'có khối việc để tick');

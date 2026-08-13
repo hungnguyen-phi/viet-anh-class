@@ -218,13 +218,14 @@ const check = (ten, ok, ghi = '') => {
   );
 }
 
-// ── 4c. "em góp N lượt" phải đếm LẦN BẤM, không phải đơn vị đã quy đổi ──
-// Với hệ số 30, em tick 3 tối sẽ thấy 3 ô vàng — mà câu bên dưới từng in "em góp 90 lượt".
-{
-  const src = readFileSync('components/student/LeadTicker.tsx', 'utf8');
-  const sai = /myContrib', \{n: mine\}/.test(src);
-  check('Câu “em góp N lượt” đếm theo lần bấm', !sai, sai ? 'vẫn dùng `mine` (đã nhân hệ số)' : '');
-}
+// ── 4c. ĐÃ BỎ: phép kiểm câu "em góp N lượt" ──
+// Câu ấy từng in sai đơn vị (hệ số 30, em tick 3 tối, câu in "em góp 90 lượt") và phép kiểm này
+// canh nó. Ngày 13/08/2026 chủ dự án cho bỏ hẳn cả câu: con số "em góp" chính là con số đã in to
+// ngay trên thanh tiến độ ("Em: 2/5"), nói lại lần nữa chỉ thêm rối mắt.
+//
+// Không giữ lại phép kiểm cho một thứ không còn tồn tại. Nó sẽ XANH VĨNH VIỄN — regex không khớp
+// vì dòng đã bị xoá, chứ không phải vì có gì được canh — mà một phép kiểm xanh vô căn cứ đúng là
+// kiểu nói dối bộ kiểm này sinh ra để chặn. Câu ấy có quay lại thì viết phép kiểm mới cho nó.
 
 // ── 5. Trang /wig có VẼ RA cảnh báo không ──
 {

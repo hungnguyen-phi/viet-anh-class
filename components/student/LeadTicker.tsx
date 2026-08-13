@@ -3,7 +3,7 @@
 import {useOptimistic, useState, useTransition} from 'react';
 import {useRouter} from '@/i18n/navigation';
 import {useTranslations} from 'next-intl';
-import {Check, Flame, Lock, Users} from 'lucide-react';
+import {Check, Flame, Lock} from 'lucide-react';
 import {createClient} from '@/lib/supabase/client';
 
 export type TickerLead = {
@@ -32,7 +32,8 @@ export type TickerLead = {
   contributors: number | null;
   classSize: number | null;
   // 0098 — MỖI EM MỘT BỘ ĐẾM. `myTotal` là tổng của CHÍNH EM (đã nhân hệ số) và là thứ thanh
-  // tiến độ đo từ nay; `studentsDone` là số bạn đã đạt đủ, dùng cho dòng "cả lớp".
+  // tiến độ đo từ nay; `studentsDone` là số bạn đã đạt đủ, nay chỉ còn dùng để đếm ra "còn chờ
+  // mấy bạn nữa" khi em đã xong phần mình.
   myTotal: number | null;
   studentsDone: number | null;
 };
@@ -234,30 +235,18 @@ export function LeadTicker({
           />
         </div>
 
-        {/* Dòng ý nghĩa: việc chung thì nói bằng tiếng của cả đội, việc riêng thì của em. */}
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11.5px] font-semibold text-grey-mid">
-          {l.kind === 'class' ? (
-            <>
-              <span className="inline-flex items-center gap-1">
-                <Users size={12} strokeWidth={2.5} />
-                {t('classDone', {n: l.studentsDone ?? 0, total: l.classSize ?? 0})}
-              </span>
-              <span>· {t('myContrib', {n: l.myDates.length})}</span>
-            </>
-          ) : (
-            <span>{t('myContrib', {n: l.myDates.length})}</span>
-          )}
-          {/* Chưa đủ thì nói phần CỦA EM còn thiếu. Em đủ rồi mà lớp chưa thắng thì nói còn chờ
-              mấy bạn — để em biết việc của mình xong, và lớp vẫn chưa xong. */}
-          {!done && left > 0 && (
-            <span className="ml-auto font-bold text-navy/70">{t('remainingMine', {n: left})}</span>
-          )}
-          {done && l.kind === 'class' && banConThieu > 0 && (
-            <span className="ml-auto font-bold text-navy/70">
-              {t('remainingFriends', {n: banConThieu})}
-            </span>
-          )}
-        </div>
+        {/* CHỈ CÒN VIỆC CÒN PHẢI LÀM, không còn bản tường thuật.
+            Bỏ "0/3 bạn đã đủ · em góp 2 lượt": con số "em góp" chính là con số đã in to ngay trên
+            thanh ("Em: 2/5"), còn "0/3 bạn đã đủ" thì em không làm gì được với nó. Cái duy nhất
+            khiến em bấm tiếp là phần CÒN THIẾU — nên chỉ giữ đúng dòng ấy: chưa đủ thì nói phần
+            của em, em đủ rồi mà lớp chưa thắng thì nói còn chờ mấy bạn. */}
+        {((!done && left > 0) || (done && l.kind === 'class' && banConThieu > 0)) && (
+          <p className="mt-1.5 text-[11.5px] font-bold text-navy/70">
+            {!done && left > 0
+              ? t('remainingMine', {n: left})
+              : t('remainingFriends', {n: banConThieu})}
+          </p>
+        )}
 
         {/* Dải ngày — chỉ những thứ mà việc này áp dụng. Ô 44px: đây là màn của học sinh, và
             các em bấm bằng ngón tay trên máy tính bảng (WCAG 2.5.5 mức AAA). */}
@@ -384,26 +373,21 @@ export function LeadTicker({
            của em". Chủ dự án gọi đúng tên vấn đề — em mở app ra thấy hai bảng chồng nhau và không
            biết dòng nào của dòng nào. Mỗi thẻ vốn đã mang sẵn nhãn "của lớp"/"của con", nên gộp
            lại là đủ để phân biệt mà không cần chia đôi màn hình.
-           Việc CHUNG đứng trước: đó là thứ quyết định lớp thắng hay thua tuần này. */}
+           Việc CHUNG đứng trước: đó là thứ quyết định lớp thắng hay thua tuần này.
+
+           KHÔNG CÒN TIÊU ĐỀ Ở ĐÂY. Khối này luôn được StudentScoreboard bọc trong một section đã
+           có sẵn nhãn "Lead Measure" ngay bên trên (LeadTicker không dùng ở đâu khác), nên tiêu đề
+           riêng chỉ là dòng chữ thứ hai nói lại cùng một thứ. */}
       {view.length > 0 && (
         <section className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-baseline gap-x-2">
-            <h3 className="font-display text-[15px] font-bold text-navy">{t('classLeadsTitle')}</h3>
-            <span className="text-[11.5px] font-semibold text-grey-mid">{t('classLeadsHint')}</span>
-          </div>
           {classLeads.map(leadCard)}
           {myLeads.map(leadCard)}
         </section>
       )}
 
-      {/* Câu "trong tuần tick thoải mái" ở lại đây: đó là lời trấn an, đọc lúc nào cũng được.
-          Còn hai câu BÁO HỎNG thì đã chuyển lên đầu — xem ghi chú ở trên. */}
-      {canTick && tickOpen && (
-        <p className="inline-flex items-center gap-1.5 text-xs italic text-grey-mid">
-          <Lock size={12} strokeWidth={2.5} />
-          {t('tickWeekOpen')}
-        </p>
-      )}
+      {/* Câu "trong tuần tick / bỏ tick / tick bù thoải mái, họp WIG là khoá" đã bỏ: nó tả một
+          luật mà em KHÔNG cần biết trước — lúc chưa khoá thì bấm là ăn, lúc khoá rồi thì đã có
+          câu `tickWeekLocked` ở đầu khối nói đúng chuyện đang xảy ra. Hai câu BÁO HỎNG vẫn ở đầu. */}
     </div>
   );
 }
