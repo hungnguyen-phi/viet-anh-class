@@ -15,26 +15,27 @@ import {Link, usePathname, useRouter} from '@/i18n/navigation';
 import {signOut} from '@/lib/auth-actions';
 import type {Profile} from '@/lib/auth';
 import {
-  LayoutDashboard,
-  Users,
-  ClipboardCheck,
-  Target,
-  ShieldCheck,
-  Building2,
-  LineChart,
-  LogOut,
-  Languages,
-  Trophy,
-  CalendarDays,
   Bell,
   BookOpen,
+  BookOpenCheck,
+  Building2,
+  CalendarDays,
+  ClipboardCheck,
   GraduationCap,
+  Languages,
+  LayoutDashboard,
+  LineChart,
+  Loader2,
+  LogOut,
+  Menu,
   MessageCircle,
   Settings,
-  Loader2,
-  Menu,
+  ShieldCheck,
+  Target,
+  Trophy,
+  Users,
+  UtensilsCrossed,
   X,
-  BookOpenCheck,
 } from 'lucide-react';
 
 type IconType = ComponentType<{size?: number; strokeWidth?: number; className?: string}>;
@@ -123,6 +124,9 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/homework', key: 'homework', Icon: BookOpen},
     {href: '/grades', key: 'grades', Icon: GraduationCap},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
+    // Thực đơn: trước đây là một thẻ nằm giữa màn của em, phần lớn thời gian chỉ để nói "nhà
+    // trường chưa cập nhật". Thành mục riêng thì em bấm khi muốn xem — và xem được cả tuần.
+    {href: '/menu', key: 'menu', Icon: UtensilsCrossed},
   ],
 };
 
