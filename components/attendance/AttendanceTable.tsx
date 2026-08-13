@@ -2,7 +2,7 @@
 
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTranslations} from 'next-intl';
-import {Check, CheckCheck} from 'lucide-react';
+import {Check, CheckCheck, Loader2} from 'lucide-react';
 import {createClient} from '@/lib/supabase/client';
 import type {Database} from '@/lib/database.types';
 
@@ -286,11 +286,16 @@ export function AttendanceTable({
             disabled={saving || dirtyCount === 0}
             className="btn-gold h-[42px] flex-none cursor-pointer rounded-[14px] px-5 text-sm font-extrabold disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {saving
-              ? t('saving')
-              : dirtyCount > 0
-                ? `${t('save')} (${dirtyCount})`
-                : t('save')}
+            {/* KHOÁ + ĐỔI CHỮ + XOAY. Hai cái đầu đã có; vòng xoay là thứ nói "máy đang chạy"
+                chứ không phải "màn hình đứng hình" — cùng lối với SubmitButton. */}
+            <span className="inline-flex items-center gap-1.5">
+              {saving && <Loader2 size={15} strokeWidth={2.5} className="animate-spin" />}
+              {saving
+                ? t('saving')
+                : dirtyCount > 0
+                  ? `${t('save')} (${dirtyCount})`
+                  : t('save')}
+            </span>
           </button>
         )}
       </div>
@@ -309,7 +314,10 @@ export function AttendanceTable({
             disabled={saving}
             className="btn-gold h-[42px] flex-none cursor-pointer rounded-[12px] px-5 text-sm font-extrabold disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {saving ? t('saving') : t('save')}
+            <span className="inline-flex items-center gap-1.5">
+              {saving && <Loader2 size={15} strokeWidth={2.5} className="animate-spin" />}
+              {saving ? t('saving') : t('save')}
+            </span>
           </button>
         </div>
       )}

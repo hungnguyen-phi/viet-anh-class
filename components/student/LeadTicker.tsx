@@ -3,7 +3,7 @@
 import {useOptimistic, useState, useTransition} from 'react';
 import {useRouter} from '@/i18n/navigation';
 import {useTranslations} from 'next-intl';
-import {Check, Flame, Lock} from 'lucide-react';
+import {Check, Flame, Loader2, Lock} from 'lucide-react';
 import {createClient} from '@/lib/supabase/client';
 
 export type TickerLead = {
@@ -95,7 +95,13 @@ export function LeadTicker({
   const router = useRouter();
   const [err, setErr] = useState<string | null>(null);
   const [supabase] = useState(() => createClient());
-  const [, startTransition] = useTransition();
+  // GIỮ LẤY `isPending`. Bản trước vứt nó đi (`const [, startTransition]`) — với ô một chạm thì
+  // còn tạm được vì useOptimistic đổi màu ngay, nhưng ô ĐIỀN SỐ thì không có gì cả: em gõ, rời ô,
+  // rồi ngồi nhìn một ô không đổi gì trong lúc mạng đi về. Chủ dự án chốt 13/08/2026: nút nào tự
+  // chạy việc thì phải GHI NHẬN, ĐÓNG BĂNG và XOAY, đừng im lặng tải.
+  const [dangGhi, startTransition] = useTransition();
+  // Ô nào đang được ghi — để chỉ ô ấy xoay, không phải cả dải cùng xoay.
+  const [oDangGhi, setODangGhi] = useState<string | null>(null);
 
   // Đổi màu NGAY khi bấm, không chờ máy chủ. Với một việc làm mỗi ngày thì độ trễ 200–400 ms mỗi
   // lượt là thứ cảm nhận được — và cảm giác "bấm mà không thấy gì" khiến người ta bấm lại lần nữa.
@@ -140,7 +146,7 @@ export function LeadTicker({
   // Ô để TRỐNG = xoá dòng của hôm đó, đúng nghĩa "hôm nay không làm". Không ghi 0: một dòng value=0
   // vướng `lead_progress_value_pos`, và "có ghi nhận nhưng bằng 0" khác "không có ghi nhận".
   function ghiLuong(lead: TickerLead, date: string, raw: string) {
-    if (!canTick || !tickOpen || date > today) return;
+    if (!canTick || !tickOpen || date > today || dangGhi) return;
     const cu = lead.myValues[date];
     const val = raw.trim() === '' ? null : Number(raw);
     if (val !== null && (!Number.isFinite(val) || val <= 0)) {
@@ -149,6 +155,7 @@ export function LeadTicker({
     }
     if ((cu ?? null) === val) return;
     setErr(null);
+    setODangGhi(`${lead.id}|${date}`);
     startTransition(async () => {
       if (val === null) {
         const {error} = await supabase
@@ -158,6 +165,7 @@ export function LeadTicker({
           .eq('student_id', studentId)
           .eq('logged_date', date);
         if (error) {
+          setODangGhi(null);
           setErr(t('undoError'));
           return;
         }
@@ -176,10 +184,12 @@ export function LeadTicker({
         if (error) {
           // Trigger chan_luong_vo_ly (0110) chặn số lớn hơn cả chỉ tiêu một tuần — nói đúng chuyện
           // đó thay vì câu lỗi chung, vì đây là lỗi người gõ sửa được ngay.
+          setODangGhi(null);
           setErr(error.code === '23514' ? t('luongQuaLon', {n: lead.target}) : t('tickError'));
           return;
         }
       }
+      setODangGhi(null);
       router.refresh();
     });
   }
@@ -317,7 +327,8 @@ export function LeadTicker({
             const ticked = l.myDates.includes(d);
             const future = d > today;
             const isToday = d === today;
-            const disabled = !canTick || !tickOpen || future;
+            // Đang ghi thì khoá cả dải: bấm chồng lên một lượt chưa xong là hai lệnh đá nhau.
+            const disabled = !canTick || !tickOpen || future || dangGhi;
 
             // ── Ô ĐIỀN SỐ (0110) ──
             // Nhãn thứ nằm TRÊN ô, không thay chỗ ô: em phải thấy cả "thứ mấy" lẫn "bao nhiêu"
@@ -332,22 +343,34 @@ export function LeadTicker({
                   >
                     {dayShort[isoDow(d) - 1]}
                   </span>
-                  <input
-                    type="number"
-                    step="any"
-                    min="0"
-                    inputMode="decimal"
-                    defaultValue={l.myValues[d] ?? ''}
-                    disabled={disabled}
-                    onBlur={(e) => ghiLuong(l, d, e.target.value)}
-                    aria-label={`${l.title} — ${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
-                    title={`${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
-                    className={`h-11 w-[52px] rounded-[12px] border-[1.5px] text-center text-[13px] font-extrabold tabular-nums transition-all ${
-                      l.myValues[d] ? 'border-transparent bg-gold text-navy' : 'border-navy/15 bg-white text-navy'
-                    } ${isToday && !l.myValues[d] ? 'border-navy ring-2 ring-navy/15' : ''} ${
-                      disabled ? 'cursor-default opacity-45' : ''
-                    }`}
-                  />
+                  <span className="relative inline-grid place-items-center">
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      inputMode="decimal"
+                      defaultValue={l.myValues[d] ?? ''}
+                      disabled={disabled}
+                      onBlur={(e) => ghiLuong(l, d, e.target.value)}
+                      aria-label={`${l.title} — ${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
+                      title={`${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
+                      aria-busy={oDangGhi === `${l.id}|${d}`}
+                      className={`h-11 w-[52px] rounded-[12px] border-[1.5px] text-center text-[13px] font-extrabold tabular-nums transition-all ${
+                        l.myValues[d] ? 'border-transparent bg-gold text-navy' : 'border-navy/15 bg-white text-navy'
+                      } ${isToday && !l.myValues[d] ? 'border-navy ring-2 ring-navy/15' : ''} ${
+                        disabled ? 'cursor-default opacity-45' : ''
+                      } ${oDangGhi === `${l.id}|${d}` ? 'text-transparent' : ''}`}
+                    />
+                    {/* XOAY NGAY TRÊN Ô ĐANG GHI. Ẩn chữ đi (`text-transparent`) chứ không đổi kích
+                        thước, để dải ngày không nhảy chỗ giữa lúc em đang nhìn. */}
+                    {oDangGhi === `${l.id}|${d}` && (
+                      <Loader2
+                        size={16}
+                        strokeWidth={2.5}
+                        className="pointer-events-none absolute animate-spin text-navy"
+                      />
+                    )}
+                  </span>
                 </label>
               );
 
