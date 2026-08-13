@@ -6,6 +6,7 @@ import {AlertCircle} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder, inputCls, selectCls, btnGold} from '@/components/ui/Field';
+import {ONgayVN, ngayVN} from '@/components/ui/ONgayVN';
 import {luuMucTieuCuaEm, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
 import {nhipCuaMucTieu} from '@/lib/wig-nhip';
 import {todayInVN} from '@/lib/dates';
@@ -300,19 +301,22 @@ export function FormMucTieu({
                 />
               )}
             </Field>
-            <Field
-              label={t('due')}
-              htmlFor="mt-due"
-              error={err('due_on')}
-              className="col-span-2 sm:col-span-1"
-            >
-              <input
-                id="mt-due"
+            {/* Không có htmlFor: đây là NHÓM ba ô, nhãn của nhóm đã gắn bằng role="group"
+                bên trong <ONgayVN>. Trỏ htmlFor vào một id không tồn tại thì bấm vào nhãn
+                không đưa được con trỏ đi đâu cả. */}
+            <Field label={t('due')} error={err('due_on')} className="col-span-2 sm:col-span-1">
+              {/* NGÀY / THÁNG / NĂM, không phải <input type="date">: ô đó chạy theo ngôn ngữ
+                  của trình duyệt nên máy cài tiếng Anh hiện `mm/dd/yyyy`, và một em lớp 6 đọc
+                  "06/30/2027" thì không biết đó là ngày nào. Cùng luật với ngày sinh (lib/dob.ts). */}
+              <ONgayVN
                 name="due_on"
-                type="date"
+                nhan={t('due')}
                 value={g.due}
-                onChange={(e) => setG((p) => ({...p, due: e.target.value}))}
-                className={ctlWithBorder(state.fieldError === 'due_on')}
+                loi={state.fieldError === 'due_on'}
+                chuNgay={t('dayPart')}
+                chuThang={t('monthPart')}
+                chuNam={t('yearPart')}
+                onChange={(iso) => setG((p) => ({...p, due: iso}))}
               />
             </Field>
           </div>
@@ -469,7 +473,7 @@ export function FormMucTieu({
                 from: g.baseline || '0',
                 to: g.target,
                 unit: g.unit,
-                due: g.due,
+                due: ngayVN(g.due),
               })
             : t('previewEmpty')}
         </div>

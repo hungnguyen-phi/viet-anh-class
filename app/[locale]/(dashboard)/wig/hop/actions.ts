@@ -154,6 +154,11 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
       if (m && !mocIds.includes(m[1])) mocIds.push(m[1]);
     }
 
+    // ĐẾM rồi mới kể. Trước đây câu tổng kết được push TRONG vòng lặp, nên lớp có hai mục tiêu
+    // là dòng báo lặp y hệt hai lần: "chỉnh chỉ tiêu tuần W33-2026, chỉnh chỉ tiêu tuần W33-2026".
+    // Đọc như máy bị lắp.
+    let soMocDaChinh = 0;
+    let soViecDaDat = 0;
     for (const mocId of mocIds) {
       const moc_target = Number(String(formData.get(`moc_target_${mocId}`) ?? '').trim());
       if (!Number.isFinite(moc_target) || moc_target <= 0)
@@ -180,7 +185,7 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
           fieldError: `moc_target_${mocId}`,
           error: 'Không sửa được mốc tuần này (không có quyền với lớp).',
         };
-      lam.push(`chỉnh chỉ tiêu tuần ${dich_label}`);
+      soMocDaChinh += 1;
 
       // VIỆC cho các em tick, RIÊNG của mốc này. THAY toàn bộ, không cộng dồn: buổi họp mở ra đã
       // điền sẵn việc của tuần rồi (viecMau), nên nếu chỉ chèn thêm thì mỗi lần lưu lại là một
@@ -210,9 +215,16 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
           .insert(viec.map((v) => ({wig_id: mocId, ...v})))
           .select('id');
         if (e2) return {ok: false, error: friendlyError(e2)};
-        lam.push(`đặt ${moi?.length ?? 0} việc cho các em tick`);
+        soViecDaDat += moi?.length ?? 0;
       }
     }
+    if (soMocDaChinh > 0)
+      lam.push(
+        soMocDaChinh === 1
+          ? `chỉnh chỉ tiêu tuần ${dich_label}`
+          : `chỉnh chỉ tiêu tuần ${dich_label} cho ${soMocDaChinh} mục tiêu`,
+      );
+    if (soViecDaDat > 0) lam.push(`đặt ${soViecDaDat} việc cho các em tick`);
   }
 
   // ── 2. GHI NHẬN TỪNG VIỆC CỦA TUẦN VỪA QUA ───────────────────────────────────────────────

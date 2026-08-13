@@ -1,8 +1,9 @@
 'use client';
 
-import {useActionState, useState, type ChangeEvent} from 'react';
+import {useActionState, useEffect, useRef, useState, type ChangeEvent} from 'react';
 import {useTranslations} from 'next-intl';
-import {AlertCircle, AlertTriangle, ArrowRight, Check, CheckCircle2, Minus, Plus, Trash2, X} from 'lucide-react';
+import {AlertCircle, AlertTriangle, ArrowRight, Check, CheckCircle2, Minus, PencilLine, Plus, RotateCcw, Trash2, X} from 'lucide-react';
+import {createClient} from '@/lib/supabase/client';
 import {Link} from '@/i18n/navigation';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, ctlWithBorder, inputCls, selectCls, btnGold, btnGhost, labelCls} from '@/components/ui/Field';
@@ -176,11 +177,119 @@ export function PhongHop({
       return {...p, [id]: cu.includes(d) ? cu.filter((x) => x !== d) : [...cu, d].sort()};
     });
   const set = (k: string, val: string) => setV((p) => ({...p, [k]: val}));
+  // Ô NÀO ĐANG CÓ CON TRỎ — để lượt cập nhật realtime không giật chữ khỏi tay người đang gõ.
+  const oDangGo = useRef<string | null>(null);
   const oNhap = (k: string) => ({
     value: v[k] ?? '',
+    onFocus: () => {
+      oDangGo.current = k;
+    },
+    onBlur: () => {
+      if (oDangGo.current === k) oDangGo.current = null;
+    },
     onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       set(k, e.target.value),
   });
+
+  // ── BẢN NHÁP: BUỔI HỌP DÀI, PHIÊN THÌ ĐỨT ─────────────────────────────────────────────────
+  //
+  // Một buổi họp gõ vào đây vài trăm chữ và chỉ ghi vào CSDL ở nút cuối cùng. Trang này lại chạy
+  // trên đường truyền hay rớt gói (xem docs/), nên chỉ cần trình duyệt tải lại một lần là mất
+  // sạch — đã mất thật một lần trong buổi chạy thử 13/08/2026.
+  // Nháp nằm ở localStorage, KHÔNG ở CSDL: nó là chữ chưa ai duyệt, chưa phải biên bản. Ghi vào
+  // bảng là biến bản gõ dở của một người thành số liệu chính thức của lớp.
+  const khoaNhap = `vac:hop:${classId}:${hopStart}`;
+  const [nhapDaKhoiPhuc, setNhapDaKhoiPhuc] = useState(false);
+  const daDocNhap = useRef(false);
+  useEffect(() => {
+    if (daDocNhap.current) return;
+    daDocNhap.current = true;
+    try {
+      const raw = window.localStorage.getItem(khoaNhap);
+      if (!raw) return;
+      const cu = JSON.parse(raw) as {v?: Record<string, string>; emThu?: Record<string, number[]>};
+      if (!cu?.v) return;
+      setV((p) => ({...p, ...cu.v}));
+      if (cu.emThu) setEmThu((p) => ({...p, ...cu.emThu}));
+      setNhapDaKhoiPhuc(true);
+    } catch {
+      // Nháp hỏng thì bỏ qua — không có gì để cứu, và không được làm hỏng cả trang vì nó.
+    }
+  }, [khoaNhap]);
+  useEffect(() => {
+    if (!daDocNhap.current) return;
+    const id = setTimeout(() => {
+      try {
+        window.localStorage.setItem(khoaNhap, JSON.stringify({v, emThu}));
+      } catch {
+        // Hết chỗ hoặc chế độ riêng tư — nháp là thứ có thì tốt, không có thì thôi.
+      }
+    }, 500);
+    return () => clearTimeout(id);
+  }, [khoaNhap, v, emThu]);
+  const boNhap = () => {
+    try {
+      window.localStorage.removeItem(khoaNhap);
+    } catch {
+      /* không sao */
+    }
+    setNhapDaKhoiPhuc(false);
+  };
+
+  // ── EM ĐANG ĐIỀN, CÔ NHÌN THẤY ────────────────────────────────────────────────────────────
+  //
+  // Từ 0111, mỗi em tự điền hai ô của mình ngay trong phòng họp (/student/hop). Chữ ấy đi vào
+  // cùng bảng `wig_meetings`, nên chỗ này chỉ cần nghe thay đổi của bảng là bảng "Từng em" tự
+  // cập nhật — cô không phải tải lại trang giữa buổi họp.
+  //
+  // ĐI QUA postgres_changes chứ không qua kênh broadcast: broadcast của Supabase mặc định ai
+  // đăng nhập cũng vào được nếu đoán trúng tên kênh, mà đây là chữ của trẻ con. postgres_changes
+  // thì Realtime áp đúng RLS của bảng.
+  const [dangGoLuc, setDangGoLuc] = useState<Record<string, number>>({});
+  // Nhịp đồng hồ để chữ "đang điền…" tự tắt sau vài giây — không có nó thì cái chấm động đậy
+  // nằm lại đó suốt buổi họp dù em đã gõ xong từ lâu.
+  const [nhip, setNhip] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNhip(Date.now()), 2000);
+    return () => clearInterval(id);
+  }, []);
+  useEffect(() => {
+    if (!canManage) return;
+    const supabase = createClient();
+    const kenh = supabase
+      .channel(`hop-${classId}-${hopStart}`)
+      .on(
+        'postgres_changes',
+        {event: '*', schema: 'public', table: 'wig_meetings', filter: `class_id=eq.${classId}`},
+        (payload) => {
+          const r = payload.new as {
+            student_id: string | null;
+            week_label: string | null;
+            results: string | null;
+            commitments: string | null;
+            hs_go_luc: string | null;
+          } | null;
+          if (!r?.student_id || r.week_label !== hopLabel) return;
+          if (r.hs_go_luc) setDangGoLuc((p) => ({...p, [r.student_id!]: Date.parse(r.hs_go_luc!)}));
+          // KHÔNG giật chữ khỏi tay cô. Ô nào cô đang đặt con trỏ vào thì giữ nguyên chữ của cô;
+          // hai người gõ cùng một ô là chuyện của buổi họp, không phải chuyện máy phải tự xử.
+          setV((p) => {
+            const kq = `em_${r.student_id}_ketqua`;
+            const ck = `em_${r.student_id}_camket`;
+            const moi = {...p};
+            if (oDangGo.current !== kq) moi[kq] = r.results ?? '';
+            if (oDangGo.current !== ck) moi[ck] = r.commitments ?? '';
+            return moi;
+          });
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(kenh);
+    };
+  }, [canManage, classId, hopStart, hopLabel]);
+  // 6 giây: đủ dài để một em gõ chậm không bị nhấp nháy, đủ ngắn để cô không tưởng em còn đang gõ.
+  const dangGo = (id: string) => nhip - (dangGoLuc[id] ?? 0) < 6000;
 
   // ── DÒNG VIỆC CHO TUẦN TỚI ───────────────────────────────────────────────────────────────
   // Mang sẵn việc của tuần vừa rồi sang: 4DX bảo thước đo dẫn dắt phải bền, đổi mỗi tuần thì
@@ -307,8 +416,30 @@ export function PhongHop({
     );
   };
 
+  // Chốt xong là nháp hết việc — giữ lại thì lần sau mở buổi họp ra nó đè lên số liệu thật.
+  useEffect(() => {
+    if (state.ok) boNhap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.ok]);
+
   return (
     <div className="flex flex-col gap-4">
+    {nhapDaKhoiPhuc && (
+      <div className="flex flex-wrap items-center gap-2 rounded-[12px] border-[1.5px] border-gold-deep/30 bg-gold/[0.12] px-3 py-2.5">
+        <RotateCcw size={14} strokeWidth={2.5} className="shrink-0 text-gold-deep" />
+        <span className="min-w-0 flex-1 text-[12px] font-bold text-navy">{t('draftRestored')}</span>
+        <button
+          type="button"
+          onClick={() => {
+            boNhap();
+            window.location.reload();
+          }}
+          className="cursor-pointer rounded-[9px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[11.5px] font-extrabold text-navy transition-colors hover:border-navy"
+        >
+          {t('draftDiscard')}
+        </button>
+      </div>
+    )}
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="class_id" value={classId} />
       <input type="hidden" name="hop_start" value={hopStart} />
@@ -796,6 +927,19 @@ export function PhongHop({
                   {!e.wigId && (
                     <span className="text-[11px] font-bold text-status-bad">{t('noGoalYet')}</span>
                   )}
+                  {/* EM ĐANG GÕ. Ba chấm động đậy đúng chỗ cái tên, không phải một khung thông
+                      báo ở góc màn — cô đang nhìn danh sách em, tín hiệu phải nằm trong danh sách
+                      ấy. aria-live để trình đọc màn hình cũng nghe được, nhưng 'polite' thôi:
+                      đây không phải chuyện cắt ngang. */}
+                  {dangGo(e.id) && (
+                    <span
+                      aria-live="polite"
+                      className="inline-flex items-center gap-1 rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-navy"
+                    >
+                      <PencilLine size={10} strokeWidth={2.5} />
+                      {t('studentTyping')}
+                    </span>
+                  )}
                 </div>
 
                 {/* Tên đi cùng để câu báo lỗi gọi được đúng em ("Việc của Nguyễn Văn A chưa
@@ -838,12 +982,28 @@ export function PhongHop({
                   </>
                 )}
 
+                {/* aria-label KÈM TÊN EM. Nhãn nhìn bằng mắt chỉ ghi "Tuần rồi", và cả trang có
+                    hai ô như thế cho MỖI em — nghe bằng trình đọc màn hình thì ba mươi ô đều tên
+                    là "Tuần rồi", không biết đang ở ô của ai. Mấy nút thứ ngay trên đã kèm tên
+                    từ lâu; hai ô này bị bỏ sót. */}
                 <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <Field label={t('emResults')} htmlFor={`em-${e.id}-kq`}>
-                    <input id={`em-${e.id}-kq`} name={`em_${e.id}_ketqua`} {...oNhap(`em_${e.id}_ketqua`)} className={inputCls} />
+                    <input
+                      id={`em-${e.id}-kq`}
+                      name={`em_${e.id}_ketqua`}
+                      aria-label={`${e.ten} — ${t('emResults')}`}
+                      {...oNhap(`em_${e.id}_ketqua`)}
+                      className={inputCls}
+                    />
                   </Field>
                   <Field label={t('emCommit')} htmlFor={`em-${e.id}-ck`}>
-                    <input id={`em-${e.id}-ck`} name={`em_${e.id}_camket`} {...oNhap(`em_${e.id}_camket`)} className={inputCls} />
+                    <input
+                      id={`em-${e.id}-ck`}
+                      name={`em_${e.id}_camket`}
+                      aria-label={`${e.ten} — ${t('emCommit')}`}
+                      {...oNhap(`em_${e.id}_camket`)}
+                      className={inputCls}
+                    />
                   </Field>
                 </div>
               </div>

@@ -3,6 +3,7 @@ import {getTranslations} from 'next-intl/server';
 import {Link} from '@/i18n/navigation';
 import {createClient} from '@/lib/supabase/server';
 import type {Profile} from '@/lib/auth';
+import {tenHienThi} from '@/lib/ten-hien-thi';
 import {
   soVN,
   CONDUCT_CHIP,
@@ -80,7 +81,7 @@ export async function FamilyReport({
       .map((l) => ({id: l.student_id, name: l.profiles?.full_name ?? l.student_id}))
       .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
   } else {
-    children = [{id: profile.id, name: profile.full_name ?? profile.email}];
+    children = [{id: profile.id, name: tenHienThi(profile.full_name, profile.email)}];
   }
 
   const childId = childParam && children.some((c) => c.id === childParam) ? childParam : children[0]?.id;

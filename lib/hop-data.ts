@@ -1,6 +1,7 @@
 import {shiftWeeks, weekFromMonday} from '@/lib/dates';
 import type {createClient} from '@/lib/supabase/server';
 import type {ViecTuanQua, EmTrongTuan, EmHop, ViecMau, WigOption} from '@/components/wig/PhongHop';
+import {tenHienThi} from '@/lib/ten-hien-thi';
 
 type Sb = Awaited<ReturnType<typeof createClient>>;
 
@@ -140,7 +141,7 @@ export async function layDuLieuHop(
       // con làm gì" — kể cả em chưa đặt mục tiêu, vì đó chính là em cần hỏi nhất.
       supabase
         .from('enrollments')
-        .select('student_id, profiles!enrollments_student_id_fkey(full_name)')
+        .select('student_id, profiles!enrollments_student_id_fkey(full_name, email)')
         .eq('class_id', classId)
         .eq('is_active', true),
       // Mục tiêu năm của từng em kèm VIỆC treo dưới nó. `lead_measures` là mảng vì PostgREST trả
@@ -239,14 +240,16 @@ export async function layDuLieuHop(
     if (b.student_id) bbTheoEm.set(b.student_id, {results: b.results ?? '', commitments: b.commitments ?? ''});
   }
   const emHop: EmHop[] = (
-    (emRows ?? []) as unknown as {student_id: string; profiles: {full_name: string | null} | null}[]
+    (emRows ?? []) as unknown as {student_id: string; profiles: {full_name: string | null; email: string | null} | null}[]
   )
     .map((e) => {
       const vi = viecTheoEm.get(e.student_id);
       const bb = bbTheoEm.get(e.student_id);
       return {
         id: e.student_id,
-        ten: e.profiles?.full_name ?? '—',
+        // Một luật tên duy nhất cho cả app (lib/ten-hien-thi.ts). Trước đây chỗ này rơi về
+        // dấu gạch "—": cô nhìn một ô trống trong buổi họp và không biết đang ghi cho ai.
+        ten: tenHienThi(e.profiles?.full_name, e.profiles?.email),
         wigId: vi?.wigId ?? null,
         leadId: vi?.leadId ?? null,
         viecTitle: vi?.title ?? '',

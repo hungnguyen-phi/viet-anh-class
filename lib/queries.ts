@@ -1,6 +1,7 @@
 import type {SupabaseClient} from '@supabase/supabase-js';
 import type {Database} from '@/lib/database.types';
 import type {Profile} from '@/lib/auth';
+import {tenHienThi} from '@/lib/ten-hien-thi';
 
 type SB = SupabaseClient<Database>;
 export type ClassRow = Database['public']['Tables']['classes']['Row'];
@@ -308,19 +309,20 @@ export async function getChildren(supabase: SB): Promise<Con[]> {
   // một lần rút thăm với cái đuôi một giây.
   const {data: enr} = await supabase
     .from('enrollments')
-    .select('student_id, class_id, classes(name), profiles!enrollments_student_id_fkey(full_name)')
+    .select('student_id, class_id, classes(name), profiles!enrollments_student_id_fkey(full_name, email)')
     .eq('is_active', true);
   const enrRows = (enr ?? []) as unknown as {
     student_id: string;
     class_id: string;
     classes: {name: string} | null;
-    profiles: {full_name: string | null} | null;
+    profiles: {full_name: string | null; email: string | null} | null;
   }[];
 
   return enrRows
     .map((e) => ({
       id: e.student_id,
-      name: e.profiles?.full_name ?? e.student_id,
+      // Không rơi về UUID: "0226fd73-…" không giúp ai nhận ra ai (lib/ten-hien-thi.ts).
+      name: tenHienThi(e.profiles?.full_name, e.profiles?.email),
       classId: e.class_id,
       className: e.classes?.name ?? '',
     }))

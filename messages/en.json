@@ -593,7 +593,20 @@
     "thisWeekWork": "What will you do this week",
     "emResults": "Last week",
     "emCommit": "Promise for next week",
-    "noGoalYet": "no goal set yet"
+    "noGoalYet": "no goal set yet",
+    "myBoxTitle": "Your part",
+    "myHint": "Fill these two boxes yourself during the meeting. Your teacher sees what you type.",
+    "myResultsPlaceholder": "What did you get done last week?",
+    "myCommitPlaceholder": "What do you promise for next week?",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "saveFailed": "Not saved — check your connection and keep typing.",
+    "closedForYou": "This week’s meeting is closed, so your part can no longer be edited.",
+    "studentTyping": "typing…",
+    "draftRestored": "Restored the draft you left unfinished — nothing has been saved to the minutes yet.",
+    "draftDiscard": "Discard draft",
+    "backToBoard": "Back to your board",
+    "noClassForStudent": "You are not in a class yet, so there is no meeting."
   },
   "report": {
     "title": "Parent report",
@@ -704,7 +717,7 @@
     },
     "wigYear": "My goal for the year",
     "noWig": "Your homeroom teacher hasn't set personal WIGs yet.",
-    "leads": "Lead Measure",
+    "leads": "Daily habits",
     "noLeads": "No tasks this week.",
     "tickToday": "Today",
     "ticked": "Ticked",
@@ -716,12 +729,12 @@
     "last7": "Last 7 days",
     "target": "Target",
     "total": "Total",
-    "meetings": "Personal WIG meeting (Coach × Buddy)",
-    "meetingHint": "The homeroom teacher (Coach) records weekly WIG meeting notes with the student and their buddy.",
+    "meetings": "Your own WIG meeting",
+    "meetingHint": "Your teacher writes up your weekly WIG meeting here.",
     "week": "Week (e.g. W30-2026)",
     "reflection": "Weekly reflection",
     "commitments": "Commitments",
-    "nextActions": "Next week's WIG & lead measures",
+    "nextActions": "Next week",
     "saveMeeting": "Save minutes",
     "coach": "Coach",
     "noMeetings": "No personal meeting minutes yet.",
@@ -763,10 +776,14 @@
     "mineLabel": "You",
     "moodAt": "Checked in at {time}",
     "moodLate": "Late",
-    "moodClosed": "Outside check-in hours. Mornings 6:30–8:00, afternoons from 16:00.",
-    "moodLocked": "Locked — the morning mood can only be changed before 7:00.",
+    "moodClosed": "Check-in is closed right now.",
+    "moodLocked": "Locked — the morning mood can only be changed during check-in hours.",
     "luongPhaiDuong": "Enter a number greater than 0.",
-    "luongQuaLon": "One day cannot exceed the whole week's target ({n})."
+    "luongQuaLon": "One day cannot exceed the whole week's target ({n}).",
+    "moodClosedAt": "Check-in is closed. Morning {sang1}–{sang2}, afternoon {chieu1}–{chieu2}.",
+    "enterMeetingRoom": "Open the WIG meeting room",
+    "classMinutes": "Class meeting minutes",
+    "classPromise": "The class promises"
   },
   "campusReport": {
     "title": "Campus report",
@@ -1324,6 +1341,9 @@
     "perTickSum": "{n} times × {moi} = {tuan} {unit} this week.",
     "unitPick": "Pick a unit",
     "unitOther": "Other…",
-    "unitBack": "Pick again"
+    "unitBack": "Pick again",
+    "dayPart": "Day",
+    "monthPart": "Month",
+    "yearPart": "Year"
   }
 }

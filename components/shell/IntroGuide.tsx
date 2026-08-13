@@ -22,7 +22,20 @@ import {
 
 type Step = {Icon: LucideIcon; title: string; bullets: string[]};
 
-// Nội dung onboarding song ngữ. Mỗi vai trò: chào mừng → 4DX → phần của vai trò → xong.
+// Nội dung onboarding song ngữ. Mỗi vai trò: chào mừng → cách lớp làm việc → phần của vai trò → xong.
+//
+// VIẾT LẠI 13/08/2026. Bản cũ sai hai chuyện, và cả hai đều nằm ở thứ đầu tiên người mới đọc:
+//
+//   · Nó chỉ đường tới hai cái nút KHÔNG CÓ THẬT ở chỗ nó nói — "nút EN/VI góc trên bên phải" và
+//     'nút "Hướng dẫn" trên góc phải'. Góc phải chỉ có chuông và bánh răng; cả hai thứ ấy nằm
+//     TRONG menu bánh răng. Người mới lần đầu vào app đi tìm và không thấy.
+//     (Bản cũ còn bảo giáo viên bấm "Ghi +" để cộng tiến độ — nút ấy đã bỏ từ 0073, nay các em
+//     tự tick.)
+//   · Nó là trang thuyết trình tư vấn đặt nhầm chỗ: "lãnh đạo việc học tập theo khung 4DX",
+//     "WIG", "Lead measure", "Scoreboard", "buổi tutor", "hành vi văn hoá" — cho học sinh lớp 6.
+//     Thuật ngữ nào giữ lại thì phải giải thích ngay bằng tiếng Việt thường.
+//
+// Xưng hô: chỉ "bạn", thống nhất với toàn bộ màn hình học sinh (chủ dự án chốt 13/08/2026).
 function buildSteps(role: Role, locale: string): Step[] {
   const vi = locale !== 'en';
   const welcome: Step = {
@@ -30,29 +43,29 @@ function buildSteps(role: Role, locale: string): Step[] {
     title: vi ? 'Chào mừng đến Việt Anh Class!' : 'Welcome to Viet Anh Class!',
     bullets: vi
       ? [
-          'Ứng dụng giúp mỗi lớp lãnh đạo việc học tập và rèn luyện theo khung 4DX.',
-          'Song ngữ Việt–Anh: đổi ngôn ngữ ở nút EN/VI góc trên bên phải.',
+          'Đây là chỗ cả lớp cùng theo dõi mục tiêu của năm, và bạn theo dõi việc mình làm mỗi ngày.',
+          'Muốn đọc bằng tiếng Anh: bấm hình bánh răng ở góc trên bên phải, chọn "Ngôn ngữ".',
         ]
       : [
-          'An app to help each class lead its learning and growth with the 4DX framework.',
-          'Bilingual: switch language with the EN/VI button at the top right.',
+          'This is where your class tracks its goals for the year, and you track what you do each day.',
+          'To read in Vietnamese: press the gear icon at the top right and pick "Language".',
         ],
   };
   const dx: Step = {
     Icon: Target,
-    title: vi ? '4DX là gì?' : 'What is 4DX?',
+    title: vi ? 'Lớp mình làm việc thế nào?' : 'How your class works',
     bullets: vi
       ? [
-          'WIG — mục tiêu cực kỳ quan trọng, theo 4 lĩnh vực: Kiến thức, Kỹ năng, Tiếng Anh, Thể chất (có WIG năm và WIG tuần).',
-          'Lead measure — hành vi dẫn dắt hằng ngày/tuần để đạt WIG (vd buổi tutor, hành vi văn hoá).',
-          'Scoreboard — donut % + nhãn Đúng tiến độ / Giữa nhịp / Chậm tiến độ.',
-          'Họp WIG — mỗi tuần ghi chiêm nghiệm, cam kết, việc tuần sau.',
+          'Mục tiêu (WIG) — điều quan trọng nhất lớp muốn đạt trong năm, ở 4 mảng: Kiến thức, Kỹ năng, Tiếng Anh, Thể chất. Mục tiêu năm được chia nhỏ ra từng tháng, từng tuần.',
+          'Việc làm đều — việc nhỏ bạn làm hằng ngày để đi tới mục tiêu, ví dụ làm bài tập mỗi tối. Làm xong thì tick vào ô của ngày hôm đó.',
+          'Bảng tiến độ — vòng tròn phần trăm cho biết bạn đang đi đúng nhịp, giữa nhịp hay chậm so với kế hoạch.',
+          'Họp WIG — mỗi tuần cả lớp nhìn lại số của tuần vừa rồi, rút ra điều gì, rồi hứa với nhau việc tuần tới.',
         ]
       : [
-          'WIG — Wildly Important Goals across 4 areas: Knowledge, Skills, English, Physical (yearly + weekly WIGs).',
-          'Lead measures — the daily/weekly behaviors that drive the WIG (e.g. tutor sessions, culture behaviors).',
-          'Scoreboard — a % donut with On track / Mid / Behind labels.',
-          'WIG meeting — each week record reflection, commitments, next actions.',
+          'Goals (WIGs) — the most important things your class wants to reach this year, in 4 areas: Knowledge, Skills, English, Physical. A yearly goal is broken down by month and by week.',
+          'Daily habits — the small things you do every day to get there, like homework each evening. Tick the box for the day once you have done it.',
+          'Progress ring — a percentage that tells you whether you are on track, mid-pace, or behind.',
+          'WIG meeting — each week the class looks back at the numbers, says what it learned, and promises what comes next.',
         ],
   };
   const roleStep: Record<Role, Step> = {
@@ -63,13 +76,13 @@ function buildSteps(role: Role, locale: string): Step[] {
         ? [
             'Trang lớp: bảng điểm, thứ hạng thi đua, donut WIG 4 lĩnh vực.',
             'Điểm danh: chọn nhanh cả lớp rồi chỉnh vài em, lưu realtime.',
-            'WIG 3 bước: ① Tạo WIG năm → ② Tạo WIG tuần → ③ Thêm Lead measure; bấm "Ghi +" để cộng tiến độ.',
+            'WIG 3 bước: ① Tạo mục tiêu năm → ② Mục tiêu tuần → ③ Thêm việc để các em tick. Tiến độ do chính các em tick mà thành, giáo viên không cộng tay.',
             'Danh sách: bật "Trưởng điểm danh" cho 1 học sinh điểm danh thay (chỉ hôm nay).',
           ]
         : [
             'Class page: scoreboard, competition rank, 4-area WIG donuts.',
             'Attendance: tick the whole class fast, adjust a few, saves in realtime.',
-            'WIG in 3 steps: ① yearly WIG → ② weekly WIG → ③ add lead measures; press "Log +" to add progress.',
+            'WIG in 3 steps: ① yearly goal → ② weekly goal → ③ add the work students tick. Progress comes from their own ticks — teachers do not add it by hand.',
             'Roster: set an "Attendance leader" so a student can mark attendance (today only).',
           ],
     },
@@ -78,13 +91,13 @@ function buildSteps(role: Role, locale: string): Step[] {
       title: vi ? 'Bạn là Học sinh' : "You're a Student",
       bullets: vi
         ? [
-            'Bảng thành tích của em: cảm xúc hôm nay, WIG năm/tuần, tick lead measure hằng ngày.',
-            'Chọn cảm xúc mỗi ngày ở ô "Hôm nay em thế nào?".',
-            'Nếu được giao "Trưởng điểm danh": điểm danh giúp lớp (chỉ hôm nay).',
+            'Mở "Bảng điểm của tôi" là thấy đủ: cảm xúc hôm nay, mục tiêu của bạn, và những việc cần tick.',
+            'Mỗi ngày chọn một mặt cười ở ô "Hôm nay bạn thế nào?" — đó cũng chính là điểm danh của bạn.',
+            'Nếu được giao "Trưởng điểm danh": bạn điểm danh giúp cả lớp (chỉ trong hôm nay).',
           ]
         : [
-            'My board: today\'s mood, yearly/weekly WIGs, daily lead-measure ticks.',
-            'Pick your mood each day in "How are you today?".',
+            'Open "My board" to find everything: today\'s mood, your goals, and the work to tick.',
+            'Pick a face each day in "How are you today?" — that is also your attendance.',
             'If you\'re the "Attendance leader": mark attendance for the class (today only).',
           ],
     },
@@ -143,8 +156,8 @@ function buildSteps(role: Role, locale: string): Step[] {
     Icon: PartyPopper,
     title: vi ? 'Sẵn sàng rồi!' : "You're all set!",
     bullets: vi
-      ? ['Bạn có thể xem lại hướng dẫn này bất cứ lúc nào ở nút "Hướng dẫn" trên góc phải.']
-      : ['You can replay this guide anytime from the "Guide" button at the top right.'],
+      ? ['Muốn xem lại hướng dẫn này: bấm hình bánh răng ở góc trên bên phải, chọn "Hướng dẫn".']
+      : ['To replay this guide: press the gear icon at the top right and pick "Guide".'],
   };
   return [welcome, dx, roleStep[role] ?? roleStep.pending, done];
 }
@@ -194,6 +207,17 @@ export function IntroGuide({
   }, [open]);
   // Bẫy focus trong modal onboarding.
   useFocusTrap(open && mounted, cardRef);
+  // KHOÁ CUỘN NỀN khi hộp thoại mở. Không có nó thì lăn chuột trên hộp hướng dẫn làm trang phía
+  // sau trôi đi — người mới lần đầu vào app vừa đọc vừa thấy nền chạy, và đóng hộp ra thì đang
+  // đứng ở giữa trang chứ không phải chỗ mình bắt đầu.
+  useEffect(() => {
+    if (!open || !mounted) return;
+    const cu = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = cu;
+    };
+  }, [open, mounted]);
 
   async function finish() {
     setOpen(false);
@@ -212,8 +236,6 @@ export function IntroGuide({
     <div
       className="animate-fade fixed inset-0 z-50 flex items-center justify-center bg-navy/30 p-5 backdrop-blur-[10px]"
       onClick={finish}
-      role="dialog"
-      aria-modal="true"
     >
       <div
         ref={cardRef}

@@ -202,25 +202,30 @@ export type CuaSo = {
 
 export function MoodCheckin({
   initialMood,
+  initialMoodChieu = null,
   canEdit,
   gated = false,
   gioBam = null,
+  gioBamChieu = null,
   cuaSo = null,
-  buoi = 'sang',
 }: {
   initialMood: MoodKey | null;
+  /** Cảm xúc buổi CHIỀU hôm nay — buổi chiều là một lượt check-in riêng, không đè lên buổi sáng. */
+  initialMoodChieu?: MoodKey | null;
   canEdit: boolean;
   // true = <MoodGate> đang lo việc check-in lần đầu → đừng tự mở popup nữa (tránh 2 lớp phủ).
   gated?: boolean;
-  /** Giờ em đã bấm hôm nay (ISO), để hiện ngay dưới icon. */
+  /** Giờ bạn đã bấm buổi sáng (ISO), để hiện ngay dưới icon. */
   gioBam?: string | null;
+  /** Giờ bạn đã bấm buổi chiều (ISO). */
+  gioBamChieu?: string | null;
   /** Cửa sổ check-in của cơ sở. null = chưa cấu hình → giữ nguyên hành vi cũ (bấm lúc nào cũng được). */
   cuaSo?: CuaSo | null;
-  buoi?: 'sang' | 'chieu';
 }) {
   const t = useTranslations('student');
   const router = useRouter();
-  const [mood, setMood] = useState<MoodKey | null>(initialMood);
+  const [moodSang, setMoodSang] = useState<MoodKey | null>(initialMood);
+  const [moodChieu, setMoodChieu] = useState<MoodKey | null>(initialMoodChieu);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<MoodKey | null>(initialMood);
   const [saving, setSaving] = useState(false);
@@ -250,37 +255,92 @@ export function MoodCheckin({
     const id = setInterval(() => setTick(Date.now()), 30_000);
     return () => clearInterval(id);
   }, []);
+  // BUỔI NÀO ĐANG MỞ — TỰ TÍNH, KHÔNG NHẬN TỪ NGOÀI.
+  //
+  // Trước 13/08/2026 chỗ này nhận một prop `buoi` mặc định `'sang'`, mà nơi gọi duy nhất
+  // (StudentScoreboard) lại không bao giờ truyền. Hệ quả: chỉ cửa sổ SÁNG được xét, nên từ 8h
+  // sáng trở đi mọi ngày mặt cười đều bấm không ăn, trong khi chính màn hình lại hứa "chiều từ
+  // 16h00" và hàm student_checkin dưới CSDL vẫn nhận buổi chiều. Cả tính năng check-in chiều
+  // chết lặng suốt thời gian đó. Nay buổi được suy ra từ chính cửa sổ: qua giờ mở buổi chiều
+  // thì đang là buổi chiều, còn lại là buổi sáng.
   const trangThaiCua = useMemo(() => {
-    if (!cuaSo) return {mo: true, muon: false, khoaCamXuc: false} as const;
+    if (!cuaSo) return {mo: true, muon: false, khoaCamXuc: false, buoi: 'sang' as const};
     const t0 = tick;
     const g = (s: string) => new Date(s).getTime();
-    if (buoi === 'chieu') {
-      return {mo: t0 >= g(cuaSo.chieuMo) && t0 <= g(cuaSo.chieuDong), muon: false, khoaCamXuc: false};
+    if (t0 >= g(cuaSo.chieuMo)) {
+      // Buổi chiều không có khái niệm "muộn": nó không thay điểm danh đầu giờ.
+      return {mo: t0 <= g(cuaSo.chieuDong), muon: false, khoaCamXuc: false, buoi: 'chieu' as const};
     }
     const mo = t0 >= g(cuaSo.moLuc) && t0 <= g(cuaSo.hetMuon);
-    return {mo, muon: t0 > g(cuaSo.hetDungGio), khoaCamXuc: t0 > g(cuaSo.hetDungGio)};
-  }, [cuaSo, tick, buoi]);
+    return {
+      mo,
+      muon: t0 > g(cuaSo.hetDungGio),
+      khoaCamXuc: t0 > g(cuaSo.hetDungGio),
+      buoi: 'sang' as const,
+    };
+  }, [cuaSo, tick]);
 
-  // Sửa được khi: là chính em, cửa còn mở, VÀ chưa quá giờ khoá cảm xúc.
+  const buoi = trangThaiCua.buoi;
+  const mood = buoi === 'chieu' ? moodChieu : moodSang;
+  const setMood = buoi === 'chieu' ? setMoodChieu : setMoodSang;
+
+  // Sửa được khi: là chính bạn, cửa còn mở, VÀ chưa quá giờ khoá cảm xúc.
   // Đã bấm rồi mà chưa tới giờ khoá thì vẫn đổi được — bấm nhầm mặt cười là chuyện thường.
   const suaDuoc = canEdit && trangThaiCua.mo && !(mood !== null && trangThaiCua.khoaCamXuc);
 
   const gioBamVN = useMemo(() => {
-    if (!gioBam) return null;
+    const iso = buoi === 'chieu' ? gioBamChieu : gioBam;
+    if (!iso) return null;
     return new Intl.DateTimeFormat('vi-VN', {
       timeZone: 'Asia/Ho_Chi_Minh',
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
-    }).format(new Date(gioBam));
-  }, [gioBam]);
+    }).format(new Date(iso));
+  }, [gioBam, gioBamChieu, buoi]);
+
+  // GIỜ MỞ CỬA, LẤY TỪ CẤU HÌNH CƠ SỞ — không viết cứng trong câu chữ.
+  //
+  // Câu cũ ghi cứng "Sáng nhận từ 6h30 đến 8h00, chiều từ 16h00": trường đổi giờ vào lớp trong
+  // bảng campuses là câu này nói sai ngay, mà không ai biết. Và nó bỏ lửng giờ ĐÓNG buổi chiều
+  // nên bạn nào mở app lúc 17h30 đọc câu ấy vẫn tưởng mình bấm được.
+  const gioCua = useMemo(() => {
+    if (!cuaSo) return null;
+    const f = (s: string) =>
+      new Intl.DateTimeFormat('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).format(new Date(s));
+    return {
+      sangMo: f(cuaSo.moLuc),
+      sangDong: f(cuaSo.hetMuon),
+      chieuMo: f(cuaSo.chieuMo),
+      chieuDong: f(cuaSo.chieuDong),
+    };
+  }, [cuaSo]);
+
+  const cauDongCua = gioCua
+    ? t('moodClosedAt', {
+        sang1: gioCua.sangMo,
+        sang2: gioCua.sangDong,
+        chieu1: gioCua.chieuMo,
+        chieu2: gioCua.chieuDong,
+      })
+    : t('moodClosed');
 
 
 
-  // Tự mở popup lần đầu trong ngày nếu học sinh chưa check-in — TRỪ khi <MoodGate> đã chặn.
+  // Tự mở popup lần đầu trong BUỔI nếu học sinh chưa check-in — TRỪ khi <MoodGate> đã chặn.
+  // Theo `mood` của buổi đang mở, không theo prop buổi sáng: qua 16h mà sáng đã bấm rồi thì
+  // buổi chiều vẫn phải tự mở ra hỏi.
   useEffect(() => {
-    if (!gated && suaDuoc && initialMood === null) setOpen(true);
-  }, [gated, suaDuoc, initialMood]);
+    if (!gated && suaDuoc && mood === null) {
+      setDraft(null);
+      setOpen(true);
+    }
+  }, [gated, suaDuoc, mood]);
 
   // Đóng bằng phím Esc khi popup mở (popup "Sửa" là tự nguyện nên vẫn cho thoát).
   useEffect(() => {
@@ -309,7 +369,7 @@ export function MoodCheckin({
       setErr(t('moodNoClass'));
     } else if (res.closed) {
       // Không phải lỗi: em bấm sớm quá hoặc muộn quá. Nói giờ nào bấm được, đừng nói "đã xảy ra lỗi".
-      setErr(t('moodClosed'));
+      setErr(cauDongCua);
     } else {
       setErr(t('moodError'));
     }
@@ -389,7 +449,7 @@ export function MoodCheckin({
         {/* Cửa đã đóng và em chưa bấm: nói giờ, đừng để một hàng icon bấm không ăn. */}
         {!trangThaiCua.mo && mood === null && (
           <p className="text-center text-[11.5px] font-semibold italic text-grey-mid">
-            {t('moodClosed')}
+            {cauDongCua}
           </p>
         )}
         {/* Đã bấm và đã khoá: nói rõ vì sao không sửa được nữa. */}

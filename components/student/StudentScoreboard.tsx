@@ -24,8 +24,11 @@ import {EditRequestButton} from '@/components/student/EditRequestButton';
 import {MucTieuCuaCon, type MucTieuCuaEm, type SoDoCuaTuan} from '@/components/student/MucTieuCuaCon';
 import {SoCuaCon, type TrangSo} from '@/components/student/SoCuaCon';
 import {MeetingScoreboard} from '@/components/wig/MeetingScoreboard';
+import {ArrowRight} from 'lucide-react';
+import {Link} from '@/i18n/navigation';
 import {AREAS, areaLabel, areaIcon, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
+import {tenHienThi} from '@/lib/ten-hien-thi';
 
 // Màu/icon/nhãn môn lấy từ area_config (fallback = --color-subj-* cũ ⇒ parity).
 
@@ -312,7 +315,7 @@ export async function StudentScoreboard({
     : {createAdminClient: null};
   const admin = createAdminClient ? createAdminClient() : null;
 
-  const [cuaSoRes, ipRes, mangRes, daHopRes, leadRes, classLeadRes, mucTieuRes, soDoRes, mocThangRes, wigLopRes, soRes] =
+  const [cuaSoRes, ipRes, mangRes, daHopRes, leadRes, classLeadRes, mucTieuRes, soDoRes, mocThangRes, wigLopRes, soRes, hopLopRes] =
     await Promise.all([
     // CỬA SỔ CHECK-IN của cơ sở em đang học. Lấy một lần, dùng cho cả buổi sáng lẫn buổi chiều.
     // Null khi em chưa có lớp (chưa biết cơ sở) → giao diện giữ nguyên hành vi cũ, không khoá gì.
@@ -422,6 +425,19 @@ export async function StudentScoreboard({
       .eq('student_id', studentId)
       .order('week_start', {ascending: false})
       .limit(20),
+    // BIÊN BẢN HỌP CỦA CẢ LỚP (student_id null). Trước 13/08/2026 em chỉ thấy dòng riêng của
+    // mình, nên buổi họp xong là chiêm nghiệm và LỜI HỨA của cả lớp biến mất khỏi màn hình em —
+    // trong khi đó chính là thứ 4DX bảo cả nhóm phải nhìn thấy suốt tuần. RLS đã cho học sinh
+    // đọc dòng của lớp (rls_select_wig_meetings).
+    classId
+      ? supabase
+          .from('wig_meetings')
+          .select('week_label, results, commitments, chot_at')
+          .eq('class_id', classId)
+          .is('student_id', null)
+          .order('week_start', {ascending: false})
+          .limit(3)
+      : Promise.resolve({data: null}),
   ]);
   const leadData = leadRes.data;
   const classLeadData = classLeadRes.data;
@@ -442,6 +458,15 @@ export async function StudentScoreboard({
         chieuDong: cuaSoRaw.chieu_dong,
       }
     : null;
+
+  // Biên bản gần nhất của LỚP có nội dung thật — bỏ qua những tuần chỉ có dòng trống.
+  const hopLop =
+    ((hopLopRes.data ?? []) as {
+      week_label: string;
+      results: string | null;
+      commitments: string | null;
+      chot_at: string | null;
+    }[]).find((r) => (r.results ?? '').trim() || (r.commitments ?? '').trim()) ?? null;
 
   const mustCheckin = mangRes.data === true && ipRes.data === true;
   const tickOpen = !daHopRes.data;
@@ -629,7 +654,7 @@ export async function StudentScoreboard({
   const myRequests: MyRequest[] = (
     (myRequestRows ?? []) as {id: string; kind: string; ref_id: string | null; message: string | null}[]
   ).map((r) => ({...r, leadTitle: r.ref_id ? leadTitleById.get(r.ref_id) ?? null : null}));
-  const displayName = student.full_name ?? student.email;
+  const displayName = tenHienThi(student.full_name, student.email);
 
   // Mục tiêu của em + trận đánh của lớp để chọn — cho khối MucTieuCuaCon.
   const mucTieuCuaEm = ((mucTieuRes.data ?? []) as unknown as (Omit<MucTieuCuaEm, 'viec'> & {
@@ -721,11 +746,16 @@ export async function StudentScoreboard({
           </div>
         </div>
         <div className="border-t border-navy/[0.08] p-6 md:border-l md:border-t-0">
+          {/* Truyền CẢ HAI buổi xuống. Trước 13/08/2026 chỗ này chỉ đưa buổi sáng, còn
+              `moodChieu` tính ra ở trên rồi bỏ không — nên buổi chiều không có cách nào hiện,
+              và <MoodCheckin> cũng không có cách nào biết mình đang ở buổi nào. */}
           <MoodCheckin
             initialMood={mood}
+            initialMoodChieu={(moodChieu?.mood ?? null) as MoodKey | null}
             canEdit={canEditMood}
             gated={mustCheckin}
             gioBam={moodSang?.created_at ?? null}
+            gioBamChieu={moodChieu?.created_at ?? null}
             cuaSo={cuaSo}
           />
         </div>
@@ -875,7 +905,48 @@ export async function StudentScoreboard({
               và giục em đi làm một thứ CSDL đã cấm. Xem docs/MO_HINH_WIG.md §1. */}
 
           <section className="flex flex-col gap-3">
-            <h2 className="font-display text-[17px] font-bold text-navy">{t('meetings')}</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="font-display text-[17px] font-bold text-navy">{t('meetings')}</h2>
+              {/* ĐƯỜNG VÀO PHÒNG HỌP — chỉ cho chính em, và chỉ từ đây. Biên bản là thứ của buổi
+                  họp; không mở thêm cửa nào khác vào nó. */}
+              {canTick && (
+                <Link
+                  href="/student/hop"
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy"
+                >
+                  {t('enterMeetingRoom')}
+                  <ArrowRight size={12} strokeWidth={2.5} />
+                </Link>
+              )}
+            </div>
+
+            {/* BIÊN BẢN CỦA CẢ LỚP. Họp xong thì chiêm nghiệm và lời hứa chung phải có chỗ đứng
+                trên màn của từng em suốt tuần — nếu không thì câu cả lớp vừa hứa với nhau chỉ
+                sống được đúng buổi họp. */}
+            {hopLop && (
+              <div className="rounded-[16px] border-[1.5px] border-gold-deep/25 bg-gold/[0.10] p-3.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wide text-gold-text">
+                    {t('classMinutes')}
+                  </span>
+                  <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10.5px] font-extrabold text-navy">
+                    {hopLop.week_label}
+                  </span>
+                </div>
+                {hopLop.results && (
+                  <p className="mt-1.5 text-[13px] font-semibold leading-relaxed text-navy">
+                    <b className="text-grey-mid">{t('reflection')}: </b>
+                    <span className="whitespace-pre-line">{hopLop.results}</span>
+                  </p>
+                )}
+                {hopLop.commitments && (
+                  <p className="mt-1 text-[13px] font-semibold leading-relaxed text-navy">
+                    <b className="text-grey-mid">{t('classPromise')}: </b>
+                    <span className="whitespace-pre-line">{hopLop.commitments}</span>
+                  </p>
+                )}
+              </div>
+            )}
             {/* PRD Màn 6: "cầm scoreboard mà họp" — panel WIG tuần/lead của em */}
             {/* weekDays đã là 7 ngày của tuần hiện tại theo lịch VN (tính ở đầu hàm, cùng nguồn
                 `today`) — truyền xuống để bảng điểm họp lọc theo NGÀY, khớp với dải ô tick ngay

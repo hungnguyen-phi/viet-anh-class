@@ -2084,6 +2084,7 @@ export type Database = {
           coach_id: string | null
           commitments: string | null
           created_at: string
+          hs_go_luc: string | null
           id: string
           next_actions: string | null
           results: string | null
@@ -2106,6 +2107,7 @@ export type Database = {
           coach_id?: string | null
           commitments?: string | null
           created_at?: string
+          hs_go_luc?: string | null
           id?: string
           next_actions?: string | null
           results?: string | null
@@ -2128,6 +2130,7 @@ export type Database = {
           coach_id?: string | null
           commitments?: string | null
           created_at?: string
+          hs_go_luc?: string | null
           id?: string
           next_actions?: string | null
           results?: string | null
@@ -2194,6 +2197,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          hs_go_luc?: string | null
           ghi_chu?: string | null
           gia_tri: number
           id?: string
@@ -2205,6 +2209,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          hs_go_luc?: string | null
           ghi_chu?: string | null
           gia_tri?: number
           id?: string
@@ -2271,6 +2276,7 @@ export type Database = {
           baseline?: number | null
           class_id: string
           created_at?: string
+          hs_go_luc?: string | null
           end_date: string
           id?: string
           kind?: string | null
@@ -2296,6 +2302,7 @@ export type Database = {
           baseline?: number | null
           class_id?: string
           created_at?: string
+          hs_go_luc?: string | null
           end_date?: string
           id?: string
           kind?: string | null
@@ -2632,6 +2639,17 @@ export type Database = {
         Args: { p_class: string; p_email: string }
         Returns: string
       }
+      hs_ghi_bien_ban: {
+        Args: {
+          p_class: string
+          p_week_label: string
+          p_week_start: string
+          p_ket_qua: string
+          p_cam_ket: string
+        }
+        Returns: undefined
+      }
+      ten_hien_thi: { Args: { p_full_name: string; p_email: string }; Returns: string }
       ip_allowed: { Args: { p_ip: string }; Returns: boolean }
       is_attendance_leader: { Args: { c: string }; Returns: boolean }
       is_campus_class: { Args: { c: string }; Returns: boolean }

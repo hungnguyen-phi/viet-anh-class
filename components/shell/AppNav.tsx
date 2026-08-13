@@ -14,6 +14,7 @@ import {useSearchParams} from 'next/navigation';
 import {Link, usePathname, useRouter} from '@/i18n/navigation';
 import {signOut} from '@/lib/auth-actions';
 import type {Profile} from '@/lib/auth';
+import {tenHienThi} from '@/lib/ten-hien-thi';
 import {
   Bell,
   BookOpen,
@@ -198,7 +199,7 @@ export function AppNav({
       ? [...baseLinks, {href: '/attendance', key: 'attendance', Icon: ClipboardCheck}]
       : baseLinks;
 
-  const displayName = profile.full_name ?? profile.email;
+  const displayName = tenHienThi(profile.full_name, profile.email);
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
   const activeItem = links.find((l) => isActive(l.href));

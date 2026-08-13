@@ -95,13 +95,29 @@ export function LeadTicker({
   const router = useRouter();
   const [err, setErr] = useState<string | null>(null);
   const [supabase] = useState(() => createClient());
-  // GIỮ LẤY `isPending`. Bản trước vứt nó đi (`const [, startTransition]`) — với ô một chạm thì
-  // còn tạm được vì useOptimistic đổi màu ngay, nhưng ô ĐIỀN SỐ thì không có gì cả: em gõ, rời ô,
-  // rồi ngồi nhìn một ô không đổi gì trong lúc mạng đi về. Chủ dự án chốt 13/08/2026: nút nào tự
-  // chạy việc thì phải GHI NHẬN, ĐÓNG BĂNG và XOAY, đừng im lặng tải.
-  const [dangGhi, startTransition] = useTransition();
-  // Ô nào đang được ghi — để chỉ ô ấy xoay, không phải cả dải cùng xoay.
-  const [oDangGhi, setODangGhi] = useState<string | null>(null);
+  // `isPending` của useTransition KHÔNG dùng nữa: nó gộp mọi lượt đang bay thành một cờ chung,
+  // mà chính cờ chung ấy là thứ khoá cả dải và làm rơi cú chạm thứ hai. Trạng thái "đang ghi" nay
+  // theo TỪNG Ô (xem `oDangGhi` ngay dưới) — vẫn đủ để ô đang bay đóng băng và xoay theo đúng luật
+  // "nút nào tự chạy việc thì phải ghi nhận, đóng băng và xoay, đừng im lặng tải".
+  const [, startTransition] = useTransition();
+  // NHỮNG Ô ĐANG ĐƯỢC GHI — một tập, không phải một ô.
+  //
+  // Bản trước khoá CẢ DẢI trong lúc một lượt tick đang bay ("bấm chồng lên một lượt chưa xong là
+  // hai lệnh đá nhau"). Lý do ấy chỉ đúng với CÙNG MỘT ô: hai ngày khác nhau là hai dòng khác
+  // nhau trong lead_progress, không có gì để đá nhau cả. Cái giá của việc khoá cả dải thì rất
+  // thật — bạn nào dồn cuối tuần, chạm T2 rồi chạm T4 ngay, cú thứ hai rơi vào một nút vừa bị
+  // disabled: không lỗi, không xoay, không dấu vết, và bảng chỉ ghi một ngày. Đã dựng lại đúng
+  // cảnh ấy trên production 13/08/2026 và mất thật một lượt.
+  // Nay chỉ khoá đúng ô đang bay; các ô còn lại chạm được ngay.
+  const [oDangGhi, setODangGhi] = useState<ReadonlySet<string>>(() => new Set());
+  const dangGhiO = (leadId: string, date: string) => oDangGhi.has(`${leadId}|${date}`);
+  const danhDauGhi = (k: string, dang: boolean) =>
+    setODangGhi((p) => {
+      const s = new Set(p);
+      if (dang) s.add(k);
+      else s.delete(k);
+      return s;
+    });
 
   // Đổi màu NGAY khi bấm, không chờ máy chủ. Với một việc làm mỗi ngày thì độ trễ 200–400 ms mỗi
   // lượt là thứ cảm nhận được — và cảm giác "bấm mà không thấy gì" khiến người ta bấm lại lần nữa.
@@ -146,7 +162,7 @@ export function LeadTicker({
   // Ô để TRỐNG = xoá dòng của hôm đó, đúng nghĩa "hôm nay không làm". Không ghi 0: một dòng value=0
   // vướng `lead_progress_value_pos`, và "có ghi nhận nhưng bằng 0" khác "không có ghi nhận".
   function ghiLuong(lead: TickerLead, date: string, raw: string) {
-    if (!canTick || !tickOpen || date > today || dangGhi) return;
+    if (!canTick || !tickOpen || date > today || dangGhiO(lead.id, date)) return;
     const cu = lead.myValues[date];
     const val = raw.trim() === '' ? null : Number(raw);
     if (val !== null && (!Number.isFinite(val) || val <= 0)) {
@@ -155,7 +171,8 @@ export function LeadTicker({
     }
     if ((cu ?? null) === val) return;
     setErr(null);
-    setODangGhi(`${lead.id}|${date}`);
+    const oKey = `${lead.id}|${date}`;
+    danhDauGhi(oKey, true);
     startTransition(async () => {
       if (val === null) {
         const {error} = await supabase
@@ -165,7 +182,7 @@ export function LeadTicker({
           .eq('student_id', studentId)
           .eq('logged_date', date);
         if (error) {
-          setODangGhi(null);
+          danhDauGhi(oKey, false);
           setErr(t('undoError'));
           return;
         }
@@ -184,20 +201,22 @@ export function LeadTicker({
         if (error) {
           // Trigger chan_luong_vo_ly (0110) chặn số lớn hơn cả chỉ tiêu một tuần — nói đúng chuyện
           // đó thay vì câu lỗi chung, vì đây là lỗi người gõ sửa được ngay.
-          setODangGhi(null);
+          danhDauGhi(oKey, false);
           setErr(error.code === '23514' ? t('luongQuaLon', {n: lead.target}) : t('tickError'));
           return;
         }
       }
-      setODangGhi(null);
+      danhDauGhi(oKey, false);
       router.refresh();
     });
   }
 
   function toggle(lead: TickerLead, date: string) {
-    if (!canTick || !tickOpen || date > today) return;
+    if (!canTick || !tickOpen || date > today || dangGhiO(lead.id, date)) return;
     const on = !lead.myDates.includes(date);
     setErr(null);
+    const oKey = `${lead.id}|${date}`;
+    danhDauGhi(oKey, true);
     startTransition(async () => {
       apply({leadId: lead.id, date, on});
       if (on) {
@@ -210,6 +229,7 @@ export function LeadTicker({
         });
         // 23505 = đã có tick ngày đó (chỉ mục duy nhất 1 lượt/ngày) → coi như xong.
         if (error && error.code !== '23505') {
+          danhDauGhi(oKey, false);
           setErr(t('tickError'));
           return;
         }
@@ -223,10 +243,12 @@ export function LeadTicker({
           .eq('student_id', studentId)
           .eq('logged_date', date);
         if (error) {
+          danhDauGhi(oKey, false);
           setErr(t('undoError'));
           return;
         }
       }
+      danhDauGhi(oKey, false);
       router.refresh();
     });
   }
@@ -327,8 +349,10 @@ export function LeadTicker({
             const ticked = l.myDates.includes(d);
             const future = d > today;
             const isToday = d === today;
-            // Đang ghi thì khoá cả dải: bấm chồng lên một lượt chưa xong là hai lệnh đá nhau.
-            const disabled = !canTick || !tickOpen || future || dangGhi;
+            // Chỉ khoá ĐÚNG ô đang bay — hai ngày khác nhau là hai dòng khác nhau, chạm song song
+            // được. Khoá cả dải chính là lỗi làm rơi cú chạm thứ hai (xem `oDangGhi`).
+            const dangBay = dangGhiO(l.id, d);
+            const disabled = !canTick || !tickOpen || future || dangBay;
 
             // ── Ô ĐIỀN SỐ (0110) ──
             // Nhãn thứ nằm TRÊN ô, không thay chỗ ô: em phải thấy cả "thứ mấy" lẫn "bao nhiêu"
@@ -354,16 +378,16 @@ export function LeadTicker({
                       onBlur={(e) => ghiLuong(l, d, e.target.value)}
                       aria-label={`${l.title} — ${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
                       title={`${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
-                      aria-busy={oDangGhi === `${l.id}|${d}`}
+                      aria-busy={dangBay}
                       className={`h-11 w-[52px] rounded-[12px] border-[1.5px] text-center text-[13px] font-extrabold tabular-nums transition-all ${
                         l.myValues[d] ? 'border-transparent bg-gold text-navy' : 'border-navy/15 bg-white text-navy'
                       } ${isToday && !l.myValues[d] ? 'border-navy ring-2 ring-navy/15' : ''} ${
                         disabled ? 'cursor-default opacity-45' : ''
-                      } ${oDangGhi === `${l.id}|${d}` ? 'text-transparent' : ''}`}
+                      } ${dangBay ? 'text-transparent' : ''}`}
                     />
                     {/* XOAY NGAY TRÊN Ô ĐANG GHI. Ẩn chữ đi (`text-transparent`) chứ không đổi kích
                         thước, để dải ngày không nhảy chỗ giữa lúc em đang nhìn. */}
-                    {oDangGhi === `${l.id}|${d}` && (
+                    {dangBay && (
                       <Loader2
                         size={16}
                         strokeWidth={2.5}
