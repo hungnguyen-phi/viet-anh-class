@@ -295,10 +295,18 @@ export function FormMucTieu({
                   className={selectCls}
                 >
                   <option value="">{t('unitPick')}</option>
-                  {DON_VI.map((d) => (
-                    <option key={d.ma} value={d.ma}>
-                      {d.ma}
-                    </option>
+                  {/* CHIA NHÓM ngay trong dropdown. Mười bốn đơn vị bày phẳng thì phải chọn xong,
+                      đợi bước ③ đổi hình, mới đoán ra luật. Gom lại thì luật đọc được TRƯỚC khi
+                      chọn — và đó chính là ba câu chủ dự án mô tả: "buổi thì 1 tick 1 buổi", "tiết
+                      thì 1 tick bao nhiêu tiết", "điểm thì tự điền". */}
+                  {(['luot', 'luong', 'do'] as const).map((k) => (
+                    <optgroup key={k} label={t(`unitGroup_${k}`)}>
+                      {DON_VI.filter((d) => d.kieu === k).map((d) => (
+                        <option key={d.ma} value={d.ma}>
+                          {d.ma}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                   <option value="__khac__">{t('unitOther')}</option>
                 </select>
