@@ -9,7 +9,7 @@ import {Field, ctlWithBorder, inputCls, selectCls, btnGold} from '@/components/u
 import {luuMucTieuCuaEm, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
 import {nhipCuaMucTieu} from '@/lib/wig-nhip';
 import {todayInVN} from '@/lib/dates';
-import {kieuDonVi} from '@/lib/don-vi';
+import {kieuDonVi, coTrongDanhSach, DON_VI} from '@/lib/don-vi';
 
 // ════════════════════════════════════════════════════════════════════════════
 // FORM ĐẶT MỤC TIÊU — ba câu hỏi, nằm trong một hộp thoại
@@ -125,6 +125,11 @@ export function FormMucTieu({
   const kieu = kieuDonVi(g.unit);
   // "Mỗi lần một khác" = ô điền số mỗi ngày; ngược lại = một chạm, mỗi chạm đáng `upt` đơn vị.
   const [moiLanKhac, setMoiLanKhac] = useState(Boolean(dangSua?.viec?.nhapLuong));
+  // Mục tiêu cũ có thể mang đơn vị gõ tay không nằm trong danh sách — mở thẳng ô "Khác" cho nó,
+  // đừng lặng lẽ xoá mất chữ em đã khai.
+  const [khacDonVi, setKhacDonVi] = useState(
+    Boolean(dangSua?.unit) && !coTrongDanhSach(dangSua?.unit),
+  );
   // Chỉ tiêu TUẦN, tính theo ĐƠN VỊ của mục tiêu — không phải theo số lần.
   const moiTuan =
     kieu !== 'luong'
@@ -248,15 +253,56 @@ export function FormMucTieu({
                 className={ctlWithBorder(state.fieldError === 'target_value')}
               />
             </Field>
+            {/* ĐƠN VỊ CHỌN TỪ DANH SÁCH, không gõ tay.
+                Gõ tay thì app phải ĐOÁN kiểu từ chuỗi chữ — "tiet" không dấu, "Bài" hoa — và đoán
+                sai là hỏi sai câu hỏi tiếp theo. Tệ hơn: bỏ trống thì bước ③ không biết hỏi "mỗi
+                lần bao nhiêu GÌ" nên im lặng bỏ luôn câu hỏi ấy, em điền xong mới bị đẩy ngược về
+                đây. Chọn từ danh sách thì luật lộ ra ngay lúc chọn và không còn trạng thái trống.
+                Vẫn có "Khác…" — danh sách không phủ hết mọi môn, mọi trường. */}
             <Field label={t('unit')} htmlFor="mt-unit" error={err('unit')}>
-              <input
-                id="mt-unit"
-                name="unit"
-                value={g.unit}
-                onChange={(e) => setG((p) => ({...p, unit: e.target.value}))}
-                placeholder={t('unitPlaceholder')}
-                className={ctlWithBorder(state.fieldError === 'unit')}
-              />
+              {khacDonVi ? (
+                <div className="flex gap-1.5">
+                  <input
+                    id="mt-unit"
+                    name="unit"
+                    value={g.unit}
+                    onChange={(e) => setG((p) => ({...p, unit: e.target.value}))}
+                    placeholder={t('unitPlaceholder')}
+                    className={ctlWithBorder(state.fieldError === 'unit')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setKhacDonVi(false);
+                      setG((p) => ({...p, unit: ''}));
+                    }}
+                    className="shrink-0 rounded-[10px] border-[1.5px] border-navy/20 px-2 text-[12px] font-extrabold text-navy"
+                  >
+                    {t('unitBack')}
+                  </button>
+                </div>
+              ) : (
+                <select
+                  id="mt-unit"
+                  name="unit"
+                  value={g.unit}
+                  onChange={(e) => {
+                    if (e.target.value === '__khac__') {
+                      setKhacDonVi(true);
+                      setG((p) => ({...p, unit: ''}));
+                    } else setG((p) => ({...p, unit: e.target.value}));
+                  }}
+                  className={selectCls}
+                >
+                  <option value="">{t('unitPick')}</option>
+                  {DON_VI.map((d) => (
+                    <option key={d.ma} value={d.ma}>
+                      {d.ma}
+                    </option>
+                  ))}
+                  <option value="__khac__">{t('unitOther')}</option>
+                </select>
+              )}
             </Field>
             <Field
               label={t('due')}

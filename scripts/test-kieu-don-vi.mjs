@@ -1,5 +1,5 @@
 import {kieuDonVi} from '../lib/don-vi.ts';
-const ca=[['ngày','luot'],['buổi','luot'],['tiết','luot'],['lần','luot'],
+const ca=[['ngày','luot'],['buổi','luot'],['tiết','luong'],['lần','luot'],
           ['giờ','luong'],['bài','luong'],['trang','luong'],['lead','luong'],['phút','luong'],
           ['điểm','do'],['kg','do'],['cm','do'],['%','do'],
           ['',       'luong'],['thứ lạ hoắc','luong'],['NGÀY','luot'],['Điểm','do']];

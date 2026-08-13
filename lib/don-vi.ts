@@ -1,38 +1,75 @@
 // ĐƠN VỊ ĐO KIỂU GÌ — tệp riêng, KHÔNG phụ thuộc gì.
 //
 // Để rời khỏi lib/wig-tao.ts vì tệp ấy dùng alias `@/` nên bộ kiểm không nạp thẳng được bằng
-// `node --experimental-strip-types`. Đây là một khái niệm độc lập (một danh sách chữ và một
-// phép so), nên đứng riêng vừa kiểm được vừa đúng chỗ hơn.
+// `node --experimental-strip-types`. Đây là một khái niệm độc lập (một danh sách và một phép so),
+// nên đứng riêng vừa kiểm được vừa đúng chỗ hơn.
 
 /**
- * ĐƠN VỊ NÀY ĐO KIỂU GÌ — quyết định ô ngày trông ra sao (0110).
+ * BA KIỂU, phân theo đúng một câu hỏi: CỘNG LẠI CÓ NGHĨA KHÔNG?
  *
- * Ba kiểu, và chúng khác nhau ở chỗ CỘNG LẠI có nghĩa không:
- *
- *   'luot'  — ngày, buổi, tiết, lần, hôm: một lần làm là một đơn vị. MỘT CHẠM. Đây là việc em làm
- *             mỗi ngày nên phải giữ đúng một chạm; thêm một bước gõ vào đây là thêm ma sát vào
- *             chỗ ít chịu được ma sát nhất.
- *   'luong' — giờ, phút, bài, trang, từ, km, lead: cộng lại CÓ nghĩa nhưng mỗi hôm một khác. Một
- *             chạm nói dối: em học 3 giờ hôm nay, 1 giờ hôm sau, tick đều ra 1-1. → Ô ĐIỀN SỐ.
- *   'do'    — điểm, kg, cm, %, hạng: cộng lại KHÔNG có nghĩa. Được 7 điểm thứ Hai và 8 điểm thứ Tư
- *             không phải là 15 điểm. Loại này KHÔNG có lưới ngày; nó đi đường `measure_by='manual'`
- *             + ô số đo mỗi kỳ (0108), nơi con số mới nhất mới là con số thật.
- *
- * Không đoán bằng máy học gì cả — một danh sách chữ, so sau khi bỏ dấu và hạ chữ thường. Đơn vị lạ
- * rơi về 'luong': điền số bao giờ cũng nói đúng hơn một chạm, và người dùng sửa được.
+ *   'luot'  — buổi, lần, ngày: một lần làm LÀ một đơn vị, không có gì để hỏi thêm. MỘT CHẠM.
+ *   'luong' — tiết, giờ, phút, bài, trang, km: cộng lại có nghĩa, nhưng mỗi lần một lượng khác
+ *             nhau. Phải hỏi "mỗi lần bao nhiêu" — cố định (một chạm × hệ số) hoặc mỗi lần một
+ *             khác (ô điền số).
+ *   'do'    — điểm, kg, cm, %: cộng lại KHÔNG có nghĩa. 7 điểm thứ Hai với 8 điểm thứ Tư không
+ *             phải 15 điểm. Loại này không có lưới ngày; nó đi ô số đo mỗi tuần (0108), nơi con
+ *             số MỚI NHẤT mới là con số thật.
  */
 export type KieuDonVi = 'luot' | 'luong' | 'do';
+
+export type DonVi = {ma: string; kieu: KieuDonVi};
+
+/**
+ * DANH SÁCH ĐỂ CHỌN, thay cho ô gõ tay.
+ *
+ * Gõ tay thì app phải ĐOÁN kiểu từ chuỗi chữ — "tiet" không dấu, "Bài" hoa, "buoi" — và đoán sai
+ * là hỏi sai câu hỏi tiếp theo. Chọn từ danh sách thì luật lộ ra ngay lúc chọn, và không còn
+ * trạng thái "chưa gõ đơn vị" khiến bước ③ im lặng bỏ mất câu hỏi của nó.
+ *
+ * "tiết" nằm ở 'luong' chứ không phải 'luot': một buổi học có thể 2 tiết, nên phải hỏi. Chủ dự án
+ * chỉ ra 13/08/2026.
+ *
+ * Vẫn cho gõ đơn vị KHÁC — danh sách này không thể phủ hết mọi môn, mọi trường. Đơn vị lạ rơi về
+ * 'luong': hỏi "mỗi lần bao nhiêu" bao giờ cũng an toàn hơn là mặc định 1 rồi đếm sai.
+ */
+export const DON_VI: DonVi[] = [
+  {ma: 'buổi', kieu: 'luot'},
+  {ma: 'lần', kieu: 'luot'},
+  {ma: 'ngày', kieu: 'luot'},
+  {ma: 'tiết', kieu: 'luong'},
+  {ma: 'giờ', kieu: 'luong'},
+  {ma: 'phút', kieu: 'luong'},
+  {ma: 'bài', kieu: 'luong'},
+  {ma: 'trang', kieu: 'luong'},
+  {ma: 'từ', kieu: 'luong'},
+  {ma: 'km', kieu: 'luong'},
+  {ma: 'điểm', kieu: 'do'},
+  {ma: 'kg', kieu: 'do'},
+  {ma: 'cm', kieu: 'do'},
+  {ma: '%', kieu: 'do'},
+];
 
 const BO_DAU = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase().trim();
 
-const DV_LUOT = ['ngay', 'buoi', 'tiet', 'lan', 'hom', 'bua', 'chuyen', 'vong'];
-const DV_DO = ['diem', 'kg', 'cm', 'm', 'kilogam', 'ki lo', 'phan tram', '%', 'hang', 'bac', 'muc'];
+// Bảng tra đã bỏ dấu, để đơn vị gõ tay ("tiet", "GIỜ", "Bài ") vẫn về đúng kiểu.
+const THEO_MA = new Map(DON_VI.map((d) => [BO_DAU(d.ma), d.kieu]));
 
+/**
+ * Kiểu của một đơn vị. Dùng ở CẢ máy chủ (nơi quyết định thật) lẫn form (nơi bày ô).
+ * Đơn vị lạ hoặc bỏ trống → 'luong': hỏi thêm một câu an toàn hơn là mặc định 1 rồi đếm sai.
+ */
 export function kieuDonVi(unit: string | null | undefined): KieuDonVi {
   const u = BO_DAU(unit ?? '');
   if (!u) return 'luong';
-  if (DV_DO.some((x) => u === x || u.startsWith(x + ' '))) return 'do';
-  if (DV_LUOT.some((x) => u === x || u.startsWith(x + ' '))) return 'luot';
+  const thang = THEO_MA.get(u);
+  if (thang) return thang;
+  // "giờ học", "bài tập", "điểm trung bình" — khớp theo từ đầu.
+  for (const [ma, kieu] of THEO_MA) if (u.startsWith(ma + ' ')) return kieu;
   return 'luong';
+}
+
+/** Đơn vị này có nằm trong danh sách chọn không — để form biết mở ô "Khác…" hay không. */
+export function coTrongDanhSach(unit: string | null | undefined): boolean {
+  return DON_VI.some((d) => d.ma === (unit ?? '').trim());
 }
