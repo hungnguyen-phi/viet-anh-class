@@ -237,9 +237,9 @@ export function TaoWigMenu({
             {tab('month', t('month'), coNam, t('needYearFirst'))}
             {tab('week', t('week'), coThang, t('needMonthFirst'))}
           </div>
-          <p className="mb-3 text-[11px] font-semibold leading-relaxed text-grey-mid">
-            {loai === 'year' ? t('chainYear') : loai === 'month' ? t('chainMonth') : t('chainWeek')}
-          </p>
+          {/* Ba câu giảng "mục tiêu năm là gì, tháng là gì, tuần là gì" đã bỏ. Chính ba cái tab
+              ngay trên đã nói thứ tự ấy, và tab tháng/tuần bị khoá kèm câu "cần mục tiêu năm
+              trước" — luật hiện ra bằng cách chạm được, không cần một đoạn văn nhắc lại. */}
 
           {/* key theo loại: đổi tab là dựng lại form, không để sót giá trị của loại trước. */}
           <form key={loai} action={formAction} className="flex flex-col gap-3">

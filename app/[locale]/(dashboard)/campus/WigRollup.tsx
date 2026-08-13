@@ -78,7 +78,6 @@ export async function WigRollup({
     <section className="glass overflow-hidden rounded-[20px]">
       <div className="flex flex-wrap items-baseline gap-x-2 px-[18px] pb-1 pt-4">
         <span className="font-display text-[15px] font-bold text-navy">{t('wigTitle')}</span>
-        <span className="text-[11.5px] font-semibold text-grey-mid">{t('wigHint')}</span>
       </div>
 
       <div className="sm:overflow-x-auto">

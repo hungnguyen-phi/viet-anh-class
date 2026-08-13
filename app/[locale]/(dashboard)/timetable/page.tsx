@@ -481,7 +481,6 @@ export default async function TimetablePage({
               period: t('period'),
             }}
           />
-          <p className="mt-1.5 text-[11px] italic text-grey-mid">{t('ovHint')}</p>
 
           {overrides.length > 0 && (
             <div className="mt-3 flex flex-col gap-1.5 border-t border-navy/[0.08] pt-3">

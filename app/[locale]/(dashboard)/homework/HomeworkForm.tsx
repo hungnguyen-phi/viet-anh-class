@@ -217,11 +217,6 @@ export function HomeworkForm({
         </div>
       </div>
 
-      {!post && (
-        <p className="mt-2 text-[11px] italic text-grey-mid">
-          {t('postHint')}
-        </p>
-      )}
 
       {/* Lỗi chung (không gắn ô cụ thể) */}
       {state.error && !state.fieldError && (

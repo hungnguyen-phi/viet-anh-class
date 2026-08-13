@@ -67,7 +67,6 @@ export function StudentWigManage({
       <summary className="cursor-pointer list-none font-display text-[15px] font-bold text-navy">
         ⚙ {t('manageTitle')}
       </summary>
-      <p className="mb-3 mt-1 text-[11.5px] italic text-grey-mid">{t('manageHint')}</p>
 
       {/* WIG năm */}
       <div className="flex flex-col gap-2">

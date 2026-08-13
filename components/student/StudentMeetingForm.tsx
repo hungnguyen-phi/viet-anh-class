@@ -150,7 +150,6 @@ export function StudentMeetingForm({
             {t('planTitle', {week: nextWeekLabel})}
           </span>
         </div>
-        <p className="mt-1 text-[11.5px] font-semibold italic text-grey-mid">{t('planHint')}</p>
 
         {planAreas.length === 0 ? (
           <p className="mt-2.5 rounded-[10px] bg-white/70 px-3 py-2 text-[12.5px] font-bold text-status-bad">

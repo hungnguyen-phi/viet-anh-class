@@ -762,9 +762,6 @@ export function PhongHop({
                 )}
               </div>
             )}
-            {viecMau.length > 0 && (
-              <p className="text-[11px] font-semibold italic text-grey-mid">{t('carriedOver')}</p>
-            )}
           </div>
         </section>
       )}

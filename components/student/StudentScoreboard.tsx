@@ -781,10 +781,10 @@ export async function StudentScoreboard({
           con" ở trên đã có sẵn ô để đặt, không cần một lời nhắc thứ hai. */}
       {areaCoMucTieu.length > 0 && (
       <section>
-        <h2 className="font-display text-[17px] font-bold text-navy">{t('wigYear')}</h2>
-        <p className="mb-3 mt-0.5 max-w-[640px] text-[12px] font-semibold leading-relaxed text-grey-mid">
-          {tc('wigGloss')}
-        </p>
+        {/* Câu định nghĩa "WIG = Wildly Important Goal… Lead measure = hành vi dẫn dắt…" đã bỏ.
+            Đây là màn của một đứa trẻ tiểu học: nó không cần biết chữ viết tắt tiếng Anh nghĩa là
+            gì, nó cần biết mình đang ở đâu so với đích. Bốn vòng tròn ngay dưới nói điều đó. */}
+        <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('wigYear')}</h2>
         <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
           {areaCoMucTieu.map((a) => {
             const w = wigByArea.get(a);
