@@ -7,6 +7,7 @@ import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, ctlWithBorder, selectCls, btnGold, btnGhost} from '@/components/ui/Field';
 import {taoWig} from '@/app/[locale]/(dashboard)/wig/actions';
 import {tuanTronTrongCha, thangTronTrongCha, chaPhuKy, weekRangeVN, type PeriodOption} from '@/lib/dates';
+import {kieuDonVi} from '@/lib/don-vi';
 
 // ════════════════════════════════════════════════════════════════════════════
 // MỘT NÚT "+ Tạo mục tiêu" Ở GÓC PHẢI — thay cho ba khung form xếp dọc cả trang.
@@ -133,6 +134,15 @@ export function TaoWigMenu({
   // Nay ô lịch không cho chọn ra ngoài khoảng của cha, và ngày mặc định tự nhảy vào trong khoảng
   // ấy. Chọn sai thành chuyện không xảy ra được, thay vì chuyện bị mắng sau khi đã xảy ra.
   const [chaId, setChaId] = useState('');
+  // ĐƠN VỊ QUYẾT ĐỊNH Ô SỐ CÓ NHẬN SỐ LẺ HAY KHÔNG.
+  //
+  // step="1" sinh ra để chặn "5.1 bài" — đúng với thứ đếm được, vì không có nửa bài. Nhưng nó
+  // chặn luôn 6,5 điểm và 50,5 kg, mà đó là những con số hoàn toàn thật. Tệ hơn: trình duyệt
+  // từ chối bằng câu tiếng Anh của chính nó ("The two nearest valid values are 6 and 7") ngay
+  // giữa một biểu mẫu tiếng Việt — cô không có cách nào đoán ra mình sai ở đâu.
+  // Form mục tiêu của HỌC SINH dùng step="any" từ lâu; chỗ này là chỗ còn sót.
+  const [donVi, setDonVi] = useState('');
+  const soLe = kieuDonVi(donVi) === 'do';
   // MỤC TIÊU CHA CHỌN SẴN PHẢI LÀ CÁI PHỦ KỲ ĐANG ĐỨNG — không phải cái đầu danh sách.
   //
   // Lỗi chủ dự án gặp: lớp có mục tiêu tháng 9 (tạo trước) và mục tiêu tháng 8 (tạo sau). Mở form
@@ -312,9 +322,9 @@ export function TaoWigMenu({
                   id="wig-baseline"
                   name="baseline"
                   type="number"
-                  step="1"
+                  step={soLe ? 'any' : '1'}
                   min="0"
-                  inputMode="numeric"
+                  inputMode={soLe ? 'decimal' : 'numeric'}
                   placeholder="0"
                   aria-invalid={state.fieldError === 'baseline'}
                   className={ctlWithBorder(state.fieldError === 'baseline')}
@@ -325,9 +335,9 @@ export function TaoWigMenu({
                   id="wig-target"
                   name="target_value"
                   type="number"
-                  step="1"
-                  min="1"
-                  inputMode="numeric"
+                  step={soLe ? 'any' : '1'}
+                  min={soLe ? '0.01' : '1'}
+                  inputMode={soLe ? 'decimal' : 'numeric'}
                   aria-invalid={state.fieldError === 'target_value'}
                   className={ctlWithBorder(state.fieldError === 'target_value')}
                 />
@@ -337,6 +347,8 @@ export function TaoWigMenu({
                   id="wig-unit"
                   name="unit"
                   placeholder={t('unitPlaceholder')}
+                  value={donVi}
+                  onChange={(e) => setDonVi(e.target.value)}
                   aria-invalid={state.fieldError === 'unit'}
                   className={ctlWithBorder(state.fieldError === 'unit')}
                 />
