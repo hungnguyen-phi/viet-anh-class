@@ -35,6 +35,10 @@ type BoardRow = {
   // khối). KHÔNG dùng wig_id: board là của tuần VỪA XONG (hopMonday), còn khối cần khớp là mốc
   // tuần TỚI (dichWk) — hai tuần là hai WIG khác id dù cùng lĩnh vực. Lĩnh vực mới là thứ bền.
   area: string;
+  // 0122 — việc nay treo dưới CAM KẾT; board trả kèm để buổi họp gom việc theo đúng cam kết mẹ.
+  commitment_id: string;
+  commitment_title: string;
+  verdict: string | null;
 };
 
 type MatrixRow = {
@@ -73,12 +77,20 @@ export type DuLieuHop = {
   daCoBienBan: boolean;
   /** Buổi họp đã được bấm CHỐT chưa — thứ thật sự khoá tick và số đo của tuần (0108). */
   daChot: boolean;
-  // MỐC TUẦN ĐÍCH — app đã rải sẵn khi cô khai mục tiêu năm (lib/wig-nhip.ts), mỗi lĩnh vực một
-  // cái. Buổi họp CHỈNH nó, không tạo mới: trong 4DX mục tiêu đặt một lần cho cả kỳ, còn buổi họp
-  // chỉ báo cáo → nhìn bảng điểm → dọn đường. Xem docs/MO_HINH_WIG.md §6.4.
-  mocDich: {id: string; area: string; title: string; target: number; unit: string}[];
-  // Chỉ dùng khi mốc tuần đích BỊ THIẾU — cô khai mục tiêu năm sau khi tuần ấy đã trôi qua, nên
-  // nhịp không phủ tới. Để BÙ đúng một mốc, không phải để đẻ mục tiêu mới.
+  // CAM KẾT CỦA TUẦN VỪA QUA — thứ buổi họp chấm V/X. `goiY` là gợi ý của máy: đủ mọi việc dẫn
+  // dắt thì gợi thắng. Gợi ý KHÔNG tự thành kết quả; người bấm mới là kết quả (0121).
+  camKetTuanQua: {
+    id: string;
+    title: string;
+    area: string;
+    verdict: 'win' | 'lose' | null;
+    goiY: 'win' | 'lose';
+    viecXong: number;
+    viecTong: number;
+  }[];
+  /** Cam kết ĐÃ đặt cho tuần tới — để mở lại buổi họp không đẻ bản sao. */
+  camKetDich: {id: string; title: string; wigId: string}[];
+  /** Mục tiêu NĂM đang chạy — danh sách để chọn khi đặt cam kết. */
   namHienCo: WigOption[];
   viecMau: ViecMau[];
 };
@@ -105,6 +117,8 @@ export async function layDuLieuHop(
     {data: emRows},
     {data: mucTieuEmRows},
     {data: bienBanEmRows},
+    {data: ckTuanQua},
+    {data: ckDich},
   ] = await Promise.all([
       supabase.rpc('class_lead_board', {p_class: classId, p_week_start: hopMonday}),
       supabase.rpc('class_tick_matrix', {p_class: classId, p_week_start: hopMonday}),
@@ -162,6 +176,19 @@ export async function layDuLieuHop(
         .eq('class_id', classId)
         .eq('week_start', hopMonday)
         .not('student_id', 'is', null),
+      // CAM KẾT của lớp: tuần vừa qua (để chấm V/X) và tuần tới (để mở lại không đẻ bản sao).
+      supabase
+        .from('commitments')
+        .select('id, title, area, verdict')
+        .eq('class_id', classId)
+        .is('student_id', null)
+        .eq('week_start', hopMonday),
+      supabase
+        .from('commitments')
+        .select('id, title, wig_id')
+        .eq('class_id', classId)
+        .is('student_id', null)
+        .eq('week_start', dichWk.start),
     ]);
 
   const board = (boardData ?? []) as BoardRow[];
@@ -294,15 +321,29 @@ export async function layDuLieuHop(
     // ĐÃ CHỐT hay CHƯA là hai chuyện khác nhau với "đã có biên bản" (0108). Lưu bao nhiêu lần cũng
     // được; tuần chỉ khoá — hết tick, hết nhập số đo — khi có người bấm chốt.
     daChot: Boolean(bienBan?.chot_at),
-    mocDich: wigs
-      .filter((w) => w.period === 'week' && w.period_label === dichWk.label)
-      .map((w) => ({
-        id: w.id,
-        area: w.area,
-        title: w.title ?? nhan.week,
-        target: Number(w.target_value),
-        unit: w.unit,
-      })),
+    // GỢI Ý V/X: đủ MỌI việc dẫn dắt của cam kết thì gợi thắng. Cùng một luật với cam_ket_goi_y()
+    // ở CSDL (0121) — tính lại ở đây từ bảng việc đã có sẵn thay vì bắn thêm một câu hỏi cho mỗi
+    // cam kết, nhưng luật thì phải giống hệt, nếu không màn hình gợi một đằng CSDL hiểu một nẻo.
+    camKetTuanQua: ((ckTuanQua ?? []) as {id: string; title: string; area: string; verdict: string | null}[]).map(
+      (c) => {
+        const viec = board.filter((r) => r.commitment_id === c.id);
+        const xong = viec.filter((r) => Number(r.class_total) >= Number(r.target_value)).length;
+        return {
+          id: c.id,
+          title: c.title,
+          area: c.area,
+          verdict: c.verdict === 'win' || c.verdict === 'lose' ? c.verdict : null,
+          goiY: (viec.length > 0 && xong === viec.length ? 'win' : 'lose') as 'win' | 'lose',
+          viecXong: xong,
+          viecTong: viec.length,
+        };
+      },
+    ),
+    camKetDich: ((ckDich ?? []) as {id: string; title: string; wig_id: string}[]).map((c) => ({
+      id: c.id,
+      title: c.title,
+      wigId: c.wig_id,
+    })),
     namHienCo: wigs
       .filter((w) => w.period === 'year' && phuDich(w))
       .map((w) => ({id: w.id, title: w.title ?? w.period_label ?? nhan.year})),

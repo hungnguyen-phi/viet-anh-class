@@ -190,7 +190,6 @@ export async function taoWigTruong(formData: FormData) {
     scope: 'school',
     campus_id: profile.campus_id ?? undefined,
     measure_by: 'cuon',
-    period: 'year',
     title: String(formData.get('title') ?? '').trim(),
     area: (String(formData.get('area') ?? '') as Area) || undefined,
     period_label: String(formData.get('period_label') ?? '').trim(),

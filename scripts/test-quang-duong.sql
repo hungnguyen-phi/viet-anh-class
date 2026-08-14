@@ -23,7 +23,7 @@ create temp table kq (buoc text, ky_vong text, thuc_te text, dat boolean) on com
 
 do $$
 declare
-  v_em uuid; v_lop uuid; v_wig uuid; v_viec uuid; v_thu2 date := vn_week_start();
+  v_em uuid; v_lop uuid; v_wig uuid; v_viec uuid; v_ck uuid; v_ck_truoc uuid; v_viec_truoc uuid; v_thu2 date := vn_week_start();
   p numeric; a numeric;
 begin
   select e.student_id, e.class_id into v_em, v_lop
@@ -47,8 +47,14 @@ begin
   values (v_lop, v_em, 'student', 'academic', 'approved', 'student', 'tick', 'knowledge',
           'year', 'TEST-0109', 'thử quãng đường', 7, 9, 'tiết', v_thu2 - 14, v_thu2 + 6)
   returning id into v_wig;
-  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays, unit_per_tick)
-  values (v_wig, 'việc thử', 2, 'tiết', array[1,2,3,4,5], 1) returning id into v_viec;
+  -- 0121: việc dẫn dắt nay treo dưới CAM KẾT, không treo thẳng vào mục tiêu. Fixture phải dựng
+  -- đúng chuỗi thật — mục tiêu năm → cam kết tuần → việc — nếu không nó kiểm một hình dạng dữ
+  -- liệu mà app không còn tạo ra được nữa.
+  insert into commitments (wig_id, class_id, student_id, week_start, title, area)
+  values (v_wig, v_lop, v_em, vn_week_start(), 'KIỂM · cam kết', 'knowledge')
+  returning id into v_ck;
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
+  values (v_ck, 'việc thử', 2, 'tiết', array[1,2,3,4,5], 1) returning id into v_viec;
 
   -- ② Đi HẾT quãng (2 lượt) → 100%
   insert into lead_progress (lead_measure_id, student_id, logged_by, logged_date, value)
@@ -69,10 +75,21 @@ begin
 
   -- ⑤ TRẦN THEO TUẦN. Việc 2 lượt/tuần; tick đủ 2 lượt ở TUẦN TRƯỚC và 2 lượt ở TUẦN NÀY.
   -- Luật cũ kẹp tổng cả kỳ ở 2 → wig_actual = 2. Luật mới kẹp từng tuần → 4.
+  --
+  -- 0121: mỗi tuần là một CAM KẾT RIÊNG, và việc của tuần nào chỉ nhận lượt tick của tuần ấy
+  -- (0124). Nên tuần trước phải có cam kết của tuần trước — đúng hình dạng dữ liệu mà app tạo ra,
+  -- chứ không phải một việc duy nhất hứng tick suốt cả kỳ.
+  insert into commitments (wig_id, class_id, student_id, week_start, title, area)
+  values (v_wig, v_lop, v_em, v_thu2 - 7, 'KIỂM · cam kết tuần trước', 'knowledge')
+  returning id into v_ck_truoc;
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
+  values (v_ck_truoc, 'việc thử tuần trước', 2, 'tiết', array[1,2,3,4,5], 1)
+  returning id into v_viec_truoc;
+
   insert into lead_progress (lead_measure_id, student_id, logged_by, logged_date, value)
   values (v_viec, v_em, v_em, v_thu2 + 1, 1),
-         (v_viec, v_em, v_em, v_thu2 - 7, 1),
-         (v_viec, v_em, v_em, v_thu2 - 6, 1);
+         (v_viec_truoc, v_em, v_em, v_thu2 - 7, 1),
+         (v_viec_truoc, v_em, v_em, v_thu2 - 6, 1);
   select private.wig_actual(v_wig) into a;
   insert into kq values ('Trần theo TUẦN, không theo cả kỳ', '4', a::text, a = 4);
 

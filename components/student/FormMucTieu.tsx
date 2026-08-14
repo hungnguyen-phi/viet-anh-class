@@ -8,7 +8,6 @@ import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder, inputCls, selectCls, btnGold} from '@/components/ui/Field';
 import {ONgayVN, ngayVN} from '@/components/ui/ONgayVN';
 import {luuMucTieuCuaEm, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
-import {nhipCuaMucTieu} from '@/lib/wig-nhip';
 import {todayInVN} from '@/lib/dates';
 import {kieuDonVi, coTrongDanhSach, DON_VI} from '@/lib/don-vi';
 import {ChonCuon} from '@/components/ui/ChonCuon';
@@ -146,7 +145,10 @@ export function FormMucTieu({
   const tuanCon = g.due
     ? Math.max(Math.ceil((Date.parse(g.due) - Date.parse(todayInVN())) / 604800000), 0)
     : 0;
-  const nhip = nhipCuaMucTieu({quang, moiTuan, tuanCon});
+  // Cảnh báo nhịp đã bỏ cùng mô hình cũ (0121): form này thôi tạo việc dẫn dắt, nên không còn
+  // "mỗi tuần làm được bao nhiêu" để đem so với quãng đường phải đi. Việc nay treo dưới CAM KẾT
+  // của từng tuần, và chính buổi họp là chỗ nhìn nhịp.
+
 
   return (
     <Popup
@@ -373,22 +375,9 @@ export function FormMucTieu({
                 {thu.length === 0 ? t('pickADay') : t('perWeekCount', {n: thu.length})}
               </p>
 
-              {/* KẾ HOẠCH CÓ TỰ MÂU THUẪN KHÔNG — nói ngay lúc em đang gõ.
-                  Chuyện thật 13/08/2026: em đặt "từ 7 đến 9 tiết" (quãng 2) rồi giao cho mình 4
-                  lần mỗi tuần, hạn bảy tuần sau. Nửa tuần là xong. App nhận nguyên, không nói một
-                  chữ — rồi tick hai cái là vòng tròn nhảy 100% và nhìn như app hỏng, trong khi
-                  phép tính đúng: kế hoạch sai từ lúc gõ. Cảnh báo, KHÔNG chặn — đây là mục tiêu
-                  của em, app chỉ có quyền nói ra chỗ vênh. */}
-              {nhip.qua_de && (
-                <p className="mt-1.5 text-[12px] font-bold text-gold-text">
-                  {t('paceTooEasy', {n: thu.length, can: nhip.tuanCan, con: tuanCon})}
-                </p>
-              )}
-              {nhip.khong_kip && (
-                <p className="mt-1.5 text-[12px] font-bold text-status-bad">
-                  {t('paceTooHard', {n: moiTuan, can: nhip.tuanCan, con: tuanCon})}
-                </p>
-              )}
+              {/* CẢNH BÁO NHỊP ĐÃ BỎ (0121). Nó so quãng phải đi với "mỗi tuần em làm được bao
+                  nhiêu" — mà form này thôi tạo việc dẫn dắt, nên vế thứ hai không còn. Nhịp nay
+                  nhìn ở buổi họp, trên từng cam kết tuần. */}
 
               {/* MỘT CÂU HỎI, HAI CÂU TRẢ LỜI (0110) — và đây đúng là hai ví dụ chủ dự án đưa:
                     · "10000 giờ học, 1 tick ngày = 3 giờ"  → trả lời 3   → vẫn MỘT CHẠM, mỗi chạm 3 giờ

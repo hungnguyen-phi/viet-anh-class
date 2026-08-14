@@ -19,10 +19,10 @@ do $$
 declare
   v_class     uuid;
   v_nam_lop   uuid;
-  v_tuan_lop  uuid;
+  v_ck_lop    uuid;
   v_lead_lop  uuid;
   v_nam_em    uuid;
-  v_tuan_em   uuid;
+  v_ck_em     uuid;
   v_lead_em   uuid;
   v_a         uuid;
   v_b         uuid;
@@ -45,14 +45,13 @@ begin
           '2026-01-01', '2026-12-31')
   returning id into v_nam_lop;
 
-  insert into wigs (class_id, scope, title, area, period, period_label, target_value, unit,
-                    start_date, end_date, parent_wig_id)
-  values (v_class, 'class', 'ZZ_TEST tuần lớp', 'knowledge', 'week', 'ZZW01', 3, 'bài',
-          '2026-03-02', '2026-03-08', v_nam_lop)
-  returning id into v_tuan_lop;
+  -- 0121: không còn WIG tuần — nhịp tuần là CAM KẾT, việc treo dưới cam kết.
+  insert into commitments (wig_id, class_id, week_start, title, area)
+  values (v_nam_lop, v_class, date '2026-03-02', 'ZZ_TEST cam kết lớp', 'knowledge')
+  returning id into v_ck_lop;
 
-  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays, unit_per_tick)
-  values (v_tuan_lop, 'ZZ_TEST việc chung', 3, 'bài', '{1,2,3,4,5}', 1)
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
+  values (v_ck_lop, 'ZZ_TEST việc chung', 3, 'bài', '{1,2,3,4,5}', 1)
   returning id into v_lead_lop;
 
   -- Cả hai em làm đủ phần việc CHUNG → tiến độ năm của lớp bằng 6.
@@ -73,25 +72,27 @@ begin
      '6', v_truoc::text, v_truoc = 6);
 
   -- Cây CÁ NHÂN của em A, NỐI VÀO WIG năm của lớp (đây là thứ 0099 mở ra).
+  --
+  -- 0121 ĐỔI SỢI DÂY: `parent_wig_id` nay phải NULL ở mọi mục tiêu (chỉ còn cấp năm, không còn
+  -- cây cha–con), nên mối nối "mục tiêu của em phục vụ mục tiêu nào của lớp" đi qua
+  -- `source_wig_id` — đúng cột vốn sinh ra cho việc ấy. Chủ dự án: "hs tạo cho hs gắn theo lớp".
   insert into wigs (class_id, student_id, scope, title, area, period, period_label,
-                    target_value, unit, start_date, end_date, parent_wig_id)
+                    target_value, unit, start_date, end_date, source_wig_id)
   values (v_class, v_a, 'student', 'ZZ_TEST năm em', 'knowledge', 'year', 'ZZ2026', 3, 'bài',
           '2026-01-01', '2026-12-31', v_nam_lop)
   returning id into v_nam_em;
 
   insert into ket_qua
-  select 'Sợi dây có thật: WIG năm của em trỏ về WIG năm của lớp',
-         'trỏ đúng', coalesce(w.parent_wig_id::text, 'NULL'), w.parent_wig_id = v_nam_lop
+  select 'Sợi dây có thật: mục tiêu năm của em gắn về mục tiêu năm của lớp',
+         'trỏ đúng', coalesce(w.source_wig_id::text, 'NULL'), w.source_wig_id = v_nam_lop
   from wigs w where w.id = v_nam_em;
 
-  insert into wigs (class_id, student_id, scope, title, area, period, period_label,
-                    target_value, unit, start_date, end_date, parent_wig_id)
-  values (v_class, v_a, 'student', 'ZZ_TEST tuần em', 'knowledge', 'week', 'ZZW01', 3, 'bài',
-          '2026-03-02', '2026-03-08', v_nam_em)
-  returning id into v_tuan_em;
+  insert into commitments (wig_id, class_id, student_id, week_start, title, area)
+  values (v_nam_em, v_class, v_a, date '2026-03-02', 'ZZ_TEST cam kết của em', 'knowledge')
+  returning id into v_ck_em;
 
-  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays, unit_per_tick)
-  values (v_tuan_em, 'ZZ_TEST việc riêng của em', 3, 'bài', '{1,2,3,4,5}', 1)
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
+  values (v_ck_em, 'ZZ_TEST việc riêng của em', 3, 'bài', '{1,2,3,4,5}', 1)
   returning id into v_lead_em;
 
   insert into lead_progress (lead_measure_id, student_id, value, logged_date, logged_by)

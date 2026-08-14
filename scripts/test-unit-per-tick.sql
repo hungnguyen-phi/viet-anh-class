@@ -22,10 +22,10 @@ declare
   v_campus uuid;
   v_class  uuid;
   v_year   uuid;
-  v_week   uuid;
   v_lead   uuid;
   v_stu    uuid;
   v_actual numeric;
+  v_ck uuid;
 begin
   -- Mượn một lớp và một học sinh có sẵn để không phải dựng cả cây quan hệ.
   select c.id, c.campus_id into v_class, v_campus from classes c limit 1;
@@ -41,14 +41,13 @@ begin
           '2026-01-01', '2026-12-31')
   returning id into v_year;
 
-  insert into wigs (class_id, scope, title, area, period, period_label, target_value, unit,
-                    start_date, end_date, parent_wig_id)
-  values (v_class, 'class', 'ZZ_TEST tuần', 'knowledge', 'week', 'ZZW01', 150, 'phút',
-          '2026-03-02', '2026-03-08', v_year)
-  returning id into v_week;
+  -- 0121: không còn WIG tuần. Nhịp tuần nay là CAM KẾT, và việc treo dưới cam kết.
+  insert into commitments (wig_id, class_id, week_start, title, area)
+  values (v_year, v_class, date '2026-03-02', 'ZZ_TEST cam kết', 'knowledge')
+  returning id into v_ck;
 
-  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays, unit_per_tick)
-  values (v_week, 'ZZ_TEST đọc 30 phút mỗi tối', 150, 'phút', '{1,2,3,4,5}', 30)
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
+  values (v_ck, 'ZZ_TEST đọc 30 phút mỗi tối', 150, 'phút', '{1,2,3,4,5}', 30)
   returning id into v_lead;
 
   -- Ba tối trong tuần đó (T2, T3, T4 của 02–08/03/2026).
@@ -58,9 +57,9 @@ begin
          (v_lead, v_stu, 1, '2026-03-04', v_stu);
 
   -- ── 1. Tiến độ WIG TUẦN = 3 tick × 30 = 90 phút (không phải 3) ──
-  v_actual := private.wig_actual(v_week);
+  v_actual := private.wig_actual(v_year);
   insert into ket_qua values
-    ('Tiến độ WIG tuần nhân hệ số 30', '90', v_actual::text, v_actual = 90);
+    ('Tiến độ mục tiêu năm nhân hệ số 30', '90', v_actual::text, v_actual = 90);
 
   -- ── 2. Tiến độ WIG NĂM cũng phải là 90, vì nó cộng đệ quy qua WIG tuần ──
   v_actual := private.wig_actual(v_year);
@@ -74,7 +73,7 @@ begin
          c.so_tick_can || ' tick / ' || c.so_ngay_tick_duoc || ' ngày, qua_nhieu=' || c.qua_nhieu
            || ', lech=' || c.lech_don_vi,
          c.so_tick_can = 5 and c.so_ngay_tick_duoc = 5 and not c.qua_nhieu and not c.lech_don_vi
-  from lead_measure_canh_bao(v_week) c where c.lead_measure_id = v_lead;
+  from lead_measure_canh_bao(v_ck) c where c.lead_measure_id = v_lead;
 
   -- ── 4. Bỏ hệ số về 1 → 150 tick trong 5 ngày: phải kêu "quá nhiều" VÀ "lệch đơn vị" ──
   -- (lệch vì lead đo 'phút' còn WIG cũng 'phút'… nên đổi đơn vị lead để dựng đúng tình huống 7B1)
@@ -84,10 +83,10 @@ begin
          'qua_nhieu=t, lech_don_vi=t',
          'qua_nhieu=' || c.qua_nhieu || ', lech_don_vi=' || c.lech_don_vi,
          c.qua_nhieu and c.lech_don_vi
-  from lead_measure_canh_bao(v_week) c where c.lead_measure_id = v_lead;
+  from lead_measure_canh_bao(v_ck) c where c.lead_measure_id = v_lead;
 
   -- ── 5. Và lúc đó tiến độ tụt về 3 — đúng con số vô nghĩa mà 7B1 đang chịu ──
-  v_actual := private.wig_actual(v_week);
+  v_actual := private.wig_actual(v_year);
   insert into ket_qua values
     ('Hệ số 1 thì 3 tối thành 3 phút (bằng chứng lỗi cũ)', '3', v_actual::text, v_actual = 3);
 

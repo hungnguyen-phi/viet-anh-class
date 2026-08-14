@@ -25,6 +25,7 @@ declare
   v_em uuid; v_lop uuid; v_wig uuid; v_viec uuid; v_wlop uuid; v_vlop uuid;
   v_wig2 uuid; v_viec2 uuid;
   v_thu2 date := vn_week_start(); a numeric; p numeric;
+  v_ck uuid; v_ck2 uuid; v_cklop uuid;
 begin
   select e.student_id, e.class_id into v_em, v_lop
   from enrollments e join classes c on c.id = e.class_id
@@ -40,8 +41,11 @@ begin
   values (v_lop, v_em, 'student', 'academic', 'approved', 'student', 'tick', 'knowledge',
           'year', 'TEST-0110', 'thử đếm theo lượng', 0, 5000, 'lead', v_thu2 - 7, v_thu2 + 300)
   returning id into v_wig;
-  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays, unit_per_tick, nhap_luong)
-  values (v_wig, 'điền lead', 30, 'lead', array[1,2,3,4,5], 1, true) returning id into v_viec;
+  -- 0121: việc treo dưới CAM KẾT, không treo thẳng vào mục tiêu.
+  insert into commitments (wig_id, class_id, student_id, week_start, title, area)
+  values (v_wig, v_lop, v_em, v_thu2, 'KIỂM · cam kết của em', 'knowledge') returning id into v_ck;
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick, nhap_luong)
+  values (v_ck, 'điền lead', 30, 'lead', array[1,2,3,4,5], 1, true) returning id into v_viec;
 
   -- ① Điền 10 → cộng đúng 10
   insert into lead_progress (lead_measure_id, student_id, logged_by, logged_date, value)
@@ -84,8 +88,12 @@ begin
   values (v_lop, v_em, 'student', 'personal', 'approved', 'student', 'tick', 'physical',
           'year', 'TEST-0110B', 'thử 1 tick = 3 giờ', 0, 10000, 'giờ', v_thu2 - 7, v_thu2 + 300)
   returning id into v_wig2;
-  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays, unit_per_tick, nhap_luong)
-  values (v_wig2, 'học bài', 9, 'giờ', array[1,3,5], 3, false) returning id into v_viec2;
+  -- 0121: việc treo dưới CAM KẾT. Em đã có một cam kết ở khối trên; đây là cái thứ hai — vừa
+  -- đúng trần 2, và cũng là cách phép kiểm này chạm luôn vào cái trần ấy.
+  insert into commitments (wig_id, class_id, student_id, week_start, title, area)
+  values (v_wig2, v_lop, v_em, v_thu2, 'KIỂM · cam kết thứ hai', 'physical') returning id into v_ck2;
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick, nhap_luong)
+  values (v_ck2, 'học bài', 9, 'giờ', array[1,3,5], 3, false) returning id into v_viec2;
   insert into lead_progress (lead_measure_id, student_id, logged_by, logged_date, value)
   values (v_viec2, v_em, v_em, v_thu2, 1);
   select private.wig_actual(v_wig2) into a;
@@ -96,11 +104,14 @@ begin
   -- ⑥ WIG CỦA LỚP: trần vẫn còn (0098). Việc 3 lượt/tuần, em tick 3 hôm rồi cố góp thêm.
   insert into wigs (class_id, scope, status, measure_by, area, period, period_label,
                     title, baseline, target_value, unit, start_date, end_date)
-  values (v_lop, 'class', 'approved', 'tick', 'knowledge', 'week', 'TEST-0110W',
-          'thử trần lớp', 0, 90, 'lần', v_thu2, v_thu2 + 6)
+  values (v_lop, 'class', 'approved', 'tick', 'knowledge', 'year', 'TEST-0110W',
+          'thử trần lớp', 0, 90, 'lần', v_thu2 - 30, v_thu2 + 300)
   returning id into v_wlop;
-  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays, unit_per_tick)
-  values (v_wlop, 'việc chung', 3, 'lần', array[1,2,3,4,5], 1) returning id into v_vlop;
+  -- 0121: việc treo dưới CAM KẾT, không treo thẳng vào mục tiêu.
+  insert into commitments (wig_id, class_id, week_start, title, area)
+  values (v_wlop, v_lop, v_thu2, 'KIỂM · cam kết của lớp', 'knowledge') returning id into v_cklop;
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
+  values (v_cklop, 'việc chung', 3, 'lần', array[1,2,3,4,5], 1) returning id into v_vlop;
   insert into lead_progress (lead_measure_id, student_id, logged_by, logged_date, value)
   values (v_vlop, v_em, v_em, v_thu2, 1),
          (v_vlop, v_em, v_em, v_thu2 + 1, 1),

@@ -491,7 +491,7 @@
     "needMonthFirst": "You need a MONTH goal first.",
     "parentYear": "Under year goal",
     "parentMonth": "Under month goal",
-    "goalThisWeek": "This week’s goal",
+    "goalThisWeek": "This week’s commitments",
     "detail": "Details",
     "detailTitle": "Week details",
     "backToWig": "Back to WIG",
@@ -554,7 +554,11 @@
     "cuonTongDichSuffix": "/{n}",
     "schoolGoals": "Campus goals",
     "schoolGoalsEmpty": "This campus has no year goals yet. Goals here count up from each class's year goals, so let the classes set theirs first.",
-    "schoolGoalPlaceholder": "80% of classes reach their learning goal this year"
+    "schoolGoalPlaceholder": "80% of classes reach their learning goal this year",
+    "noCommitmentsThisWeek": "No commitments yet for {label}",
+    "commitmentsHowMeeting": "Commitments are set in the WIG meeting — at most 2 a week, so the class stays on what matters.",
+    "verdictWonTag": "Won",
+    "verdictLostTag": "Not met"
   },
   "meeting": {
     "title": "Weekly WIG meeting",
@@ -584,8 +588,8 @@
     "step1Hint": "{range} · these numbers are counted from the students’ own ticks and cannot be edited here.",
     "step2": "Reflection & commitment",
     "step2Hint": "What last week taught you, and what the class promises each other for next week.",
-    "step3": "Goal for week {week}",
-    "step3Hint": "{range} · filling this in creates the new week goal — no need to go back to the WIG page.",
+    "step3": "Commitments for week {week}",
+    "step3Hint": "{range} · the class promises at most 2 things. Attach the work to tick on the class page.",
     "noWorkThatWeek": "The class had no shared tasks in week {week}.",
     "reflectionPlaceholder": "What went well last week, and what did not?",
     "commitmentsHint": "One sentence the class promises each other for next week. It appears at the top of next week’s meeting.",
@@ -626,7 +630,11 @@
     "draftDiscard": "Discard draft",
     "backToBoard": "Back to your board",
     "noClassForStudent": "You are not in a class yet, so there is no meeting.",
-    "emTuDienSo": "Students type the number"
+    "emTuDienSo": "Students type the number",
+    "commitmentNo": "Commitment {n}",
+    "commitmentPlaceholder": "e.g. The class hands in maths homework on time",
+    "commitmentHint": "At most 2 commitments a week — fewer is what makes focus possible. Attach the work to tick on the class page.",
+    "commitmentLeadsDone": "{xong}/{tong} leads met"
   },
   "report": {
     "title": "Parent report",

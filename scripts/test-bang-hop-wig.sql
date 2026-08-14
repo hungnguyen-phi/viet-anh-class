@@ -25,6 +25,7 @@ declare
   v_lead     uuid;
   v_lead2    uuid;
   v_wig      uuid;
+  v_ck       uuid;
   v_n        int;
 begin
   -- CHỌN LỚP CHO ĐÚNG, nếu không thì phép kiểm quyền ở mục 5 tự lừa mình.
@@ -60,13 +61,17 @@ begin
   where w.class_id = v_class and w.scope = 'class' limit 1;
 
   if v_lead is null then
+    -- 0121: mục tiêu chỉ còn cấp NĂM, và việc treo dưới CAM KẾT của một tuần.
     insert into wigs (class_id, scope, title, area, period, period_label, target_value, unit,
                       start_date, end_date)
-    values (v_class, 'class', 'ZZ_TEST wig', 'knowledge', 'week', 'ZZW', 5, 'buổi',
-            '2026-03-02', '2026-03-08')
+    values (v_class, 'class', 'ZZ_TEST wig', 'knowledge', 'year', 'ZZN', 5, 'buổi',
+            '2026-01-01', '2026-12-31')
     returning id into v_wig;
-    insert into lead_measures (wig_id, title, target_value, unit)
-    values (v_wig, 'ZZ_TEST việc', 5, 'buổi') returning id into v_lead;
+    insert into commitments (wig_id, class_id, week_start, title, area)
+    values (v_wig, v_class, date '2026-03-02', 'ZZ_TEST cam kết', 'knowledge')
+    returning id into v_ck;
+    insert into lead_measures (commitment_id, title, target_value, unit)
+    values (v_ck, 'ZZ_TEST việc', 5, 'buổi') returning id into v_lead;
   end if;
 
   -- Một việc của LỚP KHÁC BẤT KỲ, để thử ghi chéo lớp. Tìm theo "việc thuộc lớp nào đó khác
@@ -126,13 +131,25 @@ begin
   insert into ket_qua
   select 'Chấm thua không làm đổi tiến độ WIG',
          'không đổi', 'actual=' || private.wig_actual(v_wig)::text,
+         -- Vế phải cộng lại BẰNG TAY để đối chiếu. Sau 0124 phạm vi của một việc là ĐÚNG TUẦN
+         -- của cam kết nó thuộc về, không phải cả năm — nên vế này phải bó theo tuần y hệt, nếu
+         -- không phép kiểm so hai thứ khác nhau rồi kết luận là app sai.
          private.wig_actual(v_wig) = (
-           select coalesce(sum(lp.value * lm.unit_per_tick), 0)
-           from lead_measures lm
-           join lead_progress lp on lp.lead_measure_id = lm.id
-           join wigs w on w.id = lm.wig_id
-           where lm.wig_id = v_wig
-             and lp.logged_date between w.start_date and w.end_date
+           -- Cộng lại có ÁP TRẦN "mỗi em một bộ đếm" (0098): với mục tiêu của LỚP, phần góp của
+           -- mỗi em cho mỗi việc bị kẹp ở đúng chỉ tiêu của việc ấy. Bỏ trần ra khỏi vế này thì
+           -- nó ra 18 trong khi app ra 14, và phép kiểm sẽ tố cáo app về một luật mà chính app
+           -- đang giữ đúng.
+           select coalesce(sum(least(g.gop, g.dich)), 0)
+           from (
+             select lm.target_value as dich,
+                    sum(lp.value) * lm.unit_per_tick as gop
+             from commitments c
+             join lead_measures lm on lm.commitment_id = c.id
+             join lead_progress lp on lp.lead_measure_id = lm.id
+             where c.wig_id = v_wig
+               and lp.logged_date between c.week_start and c.week_start + 6
+             group by lm.id, lm.target_value, lm.unit_per_tick, lp.student_id
+           ) g
          );
 
   -- ── 5. RANH GIỚI ĐỌC ──

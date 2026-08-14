@@ -24,7 +24,7 @@ do $$
 declare
   v_class  uuid;
   v_year   uuid;
-  v_week   uuid;
+  v_ck     uuid;
   v_lead   uuid;
   v_a      uuid;
   v_b      uuid;
@@ -59,15 +59,14 @@ begin
           '2026-01-01', '2026-12-31')
   returning id into v_year;
 
-  insert into wigs (class_id, scope, title, area, period, period_label, target_value, unit,
-                    start_date, end_date, parent_wig_id)
-  values (v_class, 'class', 'ZZ_TEST tuần', 'knowledge', 'week', 'ZZW01', 3, 'bài',
-          '2026-03-02', '2026-03-08', v_year)
-  returning id into v_week;
+  -- 0121: không còn WIG tuần. Nhịp tuần là CAM KẾT, và việc dẫn dắt treo dưới cam kết.
+  insert into commitments (wig_id, class_id, week_start, title, area)
+  values (v_year, v_class, date '2026-03-02', 'ZZ_TEST cam kết', 'knowledge')
+  returning id into v_ck;
 
   -- "Làm bài tập về nhà — mỗi em 3 bài", tick được cả T2…T6.
-  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays, unit_per_tick)
-  values (v_week, 'ZZ_TEST mỗi em 3 bài', 3, 'bài', '{1,2,3,4,5}', 1)
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
+  values (v_ck, 'ZZ_TEST mỗi em 3 bài', 3, 'bài', '{1,2,3,4,5}', 1)
   returning id into v_lead;
 
   -- ── 1. EM A TICK MỘT LƯỢT ────────────────────────────────────────────────────────────────
@@ -92,7 +91,7 @@ begin
     ('B tick → màn của A VẪN 1/3 (không phải 2/3)', '1', coalesce(v_my::text, 'NULL'), v_my = 1);
 
   -- ── 3. TIẾN ĐỘ WIG = TRUNG BÌNH MỨC ĐẠT: (1 + 1)/2 = 1 trên mục tiêu 3 ──────────────────
-  v_actual := private.wig_actual(v_week);
+  v_actual := private.wig_actual(v_year);
   insert into ket_qua values
     ('Mỗi em 1 bài → tiến độ tuần = TỔNG hai em = 2', '2', v_actual::text, v_actual = 2);
 
@@ -115,7 +114,7 @@ begin
          (v_lead, v_a, 1, '2026-03-05', v_a),
          (v_lead, v_a, 1, '2026-03-06', v_a);
 
-  v_actual := private.wig_actual(v_week);
+  v_actual := private.wig_actual(v_year);
   insert into ket_qua values
     ('A làm 5 bài (chặn trần 3), B làm 1 → 3+1 = 4', '4', v_actual::text, v_actual = 4);
 
@@ -129,7 +128,7 @@ begin
   values (v_lead, v_b, 1, '2026-03-03', v_b),
          (v_lead, v_b, 1, '2026-03-04', v_b);
 
-  v_actual := private.wig_actual(v_week);
+  v_actual := private.wig_actual(v_year);
   insert into ket_qua values
     ('Cả hai em đủ 3 → 3+3 = 6, bằng đúng mục tiêu lớp', '6', v_actual::text, v_actual = 6);
 
@@ -141,7 +140,7 @@ begin
   -- Không bao giờ vượt 100%: A còn tick thêm nữa cũng thế.
   insert into lead_progress (lead_measure_id, student_id, value, logged_date, logged_by)
   values (v_lead, v_a, 1, '2026-03-09', v_a);
-  v_actual := private.wig_actual(v_week);
+  v_actual := private.wig_actual(v_year);
   insert into ket_qua values
     ('Tick thêm ngoài tuần cũng không đẩy quá mục tiêu', '6', v_actual::text, v_actual = 6);
 
@@ -157,7 +156,7 @@ begin
          'qua_nhieu=f, tran=5',
          'qua_nhieu=' || c.qua_nhieu || ', tran=' || c.tran_luot_tick,
          not c.qua_nhieu and c.tran_luot_tick = 5
-  from lead_measure_canh_bao(v_week) c where c.lead_measure_id = v_lead;
+  from lead_measure_canh_bao(v_ck) c where c.lead_measure_id = v_lead;
 
   -- Nâng mục tiêu lên 8: một em nhiều nhất tick được 5 lượt → PHẢI cảnh báo, dù lớp có 2 em
   -- (bản cũ nhân sĩ số ra trần 10 nên im lặng — đúng chỗ báo động giả cần dẹp).
@@ -167,7 +166,7 @@ begin
          'qua_nhieu=t',
          'qua_nhieu=' || c.qua_nhieu || ', tran=' || c.tran_luot_tick,
          c.qua_nhieu
-  from lead_measure_canh_bao(v_week) c where c.lead_measure_id = v_lead;
+  from lead_measure_canh_bao(v_ck) c where c.lead_measure_id = v_lead;
 end $$;
 
 -- ── 8. CHỐT CHẶN: ĐIỂM DANH MỌI HÀM ĐỌC lead_progress ─────────────────────────────────────
@@ -188,6 +187,10 @@ end $$;
 -- nên private.wig_actual nay là lớp bọc mỏng: 'cuon' thì hỏi ty_le_cuon, còn lại gọi wig_actual_so.
 -- Lớp bọc không đọc lead_progress, nên phần đọc thật vẫn đúng một hàm như trước.
 --
+-- 14/08/2026, đợt hai — `cam_ket_goi_y` (0121) nhập danh sách: nó đọc lượt tick để GỢI Ý thắng
+-- hay thua cho một cam kết. Trả lời câu hỏi mà dòng điểm danh này đặt ra: nó đếm theo TỪNG EM khi
+-- cam kết là của một em, và theo cả lớp khi cam kết là của lớp — cùng một luật với class_lead_board.
+--
 -- Cùng ngày, `gop_lead` (0113) bị bỏ hẳn — xem 0120. Nó nằm không từ lúc sinh ra và cộng tick mà
 -- quên hệ số; chính dòng điểm danh này cùng test-unit-per-tick đã bắt được nó.
 --   · class_lead_board        — trả my_total của em và students_done, không lấy tổng làm thước đo
@@ -197,11 +200,11 @@ end $$;
 --   · class_scoreboard        — CỐ Ý cộng dồn: đây là bảng ĐIỂM tích luỹ theo hạng mục, không
 --                               phải thước đo thắng/thua của một việc
 insert into ket_qua
-select 'Đúng 6 hàm đọc lead_progress, không hơn',
-       'child_week_report, class_lead_board, class_scoreboard, class_tick_matrix, school_wig_rollup, wig_actual_so',
+select 'Đúng 7 hàm đọc lead_progress, không hơn',
+       'cam_ket_goi_y, child_week_report, class_lead_board, class_scoreboard, class_tick_matrix, school_wig_rollup, wig_actual_so',
        string_agg(p.proname, ', ' order by p.proname),
        string_agg(p.proname, ', ' order by p.proname) =
-         'child_week_report, class_lead_board, class_scoreboard, class_tick_matrix, school_wig_rollup, wig_actual_so'
+         'cam_ket_goi_y, child_week_report, class_lead_board, class_scoreboard, class_tick_matrix, school_wig_rollup, wig_actual_so'
 from pg_proc p
 join pg_namespace n on n.oid = p.pronamespace
 where n.nspname in ('public', 'private')

@@ -142,6 +142,7 @@ export default async function WigPage({
     {data: soDoData},
     {data: tuanNayDaHop},
     {data: cuonData},
+    {data: camKetData},
   ] = await Promise.all([
       // NHÚNG LUÔN lead_measures: PostgREST nhúng được theo khoá ngoại wig_id và RLS vẫn áp y như
       // khi hỏi rời, nên bỏ hẳn một chặng chờ so với hỏi WIG xong mới hỏi việc.
@@ -192,6 +193,17 @@ export default async function WigPage({
       // biết còn phải kéo thêm mấy em nữa. Hỏi theo LỚP chứ không theo mảng id để câu này nằm
       // được trong cùng lượt song song, không phải chờ câu hỏi mục tiêu xong mới đi hỏi tiếp.
       supabase.rpc('cuon_so_lieu_lop', {p_class: myClass.id}),
+      // CAM KẾT CỦA TUẦN ĐANG XEM (0121) — thay cho "mục tiêu tuần" cũ. Tối đa 2, và mỗi cái là
+      // một lời hứa; việc để tick treo dưới nó.
+      supabase
+        .from('commitments')
+        .select(
+          'id, title, area, wig_id, verdict, lead_measures(id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick, nhap_luong)',
+        )
+        .eq('class_id', myClass.id)
+        .is('student_id', null)
+        .eq('week_start', monday)
+        .order('created_at'),
     ]);
 
   const cuonTheoWig = new Map(
@@ -294,6 +306,39 @@ export default async function WigPage({
       quaNhieu: soTickCan > tran,
     };
   };
+
+  // Việc của một CAM KẾT (0121). Nguồn là bảng việc chung của tuần (class_lead_board), vốn đã
+  // trả kèm commitment_id — không phải lôi lead_measures nhúng theo WIG như trước, vì việc nay
+  // treo dưới cam kết chứ không dưới mục tiêu.
+  const camKet = ((camKetData ?? []) as unknown as {
+    id: string;
+    title: string;
+    area: string;
+    wig_id: string;
+    verdict: string | null;
+    lead_measures: Lead[] | null;
+  }[]).map((c) => ({...c, verdict: c.verdict === 'win' || c.verdict === 'lose' ? c.verdict : null}));
+
+  const viecCuaCamKet = (ckId: string): ViecItem[] =>
+    ((camKet.find((c) => c.id === ckId)?.lead_measures ?? []) as Lead[]).map((l) => ({
+      id: l.id,
+      title: l.title,
+      target_value: Number(l.target_value),
+      unit: l.unit,
+      sub_category: l.sub_category,
+      active_weekdays: l.active_weekdays,
+      unit_per_tick: l.unit_per_tick,
+      nhap_luong: l.nhap_luong,
+      // Cảnh báo "đòi nhiều lượt hơn số ngày tick được" nay tính theo tuần của cam kết ở CSDL
+      // (lead_measure_canh_bao, 0122). Chưa nối vào màn này — để 0 là KHÔNG cảnh báo, chứ không
+      // phải cảnh báo sai.
+      quaNhieu: false,
+      lechDonVi: false,
+      soTickCan: 0,
+      tran: 0,
+      soNgay: 0,
+      soNguoi: 0,
+    }));
 
   const viecCuaWig = (w: Wig): ViecItem[] =>
     ((wigsKemLead.find((x) => x.id === w.id)?.lead_measures ?? []) as Lead[]).map((l) => {
@@ -421,19 +466,13 @@ export default async function WigPage({
       soDo: sd ? {giaTri: Number(sd.gia_tri), vaiTro: sd.vai_tro, ghiLuc: sd.created_at} : null,
       soDoMoKhoa: tuanNayDaHop !== true,
       dong:
-        dongNam.measureBy === 'manual' || dongNam.measureBy === 'cuon'
-          ? [dongNam]
-          : [
-              dongNam,
-              dongCua(
-                thang,
-                'month',
-                thangKhac
-                  ? t('monthOtherPeriod', {label: thangKhac.period_label ?? ''})
-                  : t('emptyMonth'),
-              ),
-              dongCua(tuan, 'week', t('emptyWeek')),
-            ],
+        // MỘT DÒNG DUY NHẤT: mục tiêu chỉ còn cấp NĂM (0121).
+        //
+        // Hai dòng "Tháng — chưa đặt mục tiêu tháng" và "Tuần — chưa đặt mục tiêu tuần này" từng
+        // đứng ở đây để cái THIẾU không trở nên vô hình. Nay chúng không thiếu, chúng không tồn
+        // tại — mà một dòng "chưa đặt" cho thứ app cố tình không cho đặt thì chỉ khiến cô đi tìm
+        // một cái nút không có. Nhịp tuần nay nằm ở CAM KẾT, cột bên trái.
+        [dongNam]
     };
   });
 
@@ -528,90 +567,60 @@ export default async function WigPage({
             </Link>
           </div>
 
-          {weekWigs.length === 0 ? (
+          {/* CAM KẾT CỦA TUẦN (0121) — thay cho "mục tiêu tuần" cũ.
+              Cam kết là một LỜI HỨA nên không có vạch tiến độ, không có "x / y đơn vị": con số
+              nằm ở các việc dẫn dắt bên dưới, và thắng/thua thì buổi họp chấm bằng V/X. Vạch
+              tiến độ vẫn còn, nhưng ở MỤC TIÊU NĂM — cột bên phải. */}
+          {camKet.length === 0 ? (
             <div className="rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-5 text-center">
-              <p className="text-[13px] font-bold text-navy">{t('noWeekWigsThisWeek', {label: wk.label})}</p>
+              <p className="text-[13px] font-bold text-navy">{t('noCommitmentsThisWeek', {label: wk.label})}</p>
               <p className="mx-auto mt-1 max-w-[420px] text-[11.5px] font-semibold leading-relaxed text-grey-mid">
-                {monthWigs.length === 0 ? t('noWeekWigsHow') : t('noWeekWigsHowMeeting')}
+                {yearWigs.length === 0 ? t('noWeekWigsHow') : t('commitmentsHowMeeting')}
               </p>
             </div>
           ) : (
-            weekWigs.map((w) => {
-              const p = progByWig.get(w.id);
-              const pct = Math.round(Number(p?.pct ?? 0) * 100);
-              const viec = viecCuaWig(w);
-              // Mốc tuần thừa kế measure_by từ mục tiêu năm (lib/wig-tao). Mục tiêu năm đo bằng
-              // đích ghi nhận ngoài thì mốc tuần của nó cũng vậy — app không có lượt tick nào để
-              // đếm, nên "0 / 8,0 điểm" kèm một vạch xám là con số app tự bịa ra. §5.0.
-              const laManual = p?.measure_by === 'manual';
+            camKet.map((c) => {
+              const meta = areaMeta[c.area as Area];
               return (
-                <div key={w.id} className="flex flex-col gap-2.5">
-                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    <span className="font-display text-[16px] font-bold text-navy">
-                      {w.title ?? t('week')}
+                <div key={c.id} className="flex flex-col gap-2.5">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span
+                      className="inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-extrabold"
+                      style={{background: meta.soft, color: meta.hex}}
+                    >
+                      {areaLabel(meta, locale)}
                     </span>
-                    {/* Mục tiêu này GIAO với tuần đang xem nhưng hai đầu mốc không trùng khít
-                        Thứ Hai → Chủ Nhật. Đây chính là cái bẫy đã cắn: màn hình học sinh cắt
-                        theo tuần lịch, nên phải nói thẳng thay vì để người đọc tự đối chiếu. */}
-                    {(w.start_date !== wk.start || w.end_date !== wk.end) && (
-                      <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text">
-                        {t('weekDateOff', {start: w.start_date, end: w.end_date})}
+                    <span className="min-w-0 flex-1 font-display text-[16px] font-bold text-navy">
+                      {c.title}
+                    </span>
+                    {/* V/X đã chấm. Chưa chấm thì KHÔNG hiện gì — một dấu xám "chưa" chỉ làm
+                        người đọc tưởng là thua. */}
+                    {c.verdict && (
+                      <span
+                        className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${
+                          c.verdict === 'win'
+                            ? 'bg-success/15 text-success-dark'
+                            : 'bg-status-bad/[0.12] text-status-bad'
+                        }`}
+                      >
+                        {c.verdict === 'win' ? <Check size={11} strokeWidth={3} /> : null}
+                        {c.verdict === 'win' ? t('verdictWonTag') : t('verdictLostTag')}
                       </span>
                     )}
-                    <span className="ml-auto text-[14px] font-extrabold tabular-nums text-navy">
-                      {laManual
-                        ? `→ ${w.target_value} ${w.unit}`
-                        : `${Number(p?.actual ?? 0)} / ${w.target_value} ${w.unit}`}
-                    </span>
                   </div>
-                  {w.baseline != null && (
-                    <p className="-mt-1.5 text-[11.5px] font-semibold text-grey-mid">
-                      {t('from')} {Number(w.baseline)} → {w.target_value} {w.unit}
-                    </p>
-                  )}
-                  {laManual ? (
-                    <p className="flex flex-wrap items-center gap-1.5 text-[12px] font-bold text-grey-mid">
-                      <span>{t('outsideApp')}</span>
-                      {p?.achieved_at ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-extrabold text-success-dark">
-                          <Check size={12} strokeWidth={3} />
-                          {t('achieved')}
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-navy/[0.07] px-2 py-0.5 text-[11px] font-extrabold text-grey-mid">
-                          {t('notYet')}
-                        </span>
-                      )}
-                    </p>
-                  ) : (
-                    <div className="h-[10px] w-full overflow-hidden rounded-[6px] bg-navy/[0.08]">
-                      <div
-                        className="h-full rounded-[6px]"
-                        style={{
-                          width: `${Math.min(100, pct)}%`,
-                          background:
-                            p?.status === 'on_track'
-                              ? 'var(--color-success)'
-                              : p?.status === 'off_track'
-                                ? 'var(--color-status-bad)'
-                                : 'linear-gradient(to right,#ffe94d,#f9dd0e)',
-                        }}
-                      />
-                    </div>
-                  )}
 
                   <h3 className="mt-1 font-display text-[13.5px] font-bold text-navy">
                     {t('workToTick')}
                   </h3>
                   <ViecTuan
-                    wigId={w.id}
-                    wigUnit={w.unit}
-                    wigArea={areaLabel(areaMeta[w.area as Area], locale)}
-                    viec={viec}
+                    commitmentId={c.id}
+                    wigUnit={''}
+                    wigArea={areaLabel(meta, locale)}
+                    viec={viecCuaCamKet(c.id)}
                     dayShort={t.raw('dayShort') as string[]}
                     weekParam={weekQ}
                     classParam={classParam}
-                    mocTarget={Number(w.target_value ?? 0)}
+                    mocTarget={0}
                     siSo={studentCount}
                   />
                 </div>

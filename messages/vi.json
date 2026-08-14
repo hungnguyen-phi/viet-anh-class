@@ -491,7 +491,7 @@
     "needMonthFirst": "Phải có mục tiêu THÁNG trước đã.",
     "parentYear": "Thuộc mục tiêu năm",
     "parentMonth": "Thuộc mục tiêu tháng",
-    "goalThisWeek": "Mục tiêu tuần này",
+    "goalThisWeek": "Cam kết tuần này",
     "detail": "Chi tiết",
     "detailTitle": "Chi tiết tuần",
     "backToWig": "Về trang WIG",
@@ -554,7 +554,11 @@
     "cuonTongDichSuffix": "/{n}",
     "schoolGoals": "Mục tiêu của cơ sở",
     "schoolGoalsEmpty": "Cơ sở chưa đặt mục tiêu năm nào. Mục tiêu ở đây đếm ngược từ mục tiêu năm của từng lớp, nên hãy để các lớp đặt mục tiêu năm trước.",
-    "schoolGoalPlaceholder": "80% lớp đạt mục tiêu học tập năm nay"
+    "schoolGoalPlaceholder": "80% lớp đạt mục tiêu học tập năm nay",
+    "noCommitmentsThisWeek": "Tuần {label} chưa có cam kết nào",
+    "commitmentsHowMeeting": "Cam kết được đặt trong buổi họp WIG — mỗi tuần tối đa 2, để cả lớp tập trung vào đúng thứ đáng làm.",
+    "verdictWonTag": "Thắng",
+    "verdictLostTag": "Chưa đạt"
   },
   "meeting": {
     "title": "Họp WIG tuần",
@@ -584,8 +588,8 @@
     "step1Hint": "{range} · con số máy đếm từ lượt tick của các em, thầy cô không sửa được ở đây.",
     "step2": "Chiêm nghiệm & cam kết",
     "step2Hint": "Tuần vừa rồi rút ra điều gì, và tuần tới cả lớp hứa với nhau điều gì.",
-    "step3": "Mục tiêu tuần {week}",
-    "step3Hint": "{range} · điền ở đây là tạo luôn mục tiêu tuần mới — không phải vào lại trang WIG làm lần nữa.",
+    "step3": "Cam kết cho tuần {week}",
+    "step3Hint": "{range} · cả lớp hứa với nhau tối đa 2 điều. Việc để các em tick thì gắn ở trang lớp.",
     "noWorkThatWeek": "Tuần {week} lớp không có việc chung nào để tổng kết.",
     "reflectionPlaceholder": "Tuần vừa rồi được / chưa được ở chỗ nào?",
     "commitmentsHint": "Một câu cả lớp hứa với nhau cho tuần tới. Tuần sau mở phòng họp là câu này hiện lên ngay đầu.",
@@ -626,7 +630,11 @@
     "draftDiscard": "Bỏ nháp",
     "backToBoard": "Về bảng của bạn",
     "noClassForStudent": "Bạn chưa được xếp vào lớp nào nên chưa có buổi họp nào.",
-    "emTuDienSo": "Các em tự điền số"
+    "emTuDienSo": "Các em tự điền số",
+    "commitmentNo": "Cam kết {n}",
+    "commitmentPlaceholder": "vd: Cả lớp nộp bài Toán đúng hạn",
+    "commitmentHint": "Tối đa 2 cam kết mỗi tuần — ít thì mới tập trung được. Việc để các em tick thì gắn ở trang lớp.",
+    "commitmentLeadsDone": "{xong}/{tong} việc đạt"
   },
   "report": {
     "title": "Báo cáo phụ huynh",

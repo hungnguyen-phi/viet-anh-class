@@ -10,7 +10,6 @@ import {WeekNav} from '@/components/wig/WeekNav';
 import {ChiTietTuan} from '@/components/wig/ChiTietTuan';
 import {TuongWig} from '@/components/wig/TuongWig';
 import type {EmTrongLop} from '@/components/wig/DanhSachDatHo';
-import {ChinhNhip} from '@/components/wig/ChinhNhip';
 import {Flash} from '@/components/ui/Flash';
 
 // /wig/chi-tiet — "em nào làm tới đâu, quên hôm nào".
@@ -194,26 +193,8 @@ export default async function ChiTietPage({
         dayShort={t.raw('dayShort') as string[]}
       />
 
-      {/* Chỉnh nhịp — app rải đều 12 tháng khi cô khai mục tiêu năm; đây là chỗ kéo lại cho khớp
-          năm học thật (hạ tháng Tết, hạ tháng thi). Đóng sẵn: mỗi năm mở một hai lần. */}
-      {(wigLop ?? []).map((w) => {
-        const ds = (thangTheoNam.get(w.id) ?? []).map((m) => ({
-          id: m.id,
-          label: m.period_label ?? '',
-          target: Number(m.target_value),
-        }));
-        if (ds.length === 0) return null;
-        return (
-          <ChinhNhip
-            key={w.id}
-            namId={w.id}
-            tieuDe={w.title ?? ''}
-            can={Number(w.target_value) - Number(w.baseline ?? 0)}
-            unit={w.unit}
-            thang={ds}
-          />
-        );
-      })}
+      {/* Khối "chỉnh nhịp tháng" đã bỏ cùng mô hình cũ (0121): WIG chỉ còn cấp năm, không
+          còn mốc tháng nào để kéo lại cho khớp năm học. */}
     </div>
   );
 }

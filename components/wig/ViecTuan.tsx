@@ -8,7 +8,6 @@ import {Field, ctlWithBorder, inputCls, btnGold, btnGhost} from '@/components/ui
 import {WeekdayPicker} from '@/components/wig/WeekdayPicker';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {luuViec, deleteLeadMeasure} from '@/app/[locale]/(dashboard)/wig/actions';
-import {nhipCuaMoc} from '@/lib/wig-nhip';
 import {kieuDonVi} from '@/lib/don-vi';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -43,7 +42,7 @@ export type ViecItem = {
 };
 
 export function ViecTuan({
-  wigId,
+  commitmentId,
   wigUnit,
   wigArea,
   viec,
@@ -55,7 +54,8 @@ export function ViecTuan({
 }: {
   // Mục tiêu tuần mà những việc này thuộc về. Rỗng = tuần này chưa có mục tiêu nào → không thêm
   // việc được, và thẻ trống phải nói ra lý do thay vì chỉ biến mất.
-  wigId: string | null;
+  /** Cam kết mà việc này treo dưới (0121). null = chưa có cam kết nào cho tuần. */
+  commitmentId: string | null;
   wigUnit: string;
   // Lĩnh vực của mục tiêu (đã dịch) — form dùng để NÓI RA rằng lĩnh vực lấy sẵn từ đây.
   wigArea: string;
@@ -79,7 +79,7 @@ export function ViecTuan({
     return (
       <ViecForm
         key={mo}
-        wigId={wigId}
+        commitmentId={commitmentId}
         wigUnit={wigUnit}
         wigArea={wigArea}
         viec={dangSua}
@@ -146,7 +146,7 @@ export function ViecTuan({
         </div>
       ))}
 
-      {wigId ? (
+      {commitmentId ? (
         <button
           type="button"
           onClick={() => setMo('them')}
@@ -167,7 +167,7 @@ export function ViecTuan({
 // Form thêm/sửa một việc. Tách riêng để mỗi lần mở là một thể hiện mới — state của
 // useActionState nhờ vậy sạch, không mang câu báo lỗi của lần mở trước sang lần này.
 function ViecForm({
-  wigId,
+  commitmentId,
   wigUnit,
   wigArea,
   viec,
@@ -177,7 +177,8 @@ function ViecForm({
   khac,
   onDong,
 }: {
-  wigId: string | null;
+  /** Cam kết mà việc này treo dưới (0121). null = chưa có cam kết nào cho tuần. */
+  commitmentId: string | null;
   wigUnit: string;
   wigArea: string;
   viec?: ViecItem;
@@ -211,14 +212,9 @@ function ViecForm({
   // chỗ ghi. Đơn vị đo lại (điểm, kg) LUÔN ở chế độ này, không hỏi.
   const [moiLanKhac, setMoiLanKhac] = useState(Boolean(viec?.nhap_luong));
   const nhapSo = moiLanKhac;
-  const {mocCan, tongViecCho, thieuNhip} = nhipCuaMoc({
-    mocCan: mocTarget,
-    siSo,
-    viec: [
-      ...khac.map((k) => ({target: k.target_value, upt: Number(k.unit_per_tick ?? 1) || 1})),
-      {target: Number(oTarget) || 0, upt: Number(oUpt) || 1},
-    ],
-  });
+  // GỢI Ý NHỊP ĐÃ BỎ (0121). Nó so "mốc tuần cần bao nhiêu" với "việc đang giao cho được bao
+  // nhiêu" — mà mốc tuần không còn tồn tại: mỗi tuần nay là một CAM KẾT, và cam kết là lời hứa
+  // chứ không mang con số đích của riêng nó. Giữ lại thì nó sẽ so với một số 0 vĩnh viễn.
 
   // Lưu xong thì đóng lại — trang đã được revalidate nên thẻ vừa sửa hiện ra ngay bên dưới.
   useEffect(() => {
@@ -235,7 +231,7 @@ function ViecForm({
       {viec ? (
         <input type="hidden" name="lead_measure_id" value={viec.id} />
       ) : (
-        <input type="hidden" name="wig_id" value={wigId ?? ''} />
+        <input type="hidden" name="commitment_id" value={commitmentId ?? ''} />
       )}
 
       <Field label={t('leadTitle')} htmlFor="viec-title" error={err('title')} hint={t('leadHint')}>
@@ -336,14 +332,6 @@ function ViecForm({
         dayLabels={dayShort}
         selected={viec?.active_weekdays ?? undefined}
       />
-
-      {/* Cảnh báo, KHÔNG phải rào chắn — cô vẫn lưu được. */}
-      {thieuNhip > 0 && (
-        <p className="flex items-start gap-1.5 rounded-[10px] bg-gold/20 px-2.5 py-2 text-[11.5px] font-semibold leading-relaxed text-gold-text">
-          <AlertTriangle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
-          {tm('paceWarn', {can: mocCan, cho: tongViecCho, thieu: thieuNhip})}
-        </p>
-      )}
 
       {state.error && !state.fieldError && (
         <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12.5px] font-bold text-status-bad">

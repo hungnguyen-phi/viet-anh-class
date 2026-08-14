@@ -130,7 +130,8 @@ export default async function MeetingPage({
         camKetCu={d.camKetCu}
         daCoBienBan={d.daCoBienBan}
         daChot={d.daChot}
-        mocDich={d.mocDich}
+        camKetTuanQua={d.camKetTuanQua}
+        camKetDich={d.camKetDich}
         namHienCo={d.namHienCo}
         viecMau={d.viecMau}
         areaMeta={areaMeta}

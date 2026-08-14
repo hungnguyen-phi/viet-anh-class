@@ -37,9 +37,11 @@ begin
   --
   -- Nhớ lại giá trị CŨ rồi trả đúng giá trị ấy. Cách này không kén dữ liệu: lớp có mục tiêu kiểu
   -- nào cũng chạy được, mà vẫn giữ nguyên bất biến "chỉ đo thay đổi do MIGRATION".
+  -- 0121: không còn WIG tuần. Mượn một mục tiêu NĂM của lớp — vẫn đúng thứ phép kiểm này canh:
+  -- đích ghi-nhận-ngoài thì pct/status đọc theo dấu tay, không đọc theo lượt tick.
   select id, measure_by, achieved_at, achieved_by
     into v_wig, v_mb_cu, v_ach_cu, v_ai_cu
-  from wigs where scope = 'class' and period = 'week' limit 1;
+  from wigs where scope = 'class' and period = 'year' and measure_by <> 'cuon' limit 1;
   if v_wig is null then
     insert into ket_qua values ('Có WIG để thử', 'có', 'KHÔNG CÓ', false);
     return;

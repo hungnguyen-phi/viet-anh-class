@@ -604,6 +604,97 @@ export type Database = {
           },
         ]
       }
+      commitments: {
+        Row: {
+          area: Database["public"]["Enums"]["wig_area"]
+          class_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          student_id: string | null
+          title: string
+          verdict: string | null
+          verdict_at: string | null
+          verdict_by: string | null
+          verdict_goi_y: string | null
+          week_start: string
+          wig_id: string
+        }
+        Insert: {
+          area: Database["public"]["Enums"]["wig_area"]
+          class_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          student_id?: string | null
+          title: string
+          verdict?: string | null
+          verdict_at?: string | null
+          verdict_by?: string | null
+          verdict_goi_y?: string | null
+          week_start: string
+          wig_id: string
+        }
+        Update: {
+          area?: Database["public"]["Enums"]["wig_area"]
+          class_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          student_id?: string | null
+          title?: string
+          verdict?: string | null
+          verdict_at?: string | null
+          verdict_by?: string | null
+          verdict_goi_y?: string | null
+          week_start?: string
+          wig_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commitments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commitments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commitments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commitments_verdict_by_fkey"
+            columns: ["verdict_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commitments_wig_id_fkey"
+            columns: ["wig_id"]
+            isOneToOne: false
+            referencedRelation: "wig_progress_v"
+            referencedColumns: ["wig_id"]
+          },
+          {
+            foreignKeyName: "commitments_wig_id_fkey"
+            columns: ["wig_id"]
+            isOneToOne: false
+            referencedRelation: "wigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       edit_requests: {
         Row: {
           class_id: string
@@ -849,6 +940,7 @@ export type Database = {
       lead_measures: {
         Row: {
           active_weekdays: number[]
+          commitment_id: string
           created_at: string
           id: string
           nhap_luong: boolean
@@ -857,10 +949,11 @@ export type Database = {
           title: string
           unit: string | null
           unit_per_tick: number
-          wig_id: string
+          wig_id: string | null
         }
         Insert: {
           active_weekdays?: number[]
+          commitment_id: string
           created_at?: string
           id?: string
           nhap_luong?: boolean
@@ -869,10 +962,11 @@ export type Database = {
           title: string
           unit?: string | null
           unit_per_tick?: number
-          wig_id: string
+          wig_id?: string | null
         }
         Update: {
           active_weekdays?: number[]
+          commitment_id?: string
           created_at?: string
           id?: string
           nhap_luong?: boolean
@@ -881,9 +975,16 @@ export type Database = {
           title?: string
           unit?: string | null
           unit_per_tick?: number
-          wig_id?: string
+          wig_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "lead_measures_commitment_id_fkey"
+            columns: ["commitment_id"]
+            isOneToOne: false
+            referencedRelation: "commitments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lead_measures_wig_id_fkey"
             columns: ["wig_id"]
@@ -2475,6 +2576,7 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      cam_ket_goi_y: { Args: { p_commitment: string }; Returns: string }
       campus_ranks: {
         Args: never
         Returns: {
@@ -2580,6 +2682,8 @@ export type Database = {
           area: string
           class_size: number
           class_total: number
+          commitment_id: string
+          commitment_title: string
           contributors: number
           lead_measure_id: string
           my_dates: string[]
@@ -2591,6 +2695,7 @@ export type Database = {
           title: string
           unit: string
           unit_per_tick: number
+          verdict: string
           wig_id: string
           wig_title: string
         }[]
@@ -2680,10 +2785,6 @@ export type Database = {
         Args: { p_class: string; p_email: string }
         Returns: string
       }
-      gop_lead: {
-        Args: { p_den: string; p_lead: string; p_student: string; p_tu: string }
-        Returns: number
-      }
       ham_lay_ngay_may_chu: {
         Args: never
         Returns: {
@@ -2722,7 +2823,7 @@ export type Database = {
       lead_class: { Args: { lm: string }; Returns: string }
       lead_day_ok: { Args: { d: string; lm: string }; Returns: boolean }
       lead_measure_canh_bao: {
-        Args: { p_wig: string }
+        Args: { p_commitment: string }
         Returns: {
           lead_measure_id: string
           lech_don_vi: boolean
@@ -2903,6 +3004,10 @@ export type Database = {
         }[]
       }
       truong_da_khai_mang: { Args: never; Returns: boolean }
+      tuan_da_chot: {
+        Args: { p_class: string; p_student: string; p_week: string }
+        Returns: boolean
+      }
       tuan_da_hop: { Args: { d: string; p_class: string }; Returns: boolean }
       ty_le_cuon: { Args: { w: string }; Returns: number }
       unenroll_student: {

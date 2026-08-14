@@ -39,10 +39,11 @@ do $$
 declare
   v_class uuid;
   v_a uuid; v_b uuid; v_c uuid;
-  v_nam uuid; v_tuan uuid; v_lead uuid;
+  v_nam uuid; v_lead uuid;
   v_muc_tieu_a uuid; v_viec_a uuid;
   v_si_so int;
   v_tam numeric;
+  v_ck uuid; v_ck_a uuid;
 begin
   -- Lớp thật có ít nhất 3 em. KHÔNG tắt bớt ghi danh như đợt trước — lần ấy fixture làm lệch
   -- chính con số đang đo và phép kiểm đỏ oan.
@@ -65,14 +66,13 @@ begin
           '2026-01-01', '2026-12-31', 'tick')
   returning id into v_nam;
 
-  insert into wigs (class_id, scope, title, area, period, period_label, target_value, unit,
-                    start_date, end_date, parent_wig_id, measure_by)
-  values (v_class, 'class', 'ZZ_TEST tuần', 'skills', 'week', 'ZZ-T', 25, 'bài',
-          '2026-03-02', '2026-03-08', v_nam, 'tick')
-  returning id into v_tuan;
+  -- 0121: không còn WIG tuần — nhịp tuần là CAM KẾT, việc treo dưới cam kết.
+  insert into commitments (wig_id, class_id, week_start, title, area)
+  values (v_nam, v_class, date '2026-03-02', 'ZZ_TEST cam kết của lớp', 'skills')
+  returning id into v_ck;
 
-  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays, unit_per_tick)
-  values (v_tuan, 'ZZ_TEST mỗi bạn 3 bài', 3, 'bài', '{1,2,3,4,5}', 1)
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
+  values (v_ck, 'ZZ_TEST mỗi bạn 3 bài', 3, 'bài', '{1,2,3,4,5}', 1)
   returning id into v_lead;
 
   -- Ba em, mỗi em làm ĐỦ 3 bài → lớp thắng tuyệt đối tuần đó.
@@ -82,7 +82,7 @@ begin
        (values ('2026-03-02'::date),('2026-03-03'),('2026-03-04')) d(ngay);
 
   -- ① TỔNG, không chia. 3 em × 3 bài = 9. Bản cũ cho 3.
-  v_tam := private.wig_actual(v_tuan);
+  v_tam := private.wig_actual(v_nam);
   insert into ket_qua values
     ('① Lớp thắng tuyệt đối: tiến độ = TỔNG các em, không chia sĩ số',
      '9', v_tam::text, v_tam = 9);
@@ -93,7 +93,7 @@ begin
   -- Một em làm vượt: phần vượt vẫn bị chặn trần theo từng em (giữ từ 0098).
   insert into lead_progress (lead_measure_id, student_id, value, logged_date, logged_by)
   values (v_lead, v_a, 1, '2026-03-05', v_a);
-  v_tam := private.wig_actual(v_tuan);
+  v_tam := private.wig_actual(v_nam);
   insert into ket_qua values
     ('① Một em làm 4 bài trên mục tiêu 3 → vẫn chặn trần, lớp vẫn 9',
      '9', v_tam::text, v_tam = 9);
@@ -107,8 +107,12 @@ begin
           '2026-01-01', '2026-12-31', v_nam)
   returning id into v_muc_tieu_a;
 
-  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays, unit_per_tick)
-  values (v_muc_tieu_a, 'ZZ_TEST việc riêng của em A', 30, 'lần', '{1,2,3,4,5}', 1)
+  insert into commitments (wig_id, class_id, student_id, week_start, title, area)
+  values (v_muc_tieu_a, v_class, v_a, date '2026-03-02', 'ZZ_TEST cam kết của em A', 'skills')
+  returning id into v_ck_a;
+
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
+  values (v_ck_a, 'ZZ_TEST việc riêng của em A', 30, 'lần', '{1,2,3,4,5}', 1)
   returning id into v_viec_a;
 
   insert into lead_progress (lead_measure_id, student_id, value, logged_date, logged_by)
@@ -137,11 +141,13 @@ begin
   begin
     insert into wigs (class_id, scope, title, area, period, period_label, target_value, unit,
                       start_date, end_date)
-    values (v_class, 'class', 'ZZ_TEST trùng', 'skills', 'week', 'ZZ-T', 9, 'bài',
-            '2026-03-02', '2026-03-08');
-    insert into ket_qua values ('④ Trần: WIG lớp trùng lĩnh vực+kỳ', 'bị chặn', 'LỌT', false);
-  exception when unique_violation then
-    insert into ket_qua values ('④ Trần: WIG lớp trùng lĩnh vực+kỳ', 'bị chặn', 'bị chặn', true);
+    values (v_class, 'class', 'ZZ_TEST trùng', 'skills', 'year', 'ZZ-N', 9, 'bài',
+            '2026-01-01', '2026-12-31');
+    insert into ket_qua values ('④ Trần: mục tiêu năm thứ 5 của lớp', 'bị chặn', 'LỌT', false);
+  -- Bắt `others`: chặn ở đây đến từ HAI cơ chế khác nhau — chỉ mục duy nhất (lĩnh vực+kỳ trùng)
+  -- và trigger "mỗi lớp tối đa 4 mục tiêu năm". Cái nào chặn trước cũng là chặn.
+  exception when others then
+    insert into ket_qua values ('④ Trần: mục tiêu năm thứ 5 của lớp', 'bị chặn', 'bị chặn', true);
   end;
 
   -- ④ Trần 2: em được thêm ĐÚNG một mục tiêu 'personal' nữa, cái thứ ba thì không.
@@ -163,20 +169,23 @@ begin
     insert into ket_qua values ('④ Trần: mục tiêu thứ 3 của một em', 'bị chặn', 'bị chặn', true);
   end;
 
-  -- ④ Trần 3: việc thứ hai dưới một mục tiêu của em.
+  -- ④ Trần 3: cam kết thứ BA trong một tuần (0121 thay luật "mỗi mục tiêu một việc" bằng
+  -- "mỗi tuần tối đa 2 cam kết, tối đa 10 việc").
   begin
-    insert into lead_measures (wig_id, title, target_value, unit, active_weekdays, unit_per_tick)
-    values (v_muc_tieu_a, 'ZZ_TEST việc thứ hai', 5, 'lần', '{1,2,3,4,5}', 1);
-    insert into ket_qua values ('④ Trần: việc thứ 2 dưới mục tiêu của em', 'bị chặn', 'LỌT', false);
+    insert into commitments (wig_id, class_id, student_id, week_start, title, area)
+    values (v_muc_tieu_a, v_class, v_a, date '2026-03-02', 'ZZ_TEST cam kết thứ hai', 'skills');
+    insert into commitments (wig_id, class_id, student_id, week_start, title, area)
+    values (v_muc_tieu_a, v_class, v_a, date '2026-03-02', 'ZZ_TEST cam kết thứ ba', 'skills');
+    insert into ket_qua values ('④ Trần: cam kết thứ 3 của một em trong tuần', 'bị chặn', 'LỌT', false);
   exception when check_violation then
-    insert into ket_qua values ('④ Trần: việc thứ 2 dưới mục tiêu của em', 'bị chặn', 'bị chặn', true);
+    insert into ket_qua values ('④ Trần: cam kết thứ 3 của một em trong tuần', 'bị chặn', 'bị chặn', true);
   end;
 
-  -- ④ Nhưng WIG của LỚP thì vẫn được nhiều việc (canon cho 2–3).
-  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays, unit_per_tick)
-  values (v_tuan, 'ZZ_TEST việc thứ hai của lớp', 2, 'bài', '{1,2,3,4,5}', 1);
+  -- ④ Nhưng một CAM KẾT thì vẫn được nhiều việc (canon cho 2–3, trần là 10 mỗi tuần).
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
+  values (v_ck, 'ZZ_TEST việc thứ hai của lớp', 2, 'bài', '{1,2,3,4,5}', 1);
   insert into ket_qua values
-    ('④ WIG của LỚP vẫn được nhiều việc', 'được', 'được', true);
+    ('④ Một cam kết vẫn được nhiều việc', 'được', 'được', true);
 
   -- ⑤ Ràng buộc: đã đạt thì phải biết ai tick.
   begin

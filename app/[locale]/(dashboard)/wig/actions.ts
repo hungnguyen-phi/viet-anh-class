@@ -67,7 +67,6 @@ export type CreateWigState = {
 // mà hai bộ luật là đúng cái bệnh "hai nguồn sự thật" cả đợt sửa này đang chữa.
 export async function taoWig(_prev: CreateWigState, formData: FormData): Promise<CreateWigState> {
   await requireRole(['teacher', 'admin']);
-  const period = String(formData.get('period') ?? '') as 'year' | 'month' | 'week';
   const baseline_raw = String(formData.get('baseline') ?? '').trim();
   const title = String(formData.get('title') ?? '').trim();
   const supabase = await createClient();
@@ -90,16 +89,13 @@ export async function taoWig(_prev: CreateWigState, formData: FormData): Promise
           tong_dich: soNguyen('tong_dich'),
         }
       : undefined,
-    period,
     title,
     baseline: baseline_raw === '' ? null : Number(baseline_raw),
     target_value: Number(String(formData.get('target_value') ?? '').trim()),
     unit: String(formData.get('unit') ?? '').trim(),
     period_label: String(formData.get('period_label') ?? '').trim(),
-    parent_wig_id: String(formData.get('parent_wig_id') ?? '').trim() || undefined,
     area: (String(formData.get('area') ?? '') as Area) || undefined,
-    // Ô này chỉ có ở tab NĂM; tháng/tuần không gửi và thừa kế từ cha trong taoMotWig. Giá trị lạ
-    // rơi về 'tick' — mặc định của cột, và là cái duy nhất app tự đếm được.
+    // Giá trị lạ rơi về 'tick' — mặc định của cột, và là cái duy nhất app tự cộng số được.
     measure_by: laCuon
       ? 'cuon'
       : String(formData.get('measure_by') ?? '') === 'manual'
@@ -110,8 +106,7 @@ export async function taoWig(_prev: CreateWigState, formData: FormData): Promise
 
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]', 'page');
-  const ten = period === 'year' ? 'năm' : period === 'month' ? 'tháng' : 'tuần';
-  return {ok: true, message: `Đã tạo mục tiêu ${ten} “${title}”.`};
+  return {ok: true, message: `Đã tạo mục tiêu năm “${title}”.`};
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -125,7 +120,7 @@ export async function taoWig(_prev: CreateWigState, formData: FormData): Promise
 export async function luuViec(_prev: CreateWigState, formData: FormData): Promise<CreateWigState> {
   await requireRole(['teacher', 'admin']);
   const id = String(formData.get('lead_measure_id') ?? '').trim();
-  const wig_id = String(formData.get('wig_id') ?? '').trim();
+  const commitment_id = String(formData.get('commitment_id') ?? '').trim();
   const title = String(formData.get('title') ?? '').trim();
   const target_raw = String(formData.get('target_value') ?? '').trim();
   const target_value = Number(target_raw);
@@ -148,7 +143,7 @@ export async function luuViec(_prev: CreateWigState, formData: FormData): Promis
   const nhap_luong = String(formData.get('nhap_luong') ?? '') === '1';
   const heSo = nhap_luong ? 1 : (upt ?? 1);
 
-  if (!id && !wig_id) return {ok: false, error: 'Chưa rõ việc này thuộc mục tiêu tuần nào.'};
+  if (!id && !commitment_id) return {ok: false, error: 'Chưa rõ việc này thuộc cam kết nào.'};
   if (!title) return {ok: false, fieldError: 'title', error: 'Hãy đặt tên cho việc này.'};
   if (title.length > 160) return {ok: false, fieldError: 'title', error: 'Tên việc tối đa 160 ký tự.'};
   // MỤC TIÊU LÀ SỐ NGUYÊN.
@@ -192,7 +187,8 @@ export async function luuViec(_prev: CreateWigState, formData: FormData): Promis
   } else {
     const {data, error} = await supabase
       .from('lead_measures')
-      .insert({wig_id, title, target_value, unit, sub_category, active_weekdays, nhap_luong, unit_per_tick: heSo})
+      // `wig_id` KHÔNG gửi lên: trigger lead_theo_cam_ket (0121) suy nó từ cam kết. Gửi cũng bị đè.
+      .insert({commitment_id, title, target_value, unit, sub_category, active_weekdays, nhap_luong, unit_per_tick: heSo})
       .select('id');
     if (error) return {ok: false, error: (friendlyError(error))};
     if (!data || data.length === 0)

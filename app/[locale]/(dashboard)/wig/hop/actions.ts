@@ -4,8 +4,9 @@ import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
-import {taoMotWig, chuanHoaThu, chuanHoaHeSo} from '@/lib/wig-tao';
+import {taoCamKet, chuanHoaThu, chuanHoaHeSo} from '@/lib/wig-tao';
 import {kieuDonVi} from '@/lib/don-vi';
+import {ngayCuaKy} from '@/lib/dates';
 
 // ════════════════════════════════════════════════════════════════════════════
 // KẾT THÚC BUỔI HỌP — một nút, ba việc.
@@ -90,120 +91,55 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
   const supabase = await createClient();
   const lam: string[] = [];
 
-  // ── 1. VIỆC CHO TUẦN TỚI — MỖI LĨNH VỰC MỘT MỐC (0106) ───────────────────────────────────
+  // ── 1. CAM KẾT CHO TUẦN TỚI (0121) ───────────────────────────────────────────────────────
   //
-  // Bước này KHÔNG tạo mục tiêu nữa. Trước đây nó đẻ ra một WIG tuần mới mỗi tuần (và cả một WIG
-  // tháng nếu thiếu mắt xích) — nghĩa là mỗi tuần một mục tiêu rời, số lượng phình theo thời gian,
-  // mỗi cái có thể lệch đơn vị với cha nó. Cả 4DX lẫn Individual WIG Plan đều đặt mục tiêu MỘT
-  // LẦN cho cả kỳ; buổi họp chỉ báo cáo → nhìn bảng điểm → dọn đường.
+  // Bước này trước đây chỉnh "chỉ tiêu của mốc tuần" và gắn việc vào mốc ấy. Mốc tuần không còn:
+  // mỗi tuần nay là CAM KẾT, tối đa 2, và cam kết là một lời hứa nên không mang con số đích của
+  // riêng nó — con số nằm ở các việc dẫn dắt treo dưới.
   //
-  // Từ 0100, mốc tuần đã được app rải sẵn ngay khi cô khai mục tiêu năm (lib/wig-nhip.ts). Ở đây
-  // chỉ còn hai việc: chỉnh chỉ tiêu của mốc nếu tuần ấy đặc biệt, và gắn việc cho các em tick.
-  //
-  // TRƯỚC 0106 chỉ MỘT mốc (một <select>) được sửa mỗi lần họp — ba lĩnh vực còn lại không có
-  // đường nào chạm tới qua phòng họp. Nay PhongHop gửi lên một trường `moc_target_<id>` cho MỖI
-  // mốc đang hiện; quét hết các trường ấy để biết cần chỉnh bao nhiêu mốc, không tin vào một
-  // danh sách id gửi kèm riêng (danh sách ấy cũng do trình duyệt gửi, không đáng tin hơn).
-  const buMoc = String(formData.get('bu_moc') ?? '') === '1';
+  // Đây đúng là nhịp mà PRD v3 mô tả: buổi họp nhìn lại tuần vừa qua rồi ĐẶT cam kết tuần tới,
+  // ngay trong cùng một buổi.
+  const dichMonday = ngayCuaKy('week', dich_label)?.start ?? '';
+  const ckKeys: string[] = [];
+  for (const key of formData.keys()) {
+    const m = key.match(/^ck_(.+)_title$/);
+    if (m && !ckKeys.includes(m[1])) ckKeys.push(m[1]);
+  }
 
-  if (buMoc) {
-    if (!dich_label) return {ok: false, fieldError: 'moc_target', error: 'Không rõ đang họp cho tuần nào.'};
-    const moc_target = Number(String(formData.get('moc_target') ?? '').trim());
-    if (!Number.isFinite(moc_target) || moc_target <= 0)
-      return {ok: false, fieldError: 'moc_target', error: 'Chỉ tiêu của tuần phải là số lớn hơn 0.'};
+  if (ckKeys.length > 0 && dichMonday) {
+    // Cam kết đã có sẵn của tuần đích — để bấm Lưu hai lần không đẻ ra bản sao, và không đâm vào
+    // trần 2 của CSDL bằng một câu lỗi kỹ thuật.
+    const {data: daCoCk} = await supabase
+      .from('commitments')
+      .select('id, title')
+      .eq('class_id', class_id)
+      .is('student_id', null)
+      .eq('week_start', dichMonday);
+    const tenDaCo = new Map((daCoCk ?? []).map((c) => [c.title.trim().toLowerCase(), c.id]));
 
-    // BÙ MỐC — chỉ xảy ra khi cô khai mục tiêu năm SAU khi tuần này đã trôi qua, nên nhịp app
-    // rải không phủ tới. Bù đúng một mốc, không đẻ mục tiêu mới. Trường hợp hiếm (chưa lĩnh vực
-    // nào có mốc), nên vẫn là một khối chung — không cần tách theo lĩnh vực.
-    const kq = await taoMotWig(supabase, {
-      class_id,
-      period: 'week',
-      // Không có ô cho cô gõ tên/đơn vị: gõ lệch cha một chữ là mốc rơi khỏi cây tổng hợp mà
-      // nhìn màn hình vẫn thấy nằm đúng chỗ. Trước đây hai dòng này ĐỌC hai trường `bu_title` /
-      // `bu_unit` mà PhongHop chưa từng dựng ra, nên đơn vị luôn rơi vào chuỗi bịa 'lần' — mục
-      // tiêu năm đếm "bài", mốc bù của chính nó đếm "lần". Nay taoMotWig tra cha và thừa kế
-      // đơn vị thật, nên ở đây để trống là đúng.
-      title: `Tuần ${dich_label}`,
-      baseline: null,
-      target_value: moc_target,
-      unit: '',
-      period_label: dich_label,
-      parent_wig_id: String(formData.get('bu_nam') ?? '').trim() || undefined,
-    });
-    if (!kq.ok) return {ok: false, fieldError: 'moc_target', error: kq.loi};
-    lam.push(`bù mốc tuần ${dich_label}`);
+    let soCk = 0;
+    let soViec = 0;
+    for (const n of ckKeys) {
+      const title = String(formData.get(`ck_${n}_title`) ?? '').trim();
+      // Dòng bỏ trống thì bỏ qua — cô mở ra hai ô rồi chỉ dùng một là chuyện bình thường.
+      if (!title) continue;
+      const wig_id = String(formData.get(`ck_${n}_wig`) ?? '').trim();
 
-    // VIỆC cho các em tick — nhánh này chỉ có một khối chung, không có trường `_moc` nào được
-    // gửi (không mocId nào để lọc), nên lấy hết là đúng.
-    const viec = docViec(formData);
-    const hong = viec.find((v) => !Number.isFinite(v.target_value) || v.target_value <= 0);
-    if (hong)
-      return {
-        ok: false,
-        fieldError: 'viec',
-        error: `Việc “${hong.title}” chưa có mục tiêu hợp lệ (phải là số lớn hơn 0). Chỉ tiêu tuần ĐÃ lưu — sửa số rồi lưu lại, lần này chỉ cần thêm việc.`,
-      };
-    if (viec.length > 0) {
-      const {data, error} = await supabase
-        .from('lead_measures')
-        .insert(viec.map((v) => ({wig_id: kq.id, ...v})))
-        .select('id');
-      if (error) return {ok: false, error: friendlyError(error)};
-      lam.push(`đặt ${data?.length ?? 0} việc cho các em tick`);
-    }
-  } else {
-    // Mỗi mốc hiện trên màn gửi lên đúng một trường `moc_target_<id>` — quét ra danh sách mốc
-    // cần xử lý. Không mốc nào (lớp chưa có mục tiêu năm nào) thì vòng lặp không chạy, giữ
-    // nguyên hành vi cũ: bước 1 không đụng gì, chỉ bước 2/3 chạy.
-    const mocIds: string[] = [];
-    for (const key of formData.keys()) {
-      const m = key.match(/^moc_target_(.+)$/);
-      if (m && !mocIds.includes(m[1])) mocIds.push(m[1]);
-    }
+      let camKetId = tenDaCo.get(title.toLowerCase()) ?? null;
+      if (!camKetId) {
+        const kq = await taoCamKet(supabase, {wig_id, class_id, week_start: dichMonday, title});
+        if (!kq.ok) return {ok: false, fieldError: kq.field ?? `ck_${n}_title`, error: kq.loi};
+        camKetId = kq.id;
+        soCk += 1;
+      }
 
-    // ĐẾM rồi mới kể. Trước đây câu tổng kết được push TRONG vòng lặp, nên lớp có hai mục tiêu
-    // là dòng báo lặp y hệt hai lần: "chỉnh chỉ tiêu tuần W33-2026, chỉnh chỉ tiêu tuần W33-2026".
-    // Đọc như máy bị lắp.
-    let soMocDaChinh = 0;
-    let soViecDaDat = 0;
-    for (const mocId of mocIds) {
-      const moc_target = Number(String(formData.get(`moc_target_${mocId}`) ?? '').trim());
-      if (!Number.isFinite(moc_target) || moc_target <= 0)
-        return {
-          ok: false,
-          fieldError: `moc_target_${mocId}`,
-          error: 'Chỉ tiêu của tuần phải là số lớn hơn 0.',
-        };
-
-      // CHỈNH chỉ tiêu của mốc đã có. .select() để phân biệt "RLS chặn" với "đã ghi" — thiếu nó
-      // thì lớp không thuộc quyền mình vẫn báo thành công.
-      const {data, error} = await supabase
-        .from('wigs')
-        .update({target_value: moc_target})
-        .eq('id', mocId)
-        .eq('class_id', class_id)
-        .eq('scope', 'class')
-        .select('id')
-        .maybeSingle();
-      if (error) return {ok: false, fieldError: `moc_target_${mocId}`, error: friendlyError(error)};
-      if (!data)
-        return {
-          ok: false,
-          fieldError: `moc_target_${mocId}`,
-          error: 'Không sửa được mốc tuần này (không có quyền với lớp).',
-        };
-      soMocDaChinh += 1;
-
-      // VIỆC cho các em tick, RIÊNG của mốc này. THAY toàn bộ, không cộng dồn: buổi họp mở ra đã
-      // điền sẵn việc của tuần rồi (viecMau), nên nếu chỉ chèn thêm thì mỗi lần lưu lại là một
-      // bộ việc trùng nữa, và bảng tick của em dài gấp đôi sau hai tuần.
-      const viec = docViec(formData, mocId);
+      const viec = docViec(formData, n);
       const hong = viec.find((v) => !Number.isFinite(v.target_value) || v.target_value <= 0);
       if (hong)
         return {
           ok: false,
           fieldError: 'viec',
-          error: `Việc “${hong.title}” chưa có mục tiêu hợp lệ (phải là số lớn hơn 0). Chỉ tiêu tuần ĐÃ lưu — sửa số rồi lưu lại, lần này chỉ cần thêm việc.`,
+          error: `Việc “${hong.title}” chưa có chỉ tiêu hợp lệ (phải là số lớn hơn 0). Cam kết ĐÃ lưu — sửa số rồi lưu lại.`,
         };
       if (viec.length > 0) {
         // Chỉ xoá những việc CHƯA CÓ TICK NÀO. Xoá một việc đã có tick là xoá dữ liệu thật của
@@ -211,7 +147,7 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
         const {data: cu} = await supabase
           .from('lead_measures')
           .select('id, lead_progress(id)')
-          .eq('wig_id', mocId);
+          .eq('commitment_id', camKetId);
         const trong = (cu ?? [])
           .filter((l) => ((l.lead_progress as unknown[]) ?? []).length === 0)
           .map((l) => l.id);
@@ -219,20 +155,41 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
 
         const {data: moi, error: e2} = await supabase
           .from('lead_measures')
-          .insert(viec.map((v) => ({wig_id: mocId, ...v})))
+          .insert(viec.map((v) => ({commitment_id: camKetId, ...v})))
           .select('id');
         if (e2) return {ok: false, error: friendlyError(e2)};
-        soViecDaDat += moi?.length ?? 0;
+        soViec += moi?.length ?? 0;
       }
     }
-    if (soMocDaChinh > 0)
-      lam.push(
-        soMocDaChinh === 1
-          ? `chỉnh chỉ tiêu tuần ${dich_label}`
-          : `chỉnh chỉ tiêu tuần ${dich_label} cho ${soMocDaChinh} mục tiêu`,
-      );
-    if (soViecDaDat > 0) lam.push(`đặt ${soViecDaDat} việc cho các em tick`);
+    if (soCk > 0) lam.push(`đặt ${soCk} cam kết cho tuần ${dich_label}`);
+    if (soViec > 0) lam.push(`đặt ${soViec} việc cho các em tick`);
   }
+
+  // ── 1b. CHẤM V/X CHO CAM KẾT CỦA TUẦN VỪA QUA ────────────────────────────────────────────
+  //
+  // Thắng/thua nay là Ý NGƯỜI, không phải phép so. Máy đã gợi ý sẵn (cam_ket_goi_y) và form gửi
+  // lên cả hai: gợi ý là gì, cô chọn gì. Lưu cả hai để "cô chấm khác máy" không thành vô hình —
+  // đó chính là nguồn của chỉ số "commitment đã thay đổi" trên Dashboard PDR.
+  let soCham = 0;
+  for (const key of formData.keys()) {
+    const m = key.match(/^vx_(.+)$/);
+    if (!m) continue;
+    const gt = String(formData.get(key) ?? '');
+    if (gt !== 'win' && gt !== 'lose') continue;
+    const {error} = await supabase
+      .from('commitments')
+      .update({
+        verdict: gt,
+        verdict_goi_y: String(formData.get(`vxgoi_${m[1]}`) ?? '') || null,
+        verdict_by: me.id,
+        verdict_at: new Date().toISOString(),
+      })
+      .eq('id', m[1])
+      .eq('class_id', class_id);
+    if (error) return {ok: false, error: friendlyError(error)};
+    soCham += 1;
+  }
+  if (soCham > 0) lam.push(`chấm ${soCham} cam kết`);
 
   // ── 2. GHI NHẬN TỪNG VIỆC CỦA TUẦN VỪA QUA ───────────────────────────────────────────────
   // Gom theo id việc. `daCo` là ảnh chụp lúc trang được dựng: dòng ấy lúc đó đã có ghi nhận hay
@@ -377,14 +334,40 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
             .from('lead_measures')
             .update(noiDung)
             .eq('id', leadId)
-            .eq('wig_id', wigId)
             .select('id');
           if (error) return {ok: false, error: friendlyError(error)};
           if ((data?.length ?? 0) > 0) soViec += 1;
         } else if (!leadId) {
+          // VIỆC CỦA EM TREO DƯỚI CAM KẾT CỦA EM (0121), không treo thẳng vào mục tiêu năm nữa.
+          //
+          // Ô "việc tuần này" trong buổi họp riêng CHÍNH LÀ cam kết tuần của em — nên tạo cam kết
+          // mang đúng câu ấy rồi treo việc lên nó. Có sẵn cam kết cùng tên cho tuần đích thì dùng
+          // lại, để bấm Lưu hai lần không đẻ bản sao và không đâm vào trần 2 của CSDL.
+          if (!dichMonday)
+            return {ok: false, error: 'Không rõ tuần tới là tuần nào để đặt cam kết.'};
+          const {data: ckCu} = await supabase
+            .from('commitments')
+            .select('id')
+            .eq('class_id', class_id)
+            .eq('student_id', emId)
+            .eq('week_start', dichMonday)
+            .eq('title', viec)
+            .maybeSingle();
+          let ckId = ckCu?.id ?? null;
+          if (!ckId) {
+            const kq = await taoCamKet(supabase, {
+              wig_id: wigId,
+              class_id,
+              student_id: emId,
+              week_start: dichMonday,
+              title: viec,
+            });
+            if (!kq.ok) return {ok: false, error: `Cam kết của ${ten}: ${kq.loi}`};
+            ckId = kq.id;
+          }
           const {error} = await supabase
             .from('lead_measures')
-            .insert({wig_id: wigId, unit_per_tick: 1, ...noiDung});
+            .insert({commitment_id: ckId, unit_per_tick: 1, ...noiDung});
           if (error) return {ok: false, error: friendlyError(error)};
           soViec += 1;
         }

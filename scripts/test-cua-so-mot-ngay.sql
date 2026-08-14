@@ -21,6 +21,7 @@ create temp table kq (buoc text, ky_vong text, thuc_te text, dat boolean) on com
 do $$
 declare
   v_em uuid; v_lop uuid; v_gv uuid; v_wig uuid; v_viec uuid; n int;
+  v_ck uuid;
 begin
   -- Một em đang học thật, và GVCN của chính lớp ấy.
   select e.student_id, e.class_id into v_em, v_lop
@@ -41,8 +42,14 @@ begin
           current_date, current_date + 30)
   returning id into v_wig;
 
-  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays, unit_per_tick)
-  values (v_wig, 'việc thử', 3, 'lần', array[1,3,5], 1) returning id into v_viec;
+  -- 0121: việc dẫn dắt treo dưới CAM KẾT. Fixture dựng đúng chuỗi thật — mục tiêu năm → cam kết
+  -- tuần → việc — chứ không kiểm một hình dạng dữ liệu mà app không còn tạo ra được.
+  insert into commitments (wig_id, class_id, student_id, week_start, title, area)
+  values (v_wig, v_lop, v_em, vn_week_start(), 'KIỂM · cam kết', 'knowledge')
+  returning id into v_ck;
+
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
+  values (v_ck, 'việc thử', 3, 'lần', array[1,3,5], 1) returning id into v_viec;
 
   -- ── CÒN TRONG CỬA SỔ ───────────────────────────────────────────────────────────────────────
   perform set_config('request.jwt.claims', json_build_object('sub', v_em, 'role', 'authenticated')::text, true);

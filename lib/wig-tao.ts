@@ -1,22 +1,22 @@
 import {ngayCuaKy} from '@/lib/dates';
-import {chiaNhip, chiaNhipDoLai} from '@/lib/wig-nhip';
 import {friendlyError} from '@/lib/errors';
 import type {createClient} from '@/lib/supabase/server';
 import type {Database} from '@/lib/database.types';
-import {kieuDonVi} from '@/lib/don-vi';
 
 type Sb = Awaited<ReturnType<typeof createClient>>;
 type Area = Database['public']['Enums']['wig_area'];
-type Period = 'year' | 'month' | 'week';
 
 // ════════════════════════════════════════════════════════════════════════════
 // TẠO MỘT MỤC TIÊU (WIG) — MỘT ĐƯỜNG DUY NHẤT cho mọi nơi trong app.
 // ════════════════════════════════════════════════════════════════════════════
 //
-// Hai chỗ tạo WIG lớp: nút "+ Tạo mục tiêu" ở /wig, và bước 3 của phòng họp (/wig/hop). Trước
-// đây mỗi chỗ có hàm riêng, và chúng đã bắt đầu lệch nhau — một bên bắt buộc có tên, bên kia
-// không; một bên nhận ngày từ trình duyệt, bên kia tự tính. Đúng cái bệnh "hai nguồn sự thật"
-// mà cả đợt sửa này đang chữa, chỉ khác là nằm ở phía ghi thay vì phía đọc.
+// ĐỔI MÔ HÌNH 14/08/2026 (xem 0121). WIG chỉ còn CẤP NĂM:
+//
+//   "wig thì chỉ tạo wig năm thôi, gv tạo cho lớp, hs tạo cho hs gắn theo lớp, sau đó ko còn
+//    tháng nữa, sau đó mỗi tuần sẽ là weekly commitment, không còn là wig tuần nữa"
+//
+// Nên cả cỗ máy chia mốc (lib/wig-nhip.ts, sinhNhip, chaHopLe, ràng buộc chuỗi năm→tháng→tuần)
+// đã gỡ bỏ. Việc của một tuần nay treo dưới CAM KẾT — xem taoCamKet() ở cuối tệp.
 //
 // Đặt ở lib/ chứ không trong file 'use server': file đó chỉ được export hàm async, nên mọi thứ
 // dùng chung phải sống bên ngoài.
@@ -73,70 +73,26 @@ export type ThongTinWig = {
   scope?: 'class' | 'school';
   campus_id?: string;
   cuon?: ThongTinCuon;
-  period: Period;
   title: string;
   baseline: number | null;
   target_value: number;
   unit: string;
+  /** Nhãn năm học, vd '2026-2027'. */
   period_label: string;
-  // 'tick'   — đích ĐẾM ĐƯỢC ("1200 bài"): máy đếm từ lượt tick, có vạch tiến độ thật.
+  // 'tick'   — đích ĐẾM ĐƯỢC ("1200 bài"): máy cộng từ lượt tick để vẽ vạch tiến độ.
   // 'manual' — đích GHI NHẬN NGOÀI ("điểm TB 8,0"): cô và trò tự theo dõi, đạt thì tick một ô.
-  //
-  // Phân biệt này có vì app KHÔNG có dữ liệu điểm môn (bảng điểm 0 dòng ngày 11/08/2026). Cho
-  // một mục tiêu điểm số chạy ở chế độ 'tick' là để nó hiện một phần trăm suy ra từ số lượt tick,
-  // tức là suy ra từ thứ chẳng liên quan gì tới điểm. Xem docs/MO_HINH_WIG.md §5.0 và 0101.
   // 'cuon'   — số của nó do MÁY ĐẾM NGƯỢC từ các đơn vị con; xem ThongTinCuon.
+  //
+  // LƯU Ý SAU 0121: vạch tiến độ của mục tiêu NĂM vẫn còn (chủ dự án: "vẫn có vạch tiến độ, chưa
+  // đủ thì cảnh báo chậm…"), nhưng THẮNG/THUA thì thôi suy từ tick — nó là V/X do người bấm trên
+  // từng cam kết tuần.
   measure_by?: 'tick' | 'manual' | 'cuon';
-  // Bắt buộc với tháng/tuần, bỏ qua với năm.
-  parent_wig_id?: string;
-  // Bắt buộc với năm; tháng/tuần thừa kế của cha.
   area?: Area;
 };
 
-// Kiểm CHUỖI CHA: mục tiêu tháng phải nằm dưới một mục tiêu NĂM, mục tiêu tuần dưới một THÁNG.
-//
-// Chủ dự án chốt luật này (2026-08-04): "phải có wig năm thì mới được tạo wig tháng, có wig tháng
-// mới tạo wig tuần". Lý do không chỉ là gọn gàng — tiến độ năm là TỔNG các kỳ con (wig_actual,
-// 0075), nên một mục tiêu tuần treo lơ lửng không cộng vào đâu cả: nó chạy suốt một tuần rồi biến
-// mất khỏi mọi bảng tổng hợp, và không màn hình nào nói ra điều đó.
-//
-// Dữ liệu CŨ có mục tiêu tuần nằm thẳng dưới năm; luật này chỉ chặn tạo MỚI, không đụng tới chúng.
-async function chaHopLe(
-  supabase: Sb,
-  classId: string,
-  parentId: string,
-  canPeriod: 'year' | 'month',
-): Promise<{
-  area: Area;
-  unit: string;
-  measure_by: 'tick' | 'manual';
-  start_date: string;
-  end_date: string;
-} | null> {
-  const {data} = await supabase
-    .from('wigs')
-    .select('area, unit, measure_by, period, start_date, end_date')
-    .eq('id', parentId)
-    .eq('class_id', classId)
-    .eq('scope', 'class')
-    // Mục tiêu cuộn không làm cha: nó không rải nhịp, và một mốc tháng treo dưới nó sẽ đếm đúng
-    // y hệt cái ở cấp năm — một dòng lặp lại, không thêm thông tin nào.
-    .neq('measure_by', 'cuon')
-    .maybeSingle();
-  if (!data || data.period !== canPeriod) return null;
-  return {
-    area: data.area as Area,
-    unit: data.unit,
-    measure_by: data.measure_by === 'manual' ? 'manual' : 'tick',
-    start_date: data.start_date,
-    end_date: data.end_date,
-  };
-}
-
 // Mục tiêu cuộn đi đường riêng vì gần như không dùng được ô nào của đường thường: không có đơn
-// vị (luôn là %), không có mốc xuất phát (đếm từ 0 em), không có mục tiêu cha, và không rải nhịp.
-// Vẫn vào chung một cửa taoMotWig() để nơi gọi chỉ biết một hàm — chỗ rẽ nằm ở đây, không nằm rải
-// rác trong mười cái `if` giữa đường thường.
+// vị (luôn là %), không có mốc xuất phát (đếm từ 0 em), và số của nó do máy đếm ngược.
+// Vẫn vào chung một cửa taoMotWig() để nơi gọi chỉ biết một hàm.
 async function taoCuon(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao> {
   const c = w.cuon;
   const laTruong = w.scope === 'school';
@@ -144,10 +100,6 @@ async function taoCuon(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao> {
   if (!w.title) return {ok: false, field: 'title', loi: 'Hãy đặt tên cho mục tiêu.'};
   if (w.title.length > 160)
     return {ok: false, field: 'title', loi: 'Tên mục tiêu tối đa 160 ký tự.'};
-  // Chỉ ở cấp NĂM. Mục tiêu cuộn đếm các mục tiêu NĂM của tầng dưới, nên một bản sao theo tháng
-  // hay tuần sẽ đếm đúng y hệt cái ở cấp năm — ba dòng giống nhau, không thêm thông tin nào.
-  if (w.period !== 'year')
-    return {ok: false, field: 'period', loi: 'Mục tiêu cuộn chỉ đặt ở cấp năm học.'};
   if (!Number.isFinite(c.ty_le_can) || c.ty_le_can <= 0 || c.ty_le_can > 100)
     return {ok: false, field: 'ty_le_can', loi: 'Tỉ lệ cần đạt phải nằm trong khoảng 1–100%.'};
   if (!Number.isInteger(c.so_dich_can) || c.so_dich_can < 1)
@@ -187,7 +139,6 @@ async function taoCuon(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao> {
       baseline: null,
       start_date: ky.start,
       end_date: ky.end,
-      parent_wig_id: null,
       measure_by: 'cuon',
       ty_le_can: c.ty_le_can,
       so_dich_can: c.so_dich_can,
@@ -203,16 +154,12 @@ async function taoCuon(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao> {
         ? 'Không tạo được mục tiêu trường (chỉ ban giám hiệu của cơ sở này mới đặt được).'
         : 'Không tạo được mục tiêu (không có quyền với lớp này).',
     };
-  // KHÔNG rải nhịp tháng/tuần: số của mục tiêu cuộn được đếm lại từ đầu mỗi lần đọc, nên một mốc
-  // tháng chỉ là bản sao của chính nó tại một thời điểm — xem ghi chú ở đầu hàm.
   return {ok: true, id: data.id};
 }
 
 export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao> {
   if (w.measure_by === 'cuon' || w.scope === 'school') return taoCuon(supabase, w);
   if (!w.class_id) return {ok: false, loi: 'Thiếu lớp.'};
-  if (w.period !== 'year' && w.period !== 'month' && w.period !== 'week')
-    return {ok: false, loi: 'Không rõ đang tạo mục tiêu năm, tháng hay tuần.'};
   // Tên là BẮT BUỘC ở tầng ứng dụng (cột DB để nullable cho các WIG cũ). Một mục tiêu không tên
   // thì mọi màn hình sau đó chỉ hiện được con số trần, không ai biết nó là mục tiêu gì.
   if (!w.title) return {ok: false, field: 'title', loi: 'Hãy đặt tên cho mục tiêu.'};
@@ -229,63 +176,12 @@ export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao
       field: 'baseline',
       loi: 'Mốc xuất phát phải nhỏ hơn mục tiêu — nếu không thì không còn gì để cải thiện.',
     };
-  // ĐƠN VỊ CHỈ HỎI Ở CẤP NĂM. Mốc tháng/tuần THỪA KẾ đơn vị của mục tiêu năm — xem chỗ gán `unit`
-  // bên dưới. Trước đây mỗi người gọi tự truyền một đơn vị, và đường tạo mốc bù (wig/hop) không
-  // có ô nào cho cô gõ nên luôn rơi vào chuỗi mặc định 'lần': mục tiêu năm đếm "bài", mốc bù của
-  // chính nó lại đếm "lần" — cùng một cây, hai thang đo, cộng vào nhau ra một con số vô nghĩa.
-  if (w.period === 'year' && !w.unit)
+  if (!w.unit)
     return {ok: false, field: 'unit', loi: 'Hãy nhập đơn vị (vd điểm, buổi, lần).'};
+  if (!w.area) return {ok: false, field: 'area', loi: 'Hãy chọn lĩnh vực.'};
 
-  const ky = ngayCuaKy(w.period, w.period_label);
-  if (!ky) return {ok: false, field: 'period_label', loi: 'Hãy chọn kỳ cho mục tiêu này.'};
-
-  // Lĩnh vực: mục tiêu năm tự khai, con THỪA KẾ của cha. Trước đây con cũng có ô lĩnh vực riêng —
-  // đặt lệch cha một cái là nó rơi khỏi cây tổng hợp mà nhìn trên màn hình vẫn thấy nằm đúng chỗ.
-  let area: Area;
-  // Đơn vị và kiểu đo cũng thừa kế y như lĩnh vực: cùng một cây thì phải cùng một thang.
-  let unit = w.unit;
-  // 'cuon' đã rẽ ở đầu hàm, nên tới đây chỉ còn hai giá trị.
-  let measureBy: 'tick' | 'manual' = w.measure_by === 'manual' ? 'manual' : 'tick';
-  if (w.period === 'year') {
-    if (!w.area) return {ok: false, field: 'area', loi: 'Hãy chọn lĩnh vực.'};
-    area = w.area;
-  } else {
-    if (!w.parent_wig_id)
-      return {
-        ok: false,
-        field: 'parent_wig_id',
-        loi:
-          w.period === 'month'
-            ? 'Chọn mục tiêu NĂM mà mục tiêu tháng này thuộc về.'
-            : 'Chọn mục tiêu THÁNG mà mục tiêu tuần này thuộc về.',
-      };
-    const cha = await chaHopLe(
-      supabase,
-      w.class_id,
-      w.parent_wig_id,
-      w.period === 'month' ? 'year' : 'month',
-    );
-    if (!cha)
-      return {
-        ok: false,
-        field: 'parent_wig_id',
-        loi:
-          w.period === 'month'
-            ? 'Mục tiêu năm này không còn nữa — chọn lại.'
-            : 'Mục tiêu tháng này không còn nữa — chọn lại.',
-      };
-    area = cha.area;
-    unit = cha.unit;
-    measureBy = cha.measure_by;
-    // Kỳ con phải NẰM TRONG kỳ cha. Không kiểm thì một mục tiêu tuần của tháng 9 treo được dưới
-    // mục tiêu tháng 8, và tiến độ tháng 8 cộng vào đó một tuần chưa từng thuộc về nó.
-    if (ky.start < cha.start_date || ky.end > cha.end_date)
-      return {
-        ok: false,
-        field: 'period_label',
-        loi: `Kỳ này nằm ngoài mục tiêu cha (${cha.start_date} → ${cha.end_date}). Chọn kỳ khác hoặc chọn mục tiêu cha khác.`,
-      };
-  }
+  const ky = ngayCuaKy('year', w.period_label);
+  if (!ky) return {ok: false, field: 'period_label', loi: 'Hãy chọn năm học cho mục tiêu này.'};
 
   const {data, error} = await supabase
     .from('wigs')
@@ -294,15 +190,14 @@ export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao
       scope: 'class',
       title: w.title,
       baseline: w.baseline,
-      area,
-      period: w.period,
+      area: w.area,
+      period: 'year',
       period_label: w.period_label,
       target_value: w.target_value,
-      unit,
+      unit: w.unit,
       start_date: ky.start,
       end_date: ky.end,
-      parent_wig_id: w.period === 'year' ? null : w.parent_wig_id,
-      measure_by: measureBy,
+      measure_by: w.measure_by === 'manual' ? 'manual' : 'tick',
     })
     .select('id')
     .maybeSingle();
@@ -311,148 +206,54 @@ export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao
   // vẫn báo thành công, và người dùng đi tìm một mục tiêu chưa từng được ghi.
   if (!data) return {ok: false, loi: 'Không tạo được mục tiêu (không có quyền với lớp này).'};
 
-  // Mục tiêu NĂM thì rải luôn nhịp tháng + tuần. Cô khai một lần thay vì 12 lượt (3 cấp × 4 lĩnh
-  // vực), và mọi tuần trong năm có sẵn chỗ để gắn việc — xem lib/wig-nhip.ts.
-  if (w.period === 'year') {
-    const loiNhip = await sinhNhip(supabase, data.id, {
-      class_id: w.class_id,
-      area,
-      title: w.title,
-      unit: w.unit,
-      start: ky.start,
-      end: ky.end,
-      // Rải phần PHẢI ĐI THÊM, không rải cả phần đã có sẵn.
-      tong: w.target_value - (w.baseline ?? 0),
-      xuatPhat: w.baseline ?? 0,
-      dich: w.target_value,
-      measure_by: measureBy,
-    });
-    // Mục tiêu năm đã ghi được rồi — nhịp hỏng thì KHÔNG nuốt lỗi, nhưng cũng không giả vờ là
-    // chưa tạo gì. Nói đúng cả hai vế để cô biết mình đang đứng ở đâu.
-    if (loiNhip)
-      return {
-        ok: false,
-        loi: `Đã tạo mục tiêu năm nhưng chưa rải được nhịp tháng/tuần: ${loiNhip}`,
-      };
-  }
-
+  // KHÔNG rải nhịp tháng/tuần nữa — xem ghi chú ở đầu tệp.
   return {ok: true, id: data.id};
 }
 
-/**
- * Sinh mốc tháng + mốc tuần dưới một mục tiêu năm vừa tạo.
- *
- * Ghi tháng TRƯỚC rồi mới tới tuần, vì tuần phải trỏ `parent_wig_id` về đúng tháng chứa nó. Cả
- * hai đợt đều là MỘT câu insert nhiều dòng — một năm học có ~52 tuần, bắn 52 câu lẻ qua đường
- * tới Supabase là chỗ chờ dài nhất mà đợt audit tốc độ vừa rồi đã đi dọn.
- *
- * Trả về chuỗi lỗi nếu hỏng, `null` nếu xong.
- */
-async function sinhNhip(
-  supabase: Sb,
-  namId: string,
-  w: {
-    class_id: string;
-    area: Area;
-    title: string;
-    unit: string;
-    start: string;
-    end: string;
-    tong: number;
-    /** Số xuất phát và đích — chỉ dùng cho đơn vị đo lại, nơi mốc là giá trị tuyệt đối. */
-    xuatPhat: number;
-    dich: number;
-    measure_by: 'tick' | 'manual';
-  },
-): Promise<string | null> {
-  // ĐÍCH GHI-NHẬN-NGOÀI THÌ KHÔNG RẢI. Luật này đã được chốt và viết rõ ở đường mục tiêu của
-  // HỌC SINH (student/actions.ts: `if (measure_by === 'tick')`) — "chia 34kg cho chín tháng ra
-  // 3,8kg mỗi tháng là một câu vô nghĩa". Đường mục tiêu của LỚP thì quên áp, nên nó vẫn rải.
-  //
-  // Hậu quả thấy được trên production 14/08/2026, mục tiêu "tăng cân 35 → 50 kg" của lớp Test:
-  // phần phải đi thêm là 15, mà năm học có 52 tuần → raiDeu() không chia nổi nên rơi vào nhánh
-  // "giao 1 cho những mốc ĐẦU rồi dừng". Kết quả là app bắt tăng ĐÚNG 1 KG MỖI TUẦN trong 15
-  // tuần liền, đạt 50kg vào 11/10, rồi 37 tuần còn lại của năm không có mốc nào cả — vừa vô lý
-  // về sức khoẻ, vừa không còn chỗ treo việc cho lĩnh vực ấy suốt hai phần ba năm học.
-  //
-  // Nhánh "giao 1 rồi dừng" vốn hợp lý cho thứ ĐẾM ĐƯỢC ("đọc 20 cuốn sách" → 20 tuần đầu mỗi
-  // tuần một cuốn). Với đơn vị đo lại thì nó không chỉ vô lý, nó còn cộng dồn một thứ không cộng
-  // được: 1kg tuần này với 1kg tuần sau không phải 2kg tăng thêm.
-  //
-  // Loại này theo dõi bằng ô số đo từng kỳ (0108) chứ không bằng mốc, và cũng không mang việc để
-  // tick — nên không có mốc là đúng, không phải thiếu.
-  // HAI CHỐT, KHÔNG PHẢI MỘT.
-  //
-  // Cột `measure_by` là thứ NGƯỜI khai, nên nó sai được: form của lớp vẫn hỏi thẳng "Đo bằng gì"
-  // bằng một dropdown, và chọn nhầm "đếm được" cho một đích tính bằng kg là chuyện xảy ra được
-  // trong hai giây. Đơn vị thì không sai theo cách ấy — "kg" luôn là thứ cộng lại không có nghĩa,
-  // ai khai gì thì khai. Nên chặn cả theo KIỂU ĐƠN VỊ (lib/don-vi.ts), là thứ mà form của học
-  // sinh đã dùng làm gốc cho mọi câu hỏi của nó từ lâu.
-  // Chỉ 'manual' mới KHÔNG có mốc: con số ấy sống ngoài app, không có gì trong app để đo theo
-  // tuần. Đơn vị đo lại mà em nhập TRONG app thì vẫn cần mốc tuần — đó là chỗ treo ô điền số.
-  // (0112 từng chặn cả theo kiểu đơn vị, chặn luôn ca này; xem 0113 để biết vì sao gỡ.)
-  // ĐƠN VỊ ĐO LẠI THÌ LUÔN RẢI, KỂ CẢ KHI KHAI "THEO DÕI Ở NGOÀI APP".
-  //
-  // Chủ dự án hỏi đúng chỗ 14/08/2026: "nếu chỉ điền wig năm 6→8 thì làm sao biết tháng đó thắng
-  // hay thua?". Không có mốc thì không có gì để so — mà cờ 'manual' đang chặn đúng việc rải mốc.
-  //
-  // Cờ ấy sinh ra khi kg/điểm nằm hoàn toàn ngoài app. Nay ô "Số của lớp tuần này" (wig_so_do) đã
-  // đưa con số vào trong app cho MỌI mục tiêu đo lại, nên căn cứ để không rải đã mất. Chỉ còn
-  // đúng một ca không rải: đích ĐẾM ĐƯỢC mà lại theo dõi ngoài app — không có số hằng tuần, cũng
-  // không có gì để tick, nên mốc chỉ là bốn chục dòng trống.
-  if (w.measure_by === 'manual' && kieuDonVi(w.unit) !== 'do') return null;
+// ════════════════════════════════════════════════════════════════════════════
+// CAM KẾT TUẦN — một lời hứa, tối đa 2 mỗi tuần.
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Cam kết KHÔNG mang con số đích của riêng nó: con số nằm ở các việc dẫn dắt treo dưới. Lĩnh vực
+// cũng không hỏi — CSDL tự thừa kế từ mục tiêu năm (trigger cam_ket_hop_le, 0121), vì khai lệch
+// một cái là cam kết rơi khỏi cây tổng hợp mà nhìn màn hình vẫn thấy nằm đúng chỗ.
+//
+// Bốn cái chặn (tối đa 2, treo đúng mục tiêu, không treo vào mục tiêu cuộn, tuần đã chốt thì
+// khoá) đều nằm ở CSDL. Ở đây chỉ kiểm những thứ để báo lỗi tử tế trước khi đi một vòng mạng.
+export type ThongTinCamKet = {
+  wig_id: string;
+  class_id: string;
+  /** Bỏ trống = cam kết của LỚP. */
+  student_id?: string | null;
+  /** Thứ Hai của tuần, dạng YYYY-MM-DD. */
+  week_start: string;
+  title: string;
+};
 
-  // ĐO LẠI thì rải theo DỐC (35 → 36,7 → … → 50), cộng dồn thì rải theo lát cắt như cũ.
-  const nhip =
-    kieuDonVi(w.unit) === 'do'
-      ? chiaNhipDoLai(w.start, w.end, w.xuatPhat, w.dich)
-      : chiaNhip(w.start, w.end, w.tong);
-  if (nhip.tuan.length === 0) return null;
+export async function taoCamKet(supabase: Sb, c: ThongTinCamKet): Promise<KetQuaTao> {
+  if (!c.wig_id)
+    return {ok: false, field: 'wig_id', loi: 'Chọn mục tiêu năm mà cam kết này phục vụ.'};
+  if (!c.class_id) return {ok: false, loi: 'Thiếu lớp.'};
+  if (!c.week_start) return {ok: false, field: 'week_start', loi: 'Thiếu tuần.'};
+  const ten = c.title.trim();
+  if (!ten) return {ok: false, field: 'title', loi: 'Hãy viết cam kết của tuần này.'};
+  if (ten.length > 160) return {ok: false, field: 'title', loi: 'Cam kết tối đa 160 ký tự.'};
 
-  const chung = {
-    class_id: w.class_id,
-    scope: 'class' as const,
-    area: w.area,
-    title: w.title,
-    unit: w.unit,
-    baseline: null,
-    // Mốc thừa kế kiểu đo của mục tiêu năm. Để mốc là 'tick' trong khi năm là 'manual' thì mốc
-    // tháng/tuần lại vẽ vạch suy ra từ lượt tick — đúng cái nói dối mà 0101 đi dẹp.
-    measure_by: w.measure_by,
-  };
-
-  const {data: thang, error: eThang} = await supabase
-    .from('wigs')
-    .insert(
-      nhip.thang.map((m) => ({
-        ...chung,
-        period: 'month' as const,
-        period_label: m.label,
-        target_value: m.target,
-        start_date: m.start,
-        end_date: m.end,
-        parent_wig_id: namId,
-      })),
-    )
-    .select('id, period_label');
-  if (eThang) return friendlyError(eThang);
-
-  const idTheoThang = new Map((thang ?? []).map((m) => [m.period_label as string, m.id]));
-
-  const {error: eTuan} = await supabase.from('wigs').insert(
-    nhip.tuan.map((t) => ({
-      ...chung,
-      period: 'week' as const,
-      period_label: t.label,
-      target_value: t.target,
-      start_date: t.start,
-      end_date: t.end,
-      // Tuần thuộc tháng chứa ngày ĐẦU của nó — cùng luật với lib/wig-nhip.ts, nếu không thì một
-      // tuần vắt qua hai tháng sẽ treo nhầm cha và tiến độ tháng lệch mà không ai thấy.
-      parent_wig_id: idTheoThang.get(t.start.slice(0, 7)) ?? namId,
-    })),
-  );
-  if (eTuan) return friendlyError(eTuan);
-
-  return null;
+  const {data, error} = await supabase
+    .from('commitments')
+    .insert({
+      wig_id: c.wig_id,
+      class_id: c.class_id,
+      student_id: c.student_id ?? null,
+      week_start: c.week_start,
+      title: ten,
+      // Cột NOT NULL nhưng trigger đè lại bằng lĩnh vực của mục tiêu năm. Gửi một giá trị hợp lệ
+      // bất kỳ chỉ để qua cửa NOT NULL; đừng đọc nó như một lựa chọn của người dùng.
+      area: 'knowledge',
+    })
+    .select('id')
+    .maybeSingle();
+  if (error) return {ok: false, loi: friendlyError(error)};
+  if (!data) return {ok: false, loi: 'Không tạo được cam kết (không có quyền với lớp này).'};
+  return {ok: true, id: data.id};
 }
