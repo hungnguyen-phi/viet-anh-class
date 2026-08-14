@@ -212,6 +212,7 @@ export function BangTienDo({
                       ghiLuc={g.soDo?.ghiLuc ?? null}
                       moKhoa={g.soDoMoKhoa !== false}
                       canGhi
+                      laCuaLop
                     />
                   </div>
                 )}

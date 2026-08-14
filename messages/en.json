@@ -1347,6 +1347,7 @@
     "unitBack": "Pick again",
     "dayPart": "Day",
     "monthPart": "Month",
-    "yearPart": "Year"
+    "yearPart": "Year",
+    "readingAskClass": "The class number this week"
   }
 }

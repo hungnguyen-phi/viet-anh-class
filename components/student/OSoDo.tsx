@@ -32,6 +32,7 @@ export function OSoDo({
   ghiLuc,
   moKhoa,
   canGhi,
+  laCuaLop = false,
 }: {
   wigId: string;
   unit: string;
@@ -43,6 +44,8 @@ export function OSoDo({
   /** Tuần chưa bị buổi họp chốt. */
   moKhoa: boolean;
   canGhi: boolean;
+  /** Mục tiêu của LỚP — đổi chữ, vì "Số của bạn tuần này" là câu nói với học sinh. */
+  laCuaLop?: boolean;
 }) {
   const t = useTranslations('goal');
   const [state, formAction] = useActionState(ghiSoDo, {ok: false});
@@ -74,7 +77,7 @@ export function OSoDo({
       <input type="hidden" name="wig_id" value={wigId} />
       <div className="flex flex-wrap items-center gap-2">
         <label htmlFor={`sd-${wigId}`} className="text-[12px] font-bold text-grey-mid">
-          {t('readingAsk')}
+          {t(laCuaLop ? 'readingAskClass' : 'readingAsk')}
         </label>
         <input
           id={`sd-${wigId}`}
