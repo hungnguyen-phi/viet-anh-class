@@ -9,6 +9,7 @@ import {WeekdayPicker} from '@/components/wig/WeekdayPicker';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {luuViec, deleteLeadMeasure} from '@/app/[locale]/(dashboard)/wig/actions';
 import {nhipCuaMoc} from '@/lib/wig-nhip';
+import {kieuDonVi} from '@/lib/don-vi';
 
 // ════════════════════════════════════════════════════════════════════════════
 // VIỆC ĐỂ CÁC EM TICK — mỗi việc một thẻ, sửa/xoá ngay tại thẻ.
@@ -195,6 +196,12 @@ function ViecForm({
   // PhongHop (lib/wig-nhip) nên hai màn không bao giờ nói hai con số khác nhau.
   const [oTarget, setOTarget] = useState(String(viec?.target_value ?? ''));
   const [oUpt, setOUpt] = useState(String(Number(viec?.unit_per_tick ?? 1)));
+  // CHỖ THỨ BA của cùng một lỗi trong một ngày: step="1" chặn "6,7 điểm" và trình duyệt từ chối
+  // bằng câu tiếng Anh của chính nó, giữa một biểu mẫu tiếng Việt. Đã sửa ở form mục tiêu của
+  // lớp (TaoWigMenu) sáng nay; ô mục tiêu của VIỆC thì nằm ở tệp này và bị sót.
+  // Đơn vị đo lại cũng không cần hỏi "mỗi lần tick đáng bao nhiêu": số em gõ chính là con số.
+  const [oDonVi, setODonVi] = useState(viec?.unit ?? '');
+  const soLe = kieuDonVi(oDonVi) === 'do';
   const {mocCan, tongViecCho, thieuNhip} = nhipCuaMoc({
     mocCan: mocTarget,
     siSo,
@@ -238,9 +245,9 @@ function ViecForm({
             id="viec-target"
             name="target_value"
             type="number"
-            step="1"
-            min="1"
-            inputMode="numeric"
+            step={soLe ? 'any' : '1'}
+            min={soLe ? '0.01' : '1'}
+            inputMode={soLe ? 'decimal' : 'numeric'}
             value={oTarget}
             onChange={(e) => setOTarget(e.target.value)}
             aria-invalid={state.fieldError === 'target_value'}
@@ -251,7 +258,8 @@ function ViecForm({
           <input
             id="viec-unit"
             name="unit"
-            defaultValue={viec?.unit ?? ''}
+            value={oDonVi}
+            onChange={(e) => setODonVi(e.target.value)}
             placeholder={t('unitPlaceholder')}
             className={inputCls}
           />
@@ -276,6 +284,15 @@ function ViecForm({
       {/* `required` để trình duyệt chặn ngay tại chỗ nếu ô bị xoá trắng: hệ số KHÔNG đóng băng vào
           từng lượt tick mà được nhân lúc đọc, nên ghi đè 30 thành 1 là chia cả lịch sử tick cho
           30 — một mục tiêu đang "30/30 đã đạt" tụt về "1/30" chỉ vì ai đó mở ra sửa cái tên. */}
+      {/* ĐƠN VỊ ĐO LẠI KHÔNG CÓ "MỖI LẦN TICK ĐÁNG BAO NHIÊU". Với điểm/kg/cm thì em gõ thẳng
+          con số của mình, không có lượt nào để quy đổi — hỏi câu ấy là mời người ta điền một hệ
+          số rồi máy chủ lặng lẽ bỏ qua (server ép về 1). Thay bằng một câu nói rõ chuyện gì sẽ
+          xảy ra trên màn của em. */}
+      {soLe ? (
+        <p className="rounded-[10px] bg-navy/[0.05] px-3 py-2 text-[12px] font-semibold leading-relaxed text-grey-mid">
+          {t('doNhapSoHint', {unit: oDonVi || wigUnit})}
+        </p>
+      ) : (
       <Field label={t('unitPerTick')} hint={t('unitPerTickHint', {unit: wigUnit})} htmlFor="viec-upt" className="sm:max-w-[300px]">
         <input
           id="viec-upt"
@@ -290,6 +307,7 @@ function ViecForm({
           className={inputCls}
         />
       </Field>
+      )}
 
       <WeekdayPicker
         label={t('weekdays')}

@@ -535,7 +535,8 @@
     "notYet": "Not yet",
     "measureBy": "Measured how",
     "measureTick": "Counted from student ticks",
-    "measureManual": "Recorded by teacher, mark when achieved"
+    "measureManual": "Recorded by teacher, mark when achieved",
+    "doNhapSoHint": "“{unit}” is re-measured each time, not accumulated — students type a number into each day’s box, and the LATEST one is compared with the target."
   },
   "meeting": {
     "title": "Weekly WIG meeting",

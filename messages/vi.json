@@ -535,7 +535,8 @@
     "notYet": "Chưa đạt",
     "measureBy": "Đo bằng gì",
     "measureTick": "Máy đếm từ lượt tick của em",
-    "measureManual": "Cô trò tự ghi nhận, đạt thì đánh dấu"
+    "measureManual": "Cô trò tự ghi nhận, đạt thì đánh dấu",
+    "doNhapSoHint": "Đơn vị “{unit}” là số đo lại mỗi lần, không cộng dồn — các em tự điền số vào ô của từng ngày, và máy lấy số MỚI NHẤT để so với mục tiêu."
   },
   "meeting": {
     "title": "Họp WIG tuần",
