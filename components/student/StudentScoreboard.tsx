@@ -90,6 +90,9 @@ type ClassLeadRow = {
   // 0098 — hai con số của cách đo MỖI EM MỘT BỘ ĐẾM: tổng của chính em, và số em đã đạt đủ.
   my_total: number | string;
   students_done: number | string;
+  // 0114 — việc chung cũng có thể là Ô ĐIỀN SỐ, và khi ấy phải biết em đã gõ gì từng ngày.
+  nhap_luong: boolean | null;
+  my_values: Record<string, number> | null;
 };
 
 function initialsOf(name: string): string {
@@ -543,10 +546,17 @@ export async function StudentScoreboard({
       kind: 'class' as const,
       days: daysFor(l.active_weekdays),
       myDates: l.my_dates ?? [],
-      // Việc CHUNG của lớp giữ một chạm: con số của lớp do class_lead_board cộng, và trần "mỗi em
-      // một bộ đếm" (0098) vẫn áp — mở ô điền số ở đây là mời một em tự khai cho cả lớp.
-      nhapLuong: false,
-      myValues: {},
+      // Ô ĐIỀN SỐ MỞ CHO CẢ VIỆC CHUNG (0114).
+      //
+      // Dòng cũ khoá cứng `false` với lý do: "mở ô điền số ở đây là mời một em tự khai cho cả
+      // lớp". Lý lẽ ấy không đứng vững — class_lead_board cộng THEO TỪNG EM (`my_total` lọc theo
+      // student_id, `students_done` đếm từng người), nên số em gõ chỉ nhích bộ đếm của chính em,
+      // y hệt một cú tick. Không có đường nào để một em khai hộ cả lớp.
+      //
+      // Đây là thứ chặn "đọc sách: hôm nay 12 trang, mai 40 trang" và chặn luôn cân nặng —
+      // những đơn vị mà một chạm nói dối.
+      nhapLuong: Boolean(l.nhap_luong),
+      myValues: (l.my_values ?? {}) as Record<string, number>,
       // class_total từ RPC ĐÃ nhân hệ số trong SQL (0076); truyền hệ số xuống chỉ để cập nhật lạc
       // quan lúc bấm nhích đúng bằng chừng ấy, không phải bằng 1.
       unitPerTick: Number(l.unit_per_tick ?? 1) || 1,

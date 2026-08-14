@@ -8,6 +8,7 @@ import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {taoMotWig, chuanHoaThu, chuanHoaHeSo} from '@/lib/wig-tao';
 import {AREAS} from '@/lib/areas';
 import type {Database} from '@/lib/database.types';
+import {kieuDonVi} from '@/lib/don-vi';
 
 type Area = Database['public']['Enums']['wig_area'];
 
@@ -112,6 +113,18 @@ export async function luuViec(_prev: CreateWigState, formData: FormData): Promis
   const sub_category = String(formData.get('sub_category') ?? '').trim() || null;
   const active_weekdays = parseWeekdays(formData);
   const upt = parseUnitPerTick(formData);
+  // CÁC EM TỰ ĐIỀN SỐ MỖI NGÀY — thay vì một chạm nhân hệ số.
+  //
+  // Việc của EM đã có lựa chọn này từ 0110; việc CHUNG của lớp thì chưa, nên "đọc sách" của cả
+  // lớp chỉ ghi được "một buổi = 30 trang" cố định, còn hôm nay 12 trang mai 40 trang thì không
+  // có chỗ ghi. Chủ dự án chốt 14/08/2026.
+  //
+  // ĐƠN VỊ ĐO LẠI (kg, cm, điểm) LUÔN là ô điền số — không có nghĩa nào cho "một chạm = 1 kg".
+  // Và cả hai trường hợp đều ép hệ số về 1: số em gõ CHÍNH LÀ con số, nhân thêm là sai thang
+  // (class_lead_board và wig_actual đều nhân unit_per_tick khi cộng).
+  const kieu = kieuDonVi(unit);
+  const nhap_luong = kieu === 'do' || String(formData.get('nhap_luong') ?? '') === '1';
+  const heSo = nhap_luong ? 1 : (upt ?? 1);
 
   if (!id && !wig_id) return {ok: false, error: 'Chưa rõ việc này thuộc mục tiêu tuần nào.'};
   if (!title) return {ok: false, fieldError: 'title', error: 'Hãy đặt tên cho việc này.'};
@@ -127,7 +140,9 @@ export async function luuViec(_prev: CreateWigState, formData: FormData): Promis
   // trình duyệt. Ô nhập một mình là rào chắn bằng giấy.
   if (!target_raw || !Number.isFinite(target_value) || target_value <= 0)
     return {ok: false, fieldError: 'target_value', error: 'Mục tiêu phải là số lớn hơn 0.'};
-  if (!Number.isInteger(target_value))
+  // Số nguyên CHỈ với thứ đếm được. 50,5 kg hay 8,5 điểm là con số hoàn toàn hợp lệ — luật
+  // "không có nửa bài" không áp được cho cân nặng.
+  if (kieuDonVi(unit) !== 'do' && !Number.isInteger(target_value))
     return {ok: false, fieldError: 'target_value', error: 'Mục tiêu phải là số nguyên (không có phần thập phân).'};
   // Ô "mỗi lần tick đáng" bỏ trống khi TẠO MỚI thì lấy 1; khi SỬA thì giữ nguyên giá trị đang có
   // (xem ghi chú dài ở parseUnitPerTick — ghi đè bằng 1 là chia cả lịch sử tick cho hệ số cũ).
@@ -142,7 +157,8 @@ export async function luuViec(_prev: CreateWigState, formData: FormData): Promis
         unit,
         sub_category,
         active_weekdays,
-        ...(upt === null ? {} : {unit_per_tick: upt}),
+        nhap_luong,
+        ...(nhap_luong ? {unit_per_tick: 1} : upt === null ? {} : {unit_per_tick: upt}),
       })
       .eq('id', id)
       .select('id');
@@ -154,7 +170,7 @@ export async function luuViec(_prev: CreateWigState, formData: FormData): Promis
   } else {
     const {data, error} = await supabase
       .from('lead_measures')
-      .insert({wig_id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick: upt ?? 1})
+      .insert({wig_id, title, target_value, unit, sub_category, active_weekdays, nhap_luong, unit_per_tick: heSo})
       .select('id');
     if (error) return {ok: false, error: (friendlyError(error))};
     if (!data || data.length === 0)

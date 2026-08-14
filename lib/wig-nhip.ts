@@ -93,6 +93,63 @@ export function chiaNhip(start: string, end: string, tong: number): Nhip {
   return {thang: [...gom.values()], tuan};
 }
 
+/**
+ * Chia một mục tiêu ĐO LẠI (kg, cm, điểm, %) thành mốc tháng + mốc tuần.
+ *
+ * Khác hẳn chiaNhip: mốc ở đây mang CON SỐ PHẢI ĐẠT, không phải lát cắt cộng dồn. "Tăng cân
+ * 35 → 50" thì tuần thứ sáu của năm ghi 36,7 kg, tuần cuối ghi 50 — chứ không phải tuần nào
+ * cũng "+1 kg" (bản cũ) và cũng không phải tuần nào cũng "50" (thì cả năm tuần nào cũng thua,
+ * bảng tuần mất sạch ý nghĩa).
+ *
+ * Mốc THÁNG lấy con số của tuần CUỐI trong tháng, không phải tổng các tuần: đây là giá trị tuyệt
+ * đối, cộng lại không có nghĩa — đúng cái luật khiến hàm này phải tồn tại.
+ *
+ * Làm tròn một chữ số thập phân: 0,288 kg mỗi tuần là con số không ai cân được, mà 35,3 thì cân
+ * được.
+ */
+export function chiaNhipDoLai(
+  start: string,
+  end: string,
+  xuatPhat: number,
+  dich: number,
+): Nhip {
+  if (end < start || !Number.isFinite(xuatPhat) || !Number.isFinite(dich) || dich === xuatPhat)
+    return {thang: [], tuan: []};
+
+  const khung: {start: string; end: string; label: string}[] = [];
+  for (let t = mondayOf(start); t <= end; t = shiftWeeks(t, 1)) {
+    const ngay = weekDaysVN(t);
+    const s = ngay[0] < start ? start : ngay[0];
+    const e = ngay[6] > end ? end : ngay[6];
+    if (s > e) continue;
+    khung.push({start: s, end: e, label: isoWeekLabel(vnNoon(ngay[0]))});
+  }
+  if (khung.length === 0) return {thang: [], tuan: []};
+
+  const lamTron = (v: number) => Math.round(v * 10) / 10;
+  const tuan: MocNhip[] = khung.map((k, i) => ({
+    label: k.label,
+    start: k.start,
+    end: k.end,
+    // Tuần cuối cùng phải rơi ĐÚNG vào đích, không để sai số làm tròn đẩy nó thành 49,9.
+    target: i === khung.length - 1 ? dich : lamTron(xuatPhat + ((dich - xuatPhat) * (i + 1)) / khung.length),
+  }));
+
+  const gom = new Map<string, MocNhip>();
+  for (const w of tuan) {
+    const nhan = w.start.slice(0, 7);
+    const cu = gom.get(nhan);
+    // Tháng lấy con số của tuần CUỐI thuộc nó — giá trị tuyệt đối, không cộng.
+    if (cu) {
+      cu.target = w.target;
+      if (w.end > cu.end) cu.end = w.end;
+    } else {
+      gom.set(nhan, {label: nhan, start: w.start, end: w.end, target: w.target});
+    }
+  }
+  return {thang: [...gom.values()], tuan};
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // NHỊP CỦA MỘT MỐC — mốc tuần CẦN bao nhiêu, việc đang giao CHO được bao nhiêu
 // ════════════════════════════════════════════════════════════════════════════

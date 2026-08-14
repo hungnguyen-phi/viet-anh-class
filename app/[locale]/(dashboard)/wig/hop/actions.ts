@@ -5,6 +5,7 @@ import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
 import {taoMotWig, chuanHoaThu, chuanHoaHeSo} from '@/lib/wig-tao';
+import {kieuDonVi} from '@/lib/don-vi';
 
 // ════════════════════════════════════════════════════════════════════════════
 // KẾT THÚC BUỔI HỌP — một nút, ba việc.
@@ -34,6 +35,7 @@ type ViecMoi = {
   target_value: number;
   unit: string | null;
   unit_per_tick: number;
+  nhap_luong: boolean;
   active_weekdays: number[];
 };
 
@@ -57,11 +59,16 @@ function docViec(formData: FormData, mocId?: string): ViecMoi[] {
     // Dòng để trống hoàn toàn thì bỏ qua, không báo lỗi: người ta bấm "+ Thêm việc" rồi đổi ý là
     // chuyện bình thường, bắt họ đi tìm cái nút xoá mới lưu được là gây khó vô cớ.
     if (!title) continue;
+    const unit = String(formData.get(`viec_${k}_unit`) ?? '').trim() || null;
+    // Đơn vị ĐO LẠI (kg, cm, điểm) luôn là ô điền số: "một chạm = 1 kg" không có nghĩa nào cả.
+    // Hệ số về 1 vì con số em gõ CHÍNH LÀ con số — nhân thêm là sai thang (0114).
+    const nhap_luong = kieuDonVi(unit) === 'do';
     out.push({
       title,
       target_value: Number(String(formData.get(`viec_${k}_target`) ?? '').trim()),
-      unit: String(formData.get(`viec_${k}_unit`) ?? '').trim() || null,
-      unit_per_tick: chuanHoaHeSo(String(formData.get(`viec_${k}_upt`) ?? '')) ?? 1,
+      unit,
+      nhap_luong,
+      unit_per_tick: nhap_luong ? 1 : (chuanHoaHeSo(String(formData.get(`viec_${k}_upt`) ?? '')) ?? 1),
       active_weekdays: chuanHoaThu(formData.getAll(`viec_${k}_days`)),
     });
   }

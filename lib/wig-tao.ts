@@ -1,5 +1,5 @@
 import {ngayCuaKy} from '@/lib/dates';
-import {chiaNhip} from '@/lib/wig-nhip';
+import {chiaNhip, chiaNhipDoLai} from '@/lib/wig-nhip';
 import {friendlyError} from '@/lib/errors';
 import type {createClient} from '@/lib/supabase/server';
 import type {Database} from '@/lib/database.types';
@@ -224,6 +224,8 @@ export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao
       end: ky.end,
       // Rải phần PHẢI ĐI THÊM, không rải cả phần đã có sẵn.
       tong: w.target_value - (w.baseline ?? 0),
+      xuatPhat: w.baseline ?? 0,
+      dich: w.target_value,
       measure_by: w.measure_by ?? 'tick',
     });
     // Mục tiêu năm đã ghi được rồi — nhịp hỏng thì KHÔNG nuốt lỗi, nhưng cũng không giả vờ là
@@ -258,6 +260,9 @@ async function sinhNhip(
     start: string;
     end: string;
     tong: number;
+    /** Số xuất phát và đích — chỉ dùng cho đơn vị đo lại, nơi mốc là giá trị tuyệt đối. */
+    xuatPhat: number;
+    dich: number;
     measure_by: 'tick' | 'manual';
   },
 ): Promise<string | null> {
@@ -284,9 +289,16 @@ async function sinhNhip(
   // trong hai giây. Đơn vị thì không sai theo cách ấy — "kg" luôn là thứ cộng lại không có nghĩa,
   // ai khai gì thì khai. Nên chặn cả theo KIỂU ĐƠN VỊ (lib/don-vi.ts), là thứ mà form của học
   // sinh đã dùng làm gốc cho mọi câu hỏi của nó từ lâu.
-  if (w.measure_by === 'manual' || kieuDonVi(w.unit) === 'do') return null;
+  // Chỉ 'manual' mới KHÔNG có mốc: con số ấy sống ngoài app, không có gì trong app để đo theo
+  // tuần. Đơn vị đo lại mà em nhập TRONG app thì vẫn cần mốc tuần — đó là chỗ treo ô điền số.
+  // (0112 từng chặn cả theo kiểu đơn vị, chặn luôn ca này; xem 0113 để biết vì sao gỡ.)
+  if (w.measure_by === 'manual') return null;
 
-  const nhip = chiaNhip(w.start, w.end, w.tong);
+  // ĐO LẠI thì rải theo DỐC (35 → 36,7 → … → 50), cộng dồn thì rải theo lát cắt như cũ.
+  const nhip =
+    kieuDonVi(w.unit) === 'do'
+      ? chiaNhipDoLai(w.start, w.end, w.xuatPhat, w.dich)
+      : chiaNhip(w.start, w.end, w.tong);
   if (nhip.tuan.length === 0) return null;
 
   const chung = {
