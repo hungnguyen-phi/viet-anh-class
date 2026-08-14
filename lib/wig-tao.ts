@@ -3,6 +3,7 @@ import {chiaNhip} from '@/lib/wig-nhip';
 import {friendlyError} from '@/lib/errors';
 import type {createClient} from '@/lib/supabase/server';
 import type {Database} from '@/lib/database.types';
+import {kieuDonVi} from '@/lib/don-vi';
 
 type Sb = Awaited<ReturnType<typeof createClient>>;
 type Area = Database['public']['Enums']['wig_area'];
@@ -276,7 +277,14 @@ async function sinhNhip(
   //
   // Loại này theo dõi bằng ô số đo từng kỳ (0108) chứ không bằng mốc, và cũng không mang việc để
   // tick — nên không có mốc là đúng, không phải thiếu.
-  if (w.measure_by === 'manual') return null;
+  // HAI CHỐT, KHÔNG PHẢI MỘT.
+  //
+  // Cột `measure_by` là thứ NGƯỜI khai, nên nó sai được: form của lớp vẫn hỏi thẳng "Đo bằng gì"
+  // bằng một dropdown, và chọn nhầm "đếm được" cho một đích tính bằng kg là chuyện xảy ra được
+  // trong hai giây. Đơn vị thì không sai theo cách ấy — "kg" luôn là thứ cộng lại không có nghĩa,
+  // ai khai gì thì khai. Nên chặn cả theo KIỂU ĐƠN VỊ (lib/don-vi.ts), là thứ mà form của học
+  // sinh đã dùng làm gốc cho mọi câu hỏi của nó từ lâu.
+  if (w.measure_by === 'manual' || kieuDonVi(w.unit) === 'do') return null;
 
   const nhip = chiaNhip(w.start, w.end, w.tong);
   if (nhip.tuan.length === 0) return null;
