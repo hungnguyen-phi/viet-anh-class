@@ -71,6 +71,7 @@ type Lead = {
   active_weekdays: number[] | null;
   // 0076 — một lượt tick đáng bao nhiêu ĐƠN VỊ CỦA WIG cha. Mặc định 1.
   unit_per_tick: number | null;
+  nhap_luong: boolean | null;
 };
 type Prog = {
   actual: number | null;
@@ -133,7 +134,7 @@ export default async function WigPage({
       supabase
         .from('wigs')
         .select(
-          'id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date, lead_measures(id, wig_id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick)',
+          'id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date, lead_measures(id, wig_id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick, nhap_luong)',
         )
         .eq('class_id', myClass.id)
         .eq('scope', 'class'),
@@ -265,6 +266,7 @@ export default async function WigPage({
         sub_category: l.sub_category,
         active_weekdays: l.active_weekdays,
         unit_per_tick: l.unit_per_tick,
+        nhap_luong: l.nhap_luong,
         quaNhieu: cb.quaNhieu,
         lechDonVi: cb.lechDonVi,
         soTickCan: cb.soTickCan,

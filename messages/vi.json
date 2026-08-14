@@ -607,7 +607,8 @@
     "draftRestored": "Đã khôi phục bản nháp bạn gõ dở lần trước — chưa có gì được lưu vào biên bản.",
     "draftDiscard": "Bỏ nháp",
     "backToBoard": "Về bảng của bạn",
-    "noClassForStudent": "Bạn chưa được xếp vào lớp nào nên chưa có buổi họp nào."
+    "noClassForStudent": "Bạn chưa được xếp vào lớp nào nên chưa có buổi họp nào.",
+    "emTuDienSo": "Các em tự điền số"
   },
   "report": {
     "title": "Báo cáo phụ huynh",

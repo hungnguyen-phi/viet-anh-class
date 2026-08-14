@@ -11,6 +11,7 @@ import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {ketThucBuoiHop, xoaBienBan} from '@/app/[locale]/(dashboard)/wig/hop/actions';
 import {areaLabel, type Area, type AreaMeta} from '@/lib/areas';
 import {nhipCuaMoc} from '@/lib/wig-nhip';
+import {kieuDonVi} from '@/lib/don-vi';
 
 // ════════════════════════════════════════════════════════════════════════════
 // PHÒNG HỌP WIG — ba bước, một nút, một lần lưu.
@@ -142,6 +143,11 @@ export function PhongHop({
 }) {
   const t = useTranslations('meeting');
   const tw = useTranslations('wig');
+  const tg = useTranslations('goal');
+  // Dòng việc nào cho em TỰ ĐIỀN SỐ mỗi ngày. Đơn vị đo lại thì luôn bật, không hỏi.
+  const [nhapSo, setNhapSo] = useState<Record<string, boolean>>({});
+  const nhapSoCuaDong = (k: string) =>
+    kieuDonVi(viecVal[`viec_${k}_unit`] ?? '') === 'do' || Boolean(nhapSo[k]);
   const [state, formAction] = useActionState(ketThucBuoiHop, {ok: false});
 
   // ── MỘT KHO GIÁ TRỊ CHO TẤT CẢ Ô ─────────────────────────────────────────────────────────
@@ -708,18 +714,26 @@ export function PhongHop({
                               <Field label={tw('unit')} htmlFor={`v-${r.k}-u`}>
                                 <input id={`v-${r.k}-u`} name={`viec_${r.k}_unit`} {...oViec(`viec_${r.k}_unit`)} className={inputCls} />
                               </Field>
-                              <Field label={tw('unitPerTick')} htmlFor={`v-${r.k}-p`}>
-                                <input
-                                  id={`v-${r.k}-p`}
-                                  name={`viec_${r.k}_upt`}
-                                  type="number"
-                                  step="any"
-                                  min="0.01"
-                                  inputMode="decimal"
-                                  {...oViec(`viec_${r.k}_upt`)}
-                                  className={inputCls}
-                                />
-                              </Field>
+                              {/* Đơn vị đo lại (điểm, kg) hoặc "mỗi lần một khác" thì KHÔNG có
+                                  hệ số quy đổi: em gõ thẳng con số của mình (0114). */}
+                              {nhapSoCuaDong(r.k) ? (
+                                <div className="flex items-end text-[11.5px] font-bold text-grey-mid">
+                                  {t('emTuDienSo')}
+                                </div>
+                              ) : (
+                                <Field label={tw('unitPerTick')} htmlFor={`v-${r.k}-p`}>
+                                  <input
+                                    id={`v-${r.k}-p`}
+                                    name={`viec_${r.k}_upt`}
+                                    type="number"
+                                    step="any"
+                                    min="0.01"
+                                    inputMode="decimal"
+                                    {...oViec(`viec_${r.k}_upt`)}
+                                    className={inputCls}
+                                  />
+                                </Field>
+                              )}
                               <div className="flex items-end">
                                 <button
                                   type="button"
@@ -731,6 +745,19 @@ export function PhongHop({
                                 </button>
                               </div>
                             </div>
+                            {kieuDonVi(viecVal[`viec_${r.k}_unit`] ?? '') !== 'do' && (
+                              <label className="mt-2 flex cursor-pointer items-start gap-2 text-[12px] font-bold text-navy">
+                                <input
+                                  type="checkbox"
+                                  name={`viec_${r.k}_nhap`}
+                                  value="1"
+                                  checked={nhapSoCuaDong(r.k)}
+                                  onChange={(e) => setNhapSo((p) => ({...p, [r.k]: e.target.checked}))}
+                                  className="mt-0.5 h-[18px] w-[18px] shrink-0 cursor-pointer accent-[var(--color-navy)]"
+                                />
+                                {tg('eachTimeVaries')}
+                              </label>
+                            )}
                             <div className="mt-2">
                               <span className={labelCls}>{tw('weekdays')}</span>
                               <div className="flex flex-wrap gap-1.5">

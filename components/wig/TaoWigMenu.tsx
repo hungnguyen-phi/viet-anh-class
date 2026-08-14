@@ -8,6 +8,7 @@ import {Field, ctlWithBorder, selectCls, btnGold, btnGhost} from '@/components/u
 import {taoWig} from '@/app/[locale]/(dashboard)/wig/actions';
 import {tuanTronTrongCha, thangTronTrongCha, chaPhuKy, weekRangeVN, type PeriodOption} from '@/lib/dates';
 import {kieuDonVi} from '@/lib/don-vi';
+import {ONgayVN} from '@/components/ui/ONgayVN';
 
 // ════════════════════════════════════════════════════════════════════════════
 // MỘT NÚT "+ Tạo mục tiêu" Ở GÓC PHẢI — thay cho ba khung form xếp dọc cả trang.
@@ -363,15 +364,15 @@ export function TaoWigMenu({
                 <>
                   {/* Ô lịch chỉ để CHỌN; thứ gửi lên vẫn là nhãn kỳ. */}
                   <input type="hidden" name="period_label" value={tuanDangChon?.label ?? ''} />
-                  <input
-                    id="wig-ky"
-                    type="date"
+                  {/* NGÀY / THÁNG / NĂM, không phải <input type="date"> — chỗ thứ tư và cuối
+                      cùng của cùng một lỗi: ô ấy hiện thứ tự theo ngôn ngữ TRÌNH DUYỆT, nên máy
+                      cài tiếng Anh bày "08/10/2026" và cô không biết đó là 8 tháng 10 hay 10
+                      tháng 8. Cùng luật với ngày sinh (lib/dob.ts) và hạn của mục tiêu. */}
+                  <ONgayVN
+                    name="wig_ky_ngay"
+                    nhan={t('periodWhich')}
                     value={ngayTuan}
-                    onChange={(e) => setNgayTuan(e.target.value)}
-                    min={minTuan}
-                    max={maxTuan}
-                    aria-describedby="wig-ky-ghi"
-                    className={ctlWithBorder(state.fieldError === 'period_label')}
+                    onChange={(iso) => iso && setNgayTuan(iso)}
                   />
                   <p id="wig-ky-ghi" className="mt-1 text-[12px] font-semibold text-grey-mid">
                     {chaQuaNgan

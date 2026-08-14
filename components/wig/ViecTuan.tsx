@@ -31,6 +31,8 @@ export type ViecItem = {
   sub_category: string | null;
   active_weekdays: number[] | null;
   unit_per_tick: number | null;
+  // 0114 — việc này để em TỰ ĐIỀN SỐ mỗi ngày thay vì một chạm.
+  nhap_luong: boolean | null;
   // Cảnh báo tính ở server (cùng công thức với hàm SQL lead_measure_canh_bao).
   quaNhieu: boolean;
   lechDonVi: boolean;
@@ -202,6 +204,13 @@ function ViecForm({
   // Đơn vị đo lại cũng không cần hỏi "mỗi lần tick đáng bao nhiêu": số em gõ chính là con số.
   const [oDonVi, setODonVi] = useState(viec?.unit ?? '');
   const soLe = kieuDonVi(oDonVi) === 'do';
+  // MỖI LẦN MỘT KHÁC — các em tự điền số mỗi ngày, thay vì một chạm nhân hệ số.
+  //
+  // Việc của EM đã có lựa chọn này từ 0110; việc CHUNG của lớp thì chưa, nên "đọc sách" của cả
+  // lớp chỉ ghi được "một buổi = 30 trang" cố định — hôm nay 12 trang mai 40 trang thì không có
+  // chỗ ghi. Đơn vị đo lại (điểm, kg) LUÔN ở chế độ này, không hỏi.
+  const [moiLanKhac, setMoiLanKhac] = useState(Boolean(viec?.nhap_luong));
+  const nhapSo = soLe || moiLanKhac;
   const {mocCan, tongViecCho, thieuNhip} = nhipCuaMoc({
     mocCan: mocTarget,
     siSo,
@@ -288,11 +297,27 @@ function ViecForm({
           con số của mình, không có lượt nào để quy đổi — hỏi câu ấy là mời người ta điền một hệ
           số rồi máy chủ lặng lẽ bỏ qua (server ép về 1). Thay bằng một câu nói rõ chuyện gì sẽ
           xảy ra trên màn của em. */}
+      <input type="hidden" name="nhap_luong" value={nhapSo ? '1' : ''} />
       {soLe ? (
         <p className="rounded-[10px] bg-navy/[0.05] px-3 py-2 text-[12px] font-semibold leading-relaxed text-grey-mid">
           {t('doNhapSoHint', {unit: oDonVi || wigUnit})}
         </p>
       ) : (
+      <>
+      {/* Ô TÍCH, không phải hai chế độ tách rời: mặc định vẫn là một chạm — thứ nhanh nhất và
+          đúng với phần lớn việc — còn đây là lối ra cho việc mà mỗi ngày một lượng khác nhau. */}
+      <label className="flex cursor-pointer items-start gap-2 rounded-[10px] bg-navy/[0.04] px-3 py-2.5">
+        <input
+          type="checkbox"
+          checked={moiLanKhac}
+          onChange={(e) => setMoiLanKhac(e.target.checked)}
+          className="mt-0.5 h-[18px] w-[18px] shrink-0 cursor-pointer accent-[var(--color-navy)]"
+        />
+        <span className="text-[12.5px] font-bold leading-relaxed text-navy">
+          {t('eachTimeVaries')}
+        </span>
+      </label>
+      {!moiLanKhac && (
       <Field label={t('unitPerTick')} hint={t('unitPerTickHint', {unit: wigUnit})} htmlFor="viec-upt" className="sm:max-w-[300px]">
         <input
           id="viec-upt"
@@ -307,6 +332,8 @@ function ViecForm({
           className={inputCls}
         />
       </Field>
+      )}
+      </>
       )}
 
       <WeekdayPicker

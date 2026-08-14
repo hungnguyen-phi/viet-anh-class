@@ -62,7 +62,8 @@ function docViec(formData: FormData, mocId?: string): ViecMoi[] {
     const unit = String(formData.get(`viec_${k}_unit`) ?? '').trim() || null;
     // Đơn vị ĐO LẠI (kg, cm, điểm) luôn là ô điền số: "một chạm = 1 kg" không có nghĩa nào cả.
     // Hệ số về 1 vì con số em gõ CHÍNH LÀ con số — nhân thêm là sai thang (0114).
-    const nhap_luong = kieuDonVi(unit) === 'do';
+    const nhap_luong =
+      kieuDonVi(unit) === 'do' || String(formData.get(`viec_${k}_nhap`) ?? '') === '1';
     out.push({
       title,
       target_value: Number(String(formData.get(`viec_${k}_target`) ?? '').trim()),

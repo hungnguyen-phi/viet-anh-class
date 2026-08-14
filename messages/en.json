@@ -607,7 +607,8 @@
     "draftRestored": "Restored the draft you left unfinished — nothing has been saved to the minutes yet.",
     "draftDiscard": "Discard draft",
     "backToBoard": "Back to your board",
-    "noClassForStudent": "You are not in a class yet, so there is no meeting."
+    "noClassForStudent": "You are not in a class yet, so there is no meeting.",
+    "emTuDienSo": "Students type the number"
   },
   "report": {
     "title": "Parent report",
