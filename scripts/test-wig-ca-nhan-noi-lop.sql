@@ -55,7 +55,12 @@ begin
   values (v_tuan_lop, 'ZZ_TEST việc chung', 3, 'bài', '{1,2,3,4,5}', 1)
   returning id into v_lead_lop;
 
-  -- Cả hai em làm đủ phần việc CHUNG → tiến độ năm của lớp đúng bằng 3.
+  -- Cả hai em làm đủ phần việc CHUNG → tiến độ năm của lớp bằng 6.
+  --
+  -- SỬA 14/08/2026: dòng này vốn đòi 3, và nó tự mâu thuẫn với phép kiểm thứ ba trong CHÍNH FILE
+  -- NÀY ("tiến độ của LỚP đứng yên", mong đợi 6). Số đúng là 6: luật "mỗi em một bộ đếm" (0098)
+  -- cho mỗi em một trần riêng bằng đích của việc, nên hai em làm đủ là 3 + 3. Con số 3 là dấu vết
+  -- của luật CŨ — trần đặt trên tổng của cả lớp — và không ai sửa nốt dòng này khi luật đổi.
   insert into lead_progress (lead_measure_id, student_id, value, logged_date, logged_by)
   values (v_lead_lop, v_a, 1, '2026-03-02', v_a), (v_lead_lop, v_a, 1, '2026-03-03', v_a),
          (v_lead_lop, v_a, 1, '2026-03-04', v_a),
@@ -64,7 +69,8 @@ begin
 
   v_truoc := private.wig_actual(v_nam_lop);
   insert into ket_qua values
-    ('Việc chung: cả hai em đủ → tiến độ năm của lớp = 3', '3', v_truoc::text, v_truoc = 3);
+    ('Việc chung: cả hai em đủ → tiến độ năm của lớp = 6 (mỗi em một bộ đếm)',
+     '6', v_truoc::text, v_truoc = 6);
 
   -- Cây CÁ NHÂN của em A, NỐI VÀO WIG năm của lớp (đây là thứ 0099 mở ra).
   insert into wigs (class_id, student_id, scope, title, area, period, period_label,

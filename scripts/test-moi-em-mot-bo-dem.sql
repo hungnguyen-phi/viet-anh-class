@@ -181,7 +181,15 @@ end $$;
 -- người thêm buộc phải trả lời: hàm của anh đếm theo TỪNG EM hay lại cộng dồn cả lớp?
 --
 -- Vì sao sáu hàm này được coi là đúng:
---   · private.wig_actual      — chặn trần theo em rồi chia sĩ số (chính là luật mới)
+--   · private.wig_actual_so   — chặn trần theo em rồi chia sĩ số (chính là luật mới)
+--
+-- 14/08/2026 — hàm ấy vốn tên `wig_actual`; nay đổi tên, THÂN HÀM GIỮ NGUYÊN TỪNG CHỮ. Mục tiêu
+-- cuộn (0116) không có lượt tick nào để cộng — số của nó đếm ngược từ mục tiêu năm của từng em —
+-- nên private.wig_actual nay là lớp bọc mỏng: 'cuon' thì hỏi ty_le_cuon, còn lại gọi wig_actual_so.
+-- Lớp bọc không đọc lead_progress, nên phần đọc thật vẫn đúng một hàm như trước.
+--
+-- Cùng ngày, `gop_lead` (0113) bị bỏ hẳn — xem 0120. Nó nằm không từ lúc sinh ra và cộng tick mà
+-- quên hệ số; chính dòng điểm danh này cùng test-unit-per-tick đã bắt được nó.
 --   · class_lead_board        — trả my_total của em và students_done, không lấy tổng làm thước đo
 --   · school_wig_rollup       — gọi thẳng private.wig_actual, không tự cộng nữa
 --   · class_tick_matrix       — vốn trả mảng ngày tick của TỪNG em
@@ -190,10 +198,10 @@ end $$;
 --                               phải thước đo thắng/thua của một việc
 insert into ket_qua
 select 'Đúng 6 hàm đọc lead_progress, không hơn',
-       'child_week_report, class_lead_board, class_scoreboard, class_tick_matrix, school_wig_rollup, wig_actual',
+       'child_week_report, class_lead_board, class_scoreboard, class_tick_matrix, school_wig_rollup, wig_actual_so',
        string_agg(p.proname, ', ' order by p.proname),
        string_agg(p.proname, ', ' order by p.proname) =
-         'child_week_report, class_lead_board, class_scoreboard, class_tick_matrix, school_wig_rollup, wig_actual'
+         'child_week_report, class_lead_board, class_scoreboard, class_tick_matrix, school_wig_rollup, wig_actual_so'
 from pg_proc p
 join pg_namespace n on n.oid = p.pronamespace
 where n.nspname in ('public', 'private')

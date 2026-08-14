@@ -5,6 +5,7 @@ import {useTranslations} from 'next-intl';
 import {AlertCircle, Lock, PencilLine} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {btnGhost} from '@/components/ui/Field';
+import {ngayVN} from '@/lib/dates';
 import {ghiSoDo} from '@/app/[locale]/(dashboard)/student/actions';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -51,6 +52,15 @@ export function OSoDo({
   const [state, formAction] = useActionState(ghiSoDo, {ok: false});
 
   const co = soHienTai !== null;
+  // NGÀY, KHÔNG PHẢI DẤU THỜI GIAN CỦA CSDL.
+  //
+  // Hai nơi gọi ô này đưa vào hai thứ khác nhau: màn của em đưa '2026-08-14', còn trang WIG của
+  // cô đưa nguyên 'created_at' — nên trên production hiện ra "cô ghi
+  // 2026-08-14T05:20:17.616754+00:00". Bắt được bằng mắt trên trình duyệt thật.
+  //
+  // Cắt và định dạng NGAY TẠI CHỖ HIỆN, không đi sửa hai nơi gọi: chỗ hiện là chỗ duy nhất chắc
+  // chắn mọi đường đều đi qua, và ngayVN() giữ nguyên chuỗi lạ nên không nuốt mất dữ liệu.
+  const ngayGhi = ghiLuc ? ngayVN(ghiLuc.slice(0, 10)) : '';
 
   // KHÔNG GHI ĐƯỢC (đã chốt, hoặc người đọc là phụ huynh/BGH): chỉ bày con số. Bày một ô nhập rồi
   // để nó báo lỗi khi bấm là mời người ta gõ vào chỗ không nhận.
@@ -65,7 +75,7 @@ export function OSoDo({
         {co && nguoiGhi && (
           <span className="text-[11px] font-semibold text-grey-mid">
             · {t(nguoiGhi === 'student' ? 'readingByStudent' : 'readingByTeacher')}
-            {ghiLuc ? ` ${ghiLuc}` : ''}
+            {ngayGhi ? ` ${ngayGhi}` : ''}
           </span>
         )}
       </p>
@@ -103,7 +113,7 @@ export function OSoDo({
       {co && nguoiGhi && (
         <p className="text-[11px] font-semibold text-grey-mid">
           {t(nguoiGhi === 'student' ? 'readingByStudent' : 'readingByTeacher')}
-          {ghiLuc ? ` ${ghiLuc}` : ''}
+          {ngayGhi ? ` ${ngayGhi}` : ''}
         </p>
       )}
 

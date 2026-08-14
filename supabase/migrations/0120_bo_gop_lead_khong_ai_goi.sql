@@ -1,0 +1,19 @@
+-- ════════════════════════════════════════════════════════════════════════════════════════════
+-- 0120 — BỎ gop_lead: KHÔNG AI GỌI, VÀ NÓ ĐANG LÀM ĐỎ MỘT CHỐT CHẶN THẬT
+-- ════════════════════════════════════════════════════════════════════════════════════════════
+--
+-- 0113 dựng ba hàm nền cho đơn vị đo lại, trong đó có gop_lead(). Nhưng 0114 lại viết thẳng phép
+-- gộp vào private.wig_actual và class_lead_board thay vì gọi nó — nên gop_lead ra đời rồi nằm
+-- không. Đã dò lại hôm nay: không hàm nào, không view nào, không dòng TypeScript nào gọi tới.
+--
+-- Không xoá thì nó không chỉ là mã chết, nó còn là mã chết SAI:
+--
+--   · scripts/test-unit-per-tick.sql — "không hàm nào cộng tick mà quên hệ số" — đỏ vì gop_lead
+--     cộng sum(lp.value) mà bỏ unit_per_tick. Một việc khai "một buổi = 30 trang" sẽ ra 5 thay vì
+--     150 nếu có ai lỡ gọi nó.
+--   · scripts/test-moi-em-mot-bo-dem.sql — điểm danh các hàm đọc lead_progress — đỏ vì có thêm
+--     một cái tên ngoài danh sách trắng.
+--
+-- Hai chốt chặn ấy đang làm đúng việc của chúng: chúng bắt được một hàm sai trước khi có ai kịp
+-- gọi. Cách trả lời đúng là bỏ hàm đi, không phải nới danh sách cho nó lọt.
+drop function if exists public.gop_lead(uuid, uuid, date, date);

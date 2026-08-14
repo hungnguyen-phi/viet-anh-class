@@ -24,8 +24,22 @@ declare
   v_em uuid;
   v_pct numeric;
   v_status text;
+  v_mb_cu text;
+  v_ach_cu timestamptz;
+  v_ai_cu uuid;
 begin
-  select id into v_wig from wigs where scope = 'class' and period = 'week' limit 1;
+  -- MƯỢN THÌ PHẢI TRẢ ĐÚNG THỨ ĐÃ MƯỢN.
+  --
+  -- Bản cũ lấy một mục tiêu tuần bất kỳ rồi cuối bài trả về 'tick' như một hằng số. Trên lớp Test,
+  -- mục tiêu tuần đầu danh sách lại là 'manual' (nó thuộc "Điểm trung bình 6 lên 8" — đích ghi
+  -- nhận ngoài), nên phép "trả nguyên trạng" biến nó thành 'tick', và chính dòng chốt chặn bên
+  -- dưới bắt được: status nhảy 'mid' → 'off_track'. Phép kiểm tự làm hỏng thứ nó đang canh.
+  --
+  -- Nhớ lại giá trị CŨ rồi trả đúng giá trị ấy. Cách này không kén dữ liệu: lớp có mục tiêu kiểu
+  -- nào cũng chạy được, mà vẫn giữ nguyên bất biến "chỉ đo thay đổi do MIGRATION".
+  select id, measure_by, achieved_at, achieved_by
+    into v_wig, v_mb_cu, v_ach_cu, v_ai_cu
+  from wigs where scope = 'class' and period = 'week' limit 1;
   if v_wig is null then
     insert into ket_qua values ('Có WIG để thử', 'có', 'KHÔNG CÓ', false);
     return;
@@ -46,8 +60,9 @@ begin
     ('Đích manual ĐÃ đạt → pct = 1', '1', v_pct::text, v_pct = 1),
     ('Đích manual ĐÃ đạt → on_track', 'on_track', v_status, v_status = 'on_track');
 
-  -- Trả về nguyên trạng để phép so bên dưới chỉ đo thay đổi do MIGRATION, không do fixture.
-  update wigs set measure_by = 'tick', achieved_at = null, achieved_by = null where id = v_wig;
+  -- Trả về NGUYÊN TRẠNG THẬT, không phải một giá trị đoán mò.
+  update wigs set measure_by = v_mb_cu, achieved_at = v_ach_cu, achieved_by = v_ai_cu
+  where id = v_wig;
 end $$;
 
 -- ── Đích 'tick': y nguyên từng chữ số ───────────────────────────────────────────────────────
