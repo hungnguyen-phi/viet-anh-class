@@ -119,11 +119,13 @@ export async function luuViec(_prev: CreateWigState, formData: FormData): Promis
   // lớp chỉ ghi được "một buổi = 30 trang" cố định, còn hôm nay 12 trang mai 40 trang thì không
   // có chỗ ghi. Chủ dự án chốt 14/08/2026.
   //
-  // ĐƠN VỊ ĐO LẠI (kg, cm, điểm) LUÔN là ô điền số — không có nghĩa nào cho "một chạm = 1 kg".
-  // Và cả hai trường hợp đều ép hệ số về 1: số em gõ CHÍNH LÀ con số, nhân thêm là sai thang
-  // (class_lead_board và wig_actual đều nhân unit_per_tick khi cộng).
-  const kieu = kieuDonVi(unit);
-  const nhap_luong = kieu === 'do' || String(formData.get('nhap_luong') ?? '') === '1';
+  // KHÔNG suy từ đơn vị nữa. Chủ dự án chốt 14/08/2026: con số kg/điểm là con số của CHÍNH MỤC
+  // TIÊU, nhập lại mỗi tuần ở ô số đo (wig_so_do) — không phải của việc dẫn dắt. Việc dẫn dắt
+  // là hành vi hằng ngày: "tập thể dục", "học từ mới". Nó luôn TICK, và ô số chỉ là phần thêm khi
+  // mỗi ngày một lượng khác nhau.
+  // Bản 0114 tự bật theo đơn vị nên tạo ra đúng cái nhầm ấy: một việc tên "điểm kiểm tra" mang
+  // luôn con số của mục tiêu, và không còn chỗ nào để nói "hôm nay em có làm".
+  const nhap_luong = String(formData.get('nhap_luong') ?? '') === '1';
   const heSo = nhap_luong ? 1 : (upt ?? 1);
 
   if (!id && !wig_id) return {ok: false, error: 'Chưa rõ việc này thuộc mục tiêu tuần nào.'};

@@ -7,6 +7,7 @@ import {SubmitButton} from '@/components/ui/SubmitButton';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {Field, ctlWithBorder, inputCls, selectCls, btnGold, btnGhost} from '@/components/ui/Field';
 import {suaWig, deleteWig} from '@/app/[locale]/(dashboard)/wig/actions';
+import {OSoDo} from '@/components/student/OSoDo';
 
 // ════════════════════════════════════════════════════════════════════════════
 // LỚP ĐANG ĐI TỚI ĐÂU — năm, tháng, tuần, mỗi cấp một thanh.
@@ -59,7 +60,16 @@ export function BangTienDo({
   areaOptions,
 }: {
   // Một nhóm = một mục tiêu NĂM và cả chuỗi tháng → tuần của nó trong tuần đang xem.
-  nhom: {areaLabel: string; areaHex: string; areaSoft: string; dong: DongTienDo[]}[];
+  nhom: {
+    areaLabel: string;
+    areaHex: string;
+    areaSoft: string;
+    dong: DongTienDo[];
+    // Số đo tuần này của mục tiêu đo lại (kg, điểm, cm) — 14/08/2026. Loại này không tick hằng
+    // ngày; con số được điền lại MỖI TUẦN, đúng nhịp buổi họp.
+    soDo?: {giaTri: number; vaiTro: string; ghiLuc: string} | null;
+    soDoMoKhoa?: boolean;
+  }[];
   weekParam: string;
   classParam?: string;
   // Bốn lĩnh vực (kiến thức/kĩ năng/tiếng Anh/thể chất) — cho ô đổi lĩnh vực trong form sửa.
@@ -182,6 +192,23 @@ export function BangTienDo({
                   <p className="mt-1 text-[10.5px] font-semibold text-grey-mid">
                     {t('from')} {d.baseline} → {d.target} {d.unit}
                   </p>
+                )}
+                {/* Ô SỐ ĐO CỦA TUẦN — chỉ ở dòng NĂM, và chỉ với đích ghi-nhận-ngoài.
+                    Chủ dự án chốt 14/08/2026: kg/điểm không nhập hằng ngày; điền lại mỗi tuần,
+                    đúng nhịp buổi họp. Ô này đã có sẵn ở màn của em từ 0108 (wig_so_do khoá theo
+                    mục tiêu + tuần, không theo học sinh) nên dùng lại nguyên vẹn cho mục tiêu lớp. */}
+                {laManual && d.cap === 'year' && d.id && (
+                  <div className="mt-2">
+                    <OSoDo
+                      wigId={d.id}
+                      unit={d.unit}
+                      soHienTai={g.soDo?.giaTri ?? null}
+                      nguoiGhi={(g.soDo?.vaiTro as 'student' | 'teacher' | null) ?? null}
+                      ghiLuc={g.soDo?.ghiLuc ?? null}
+                      moKhoa={g.soDoMoKhoa !== false}
+                      canGhi
+                    />
+                  </div>
                 )}
               </div>
             );

@@ -210,7 +210,7 @@ function ViecForm({
   // lớp chỉ ghi được "một buổi = 30 trang" cố định — hôm nay 12 trang mai 40 trang thì không có
   // chỗ ghi. Đơn vị đo lại (điểm, kg) LUÔN ở chế độ này, không hỏi.
   const [moiLanKhac, setMoiLanKhac] = useState(Boolean(viec?.nhap_luong));
-  const nhapSo = soLe || moiLanKhac;
+  const nhapSo = moiLanKhac;
   const {mocCan, tongViecCho, thieuNhip} = nhipCuaMoc({
     mocCan: mocTarget,
     siSo,
@@ -298,11 +298,6 @@ function ViecForm({
           số rồi máy chủ lặng lẽ bỏ qua (server ép về 1). Thay bằng một câu nói rõ chuyện gì sẽ
           xảy ra trên màn của em. */}
       <input type="hidden" name="nhap_luong" value={nhapSo ? '1' : ''} />
-      {soLe ? (
-        <p className="rounded-[10px] bg-navy/[0.05] px-3 py-2 text-[12px] font-semibold leading-relaxed text-grey-mid">
-          {t('doNhapSoHint', {unit: oDonVi || wigUnit})}
-        </p>
-      ) : (
       <>
       {/* Ô TÍCH, không phải hai chế độ tách rời: mặc định vẫn là một chạm — thứ nhanh nhất và
           đúng với phần lớn việc — còn đây là lối ra cho việc mà mỗi ngày một lượng khác nhau. */}
@@ -334,7 +329,6 @@ function ViecForm({
       </Field>
       )}
       </>
-      )}
 
       <WeekdayPicker
         label={t('weekdays')}

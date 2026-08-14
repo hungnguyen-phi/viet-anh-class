@@ -146,8 +146,7 @@ export function PhongHop({
   const tg = useTranslations('goal');
   // Dòng việc nào cho em TỰ ĐIỀN SỐ mỗi ngày. Đơn vị đo lại thì luôn bật, không hỏi.
   const [nhapSo, setNhapSo] = useState<Record<string, boolean>>({});
-  const nhapSoCuaDong = (k: string) =>
-    kieuDonVi(viecVal[`viec_${k}_unit`] ?? '') === 'do' || Boolean(nhapSo[k]);
+  const nhapSoCuaDong = (k: string) => Boolean(nhapSo[k]);
   const [state, formAction] = useActionState(ketThucBuoiHop, {ok: false});
 
   // ── MỘT KHO GIÁ TRỊ CHO TẤT CẢ Ô ─────────────────────────────────────────────────────────
@@ -745,7 +744,7 @@ export function PhongHop({
                                 </button>
                               </div>
                             </div>
-                            {kieuDonVi(viecVal[`viec_${r.k}_unit`] ?? '') !== 'do' && (
+                            {(
                               <label className="mt-2 flex cursor-pointer items-start gap-2 text-[12px] font-bold text-navy">
                                 <input
                                   type="checkbox"

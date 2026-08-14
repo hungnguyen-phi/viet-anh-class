@@ -785,7 +785,8 @@
     "moodClosedAt": "Ngoài giờ check-in. Sáng nhận {sang1}–{sang2}, chiều {chieu1}–{chieu2}.",
     "enterMeetingRoom": "Vào phòng họp WIG",
     "classMinutes": "Biên bản họp của lớp",
-    "classPromise": "Cả lớp hứa"
+    "classPromise": "Cả lớp hứa",
+    "luongOLabel": "làm được bao nhiêu (không bắt buộc)"
   },
   "campusReport": {
     "title": "Báo cáo cơ sở",

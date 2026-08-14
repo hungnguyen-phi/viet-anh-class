@@ -164,8 +164,13 @@ export function LeadTicker({
   function ghiLuong(lead: TickerLead, date: string, raw: string) {
     if (!canTick || !tickOpen || date > today || dangGhiO(lead.id, date)) return;
     const cu = lead.myValues[date];
-    const val = raw.trim() === '' ? null : Number(raw);
-    if (val !== null && (!Number.isFinite(val) || val <= 0)) {
+    // Ô SỐ ĐỂ TRỐNG KHÔNG CÒN NGHĨA LÀ "XOÁ" (14/08/2026).
+    //
+    // Trước đây bỏ trống = xoá dòng của ngày ấy, vì ô số là thứ DUY NHẤT trên ô ngày. Nay ngày đã
+    // có nút tick riêng: tick nói "hôm nay có làm", ô số chỉ nói "được bao nhiêu". Nên xoá số thì
+    // lượt làm vẫn còn, chỉ quay về 1 — muốn bỏ hẳn thì bỏ tick.
+    const val = raw.trim() === '' ? 1 : Number(raw);
+    if (!Number.isFinite(val) || val <= 0) {
       setErr(t('luongPhaiDuong'));
       return;
     }
@@ -174,19 +179,7 @@ export function LeadTicker({
     const oKey = `${lead.id}|${date}`;
     danhDauGhi(oKey, true);
     startTransition(async () => {
-      if (val === null) {
-        const {error} = await supabase
-          .from('lead_progress')
-          .delete()
-          .eq('lead_measure_id', lead.id)
-          .eq('student_id', studentId)
-          .eq('logged_date', date);
-        if (error) {
-          danhDauGhi(oKey, false);
-          setErr(t('undoError'));
-          return;
-        }
-      } else {
+      {
         // Một dòng mỗi (việc, em, ngày) — uq_lead_progress_daily. Ghi lại cùng ngày là SỬA.
         const {error} = await supabase.from('lead_progress').upsert(
           {
@@ -359,49 +352,67 @@ export function LeadTicker({
             // cùng lúc. Ghi khi rời ô (onBlur) chứ không theo từng phím — gõ "12" mà ghi ngay ở
             // phím đầu là ghi mất một dòng value=1 rồi sửa, và trigger chặn số vô lý sẽ nổ giữa
             // chừng lúc em còn đang gõ dở.
+            // ── Ô CÓ SỐ: TICK TRƯỚC, SỐ SAU ──
+            //
+            // Chủ dự án chốt 14/08/2026: "có thể ngày đó ko nhập cũng được, nhưng phải tick có
+            // làm". Bản 0110 làm ô ngày thành một ô số TRẦN — không có tick, nên không có cách
+            // nào nói "hôm nay em có làm mà chưa kịp đếm", và bỏ trống thì mất luôn dòng.
+            // Nay giữ nguyên nút tick 44px như mọi việc khác, và treo một ô số nhỏ bên dưới,
+            // chỉ mở khi ô đã được tick. Tick = có làm (tính 1); gõ số = làm được bao nhiêu.
             if (l.nhapLuong)
               return (
-                <label key={d} className="flex flex-col items-center gap-0.5">
-                  <span
-                    className={`text-[10.5px] font-extrabold ${isToday ? 'text-navy' : 'text-grey-mid'}`}
+                <div key={d} className="flex flex-col items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => toggle(l, d)}
+                    disabled={disabled}
+                    title={`${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
+                    aria-label={`${l.title} — ${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
+                    aria-pressed={ticked}
+                    className={`relative grid h-11 w-11 place-items-center rounded-[12px] border-[1.5px] text-[11.5px] font-extrabold transition-all ${
+                      ticked
+                        ? `border-transparent bg-gold text-navy shadow-[var(--shadow-gold)]${disabled ? ' opacity-45' : ''}`
+                        : disabled
+                          ? 'border-navy/10 bg-navy/[0.03] text-grey-mid'
+                          : 'border-navy/15 bg-white text-grey-mid'
+                    } ${isToday && !ticked ? 'border-navy ring-2 ring-navy/15' : ''} ${
+                      disabled ? 'cursor-default' : 'cursor-pointer hover:border-navy active:scale-95'
+                    }`}
                   >
                     {dayShort[isoDow(d) - 1]}
-                  </span>
+                    {ticked && (
+                      <span className="absolute -right-1 -top-1 grid h-[18px] w-[18px] place-items-center rounded-full bg-navy text-white">
+                        <Check size={11} strokeWidth={3.5} />
+                      </span>
+                    )}
+                  </button>
                   <span className="relative inline-grid place-items-center">
                     <input
                       type="number"
                       step="any"
                       min="0"
                       inputMode="decimal"
-                      defaultValue={l.myValues[d] ?? ''}
-                      disabled={disabled}
+                      defaultValue={l.myValues[d] && l.myValues[d] !== 1 ? l.myValues[d] : ''}
+                      disabled={disabled || !ticked}
                       onBlur={(e) => ghiLuong(l, d, e.target.value)}
-                      aria-label={`${l.title} — ${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
-                      title={`${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
+                      placeholder={l.unit ?? ''}
+                      aria-label={`${l.title} — ${dayShort[isoDow(d) - 1]} ${d.slice(5)} — ${t('luongOLabel')}`}
                       aria-busy={dangBay}
-                      // Cùng luật với ô một chạm ngay dưới: ô chưa bấm được thì mờ cái Ô, giữ
-                      // chữ đọc được. Số đã ghi thì vẫn dùng lớp mờ cũ làm dấu "tuần đã khoá".
-                      className={`h-11 w-[52px] rounded-[12px] border-[1.5px] text-center text-[13px] font-extrabold tabular-nums transition-all ${
-                        l.myValues[d]
-                          ? `border-transparent bg-gold text-navy${disabled ? ' opacity-45' : ''}`
-                          : disabled
-                            ? 'border-navy/10 bg-navy/[0.03] text-grey-mid'
-                            : 'border-navy/15 bg-white text-navy'
-                      } ${isToday && !l.myValues[d] ? 'border-navy ring-2 ring-navy/15' : ''} ${
-                        disabled ? 'cursor-default' : ''
-                      } ${dangBay ? 'text-transparent' : ''}`}
+                      className={`h-8 w-11 rounded-[9px] border-[1.5px] text-center text-[11.5px] font-extrabold tabular-nums transition-all ${
+                        ticked ? 'border-navy/20 bg-white text-navy' : 'border-navy/10 bg-navy/[0.03] text-grey-mid'
+                      } ${disabled || !ticked ? 'cursor-default opacity-60' : ''} ${
+                        dangBay ? 'text-transparent' : ''
+                      }`}
                     />
-                    {/* XOAY NGAY TRÊN Ô ĐANG GHI. Ẩn chữ đi (`text-transparent`) chứ không đổi kích
-                        thước, để dải ngày không nhảy chỗ giữa lúc em đang nhìn. */}
                     {dangBay && (
                       <Loader2
-                        size={16}
+                        size={13}
                         strokeWidth={2.5}
                         className="pointer-events-none absolute animate-spin text-navy"
                       />
                     )}
                   </span>
-                </label>
+                </div>
               );
 
             return (

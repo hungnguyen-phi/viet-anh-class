@@ -785,7 +785,8 @@
     "moodClosedAt": "Check-in is closed. Morning {sang1}–{sang2}, afternoon {chieu1}–{chieu2}.",
     "enterMeetingRoom": "Open the WIG meeting room",
     "classMinutes": "Class meeting minutes",
-    "classPromise": "The class promises"
+    "classPromise": "The class promises",
+    "luongOLabel": "how much (optional)"
   },
   "campusReport": {
     "title": "Campus report",

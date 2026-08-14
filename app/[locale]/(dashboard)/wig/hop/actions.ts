@@ -60,10 +60,9 @@ function docViec(formData: FormData, mocId?: string): ViecMoi[] {
     // chuyện bình thường, bắt họ đi tìm cái nút xoá mới lưu được là gây khó vô cớ.
     if (!title) continue;
     const unit = String(formData.get(`viec_${k}_unit`) ?? '').trim() || null;
-    // Đơn vị ĐO LẠI (kg, cm, điểm) luôn là ô điền số: "một chạm = 1 kg" không có nghĩa nào cả.
-    // Hệ số về 1 vì con số em gõ CHÍNH LÀ con số — nhân thêm là sai thang (0114).
-    const nhap_luong =
-      kieuDonVi(unit) === 'do' || String(formData.get(`viec_${k}_nhap`) ?? '') === '1';
+    // Chỉ theo ô tích của cô, không suy từ đơn vị: con số kg/điểm thuộc về MỤC TIÊU (ô số đo mỗi
+    // tuần), còn việc dẫn dắt thì luôn tick hằng ngày.
+    const nhap_luong = String(formData.get(`viec_${k}_nhap`) ?? '') === '1';
     out.push({
       title,
       target_value: Number(String(formData.get(`viec_${k}_target`) ?? '').trim()),

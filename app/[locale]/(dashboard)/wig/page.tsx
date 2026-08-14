@@ -127,7 +127,7 @@ export default async function WigPage({
   const tuanTruoc = shiftWeeks(thisMonday, -1);
   const nhanTuanTruoc = isoWeekLabel(vnNoon(tuanTruoc));
 
-  const [{data: wigsData}, {data: progData}, {data: enrolled}, {data: matrixData}, {data: hopRoi}] =
+  const [{data: wigsData}, {data: progData}, {data: enrolled}, {data: matrixData}, {data: hopRoi}, {data: soDoData}, {data: tuanNayDaHop}] =
     await Promise.all([
       // NHÚNG LUÔN lead_measures: PostgREST nhúng được theo khoá ngoại wig_id và RLS vẫn áp y như
       // khi hỏi rời, nên bỏ hẳn một chặng chờ so với hỏi WIG xong mới hỏi việc.
@@ -165,7 +165,21 @@ export default async function WigPage({
         .is('student_id', null)
         .eq('week_start', tuanTruoc)
         .maybeSingle(),
+      // SỐ ĐO CỦA TUẦN ĐANG XEM — con số thật của mục tiêu đo lại (kg, điểm, cm).
+      //
+      // Chủ dự án chốt 14/08/2026: loại này không nhập hằng ngày; cô (hoặc em) điền lại con số
+      // mỗi tuần, đúng nhịp buổi họp. Bảng wig_so_do đã có từ 0108 cho mục tiêu của em; nó khoá
+      // theo (mục tiêu, tuần) chứ không theo học sinh, nên dùng được cho mục tiêu LỚP y nguyên.
+      supabase.from('wig_so_do').select('wig_id, gia_tri, vai_tro, created_at').eq('week_start', monday),
+      // Tuần ĐANG XEM đã chốt chưa — chốt rồi thì ô số đo khoá lại (cùng luật RLS).
+      supabase.rpc('tuan_da_hop', {p_class: myClass.id, d: monday}),
     ]);
+
+  const soDoTheoWig = new Map(
+    ((soDoData ?? []) as {wig_id: string; gia_tri: number; vai_tro: string; created_at: string}[]).map(
+      (r) => [r.wig_id, r],
+    ),
+  );
 
   const studentCount = (enrolled ?? []).length;
   const danhSachHocSinh = (
@@ -348,6 +362,8 @@ export default async function WigPage({
     );
     const meta = areaMeta[yw.area as Area];
     const dongNam = dongCua(yw, 'year', t('emptyYear'));
+    // Số đo tuần này của mục tiêu năm — chỉ mục tiêu đo lại mới dùng tới.
+    const sd = soDoTheoWig.get(yw.id);
     return {
       areaLabel: areaLabel(meta, locale),
       areaHex: meta.hex,
@@ -359,6 +375,8 @@ export default async function WigPage({
       // một thứ app cố tình không cho đặt — mà nút Tạo cũng không mở tab nào cho nó. Nói thẳng là
       // loại này theo dõi bằng con số thật, không bằng mốc.
       // `measureBy` nằm ở dòng tiến độ chứ không ở bản ghi wigs, nên hỏi qua chính dòng vừa dựng.
+      soDo: sd ? {giaTri: Number(sd.gia_tri), vaiTro: sd.vai_tro, ghiLuc: sd.created_at} : null,
+      soDoMoKhoa: tuanNayDaHop !== true,
       dong:
         dongNam.measureBy === 'manual'
           ? [dongNam]

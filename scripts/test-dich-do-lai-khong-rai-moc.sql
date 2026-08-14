@@ -47,17 +47,50 @@ select
 from wigs
 where period in ('month', 'week') and measure_by = 'manual';
 
--- ── 3. Đơn vị đo lại (kg, cm, điểm, %) không được nằm ở mốc tuần ──────────────────────────────
--- Chốt thứ hai, độc lập với cột measure_by: kể cả ai đó khai 'tick' cho một mục tiêu tính bằng
--- kg thì mốc tuần "1 kg" vẫn là một câu vô nghĩa.
+-- ── 3. MỐC CỦA ĐƠN VỊ ĐO LẠI PHẢI LÀ DỐC, KHÔNG PHẢI LÁT CẮT ────────────────────────────────
+-- Đổi luật 14/08/2026. Trước đó phép kiểm này đòi "không mốc tuần nào tính bằng kg/điểm" — đúng
+-- với bản vá sáng hôm ấy, nhưng chủ dự án chốt lại: loại này VẪN có mốc tuần (chỗ treo việc, và
+-- là con số để so mỗi tuần khi họp), chỉ khác là mốc mang GIÁ TRỊ PHẢI ĐẠT chứ không phải phần
+-- cộng thêm.
+--
+-- Bất biến thật, và nó bắt đúng con bọ gốc ("+1 kg mỗi tuần, xong đích vào tháng 10 rồi thôi"):
+--   · tuần CUỐI của năm phải rơi đúng vào đích;
+--   · không tuần nào vượt ra ngoài đoạn [xuất phát, đích];
+--   · số tuần có mốc phải phủ gần hết năm, không dừng giữa chừng.
+with nam as (
+  select w.id, w.baseline, w.target_value, w.start_date, w.end_date
+  from wigs w
+  where w.period = 'year' and w.measure_by = 'tick' and kieu_don_vi(w.unit) = 'do'
+),
+tuan as (
+  select n.id, n.baseline, n.target_value,
+         count(c.id) as so_moc,
+         max(c.end_date) as het,
+         n.end_date as het_nam,
+         min(least(n.baseline, n.target_value)) as thap,
+         max(greatest(n.baseline, n.target_value)) as cao,
+         min(c.target_value) as moc_thap,
+         max(c.target_value) as moc_cao,
+         (array_agg(c.target_value order by c.end_date desc))[1] as moc_cuoi
+  from nam n
+  join wigs t on t.parent_wig_id = n.id and t.period = 'month'
+  join wigs c on c.parent_wig_id = t.id and c.period = 'week'
+  group by n.id, n.baseline, n.target_value, n.end_date
+)
 insert into ket_qua
-select
-  'Không mốc tuần nào tính bằng đơn vị đo lại',
-  '0 mốc',
-  count(*) || ' mốc',
-  count(*) = 0
-from wigs
-where period = 'week' and lower(btrim(coalesce(unit, ''))) in ('kg', 'cm', 'điểm', 'diem', '%');
+select 'Mốc tuần của đơn vị đo lại chạy theo dốc tới đích',
+       'tuần cuối = đích, mọi mốc trong đoạn, phủ hết năm',
+       coalesce(string_agg(
+         case when moc_cuoi is distinct from target_value then 'tuần cuối ' || moc_cuoi || ' ≠ đích ' || target_value
+              when moc_thap < thap or moc_cao > cao then 'có mốc ngoài đoạn'
+              when het < het_nam - 7 then 'mốc dừng ở ' || het || ' mà năm tới ' || het_nam
+              else null end, '; '), 'đúng cả ba'),
+       bool_and(
+         moc_cuoi is not distinct from target_value
+         and moc_thap >= thap and moc_cao <= cao
+         and het >= het_nam - 7
+       )
+from tuan;
 
 select
   case when dat then 'ĐẠT ' else 'HỎNG' end as ket,
