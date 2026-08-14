@@ -292,7 +292,16 @@ async function sinhNhip(
   // Chỉ 'manual' mới KHÔNG có mốc: con số ấy sống ngoài app, không có gì trong app để đo theo
   // tuần. Đơn vị đo lại mà em nhập TRONG app thì vẫn cần mốc tuần — đó là chỗ treo ô điền số.
   // (0112 từng chặn cả theo kiểu đơn vị, chặn luôn ca này; xem 0113 để biết vì sao gỡ.)
-  if (w.measure_by === 'manual') return null;
+  // ĐƠN VỊ ĐO LẠI THÌ LUÔN RẢI, KỂ CẢ KHI KHAI "THEO DÕI Ở NGOÀI APP".
+  //
+  // Chủ dự án hỏi đúng chỗ 14/08/2026: "nếu chỉ điền wig năm 6→8 thì làm sao biết tháng đó thắng
+  // hay thua?". Không có mốc thì không có gì để so — mà cờ 'manual' đang chặn đúng việc rải mốc.
+  //
+  // Cờ ấy sinh ra khi kg/điểm nằm hoàn toàn ngoài app. Nay ô "Số của lớp tuần này" (wig_so_do) đã
+  // đưa con số vào trong app cho MỌI mục tiêu đo lại, nên căn cứ để không rải đã mất. Chỉ còn
+  // đúng một ca không rải: đích ĐẾM ĐƯỢC mà lại theo dõi ngoài app — không có số hằng tuần, cũng
+  // không có gì để tick, nên mốc chỉ là bốn chục dòng trống.
+  if (w.measure_by === 'manual' && kieuDonVi(w.unit) !== 'do') return null;
 
   // ĐO LẠI thì rải theo DỐC (35 → 36,7 → … → 50), cộng dồn thì rải theo lát cắt như cũ.
   const nhip =

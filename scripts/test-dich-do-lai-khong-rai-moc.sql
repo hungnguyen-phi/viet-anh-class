@@ -22,7 +22,10 @@ create temporary table ket_qua (buoc text, mong_doi text, thuc_te text, dat bool
 
 -- ── 1. Không mục tiêu 'manual' nào có mốc tháng/tuần treo dưới ────────────────────────────────
 with nam as (
-  select id from wigs where period = 'year' and measure_by = 'manual'
+  -- Chỉ đích ĐẾM ĐƯỢC mà theo dõi ngoài app mới không có mốc. Đơn vị đo lại thì LUÔN có mốc
+  -- (dốc), vì ô số đo mỗi tuần đã đưa con số vào trong app — xem lib/wig-tao.ts.
+  select id from wigs
+  where period = 'year' and measure_by = 'manual' and kieu_don_vi(unit) <> 'do'
 ),
 thang as (
   select id from wigs where parent_wig_id in (select id from nam)
@@ -45,7 +48,7 @@ select
   count(*) || ' mốc',
   count(*) = 0
 from wigs
-where period in ('month', 'week') and measure_by = 'manual';
+where period in ('month', 'week') and measure_by = 'manual' and kieu_don_vi(unit) <> 'do';
 
 -- ── 3. MỐC CỦA ĐƠN VỊ ĐO LẠI PHẢI LÀ DỐC, KHÔNG PHẢI LÁT CẮT ────────────────────────────────
 -- Đổi luật 14/08/2026. Trước đó phép kiểm này đòi "không mốc tuần nào tính bằng kg/điểm" — đúng
@@ -60,7 +63,7 @@ where period in ('month', 'week') and measure_by = 'manual';
 with nam as (
   select w.id, w.baseline, w.target_value, w.start_date, w.end_date
   from wigs w
-  where w.period = 'year' and w.measure_by = 'tick' and kieu_don_vi(w.unit) = 'do'
+  where w.period = 'year' and kieu_don_vi(w.unit) = 'do'
 ),
 tuan as (
   select n.id, n.baseline, n.target_value,
@@ -73,23 +76,27 @@ tuan as (
          max(c.target_value) as moc_cao,
          (array_agg(c.target_value order by c.end_date desc))[1] as moc_cuoi
   from nam n
-  join wigs t on t.parent_wig_id = n.id and t.period = 'month'
-  join wigs c on c.parent_wig_id = t.id and c.period = 'week'
+  -- LEFT join: đích đo lại mà KHÔNG có mốc nào cũng là hỏng, và phải nói ra chứ không được
+  -- biến mất khỏi phép kiểm (bool_and trên tập rỗng trả NULL — đọc thành "không sai").
+  left join wigs t on t.parent_wig_id = n.id and t.period = 'month'
+  left join wigs c on c.parent_wig_id = t.id and c.period = 'week'
   group by n.id, n.baseline, n.target_value, n.end_date
 )
 insert into ket_qua
 select 'Mốc tuần của đơn vị đo lại chạy theo dốc tới đích',
        'tuần cuối = đích, mọi mốc trong đoạn, phủ hết năm',
        coalesce(string_agg(
-         case when moc_cuoi is distinct from target_value then 'tuần cuối ' || moc_cuoi || ' ≠ đích ' || target_value
+         case when so_moc = 0 then 'không có mốc tuần nào'
+              when moc_cuoi is distinct from target_value then 'tuần cuối ' || coalesce(moc_cuoi::text,'—') || ' ≠ đích ' || target_value
               when moc_thap < thap or moc_cao > cao then 'có mốc ngoài đoạn'
               when het < het_nam - 7 then 'mốc dừng ở ' || het || ' mà năm tới ' || het_nam
               else null end, '; '), 'đúng cả ba'),
-       bool_and(
-         moc_cuoi is not distinct from target_value
+       coalesce(bool_and(
+         so_moc > 0
+         and moc_cuoi is not distinct from target_value
          and moc_thap >= thap and moc_cao <= cao
          and het >= het_nam - 7
-       )
+       ), true)
 from tuan;
 
 select
