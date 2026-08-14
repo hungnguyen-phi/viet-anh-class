@@ -133,7 +133,10 @@ export async function layDuLieuHop(
         .from('wigs')
         .select('id, title, area, period, period_label, target_value, unit, start_date, end_date')
         .eq('class_id', classId)
-        .eq('scope', 'class'),
+        .eq('scope', 'class')
+        // Phòng họp chấm thắng/thua TỪNG TUẦN. Mục tiêu cuộn là con số của cả năm và không có
+        // mốc tuần nào, nên đứng ở đây nó chỉ làm dài thêm bảng mà không ai chấm được.
+        .neq('measure_by', 'cuon'),
 
       // ── BA CÂU CHO KHỐI "TỪNG EM" (0108, lát 4+5) ──────────────────────────────────────
       //

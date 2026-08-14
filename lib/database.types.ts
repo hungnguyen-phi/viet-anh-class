@@ -2197,7 +2197,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          hs_go_luc?: string | null
           ghi_chu?: string | null
           gia_tri: number
           id?: string
@@ -2209,7 +2208,6 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          hs_go_luc?: string | null
           ghi_chu?: string | null
           gia_tri?: number
           id?: string
@@ -2249,7 +2247,8 @@ export type Database = {
           achieved_by: string | null
           area: Database["public"]["Enums"]["wig_area"]
           baseline: number | null
-          class_id: string
+          campus_id: string | null
+          class_id: string | null
           created_at: string
           end_date: string
           id: string
@@ -2261,12 +2260,15 @@ export type Database = {
           period_label: string | null
           scope: Database["public"]["Enums"]["wig_scope"]
           set_by: string | null
+          so_dich_can: number | null
           source_wig_id: string | null
           start_date: string
           status: string
           student_id: string | null
           target_value: number
           title: string
+          tong_dich: number | null
+          ty_le_can: number | null
           unit: string
         }
         Insert: {
@@ -2274,9 +2276,9 @@ export type Database = {
           achieved_by?: string | null
           area: Database["public"]["Enums"]["wig_area"]
           baseline?: number | null
-          class_id: string
+          campus_id?: string | null
+          class_id?: string | null
           created_at?: string
-          hs_go_luc?: string | null
           end_date: string
           id?: string
           kind?: string | null
@@ -2287,12 +2289,15 @@ export type Database = {
           period_label?: string | null
           scope: Database["public"]["Enums"]["wig_scope"]
           set_by?: string | null
+          so_dich_can?: number | null
           source_wig_id?: string | null
           start_date: string
           status?: string
           student_id?: string | null
           target_value: number
           title: string
+          tong_dich?: number | null
+          ty_le_can?: number | null
           unit: string
         }
         Update: {
@@ -2300,9 +2305,9 @@ export type Database = {
           achieved_by?: string | null
           area?: Database["public"]["Enums"]["wig_area"]
           baseline?: number | null
-          class_id?: string
+          campus_id?: string | null
+          class_id?: string | null
           created_at?: string
-          hs_go_luc?: string | null
           end_date?: string
           id?: string
           kind?: string | null
@@ -2313,12 +2318,15 @@ export type Database = {
           period_label?: string | null
           scope?: Database["public"]["Enums"]["wig_scope"]
           set_by?: string | null
+          so_dich_can?: number | null
           source_wig_id?: string | null
           start_date?: string
           status?: string
           student_id?: string | null
           target_value?: number
           title?: string
+          tong_dich?: number | null
+          ty_le_can?: number | null
           unit?: string
         }
         Relationships: [
@@ -2327,6 +2335,13 @@ export type Database = {
             columns: ["achieved_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wigs_campus_id_fkey"
+            columns: ["campus_id"]
+            isOneToOne: false
+            referencedRelation: "campuses"
             referencedColumns: ["id"]
           },
           {
@@ -2569,6 +2584,8 @@ export type Database = {
           lead_measure_id: string
           my_dates: string[]
           my_total: number
+          my_values: Json
+          nhap_luong: boolean
           students_done: number
           target_value: number
           title: string
@@ -2615,6 +2632,31 @@ export type Database = {
           wig_title: string
         }[]
       }
+      cuon_dem: {
+        Args: { w: string }
+        Returns: {
+          dat: number
+          tong: number
+        }[]
+      }
+      cuon_so_lieu: {
+        Args: { p_wigs: string[] }
+        Returns: {
+          dat: number
+          tong: number
+          ty_le: number
+          wig_id: string
+        }[]
+      }
+      cuon_so_lieu_lop: {
+        Args: { p_class: string }
+        Returns: {
+          dat: number
+          tong: number
+          ty_le: number
+          wig_id: string
+        }[]
+      }
       current_school_year: { Args: never; Returns: string }
       decide_class_transfer: {
         Args: { p_approve: boolean; p_note?: string; p_request: string }
@@ -2624,9 +2666,23 @@ export type Database = {
         Args: { k: Database["public"]["Enums"]["score_kind"] }
         Returns: number
       }
+      em_dat_du: {
+        Args: {
+          p_can: number
+          p_class: string
+          p_den: string
+          p_student: string
+          p_tu: string
+        }
+        Returns: boolean
+      }
       enroll_student_by_email: {
         Args: { p_class: string; p_email: string }
         Returns: string
+      }
+      gop_lead: {
+        Args: { p_den: string; p_lead: string; p_student: string; p_tu: string }
+        Returns: number
       }
       ham_lay_ngay_may_chu: {
         Args: never
@@ -2635,21 +2691,20 @@ export type Database = {
         }[]
       }
       homework_class: { Args: { p: string }; Returns: string }
+      hs_ghi_bien_ban: {
+        Args: {
+          p_cam_ket: string
+          p_class: string
+          p_ket_qua: string
+          p_week_label: string
+          p_week_start: string
+        }
+        Returns: undefined
+      }
       invite_student_to_class: {
         Args: { p_class: string; p_email: string }
         Returns: string
       }
-      hs_ghi_bien_ban: {
-        Args: {
-          p_class: string
-          p_week_label: string
-          p_week_start: string
-          p_ket_qua: string
-          p_cam_ket: string
-        }
-        Returns: undefined
-      }
-      ten_hien_thi: { Args: { p_full_name: string; p_email: string }; Returns: string }
       ip_allowed: { Args: { p_ip: string }; Returns: boolean }
       is_attendance_leader: { Args: { c: string }; Returns: boolean }
       is_campus_class: { Args: { c: string }; Returns: boolean }
@@ -2663,6 +2718,7 @@ export type Database = {
       is_my_subject_student: { Args: { s: string }; Returns: boolean }
       is_parent_of_class: { Args: { c: string }; Returns: boolean }
       is_subject_teacher_of_class: { Args: { c: string }; Returns: boolean }
+      kieu_don_vi: { Args: { p_unit: string }; Returns: string }
       lead_class: { Args: { lm: string }; Returns: string }
       lead_day_ok: { Args: { d: string; lm: string }; Returns: boolean }
       lead_measure_canh_bao: {
@@ -2680,6 +2736,10 @@ export type Database = {
       log_audit: {
         Args: { p_action: string; p_detail?: Json }
         Returns: undefined
+      }
+      lop_dat_du: {
+        Args: { p_can: number; p_class: string; p_den: string; p_tu: string }
+        Returns: boolean
       }
       mark_attendance: {
         Args: {
@@ -2784,6 +2844,7 @@ export type Database = {
         Args: { p_mood: Database["public"]["Enums"]["mood_level"] }
         Returns: undefined
       }
+      so_do_moi_nhat: { Args: { w: string }; Returns: number }
       staff_can_manage_class: { Args: { c: string }; Returns: boolean }
       staff_can_read_class: { Args: { c: string }; Returns: boolean }
       standard_grade_numbers: {
@@ -2820,9 +2881,17 @@ export type Database = {
           student_id: string
         }[]
       }
+      ten_hien_thi: {
+        Args: { p_email: string; p_full_name: string }
+        Returns: string
+      }
       term_is_locked: { Args: { t: string }; Returns: boolean }
       thu_hai_tu_nhan: { Args: { nhan: string }; Returns: string }
       tick_open: { Args: { p_class: string }; Returns: boolean }
+      toi_dich: {
+        Args: { p_dich: number; p_so: number; p_xuat_phat: number }
+        Returns: boolean
+      }
       transfer_target_classes: {
         Args: never
         Returns: {
@@ -2835,6 +2904,7 @@ export type Database = {
       }
       truong_da_khai_mang: { Args: never; Returns: boolean }
       tuan_da_hop: { Args: { d: string; p_class: string }; Returns: boolean }
+      ty_le_cuon: { Args: { w: string }; Returns: number }
       unenroll_student: {
         Args: { p_class: string; p_student: string }
         Returns: undefined
@@ -2842,6 +2912,7 @@ export type Database = {
       vn_today: { Args: never; Returns: string }
       vn_week_start: { Args: { d?: string }; Returns: string }
       wig_class: { Args: { w: string }; Returns: string }
+      wig_dat: { Args: { w: string }; Returns: boolean }
       wig_student: { Args: { w: string }; Returns: string }
     }
     Enums: {
@@ -2868,7 +2939,7 @@ export type Database = {
         | "pending"
       wig_area: "knowledge" | "skills" | "english" | "physical"
       wig_period: "year" | "month" | "week"
-      wig_scope: "class" | "student"
+      wig_scope: "class" | "student" | "school"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3021,7 +3092,7 @@ export const Constants = {
       ],
       wig_area: ["knowledge", "skills", "english", "physical"],
       wig_period: ["year", "month", "week"],
-      wig_scope: ["class", "student"],
+      wig_scope: ["class", "student", "school"],
     },
   },
 } as const

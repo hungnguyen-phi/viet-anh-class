@@ -53,6 +53,8 @@ export default async function ChiTietPage({
       .select('id, title, area, target_value, baseline, unit')
       .eq('class_id', myClass.id)
       .eq('scope', 'class')
+      // Mục tiêu cuộn không có việc nào để tick nên ở màn này nó chỉ là một khung rỗng.
+      .neq('measure_by', 'cuon')
       .eq('period', 'year'),
     supabase
       .from('wigs')

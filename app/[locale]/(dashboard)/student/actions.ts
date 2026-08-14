@@ -835,6 +835,8 @@ export async function luuMucTieuCuaEm(
     .eq('id', source_wig_id)
     .eq('class_id', class_id)
     .eq('scope', 'class')
+    // Ô chọn đã lọc rồi, nhưng ô chọn nằm trong trình duyệt. Chặn lại ở đây mới là chặn thật.
+    .neq('measure_by', 'cuon')
     .maybeSingle();
   if (!chaLop)
     return {
@@ -1190,6 +1192,8 @@ export async function chinhNhip(_prev: MucTieuState, formData: FormData): Promis
     .eq('id', nam_id)
     .eq('scope', 'class')
     .eq('period', 'year')
+    // Mục tiêu cuộn không chia được: "86% học sinh đạt" chia cho 30 em không ra câu nào có nghĩa.
+    .neq('measure_by', 'cuon')
     .maybeSingle();
   if (!nam) return {ok: false, error: 'Mục tiêu năm này không còn nữa.'};
 

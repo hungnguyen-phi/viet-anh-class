@@ -72,8 +72,24 @@ export async function taoWig(_prev: CreateWigState, formData: FormData): Promise
   const title = String(formData.get('title') ?? '').trim();
   const supabase = await createClient();
 
+  // "86% học sinh có 6/8 môn ≥ 6.5" — ba con số này chỉ có ở tab NĂM khi cô chọn kiểu đo "đếm số
+  // bạn đạt". Số nguyên đọc bằng Math.trunc chứ không Number(): "6.5 môn" là câu vô nghĩa, và để
+  // nó trôi xuống thì CHECK ở CSDL mới chặn, người dùng nhận một câu lỗi kỹ thuật thay vì ô đỏ.
+  const soNguyen = (ten: string): number | null => {
+    const raw = String(formData.get(ten) ?? '').trim();
+    return raw === '' ? null : Math.trunc(Number(raw));
+  };
+  const laCuon = String(formData.get('measure_by') ?? '') === 'cuon';
+
   const kq = await taoMotWig(supabase, {
     class_id: String(formData.get('class_id') ?? ''),
+    cuon: laCuon
+      ? {
+          ty_le_can: Number(String(formData.get('ty_le_can') ?? '').trim()),
+          so_dich_can: soNguyen('so_dich_can') ?? 0,
+          tong_dich: soNguyen('tong_dich'),
+        }
+      : undefined,
     period,
     title,
     baseline: baseline_raw === '' ? null : Number(baseline_raw),
@@ -84,7 +100,11 @@ export async function taoWig(_prev: CreateWigState, formData: FormData): Promise
     area: (String(formData.get('area') ?? '') as Area) || undefined,
     // Ô này chỉ có ở tab NĂM; tháng/tuần không gửi và thừa kế từ cha trong taoMotWig. Giá trị lạ
     // rơi về 'tick' — mặc định của cột, và là cái duy nhất app tự đếm được.
-    measure_by: String(formData.get('measure_by') ?? '') === 'manual' ? 'manual' : 'tick',
+    measure_by: laCuon
+      ? 'cuon'
+      : String(formData.get('measure_by') ?? '') === 'manual'
+        ? 'manual'
+        : 'tick',
   });
   if (!kq.ok) return {ok: false, error: kq.loi, fieldError: kq.field};
 
@@ -193,6 +213,42 @@ export async function luuViec(_prev: CreateWigState, formData: FormData): Promis
 // mở lại đúng cái cửa vừa đóng: một WIG tuần lệch hai hôm so với tuần lịch thì màn hình giáo viên
 // và màn hình học sinh cắt ra hai kết quả khác nhau — sự cố 7B1. Muốn đổi kỳ thì tạo mục tiêu
 // mới cho kỳ đó.
+// Sửa một mục tiêu cuộn: ba con số của phép cuộn, không có mốc xuất phát và không có đơn vị.
+// `target_value` được kéo theo `ty_le_can` vì mọi màn hình cũ đọc cột ấy để vẽ vạch — để hai cột
+// lệch nhau là vạch nói một đằng, chữ nói một nẻo.
+async function suaCuon(id: string, title: string, formData: FormData): Promise<CreateWigState> {
+  const soNguyen = (ten: string): number | null => {
+    const raw = String(formData.get(ten) ?? '').trim();
+    return raw === '' ? null : Math.trunc(Number(raw));
+  };
+  const ty_le_can = Number(String(formData.get('ty_le_can') ?? '').trim());
+  const so_dich_can = soNguyen('so_dich_can');
+  const tong_dich = soNguyen('tong_dich');
+
+  if (!Number.isFinite(ty_le_can) || ty_le_can <= 0 || ty_le_can > 100)
+    return {ok: false, fieldError: 'ty_le_can', error: 'Tỉ lệ cần đạt phải nằm trong khoảng 1–100%.'};
+  if (so_dich_can === null || !Number.isInteger(so_dich_can) || so_dich_can < 1)
+    return {ok: false, fieldError: 'so_dich_can', error: 'Mỗi đơn vị cần đạt ít nhất 1 mục tiêu.'};
+  if (tong_dich !== null && (!Number.isInteger(tong_dich) || tong_dich < so_dich_can))
+    return {ok: false, fieldError: 'tong_dich', error: 'Tổng số mục tiêu không được nhỏ hơn số cần đạt.'};
+
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('wigs')
+    .update({title, ty_le_can, so_dich_can, tong_dich, target_value: ty_le_can, unit: '%'})
+    .eq('id', id)
+    // KHÔNG tin ô ẩn: chỉ đổi được đúng những mục tiêu VỐN ĐÃ là mục tiêu cuộn.
+    .eq('measure_by', 'cuon')
+    .select('id');
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data || data.length === 0)
+    return {ok: false, error: 'Không sửa được mục tiêu này (không có quyền hoặc đã bị xoá).'};
+
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]', 'page');
+  return {ok: true, message: 'Đã lưu.'};
+}
+
 export async function suaWig(_prev: CreateWigState, formData: FormData): Promise<CreateWigState> {
   await requireRole(['teacher', 'admin']);
   const id = String(formData.get('wig_id') ?? '').trim();
@@ -206,6 +262,11 @@ export async function suaWig(_prev: CreateWigState, formData: FormData): Promise
   if (!title) return {ok: false, fieldError: 'title', error: 'Hãy đặt tên cho mục tiêu.'};
   if (title.length > 160)
     return {ok: false, fieldError: 'title', error: 'Tên mục tiêu tối đa 160 ký tự.'};
+
+  // MỤC TIÊU CUỘN SỬA BẰNG BA Ô KHÁC. Nhận ra nó qua chính form (ô ẩn), rồi vẫn kiểm lại bằng
+  // CSDL bên dưới — ô ẩn là thứ người ta sửa được trong hai giây bằng công cụ của trình duyệt, và
+  // tin nó một mình là để ngỏ đường biến một mục tiêu thường thành mục tiêu cuộn.
+  if (String(formData.get('la_cuon') ?? '') === '1') return suaCuon(id, title, formData);
   // MỤC TIÊU LÀ SỐ NGUYÊN.
   //
   // Đếm bài, buổi, lần — không có nửa bài. Trước đây ô này nhận số lẻ (step="any"), nên một phím

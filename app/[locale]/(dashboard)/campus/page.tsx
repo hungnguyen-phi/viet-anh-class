@@ -9,6 +9,10 @@ import {ClassForm} from '@/app/[locale]/(dashboard)/admin/ClassForm';
 import {ClassManager} from '@/app/[locale]/(dashboard)/admin/ClassManager';
 import {SchoolRollup, type RollupRow} from './SchoolRollup';
 import {WigRollup, type WigRollupRow} from './WigRollup';
+import {MucTieuTruong, type WigTruongRow} from './MucTieuTruong';
+import {getAreaMeta} from '@/lib/area-config';
+import {AREAS, areaLabel, type Area} from '@/lib/areas';
+import {schoolYearOptions} from '@/lib/dates';
 import {TeacherManager} from './TeacherManager';
 import {CampusLevelPicker} from './CampusLevelPicker';
 import {Flash} from '@/components/ui/Flash';
@@ -47,6 +51,21 @@ export default async function CampusPage({
     (r) => (r.data ?? []) as WigRollupRow[],
     () => [] as WigRollupRow[],
   );
+
+  // MỤC TIÊU CỦA CƠ SỞ (0116) — tầng trên cùng của ba tầng WIG. Phóng đi cùng lượt, không câu
+  // nào ở dưới cần kết quả của nó. Số liệu cuộn lấy sau vì nó cần chính danh sách id vừa hỏi;
+  // ở tầng trường thì danh sách ấy chỉ vài dòng nên một vòng nối tiếp là chấp nhận được.
+  const wigTruongPromise = supabase
+    .from('wigs')
+    .select('id, title, area, period_label, ty_le_can, so_dich_can, tong_dich')
+    .eq('scope', 'school')
+    .eq('period', 'year')
+    .order('created_at', {ascending: false})
+    .then(
+      (r) => r.data ?? [],
+      () => [],
+    );
+  const areaMetaPromise = getAreaMeta();
 
   // BGH quản lý Cơ sở mình (admin dùng /admin). Các truy vấn dưới đây độc lập → chạy song song.
   let mgmt: null | {
@@ -159,7 +178,41 @@ export default async function CampusPage({
   }
 
   // Giờ mới chờ hai bảng tổng hợp — cả hai đã chạy SONG SONG với khối quản lý ở trên.
-  const [rows, wigRows] = await Promise.all([rollupPromise, wigRollupPromise]);
+  const [rows, wigRows, wigTruong, areaMeta] = await Promise.all([
+    rollupPromise,
+    wigRollupPromise,
+    wigTruongPromise,
+    areaMetaPromise,
+  ]);
+
+  // Phân số "3/12 lớp đạt" — phần trăm một mình không nói cho hiệu trưởng biết còn thiếu mấy lớp.
+  const {data: soLieuCuon} = wigTruong.length
+    ? await supabase.rpc('cuon_so_lieu', {p_wigs: wigTruong.map((w) => w.id)})
+    : {data: []};
+  const cuonTheoWig = new Map(
+    ((soLieuCuon ?? []) as {wig_id: string; tong: number; dat: number; ty_le: number}[]).map((c) => [
+      c.wig_id,
+      c,
+    ]),
+  );
+  const wigTruongRows: WigTruongRow[] = wigTruong.map((w) => {
+    const meta = areaMeta[w.area as Area];
+    const s = cuonTheoWig.get(w.id);
+    return {
+      id: w.id,
+      title: w.title,
+      areaLabel: areaLabel(meta, locale),
+      areaHex: meta.hex,
+      areaSoft: meta.soft,
+      periodLabel: w.period_label,
+      tyLeCan: Number(w.ty_le_can ?? 0),
+      soDichCan: Number(w.so_dich_can ?? 0),
+      tongDich: w.tong_dich == null ? null : Number(w.tong_dich),
+      tong: Number(s?.tong ?? 0),
+      dat: Number(s?.dat ?? 0),
+      tyLe: Number(s?.ty_le ?? 0),
+    };
+  });
 
   // Nhật ký kiểm toán không nằm trên đường tới hạn — xem ghi chú ở lần sửa hiệu năng.
   after(() => {
@@ -192,6 +245,16 @@ export default async function CampusPage({
       {/* Nhịp 4DX tuần này — thắng/thua theo lớp và theo GVCN. Đặt ngay dưới bảng thi đua vì đây
           là cùng một câu hỏi ở hai thang thời gian: bảng trên là cả năm, bảng này là tuần. */}
       <WigRollup rows={wigRows} canOpenWig={profile.role === 'admin'} />
+
+      {/* MỤC TIÊU CỦA CƠ SỞ — tầng trên cùng: trường đếm lớp, lớp đếm em. Chỉ hiệu trưởng của
+          chính cơ sở này đặt được (RLS rls_school_wig_manage); quản trị viên xem qua /admin. */}
+      {profile.role === 'principal' && profile.campus_id && (
+        <MucTieuTruong
+          rows={wigTruongRows}
+          areaOptions={AREAS.map((a) => ({value: a, label: areaLabel(areaMeta[a], locale)}))}
+          namOptions={schoolYearOptions(2)}
+        />
+      )}
 
       {/* Kênh liên lạc phụ huynh ↔ GVCN: ban giám hiệu chỉ nhận SỐ, không nhận CHỮ.
           Đặt ở đây vì đây là màn hình cấp trường của họ, và "lớp nào để phụ huynh chờ lâu" là

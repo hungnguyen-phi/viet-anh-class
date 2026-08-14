@@ -53,8 +53,26 @@ export function chuanHoaHeSo(raw: string | null): number | null {
   return Number.isFinite(n) && n > 0 ? n : 1;
 }
 
+// ── MỤC TIÊU CUỘN ─────────────────────────────────────────────────────────────────────────────
+// "86% học sinh của lớp có 6/8 môn tính điểm đạt 6.5 trở lên" — dạng của cả 13 mục tiêu lớp thật
+// ở cơ sở Gò Vấp. Nó không phải một quãng đường A→B mà là một PHÉP ĐẾM: đếm xem bao nhiêu đơn vị
+// con đã đạt đủ số mục tiêu năm của mình.
+//
+// `tong_dich` (số 8 trong "6/8 môn") KHÔNG tham gia phép tính — em đặt 7 mục tiêu môn và đạt 6
+// thì vẫn là đạt. Nó chỉ để câu chữ trên màn hình giống hệt câu cô đã viết trong kế hoạch.
+export type ThongTinCuon = {
+  ty_le_can: number;
+  so_dich_can: number;
+  tong_dich: number | null;
+};
+
 export type ThongTinWig = {
+  /** Mục tiêu trường thì bỏ trống và truyền campus_id. */
   class_id: string;
+  /** Mặc định 'class'. 'school' bắt buộc đi kèm campus_id và measure_by 'cuon'. */
+  scope?: 'class' | 'school';
+  campus_id?: string;
+  cuon?: ThongTinCuon;
   period: Period;
   title: string;
   baseline: number | null;
@@ -67,7 +85,8 @@ export type ThongTinWig = {
   // Phân biệt này có vì app KHÔNG có dữ liệu điểm môn (bảng điểm 0 dòng ngày 11/08/2026). Cho
   // một mục tiêu điểm số chạy ở chế độ 'tick' là để nó hiện một phần trăm suy ra từ số lượt tick,
   // tức là suy ra từ thứ chẳng liên quan gì tới điểm. Xem docs/MO_HINH_WIG.md §5.0 và 0101.
-  measure_by?: 'tick' | 'manual';
+  // 'cuon'   — số của nó do MÁY ĐẾM NGƯỢC từ các đơn vị con; xem ThongTinCuon.
+  measure_by?: 'tick' | 'manual' | 'cuon';
   // Bắt buộc với tháng/tuần, bỏ qua với năm.
   parent_wig_id?: string;
   // Bắt buộc với năm; tháng/tuần thừa kế của cha.
@@ -100,6 +119,9 @@ async function chaHopLe(
     .eq('id', parentId)
     .eq('class_id', classId)
     .eq('scope', 'class')
+    // Mục tiêu cuộn không làm cha: nó không rải nhịp, và một mốc tháng treo dưới nó sẽ đếm đúng
+    // y hệt cái ở cấp năm — một dòng lặp lại, không thêm thông tin nào.
+    .neq('measure_by', 'cuon')
     .maybeSingle();
   if (!data || data.period !== canPeriod) return null;
   return {
@@ -111,7 +133,83 @@ async function chaHopLe(
   };
 }
 
+// Mục tiêu cuộn đi đường riêng vì gần như không dùng được ô nào của đường thường: không có đơn
+// vị (luôn là %), không có mốc xuất phát (đếm từ 0 em), không có mục tiêu cha, và không rải nhịp.
+// Vẫn vào chung một cửa taoMotWig() để nơi gọi chỉ biết một hàm — chỗ rẽ nằm ở đây, không nằm rải
+// rác trong mười cái `if` giữa đường thường.
+async function taoCuon(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao> {
+  const c = w.cuon;
+  const laTruong = w.scope === 'school';
+  if (!c) return {ok: false, loi: 'Thiếu hai con số của phép cuộn.'};
+  if (!w.title) return {ok: false, field: 'title', loi: 'Hãy đặt tên cho mục tiêu.'};
+  if (w.title.length > 160)
+    return {ok: false, field: 'title', loi: 'Tên mục tiêu tối đa 160 ký tự.'};
+  // Chỉ ở cấp NĂM. Mục tiêu cuộn đếm các mục tiêu NĂM của tầng dưới, nên một bản sao theo tháng
+  // hay tuần sẽ đếm đúng y hệt cái ở cấp năm — ba dòng giống nhau, không thêm thông tin nào.
+  if (w.period !== 'year')
+    return {ok: false, field: 'period', loi: 'Mục tiêu cuộn chỉ đặt ở cấp năm học.'};
+  if (!Number.isFinite(c.ty_le_can) || c.ty_le_can <= 0 || c.ty_le_can > 100)
+    return {ok: false, field: 'ty_le_can', loi: 'Tỉ lệ cần đạt phải nằm trong khoảng 1–100%.'};
+  if (!Number.isInteger(c.so_dich_can) || c.so_dich_can < 1)
+    return {
+      ok: false,
+      field: 'so_dich_can',
+      loi: `Mỗi ${laTruong ? 'lớp' : 'bạn'} cần đạt ít nhất 1 mục tiêu.`,
+    };
+  if (c.tong_dich !== null && (!Number.isInteger(c.tong_dich) || c.tong_dich < c.so_dich_can))
+    return {
+      ok: false,
+      field: 'tong_dich',
+      loi: 'Tổng số mục tiêu không được nhỏ hơn số cần đạt.',
+    };
+  if (!w.area) return {ok: false, field: 'area', loi: 'Hãy chọn lĩnh vực.'};
+  if (laTruong && !w.campus_id) return {ok: false, loi: 'Thiếu cơ sở.'};
+  if (!laTruong && !w.class_id) return {ok: false, loi: 'Thiếu lớp.'};
+
+  const ky = ngayCuaKy('year', w.period_label);
+  if (!ky) return {ok: false, field: 'period_label', loi: 'Hãy chọn năm học cho mục tiêu này.'};
+
+  const {data, error} = await supabase
+    .from('wigs')
+    .insert({
+      class_id: laTruong ? null : w.class_id,
+      campus_id: laTruong ? w.campus_id : null,
+      scope: laTruong ? 'school' : 'class',
+      title: w.title,
+      area: w.area,
+      period: 'year',
+      period_label: w.period_label,
+      // Đích CHÍNH LÀ tỉ lệ, và đơn vị là %. Hai cột này không phải bản sao thừa của ty_le_can:
+      // mọi màn hình cũ đọc target_value/unit để vẽ vạch và ghi chú, nên để trống là chúng hiện
+      // một mục tiêu "0" mà không báo gì.
+      target_value: c.ty_le_can,
+      unit: '%',
+      baseline: null,
+      start_date: ky.start,
+      end_date: ky.end,
+      parent_wig_id: null,
+      measure_by: 'cuon',
+      ty_le_can: c.ty_le_can,
+      so_dich_can: c.so_dich_can,
+      tong_dich: c.tong_dich,
+    })
+    .select('id')
+    .maybeSingle();
+  if (error) return {ok: false, loi: friendlyError(error)};
+  if (!data)
+    return {
+      ok: false,
+      loi: laTruong
+        ? 'Không tạo được mục tiêu trường (chỉ ban giám hiệu của cơ sở này mới đặt được).'
+        : 'Không tạo được mục tiêu (không có quyền với lớp này).',
+    };
+  // KHÔNG rải nhịp tháng/tuần: số của mục tiêu cuộn được đếm lại từ đầu mỗi lần đọc, nên một mốc
+  // tháng chỉ là bản sao của chính nó tại một thời điểm — xem ghi chú ở đầu hàm.
+  return {ok: true, id: data.id};
+}
+
 export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao> {
+  if (w.measure_by === 'cuon' || w.scope === 'school') return taoCuon(supabase, w);
   if (!w.class_id) return {ok: false, loi: 'Thiếu lớp.'};
   if (w.period !== 'year' && w.period !== 'month' && w.period !== 'week')
     return {ok: false, loi: 'Không rõ đang tạo mục tiêu năm, tháng hay tuần.'};
@@ -146,7 +244,8 @@ export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao
   let area: Area;
   // Đơn vị và kiểu đo cũng thừa kế y như lĩnh vực: cùng một cây thì phải cùng một thang.
   let unit = w.unit;
-  let measureBy: 'tick' | 'manual' = w.measure_by ?? 'tick';
+  // 'cuon' đã rẽ ở đầu hàm, nên tới đây chỉ còn hai giá trị.
+  let measureBy: 'tick' | 'manual' = w.measure_by === 'manual' ? 'manual' : 'tick';
   if (w.period === 'year') {
     if (!w.area) return {ok: false, field: 'area', loi: 'Hãy chọn lĩnh vực.'};
     area = w.area;
@@ -226,7 +325,7 @@ export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao
       tong: w.target_value - (w.baseline ?? 0),
       xuatPhat: w.baseline ?? 0,
       dich: w.target_value,
-      measure_by: w.measure_by ?? 'tick',
+      measure_by: measureBy,
     });
     // Mục tiêu năm đã ghi được rồi — nhịp hỏng thì KHÔNG nuốt lỗi, nhưng cũng không giả vờ là
     // chưa tạo gì. Nói đúng cả hai vế để cô biết mình đang đứng ở đâu.

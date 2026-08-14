@@ -44,7 +44,11 @@ export type DongTienDo = {
   area: string | null;
   // ĐO BẰNG GÌ. 'manual' = con số nằm ngoài app (điểm trung bình, kết quả thi): app không đếm
   // được, nên KHÔNG vẽ vạch — vạch ấy là app nói dối. Chỉ có Đạt / Chưa đạt theo achievedAt.
-  measureBy: 'tick' | 'manual';
+  // 'cuon'   = số của nó là kết quả ĐẾM NGƯỢC từ mục tiêu năm của từng bạn (hoặc từng lớp).
+  measureBy: 'tick' | 'manual' | 'cuon';
+  // Chỉ có khi measureBy = 'cuon'. `tongDich` không tham gia phép tính, chỉ để câu chữ trên màn
+  // hình giống câu cô đã viết ("6/8 môn").
+  cuon: {tong: number; dat: number; tyLe: number; can: number; soDichCan: number; tongDich: number | null} | null;
   achievedAt: string | null;
 };
 
@@ -106,7 +110,14 @@ export function BangTienDo({
             if (sua && d.id === sua) {
               return <SuaForm key={d.cap} dong={d} areaOptions={areaOptions} onDong={() => setSua('')} />;
             }
-            const pct = Math.round(d.pct * 100);
+            const laCuon = d.id != null && d.measureBy === 'cuon' && d.cuon != null;
+            // Vạch của mục tiêu cuộn đi theo TỈ LỆ, không theo lượt tick: 85,7% trên đích 86% thì
+            // vạch gần đầy. Con số nằm trong wig_progress_v (private.wig_actual trả tỉ lệ cho loại
+            // này) nên d.pct đã đúng — nhưng nếu dòng tiến độ vắng mặt thì tự tính lại, đừng vẽ
+            // một vạch 0% cạnh dòng chữ "6/7 bạn đạt".
+            const pct = laCuon
+              ? Math.round(Math.min(100, (d.cuon!.tyLe / (d.cuon!.can || 100)) * 100))
+              : Math.round(d.pct * 100);
             // Dòng trống (chưa đặt mục tiêu) vẫn giữ vạch xám như cũ — nó nói "chỗ này còn thiếu".
             const laManual = d.id != null && d.measureBy === 'manual';
             return (
@@ -157,9 +168,27 @@ export function BangTienDo({
                       d.id ? 'text-navy' : 'text-grey-soft'
                     }`}
                   >
-                    {!d.id ? '—' : laManual ? `→ ${d.target} ${d.unit}` : `${d.actual} / ${d.target} ${d.unit}`}
+                    {!d.id
+                      ? '—'
+                      : laCuon
+                        ? `${d.cuon!.tyLe}% / ${d.cuon!.can}%`
+                        : laManual
+                          ? `→ ${d.target} ${d.unit}`
+                          : `${d.actual} / ${d.target} ${d.unit}`}
                   </span>
                 </div>
+
+                {/* PHÂN SỐ, KHÔNG CHỈ PHẦN TRĂM. "85,7%" không nói cho cô biết còn phải kéo thêm
+                    mấy em; "6/7 bạn đạt" thì nói ngay là một em. Với lớp 32 em thì khác biệt còn
+                    lớn hơn: 84,4% và 85,7% trông như nhau, "27/32" và "6/7" thì không. */}
+                {laCuon && (
+                  <p className="mt-1 text-[11px] font-bold text-grey-mid">
+                    {t('cuonDat', {dat: d.cuon!.dat, tong: d.cuon!.tong})}
+                    {' · '}
+                    {t('cuonSoDich')} {d.cuon!.soDichCan}
+                    {d.cuon!.tongDich ? `/${d.cuon!.tongDich}` : ''}
+                  </p>
+                )}
 
                 {/* ĐÍCH GHI NHẬN NGOÀI: không vạch, không phần trăm — app không đếm được con số
                     ấy thì mọi vạch nó vẽ ra đều là bịa. Chỉ nói Đạt hay Chưa đạt, y như màn của
@@ -202,7 +231,11 @@ export function BangTienDo({
                     "điểm, hay kg, hay bất cứ cái nào không đong đếm được" thì điền lại mỗi
                     tuần. Một mục tiêu tính bằng điểm mà khai 'máy đếm' vẫn cần ô này — sau
                     14/08/2026 việc dẫn dắt thôi mang con số ấy, nên không còn nguồn nào khác. */}
-                {kieuDonVi(d.unit) === 'do' && d.cap === 'year' && d.id && (
+                {/* MỤC TIÊU CUỘN THÌ KHÔNG. Đơn vị của nó cũng là '%' nên nó lọt qua điều kiện
+                    trên, và ô "Số của lớp tuần này ___ %" hiện ra ngay dưới dòng "0/7 bạn đạt" —
+                    mời cô gõ tay đúng con số mà app vừa tự đếm xong. Bắt được bằng mắt trên trình
+                    duyệt thật, không phép kiểm số nào thấy. */}
+                {kieuDonVi(d.unit) === 'do' && d.measureBy !== 'cuon' && d.cap === 'year' && d.id && (
                   <div className="mt-2">
                     <OSoDo
                       wigId={d.id}
@@ -250,6 +283,7 @@ function SuaForm({
   return (
     <form action={formAction} className="flex flex-col gap-3 rounded-[14px] border-[1.5px] border-gold/60 bg-white p-3">
       <input type="hidden" name="wig_id" value={dong.id ?? ''} />
+      {dong.measureBy === 'cuon' && <input type="hidden" name="la_cuon" value="1" />}
       <h2 className="font-display text-[13px] font-bold text-navy">
         {t('editWig')} · {dong.periodLabel ?? ''}
       </h2>
@@ -276,6 +310,52 @@ function SuaForm({
         />
       </Field>
 
+      {dong.measureBy === 'cuon' && dong.cuon ? (
+        // Ba ô của phép cuộn thay ba ô Từ/Đến/Đơn vị: mục tiêu này không có mốc xuất phát (đếm từ
+        // 0 bạn) và đơn vị của nó luôn là %.
+        <div className="grid grid-cols-3 gap-2">
+          <Field label={t('cuonTyLe')} htmlFor={`sw-tl-${dong.id}`} error={err('ty_le_can')}>
+            <input
+              id={`sw-tl-${dong.id}`}
+              name="ty_le_can"
+              type="number"
+              step="any"
+              min="1"
+              max="100"
+              inputMode="decimal"
+              defaultValue={dong.cuon.can}
+              aria-invalid={state.fieldError === 'ty_le_can'}
+              className={ctlWithBorder(state.fieldError === 'ty_le_can')}
+            />
+          </Field>
+          <Field label={t('cuonSoDich')} htmlFor={`sw-sd-${dong.id}`} error={err('so_dich_can')}>
+            <input
+              id={`sw-sd-${dong.id}`}
+              name="so_dich_can"
+              type="number"
+              step="1"
+              min="1"
+              inputMode="numeric"
+              defaultValue={dong.cuon.soDichCan}
+              aria-invalid={state.fieldError === 'so_dich_can'}
+              className={ctlWithBorder(state.fieldError === 'so_dich_can')}
+            />
+          </Field>
+          <Field label={t('cuonTongDich')} htmlFor={`sw-td-${dong.id}`} error={err('tong_dich')}>
+            <input
+              id={`sw-td-${dong.id}`}
+              name="tong_dich"
+              type="number"
+              step="1"
+              min="1"
+              inputMode="numeric"
+              defaultValue={dong.cuon.tongDich ?? ''}
+              aria-invalid={state.fieldError === 'tong_dich'}
+              className={ctlWithBorder(state.fieldError === 'tong_dich')}
+            />
+          </Field>
+        </div>
+      ) : (
       <div className="grid grid-cols-3 gap-2">
         <Field label={t('baseline')} htmlFor={`sw-b-${dong.id}`} error={err('baseline')}>
           <input
@@ -308,6 +388,7 @@ function SuaForm({
           <input id={`sw-u-${dong.id}`} name="unit" defaultValue={dong.unit} className={inputCls} />
         </Field>
       </div>
+      )}
 
       {state.error && !state.fieldError && (
         <p className="inline-flex items-start gap-1.5 text-[12px] font-bold text-status-bad">

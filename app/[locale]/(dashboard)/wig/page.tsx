@@ -59,6 +59,12 @@ type Wig = {
   unit: string;
   start_date: string;
   end_date: string;
+  // 0116 — 'cuon' là mục tiêu ĐẾM NGƯỢC từ mục tiêu năm của từng bạn ("86% học sinh có 6/8 môn
+  // đạt 6.5"). Ba cột dưới chỉ có giá trị với loại ấy; `tong_dich` không tham gia phép tính.
+  measure_by: string;
+  ty_le_can: number | null;
+  so_dich_can: number | null;
+  tong_dich: number | null;
 };
 type Lead = {
   id: string;
@@ -127,14 +133,22 @@ export default async function WigPage({
   const tuanTruoc = shiftWeeks(thisMonday, -1);
   const nhanTuanTruoc = isoWeekLabel(vnNoon(tuanTruoc));
 
-  const [{data: wigsData}, {data: progData}, {data: enrolled}, {data: matrixData}, {data: hopRoi}, {data: soDoData}, {data: tuanNayDaHop}] =
-    await Promise.all([
+  const [
+    {data: wigsData},
+    {data: progData},
+    {data: enrolled},
+    {data: matrixData},
+    {data: hopRoi},
+    {data: soDoData},
+    {data: tuanNayDaHop},
+    {data: cuonData},
+  ] = await Promise.all([
       // NHÚNG LUÔN lead_measures: PostgREST nhúng được theo khoá ngoại wig_id và RLS vẫn áp y như
       // khi hỏi rời, nên bỏ hẳn một chặng chờ so với hỏi WIG xong mới hỏi việc.
       supabase
         .from('wigs')
         .select(
-          'id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date, lead_measures(id, wig_id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick, nhap_luong)',
+          'id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date, measure_by, ty_le_can, so_dich_can, tong_dich, lead_measures(id, wig_id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick, nhap_luong)',
         )
         .eq('class_id', myClass.id)
         .eq('scope', 'class'),
@@ -173,7 +187,19 @@ export default async function WigPage({
       supabase.from('wig_so_do').select('wig_id, gia_tri, vai_tro, created_at').eq('week_start', monday),
       // Tuần ĐANG XEM đã chốt chưa — chốt rồi thì ô số đo khoá lại (cùng luật RLS).
       supabase.rpc('tuan_da_hop', {p_class: myClass.id, d: monday}),
+      // MỤC TIÊU CUỘN: "6/7 bạn đạt". Phần trăm thì wig_progress_v đã có (private.wig_actual trả
+      // thẳng tỉ lệ cho loại này), nhưng phân số thì không — mà "85,7%" một mình không nói cho cô
+      // biết còn phải kéo thêm mấy em nữa. Hỏi theo LỚP chứ không theo mảng id để câu này nằm
+      // được trong cùng lượt song song, không phải chờ câu hỏi mục tiêu xong mới đi hỏi tiếp.
+      supabase.rpc('cuon_so_lieu_lop', {p_class: myClass.id}),
     ]);
+
+  const cuonTheoWig = new Map(
+    ((cuonData ?? []) as {wig_id: string; tong: number; dat: number; ty_le: number}[]).map((c) => [
+      c.wig_id,
+      c,
+    ]),
+  );
 
   const soDoTheoWig = new Map(
     ((soDoData ?? []) as {wig_id: string; gia_tri: number; vai_tro: string; created_at: string}[]).map(
@@ -310,6 +336,7 @@ export default async function WigPage({
         status: null,
         area: null,
         measureBy: 'tick',
+        cuon: null,
         achievedAt: null,
       };
     }
@@ -330,7 +357,23 @@ export default async function WigPage({
       area: w.area ?? null,
       // Thiếu dòng tiến độ thì coi như 'tick': mặc định của cột trong CSDL là 'tick', và đoán
       // nhầm sang 'manual' sẽ giấu mất vạch của một đích máy đếm được thật.
-      measureBy: p?.measure_by === 'manual' ? 'manual' : 'tick',
+      //
+      // 'cuon' đọc từ CHÍNH mục tiêu chứ không từ dòng tiến độ: wig_progress_v lọc theo kỳ, nên
+      // một mục tiêu cuộn thiếu dòng tiến độ sẽ rơi về 'tick' và hiện "0 / 86 %" — một câu sai
+      // trong khi con số thật đang nằm sẵn ở cuonTheoWig.
+      measureBy:
+        w.measure_by === 'cuon' ? 'cuon' : p?.measure_by === 'manual' ? 'manual' : 'tick',
+      cuon:
+        w.measure_by === 'cuon'
+          ? {
+              tong: Number(cuonTheoWig.get(w.id)?.tong ?? 0),
+              dat: Number(cuonTheoWig.get(w.id)?.dat ?? 0),
+              tyLe: Number(cuonTheoWig.get(w.id)?.ty_le ?? 0),
+              can: Number(w.ty_le_can ?? w.target_value),
+              soDichCan: Number(w.so_dich_can ?? 0),
+              tongDich: w.tong_dich == null ? null : Number(w.tong_dich),
+            }
+          : null,
       achievedAt: p?.achieved_at ?? null,
     };
   };
@@ -378,7 +421,7 @@ export default async function WigPage({
       soDo: sd ? {giaTri: Number(sd.gia_tri), vaiTro: sd.vai_tro, ghiLuc: sd.created_at} : null,
       soDoMoKhoa: tuanNayDaHop !== true,
       dong:
-        dongNam.measureBy === 'manual'
+        dongNam.measureBy === 'manual' || dongNam.measureBy === 'cuon'
           ? [dongNam]
           : [
               dongNam,
@@ -436,12 +479,18 @@ export default async function WigPage({
           // trước rồi tháng 8 sau thì danh sách đọc thành 9, 8 — và cái đứng đầu lại là cái xa
           // hôm nay nhất. Menu tự chọn cha phủ kỳ đang đứng (xem TaoWigMenu), thứ tự này chỉ để
           // người đọc thấy đúng dòng thời gian.
-          wigNam={[...yearWigs].sort((a, b) => a.start_date.localeCompare(b.start_date)).map((w) => ({
-            id: w.id,
-            title: w.title ?? areaLabel(areaMeta[w.area as Area], locale),
-            start_date: w.start_date,
-            end_date: w.end_date,
-          }))}
+          // Mục tiêu cuộn KHÔNG có trong danh sách cha: nó không rải nhịp, nên một mốc tháng treo
+          // dưới nó sẽ đếm đúng y hệt cái ở cấp năm. Server cũng từ chối (chaHopLe) — nhưng từ
+          // chối sau khi người ta điền xong cả form là tới quá muộn.
+          wigNam={[...yearWigs]
+            .filter((w) => w.measure_by !== 'cuon')
+            .sort((a, b) => a.start_date.localeCompare(b.start_date))
+            .map((w) => ({
+              id: w.id,
+              title: w.title ?? areaLabel(areaMeta[w.area as Area], locale),
+              start_date: w.start_date,
+              end_date: w.end_date,
+            }))}
           wigThang={[...monthWigs].sort((a, b) => a.start_date.localeCompare(b.start_date)).map((w) => ({
             id: w.id,
             title: `${w.title ?? t('month')} · ${w.period_label ?? ''}`,

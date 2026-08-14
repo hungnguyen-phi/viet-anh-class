@@ -64,6 +64,11 @@ with nam as (
   select w.id, w.baseline, w.target_value, w.start_date, w.end_date
   from wigs w
   where w.period = 'year' and kieu_don_vi(w.unit) = 'do'
+    -- TRỪ MỤC TIÊU CUỘN. Đơn vị của nó cũng là '%' nên kieu_don_vi() xếp vào 'do', nhưng nó không
+    -- phải một quãng đường từ A tới B: số của nó đếm ngược từ mục tiêu năm của từng em, không có
+    -- dốc để rải và cố ý không có mốc nào (0116). Không loại ra thì dòng dưới đòi nó phải có mốc
+    -- tuần — đòi một thứ mà chính app từ chối tạo.
+    and w.measure_by <> 'cuon'
 ),
 tuan as (
   select n.id, n.baseline, n.target_value,

@@ -6,6 +6,10 @@ import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {SCHOOL_LEVELS, gradeNumbersFor, type SchoolLevel} from '@/lib/levels';
+import {taoMotWig} from '@/lib/wig-tao';
+import type {Database} from '@/lib/database.types';
+
+type Area = Database['public']['Enums']['wig_area'];
 
 // Quản lý giáo viên ở cấp CƠ SỞ, dành cho Hiệu trưởng (Admin làm việc này ở /admin).
 //
@@ -160,4 +164,63 @@ export async function assignHomeroom(formData: FormData) {
   }
   revalidatePath('/[locale]/campus', 'page');
   flash(error ? loi(friendlyError(error)) : userId ? 'Đã phân công GVCN' : 'Đã bỏ phân công GVCN');
+}
+
+// ════════════════════════════════════════════════════════════════════════════════════════════
+// MỤC TIÊU CỦA CƠ SỞ — tầng trên cùng của ba tầng WIG.
+// ════════════════════════════════════════════════════════════════════════════════════════════
+//
+// "80% lớp của cơ sở đạt ít nhất 2 mục tiêu năm của lớp." Số của nó KHÔNG ai gõ vào: app đếm
+// ngược từ mục tiêu năm của từng lớp, y như mục tiêu lớp đếm ngược từ mục tiêu của từng em.
+//
+// Vì thế mục tiêu trường luôn là mục tiêu cuộn — xem CHECK wig_school_cuon_ck ở 0116. Một mục
+// tiêu trường đo bằng lượt tick sẽ đứng ở 0% suốt năm, vì trường không có ô tick nào của riêng nó.
+//
+// Đường ghi dùng chung taoMotWig() với mục tiêu lớp: hai chỗ tạo WIG mà hai bộ luật là đúng cái
+// bệnh "hai nguồn sự thật" mà repo này đã dọn vài lần.
+export async function taoWigTruong(formData: FormData) {
+  const profile = await myCampus();
+  const soNguyen = (ten: string): number | null => {
+    const raw = String(formData.get(ten) ?? '').trim();
+    return raw === '' ? null : Math.trunc(Number(raw));
+  };
+  const supabase = await createClient();
+  const kq = await taoMotWig(supabase, {
+    class_id: '',
+    scope: 'school',
+    campus_id: profile.campus_id ?? undefined,
+    measure_by: 'cuon',
+    period: 'year',
+    title: String(formData.get('title') ?? '').trim(),
+    area: (String(formData.get('area') ?? '') as Area) || undefined,
+    period_label: String(formData.get('period_label') ?? '').trim(),
+    baseline: null,
+    target_value: 0,
+    unit: '%',
+    cuon: {
+      ty_le_can: Number(String(formData.get('ty_le_can') ?? '').trim()),
+      so_dich_can: soNguyen('so_dich_can') ?? 0,
+      tong_dich: soNguyen('tong_dich'),
+    },
+  });
+  revalidatePath('/[locale]/campus', 'page');
+  flash(kq.ok ? 'Đã tạo mục tiêu của cơ sở' : loi(kq.loi));
+}
+
+// Xoá một mục tiêu của cơ sở. RLS (rls_school_wig_manage) mới là thứ chặn thật: chỉ hiệu trưởng
+// của ĐÚNG cơ sở ấy mới xoá được, kể cả khi ai đó bắn thẳng id của cơ sở khác vào đây.
+export async function xoaWigTruong(formData: FormData) {
+  await myCampus();
+  const id = String(formData.get('wig_id') ?? '').trim();
+  if (!id) flash('Thiếu mục tiêu cần xoá');
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('wigs')
+    .delete()
+    .eq('id', id)
+    .eq('scope', 'school')
+    .select('id');
+  revalidatePath('/[locale]/campus', 'page');
+  if (error) flash(loi(friendlyError(error)));
+  flash(data && data.length > 0 ? 'Đã xoá mục tiêu' : loi('Không xoá được mục tiêu này'));
 }

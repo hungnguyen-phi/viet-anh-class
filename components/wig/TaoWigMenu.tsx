@@ -144,6 +144,34 @@ export function TaoWigMenu({
   // Form mục tiêu của HỌC SINH dùng step="any" từ lâu; chỗ này là chỗ còn sót.
   const [donVi, setDonVi] = useState('');
   const soLe = kieuDonVi(donVi) === 'do';
+  // ── MỤC TIÊU CUỘN ───────────────────────────────────────────────────────────────────────
+  // Dạng của cả 13 mục tiêu lớp thật ở Gò Vấp: "86% học sinh của lớp có 6/8 môn tính điểm đạt
+  // 6.5 trở lên". Cho tới hôm nay form không diễn tả nổi câu ấy — cô đành gõ nó vào ô Tên rồi
+  // đặt đích là 86 với đơn vị "%", và app đi đếm lượt tick để ra một phần trăm chẳng liên quan.
+  //
+  // Ba ô dưới đây thay ba ô Từ/Đến/Đơn vị, vì không ô nào trong ba ô cũ có nghĩa ở đây: không có
+  // mốc xuất phát (đếm từ 0 bạn), đơn vị luôn là %, và "đích" chính là tỉ lệ.
+  const [cachDo, setCachDo] = useState<'tick' | 'manual' | 'cuon'>('tick');
+  const laCuon = loai === 'year' && cachDo === 'cuon';
+  const [tyLe, setTyLe] = useState('');
+  const [soDich, setSoDich] = useState('');
+  const [tongDich, setTongDich] = useState('');
+  // Tên và lĩnh vực do state giữ, không để trình duyệt giữ.
+  //
+  // React DỌN SẠCH form sau mỗi lần gửi — kể cả khi server trả về lỗi. Với ô không kiểm soát thì
+  // cô gõ xong cả form, bấm Lưu, nhận một câu lỗi, và thấy tên mình vừa đặt biến mất. Chính tệp
+  // actions.ts đã đi chữa đúng bệnh ấy ở phía server ("gõ hỏng một ô là mất sạch năm ô còn lại"),
+  // nhưng ba ô này vẫn ở phía cũ.
+  const [tenMT, setTenMT] = useState('');
+  const [linhVuc, setLinhVuc] = useState('');
+  // Ô <select> cần thêm một bước nữa. React dọn form bằng cách trả DOM về mặc định, rồi so với
+  // vDOM thấy value KHÔNG đổi ('cuon' vẫn là 'cuon') nên không ghi lại — thế là ô hiện "Máy đếm
+  // từ lượt tick" trong khi ba ô của mục tiêu cuộn vẫn mở ngay bên dưới. Đã bắt được đúng cảnh ấy
+  // trên trình duyệt thật. Với <input> thì React tự khôi phục, chỉ <select> mới hụt.
+  const oCachDo = useRef<HTMLSelectElement>(null);
+  useEffect(() => {
+    if (oCachDo.current && oCachDo.current.value !== cachDo) oCachDo.current.value = cachDo;
+  });
   // MỤC TIÊU CHA CHỌN SẴN PHẢI LÀ CÁI PHỦ KỲ ĐANG ĐỨNG — không phải cái đầu danh sách.
   //
   // Lỗi chủ dự án gặp: lớp có mục tiêu tháng 9 (tạo trước) và mục tiêu tháng 8 (tạo sau). Mở form
@@ -284,6 +312,8 @@ export function TaoWigMenu({
                 id="wig-title"
                 name="title"
                 placeholder={t('wigTitlePlaceholder')}
+                value={tenMT}
+                onChange={(e) => setTenMT(e.target.value)}
                 aria-invalid={state.fieldError === 'title'}
                 className={ctlWithBorder(state.fieldError === 'title')}
               />
@@ -291,7 +321,13 @@ export function TaoWigMenu({
 
             {loai === 'year' && (
               <Field label={t('area')} htmlFor="wig-area" error={err('area')}>
-                <select id="wig-area" name="area" className={selectCls} defaultValue="">
+                <select
+                  id="wig-area"
+                  name="area"
+                  className={selectCls}
+                  value={linhVuc}
+                  onChange={(e) => setLinhVuc(e.target.value)}
+                >
                   <option value="" disabled>
                     — {t('area')} —
                   </option>
@@ -310,13 +346,95 @@ export function TaoWigMenu({
                 bị app vẽ cho một vạch tiến độ mà nó không có cách nào biết đúng hay sai. */}
             {loai === 'year' && (
               <Field label={t('measureBy')} htmlFor="wig-measure">
-                <select id="wig-measure" name="measure_by" className={selectCls} defaultValue="tick">
+                <select
+                  id="wig-measure"
+                  name="measure_by"
+                  ref={oCachDo}
+                  className={selectCls}
+                  value={cachDo}
+                  onChange={(e) => setCachDo(e.target.value as 'tick' | 'manual' | 'cuon')}
+                >
                   <option value="tick">{t('measureTick')}</option>
                   <option value="manual">{t('measureManual')}</option>
+                  <option value="cuon">{t('measureCuon')}</option>
                 </select>
               </Field>
             )}
 
+            {laCuon ? (
+              <div className="rounded-[12px] bg-navy/[0.04] p-3">
+                <p className="mb-2 text-[12.5px] font-extrabold text-navy">{t('cuonHeading')}</p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <Field label={t('cuonTyLe')} htmlFor="wig-tyle" error={err('ty_le_can')}>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        id="wig-tyle"
+                        name="ty_le_can"
+                        type="number"
+                        step="any"
+                        min="1"
+                        max="100"
+                        inputMode="decimal"
+                        placeholder="86"
+                        value={tyLe}
+                        onChange={(e) => setTyLe(e.target.value)}
+                        aria-invalid={state.fieldError === 'ty_le_can'}
+                        className={ctlWithBorder(state.fieldError === 'ty_le_can')}
+                      />
+                      <span className="text-[13px] font-extrabold text-grey-mid">%</span>
+                    </div>
+                  </Field>
+                  <Field label={t('cuonSoDich')} htmlFor="wig-sodich" error={err('so_dich_can')}>
+                    <input
+                      id="wig-sodich"
+                      name="so_dich_can"
+                      type="number"
+                      step="1"
+                      min="1"
+                      inputMode="numeric"
+                      placeholder="6"
+                      value={soDich}
+                      onChange={(e) => setSoDich(e.target.value)}
+                      aria-invalid={state.fieldError === 'so_dich_can'}
+                      className={ctlWithBorder(state.fieldError === 'so_dich_can')}
+                    />
+                  </Field>
+                  {/* Ô này KHÔNG tham gia phép tính — em đặt 7 mục tiêu và đạt 6 thì vẫn là đạt.
+                      Nó chỉ để câu chữ trên màn hình giống hệt câu cô viết trong kế hoạch ("6/8
+                      môn"), nên bỏ trống cũng được. */}
+                  <Field
+                    label={t('cuonTongDich')}
+                    htmlFor="wig-tongdich"
+                    error={err('tong_dich')}
+                    className="col-span-2 sm:col-span-1"
+                  >
+                    <input
+                      id="wig-tongdich"
+                      name="tong_dich"
+                      type="number"
+                      step="1"
+                      min="1"
+                      inputMode="numeric"
+                      placeholder="8"
+                      value={tongDich}
+                      onChange={(e) => setTongDich(e.target.value)}
+                      aria-invalid={state.fieldError === 'tong_dich'}
+                      className={ctlWithBorder(state.fieldError === 'tong_dich')}
+                    />
+                  </Field>
+                </div>
+                {/* Đọc lại thành câu tiếng Việt. Ba ô số rời nhau thì mỗi người hiểu một kiểu; câu
+                    hoàn chỉnh thì sai là thấy ngay trước khi bấm Lưu. */}
+                <p className="mt-2 text-[12.5px] font-bold text-navy/80">
+                  {t('cuonCau', {
+                    tyle: tyLe || '…',
+                    can: soDich || '…',
+                    tong: tongDich ? t('cuonTongDichSuffix', {n: tongDich}) : '',
+                  })}
+                </p>
+                <p className="mt-1 text-[12px] font-semibold text-grey-mid">{t('cuonGhiChu')}</p>
+              </div>
+            ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_1.3fr]">
               <Field label={t('baseline')} htmlFor="wig-baseline" error={err('baseline')}>
                 <input
@@ -355,6 +473,7 @@ export function TaoWigMenu({
                 />
               </Field>
             </div>
+            )}
 
             {/* CHỈ GỬI NHÃN KỲ, không gửi ngày. Server tra ngày từ nhãn (xem ngayCuaKy trong
                 actions.ts) nên không còn đường nào để một mục tiêu mang ngày lệch với nhãn của
