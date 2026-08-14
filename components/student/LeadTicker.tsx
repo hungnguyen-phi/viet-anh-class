@@ -1,6 +1,6 @@
 'use client';
 
-import {useOptimistic, useState, useTransition} from 'react';
+import {useOptimistic, useRef, useState, useTransition} from 'react';
 import {useRouter} from '@/i18n/navigation';
 import {useTranslations} from 'next-intl';
 import {Check, Flame, Loader2, Lock} from 'lucide-react';
@@ -109,15 +109,22 @@ export function LeadTicker({
   // disabled: không lỗi, không xoay, không dấu vết, và bảng chỉ ghi một ngày. Đã dựng lại đúng
   // cảnh ấy trên production 13/08/2026 và mất thật một lượt.
   // Nay chỉ khoá đúng ô đang bay; các ô còn lại chạm được ngay.
+  // CỜ NÀY PHẢI Ở REF, KHÔNG Ở STATE.
+  //
+  // Bản trước để nó trong state và đặt/xoá ngay TRONG startTransition. React hoãn cập nhật của
+  // transition tới lúc transition kết thúc — mà transition ở đây bao cả router.refresh(), tức là
+  // trọn một vòng máy chủ. Hệ quả nhìn thấy trên production 14/08/2026: tick xong rồi gõ số vào
+  // ô ngay bên dưới thì ghiLuong() thấy ô "vẫn đang bay" và lặng lẽ return — số gõ vào nằm im
+  // trên màn, không lưu, không báo lỗi. Đúng cái bệnh mà chính hàm này vừa đi chữa cho nút tick.
+  // Ref cập nhật tức thì; state chỉ còn để vẽ vòng xoay.
+  const dangBayRef = useRef<Set<string>>(new Set());
   const [oDangGhi, setODangGhi] = useState<ReadonlySet<string>>(() => new Set());
-  const dangGhiO = (leadId: string, date: string) => oDangGhi.has(`${leadId}|${date}`);
-  const danhDauGhi = (k: string, dang: boolean) =>
-    setODangGhi((p) => {
-      const s = new Set(p);
-      if (dang) s.add(k);
-      else s.delete(k);
-      return s;
-    });
+  const dangGhiO = (leadId: string, date: string) => dangBayRef.current.has(`${leadId}|${date}`);
+  const danhDauGhi = (k: string, dang: boolean) => {
+    if (dang) dangBayRef.current.add(k);
+    else dangBayRef.current.delete(k);
+    setODangGhi(new Set(dangBayRef.current));
+  };
 
   // Đổi màu NGAY khi bấm, không chờ máy chủ. Với một việc làm mỗi ngày thì độ trễ 200–400 ms mỗi
   // lượt là thứ cảm nhận được — và cảm giác "bấm mà không thấy gì" khiến người ta bấm lại lần nữa.
@@ -344,7 +351,7 @@ export function LeadTicker({
             const isToday = d === today;
             // Chỉ khoá ĐÚNG ô đang bay — hai ngày khác nhau là hai dòng khác nhau, chạm song song
             // được. Khoá cả dải chính là lỗi làm rơi cú chạm thứ hai (xem `oDangGhi`).
-            const dangBay = dangGhiO(l.id, d);
+            const dangBay = oDangGhi.has(`${l.id}|${d}`);
             const disabled = !canTick || !tickOpen || future || dangBay;
 
             // ── Ô ĐIỀN SỐ (0110) ──
