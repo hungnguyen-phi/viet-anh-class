@@ -11,6 +11,7 @@ import {
   weekDaysVN,
   isoDowVN,
 } from '@/lib/dates';
+import {kieuDonVi} from '@/lib/don-vi';
 import {DonutRing} from '@/components/charts/DonutRing';
 import {MoodCheckin, MoodGate, type MoodKey} from '@/components/student/MoodCheckin';
 import {LeadTicker, type TickerLead} from '@/components/student/LeadTicker';
@@ -415,6 +416,10 @@ export async function StudentScoreboard({
           .eq('class_id', classId)
           .eq('scope', 'class')
           .eq('period', 'year')
+          // Mục tiêu CUỘN không hiện ở đây: nó đếm ngược từ chính mục tiêu của em, nên chọn nó
+          // làm "trận đánh mình đang góp vào" là một vòng tròn. Và chủ dự án đã chốt em không
+          // nhìn thấy loại này (0116).
+          .neq('measure_by', 'cuon')
       : Promise.resolve({data: null}),
     // SỔ CỦA CON — tuần này VÀ các tuần đã viết.
     //
@@ -603,7 +608,36 @@ export async function StudentScoreboard({
       classTotal: null,
       contributors: null,
       classSize: null,
-      myTotal: null,
+      // SỐ CỦA EM TUẦN NÀY — CỘNG CON SỐ ĐÃ GHI, KHÔNG ĐẾM SỐ Ô VÀNG.
+      //
+      // Trước bản này chỗ đây để `null`, và LeadTicker rơi vào đường dự phòng
+      // `myDates.length * unitPerTick` — tức là ĐẾM SỐ NGÀY đã tick. Với việc một-chạm thì hai
+      // cách ra cùng một số nên không ai thấy gì. Với việc ĐIỀN SỐ thì sai hẳn: chủ dự án gõ 15
+      // lead vào ô thứ Sáu, dòng đã ghi xuống CSDL đàng hoàng (kiểm lại: value = 15), mà thanh
+      // vẫn đứng ở "1/1600 lead" — nhìn ra đúng như "nhập 15 vẫn ko lên số, ko ăn".
+      //
+      // Luật gộp lấy y nguyên của việc CHUNG (class_lead_board, 0114) để hai loại việc trong cùng
+      // một bảng không đếm hai kiểu: đơn vị đo lại thì lấy con số MỚI NHẤT, còn lại thì cộng rồi
+      // nhân hệ số.
+      myTotal: (() => {
+        const trongTuan = (l.lead_progress ?? []).filter(
+          (p) =>
+            p.student_id === studentId &&
+            p.logged_date >= weekDays[0] &&
+            p.logged_date <= weekDays[6],
+        );
+        if (trongTuan.length === 0) return 0;
+        if (kieuDonVi(l.unit ?? '') === 'do') {
+          const moiNhat = [...trongTuan].sort((a, b) =>
+            a.logged_date < b.logged_date ? 1 : -1,
+          )[0];
+          return Number(moiNhat.value ?? 0);
+        }
+        return (
+          trongTuan.reduce((tong, p) => tong + Number(p.value ?? 0), 0) *
+          (Number(l.unit_per_tick ?? 1) || 1)
+        );
+      })(),
       studentsDone: null,
     })),
   ];

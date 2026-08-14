@@ -38,6 +38,14 @@ const theCua = (dom, ten) =>
     .filter((tag) => tag.includes(`aria-label="${ten} `));
 const ketQua = [];
 const dau = (ten, dat, chiTiet = '') => ketQua.push({ten, dat, chiTiet});
+// Lấy đúng dòng "x/30 lead" trên thẻ việc, để khi SAI thì báo con số thật chứ không báo suông.
+//
+// PHẢI BÓC THẺ VÀ CHÚ THÍCH TRƯỚC. React in ba mảnh số/gạch/số thành ba nút văn bản rời, nên
+// trong HTML nó là `10<!-- -->/<!-- -->30<!-- --> <!-- -->lead` — dò thẳng chuỗi "10/30" trên HTML
+// thô thì không bao giờ khớp, và phép kiểm sẽ đỏ vì lý do sai.
+const chuThuan = (dom) => dom.replace(/<!--[\s\S]*?-->/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+const timSo = (dom) =>
+  (chuThuan(dom).match(/\d+(?:[.,]\d+)?\s*\/\s*30 lead/) ?? [])[0] ?? 'không thấy dòng x/30 lead';
 function xong(ma) {
   for (const k of ketQua) console.log(`${k.dat ? 'OK  ' : 'SAI '} ${k.ten}${k.chiTiet ? '  → ' + k.chiTiet : ''}`);
   const d = ketQua.filter((k) => k.dat).length;
@@ -90,12 +98,21 @@ try {
   }).select('id').maybeSingle();
   viecId = lm.id;
 
-  // ① Ô ngày là ô SỐ
+  // ① MỖI NGÀY LÀ MỘT NÚT TICK, KÈM MỘT Ô SỐ TUỲ CHỌN BÊN DƯỚI.
+  //
+  // SỬA 14/08/2026. Bản trước của phép kiểm này đòi "mọi ô ngày đều là ô nhập số, KHÔNG ô nào còn
+  // là nút bấm" — đúng với thiết kế hôm ấy, nhưng chủ dự án đã chốt lại ngay sau đó:
+  //
+  //   "có thể ngày đó ko nhập cũng được, nhưng phải tick có làm"
+  //
+  // Tức là con số là tuỳ chọn, còn lượt tick thì không. Bỏ nút đi là mất luôn cách nói "hôm nay
+  // con CÓ làm" của một em chưa kịp đo được bao nhiêu. Nên mỗi ngày nay có hai phần tử: nút tick,
+  // và ô số nằm dưới (khoá cho tới khi đã tick).
   let dom = await doc();
   let the = theCua(dom, 'ZZ_TEST điền lead');
-  dau('Dựng đủ 5 ô ngày cho việc đếm-theo-lượng', the.length === 5, `${the.length} ô`);
-  dau('Mọi ô ngày đều là ô NHẬP SỐ', the.length > 0 && the.every((x) => x.includes('type="number"')));
-  dau('KHÔNG ô nào còn là nút bấm', the.every((x) => !x.includes('aria-pressed')));
+  dau('Dựng đủ 5 ngày cho việc đếm-theo-lượng', the.length === 10, `${the.length} phần tử / 5 ngày`);
+  dau('Mỗi ngày có một ô NHẬP SỐ', the.filter((x) => x.includes('type="number"')).length === 5);
+  dau('Mỗi ngày VẪN có nút tick', the.filter((x) => x.includes('aria-pressed')).length === 5);
 
   // ② Ghi 10 → mở lại đúng 10, và vòng tròn nhích đúng 10/5000
   await admin.from('lead_progress').insert({
@@ -103,6 +120,15 @@ try {
   });
   dom = await doc();
   dau('Mở lại đúng số đã ghi (10)', /value="10"/.test(dom));
+  // THANH CỦA VIỆC PHẢI ĐỌC RA CON SỐ, KHÔNG PHẢI SỐ Ô VÀNG.
+  //
+  // Chủ dự án bắt được 14/08/2026: gõ 15 lead vào ô thứ Sáu, dòng ghi xuống CSDL đàng hoàng
+  // (kiểm lại: value = 15) mà thanh vẫn đứng ở "1/1600 lead" — "nhập 15 vẫn ko lên số, ko ăn".
+  // Nguyên do: việc RIÊNG không được truyền `myTotal`, nên LeadTicker rơi về đường dự phòng
+  // `số ngày đã tick × hệ số`. Việc một-chạm thì hai cách ra cùng một số nên lỗi ẩn kỹ; việc điền
+  // số thì sai hẳn. Mọi phép kiểm cũ ở đây đều nhìn CSDL và vòng tròn NĂM, không cái nào nhìn
+  // đúng dòng chữ em đọc.
+  dau('Thanh của việc đọc ra 10/30, không phải 1/30', /(^|\s)10 ?\/ ?30 lead/.test(chuThuan(dom)), timSo(dom));
   const {data: v1} = await admin.from('wig_progress_v').select('pct, actual').eq('wig_id', wigId).maybeSingle();
   dau('Vòng tròn năm = 10/5000', Number(v1.pct) === 0.002, `${v1.actual}/5000 → ${v1.pct}`);
 
