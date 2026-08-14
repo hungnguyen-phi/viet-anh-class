@@ -8,6 +8,7 @@ import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {Field, ctlWithBorder, inputCls, selectCls, btnGold, btnGhost} from '@/components/ui/Field';
 import {suaWig, deleteWig} from '@/app/[locale]/(dashboard)/wig/actions';
 import {OSoDo} from '@/components/student/OSoDo';
+import {kieuDonVi} from '@/lib/don-vi';
 
 // ════════════════════════════════════════════════════════════════════════════
 // LỚP ĐANG ĐI TỚI ĐÂU — năm, tháng, tuần, mỗi cấp một thanh.
@@ -197,7 +198,11 @@ export function BangTienDo({
                     Chủ dự án chốt 14/08/2026: kg/điểm không nhập hằng ngày; điền lại mỗi tuần,
                     đúng nhịp buổi họp. Ô này đã có sẵn ở màn của em từ 0108 (wig_so_do khoá theo
                     mục tiêu + tuần, không theo học sinh) nên dùng lại nguyên vẹn cho mục tiêu lớp. */}
-                {laManual && d.cap === 'year' && d.id && (
+                {/* Điều kiện là KIỂU ĐƠN VỊ, không phải cột 'đo bằng gì': chủ dự án nói
+                    "điểm, hay kg, hay bất cứ cái nào không đong đếm được" thì điền lại mỗi
+                    tuần. Một mục tiêu tính bằng điểm mà khai 'máy đếm' vẫn cần ô này — sau
+                    14/08/2026 việc dẫn dắt thôi mang con số ấy, nên không còn nguồn nào khác. */}
+                {kieuDonVi(d.unit) === 'do' && d.cap === 'year' && d.id && (
                   <div className="mt-2">
                     <OSoDo
                       wigId={d.id}
