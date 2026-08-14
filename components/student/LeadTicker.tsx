@@ -426,7 +426,11 @@ export function LeadTicker({
                     ? `border-transparent bg-gold text-navy shadow-[var(--shadow-gold)]${disabled ? ' opacity-45' : ''}`
                     : disabled
                       ? 'border-navy/10 bg-navy/[0.03] text-grey-mid'
-                      : 'border-navy/15 bg-white text-navy/60'
+                      : // grey-mid (#575c7d, 6.50:1) chứ không navy/60 (3.96:1 — trượt AA).
+                        // Đây là ô NGÀY THƯỜNG, chưa bấm, không khoá gì cả — tôi tưởng con số
+                        // 3.96 đến từ ô bị mờ nên sửa nhầm chỗ một lần rồi (14/08/2026). Chữ mờ
+                        // trong dự án này có sẵn một token đạt chuẩn; navy/60 là màu tự chế.
+                        'border-navy/15 bg-white text-grey-mid'
                 } ${isToday && !ticked ? 'border-navy ring-2 ring-navy/15' : ''} ${
                   disabled ? 'cursor-default' : 'cursor-pointer hover:border-navy active:scale-95'
                 }`}
