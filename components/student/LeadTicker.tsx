@@ -187,17 +187,37 @@ export function LeadTicker({
     danhDauGhi(oKey, true);
     startTransition(async () => {
       {
-        // Một dòng mỗi (việc, em, ngày) — uq_lead_progress_daily. Ghi lại cùng ngày là SỬA.
-        const {error} = await supabase.from('lead_progress').upsert(
-          {
+        // SỬA TRƯỚC, KHÔNG ĐƯỢC THÌ THÊM — KHÔNG dùng upsert.
+        //
+        // upsert() của supabase-js sinh ra `ON CONFLICT (lead_measure_id, student_id, logged_date)`.
+        // Nhưng chỉ mục duy nhất của bảng này là chỉ mục MỘT PHẦN:
+        //   uq_lead_progress_daily … WHERE (student_id IS NOT NULL)
+        // Postgres chỉ suy ra được chỉ mục một phần khi câu lệnh mang theo đúng mệnh đề WHERE ấy,
+        // mà PostgREST thì không có đường nào gửi kèm. Nên MỌI lượt upsert ở đây đều nổ:
+        //   42P10: there is no unique or exclusion constraint matching the ON CONFLICT specification
+        //
+        // Nghĩa là ô điền số CHƯA TỪNG ghi được lần nào kể từ 0110 — đã kiểm trên production:
+        // 0/3 dòng lead_progress có value khác 1. Lỗi hiện ra bằng câu "tickError" chung chung ở
+        // ĐẦU khối, cách xa cái ô vừa gõ, nên nhìn qua chỉ thấy "gõ số vào rồi không có gì xảy ra".
+        const {data: daSua, error: eSua} = await supabase
+          .from('lead_progress')
+          .update({value: val, logged_by: nguoiGhi})
+          .eq('lead_measure_id', lead.id)
+          .eq('student_id', studentId)
+          .eq('logged_date', date)
+          .select('id');
+        let error = eSua;
+        // Không có dòng nào để sửa (em gõ số trước khi tick, hoặc dòng vừa bị gỡ) → thêm mới.
+        if (!error && (daSua?.length ?? 0) === 0) {
+          const {error: eThem} = await supabase.from('lead_progress').insert({
             lead_measure_id: lead.id,
             student_id: studentId,
             logged_by: nguoiGhi,
             value: val,
             logged_date: date,
-          },
-          {onConflict: 'lead_measure_id,student_id,logged_date'},
-        );
+          });
+          error = eThem;
+        }
         if (error) {
           // Trigger chan_luong_vo_ly (0110) chặn số lớn hơn cả chỉ tiêu một tuần — nói đúng chuyện
           // đó thay vì câu lỗi chung, vì đây là lỗi người gõ sửa được ngay.
