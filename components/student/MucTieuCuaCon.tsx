@@ -5,7 +5,7 @@ import {ngayVN} from '@/lib/dates';
 import {useTranslations} from 'next-intl';
 import {Check, CheckCircle2, Pencil, Plus, Target, Trash2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {btnGhost, btnGold} from '@/components/ui/Field';
+import {btnGhost, btnGhostDai, btnGold} from '@/components/ui/Field';
 import {FormMucTieu, type WigLop} from '@/components/student/FormMucTieu';
 import {OSoDo} from '@/components/student/OSoDo';
 import {
@@ -185,8 +185,11 @@ function MotMucTieu({
     if (!canGhi) return null;
     return (
       <div className="flex min-w-0 flex-col gap-2">
-        <button type="button" onClick={() => setMoForm(true)} className={`${btnGhost} self-start`}>
-          <Plus size={14} strokeWidth={2.5} />
+        {/* btnGhostDai chứ không btnGhost: nhãn này là cả một câu ("Bạn muốn thêm một mục
+            tiêu của riêng bạn"), dài hơn bề ngang máy 360px — nút thường không ngắt dòng được
+            nên nó thò ra khỏi thẻ 33px. */}
+        <button type="button" onClick={() => setMoForm(true)} className={`${btnGhostDai} self-start`}>
+          <Plus size={14} strokeWidth={2.5} className="shrink-0" />
           {laChinhEm ? t('openFormPersonal') : t('openFormPersonalFor')}
         </button>
         {moForm && (
@@ -357,11 +360,15 @@ function MotMucTieu({
                 >
                   <input type="hidden" name="wig_id" value={hocTap.id} />
                   <input type="hidden" name="student_id" value={studentId} />
+                  {/* min-h-11: vùng chạm cũ chỉ 39×19px — dưới sàn 24×24 của WCAG 2.5.8, và
+                      đây là màn các em bấm bằng ngón tay nên dự án lấy chuẩn 44px (xem ctl-h).
+                      Nút "Sửa" ngay bên trái đã cao 44px, nên cùng lúc hai nút cũng thẳng hàng.
+                      Giữ nguyên dáng chữ gạch chân, chỉ nới vùng bấm quanh nó. */}
                   <SubmitButton
-                    className="inline-flex cursor-pointer items-center gap-1 text-[12px] font-extrabold text-status-bad underline"
+                    className="inline-flex min-h-11 cursor-pointer items-center gap-1 px-1.5 text-[12px] font-extrabold text-status-bad underline"
                     wrapClass="contents"
                   >
-                    <Trash2 size={13} strokeWidth={2.5} />
+                    <Trash2 size={13} strokeWidth={2.5} className="shrink-0" />
                     {t('deleteGoal')}
                   </SubmitButton>
                 </form>

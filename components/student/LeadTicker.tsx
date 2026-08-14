@@ -379,10 +379,16 @@ export function LeadTicker({
                       aria-label={`${l.title} — ${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
                       title={`${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
                       aria-busy={dangBay}
+                      // Cùng luật với ô một chạm ngay dưới: ô chưa bấm được thì mờ cái Ô, giữ
+                      // chữ đọc được. Số đã ghi thì vẫn dùng lớp mờ cũ làm dấu "tuần đã khoá".
                       className={`h-11 w-[52px] rounded-[12px] border-[1.5px] text-center text-[13px] font-extrabold tabular-nums transition-all ${
-                        l.myValues[d] ? 'border-transparent bg-gold text-navy' : 'border-navy/15 bg-white text-navy'
+                        l.myValues[d]
+                          ? `border-transparent bg-gold text-navy${disabled ? ' opacity-45' : ''}`
+                          : disabled
+                            ? 'border-navy/10 bg-navy/[0.03] text-grey-mid'
+                            : 'border-navy/15 bg-white text-navy'
                       } ${isToday && !l.myValues[d] ? 'border-navy ring-2 ring-navy/15' : ''} ${
-                        disabled ? 'cursor-default opacity-45' : ''
+                        disabled ? 'cursor-default' : ''
                       } ${dangBay ? 'text-transparent' : ''}`}
                     />
                     {/* XOAY NGAY TRÊN Ô ĐANG GHI. Ẩn chữ đi (`text-transparent`) chứ không đổi kích
@@ -407,12 +413,22 @@ export function LeadTicker({
                 title={`${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
                 aria-label={`${l.title} — ${dayShort[isoDow(d) - 1]} ${d.slice(5)}`}
                 aria-pressed={ticked}
+                // MỜ ĐI THÌ MỜ CÁI Ô, ĐỪNG MỜ CHỮ.
+                //
+                // Bản cũ chồng `opacity-45` lên cả nút, mà chữ vốn đã là `text-navy/60` — nhân
+                // hai lớp mờ vào nhau thì "T6" của ngày chưa tới chỉ còn 3.96:1, dưới ngưỡng AA
+                // 4.5 (đo ở 360px ngày 14/08/2026). Em nhìn không ra hôm đó là thứ mấy.
+                // Nay ô chưa bấm được dùng nền xám nhạt + chữ grey-mid đặc (6.50:1): vẫn đọc ra
+                // là "chưa tới lượt", mà đọc ĐƯỢC. Ô đã tick thì giữ nguyên lớp mờ cũ — chữ sẫm
+                // trên nền vàng vẫn rõ, và đó là dấu duy nhất cho biết tuần đã khoá.
                 className={`relative grid h-11 w-11 place-items-center rounded-[12px] border-[1.5px] text-[11.5px] font-extrabold transition-all ${
                   ticked
-                    ? 'border-transparent bg-gold text-navy shadow-[var(--shadow-gold)]'
-                    : 'border-navy/15 bg-white text-navy/60'
+                    ? `border-transparent bg-gold text-navy shadow-[var(--shadow-gold)]${disabled ? ' opacity-45' : ''}`
+                    : disabled
+                      ? 'border-navy/10 bg-navy/[0.03] text-grey-mid'
+                      : 'border-navy/15 bg-white text-navy/60'
                 } ${isToday && !ticked ? 'border-navy ring-2 ring-navy/15' : ''} ${
-                  disabled ? 'cursor-default opacity-45' : 'cursor-pointer hover:border-navy active:scale-95'
+                  disabled ? 'cursor-default' : 'cursor-pointer hover:border-navy active:scale-95'
                 }`}
               >
                 {/* Ô đã tick vẫn GIỮ tên thứ, dấu ✓ là huy hiệu góc. Bản đầu thay hẳn tên thứ

@@ -47,6 +47,17 @@ const BTN_BASE =
 export const btnGold = `btn-gold ${BTN_BASE}`;
 export const btnNavy = `${BTN_BASE} bg-navy text-white hover:bg-navy-700`;
 export const btnGhost = `${BTN_BASE} border-[1.5px] border-navy/20 bg-white text-navy hover:border-navy`;
+
+// NÚT GHOST CHO NHÃN DÀI — chữ được XUỐNG DÒNG.
+//
+// BTN_BASE cố ý có `shrink-0` + `whitespace-nowrap` + chiều cao cứng `ctl-h`: nút đứng cùng hàng
+// với ô nhập thì thà xuống dòng nguyên vẹn còn hơn co lại thành hình chữ nhật dẹt. Nhưng nút nào
+// ĐỨNG MỘT MÌNH mà nhãn dài hơn bề ngang máy thì đúng ba thuộc tính ấy quay ra chống lại nó —
+// "Bạn muốn thêm một mục tiêu của riêng bạn" thò ra khỏi thẻ 33px ở màn 360px (đo 14/08/2026).
+// Ở đây: cho phép ngắt dòng, `max-w-full` để không vượt thẻ, và đổi chiều cao cứng thành
+// `min-h-11` (vẫn đủ 44px vùng chạm) để hai dòng chữ có chỗ.
+export const btnGhostDai =
+  'inline-flex min-h-11 max-w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-4 py-2.5 text-[13px] font-extrabold text-navy transition-all hover:border-navy';
 export const btnDanger = `${BTN_BASE} border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-3 text-status-bad hover:bg-status-bad/[0.16]`;
 
 // Nút XOÁ chỉ có icon, dùng ở đầu mỗi thẻ (biên bản họp, WIG…).
