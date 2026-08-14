@@ -345,21 +345,32 @@ export default async function WigPage({
       (w) => w.parent_wig_id === yw.id || (w.parent_wig_id != null && thangIds.has(w.parent_wig_id)),
     );
     const meta = areaMeta[yw.area as Area];
+    const dongNam = dongCua(yw, 'year', t('emptyYear'));
     return {
       areaLabel: areaLabel(meta, locale),
       areaHex: meta.hex,
       areaSoft: meta.soft,
-      dong: [
-        dongCua(yw, 'year', t('emptyYear')),
-        dongCua(
-          thang,
-          'month',
-          thangKhac
-            ? t('monthOtherPeriod', {label: thangKhac.period_label ?? ''})
-            : t('emptyMonth'),
-        ),
-        dongCua(tuan, 'week', t('emptyWeek')),
-      ],
+      // ĐÍCH GHI-NHẬN-NGOÀI KHÔNG CÓ MỐC, VÀ ĐÓ LÀ ĐÚNG — đừng bảo cô là còn thiếu.
+      //
+      // Cân nặng, chiều cao, điểm trung bình không chia theo tháng/tuần được (lib/wig-tao.ts), nên
+      // hai dòng ấy vĩnh viễn trống. Để nguyên câu "chưa đặt mục tiêu tháng" thì cô đi tìm chỗ đặt
+      // một thứ app cố tình không cho đặt — mà nút Tạo cũng không mở tab nào cho nó. Nói thẳng là
+      // loại này theo dõi bằng con số thật, không bằng mốc.
+      // `measureBy` nằm ở dòng tiến độ chứ không ở bản ghi wigs, nên hỏi qua chính dòng vừa dựng.
+      dong:
+        dongNam.measureBy === 'manual'
+          ? [dongNam]
+          : [
+              dongNam,
+              dongCua(
+                thang,
+                'month',
+                thangKhac
+                  ? t('monthOtherPeriod', {label: thangKhac.period_label ?? ''})
+                  : t('emptyMonth'),
+              ),
+              dongCua(tuan, 'week', t('emptyWeek')),
+            ],
     };
   });
 
