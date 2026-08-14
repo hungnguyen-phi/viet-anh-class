@@ -260,6 +260,24 @@ async function sinhNhip(
     measure_by: 'tick' | 'manual';
   },
 ): Promise<string | null> {
+  // ĐÍCH GHI-NHẬN-NGOÀI THÌ KHÔNG RẢI. Luật này đã được chốt và viết rõ ở đường mục tiêu của
+  // HỌC SINH (student/actions.ts: `if (measure_by === 'tick')`) — "chia 34kg cho chín tháng ra
+  // 3,8kg mỗi tháng là một câu vô nghĩa". Đường mục tiêu của LỚP thì quên áp, nên nó vẫn rải.
+  //
+  // Hậu quả thấy được trên production 14/08/2026, mục tiêu "tăng cân 35 → 50 kg" của lớp Test:
+  // phần phải đi thêm là 15, mà năm học có 52 tuần → raiDeu() không chia nổi nên rơi vào nhánh
+  // "giao 1 cho những mốc ĐẦU rồi dừng". Kết quả là app bắt tăng ĐÚNG 1 KG MỖI TUẦN trong 15
+  // tuần liền, đạt 50kg vào 11/10, rồi 37 tuần còn lại của năm không có mốc nào cả — vừa vô lý
+  // về sức khoẻ, vừa không còn chỗ treo việc cho lĩnh vực ấy suốt hai phần ba năm học.
+  //
+  // Nhánh "giao 1 rồi dừng" vốn hợp lý cho thứ ĐẾM ĐƯỢC ("đọc 20 cuốn sách" → 20 tuần đầu mỗi
+  // tuần một cuốn). Với đơn vị đo lại thì nó không chỉ vô lý, nó còn cộng dồn một thứ không cộng
+  // được: 1kg tuần này với 1kg tuần sau không phải 2kg tăng thêm.
+  //
+  // Loại này theo dõi bằng ô số đo từng kỳ (0108) chứ không bằng mốc, và cũng không mang việc để
+  // tick — nên không có mốc là đúng, không phải thiếu.
+  if (w.measure_by === 'manual') return null;
+
   const nhip = chiaNhip(w.start, w.end, w.tong);
   if (nhip.tuan.length === 0) return null;
 
