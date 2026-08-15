@@ -198,8 +198,45 @@ exception when others then
   insert into kq values ('Cô KHÔNG xoá được mục tiêu của em', 'bị chặn', 'bị chặn', true);
 end $$;
 
+-- ── E. HỆ THỐNG VẪN DỌN ĐƯỢC (0135) ─────────────────────────────────────────────────────────
+-- Chốt chặn đo bằng auth.uid(); không có phiên thì đó là máy chủ tự chạy (service_role), và khoá
+-- ấy vốn đã bỏ qua toàn bộ RLS. Chặn ở đây không thêm lớp an toàn nào mà chặn đúng việc hợp lệ —
+-- kể cả XOÁ DÂY CHUYỀN khi quản trị xoá một tài khoản học sinh (student_id là on delete cascade).
+--
+-- Bản 0133 quên chuyện này và đã để lại rác thật trong CSDL: bộ kiểm dọn bằng service_role bị
+-- chặn im lặng, ba cam kết ZZ_TEST nằm lại, rồi một bộ khác đâm vào trần "2 cam kết mỗi tuần".
 reset role;
 select set_config('request.jwt.claims', '', true);
+
+do $$
+declare v_so int;
+begin
+  update wigs set title = 'HỆ THỐNG SỬA' where id = (select id from cua_em);
+  get diagnostics v_so = row_count;
+  insert into kq values ('Hệ thống (không phiên) vẫn sửa được', '1 dòng', v_so || ' dòng', v_so = 1);
+exception when others then
+  insert into kq values ('Hệ thống (không phiên) vẫn sửa được', '1 dòng', 'BỊ CHẶN: ' || sqlerrm, false);
+end $$;
+
+do $$
+declare v_so int;
+begin
+  delete from commitments where id = (select id from ck_em);
+  get diagnostics v_so = row_count;
+  insert into kq values ('Hệ thống vẫn dọn được cam kết', '1 dòng', v_so || ' dòng', v_so = 1);
+exception when others then
+  insert into kq values ('Hệ thống vẫn dọn được cam kết', '1 dòng', 'BỊ CHẶN: ' || sqlerrm, false);
+end $$;
+
+do $$
+declare v_so int;
+begin
+  delete from wigs where id = (select id from cua_em);
+  get diagnostics v_so = row_count;
+  insert into kq values ('Hệ thống vẫn dọn được mục tiêu (xoá dây chuyền)', '1 dòng', v_so || ' dòng', v_so = 1);
+exception when others then
+  insert into kq values ('Hệ thống vẫn dọn được mục tiêu (xoá dây chuyền)', '1 dòng', 'BỊ CHẶN: ' || sqlerrm, false);
+end $$;
 
 select case when dat then 'ĐẠT ' else 'HỎNG' end as ket, buoc,
        'mong đợi ' || mong_doi || ', thực tế ' || thuc_te as chi_tiet
