@@ -240,9 +240,13 @@ create trigger trg_cam_ket_hop_le
 -- ── 7. TUẦN ĐÃ CHỐT THÌ THÔI SỬA ───────────────────────────────────────────────────────────
 -- Luật từ vòng comment: "mỗi tuần chỉ có thể sửa trong ngày họp PDR".
 --
--- Đọc thành cơ chế: cam kết được đặt và chỉnh CHO TỚI KHI buổi họp của tuần ấy được ghi nhận;
--- ghi nhận xong là đóng cho tuần ấy. Dùng đúng cái mốc đã có (wig_meetings) thay vì thêm một
--- lịch PDR riêng — lịch PDR từng em là phần của đợt sau, và đoán trước nó ở đây thì sẽ phải gỡ.
+-- Đọc thành cơ chế: cam kết được đặt và chỉnh CHO TỚI KHI buổi họp của tuần ấy được chốt; chốt
+-- xong là đóng cho tuần ấy.
+--
+-- SỬA 15/08/2026 — chủ dự án: "họp pdr chính là họp wig cuối tuần đó". Không có buổi PDR nào
+-- riêng, và cũng không có lịch PDR từng em: buổi họp WIG của tuần LÀ buổi ấy, phần chung và phần
+-- từng em nằm trong cùng một buổi. Bản đầu của tệp này đoán ngược lại nên để lọt một lỗ thật —
+-- xem 0125.
 create or replace function tuan_da_chot(p_class uuid, p_student uuid, p_week date)
 returns boolean
 language sql

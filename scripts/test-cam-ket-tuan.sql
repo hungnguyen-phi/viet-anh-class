@@ -214,6 +214,24 @@ begin
     case when v_cham then 'chấm được' else 'BỊ CHẶN OAN' end, v_cham);
 end $$;
 
+-- CAM KẾT CỦA EM CŨNG KHOÁ THEO DẤU CHỐT CỦA LỚP (0125).
+--
+-- Buổi họp WIG cuối tuần CHÍNH LÀ buổi PDR — chủ dự án nói thẳng 15/08/2026. Phần chung và phần
+-- từng em nằm trong cùng một buổi, cùng một dấu chốt. Bản 0121 đi tìm dấu chốt RIÊNG của mỗi em,
+-- mà đường ghi biên bản chưa từng đóng dấu ấy, nên cam kết của em không bao giờ khoá: họp xong,
+-- chốt xong, em vẫn sửa được lời hứa của tuần vừa qua.
+do $$
+declare v_ok boolean := false;
+begin
+  begin
+    update commitments set title = 'KIỂM · em đổi tên sau khi lớp đã chốt'
+    where id = (select id from ck_em limit 1);
+  exception when check_violation then v_ok := true;
+  end;
+  insert into ket_qua values ('Lớp chốt họp thì cam kết của EM cũng khoá', 'bị chặn',
+    case when v_ok then 'bị chặn' else 'LỌT' end, v_ok);
+end $$;
+
 -- Người chấm khác máy thì phải nhìn thấy được — đây là nguồn của chỉ số "đã thay đổi".
 insert into ket_qua
 select 'Lưu được cả hai: máy gợi gì, người chọn gì', 'lose → win',
