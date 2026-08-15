@@ -11,22 +11,108 @@ create temp table kq (nhom text, buoc text, ky_vong text, thuc_te text) on commi
 
 do $$
 declare
-  qtv    uuid := 'dc00a3e7-e7a9-4175-9b37-6dda75a99bc0'; -- admin
-  bgh    uuid := '074f1e2e-e7bd-4401-ac03-291b02b37c62'; -- principal Q2 (test2.bgh)
-  gv1    uuid := '22ec9392-46c6-420a-bae4-d890bd09d54f'; -- GVCN 7B1
-  gv3    uuid := '26f6e5b6-dabd-4f64-8fe1-1a1ffc4da4dd'; -- GVCN 6A2 (lớp+cơ sở khác)
-  hs1    uuid := 'f10395c6-9975-4292-a7d8-778a7c72c478'; -- con của ph1, lớp 7B1
-  hs2    uuid := '9015d780-587c-4ef9-8dfa-2b2cc2fcde8d'; -- con của ph2, lớp 7B1
-  ph1    uuid := '5fbca2bf-9797-4c53-a42e-62199332bb55';
-  ph2    uuid := 'c03a5c74-a983-4cdf-99a0-b8d578eb95eb';
+  qtv uuid; bgh uuid; gv1 uuid; gv3 uuid;
+  hs1 uuid; hs2 uuid; ph1 uuid; ph2 uuid;
   lop    uuid;
   cs     uuid;
+  cs_khac uuid;
   v_post uuid; v_term uuid; v_rev1 uuid; v_rev2 uuid;
   v_alb  uuid; v_th1 uuid; v_th2 uuid;
   n int;
   ds record;
 begin
-  select id, campus_id into lop, cs from classes where name = '7B1';
+  -- ── DỰNG VAI TỪ DỮ LIỆU THẬT, KHÔNG BÁM UUID CỨNG ────────────────────────────────────────
+  -- Tám uuid cắm cứng ở đây (lớp '7B1' và người của nó) đã không còn trong CSDL từ đợt đổi mô
+  -- hình WIG, nên cả bài kiểm đổ ngay từ dòng đầu. Nay tìm theo VAI TRÒ và QUAN HỆ.
+  select c.id, c.campus_id, c.homeroom_teacher_id into lop, cs, gv1
+  from classes c
+  where c.is_active and c.homeroom_teacher_id is not null
+    and (select count(*) from enrollments e where e.class_id = c.id and e.is_active) >= 2
+  limit 1;
+  select id into qtv from profiles where role = 'admin' limit 1;
+  select id into bgh from profiles where role = 'principal' and campus_id is not null limit 1;
+  -- GVCN của một lớp KHÁC, Ở CƠ SỞ KHÁC — vế "người ngoài" của mọi phép đo cách ly bên dưới,
+  -- kể cả phép đo thực đơn (thực đơn khoá theo CƠ SỞ, không theo lớp).
+  select c.homeroom_teacher_id into gv3
+  from classes c
+  where c.is_active and c.homeroom_teacher_id is not null
+    and c.id <> lop and c.campus_id <> cs
+  limit 1;
+  if lop is null or qtv is null or bgh is null then
+    insert into kq values ('DỰNG', 'Đủ vai để thử', 'có', 'THIẾU VAI');
+    return;
+  end if;
+
+  -- Production hiện chỉ có MỘT cơ sở có lớp, nên không sẵn một GVCN "cơ sở khác". Dựng hẳn một
+  -- cơ sở và một GVCN của nó ngay trong giao dịch, thay vì bỏ phép đo đi: đúng những dòng ấy mới
+  -- là thứ chứng minh dữ liệu của một cơ sở không rò sang cơ sở kia.
+  if gv3 is null then
+    insert into campuses (name, code, is_active)
+    values ('KIỂM · cơ sở khác', 'KIEMCS', true) returning id into cs_khac;
+
+    insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
+                            email_confirmed_at, created_at, updated_at,
+                            raw_app_meta_data, raw_user_meta_data)
+    values (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated',
+            'authenticated', 'kiem.gv3@truongvietanh.com', '', now(), now(), now(),
+            '{}'::jsonb, '{}'::jsonb)
+    returning id into gv3;
+
+    perform set_config('request.jwt.claims',
+      json_build_object('sub', qtv, 'role', 'authenticated')::text, true);
+    update profiles set role = 'teacher', campus_id = cs_khac where id = gv3;
+    perform set_config('request.jwt.claims', '', true);
+
+    insert into classes (campus_id, name, school_year, homeroom_teacher_id, is_active)
+    values (cs_khac, 'KIỂM · lớp cơ sở khác', current_school_year(), gv3, true);
+  end if;
+
+  -- hs1 phải là em CÓ phụ huynh (để đo "bố mẹ đọc được của con mình"); hs2 là em khác cùng lớp.
+  select e.student_id into hs1
+  from enrollments e join parent_links pl on pl.student_id = e.student_id
+  where e.class_id = lop and e.is_active limit 1;
+  if hs1 is null then
+    select student_id into hs1 from enrollments
+     where class_id = lop and is_active order by student_id limit 1;
+  end if;
+  select student_id into hs2 from enrollments
+   where class_id = lop and is_active and student_id <> hs1 order by student_id limit 1;
+
+  select parent_id into ph1 from parent_links where student_id = hs1 limit 1;
+  if ph1 is null then
+    -- Chưa em nào có phụ huynh: dựng một người TRONG GIAO DỊCH này (trigger tự sinh hồ sơ), và
+    -- cả file kết thúc bằng ROLLBACK nên không để lại tài khoản nào.
+    insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
+                            email_confirmed_at, created_at, updated_at,
+                            raw_app_meta_data, raw_user_meta_data)
+    values (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated',
+            'authenticated', 'kiem.ph1@truongvietanh.com', '', now(), now(), now(),
+            '{}'::jsonb, '{}'::jsonb)
+    returning id into ph1;
+    -- Đổi vai trò là việc CHỈ admin làm được (trigger protect_profile_privileged_cols), nên
+    -- đóng vai admin đúng hai câu lệnh này rồi trả claim về rỗng ngay.
+    perform set_config('request.jwt.claims',
+      json_build_object('sub', qtv, 'role', 'authenticated')::text, true);
+    update profiles set role = 'parent' where id = ph1;
+    perform set_config('request.jwt.claims', '', true);
+    insert into parent_links (parent_id, student_id) values (ph1, hs1);
+  end if;
+
+  -- PHỤ HUYNH THỨ HAI là vế đắt nhất của cả bài: "bố mẹ nhà khác KHÔNG đọc được". Production chỉ
+  -- có đúng một phụ huynh, nên dựng người thứ hai ngay trong giao dịch thay vì bỏ phép đo đi —
+  -- bỏ nó là mất đúng cái ranh giới mà cả file này sinh ra để canh.
+  insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
+                          email_confirmed_at, created_at, updated_at,
+                          raw_app_meta_data, raw_user_meta_data)
+  values (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated',
+          'authenticated', 'kiem.ph2@truongvietanh.com', '', now(), now(), now(),
+          '{}'::jsonb, '{}'::jsonb)
+  returning id into ph2;
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', qtv, 'role', 'authenticated')::text, true);
+  update profiles set role = 'parent' where id = ph2;
+  perform set_config('request.jwt.claims', '', true);
+  insert into parent_links (parent_id, student_id) values (ph2, hs2);
 
   -- ── Gieo dữ liệu bằng quyền postgres (bỏ qua RLS) ──
   insert into homework_posts (class_id, date, subject, content, kind, created_by)
@@ -66,12 +152,12 @@ begin
   for ds in
     select * from (values
       -- nhóm            nhãn                                  uid   sql                                                                              kỳ vọng
-      ('BÁO BÀI','GVCN lớp đó đọc',                    gv1, 'select count(*) from homework_posts where class_id='''||lop||'''', 1),
-      ('BÁO BÀI','GVCN lớp khác đọc',                  gv3, 'select count(*) from homework_posts where class_id='''||lop||'''', 0),
-      ('BÁO BÀI','Hiệu trưởng cùng cơ sở đọc',         bgh, 'select count(*) from homework_posts where class_id='''||lop||'''', 1),
-      ('BÁO BÀI','Học sinh trong lớp đọc',             hs1, 'select count(*) from homework_posts where class_id='''||lop||'''', 1),
-      ('BÁO BÀI','Phụ huynh có con trong lớp đọc',     ph1, 'select count(*) from homework_posts where class_id='''||lop||'''', 1),
-      ('BÁO BÀI','Phụ huynh KHÁC cùng lớp cũng đọc',   ph2, 'select count(*) from homework_posts where class_id='''||lop||'''', 1),
+      ('BÁO BÀI','GVCN lớp đó đọc',                    gv1, 'select count(*) from homework_posts where id='''||v_post||'''', 1),
+      ('BÁO BÀI','GVCN lớp khác đọc',                  gv3, 'select count(*) from homework_posts where id='''||v_post||'''', 0),
+      ('BÁO BÀI','Hiệu trưởng cùng cơ sở đọc',         bgh, 'select count(*) from homework_posts where id='''||v_post||'''', 1),
+      ('BÁO BÀI','Học sinh trong lớp đọc',             hs1, 'select count(*) from homework_posts where id='''||v_post||'''', 1),
+      ('BÁO BÀI','Phụ huynh có con trong lớp đọc',     ph1, 'select count(*) from homework_posts where id='''||v_post||'''', 1),
+      ('BÁO BÀI','Phụ huynh KHÁC cùng lớp cũng đọc',   ph2, 'select count(*) from homework_posts where id='''||v_post||'''', 1),
 
       ('ĐÃ LÀM','Chính em đó thấy tick của mình',      hs1, 'select count(*) from homework_done where post_id='''||v_post||'''', 1),
       ('ĐÃ LÀM','Bạn cùng lớp KHÔNG thấy tick',        hs2, 'select count(*) from homework_done where post_id='''||v_post||'''', 0),

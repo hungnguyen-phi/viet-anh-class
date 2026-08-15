@@ -5,13 +5,25 @@ create temp table kq (buoc text, ky_vong text, thuc_te text) on commit drop;
 
 do $$
 declare
-  gv1  uuid := '22ec9392-46c6-420a-bae4-d890bd09d54f'; -- GVCN 7B1
-  qtv  uuid := 'dc00a3e7-e7a9-4175-9b37-6dda75a99bc0';
-  hs1  uuid := 'f10395c6-9975-4292-a7d8-778a7c72c478';
-  hs2  uuid := '9015d780-587c-4ef9-8dfa-2b2cc2fcde8d';
+  gv1 uuid; qtv uuid; hs1 uuid; hs2 uuid;
   lop uuid; cs uuid; v_term uuid; n int;
 begin
-  select id, campus_id into lop, cs from classes where name = '7B1';
+  -- LỚP THẬT BẤT KỲ có GVCN và ít nhất hai em. Bám cứng tên '7B1' và bốn uuid là chọn cách phép
+  -- kiểm chắc chắn mục theo thời gian — lớp ấy đã không còn trong CSDL từ đợt đổi mô hình WIG.
+  select c.id, c.campus_id, c.homeroom_teacher_id into lop, cs, gv1
+  from classes c
+  where c.is_active and c.homeroom_teacher_id is not null
+    and (select count(*) from enrollments e where e.class_id = c.id and e.is_active) >= 2
+  limit 1;
+  select id into qtv from profiles where role = 'admin' limit 1;
+  if lop is null or qtv is null then
+    insert into kq values ('Có lớp và quản trị viên để thử', 'có', 'KHÔNG CÓ');
+    return;
+  end if;
+  select student_id into hs1 from enrollments
+   where class_id = lop and is_active order by student_id limit 1;
+  select student_id into hs2 from enrollments
+   where class_id = lop and is_active order by student_id desc limit 1;
   insert into assessment_terms (campus_id, school_year, kind, name, start_date, end_date, created_by)
   values (cs,'2026-2027','hoc_ky_1','HK1', current_date-30, current_date+30, qtv) returning id into v_term;
   insert into student_term_reviews (term_id, student_id, class_id, comment, created_by)

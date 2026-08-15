@@ -17,25 +17,42 @@ create temp table kq (nhom text, buoc text, ky_vong text, thuc_te text, dat text
 
 do $$
 declare
-  qtv   uuid := 'dc00a3e7-e7a9-4175-9b37-6dda75a99bc0'; -- quản trị viên
-  bgh   uuid := '074f1e2e-e7bd-4401-ac03-291b02b37c62'; -- hiệu trưởng ĐÚNG cơ sở của 7B1
-  bgh2  uuid := 'ffb3b830-22e5-4a09-b88a-7efdaaa24987'; -- hiệu trưởng cơ sở KHÁC
-  gvcn  uuid := '22ec9392-46c6-420a-bae4-d890bd09d54f'; -- GVCN 7B1
-  gvla  uuid := '26f6e5b6-dabd-4f64-8fe1-1a1ffc4da4dd'; -- GVCN 6A2, không dạy 7B1
-  hs1   uuid := 'f10395c6-9975-4292-a7d8-778a7c72c478'; -- 7B1
-  hs2   uuid := '9015d780-587c-4ef9-8dfa-2b2cc2fcde8d'; -- 7B1
-  hs3   uuid := '2257d290-000e-4757-bf4e-45f34568b638'; -- 7B1, cố tình KHÔNG tick
-  hsla  uuid := '1b7e8f60-0c4e-4361-bf20-b3dd591b2f39'; -- 6A2 (lớp khác)
-  lop   uuid := '79589c03-6bb0-462c-96de-5445e32d72bf'; -- 7B1
-  w_nam uuid; w_tuan uuid; lm_ok uuid; lm_sai_thu uuid;
+  qtv uuid; bgh uuid; bgh2 uuid; gvcn uuid; gvla uuid;
+  hs1 uuid; hs2 uuid; hs3 uuid; hsla uuid; lop uuid; lop_khac uuid; cs uuid;
+  w_nam uuid; ck uuid; lm_ok uuid; lm_sai_thu uuid;
   t2      date := vn_week_start();
   homnay  date := vn_today();
   dow_nay smallint := extract(isodow from vn_today())::smallint;
   thu_khac smallint[];
-  n int; v numeric; b boolean;
+  n int; si_so_x2 int; v numeric; b boolean;
 begin
   -- Mọi thứ trong khối này chạy quyền postgres (bỏ qua RLS) — đó là chủ ý: dựng bối cảnh.
   -- Chỉ khi ĐÓNG VAI mới bật role 'authenticated' để RLS thật sự có hiệu lực.
+
+  -- DỰNG VAI TỪ DỮ LIỆU THẬT. Mười uuid cắm cứng ở đây (lớp '7B1' và người của nó) đã không còn
+  -- trong CSDL từ đợt đổi mô hình WIG, nên cả bài kiểm đổ ngay dòng đầu bằng lỗi khoá ngoại.
+  select c.id, c.campus_id, c.homeroom_teacher_id into lop, cs, gvcn
+  from classes c
+  where c.is_active and c.homeroom_teacher_id is not null
+    and (select count(*) from enrollments e where e.class_id = c.id and e.is_active) >= 3
+  limit 1;
+  select id into qtv from profiles where role = 'admin' limit 1;
+  select id into bgh from profiles where role = 'principal' and campus_id = cs limit 1;
+  select id into bgh2 from profiles where role = 'principal' and campus_id is distinct from cs limit 1;
+  select c.id, c.homeroom_teacher_id into lop_khac, gvla
+  from classes c where c.is_active and c.homeroom_teacher_id is not null and c.id <> lop limit 1;
+  if lop is null or qtv is null or bgh is null or gvla is null then
+    insert into kq values ('DỰNG', 'Đủ vai để thử', '—', 'THIẾU VAI', '✘ HỎNG');
+    return;
+  end if;
+  select student_id into hs1 from enrollments
+   where class_id = lop and is_active order by student_id limit 1;
+  select student_id into hs2 from enrollments
+   where class_id = lop and is_active and student_id <> hs1 order by student_id limit 1;
+  select student_id into hs3 from enrollments
+   where class_id = lop and is_active and student_id not in (hs1, hs2) order by student_id limit 1;
+  select student_id into hsla from enrollments
+   where class_id = lop_khac and is_active limit 1;
 
   -- Chốt cửa sổ tick còn mở, để phép kiểm không phụ thuộc vào hôm chạy là thứ mấy.
   update classes set tick_lock_dow = 7 where id = lop;
@@ -50,27 +67,25 @@ begin
           t2 - 200, t2 + 200, '[KIỂM 0073] WIG năm')
   returning id into w_nam;
 
-  -- WIG TUẦN của lớp: mục tiêu TUYỆT ĐỐI 2 lượt (không phải %, đúng như đã chốt).
-  insert into wigs (class_id, scope, area, period, period_label, parent_wig_id, target_value, unit,
-                    start_date, end_date, title)
-  values (lop, 'class', 'knowledge', 'week', 'KT-0073-W', w_nam, 2, 'lượt',
-          t2, t2 + 6, '[KIỂM 0073] WIG tuần của lớp')
-  returning id into w_tuan;
+  -- 0121: không còn WIG tuần. Nhịp tuần là CAM KẾT của lớp, và việc chung treo dưới cam kết.
+  insert into commitments (wig_id, class_id, week_start, title, area)
+  values (w_nam, lop, t2, '[KIỂM 0073] cam kết của lớp', 'knowledge')
+  returning id into ck;
 
   -- Việc CHUNG áp dụng ĐÚNG hôm nay.
-  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays)
-  values (w_tuan, '[KIỂM] Nộp bài tập', 2, 'lượt', array[dow_nay])
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays)
+  values (ck, '[KIỂM] Nộp bài tập', 2, 'lượt', array[dow_nay])
   returning id into lm_ok;
 
   -- Việc CHUNG KHÔNG áp dụng hôm nay.
-  insert into lead_measures (wig_id, title, target_value, unit, active_weekdays)
-  values (w_tuan, '[KIỂM] Việc của thứ khác', 2, 'lượt', thu_khac)
+  insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays)
+  values (ck, '[KIỂM] Việc của thứ khác', 2, 'lượt', thu_khac)
   returning id into lm_sai_thu;
 
   -- ══════════════════════════════════════════════════════
   -- A · CHƯA AI TICK THÌ CHƯA THẮNG
   -- ══════════════════════════════════════════════════════
-  select pct into v from wig_progress_v where wig_id = w_tuan;
+  select pct into v from wig_progress_v where wig_id = w_nam;
   insert into kq values ('A · NGUỒN SỐ LIỆU', 'Chưa em nào tick → WIG tuần của lớp', '0% (chưa thắng)',
     round(coalesce(v,0) * 100) || '%', case when coalesce(v,0) = 0 then 'ĐẠT' else '✘ HỎNG' end);
 
@@ -101,13 +116,19 @@ begin
   insert into kq values ('B · TICK', 'Em thứ hai tick', 'được',
     case when b then 'được' else 'BỊ CHẶN' end, case when b then 'ĐẠT' else '✘ HỎNG' end);
 
-  select pct into v from wig_progress_v where wig_id = w_tuan;
-  insert into kq values ('B · TICK', 'Hai lượt tick / mục tiêu 2 → WIG tuần của lớp', '100% (THẮNG)',
-    round(coalesce(v,0) * 100) || '%', case when coalesce(v,0) >= 1 then 'ĐẠT' else '✘ HỎNG' end);
+  -- 0121: THẮNG/THUA CỦA TUẦN THÔI LÀ MỘT PHẦN TRĂM. Nó là V/X do người bấm trong phòng họp;
+  -- máy chỉ GỢI Ý, và gợi ý ấy đúng bằng "mọi việc dẫn dắt đã chạm chỉ tiêu chưa". Đo cái gợi ý
+  -- là đo đúng phần mà lượt tick còn quyết định được.
+  -- Cam kết này có HAI việc, và việc thứ hai (áp dụng vào thứ khác) cố tình chưa ai đạt. Nên gợi
+  -- ý phải là THUA — luật là "đủ MỌI việc dẫn dắt mới gợi thắng", không phải "có việc nào đạt là
+  -- thắng". Đây đúng chỗ dễ viết lỏng tay nhất của cả cơ chế gợi ý.
+  insert into kq
+  select 'B · TICK', 'Còn một việc chưa đạt → máy gợi THUA', 'lose',
+         cam_ket_goi_y(ck), case when cam_ket_goi_y(ck) = 'lose' then 'ĐẠT' else '✘ HỎNG' end;
 
-  -- WIG NĂM phải cộng dồn theo cây (năm ← tuần), đúng như wig_actual() vẫn làm.
+  -- MỤC TIÊU NĂM cộng dồn từ lượt tick của việc treo dưới cam kết.
   select actual into v from wig_progress_v where wig_id = w_nam;
-  insert into kq values ('B · TICK', 'WIG năm cộng dồn từ WIG tuần con', '2',
+  insert into kq values ('B · TICK', 'Mục tiêu năm cộng dồn từ lượt tick', '2',
     coalesce(v,0)::text, case when coalesce(v,0) = 2 then 'ĐẠT' else '✘ HỎNG' end);
 
   -- ══════════════════════════════════════════════════════
@@ -197,9 +218,11 @@ begin
   select count(*) into n from class_tick_matrix(lop, t2)
    where lead_measure_id in (lm_ok, lm_sai_thu);
   perform set_config('role', 'postgres', true);
-  -- 3 học sinh × 2 việc = 6 dòng, KỂ CẢ em chưa tick lần nào — chính ô trống mới là thứ cần thấy.
-  insert into kq values ('E · GVCN', 'Ma trận đủ (học sinh × việc), kể cả ô trống', '6 dòng',
-    n || ' dòng', case when n = 6 then 'ĐẠT' else '✘ HỎNG' end);
+  -- SĨ SỐ THẬT × 2 việc, KỂ CẢ em chưa tick lần nào — chính ô trống mới là thứ cần thấy. Viết
+  -- cứng "6 dòng" là buộc phép kiểm vào một lớp có đúng ba em; lớp thật đổi sĩ số là đỏ oan.
+  select count(*) * 2 into si_so_x2 from enrollments where class_id = lop and is_active;
+  insert into kq values ('E · GVCN', 'Ma trận đủ (học sinh × việc), kể cả ô trống', si_so_x2 || ' dòng',
+    n || ' dòng', case when n = si_so_x2 then 'ĐẠT' else '✘ HỎNG' end);
 
   perform set_config('request.jwt.claims', json_build_object('sub', gvcn)::text, true);
   perform set_config('role', 'authenticated', true);
@@ -226,11 +249,16 @@ begin
   -- ══════════════════════════════════════════════════════
   -- F · BAN GIÁM HIỆU: thắng/thua theo lớp, theo GVCN
   -- ══════════════════════════════════════════════════════
+  -- 0121: "thắng" trong bảng của BGH là cam kết ĐÃ ĐƯỢC CHẤM V, không phải một phép so số. Nên
+  -- chấm trước rồi mới đo — chưa ai bấm thì chưa thắng, và đó là câu trả lời đúng.
+  update commitments set verdict = 'win', verdict_goi_y = cam_ket_goi_y(ck), verdict_at = now()
+  where id = ck;
+
   perform set_config('request.jwt.claims', json_build_object('sub', bgh)::text, true);
   perform set_config('role', 'authenticated', true);
   select wigs_won into n from school_wig_rollup(t2) where class_id = lop;
   perform set_config('role', 'postgres', true);
-  insert into kq values ('F · BGH', 'Hiệu trưởng ĐÚNG cơ sở thấy 7B1 thắng', '≥1',
+  insert into kq values ('F · BGH', 'Hiệu trưởng ĐÚNG cơ sở thấy lớp ấy thắng', '≥1',
     coalesce(n, -1)::text, case when coalesce(n,0) >= 1 then 'ĐẠT' else '✘ HỎNG' end);
 
   perform set_config('request.jwt.claims', json_build_object('sub', bgh)::text, true);
@@ -267,14 +295,17 @@ begin
   -- ══════════════════════════════════════════════════════
   -- GVCN vẫn ghi được (lp_staff_manage) — CỐ Ý, để chữa sai sót. Nhưng dòng không gắn với em nào
   -- thì không được làm tăng "số em đã tick", nếu không thì lại quay về đúng cái bệnh cũ.
+  -- Ghi 2, không phải 5: trigger chan_luong_vo_ly (0110) chặn một ngày ghi quá chỉ tiêu cả tuần,
+  -- mà việc này đặt chỉ tiêu 2. Con số 5 chỉ là ngẫu nhiên của bản 0073 — điều đang chứng minh là
+  -- "dòng không gắn với em nào thì không tính là em đã tham gia", không phải con số ấy lớn cỡ nào.
   insert into lead_progress (lead_measure_id, student_id, logged_by, value, logged_date)
-  values (lm_ok, null, gvcn, 5, homnay);
+  values (lm_ok, null, gvcn, 2, homnay);
 
   perform set_config('request.jwt.claims', json_build_object('sub', bgh)::text, true);
   perform set_config('role', 'authenticated', true);
   select tick_students into n from school_wig_rollup(t2) where class_id = lop;
   perform set_config('role', 'postgres', true);
-  insert into kq values ('G · GÕ TAY', 'GVCN gõ +5 → số EM đã tick', 'vẫn 2',
+  insert into kq values ('G · GÕ TAY', 'GVCN gõ tay một dòng → số EM đã tick', 'vẫn 2',
     coalesce(n,-1)::text, case when coalesce(n,-1) = 2 then 'ĐẠT' else '✘ HỎNG' end);
 
   perform set_config('request.jwt.claims', json_build_object('sub', gvcn)::text, true);

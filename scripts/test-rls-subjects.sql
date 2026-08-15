@@ -11,17 +11,36 @@ create temp table kq (nhom text, buoc text, ky_vong text, thuc_te text) on commi
 
 do $$
 declare
-  qtv   uuid := 'dc00a3e7-e7a9-4175-9b37-6dda75a99bc0'; -- admin
-  bgh   uuid := '074f1e2e-e7bd-4401-ac03-291b02b37c62'; -- hiệu trưởng Q2
-  gvcn  uuid := '22ec9392-46c6-420a-bae4-d890bd09d54f'; -- GVCN 7B1
-  gvbm  uuid := 'd0d6e263-6336-4887-802c-5d73a2601cd5'; -- cô Lan → sẽ phân công dạy TOÁN ở 7B1
-  gvla  uuid := '26f6e5b6-dabd-4f64-8fe1-1a1ffc4da4dd'; -- GVCN 6A2, không dạy gì ở 7B1
-  hs1   uuid := 'f10395c6-9975-4292-a7d8-778a7c72c478';
-  ph1   uuid := '5fbca2bf-9797-4c53-a42e-62199332bb55';
+  qtv   uuid; bgh uuid; gvcn uuid;
+  gvbm  uuid; -- giáo viên bộ môn: sẽ được phân công dạy TOÁN ở lớp đang thử
+  gvla  uuid; -- GVCN lớp khác, không dạy gì ở lớp đang thử
+  hs1   uuid;
+  ph1   uuid;
   lop uuid; cs uuid; m_toan uuid; m_van uuid;
   v_term uuid; v_rev uuid; n int; ds record;
 begin
-  select id, campus_id into lop, cs from classes where name = '7B1';
+  -- LỚP THẬT có GVCN, và KHỐI của nó phải khớp với môn Toán/Văn (subject_fits_grade). Bám cứng
+  -- tên '7B1' cùng sáu uuid là chọn cách phép kiểm mục theo thời gian — lớp ấy đã không còn.
+  select c.id, c.campus_id, c.homeroom_teacher_id into lop, cs, gvcn
+  from classes c
+  join grades g on g.id = c.grade_id
+  where c.is_active and c.homeroom_teacher_id is not null
+    and exists (select 1 from enrollments e where e.class_id = c.id and e.is_active)
+  order by g.sort_order
+  limit 1;
+  select id into qtv from profiles where role = 'admin' limit 1;
+  select id into bgh from profiles where role = 'principal' and campus_id is not null limit 1;
+  select c.homeroom_teacher_id into gvla
+  from classes c where c.is_active and c.homeroom_teacher_id is not null and c.id <> lop limit 1;
+  -- Giáo viên bộ môn: một người KHÁC GVCN, để phân công dạy đúng một môn ở lớp này.
+  select p.id into gvbm from profiles p
+  where p.role = 'teacher' and p.id <> gvcn and p.id is distinct from gvla limit 1;
+  select e.student_id into hs1 from enrollments e where e.class_id = lop and e.is_active limit 1;
+  select pl.parent_id into ph1 from parent_links pl where pl.student_id = hs1 limit 1;
+  if lop is null or qtv is null or bgh is null or gvbm is null or gvla is null then
+    insert into kq values ('DỰNG', 'Đủ vai để thử', 'có', 'THIẾU VAI');
+    return;
+  end if;
   select id into m_toan from subjects where code = 'TOAN' and campus_id is null;
   select id into m_van  from subjects where code = 'VAN'  and campus_id is null;
 

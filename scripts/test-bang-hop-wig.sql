@@ -26,6 +26,8 @@ declare
   v_lead2    uuid;
   v_wig      uuid;
   v_ck       uuid;
+  v_wig2     uuid;
+  v_ck2      uuid;
   v_n        int;
 begin
   -- CHỌN LỚP CHO ĐÚNG, nếu không thì phép kiểm quyền ở mục 5 tự lừa mình.
@@ -74,12 +76,30 @@ begin
     values (v_ck, 'ZZ_TEST việc', 5, 'buổi') returning id into v_lead;
   end if;
 
-  -- Một việc của LỚP KHÁC BẤT KỲ, để thử ghi chéo lớp. Tìm theo "việc thuộc lớp nào đó khác
-  -- v_class" chứ không phải "việc của v_class2" — lớp đầu tiên khác v_class có thể chưa có việc
-  -- nào, và khi ấy phép kiểm im lặng bỏ qua rồi vẫn tự chấm ĐẠT.
+  -- Một việc của LỚP KHÁC, để thử ghi chéo lớp. Tìm theo "việc thuộc lớp nào đó khác v_class"
+  -- chứ không phải "việc của v_class2" — lớp đầu tiên khác v_class có thể chưa có việc nào.
   select lm.id into v_lead2
-  from lead_measures lm join wigs w on w.id = lm.wig_id
-  where w.class_id is not null and w.class_id <> v_class limit 1;
+  from lead_measures lm
+  join commitments ck on ck.id = lm.commitment_id
+  join wigs w on w.id = lm.wig_id
+  where ck.class_id is not null and ck.class_id <> v_class limit 1;
+
+  -- KHÔNG CÓ THÌ TỰ DỰNG LẤY, đừng bỏ qua. Sau đợt xoá sạch mục tiêu cũ (0121) thường chỉ còn
+  -- đúng một lớp có việc, và khi ấy phép kiểm ĐẮT NHẤT của cả file — "GVCN lớp này không chấm
+  -- được việc của lớp khác" — lặng lẽ không chạy. Cảnh dựng trong transaction rồi ROLLBACK, nên
+  -- lớp kia không mọc thêm gì sau khi chạy xong.
+  if v_lead2 is null and v_class2 is not null then
+    insert into wigs (class_id, scope, title, area, period, period_label, target_value, unit,
+                      start_date, end_date)
+    values (v_class2, 'class', 'ZZ_TEST wig lớp khác', 'knowledge', 'year', 'ZZN2', 5, 'buổi',
+            '2026-01-01', '2026-12-31')
+    returning id into v_wig2;
+    insert into commitments (wig_id, class_id, week_start, title, area)
+    values (v_wig2, v_class2, date '2026-03-02', 'ZZ_TEST cam kết lớp khác', 'knowledge')
+    returning id into v_ck2;
+    insert into lead_measures (commitment_id, title, target_value, unit)
+    values (v_ck2, 'ZZ_TEST việc lớp khác', 5, 'buổi') returning id into v_lead2;
+  end if;
 
   -- ── 1. Trigger chặn ghi chéo lớp ──
   -- RLS chỉ kiểm class_id của chính dòng đang ghi, mà class_id ấy do người gửi tự khai. Không có
