@@ -4,6 +4,7 @@ import {Lock, CalendarDays, Users} from 'lucide-react';
 import {NutDoiTrang} from '@/components/ui/NutDoiTrang';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
+import {tenHienThi} from '@/lib/ten-hien-thi';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext} from '@/lib/queries';
 import {todayInVN} from '@/lib/dates';
@@ -15,7 +16,7 @@ import type {Database} from '@/lib/database.types';
 type Status = Database['public']['Enums']['attendance_status'];
 type EnrRow = {
   student_id: string;
-  profiles: {id: string; full_name: string | null} | null;
+  profiles: {id: string; full_name: string | null; email: string | null} | null;
 };
 
 export default async function AttendancePage({
@@ -64,7 +65,7 @@ export default async function AttendancePage({
   const [{data: enrolls}] = await Promise.all([
     supabase
       .from('enrollments')
-      .select('student_id, profiles!enrollments_student_id_fkey(id, full_name)')
+      .select('student_id, profiles!enrollments_student_id_fkey(id, full_name, email)')
       .eq('class_id', myClass.id)
       .eq('is_active', true),
   ]);
@@ -107,7 +108,10 @@ export default async function AttendancePage({
   }
 
   const students = ((enrolls ?? []) as unknown as EnrRow[])
-    .map((e) => ({id: e.student_id, name: e.profiles?.full_name ?? e.student_id}))
+    // TÊN, KHÔNG PHẢI UUID. Em chưa khai tên thì trước đây bảng in nguyên
+    // "7f801b90-4de0-434e-ba24-be600a315fc9" ra giữa danh sách lớp — nhìn thấy trên production
+    // 15/08/2026. Dùng đúng phép dự phòng dùng chung của dự án: tên → phần trước @ của email.
+    .map((e) => ({id: e.student_id, name: tenHienThi(e.profiles?.full_name, e.profiles?.email)}))
     .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
 
   // Đợt 2: bản ghi điểm danh phụ thuộc `today` nên phải chờ đợt 1.

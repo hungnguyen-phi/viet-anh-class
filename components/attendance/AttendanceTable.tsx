@@ -299,7 +299,12 @@ export function AttendanceTable({
           </button>
         )}
       </div>
-      <p className="text-[11px] italic text-grey-mid">{t('realtimeNote')}</p>
+      {/* Câu này dạy cách LƯU, nên chỉ nói với người lưu được. Sau 0127, GVCN và tổ trưởng chỉ
+          đọc — bày cho họ một hướng dẫn bấm nút mà chính họ không có nút là dạy một việc không
+          làm được. Nửa sau (thay đổi từ máy khác tự hiện) thì ai cũng cần, nên tách làm hai câu. */}
+      <p className="text-[11px] italic text-grey-mid">
+        {canEdit ? t('realtimeNote') : t('realtimeNoteReadOnly')}
+      </p>
 
       {/* Nút Lưu nằm cuối một bảng ba mươi dòng, nên tick xong ở giữa bảng là nó đã trôi khỏi màn.
           Dải này bám đáy để "còn N em chưa lưu" luôn nằm trong tầm mắt, và bấm được ngay tại chỗ. */}

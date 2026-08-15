@@ -132,7 +132,7 @@
     "absent": "Absent",
     "late": "Late",
     "excused": "Excused",
-    "lockedPast": "Past days editable by Admin only",
+    "lockedPast": "Past days: school board only",
     "readOnly": "Attendance is the students’ own doing: whoever checks in is marked present, whoever does not is absent by default. If a day is wrong, ask the school board to fix it.",
     "realtimeNote": "Tick, then press “Save attendance” — this page does NOT autosave. Changes made on another device do appear here within seconds.",
     "noStudents": "This class has no students yet.",
@@ -142,7 +142,8 @@
     "saveFailed": "Failed to save {count} — try again",
     "tickAll": "Whole class",
     "tickAllHint": "Tip: set the whole class to 'Present', then adjust a few, then Save.",
-    "unsaved": "{count} students not saved yet"
+    "unsaved": "{count} students not saved yet",
+    "realtimeNoteReadOnly": "Changes from another device appear here within seconds."
   },
   "roster": {
     "title": "Class roster",

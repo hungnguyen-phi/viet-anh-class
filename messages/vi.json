@@ -132,7 +132,7 @@
     "absent": "Vắng",
     "late": "Trễ",
     "excused": "Có phép",
-    "lockedPast": "Ngày cũ chỉ Admin sửa",
+    "lockedPast": "Ngày cũ chỉ ban giám hiệu sửa",
     "readOnly": "Điểm danh là việc của chính các em: bạn nào check-in cảm xúc thì được ghi có mặt, bạn nào không check-in thì mặc định là vắng. Ghi nhầm một ngày thì nhờ ban giám hiệu sửa.",
     "realtimeNote": "Tick xong nhớ bấm “Lưu điểm danh” — app KHÔNG tự lưu. Thay đổi từ máy khác sẽ tự hiện lên đây trong vài giây.",
     "noStudents": "Lớp chưa có học sinh.",
@@ -142,7 +142,8 @@
     "saveFailed": "Lưu thất bại {count} em — thử lại",
     "tickAll": "Chọn cả lớp",
     "tickAllHint": "Mẹo: chọn cả lớp 'Có mặt' rồi chỉnh vài em vắng/trễ, sau đó Lưu.",
-    "unsaved": "Còn {count} em chưa lưu"
+    "unsaved": "Còn {count} em chưa lưu",
+    "realtimeNoteReadOnly": "Thay đổi từ máy khác sẽ tự hiện lên đây trong vài giây."
   },
   "roster": {
     "title": "Danh sách lớp",
