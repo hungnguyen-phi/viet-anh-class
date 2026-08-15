@@ -68,8 +68,10 @@ export default async function AttendancePage({
       .eq('class_id', myClass.id)
       .eq('is_active', true),
   ]);
-  // GVCN/admin xem & sửa 7 ngày gần nhất (backfill); học sinh (tổ trưởng) chỉ hôm nay.
-  const canBackfill = profile.role === 'teacher' || profile.role === 'admin';
+  // ĐIỂM DANH LÀ VIỆC CỦA EM (0127). GVCN và tổ trưởng THÔI ghi — em tự check-in mới là điểm
+  // danh, ai không check-in thì mặc định vắng. Chữa một ngày ghi nhầm là việc của ban giám hiệu.
+  // Cửa sổ bù 7 ngày nay thuộc về BGH/Admin, không còn của GVCN.
+  const canBackfill = profile.role === 'principal' || profile.role === 'admin';
   const days: string[] = [];
   const base = new Date(realToday + 'T00:00:00Z');
   for (let i = 0; i < 7; i++) {
@@ -119,11 +121,12 @@ export default async function AttendancePage({
     initial[r.student_id] = r.status;
   });
 
-  // Tới đây học sinh chắc chắn là tổ trưởng (đã guard ở trên) → được sửa hôm nay.
-  const canEdit =
-    profile.role === 'student' ||
-    profile.role === 'teacher' ||
-    profile.role === 'admin';
+  // CHỈ BGH VÀ ADMIN SỬA ĐƯỢC (0127). Tổ trưởng vẫn vào được màn này — nhưng để NHÌN ai chưa
+  // check-in mà đi nhắc, đúng một việc ấy. GVCN cũng chỉ đọc: bảng này là gương của việc các em
+  // đã làm, không phải chỗ cô làm thay.
+  //
+  // RLS mới là thứ chặn thật; cờ này chỉ để giao diện đừng bày ra những nút bấm vào sẽ báo lỗi.
+  const canEdit = profile.role === 'principal' || profile.role === 'admin';
 
   return (
     <div className="space-y-4">

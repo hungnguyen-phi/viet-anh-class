@@ -92,6 +92,18 @@ export type DuLieuHop = {
   camKetDich: {id: string; title: string; wigId: string}[];
   /** Mục tiêu NĂM đang chạy — danh sách để chọn khi đặt cam kết. */
   namHienCo: WigOption[];
+  // BẢNG PDR (0126) — ba con số PRD đòi, cho TỪNG em, của đúng tuần đang tổng kết. Không phải
+  // màn hình mới: chủ dự án chốt "dashboard pdr chính là cái trang họp wig bên gv đó".
+  bangPdr: {
+    id: string;
+    ten: string;
+    camKetTong: number;
+    camKetDat: number;
+    viecTong: number;
+    viecDat: number;
+    soLanSua: number;
+    chamKhacMay: number;
+  }[];
   viecMau: ViecMau[];
 };
 
@@ -119,6 +131,7 @@ export async function layDuLieuHop(
     {data: bienBanEmRows},
     {data: ckTuanQua},
     {data: ckDich},
+    {data: pdrRows},
   ] = await Promise.all([
       supabase.rpc('class_lead_board', {p_class: classId, p_week_start: hopMonday}),
       supabase.rpc('class_tick_matrix', {p_class: classId, p_week_start: hopMonday}),
@@ -189,6 +202,7 @@ export async function layDuLieuHop(
         .eq('class_id', classId)
         .is('student_id', null)
         .eq('week_start', dichWk.start),
+      supabase.rpc('pdr_bang', {p_class: classId, p_week: hopMonday}),
     ]);
 
   const board = (boardData ?? []) as BoardRow[];
@@ -343,6 +357,25 @@ export async function layDuLieuHop(
       id: c.id,
       title: c.title,
       wigId: c.wig_id,
+    })),
+    bangPdr: ((pdrRows ?? []) as {
+      student_id: string;
+      student_name: string;
+      cam_ket_tong: number;
+      cam_ket_dat: number;
+      viec_tong: number;
+      viec_dat: number;
+      so_lan_sua: number;
+      cham_khac_may: number;
+    }[]).map((r) => ({
+      id: r.student_id,
+      ten: r.student_name,
+      camKetTong: Number(r.cam_ket_tong),
+      camKetDat: Number(r.cam_ket_dat),
+      viecTong: Number(r.viec_tong),
+      viecDat: Number(r.viec_dat),
+      soLanSua: Number(r.so_lan_sua),
+      chamKhacMay: Number(r.cham_khac_may),
     })),
     namHienCo: wigs
       .filter((w) => w.period === 'year' && phuDich(w))

@@ -187,6 +187,10 @@ end $$;
 -- nên private.wig_actual nay là lớp bọc mỏng: 'cuon' thì hỏi ty_le_cuon, còn lại gọi wig_actual_so.
 -- Lớp bọc không đọc lead_progress, nên phần đọc thật vẫn đúng một hàm như trước.
 --
+-- 15/08/2026 — `pdr_bang` (0126) nhập danh sách: nó đếm "việc đạt" cho từng em ở Bảng PDR trong
+-- phòng họp. Trả lời câu hỏi dòng điểm danh này đặt ra: nó đếm theo TỪNG EM, và dùng đúng luật
+-- gộp của cam_ket_goi_y — nếu hai chỗ đếm khác nhau thì bảng sẽ cãi nhau với chính nút V/X ở trên.
+--
 -- 14/08/2026, đợt hai — `cam_ket_goi_y` (0121) nhập danh sách: nó đọc lượt tick để GỢI Ý thắng
 -- hay thua cho một cam kết. Trả lời câu hỏi mà dòng điểm danh này đặt ra: nó đếm theo TỪNG EM khi
 -- cam kết là của một em, và theo cả lớp khi cam kết là của lớp — cùng một luật với class_lead_board.
@@ -200,11 +204,11 @@ end $$;
 --   · class_scoreboard        — CỐ Ý cộng dồn: đây là bảng ĐIỂM tích luỹ theo hạng mục, không
 --                               phải thước đo thắng/thua của một việc
 insert into ket_qua
-select 'Đúng 7 hàm đọc lead_progress, không hơn',
-       'cam_ket_goi_y, child_week_report, class_lead_board, class_scoreboard, class_tick_matrix, school_wig_rollup, wig_actual_so',
+select 'Đúng 8 hàm đọc lead_progress, không hơn',
+       'cam_ket_goi_y, child_week_report, class_lead_board, class_scoreboard, class_tick_matrix, pdr_bang, school_wig_rollup, wig_actual_so',
        string_agg(p.proname, ', ' order by p.proname),
        string_agg(p.proname, ', ' order by p.proname) =
-         'cam_ket_goi_y, child_week_report, class_lead_board, class_scoreboard, class_tick_matrix, school_wig_rollup, wig_actual_so'
+         'cam_ket_goi_y, child_week_report, class_lead_board, class_scoreboard, class_tick_matrix, pdr_bang, school_wig_rollup, wig_actual_so'
 from pg_proc p
 join pg_namespace n on n.oid = p.pronamespace
 where n.nspname in ('public', 'private')

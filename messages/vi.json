@@ -133,7 +133,7 @@
     "late": "Trễ",
     "excused": "Có phép",
     "lockedPast": "Ngày cũ chỉ Admin sửa",
-    "readOnly": "Bạn chỉ có quyền xem điểm danh.",
+    "readOnly": "Điểm danh là việc của chính các em: bạn nào check-in cảm xúc thì được ghi có mặt, bạn nào không check-in thì mặc định là vắng. Ghi nhầm một ngày thì nhờ ban giám hiệu sửa.",
     "realtimeNote": "Tick xong nhớ bấm “Lưu điểm danh” — app KHÔNG tự lưu. Thay đổi từ máy khác sẽ tự hiện lên đây trong vài giây.",
     "noStudents": "Lớp chưa có học sinh.",
     "save": "Lưu điểm danh",
@@ -634,7 +634,13 @@
     "commitmentNo": "Cam kết {n}",
     "commitmentPlaceholder": "vd: Cả lớp nộp bài Toán đúng hạn",
     "commitmentHint": "Tối đa 2 cam kết mỗi tuần — ít thì mới tập trung được. Việc để các em tick thì gắn ở trang lớp.",
-    "commitmentLeadsDone": "{xong}/{tong} việc đạt"
+    "commitmentLeadsDone": "{xong}/{tong} việc đạt",
+    "pdrTitle": "Bảng PDR — từng em tuần này",
+    "pdrCount": "{n} em",
+    "pdrStudent": "Học sinh",
+    "pdrCommitments": "Cam kết đạt",
+    "pdrLeads": "Việc đạt",
+    "pdrChanged": "Đã đổi"
   },
   "report": {
     "title": "Báo cáo phụ huynh",

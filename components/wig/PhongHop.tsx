@@ -93,6 +93,7 @@ export function PhongHop({
   camKetCu,
   camKetTuanQua,
   camKetDich,
+  bangPdr,
   namHienCo,
   viecMau,
   areaMeta,
@@ -131,6 +132,17 @@ export function PhongHop({
   }[];
   /** Cam kết ĐÃ đặt cho tuần tới — mở lại buổi họp thì điền sẵn, không đẻ bản sao. */
   camKetDich: {id: string; title: string; wigId: string}[];
+  /** Ba con số PDR của từng em, cho đúng tuần đang tổng kết (0126). */
+  bangPdr: {
+    id: string;
+    ten: string;
+    camKetTong: number;
+    camKetDat: number;
+    viecTong: number;
+    viecDat: number;
+    soLanSua: number;
+    chamKhacMay: number;
+  }[];
   // Danh sách mục tiêu NĂM để chọn khi đặt cam kết.
   namHienCo: WigOption[];
   viecMau: ViecMau[];
@@ -530,6 +542,58 @@ export function PhongHop({
               );
             })}
           </div>
+        )}
+
+        {/* ══ BẢNG PDR ══ (0126)
+            PRD v3 đòi ba con số cho mỗi em, và chủ dự án chốt chúng thuộc về CHÍNH trang này chứ
+            không phải một màn hình riêng: "dashboard pdr chính là cái trang họp wig bên gv đó".
+
+            Đặt ngay dưới V/X của lớp là có chủ ý — cô vừa chấm xong cam kết CHUNG thì nhìn sang
+            ngay từng em, cùng một câu hỏi ở hai thang.
+
+            "Đã đổi" là tín hiệu kỷ luật, không phải điểm trừ: em đổi lời hứa giữa tuần thì lời
+            hứa ấy thôi là một cam kết. Chỉ tô màu khi > 0, để một bảng toàn số 0 không đỏ lòm. */}
+        {canManage && bangPdr.length > 0 && (
+          <details className="mb-3 rounded-[14px] border-[1.5px] border-navy/10 p-3">
+            <summary className="cursor-pointer select-none text-[13px] font-extrabold text-navy">
+              {t('pdrTitle')}{' '}
+              <span className="text-[11.5px] font-semibold text-grey-mid">
+                {t('pdrCount', {n: bangPdr.length})}
+              </span>
+            </summary>
+            <div className="mt-2.5 overflow-x-auto">
+              <table className="w-full min-w-[420px] border-collapse text-[12.5px]">
+                <thead>
+                  <tr className="text-left text-[10.5px] font-extrabold uppercase tracking-wide text-grey-soft">
+                    <th className="pb-1.5 pr-2 font-extrabold">{t('pdrStudent')}</th>
+                    <th className="pb-1.5 pr-2 font-extrabold">{t('pdrCommitments')}</th>
+                    <th className="pb-1.5 pr-2 font-extrabold">{t('pdrLeads')}</th>
+                    <th className="pb-1.5 font-extrabold">{t('pdrChanged')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bangPdr.map((r) => (
+                    <tr key={r.id} className="border-t border-navy/[0.07]">
+                      <td className="py-1.5 pr-2 font-bold text-navy">{r.ten}</td>
+                      <td className="py-1.5 pr-2 font-extrabold tabular-nums text-navy">
+                        {r.camKetDat}/{r.camKetTong}
+                      </td>
+                      <td className="py-1.5 pr-2 font-extrabold tabular-nums text-navy">
+                        {r.viecDat}/{r.viecTong}
+                      </td>
+                      <td
+                        className={`py-1.5 font-extrabold tabular-nums ${
+                          r.soLanSua > 0 ? 'text-status-bad' : 'text-grey-soft'
+                        }`}
+                      >
+                        {r.soLanSua}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
         )}
 
         {viecTuanQua.length === 0 ? (

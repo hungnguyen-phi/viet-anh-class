@@ -611,6 +611,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          so_lan_sua: number
           student_id: string | null
           title: string
           verdict: string | null
@@ -626,6 +627,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          so_lan_sua?: number
           student_id?: string | null
           title: string
           verdict?: string | null
@@ -641,6 +643,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          so_lan_sua?: number
           student_id?: string | null
           title?: string
           verdict?: string | null
@@ -2869,6 +2872,19 @@ export type Database = {
       open_term_for_class: {
         Args: { p_class: string; p_term: string }
         Returns: number
+      }
+      pdr_bang: {
+        Args: { p_class: string; p_week?: string }
+        Returns: {
+          cam_ket_dat: number
+          cam_ket_tong: number
+          cham_khac_may: number
+          so_lan_sua: number
+          student_id: string
+          student_name: string
+          viec_dat: number
+          viec_tong: number
+        }[]
       }
       pt_can_read_thread: { Args: { t: string }; Returns: boolean }
       pt_can_write_thread: { Args: { t: string }; Returns: boolean }
