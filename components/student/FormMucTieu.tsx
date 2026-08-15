@@ -139,8 +139,11 @@ export function FormMucTieu({
         ? Number(g.luong || 0)
         : thu.length * (Number(g.upt || 0) || 0);
 
-  // NHỊP: quãng phải đi so với việc mỗi tuần. Tính ở đây để cảnh báo hiện NGAY LÚC EM ĐANG GÕ,
-  // không đợi bấm Gửi rồi mới biết. Dùng chung lib/wig-nhip với phòng họp — một phép, một nguồn.
+  // QUÃNG PHẢI ĐI và số tuần còn lại — hai con số để nói với em "còn ngần này, còn ngần kia tuần".
+  // Tính ngay ở đây để hiện LÚC EM ĐANG GÕ, không đợi bấm Gửi rồi mới biết.
+  //
+  // (Trước đây chỗ này chú là "dùng chung lib/wig-nhip với phòng họp". Tệp ấy đã bị gỡ cùng cỗ
+  // máy rải nhịp ở fb8dab7 — để nguyên câu chú là chỉ người đọc sau đi tìm một tệp không còn.)
   const quang = Math.max(Number(g.target || 0) - Number(g.baseline || 0), 0);
   const tuanCon = g.due
     ? Math.max(Math.ceil((Date.parse(g.due) - Date.parse(todayInVN())) / 604800000), 0)
@@ -476,7 +479,10 @@ export function FormMucTieu({
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer text-[12px] font-extrabold text-grey-mid underline"
+            // Vùng chạm ≥24px: chữ vẫn 12px như cũ, chỉ nới chỗ ngón tay đặt vào. Nút chữ trần
+            // cao đúng bằng dòng chữ (~16px) là dưới ngưỡng, mà đây là màn các em bấm trên điện
+            // thoại — hụt vài pixel là bấm ba lần mới trúng.
+            className="inline-flex min-h-[24px] cursor-pointer items-center py-1 text-[12px] font-extrabold text-grey-mid underline"
           >
             {t('cancel')}
           </button>

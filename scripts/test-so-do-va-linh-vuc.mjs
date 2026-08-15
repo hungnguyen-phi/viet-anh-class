@@ -63,21 +63,50 @@ const thu2 = new Date(nayVN);
 thu2.setDate(nayVN.getDate() - ((nayVN.getDay() + 6) % 7));
 const THU2 = thu2.toISOString().slice(0, 10);
 
+// MƯỢN MỤC TIÊU ĐANG CÓ, KHÔNG GIEO THÊM CÁI THỨ HAI.
+//
+// Bản cũ chèn một mục tiêu học tập mới rồi soi màn /student tìm ô nhập số. Nhưng màn ấy chỉ vẽ
+// MỘT mục tiêu học tập, nên khi em đã có sẵn một cái (đếm bằng tick) thì cái vừa gieo không bao
+// giờ lên hình — và cả khối A đỏ với lý do "không thấy ô nhập số", nghe hệt như app hỏng. Từ đợt
+// gieo lại dữ liệu lớp Test, MỌI em đều đã có sẵn một mục tiêu, nên bẫy này là chắc chắn.
+//
+// Nay mượn chính mục tiêu ấy: đổi cách đo sang 'manual', đo xong TRẢ LẠI NGUYÊN TRẠNG trong
+// `finally`. Vẫn còn đường gieo mới cho trường hợp em chưa có gì.
 let wigId = null;
+let wigMuon = null; // {id, measure_by, unit, baseline, target_value} — để trả lại y như cũ
 try {
-  const {data: ins, error} = await admin
+  const {data: dangCo} = await admin
     .from('wigs')
-    .insert({
-      scope: 'student', kind: 'academic', period: 'year', period_label: 'TEST-0108',
-      student_id: em.id, class_id: enr.class_id, area: 'physical',
-      title: 'ZZ_TEST chiều cao', baseline: 140, target_value: 150, unit: 'cm',
-      start_date: '2026-08-01', end_date: '2027-05-31', status: 'approved',
-      set_by: 'student', measure_by: 'manual', source_wig_id: null,
-    })
-    .select('id')
+    .select('id, measure_by, unit, baseline, target_value')
+    .eq('scope', 'student')
+    .eq('student_id', em.id)
+    .eq('kind', 'academic')
+    .limit(1)
     .maybeSingle();
-  if (error) throw new Error('không gieo được mục tiêu: ' + error.message);
-  wigId = ins.id;
+
+  if (dangCo) {
+    wigMuon = dangCo;
+    const {error} = await admin
+      .from('wigs')
+      .update({measure_by: 'manual', unit: 'cm', baseline: 140, target_value: 150})
+      .eq('id', dangCo.id);
+    if (error) throw new Error('không mượn được mục tiêu: ' + error.message);
+    wigId = dangCo.id;
+  } else {
+    const {data: ins, error} = await admin
+      .from('wigs')
+      .insert({
+        scope: 'student', kind: 'academic', period: 'year', period_label: 'TEST-0108',
+        student_id: em.id, class_id: enr.class_id, area: 'physical',
+        title: 'ZZ_TEST chiều cao', baseline: 140, target_value: 150, unit: 'cm',
+        start_date: '2026-08-01', end_date: '2027-05-31', status: 'approved',
+        set_by: 'student', measure_by: 'manual', source_wig_id: null,
+      })
+      .select('id')
+      .maybeSingle();
+    if (error) throw new Error('không gieo được mục tiêu: ' + error.message);
+    wigId = ins.id;
+  }
 
   const ck = await cookieCua(HS);
   // KIỂM MÃ HTTP MỖI LẦN LẤY TRANG. Không có nó thì trang 500 chỉ hiện ra dưới dạng "không tìm
@@ -98,7 +127,14 @@ try {
   );
 
   // ── A2. Chưa ai ghi thì KHÔNG bịa ra dòng "ai ghi" ──
-  dau('chưa ai ghi → không có dòng nguồn', !dom.includes('con tự ghi') && !dom.includes('cô ghi'));
+  // NHÃN NGUỒN LẤY TỪ GÓI DỊCH. Viết cứng 'con tự ghi' là bám vào một chữ đã đổi ('bạn tự ghi'),
+  // và khi ấy phép kiểm tố cáo chính thay đổi có chủ ý thay vì canh cái nó sinh ra để canh: màn
+  // hình có nói RÕ AI ghi con số ấy hay không.
+  const goiVi = JSON.parse(readFileSync('messages/vi.json', 'utf8'));
+  const nhanEmGhi = goiVi.goal?.readingByStudent;
+  const nhanCoGhi = goiVi.goal?.readingByTeacher;
+  if (!nhanEmGhi || !nhanCoGhi) throw new Error('thiếu khoá goal.readingByStudent/readingByTeacher');
+  dau('chưa ai ghi → không có dòng nguồn', !dom.includes(nhanEmGhi) && !dom.includes(nhanCoGhi));
 
   // ── A3. Ghi một số → màn hình phải nói AI ghi ──
   const {error: e2} = await admin
@@ -107,12 +143,12 @@ try {
   if (e2) throw new Error('không ghi được số đo: ' + e2.message);
   dom = boScript(await doc());
   dau('số đã ghi hiện ra', dom.includes('143.5'), dom.includes('143.5') ? 'có' : 'không thấy 143.5');
-  dau('nói rõ CON TỰ GHI', dom.includes('con tự ghi') && !dom.includes('cô ghi'));
+  dau('nói rõ EM TỰ GHI', dom.includes(nhanEmGhi) && !dom.includes(nhanCoGhi));
 
   // ── A4. Đổi sang cô ghi → đổi nhãn nguồn ──
   await admin.from('wig_so_do').update({vai_tro: 'teacher'}).eq('wig_id', wigId);
   dom = boScript(await doc());
-  dau('đổi nguồn → nói CÔ GHI', dom.includes('cô ghi') && !dom.includes('con tự ghi'));
+  dau('đổi nguồn → nói CÔ GHI', dom.includes(nhanCoGhi) && !dom.includes(nhanEmGhi));
 
   // ── A5. Mục tiêu đếm bằng TICK không có ô nhập số ──
   await admin.from('wig_so_do').delete().eq('wig_id', wigId);
@@ -131,9 +167,14 @@ try {
     'máy chủ BẮT BUỘC chọn mục tiêu lớp',
     /if \(!source_wig_id\)[\s\S]{0,200}fieldError: 'source_wig_id'/.test(src),
   );
+  // HỎI HAI MỆNH ĐỀ RIÊNG, đừng ép chúng đứng gần nhau. Bản cũ đòi 'select(area)' và 'const area
+  // = chaLop.area' cách nhau tối đa 320 ký tự; giữa hai dòng ấy nay có thêm một nhánh kiểm lỗi,
+  // thế là đỏ — trong khi luật vẫn còn nguyên. Khoảng cách giữa hai dòng mã không phải là luật.
   dau(
     'lĩnh vực lấy từ mục tiêu lớp trong CSDL, không tin ô trên form',
-    /select\('area'\)[\s\S]{0,320}const area[^=]*= chaLop\.area/.test(src) && !/formData\.get\('area'\)/.test(src),
+    /\.select\('area'\)/.test(src) &&
+      /const area[^=]*= chaLop\.area/.test(src) &&
+      !/formData\.get\('area'\)/.test(src),
   );
   dau(
     'mục tiêu riêng chỉ MƯỢN lĩnh vực, không mang liên kết',
@@ -147,7 +188,20 @@ try {
 } finally {
   if (wigId) {
     await admin.from('wig_so_do').delete().eq('wig_id', wigId);
-    await admin.from('wigs').delete().eq('id', wigId);
+    // Mượn thì TRẢ, gieo thì XOÁ. Nhầm hai đường này là xoá mất mục tiêu thật của một đứa trẻ.
+    if (wigMuon) {
+      await admin
+        .from('wigs')
+        .update({
+          measure_by: wigMuon.measure_by,
+          unit: wigMuon.unit,
+          baseline: wigMuon.baseline,
+          target_value: wigMuon.target_value,
+        })
+        .eq('id', wigMuon.id);
+    } else {
+      await admin.from('wigs').delete().eq('id', wigId);
+    }
   }
   await admin.from('wigs').delete().eq('student_id', em.id).eq('period_label', 'TEST-0108b');
 }

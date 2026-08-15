@@ -53,10 +53,13 @@ for (const [vai, email, duong] of [
   // Bỏ <script> trước khi soi CHỮ: gói chuỗi i18n của next-intl nằm trong đó, nên tìm thẳng vào
   // HTML thô là gặp chữ chưa hề hiện lên màn hình — đúng cái bẫy đã báo xanh giả hôm 12/08.
   const hienRa = html.replace(/<script[\s\S]*?<\/script>/g, '');
-  // Nhãn chỉ còn "Buddy của em" — chữ "sư tử" đã bỏ khỏi câu (12/08/2026), nghĩa ấy nay do ICON
+  // Nhãn LẤY TỪ GÓI DỊCH (student.buddyIsLion). Chữ "sư tử" đã bỏ khỏi câu (12/08/2026) và sau
+  // đó "của em" đổi thành "của bạn" — viết cứng thì mỗi lần sửa cách xưng hô là một phép kiểm đỏ
+  // oan. Điều canh ở đây là NHÃN CÓ MẶT VỚI CẢ HAI VAI, không phải nó gọi em bằng gì. Nghĩa ấy nay do ICON
   // đầu sư tử mang. Nên canh cả hai: câu đúng, và cái icon thật sự có mặt — canh mỗi chữ thì gỡ
   // mất icon bài kiểm vẫn xanh, mà lúc đó trang không còn nói Buddy là con gì nữa.
-  dat(hienRa.includes('Buddy của em'), `[${vai}] có nhãn "Buddy của em"`);
+  const nhanBuddy = JSON.parse(readFileSync('messages/vi.json', 'utf8')).student?.buddyIsLion;
+  dat(Boolean(nhanBuddy) && hienRa.includes(nhanBuddy), `[${vai}] có nhãn "${nhanBuddy}"`);
   dat(/stroke-dasharray="3 3\.2"/.test(html), `[${vai}] có icon đầu sư tử đi kèm`);
   dat(!hienRa.includes('Bạn đồng hành'), `[${vai}] KHÔNG còn nhãn "Bạn đồng hành"`);
   dat(!html.includes('name="buddy_id"'), `[${vai}] KHÔNG còn ô chọn bạn cùng lớp trong biên bản`);

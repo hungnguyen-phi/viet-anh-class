@@ -9,7 +9,9 @@
 //
 //   1. Trang chính phải NGẮN — không có form nào nằm chờ sẵn.
 //   2. Ba màn phải nối được với nhau (ngõ cụt là lỗi hay gặp nhất khi tách màn).
-//   3. Chuỗi năm → tháng → tuần phải được CSDL chặn, không phải chỉ giấu nút đi.
+//   3. CHỈ CÒN MỘT LOẠI MỤC TIÊU (0121). Trước đây mục này canh chuỗi năm → tháng → tuần; nay
+//      chuỗi ấy không còn, nên nó canh điều thay thế: giao diện KHÔNG được mời người ta tạo một
+//      loại mà cơ sở dữ liệu đã cấm.
 //   4. Phòng họp mặc định tổng kết TUẦN VỪA XONG, không phải tuần này.
 //   5. Chỉ có MỘT màn hình sửa được buổi họp (/meeting đá giáo viên sang /wig/hop).
 //   6. Câu báo hỏng phải đi đường ?flash_err= — mọi hàm flash đều gỡ dấu.
@@ -79,16 +81,21 @@ check(
   '',
 );
 
-// 3. Chuỗi năm → tháng → tuần phải được kiểm Ở SERVER, không chỉ khoá nút trên giao diện.
+// 3. 0121: CSDL chỉ nhận period='year'. Giao diện không được mời người ta đi vào ngõ cụt ấy.
+//
+// Đây từng là lỗi thật: menu vẫn bày ba thẻ Năm/Tháng/Tuần và MỞ SẴN thẻ Tháng khi lớp đã có mục
+// tiêu năm, nên đường đi mặc định của cô là điền hết một biểu mẫu rồi ăn câu lỗi thô của Postgres
+// (`wig_chi_con_nam_ck`). Dò MARKUP chứ không dò chữ: chuỗi dịch nằm sẵn trong gói gửi xuống.
 check(
-  'Chuỗi năm → tháng → tuần được kiểm ở server',
-  // Dò LỜI GỌI, không dò tên hàm: `chaHopLe` vẫn còn trong file ngay cả khi không ai gọi nó nữa,
-  // nên dò tên là phép kiểm tự lừa mình — đảo ngược thử thì nó vẫn xanh.
-  /const cha = await chaHopLe\(/.test(taoWig) &&
-    /w\.period === 'month' \? 'year' : 'month'/.test(taoWig),
+  'Menu tạo mục tiêu KHÔNG còn mời chọn Tháng/Tuần',
+  !/setLoai\(/.test(menu) && !/needYearFirst|needMonthFirst/.test(menu),
   '',
 );
-check('Giao diện khoá tab và NÓI vì sao khoá', /needYearFirst|needMonthFirst/.test(menu), '');
+check(
+  'Và loại gửi lên luôn là year',
+  /useState<'year' \| 'month' \| 'week'>\('year'\)/.test(menu),
+  '',
+);
 
 // 4. Ngày của một kỳ do SERVER tra từ nhãn — trình duyệt không gửi ngày lên nữa.
 check(
@@ -135,38 +142,80 @@ check(
 
 // ── PHẦN 2: MỞ TRANG THẬT ──────────────────────────────────────────────────────────────────
 
+// CHỌN LỚP TRƯỚC, ĐĂNG NHẬP SAU — và đăng nhập bằng GVCN CỦA CHÍNH LỚP ẤY.
+//
+// Bản cũ đăng nhập cứng bằng test1.gvcn rồi mới đi tìm lớp. Tài khoản ấy nay không chủ nhiệm lớp
+// nào, nên mọi trang trả 307 (bị đá đi vì không có quyền vào lớp đó) và cả loạt phép kiểm đỏ như
+// thể màn hình hỏng. Quyền vào lớp là của người chủ nhiệm, nên người mở trang phải là người ấy.
 let ck = null;
-try {
-  const {data: g} = await admin.auth.admin.generateLink({
-    type: 'magiclink',
-    email: 'test1.gvcn@truongvietanh.com',
-  });
-  const {data: v} = await anon.auth.verifyOtp({type: 'email', token_hash: g.properties.hashed_token});
-  ck = `sb-${REF}-auth-token=base64-${Buffer.from(JSON.stringify(v.session)).toString('base64url')}`;
-} catch (e) {
-  console.log('BỎ QUA phần mở trang thật (không đăng nhập được):', e.message);
-}
-
-if (ck) {
+{
   const {data: gv} = await admin
     .from('profiles')
     .select('id')
     .eq('email', 'test1.gvcn@truongvietanh.com')
-    .single();
-  const {data: lops} = await admin.from('classes').select('id, name').eq('homeroom_teacher_id', gv.id);
-  const lop = (lops ?? [])[0];
+    .maybeSingle();
+  // KHÔNG bám cứng vào lớp của một tài khoản: test1.gvcn nay không chủ nhiệm lớp nào, và bản cũ
+  // vì thế báo "không có lớp để mở trang" — đỏ vì dữ liệu đổi, không phải vì màn hình hỏng.
+  const {data: lops} = await admin
+    .from('classes')
+    .select('id, name, homeroom_teacher_id')
+    .eq('is_active', true)
+    .not('homeroom_teacher_id', 'is', null)
+    .order('name');
+  // ƯU TIÊN LỚP CÓ VIỆC THẬT TRONG TUẦN. Mấy phép dưới đây soi màn hình có vẽ ra việc chung, ma
+  // trận từng em, phòng họp — lớp rỗng thì chúng đỏ với lý do "tuần này lớp chưa có việc chung",
+  // tức là đo sự trống rỗng của dữ liệu chứ không đo màn hình.
+  const {data: dsCamKet} = await admin.from('commitments').select('class_id');
+  const coViec = new Set((dsCamKet ?? []).map((c) => c.class_id));
+  const ds = lops ?? [];
+  const lop =
+    ds.find((c) => c.homeroom_teacher_id === gv?.id && coViec.has(c.id)) ??
+    ds.find((c) => coViec.has(c.id)) ??
+    ds.find((c) => c.homeroom_teacher_id === gv?.id) ??
+    ds[0];
 
-  if (!lop) {
-    check('Có lớp để mở trang', false, 'tài khoản thử không chủ nhiệm lớp nào');
+  if (lop) {
+    const {data: chuNhiem} = await admin
+      .from('profiles')
+      .select('email')
+      .eq('id', lop.homeroom_teacher_id)
+      .maybeSingle();
+    try {
+      const {data: g} = await admin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: chuNhiem.email,
+      });
+      const {data: v} = await anon.auth.verifyOtp({
+        type: 'email',
+        token_hash: g.properties.hashed_token,
+      });
+      ck = `sb-${REF}-auth-token=base64-${Buffer.from(JSON.stringify(v.session)).toString('base64url')}`;
+    } catch (e) {
+      console.log('BỎ QUA phần mở trang thật (không đăng nhập được):', e.message);
+    }
+  }
+
+  if (!lop || !ck) {
+    check('Có lớp để mở trang', false, 'không lớp nào đang hoạt động có GVCN đăng nhập được');
   } else {
     const q = `class=${lop.id}`;
 
+    // NHÃN LẤY TỪ GÓI DỊCH. Ba khối này vẫn ở nguyên chỗ cũ; cái đổi là chữ trên chúng — 0121 đổi
+    // "Mục tiêu tuần này" thành "Cam kết tuần này". Viết cứng thì bộ kiểm báo mất cả một khối màn
+    // hình trong khi khối ấy vẫn hiện, chỉ mang tên mới.
+    const goi = JSON.parse(readFileSync('messages/vi.json', 'utf8'));
+    const co = (html, chuoi) => Boolean(chuoi) && html.includes(chuoi);
+
     const wig = await docHtml(`${BASE}/wig?${q}`, ck);
     check(
-      'Trang /wig vẽ đủ ba khối: mục tiêu tuần · lớp đang đi tới đâu · nút họp',
-      /Mục tiêu tuần này/.test(wig.html) &&
-        /Lớp đang đi tới đâu/.test(wig.html) &&
-        /phòng họp WIG/i.test(wig.html),
+      'Trang /wig vẽ đủ ba khối: cam kết tuần · lớp đang đi tới đâu · nút họp',
+      co(wig.html, goi.wig?.goalThisWeek) &&
+        co(wig.html, goi.wig?.progressRail) &&
+        // Nút họp mang MỘT TRONG HAI mặt: chưa họp thì mời đi họp, họp rồi thì nói đã họp tuần
+        // nào. Dò cứng một chuỗi "phòng họp WIG" là bỏ sót hẳn nửa còn lại — và lớp nào đã họp
+        // xong thì phép kiểm báo mất nút, trong khi nút vẫn ở đó với câu chữ khác.
+        (co(wig.html, goi.wig?.meetingTime) ||
+          wig.html.includes((goi.wig?.meetingDone ?? '').split('{')[0].trim())),
       `HTTP ${wig.status}`,
     );
     check(
@@ -213,10 +262,13 @@ if (ck) {
     const hop = await docHtml(`${BASE}/wig/hop?${q}`, ck);
     check('Phòng họp mở được', hop.status === 200, `HTTP ${hop.status}`);
     check(
-      'Phòng họp có đủ ba bước và một nút kết thúc',
-      /Chiêm nghiệm &amp; cam kết|Chiêm nghiệm & cam kết/.test(hop.html) &&
-        /Mục tiêu tuần W\d{2}-\d{4}/.test(hop.html) &&
-        /Kết thúc buổi họp/.test(hop.html),
+      'Phòng họp có đủ ba bước và một nút chốt',
+      // Bước 2 và nút chốt lấy nhãn từ gói dịch ("Kết thúc buổi họp" nay là "Chốt buổi họp").
+      // Bước 3 chỉ dò phần đầu của mẫu câu, vì đuôi là biến {week} do server điền.
+      (co(hop.html, goi.meeting?.step2) ||
+        hop.html.includes((goi.meeting?.step2 ?? '').replace('&', '&amp;'))) &&
+        hop.html.includes((goi.meeting?.step3 ?? '').split('{')[0].trim()) &&
+        co(hop.html, goi.meeting?.finish),
       '',
     );
     {

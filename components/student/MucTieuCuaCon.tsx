@@ -314,7 +314,8 @@ function MotMucTieu({
                     <>
                       <input type="hidden" name="bo" value="1" />
                       <SubmitButton
-                        className="text-[11.5px] font-extrabold text-navy underline"
+                        // Vùng chạm ≥24px — chữ giữ nguyên 11.5px, chỉ nới chỗ đặt ngón tay.
+                        className="inline-flex min-h-[24px] items-center py-1 text-[11.5px] font-extrabold text-navy underline"
                         wrapClass="contents"
                       >
                         {t('undoAchieved')}
