@@ -25,6 +25,26 @@ const REF = new URL(URL_).host.split('.')[0];
 const admin = createClient(URL_, env.SUPABASE_SERVICE_ROLE_KEY, {auth: {persistSession: false}});
 const anon = createClient(URL_, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {auth: {persistSession: false}});
 
+// ── CHỐT CHẶN: BỘ KIỂM KHÔNG ĐƯỢC ĐẺ TÀI KHOẢN ────────────────────────────────────────────
+// `generateLink({type:'magiclink'})` TỰ TẠO người dùng nếu email chưa có. Gõ nhầm một địa chỉ,
+// hoặc dùng một tài khoản thử đã bị xoá, là production mọc thêm một tài khoản 'pending' nằm lại
+// vĩnh viễn trong khối "Ai đang chờ bạn" của màn Quản trị.
+//
+// Đã xảy ra thật 15/08/2026: một bài đẻ ra test2.ph@truongvietanh.com, và test-admin-man lập tức
+// đỏ tám dòng vì mọi con số trên tab lệch đúng một dòng — mất một vòng đi tìm "hồi quy" không có.
+{
+  const gocGenLink = admin.auth.admin.generateLink.bind(admin.auth.admin);
+  admin.auth.admin.generateLink = async (opts) => {
+    const {data: coHoSo} = await admin
+      .from('profiles')
+      .select('id')
+      .eq('email', opts?.email ?? '')
+      .maybeSingle();
+    if (!coHoSo) throw new Error(`${opts?.email}: chưa có tài khoản này — bộ kiểm KHÔNG tạo mới`);
+    return gocGenLink(opts);
+  };
+}
+
 const kq = [];
 const dat = (ok, ten, ghi = '') => kq.push({ok, ten, ghi});
 const xong = (ma = 0) => {

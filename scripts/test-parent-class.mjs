@@ -14,6 +14,26 @@ const REF = new URL(URL_).host.split('.')[0];
 const admin = createClient(URL_, env.SUPABASE_SERVICE_ROLE_KEY, {auth: {persistSession: false}});
 const anon = createClient(URL_, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {auth: {persistSession: false}});
 
+// ── CHỐT CHẶN: BỘ KIỂM KHÔNG ĐƯỢC ĐẺ TÀI KHOẢN ────────────────────────────────────────────
+// `generateLink({type:'magiclink'})` TỰ TẠO người dùng nếu email chưa có. Gõ nhầm một địa chỉ,
+// hoặc dùng một tài khoản thử đã bị xoá, là production mọc thêm một tài khoản 'pending' nằm lại
+// vĩnh viễn trong khối "Ai đang chờ bạn" của màn Quản trị.
+//
+// Đã xảy ra thật 15/08/2026: một bài đẻ ra test2.ph@truongvietanh.com, và test-admin-man lập tức
+// đỏ tám dòng vì mọi con số trên tab lệch đúng một dòng — mất một vòng đi tìm "hồi quy" không có.
+{
+  const gocGenLink = admin.auth.admin.generateLink.bind(admin.auth.admin);
+  admin.auth.admin.generateLink = async (opts) => {
+    const {data: coHoSo} = await admin
+      .from('profiles')
+      .select('id')
+      .eq('email', opts?.email ?? '')
+      .maybeSingle();
+    if (!coHoSo) throw new Error(`${opts?.email}: chưa có tài khoản này — bộ kiểm KHÔNG tạo mới`);
+    return gocGenLink(opts);
+  };
+}
+
 async function ck(email) {
   const {data: g, error} = await admin.auth.admin.generateLink({type: 'magiclink', email});
   if (error) throw new Error(email + ': ' + error.message);
@@ -28,7 +48,25 @@ async function ck(email) {
 const kq = [];
 const check = (nhan, dat, ct = '') => kq.push(`${dat ? 'OK  ' : 'SAI '} ${nhan}${ct ? ' — ' + ct : ''}`);
 
-for (const email of ['test1.ph@truongvietanh.com', 'test2.ph@truongvietanh.com']) {
+// DUYỆT MỌI PHỤ HUYNH ĐANG CÓ, không đọc từ một danh sách viết cứng.
+//
+// Bản cũ đóng cứng hai địa chỉ. Một trong hai (test2.ph) đã không còn — và vì `generateLink` tự
+// tạo người dùng, chính bài này đẻ lại nó dưới dạng tài khoản 'pending' trên production. Danh
+// sách viết cứng vừa đo nhầm, vừa để lại rác.
+//
+// Phép "nhà này không đọc được của nhà kia" cần HAI phụ huynh; trường hiện chỉ có một. Phép ấy
+// đã được scripts/test-rls-parent-active.sql giữ — bài đó tự dựng hai nhà trong transaction rồi
+// rollback, nên không phụ thuộc nhân sự thật. Ở đây nói rõ ra thay vì giả vờ đã kiểm.
+const {data: dsPh} = await admin.from('profiles').select('email').eq('role', 'parent').order('email');
+const emails = (dsPh ?? []).map((p) => p.email);
+check('Có ít nhất một phụ huynh để thử', emails.length > 0, `${emails.length} tài khoản`);
+if (emails.length < 2)
+  console.log(
+    '(Chỉ có 1 phụ huynh trong CSDL — phép "nhà này không đọc được của nhà kia" nằm ở ' +
+      'scripts/test-rls-parent-active.sql, bài đó tự dựng hai nhà rồi rollback.)',
+  );
+
+for (const email of emails) {
   const cookie = await ck(email);
   const r = await fetch(`${BASE}/timetable`, {headers: {cookie}, redirect: 'manual'});
   const html = await r.text();
