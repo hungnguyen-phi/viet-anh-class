@@ -195,21 +195,11 @@ export function PhongHop({
     // Ô của TỪNG EM. Điền sẵn câu cũ: "mặc định như cũ, có đổi thì chọn khác" — nên mở buổi họp ra
     // là mọi ô đã đúng, cô chỉ chạm vào những em thật sự đổi.
     for (const e of emHop) {
-      o[`em_${e.id}_viec`] = e.viecTitle;
       o[`em_${e.id}_ketqua`] = e.ketQua;
       o[`em_${e.id}_camket`] = e.camKet;
     }
     return o;
   });
-  // Thứ trong tuần của từng em — mảng nên không nhét chung vào kho chuỗi ở trên.
-  const [emThu, setEmThu] = useState<Record<string, number[]>>(() =>
-    Object.fromEntries(emHop.map((e) => [e.id, e.viecDays])),
-  );
-  const doiThuEm = (id: string, d: number) =>
-    setEmThu((p) => {
-      const cu = p[id] ?? [];
-      return {...p, [id]: cu.includes(d) ? cu.filter((x) => x !== d) : [...cu, d].sort()};
-    });
   const set = (k: string, val: string) => setV((p) => ({...p, [k]: val}));
   // Ô NÀO ĐANG CÓ CON TRỎ — để lượt cập nhật realtime không giật chữ khỏi tay người đang gõ.
   const oDangGo = useRef<string | null>(null);
@@ -241,10 +231,9 @@ export function PhongHop({
     try {
       const raw = window.localStorage.getItem(khoaNhap);
       if (!raw) return;
-      const cu = JSON.parse(raw) as {v?: Record<string, string>; emThu?: Record<string, number[]>};
+      const cu = JSON.parse(raw) as {v?: Record<string, string>};
       if (!cu?.v) return;
       setV((p) => ({...p, ...cu.v}));
-      if (cu.emThu) setEmThu((p) => ({...p, ...cu.emThu}));
       setNhapDaKhoiPhuc(true);
     } catch {
       // Nháp hỏng thì bỏ qua — không có gì để cứu, và không được làm hỏng cả trang vì nó.
@@ -254,13 +243,13 @@ export function PhongHop({
     if (!daDocNhap.current) return;
     const id = setTimeout(() => {
       try {
-        window.localStorage.setItem(khoaNhap, JSON.stringify({v, emThu}));
+        window.localStorage.setItem(khoaNhap, JSON.stringify({v}));
       } catch {
         // Hết chỗ hoặc chế độ riêng tư — nháp là thứ có thì tốt, không có thì thôi.
       }
     }, 500);
     return () => clearTimeout(id);
-  }, [khoaNhap, v, emThu]);
+  }, [khoaNhap, v]);
   const boNhap = () => {
     try {
       window.localStorage.removeItem(khoaNhap);
@@ -384,8 +373,8 @@ export function PhongHop({
 
   const err = (f: string) => (state.fieldError === f ? state.error : null);
 
-  // NHỊP ĐÃ BỎ (0121): không còn mốc tuần để so. Xem ghi chú cùng nội dung ở ViecTuan.
-  const siSo = tungEm.length;
+  // (Sĩ số từng dùng để tính nhịp; nhịp đã bỏ ở 0121 và phần đặt việc thay em bỏ ở 15/08/2026,
+  // nên không còn ai hỏi tới con số ấy nữa.)
 
   const buoc = (so: number, tieuDe: string, phu?: string) => (
     <div className="mb-3">
@@ -928,42 +917,18 @@ export function PhongHop({
                 {/* Tên đi cùng để câu báo lỗi gọi được đúng em ("Việc của Nguyễn Văn A chưa
                     chọn thứ nào"). Máy chủ không có tên trong tay ở tầng này. */}
                 <input type="hidden" name={`em_${e.id}_ten`} value={e.ten} />
-                <input type="hidden" name={`em_${e.id}_wig`} value={e.wigId ?? ''} />
-                <input type="hidden" name={`em_${e.id}_lead`} value={e.leadId ?? ''} />
-                {(emThu[e.id] ?? []).map((d) => (
-                  <input key={d} type="hidden" name={`em_${e.id}_days`} value={d} />
-                ))}
 
-                {e.wigId && (
-                  <>
-                    <Field label={t('thisWeekWork')} htmlFor={`em-${e.id}-viec`}>
-                      <input
-                        id={`em-${e.id}-viec`}
-                        name={`em_${e.id}_viec`}
-                        {...oNhap(`em_${e.id}_viec`)}
-                        className={inputCls}
-                      />
-                    </Field>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {DOW.map((d) => (
-                        <button
-                          key={d}
-                          type="button"
-                          onClick={() => doiThuEm(e.id, d)}
-                          aria-pressed={(emThu[e.id] ?? []).includes(d)}
-                          aria-label={`${e.ten} — ${dayShort[d - 1]}`}
-                          className={`grid h-11 w-11 cursor-pointer place-items-center rounded-[9px] border-[1.5px] text-[11.5px] font-extrabold transition-all ${
-                            (emThu[e.id] ?? []).includes(d)
-                              ? 'border-transparent bg-gold text-navy'
-                              : 'border-navy/15 bg-white text-navy/60 hover:border-navy'
-                          }`}
-                        >
-                          {dayShort[d - 1]}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
+                {/* Ô "việc tuần này" và hàng nút chọn thứ ĐÃ BỎ (15/08/2026).
+                    Chủ dự án: "sao giáo viên lại được sửa cho từng em? phải là em đặt chứ, lại
+                    còn tick được luôn?".
+
+                    Đúng. Cả mô hình này dựng trên một điều: mục tiêu và cam kết là LỜI CỦA EM,
+                    cô duyệt chứ không gõ hộ (0129, 0133). Nhưng chính màn họp lại chừa một cửa
+                    sau to hơn cả cửa trước — cô gõ thẳng việc cho từng em rồi bấm luôn các thứ
+                    trong tuần, ngay giữa buổi họp, trước mặt cả lớp.
+
+                    Nay em đặt cam kết tuần tới ở màn của em; buổi họp còn lại đúng việc của nó:
+                    nhìn lại tuần qua, chấm V/X, và ghi biên bản. */}
 
                 {/* aria-label KÈM TÊN EM. Nhãn nhìn bằng mắt chỉ ghi "Tuần rồi", và cả trang có
                     hai ô như thế cho MỖI em — nghe bằng trình đọc màn hình thì ba mươi ô đều tên

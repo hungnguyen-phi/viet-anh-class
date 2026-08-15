@@ -142,13 +142,17 @@ try {
   const dom = html.replace(/<script[\s\S]*?<\/script>/g, '');
 
   dau('Em có dòng riêng trong khối "Từng em"', dom.includes(`name="em_${emThu.student_id}_ten"`));
+  // Ô "tuần này con làm gì" và hàng nút chọn thứ đã GỠ khỏi phòng họp — nay canh chiều ngược lại.
   dau(
-    'Ô "tuần này con làm gì" điền sẵn CÂU CŨ',
-    new RegExp(`name="em_${emThu.student_id}_viec"[^>]*value="ZZ_TEST việc cũ"`).test(dom) ||
-      new RegExp(`value="ZZ_TEST việc cũ"[^>]*name="em_${emThu.student_id}_viec"`).test(dom),
+    'Phòng họp KHÔNG còn ô gõ việc thay em',
+    !dom.includes(`name="em_${emThu.student_id}_viec"`),
+    dom.includes(`name="em_${emThu.student_id}_viec"`) ? 'CÒN Ô GÕ' : 'đã gỡ',
   );
-  const thuCu = [...dom.matchAll(new RegExp(`name="em_${emThu.student_id}_days" value="(\\d)"`, 'g'))].map((m) => m[1]);
-  dau('Thứ trong tuần điền sẵn đúng cái đang có', thuCu.join(',') === '1,3', thuCu.join(',') || 'không thấy');
+  dau(
+    'Phòng họp KHÔNG còn nút chọn thứ cho em',
+    !dom.includes(`name="em_${emThu.student_id}_days"`),
+    dom.includes(`name="em_${emThu.student_id}_days"`) ? 'CÒN NÚT THỨ' : 'đã gỡ',
+  );
 
   const an = truongAction(html);
   dau('Bóc được trường ẩn của action', an.length >= 3, an.map(([k]) => k).join(', '));
@@ -216,7 +220,13 @@ try {
   if (process.env.SOI)
     console.log('SOI:', (d1.body.match(/"error":"[^"]{0,200}"|Xong:[^"\\]{0,160}/g) ?? ['(không thấy câu báo)'])[0]);
 
-  // ── BUỔI HỌP ĐẶT VIỆC CHO TUẦN TỚI, KHÔNG VIẾT LẠI TUẦN VỪA CHỐT ────────────────────────
+  // ── BUỔI HỌP KHÔNG ĐẶT VIỆC THAY EM (15/08/2026) ────────────────────────────────────────
+  //
+  // Chủ dự án: "sao giáo viên lại được sửa cho từng em? phải là em đặt chứ". Ô "việc tuần này" và
+  // hàng nút chọn thứ đã gỡ khỏi phòng họp, và máy chủ thôi đọc hai trường ấy. Nên phép đo đảo
+  // chiều: gửi chúng lên vẫn phải KHÔNG sinh ra cam kết nào cho em — gỡ ở giao diện mà máy chủ
+  // còn nhận thì chỉ là giấu cái nút, không phải khoá cửa.
+  // ── (cũ) BUỔI HỌP ĐẶT VIỆC CHO TUẦN TỚI, KHÔNG VIẾT LẠI TUẦN VỪA CHỐT ───────────────────
   //
   // Bản trước đòi ngược lại: ô "việc tuần này" phải ĐỔI TÊN chính việc của tuần cũ. Hai lẽ khiến
   // nó sai: 0129 khoá quyền sửa việc dẫn dắt (câu UPDATE của cô khớp 0 dòng và im lặng trôi qua),
@@ -232,14 +242,6 @@ try {
     .maybeSingle();
   dau('Buổi họp đặt CAM KẾT cho tuần tới', ckMoi?.title === 'ZZ_TEST việc mới', String(ckMoi?.title));
 
-  const {data: viecMoi} = await admin
-    .from('lead_measures')
-    .select('title, target_value, active_weekdays')
-    .eq('commitment_id', ckMoi?.id ?? '');
-  const v0 = (viecMoi ?? [])[0];
-  dau('… kèm việc dẫn dắt của tuần tới', v0?.title === 'ZZ_TEST việc mới', String(v0?.title));
-  dau('Thứ trong tuần đúng cái vừa chọn', (v0?.active_weekdays ?? []).join(',') === '2,4,6', (v0?.active_weekdays ?? []).join(','));
-  dau('Số lần mỗi tuần = số thứ được bật', Number(v0?.target_value) === 3, String(v0?.target_value));
 
   const {data: viecCu} = await admin
     .from('lead_measures').select('title, active_weekdays').eq('id', leadTruoc.id).maybeSingle();
