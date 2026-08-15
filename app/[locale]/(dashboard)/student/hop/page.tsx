@@ -6,6 +6,7 @@ import {Link} from '@/i18n/navigation';
 import {isoWeekLabel, mondayOf, shiftWeeks, todayInVN, vnNoon} from '@/lib/dates';
 import {OBienBanCuaEm} from '@/components/wig/OBienBanCuaEm';
 import {NutThamGia} from '@/components/wig/NutThamGia';
+import {NghePhongHop} from '@/components/wig/NghePhongHop';
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
 // /student/hop — PHÒNG HỌP WIG, PHẦN CỦA EM
@@ -160,6 +161,12 @@ export default async function PhongHopCuaEmPage({
 
           Bấm Tham gia CHỈ là dấu có mặt — không phải cửa. Em vắng buổi họp vẫn điền được phần của
           mình sau đó, miễn tuần chưa chốt; nên mấy ô bên dưới luôn mở, bất kể em đã bấm hay chưa. */}
+      {/* NGHE PHÒNG ĐÓNG/MỞ. Đặt NGOÀI `phongMo`: cô bấm "Chốt buổi họp" thì phòng đóng, và đúng
+          lúc ấy màn này phải tự đổi — gắn vào bên trong điều kiện là chỉ nghe khi phòng còn mở,
+          tức không bao giờ nghe thấy lúc nó đóng. Chủ dự án chốt: "ấn kết thúc thì tất cả màn
+          hình phòng họp đều đóng lại". */}
+      <NghePhongHop classId={lop.class_id} />
+
       {phongMo && (
         <NutThamGia
           classId={lop.class_id}

@@ -23,6 +23,7 @@ import {StudentWigManage, type ManageWig, type ManageLead} from '@/components/st
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {EditRequestButton} from '@/components/student/EditRequestButton';
 import {MucTieuCuaCon, type MucTieuCuaEm, type SoDoCuaTuan} from '@/components/student/MucTieuCuaCon';
+import {NghePhongHop} from '@/components/wig/NghePhongHop';
 import {SoCuaCon, type TrangSo} from '@/components/student/SoCuaCon';
 import {MeetingScoreboard} from '@/components/wig/MeetingScoreboard';
 import {ArrowRight, Users} from 'lucide-react';
@@ -943,6 +944,11 @@ export async function StudentScoreboard({
               vực. Từ 0100 em KHÔNG còn WIG tuần nữa: mục tiêu của em sống cả học kỳ, còn nhịp
               hằng tuần nằm ở việc để tick. Để lại thì nó vĩnh viễn hiện "Chưa thiết lập WIG"
               và giục em đi làm một thứ CSDL đã cấm. Xem docs/MO_HINH_WIG.md §1. */}
+
+          {/* NGHE PHÒNG HỌP MỞ RA. Đặt NGOÀI điều kiện `phongDangMo` — thứ nó canh chính là lúc
+              phòng CHƯA mở chuyển thành ĐÃ mở, nên gắn nó vào bên trong lời mời là chỉ nghe sau
+              khi đã nghe thấy. Trả về null, không vẽ gì. */}
+          {canTick && classId && <NghePhongHop classId={classId} />}
 
           {/* LỚP ĐANG HỌP — LỜI MỜI ĐẶT NGAY TRÊN BẢNG THÀNH TÍCH (0130).
               Chủ dự án: "khi giáo viên ấn họp, tất cả màn hình của các em đều hiện phòng họp".
