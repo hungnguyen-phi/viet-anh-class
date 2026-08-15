@@ -102,10 +102,13 @@ const check = (ten, ok, ghi = '') => {
 // JS : chép lại đúng công thức, viết độc lập ở đây (KHÔNG import từ trang) — nếu import thì lỗi
 //      ở trang sẽ tự khớp với chính nó và phép kiểm hoá vô nghĩa.
 {
+  // 0121/0122: KHÔNG CÒN WIG TUẦN. Việc dẫn dắt treo dưới CAM KẾT, và lead_measure_canh_bao nay
+  // nhận `p_commitment` chứ không phải `p_wig`. Bản cũ gọi tên tham số cũ nên PostgREST trả lỗi,
+  // `sql` là null, và bài báo "SQL không trả về" — nghe như CSDL hỏng, thật ra là bộ kiểm gọi sai.
   const {data: wigs} = await admin
-    .from('wigs')
+    .from('commitments')
     .select(
-      'id, unit, scope, class_id, start_date, end_date, lead_measures(id, target_value, unit, active_weekdays, unit_per_tick)',
+      'id, class_id, student_id, week_start, wigs(unit), lead_measures(id, target_value, unit, active_weekdays, unit_per_tick)',
     );
   // Sĩ số từng lớp — trần của WIG LỚP là "số ngày × sĩ số" vì cả lớp cùng tick vào một việc.
   const {data: enr} = await admin.from('enrollments').select('class_id').eq('is_active', true);
@@ -133,11 +136,26 @@ const check = (ten, ok, ghi = '') => {
     return n;
   };
 
+  // Cam kết sống đúng bảy ngày kể từ thứ Hai của nó — WIG tuần ngày trước mang sẵn start/end,
+  // cam kết thì chỉ có week_start.
+  const bayNgay = (t2) => {
+    const d = new Date(`${t2}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 6);
+    return {start_date: t2, end_date: d.toISOString().slice(0, 10)};
+  };
+
   let lech = [];
   let soCanhBao = 0;
-  for (const w of wigs ?? []) {
+  for (const ck of wigs ?? []) {
+    // scope của cam kết đọc từ chính nó: cam kết có student_id là của một em, không có là của lớp.
+    const w = {
+      ...ck,
+      ...bayNgay(ck.week_start),
+      unit: ck.wigs?.unit,
+      scope: ck.student_id ? 'student' : 'class',
+    };
     if (!(w.lead_measures ?? []).length) continue;
-    const {data: sql} = await admin.rpc('lead_measure_canh_bao', {p_wig: w.id});
+    const {data: sql} = await admin.rpc('lead_measure_canh_bao', {p_commitment: w.id});
     const sqlBy = new Map((sql ?? []).map((r) => [r.lead_measure_id, r]));
     for (const lm of w.lead_measures) {
       const moiTick = Number(lm.unit_per_tick ?? 1) || 1;
@@ -148,9 +166,17 @@ const check = (ten, ok, ghi = '') => {
         so_tick_can: Math.ceil(Number((Number(lm.target_value) / moiTick).toFixed(9))),
         so_ngay: soNgayTickDuoc(w.start_date, w.end_date, lm.active_weekdays),
       };
-      // WIG lớp: cả lớp cùng tick → trần = ngày × sĩ số. WIG cá nhân: chỉ một em.
+      // TRẦN LÀ TRẦN CỦA MỘT EM (0098) — sĩ số KHÔNG dự phần.
+      //
+      // Bản cũ của bài này nhân sĩ số vào trần, theo lối trước 0098, nên nó báo CSDL sai
+      // (SQL 5 ≠ JS 35) trong khi CSDL đúng. Suýt nữa thì vá nhầm bên: nhân sĩ số vào trần sẽ
+      // làm câm cảnh báo đúng lúc cần nhất — lớp 30 em, việc bật 5 ngày, chỉ tiêu 10 lượt cho
+      // MỖI EM là bất khả với từng đứa, nhưng trần giả 150 nói là ổn. Xem 0132.
+      //
+      // Sĩ số vẫn được CSDL trả về như một con số để đọc, nên vẫn đối chiếu nó — chỉ là nó không
+      // đi vào phép so.
       js.so_nguoi = w.scope === 'class' ? Math.max(siSo.get(w.class_id) ?? 0, 1) : 1;
-      js.tran = js.so_ngay * js.so_nguoi;
+      js.tran = js.so_ngay;
       js.qua_nhieu = js.so_tick_can > js.tran;
       js.lech_don_vi =
         Boolean(lm.unit) && Boolean(w.unit) && boDau(lm.unit) !== boDau(w.unit) && moiTick === 1;
@@ -198,14 +224,18 @@ const check = (ten, ok, ghi = '') => {
 {
   // Luật "ô rỗng thì ĐỪNG đụng tới cột" nay nằm ở lib/wig-tao.ts (chuanHoaHeSo) — dùng chung cho
   // cả trang /wig lẫn phòng họp. Trước đây nó là parseUnitPerTick riêng của wig/actions.ts.
+  // ĐƯỜNG SỬA VIỆC ĐÃ BỎ (0129) — việc dẫn dắt nay chỉ thêm, không sửa. Nên câu hỏi cũ ("ô rỗng
+  // có ghi đè cột đang có không") không còn chỗ xảy ra; câu thay nó là: THÊM việc mà để trống ô
+  // hệ số thì phải ra 1, tuyệt đối không phải null — cột là NOT NULL, một giá trị null ở đây là
+  // cả lệnh thêm việc vỡ ngay giữa buổi họp.
   const chung = readFileSync('lib/wig-tao.ts', 'utf8');
   const src = readFileSync('app/[locale]/(dashboard)/wig/actions.ts', 'utf8');
   const co = /raw\.trim\(\) === ''\)\s*return null/.test(chung);
-  const boQua = /upt === null \? \{\} : \{unit_per_tick: upt\}/.test(src);
+  const boQua = /const heSo = nhap_luong \? 1 : \(upt \?\? 1\)/.test(src);
   check(
-    'Ô rỗng không ghi đè hệ số (server)',
+    'Ô rỗng lúc THÊM việc rơi về hệ số 1, không phải null',
     co && boQua,
-    co ? (boQua ? '' : 'thiếu chỗ bỏ cột') : 'chuanHoaHeSo vẫn nuốt rỗng',
+    co ? (boQua ? '' : 'không thấy chỗ rơi về 1') : 'chuanHoaHeSo vẫn nuốt rỗng',
   );
 
   // Form sửa việc nay là components/wig/ViecTuan.tsx (mở tại chỗ, không còn panel ở đầu trang).
@@ -229,38 +259,99 @@ const check = (ten, ok, ghi = '') => {
 
 // ── 5. Trang /wig có VẼ RA cảnh báo không ──
 {
-  const {data: g} = await admin.auth.admin.generateLink({
-    type: 'magiclink',
-    email: 'test1.gvcn@truongvietanh.com',
-  });
-  const {data: v} = await anon.auth.verifyOtp({type: 'email', token_hash: g.properties.hashed_token});
-  const ck = `sb-${REF}-auth-token=base64-${Buffer.from(JSON.stringify(v.session)).toString('base64url')}`;
-
   // Tìm một WIG tuần đang có cảnh báo, mở đúng tuần của nó.
+  // Lớp để mở trang: lớp của tài khoản GVCN kiểm thử nếu còn, không thì lớp bất kỳ đang hoạt động
+  // có chủ nhiệm. Bám cứng một tài khoản là bài kiểm chết theo nhân sự của trường.
   const {data: gv} = await admin
     .from('profiles')
     .select('id')
     .eq('email', 'test1.gvcn@truongvietanh.com')
-    .single();
-  const {data: lops} = await admin.from('classes').select('id').eq('homeroom_teacher_id', gv.id);
-  const lopIds = (lops ?? []).map((c) => c.id);
+    .maybeSingle();
+  const {data: moiLop} = await admin
+    .from('classes')
+    .select('id, homeroom_teacher_id')
+    .eq('is_active', true)
+    .not('homeroom_teacher_id', 'is', null);
+  const cuaGv = (moiLop ?? []).filter((c) => c.homeroom_teacher_id === gv?.id);
+  const lopChon = cuaGv.length ? cuaGv : (moiLop ?? []).slice(0, 1);
+  const lopIds = lopChon.map((c) => c.id);
+
+  // ĐĂNG NHẬP BẰNG GVCN CỦA CHÍNH LỚP VỪA CHỌN — phải chọn lớp trước rồi mới đăng nhập.
+  // Bản cũ đăng nhập cứng bằng test1.gvcn; tài khoản ấy nay không chủ nhiệm lớp nào, nên trang
+  // trả 307 và phép kiểm đọc thành "trang không vẽ cảnh báo".
+  let ck = '';
+  if (lopChon.length) {
+    const {data: chuNhiem} = await admin
+      .from('profiles')
+      .select('email')
+      .eq('id', lopChon[0].homeroom_teacher_id)
+      .maybeSingle();
+    const {data: g} = await admin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: chuNhiem.email,
+    });
+    const {data: v} = await anon.auth.verifyOtp({
+      type: 'email',
+      token_hash: g.properties.hashed_token,
+    });
+    ck = `sb-${REF}-auth-token=base64-${Buffer.from(JSON.stringify(v.session)).toString('base64url')}`;
+  }
   const {data: wigs} = await admin
-    .from('wigs')
-    .select('id, class_id, start_date')
+    .from('commitments')
+    .select('id, class_id, week_start')
     .in('class_id', lopIds)
-    .eq('scope', 'class')
-    .eq('period', 'week');
+    .is('student_id', null);
 
   let mo = null;
-  for (const w of wigs ?? []) {
-    const {data: cb} = await admin.rpc('lead_measure_canh_bao', {p_wig: w.id});
+  for (const ck of wigs ?? []) {
+    const w = {...ck, start_date: ck.week_start};
+    const {data: cb} = await admin.rpc('lead_measure_canh_bao', {p_commitment: w.id});
     if ((cb ?? []).some((r) => r.qua_nhieu || r.lech_don_vi)) {
       mo = w;
       break;
     }
   }
+  // KHÔNG CÓ CẢNH BÁO THẬT THÌ DỰNG LẤY MỘT CÁI, đừng bỏ qua.
+  //
+  // Bài này soi xem TRANG có vẽ cảnh báo ra không. Chờ dữ liệu thật rơi vào trạng thái cảnh báo
+  // là chờ một chuyện không nên xảy ra — và càng sửa app cho đúng thì phép kiểm này càng không
+  // bao giờ chạy. Nay tự đặt một việc có chỉ tiêu vượt trần rồi mở trang, xong xoá.
+  //
+  // Dựng ở một tuần TƯƠNG LAI để không đụng cam kết thật của lớp (và không đâm vào trần 2 cam
+  // kết mỗi tuần của CSDL).
+  let ckTam = null;
+  if (!mo && lopIds.length) {
+    const {data: wNam} = await admin
+      .from('wigs')
+      .select('id, class_id')
+      .eq('class_id', lopIds[0])
+      .eq('scope', 'class')
+      .limit(1)
+      .maybeSingle();
+    if (wNam) {
+      const d = new Date();
+      d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + 70);
+      const t2 = d.toISOString().slice(0, 10);
+      const {data: c0} = await admin
+        .from('commitments')
+        .insert({wig_id: wNam.id, class_id: wNam.class_id, week_start: t2,
+                 title: 'ZZTEST cảnh báo', area: 'knowledge'})
+        .select('id')
+        .maybeSingle();
+      if (c0) {
+        ckTam = c0.id;
+        // Chỉ tiêu 9999 lượt trong một tuần: vượt trần dù lớp đông tới đâu.
+        await admin.from('lead_measures').insert({
+          commitment_id: ckTam, title: 'ZZTEST việc vượt trần', target_value: 9999,
+          unit: 'bài', active_weekdays: [1], unit_per_tick: 1,
+        });
+        mo = {id: ckTam, class_id: wNam.class_id, start_date: t2};
+      }
+    }
+  }
+
   if (!mo) {
-    check('Trang /wig vẽ ra cảnh báo', false, 'không tìm được WIG nào đang cảnh báo để mở');
+    check('Trang /wig vẽ ra cảnh báo', false, 'không dựng nổi một cảnh báo để thử');
   } else {
     const monday = (() => {
       const d = new Date(`${mo.start_date}T00:00:00Z`);
@@ -271,11 +362,17 @@ const check = (ten, ok, ghi = '') => {
     const r = await fetch(`${BASE}/wig?class=${mo.class_id}&week=${monday}`, {headers: {cookie: ck}});
     // Bỏ <script>: payload RSC mang cả chuỗi dịch, dò trên đó là dò trúng thứ không được vẽ ra.
     const html = (await r.text()).replace(/<script[\s\S]*?<\/script>/gi, '');
+    // CHỮ CẢNH BÁO LẤY TỪ GÓI DỊCH. Bản cũ dò 'lần tick'; câu thật nay là "Mỗi em cần N LƯỢT
+    // tick…" — một chữ đổi là phép kiểm báo trang không vẽ cảnh báo, trong khi nó vẽ đủ.
+    const goiW = JSON.parse(readFileSync('messages/vi.json', 'utf8')).wig ?? {};
+    const dauCau = (mau) => String(mau ?? '').split('{')[0].trim();
+    const manh = [dauCau(goiW.warnTooMany), dauCau(goiW.warnUnitMismatch)].filter(Boolean);
     check(
       'Trang /wig vẽ ra cảnh báo',
-      /lần tick|tickable days/i.test(html) || /đo bằng|Measured in/i.test(html),
-      `WIG ${mo.id.slice(0, 8)} · tuần ${monday}`,
+      manh.some((m) => html.includes(m)),
+      `cam kết ${mo.id.slice(0, 8)} · tuần ${monday}`,
     );
+    if (ckTam) await admin.from('commitments').delete().eq('id', ckTam);
   }
 }
 

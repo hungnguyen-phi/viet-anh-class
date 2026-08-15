@@ -25,8 +25,17 @@ import {readFileSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
 
 const BASE = process.argv[2] ?? 'http://localhost:6880';
-// Thứ Hai của một tuần đã qua từ lâu — xa hẳn tuần đang chạy.
-const TUAN = '2026-03-02';
+// TUẦN ĐỂ DIỄN TẬP: thứ Hai của tám tuần NỮA, tính từ hôm nay.
+//
+// Bản cũ đóng cứng một tuần đã qua từ lâu ('2026-03-02') để khỏi đụng dữ liệu thật. Nhưng nhãn
+// tuần chỉ tra ra ngày trong cửa sổ ±12 tuần quanh hôm nay (CUA_SO_KY), nên một ngày cố định sẽ
+// trôi ra ngoài cửa sổ theo thời gian — và khi ấy máy chủ trả "Không rõ tuần tới là tuần nào",
+// đọc thành app hỏng. Tám tuần TỚI thì vừa nằm trong cửa sổ, vừa là vùng chưa lớp nào có dữ liệu,
+// nên phần dọn cuối bài không thể xoá nhầm buổi họp thật của ai.
+const nayVN = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Ho_Chi_Minh'}));
+const t2NayVN = new Date(nayVN);
+t2NayVN.setDate(nayVN.getDate() - ((nayVN.getDay() + 6) % 7) + 56);
+const TUAN = `${t2NayVN.getFullYear()}-${String(t2NayVN.getMonth() + 1).padStart(2, '0')}-${String(t2NayVN.getDate()).padStart(2, '0')}`;
 
 const env = {};
 for (const l of readFileSync('.env.local', 'utf8').split('\n')) {
@@ -144,11 +153,27 @@ try {
     return {status: dap.status, body: await dap.text()};
   }
 
+  // NHÃN TUẦN PHẢI LÀ NHÃN THẬT. Bản cũ gửi 'ZZTEST-W11' và máy chủ nuốt được, vì hồi ấy nhãn
+  // tuần đích chỉ dùng ở nhánh tạo mới. Nay mọi việc của buổi họp đều treo vào tuần đích, nên nhãn
+  // không đọc được là buổi họp dừng lại — đúng như nó nên làm. Giao diện thật luôn gửi nhãn do máy
+  // chủ tính (weekFromMonday), nên đây là chỗ bộ kiểm phải theo app, không phải ngược lại.
+  const nhanTuan = (thu2) => {
+    const dt = new Date(`${thu2}T00:00:00Z`);
+    const dayNum = dt.getUTCDay() || 7;
+    dt.setUTCDate(dt.getUTCDate() + 4 - dayNum);
+    const dauNam = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
+    const so = Math.ceil(((dt.getTime() - dauNam.getTime()) / 86400000 + 1) / 7);
+    return `W${String(so).padStart(2, '0')}-${dt.getUTCFullYear()}`;
+  };
+  const sang = new Date(`${TUAN}T00:00:00Z`);
+  sang.setUTCDate(sang.getUTCDate() + 7);
+  const TUAN_SAU = sang.toISOString().slice(0, 10);
+
   const chung = {
     class_id: lop.id,
     hop_start: TUAN,
-    hop_label: 'ZZTEST-W10',
-    dich_label: 'ZZTEST-W11',
+    hop_label: nhanTuan(TUAN),
+    dich_label: nhanTuan(TUAN_SAU),
     [`em_${emThu.student_id}_ten`]: 'Em thử',
     [`em_${emThu.student_id}_wig`]: wigId,
   };
@@ -165,15 +190,18 @@ try {
     [`em_${emThu.student_id}_camket`]: 'tuần tới đủ 3 hôm',
   });
   dau('Máy chủ nhận lệnh chốt buổi họp', d1.status === 200 || d1.status === 303, `HTTP ${d1.status}`);
+  // `SOI=1 node scripts/test-hop-tung-em.mjs …` in ra câu máy chủ trả về. Khi buổi họp không lưu,
+  // mọi phép dưới đây đỏ cùng lúc mà không cái nào nói VÌ SAO — câu lỗi thật nằm trong thân trả
+  // về, và đây là đường ngắn nhất để đọc nó.
+  if (process.env.SOI)
+    console.log('SOI:', (d1.body.match(/"error":"[^"]{0,200}"|Xong:[^"\\]{0,160}/g) ?? ['(không thấy câu báo)'])[0]);
 
   // ── BUỔI HỌP ĐẶT VIỆC CHO TUẦN TỚI, KHÔNG VIẾT LẠI TUẦN VỪA CHỐT ────────────────────────
   //
   // Bản trước đòi ngược lại: ô "việc tuần này" phải ĐỔI TÊN chính việc của tuần cũ. Hai lẽ khiến
   // nó sai: 0129 khoá quyền sửa việc dẫn dắt (câu UPDATE của cô khớp 0 dòng và im lặng trôi qua),
   // và tuần cũ đã chốt — sửa nó là viết lại quá khứ mà lượt tick đã treo dưới.
-  const dich = new Date(`${TUAN}T00:00:00Z`);
-  dich.setUTCDate(dich.getUTCDate() + 7);
-  const TUAN_TOI = dich.toISOString().slice(0, 10);
+  const TUAN_TOI = TUAN_SAU;
 
   const {data: ckMoi} = await admin
     .from('commitments')

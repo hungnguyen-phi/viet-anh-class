@@ -322,26 +322,44 @@ export default async function WigPage({
     lead_measures: Lead[] | null;
   }[]).map((c) => ({...c, verdict: c.verdict === 'win' || c.verdict === 'lose' ? c.verdict : null}));
 
-  const viecCuaCamKet = (ckId: string): ViecItem[] =>
-    ((camKet.find((c) => c.id === ckId)?.lead_measures ?? []) as Lead[]).map((l) => ({
-      id: l.id,
-      title: l.title,
-      target_value: Number(l.target_value),
-      unit: l.unit,
-      sub_category: l.sub_category,
-      active_weekdays: l.active_weekdays,
-      unit_per_tick: l.unit_per_tick,
-      nhap_luong: l.nhap_luong,
-      // Cảnh báo "đòi nhiều lượt hơn số ngày tick được" nay tính theo tuần của cam kết ở CSDL
-      // (lead_measure_canh_bao, 0122). Chưa nối vào màn này — để 0 là KHÔNG cảnh báo, chứ không
-      // phải cảnh báo sai.
-      quaNhieu: false,
-      lechDonVi: false,
-      soTickCan: 0,
-      tran: 0,
-      soNgay: 0,
-      soNguoi: 0,
-    }));
+  const viecCuaCamKet = (ckId: string): ViecItem[] => {
+    const ck = camKet.find((c) => c.id === ckId);
+    // CẢNH BÁO "ĐÒI NHIỀU LƯỢT HƠN SỐ NGÀY TICK ĐƯỢC" — nối lại cho mô hình cam kết.
+    //
+    // Từ 0121 tới nay chỗ này đóng cứng `quaNhieu: false` kèm một dòng "chưa nối vào màn này".
+    // Nghĩa là suốt quãng ấy cảnh báo TẮT với mọi việc của mô hình mới: cô đặt "9999 lượt trong
+    // một tuần có 1 ngày" thì màn hình im lặng đồng ý. Đúng loại lỗi mà PRD gọi tên — chỉ tiêu
+    // không ai đạt nổi thì cả tuần chỉ dạy được một điều: mục tiêu là thứ để trượt.
+    //
+    // Dùng lại canhBaoLead của chính trang này, với KHOẢNG NGÀY LÀ TUẦN CỦA CAM KẾT (thứ Hai →
+    // Chủ nhật) và đơn vị của mục tiêu năm mà cam kết treo dưới. Cùng một phép với
+    // lead_measure_canh_bao trong CSDL, và scripts/test-moi-lan-tick.mjs đối chiếu hai bên.
+    const wCha = wigs.find((w) => w.id === ck?.wig_id);
+    const tuanCuaCamKet = {
+      ...(wCha ?? ({} as Wig)),
+      start_date: wk.start,
+      end_date: wk.end,
+    } as Wig;
+    return ((ck?.lead_measures ?? []) as Lead[]).map((l) => {
+      const cb = canhBaoLead(l, tuanCuaCamKet);
+      return {
+        id: l.id,
+        title: l.title,
+        target_value: Number(l.target_value),
+        unit: l.unit,
+        sub_category: l.sub_category,
+        active_weekdays: l.active_weekdays,
+        unit_per_tick: l.unit_per_tick,
+        nhap_luong: l.nhap_luong,
+        quaNhieu: cb.quaNhieu,
+        lechDonVi: cb.lechDonVi,
+        soTickCan: cb.soTickCan,
+        tran: cb.tran,
+        soNgay: cb.soNgay,
+        soNguoi: cb.soNguoi,
+      };
+    });
+  };
 
   const viecCuaWig = (w: Wig): ViecItem[] =>
     ((wigsKemLead.find((x) => x.id === w.id)?.lead_measures ?? []) as Lead[]).map((l) => {
