@@ -2,7 +2,7 @@
 
 import {useActionState, useEffect, useRef, useState} from 'react';
 import {useTranslations} from 'next-intl';
-import {AlertCircle, CheckCircle2, ChevronDown, Lock, Plus, X} from 'lucide-react';
+import {AlertCircle, CheckCircle2, ChevronDown, Plus, X} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, ctlWithBorder, selectCls, btnGold, btnGhost} from '@/components/ui/Field';
 import {taoWig} from '@/app/[locale]/(dashboard)/wig/actions';
@@ -23,9 +23,8 @@ import {ONgayVN} from '@/components/ui/ONgayVN';
 // Nay form chỉ xuất hiện khi người ta thật sự muốn tạo. Trang đọc còn lại đúng thứ đáng đọc:
 // mục tiêu tuần này, và lớp đang đi tới đâu.
 //
-// RÀNG BUỘC CHUỖI NĂM → THÁNG → TUẦN nằm ngay trên ba cái tab: chưa có mục tiêu năm thì tab
-// "Tháng" khoá, và bên cạnh nói rõ vì sao khoá. Khoá mà không nói lý do thì người dùng chỉ thấy
-// một nút bấm không ăn.
+// CHUỖI NĂM → THÁNG → TUẦN ĐÃ BỎ (0121): chỉ còn mục tiêu NĂM, và việc theo tuần chuyển sang
+// CAM KẾT TUẦN. Ba cái tab cũ vì thế cũng bỏ — xem ghi chú ở biến `loai` bên dưới.
 
 type WigOption = {id: string; title: string; start_date: string; end_date: string};
 
@@ -56,19 +55,19 @@ export function TaoWigMenu({
 }) {
   const t = useTranslations('wig');
   const [open, setOpen] = useState(false);
-  const [loai, setLoai] = useState<'year' | 'month' | 'week'>('year');
+  // ── 0121: CHỈ CÒN MỤC TIÊU NĂM ───────────────────────────────────────────────────────────
+  //
+  // Trước đây đây là ba thẻ Năm/Tháng/Tuần, và menu mở ra ĐỨNG SẴN Ở THẺ XA NHẤT lớp đủ điều
+  // kiện tạo — lớp đã có mục tiêu năm thì mở ra là thẻ THÁNG. Từ 0121 cơ sở dữ liệu chỉ nhận
+  // period='year' (`wig_chi_con_nam_ck`), nên đường đi mặc định của cô là: mở menu, điền hết một
+  // biểu mẫu tháng, bấm Lưu, ăn một câu lỗi thô của Postgres. Không ai đoán được phải làm gì tiếp.
+  //
+  // Nay không còn đường nào đổi giá trị này. Giữ nguyên KIỂU union thay vì thu về 'year' là cố ý:
+  // các nhánh tháng/tuần bên dưới thành không-bao-giờ-chạy chứ không thành lỗi biên dịch, nên bản
+  // vá này không phải đụng dao vào một biểu mẫu 550 dòng đang chạy đúng ngay trước buổi họp.
+  const [loai] = useState<'year' | 'month' | 'week'>('year');
   const boxRef = useRef<HTMLDivElement>(null);
   const [state, formAction] = useActionState(taoWig, {ok: false});
-
-  const coNam = wigNam.length > 0;
-  const coThang = wigThang.length > 0;
-
-  // Mở ra thì đứng sẵn ở loại XA NHẤT mà lớp đã đủ điều kiện tạo: chưa có gì → Năm; có năm rồi →
-  // Tháng; có tháng rồi → Tuần. Đó gần như luôn là thứ người ta định làm, và nó cũng dạy luôn
-  // cái chuỗi mà không cần một dòng hướng dẫn nào.
-  useEffect(() => {
-    if (open) setLoai(coThang ? 'week' : coNam ? 'month' : 'year');
-  }, [open, coNam, coThang]);
 
   // Bấm ra ngoài / Esc thì đóng. Không đóng khi vừa lưu xong: người ta hay tạo mấy cái liền tay.
   useEffect(() => {
@@ -216,27 +215,6 @@ export function TaoWigMenu({
     if (ht < minThang || ht > maxThang) setThangDangChon(minThang);
   }, [loai, thangDangChon, minThang, maxThang, kyMacDinh.month]);
 
-  const tab = (gt: 'year' | 'month' | 'week', nhan: string, mo: boolean, viSao: string) => (
-    <button
-      type="button"
-      key={gt}
-      onClick={() => mo && setLoai(gt)}
-      disabled={!mo}
-      title={mo ? undefined : viSao}
-      aria-pressed={loai === gt}
-      className={`inline-flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-[9px] px-2 py-2 text-[12.5px] font-extrabold transition-all disabled:cursor-not-allowed ${
-        loai === gt
-          ? 'bg-navy text-white shadow-[0_3px_10px_-2px_rgba(38,39,93,0.45)]'
-          : mo
-            ? 'text-navy/70 hover:bg-navy/[0.07] hover:text-navy'
-            : 'text-grey-soft'
-      }`}
-    >
-      {!mo && <Lock size={11} strokeWidth={2.5} />}
-      {nhan}
-    </button>
-  );
-
   return (
     <div ref={boxRef} className="relative shrink-0">
       <button
@@ -271,14 +249,9 @@ export function TaoWigMenu({
             </button>
           </div>
 
-          <div className="mb-1 flex gap-1 rounded-[12px] bg-navy/[0.05] p-1">
-            {tab('year', t('year'), true, '')}
-            {tab('month', t('month'), coNam, t('needYearFirst'))}
-            {tab('week', t('week'), coThang, t('needMonthFirst'))}
-          </div>
-          {/* Ba câu giảng "mục tiêu năm là gì, tháng là gì, tuần là gì" đã bỏ. Chính ba cái tab
-              ngay trên đã nói thứ tự ấy, và tab tháng/tuần bị khoá kèm câu "cần mục tiêu năm
-              trước" — luật hiện ra bằng cách chạm được, không cần một đoạn văn nhắc lại. */}
+          {/* Hàng thẻ Năm/Tháng/Tuần đã bỏ cùng 0121: chỉ còn một loại thì một hàng thẻ có đúng
+              một ô sáng là hỏi một câu không có lựa chọn nào. Việc theo tuần nay nằm ở CAM KẾT
+              TUẦN, không phải ở đây. */}
 
           {/* key theo loại: đổi tab là dựng lại form, không để sót giá trị của loại trước. */}
           <form key={loai} action={formAction} className="flex flex-col gap-3">

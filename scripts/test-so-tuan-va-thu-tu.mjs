@@ -92,12 +92,20 @@ if (r.status === 200) {
 
   // ── THỨ TỰ. So VỊ TRÍ chứ không chỉ so có/không: cả ba khối đều tồn tại từ trước, cái đổi là
   // chúng đứng đâu. Mốc lấy tiêu đề khối tick và tiêu đề hai nửa thẻ.
-  // Tiêu đề khối tick nay là "Lead Measure" — 13/08/2026 chủ dự án cắt bốn dòng chữ giới thiệu
-  // ("Việc của em — tick mỗi ngày" + câu phụ, rồi một tiêu đề nữa bên trong LeadTicker) còn một.
+  // Tiêu đề khối tick ĐỌC TỪ GÓI DỊCH. 13/08/2026 chủ dự án cắt bốn dòng chữ giới thiệu còn một,
+  // rồi sau đó đổi luôn nhãn tiếng Anh sang tiếng Việt — viết cứng chuỗi ở đây thì mỗi lần sửa
+  // chữ là một phép kiểm đỏ oan, mà thứ cần canh là THỨ TỰ ba khối, không phải tên chúng.
   const viTri = (re) => hien.search(re);
-  const oTick = viTri(/Lead Measure/);
-  const oMucTieu = viTri(/Mục tiêu của con/);
-  const oSo = viTri(/Sổ của con/);
+  const thoat = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const goi = JSON.parse(readFileSync('messages/vi.json', 'utf8'));
+  const moc = (chuoi) => (chuoi ? viTri(new RegExp(thoat(chuoi))) : -1);
+  const nhanTick = goi.student?.leads;
+  // Hai nhãn này từng viết cứng là "Mục tiêu của con" / "Sổ của con". Màn hình nay gọi em bằng
+  // "bạn", nên bản cũ báo mất cả hai khối trong khi chúng vẫn ở đó — bộ kiểm tố cáo một thay đổi
+  // chữ có chủ ý. Thứ bài này canh là THỨ TỰ ba khối, nên nhãn phải lấy từ đúng nơi màn hình lấy.
+  const oTick = moc(nhanTick);
+  const oMucTieu = moc(goi.goal?.title);
+  const oSo = moc(goi.goal?.journal);
   dat(oTick >= 0, 'có khối việc để tick');
   dat(oMucTieu >= 0, 'có khối "Mục tiêu của con"');
   dat(oSo >= 0, 'có khối "Sổ của con"');

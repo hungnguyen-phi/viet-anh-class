@@ -480,6 +480,7 @@
     "weekBackToThis": "Về tuần này",
     "noWeekWigsThisWeek": "Tuần {label} chưa có WIG tuần nào — nên màn hình học sinh sẽ không có việc chung nào để tick.",
     "weekDateOff": "Lệch tuần: {start} → {end}",
+    "eachTimeVaries": "Mỗi lần một khác — các em tự điền số mỗi ngày",
     "unitPerTick": "Mỗi lần tick đáng",
     "unitPerTickHint": "Tính theo đơn vị của mục tiêu ({unit}). Để 1 nếu mỗi lần làm là một {unit}; đặt 30 nếu mục tiêu tính bằng phút mà mỗi lần làm 30 phút.",
     "perTickShort": "mỗi lần {n} {unit}",

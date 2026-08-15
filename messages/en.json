@@ -480,6 +480,7 @@
     "weekBackToThis": "Back to this week",
     "noWeekWigsThisWeek": "No weekly WIG for {label} — so students have no shared work to tick.",
     "weekDateOff": "Off-week dates: {start} → {end}",
+    "eachTimeVaries": "It varies — students type the number each day",
     "unitPerTick": "Each tick counts as",
     "unitPerTickHint": "In the goal's unit ({unit}). Leave it at 1 when one tick means one {unit}; set 30 when the goal is in minutes and each session is 30 minutes.",
     "perTickShort": "{n} {unit} per tick",

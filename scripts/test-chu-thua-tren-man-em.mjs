@@ -6,7 +6,7 @@
 // bên dưới" + "Chọn việc CON TỰ LÀM ĐƯỢC…"). Xoá khoá trong messages/*.json thì `tsc` vẫn xanh và
 // `next build` vẫn xanh — cả hai đều không biết màn hình in ra chữ gì. Chỉ có dựng thật mới biết.
 //
-// Bài này cũng canh chiều ngược lại: nhãn "Lead Measure" PHẢI có mặt. Bỏ hết chữ mà quên chừa
+// Bài này cũng canh chiều ngược lại: KHỐI TICK PHẢI CÒN TIÊU ĐỀ. Bỏ hết chữ mà quên chừa
 // nhãn thì bảng tick thành một đống thẻ không tên.
 //
 // Cách dùng — mở `npm run dev` trước, rồi:
@@ -66,7 +66,13 @@ for (const [ten, chuoi] of PHAI_MAT) {
   dau(`đã bỏ: ${ten}`, !body.includes(chuoi), body.includes(chuoi) ? `còn thấy "${chuoi}"` : 'sạch');
 }
 
-dau('còn nhãn "Lead Measure"', body.includes('Lead Measure'), body.includes('Lead Measure') ? 'có' : 'MẤT NHÃN');
+// Nhãn LẤY TỪ GÓI DỊCH, không viết cứng. Bản cũ chốt chết chuỗi 'Lead Measure', nên hôm chủ dự
+// án cho cắt tiếng lóng tiếng Anh khỏi màn trẻ con (13/08, 'tám chỗ nói sai') bộ kiểm quay ra tố
+// cáo chính quyết định ấy. Điều đáng canh là KHỐI TICK CÒN TIÊU ĐỀ — không phải nó tên gì.
+const nhanTick = JSON.parse(readFileSync('messages/vi.json', 'utf8')).student?.leads;
+dau('khối tick còn tiêu đề (theo messages/vi.json)',
+    Boolean(nhanTick) && body.includes(nhanTick),
+    nhanTick ? (body.includes(nhanTick) ? `có — "${nhanTick}"` : `MẤT NHÃN "${nhanTick}"`) : 'THIẾU KHOÁ student.leads');
 
 // ── KHỐI MỤC TIÊU RIÊNG: CHƯA ĐẶT THÌ CHỈ LÀ MỘT NÚT ──────────────────────────────────────────
 // Bản trước dựng đủ bộ khung cho cái chưa tồn tại — cũng biểu tượng đích, cũng tiêu đề mở đầu bằng
@@ -125,7 +131,10 @@ for (const [ten, bo] of [
   const con = ['workOptional', 'leadRule', 'tickWeekOpen', 'classDone', 'myContrib', 'leadsHint']
     .filter((k) => JSON.stringify(bo).includes(`"${k}"`));
   dau(`messages/${ten}.json không còn khoá chữ thừa`, con.length === 0, con.join(', ') || 'sạch');
-  dau(`messages/${ten}.json: student.leads = Lead Measure`, bo.student?.leads === 'Lead Measure', String(bo.student?.leads));
+  // Chỉ đòi khoá CÓ MẶT và không rỗng. Đòi nó bằng đúng một chuỗi là biến bộ kiểm thành cái khoá
+  // tay chủ dự án mỗi lần muốn sửa chữ.
+  dau(`messages/${ten}.json: student.leads có nhãn`,
+      Boolean(bo.student?.leads?.trim()), String(bo.student?.leads));
 }
 
 for (const k of ketQua) console.log(`${k.dat ? 'OK  ' : 'SAI '} ${k.ten}  → ${k.chiTiet}`);

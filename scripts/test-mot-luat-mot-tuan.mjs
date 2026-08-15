@@ -61,13 +61,30 @@ const {data: gv} = await admin
   .select('id')
   .eq('email', 'test1.gvcn@truongvietanh.com')
   .single();
-const {data: lop} = await admin
+// LỚP ĐỂ ĐO: ưu tiên lớp của tài khoản kiểm thử, nhưng KHÔNG bám cứng vào nó. test1.gvcn hiện
+// không còn chủ nhiệm lớp nào, và bám cứng thì bộ kiểm nổ ngay ở khâu tra cứu ('lop' là null)
+// chứ không kịp đo điều nó sinh ra để đo. Lớp thay người chủ nhiệm là chuyện thường ở trường.
+const {data: dsLop} = await admin
   .from('classes')
-  .select('id, name')
-  .eq('homeroom_teacher_id', gv.id)
-  .order('name')
-  .limit(1)
-  .single();
+  .select('id, name, homeroom_teacher_id')
+  .eq('is_active', true)
+  .not('homeroom_teacher_id', 'is', null)
+  .order('name');
+let lop = null;
+for (const c of dsLop ?? []) {
+  const {count} = await admin
+    .from('enrollments')
+    .select('student_id', {count: 'exact', head: true})
+    .eq('class_id', c.id)
+    .eq('is_active', true);
+  if (!count) continue;
+  if (!lop || c.homeroom_teacher_id === gv?.id) lop = c;
+  if (c.homeroom_teacher_id === gv?.id) break;
+}
+if (!lop) {
+  console.log('BỎ QUA: không lớp nào vừa có GVCN vừa có học sinh đang học — CHƯA KIỂM ĐƯỢC.');
+  process.exit(1);
+}
 const {data: mon} = await admin.rpc('vn_week_start');
 const monday = String(mon).slice(0, 10);
 const end = new Date(`${monday}T00:00:00Z`);
