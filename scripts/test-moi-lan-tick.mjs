@@ -292,8 +292,22 @@ const check = (ten, ok, ghi = '') => {
     .select('id, homeroom_teacher_id')
     .eq('is_active', true)
     .not('homeroom_teacher_id', 'is', null);
-  const cuaGv = (moiLop ?? []).filter((c) => c.homeroom_teacher_id === gv?.id);
-  const lopChon = cuaGv.length ? cuaGv : (moiLop ?? []).slice(0, 1);
+  // LỚP PHẢI CÓ MỤC TIÊU NĂM CỦA LỚP để treo cam kết thử vào — và mục tiêu ấy không được là
+  // mục tiêu CUỘN (cam_ket_hop_le từ chối). Lớp đầu danh sách có thể chưa khai mục tiêu nào, và
+  // khi ấy bài báo "không dựng nổi một cảnh báo" — đo sự trống rỗng của dữ liệu, không đo app.
+  const {data: namLop} = await admin
+    .from('wigs')
+    .select('class_id')
+    .eq('scope', 'class')
+    .eq('period', 'year')
+    .neq('measure_by', 'cuon');
+  const coMucTieu = new Set((namLop ?? []).map((w) => w.class_id));
+  const cuaGv = (moiLop ?? []).filter(
+    (c) => c.homeroom_teacher_id === gv?.id && coMucTieu.has(c.id),
+  );
+  const lopChon = cuaGv.length
+    ? cuaGv
+    : (moiLop ?? []).filter((c) => coMucTieu.has(c.id)).slice(0, 1);
   const lopIds = lopChon.map((c) => c.id);
 
   // ĐĂNG NHẬP BẰNG GVCN CỦA CHÍNH LỚP VỪA CHỌN — phải chọn lớp trước rồi mới đăng nhập.
@@ -346,6 +360,8 @@ const check = (ten, ok, ghi = '') => {
       .select('id, class_id')
       .eq('class_id', lopIds[0])
       .eq('scope', 'class')
+      .eq('period', 'year')
+      .neq('measure_by', 'cuon')
       .limit(1)
       .maybeSingle();
     if (wNam) {
