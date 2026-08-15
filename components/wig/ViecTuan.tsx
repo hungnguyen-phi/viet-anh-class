@@ -2,12 +2,11 @@
 
 import {useActionState, useEffect, useState} from 'react';
 import {useTranslations} from 'next-intl';
-import {AlertCircle, AlertTriangle, CheckCircle2, Pencil, Plus, Trash2} from 'lucide-react';
+import {AlertCircle, AlertTriangle, CheckCircle2, Plus} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, ctlWithBorder, inputCls, btnGold, btnGhost} from '@/components/ui/Field';
 import {WeekdayPicker} from '@/components/wig/WeekdayPicker';
-import {ConfirmButton} from '@/components/ui/ConfirmButton';
-import {luuViec, deleteLeadMeasure} from '@/app/[locale]/(dashboard)/wig/actions';
+import {luuViec} from '@/app/[locale]/(dashboard)/wig/actions';
 import {kieuDonVi} from '@/lib/don-vi';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -68,25 +67,22 @@ export function ViecTuan({
   siSo: number;
 }) {
   const t = useTranslations('wig');
-  // 'none' | 'them' | <id việc đang sửa>
-  const [mo, setMo] = useState<string>('none');
+  // 'none' | 'them'. Không còn nhánh "đang sửa việc nào": việc dẫn dắt khoá ngay khi thêm (0129).
+  const [mo, setMo] = useState<'none' | 'them'>('none');
 
   const thu = (w: number[] | null) =>
     (w ?? [1, 2, 3, 4, 5, 6, 7]).map((d) => dayShort[d - 1]).join(' · ');
 
-  if (mo !== 'none') {
-    const dangSua = viec.find((v) => v.id === mo);
+  if (mo === 'them') {
     return (
       <ViecForm
-        key={mo}
         commitmentId={commitmentId}
         wigUnit={wigUnit}
         wigArea={wigArea}
-        viec={dangSua}
         dayShort={dayShort}
         mocTarget={mocTarget}
         siSo={siSo}
-        khac={viec.filter((x) => x.id !== mo)}
+        khac={viec}
         onDong={() => setMo('none')}
       />
     );
@@ -120,29 +116,16 @@ export function ViecTuan({
             </p>
           )}
 
-          <div className="mt-2.5 flex items-center gap-1.5 pt-0.5">
-            <button
-              type="button"
-              onClick={() => setMo(v.id)}
-              className="inline-flex cursor-pointer items-center gap-1 rounded-[9px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy"
-            >
-              <Pencil size={11} strokeWidth={2.5} />
-              {t('edit')}
-            </button>
-            <form action={deleteLeadMeasure} className="contents">
-              {classParam && <input type="hidden" name="class_id" value={classParam} />}
-              <input type="hidden" name="lead_measure_id" value={v.id} />
-              <input type="hidden" name="week" value={weekParam} />
-              <ConfirmButton
-                message={t('confirmDeleteLead')}
-                label={t('deleteLead')}
-                className="inline-flex cursor-pointer items-center gap-1 rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.06] px-2.5 py-1.5 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-status-bad/[0.14]"
-              >
-                <Trash2 size={11} strokeWidth={2.5} />
-                {t('delete')}
-              </ConfirmButton>
-            </form>
-          </div>
+          {/* HAI NÚT SỬA/XOÁ ĐÃ BỎ (0129).
+              "Lead measure của commitment đó không được xoá, sửa, nhưng có thể thêm" — vòng
+              comment PRD v3, chủ dự án chốt tiếp 15/08/2026: khoá NGAY KHI VỪA THÊM.
+
+              Vì sao đáng khoá chặt: đây là thứ các em tick vào mỗi ngày. Đổi tên hay đổi chỉ tiêu
+              giữa tuần là đổi luật giữa trận — mọi lượt tick đã ghi bỗng nói về một việc khác.
+              Gõ nhầm thì xoá cả CAM KẾT rồi đặt lại; đó là đường thoát, và nó không mập mờ.
+
+              RLS mới là thứ chặn thật (chỉ quản trị viên còn sửa/xoá được); bỏ hai nút ở đây là
+              để đừng bày ra cái bấm vào sẽ báo lỗi. */}
         </div>
       ))}
 
@@ -170,7 +153,6 @@ function ViecForm({
   commitmentId,
   wigUnit,
   wigArea,
-  viec,
   dayShort,
   mocTarget,
   siSo,
@@ -181,7 +163,6 @@ function ViecForm({
   commitmentId: string | null;
   wigUnit: string;
   wigArea: string;
-  viec?: ViecItem;
   dayShort: string[];
   mocTarget: number;
   siSo: number;
@@ -197,20 +178,20 @@ function ViecForm({
   // CẢNH BÁO LỆCH NHỊP, SỐNG THEO TỪNG PHÍM (§6.1 bước 4). Trước đây câu này chỉ có ở phòng họp —
   // tức là hiện ra ở chỗ cô KHÔNG gõ mục tiêu của việc, và im ở chỗ cô gõ. Cùng một hàm với
   // PhongHop (lib/wig-nhip) nên hai màn không bao giờ nói hai con số khác nhau.
-  const [oTarget, setOTarget] = useState(String(viec?.target_value ?? ''));
-  const [oUpt, setOUpt] = useState(String(Number(viec?.unit_per_tick ?? 1)));
+  const [oTarget, setOTarget] = useState('');
+  const [oUpt, setOUpt] = useState('1');
   // CHỖ THỨ BA của cùng một lỗi trong một ngày: step="1" chặn "6,7 điểm" và trình duyệt từ chối
   // bằng câu tiếng Anh của chính nó, giữa một biểu mẫu tiếng Việt. Đã sửa ở form mục tiêu của
   // lớp (TaoWigMenu) sáng nay; ô mục tiêu của VIỆC thì nằm ở tệp này và bị sót.
   // Đơn vị đo lại cũng không cần hỏi "mỗi lần tick đáng bao nhiêu": số em gõ chính là con số.
-  const [oDonVi, setODonVi] = useState(viec?.unit ?? '');
+  const [oDonVi, setODonVi] = useState('');
   const soLe = kieuDonVi(oDonVi) === 'do';
   // MỖI LẦN MỘT KHÁC — các em tự điền số mỗi ngày, thay vì một chạm nhân hệ số.
   //
   // Việc của EM đã có lựa chọn này từ 0110; việc CHUNG của lớp thì chưa, nên "đọc sách" của cả
   // lớp chỉ ghi được "một buổi = 30 trang" cố định — hôm nay 12 trang mai 40 trang thì không có
   // chỗ ghi. Đơn vị đo lại (điểm, kg) LUÔN ở chế độ này, không hỏi.
-  const [moiLanKhac, setMoiLanKhac] = useState(Boolean(viec?.nhap_luong));
+  const [moiLanKhac, setMoiLanKhac] = useState(false);
   const nhapSo = moiLanKhac;
   // GỢI Ý NHỊP ĐÃ BỎ (0121). Nó so "mốc tuần cần bao nhiêu" với "việc đang giao cho được bao
   // nhiêu" — mà mốc tuần không còn tồn tại: mỗi tuần nay là một CAM KẾT, và cam kết là lời hứa
@@ -226,19 +207,14 @@ function ViecForm({
   return (
     <form action={formAction} className="flex flex-col gap-3 rounded-[14px] border-[1.5px] border-gold/60 bg-white p-3.5">
       <h2 className="font-display text-[13.5px] font-bold text-navy">
-        {viec ? t('editWork') : t('addWork')}
+        {t('addWork')}
       </h2>
-      {viec ? (
-        <input type="hidden" name="lead_measure_id" value={viec.id} />
-      ) : (
-        <input type="hidden" name="commitment_id" value={commitmentId ?? ''} />
-      )}
+      <input type="hidden" name="commitment_id" value={commitmentId ?? ''} />
 
       <Field label={t('leadTitle')} htmlFor="viec-title" error={err('title')} hint={t('leadHint')}>
         <input
           id="viec-title"
           name="title"
-          defaultValue={viec?.title ?? ''}
           aria-invalid={state.fieldError === 'title'}
           className={ctlWithBorder(state.fieldError === 'title')}
         />
@@ -282,7 +258,7 @@ function ViecForm({
           htmlFor="viec-sub"
           className="col-span-2 sm:col-span-1"
         >
-          <input id="viec-sub" name="sub_category" defaultValue={viec?.sub_category ?? ''} className={inputCls} />
+          <input id="viec-sub" name="sub_category" className={inputCls} />
         </Field>
       </div>
 
@@ -330,7 +306,6 @@ function ViecForm({
         label={t('weekdays')}
         hint={t('weekdaysHint')}
         dayLabels={dayShort}
-        selected={viec?.active_weekdays ?? undefined}
       />
 
       {state.error && !state.fieldError && (

@@ -611,7 +611,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          set_by: string | null
           so_lan_sua: number
+          status: string
           student_id: string | null
           title: string
           verdict: string | null
@@ -627,7 +629,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          set_by?: string | null
           so_lan_sua?: number
+          status?: string
           student_id?: string | null
           title: string
           verdict?: string | null
@@ -643,7 +647,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          set_by?: string | null
           so_lan_sua?: number
+          status?: string
           student_id?: string | null
           title?: string
           verdict?: string | null
@@ -2656,6 +2662,13 @@ export type Database = {
           week_start: string
         }[]
       }
+      chua_check_in: {
+        Args: { p_class: string; p_date?: string }
+        Returns: {
+          student_id: string
+          student_name: string
+        }[]
+      }
       class_attendance_day: {
         Args: { p_class: string; p_date?: string }
         Returns: {
@@ -2715,15 +2728,6 @@ export type Database = {
           level_rank: number
           level_total: number
           score: number
-        }[]
-      }
-      class_scoreboard: {
-        Args: { p_class: string }
-        Returns: {
-          category: string
-          lead_count: number
-          points: number
-          sub_category: string
         }[]
       }
       class_tick_matrix: {
@@ -2876,6 +2880,7 @@ export type Database = {
       pdr_bang: {
         Args: { p_class: string; p_week?: string }
         Returns: {
+          cam_ket_cho_duyet: number
           cam_ket_dat: number
           cam_ket_tong: number
           cham_khac_may: number

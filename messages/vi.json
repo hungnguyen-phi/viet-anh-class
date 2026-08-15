@@ -559,7 +559,8 @@
     "noCommitmentsThisWeek": "Tuần {label} chưa có cam kết nào",
     "commitmentsHowMeeting": "Cam kết được đặt trong buổi họp WIG — mỗi tuần tối đa 2, để cả lớp tập trung vào đúng thứ đáng làm.",
     "verdictWonTag": "Thắng",
-    "verdictLostTag": "Chưa đạt"
+    "verdictLostTag": "Chưa đạt",
+    "commitmentPending": "Chờ duyệt — bấm để duyệt"
   },
   "meeting": {
     "title": "Họp WIG tuần",

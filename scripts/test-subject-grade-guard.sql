@@ -6,13 +6,28 @@ create temp table kq (nhom text, buoc text, ky_vong text, thuc_te text) on commi
 
 do $$
 declare
-  qtv  uuid := 'dc00a3e7-e7a9-4175-9b37-6dda75a99bc0'; -- admin
-  gvcn uuid := '22ec9392-46c6-420a-bae4-d890bd09d54f'; -- GVCN 7B1 (khối 7)
-  lop7 uuid;                                            -- 7B1, khối 7
+  qtv  uuid; gvcn uuid; co_so uuid;
+  lop7 uuid;
   m_ly uuid; m_toan uuid; m_tin uuid;
   n int;
 begin
-  select id into lop7 from classes where name = '7B1';
+  -- LỚP KHỐI 7 THẬT bất kỳ. Trước đây bám cứng tên '7B1' — lớp ấy đã không còn (dọn cùng đợt đổi
+  -- mô hình WIG), và không cơ sở nào hiện có SẴN một lớp khối 7. Dựng TẠM một lớp bên trong chính
+  -- giao dịch này (kết thúc bằng ROLLBACK ở cuối file) là cách duy nhất giữ đúng ý bài kiểm gốc —
+  -- "khối 7 học đúng 9 môn" — mà không phụ thuộc dữ liệu production tình cờ có sẵn lớp ấy hay không.
+  select id into qtv from profiles where role = 'admin' limit 1;
+  select c.homeroom_teacher_id, c.campus_id into gvcn, co_so
+  from classes c where c.is_active and c.homeroom_teacher_id is not null limit 1;
+  if qtv is null or gvcn is null then
+    insert into kq values ('DỰNG', 'Có admin và GVCN để thử', 'có', 'KHÔNG CÓ');
+    return;
+  end if;
+
+  insert into classes (campus_id, name, school_year, grade_id, homeroom_teacher_id, is_active)
+  select co_so, 'KIỂM · khối 7 tạm', current_school_year(),
+         (select id from grades where campus_id = co_so and sort_order = 7), gvcn, true
+  returning id into lop7;
+
   select id into m_ly   from subjects where code = 'LY'   and campus_id is null; -- lớp 10-12
   select id into m_toan from subjects where code = 'TOAN' and campus_id is null; -- lớp 6-12
   select id into m_tin  from subjects where code = 'TIN'  and campus_id is null; -- chưa khai lớp

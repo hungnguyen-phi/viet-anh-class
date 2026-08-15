@@ -27,6 +27,7 @@ import {BangTienDo, type DongTienDo} from '@/components/wig/BangTienDo';
 import {AREAS, areaLabel, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
 import {Flash} from '@/components/ui/Flash';
+import {duyetCamKet} from '@/app/[locale]/(dashboard)/wig/actions';
 
 // ════════════════════════════════════════════════════════════════════════════
 // /wig — MÀN HÌNH LÀM VIỆC HẰNG TUẦN CỦA GIÁO VIÊN CHỦ NHIỆM
@@ -198,7 +199,7 @@ export default async function WigPage({
       supabase
         .from('commitments')
         .select(
-          'id, title, area, wig_id, verdict, lead_measures(id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick, nhap_luong)',
+          'id, title, area, wig_id, verdict, status, set_by, lead_measures(id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick, nhap_luong)',
         )
         .eq('class_id', myClass.id)
         .is('student_id', null)
@@ -316,6 +317,8 @@ export default async function WigPage({
     area: string;
     wig_id: string;
     verdict: string | null;
+    status: string;
+    set_by: string | null;
     lead_measures: Lead[] | null;
   }[]).map((c) => ({...c, verdict: c.verdict === 'win' || c.verdict === 'lose' ? c.verdict : null}));
 
@@ -593,6 +596,23 @@ export default async function WigPage({
                     <span className="min-w-0 flex-1 font-display text-[16px] font-bold text-navy">
                       {c.title}
                     </span>
+                    {/* CHỜ DUYỆT — chỉ hiện với cam kết em tự đặt mà cô chưa gật (0129). Nút
+                        duyệt đứng ngay cạnh chữ, để cô gật tại chỗ chứ không phải đi tìm một màn
+                        khác. Không có nút TỪ CHỐI: lời hứa của một đứa trẻ thì không ai bác bỏ —
+                        thấy chưa ổn thì nói với em rồi để em sửa, sửa xong nó tự chờ duyệt lại. */}
+                    {c.status === 'sent' && (
+                      <form action={duyetCamKet} className="contents">
+                        {classParam && <input type="hidden" name="class_id" value={classParam} />}
+                        <input type="hidden" name="week" value={weekQ} />
+                        <input type="hidden" name="commitment_id" value={c.id} />
+                        <button
+                          type="submit"
+                          className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-2.5 py-0.5 text-[10.5px] font-extrabold text-gold-text transition-all hover:bg-gold/30"
+                        >
+                          {t('commitmentPending')}
+                        </button>
+                      </form>
+                    )}
                     {/* V/X đã chấm. Chưa chấm thì KHÔNG hiện gì — một dấu xám "chưa" chỉ làm
                         người đọc tưởng là thua. */}
                     {c.verdict && (

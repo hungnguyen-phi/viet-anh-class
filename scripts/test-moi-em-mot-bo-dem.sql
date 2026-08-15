@@ -201,14 +201,15 @@ end $$;
 --   · school_wig_rollup       — gọi thẳng private.wig_actual, không tự cộng nữa
 --   · class_tick_matrix       — vốn trả mảng ngày tick của TỪNG em
 --   · child_week_report       — chỉ đọc WIG cá nhân (một em), tổng chính là của em ấy
---   · class_scoreboard        — CỐ Ý cộng dồn: đây là bảng ĐIỂM tích luỹ theo hạng mục, không
---                               phải thước đo thắng/thua của một việc
+-- 15/08/2026 — `class_scoreboard` RỜI danh sách: bảng điểm 4 hạng mục đã bỏ hẳn (0128). Vòng
+-- comment PRD chốt "chỉ hiện lên các commitment tuần và lead measure", nên hàm cộng điểm theo
+-- hạng mục không còn ai gọi. Chính dòng điểm danh này báo trước khi tôi kịp quên.
 insert into ket_qua
-select 'Đúng 8 hàm đọc lead_progress, không hơn',
-       'cam_ket_goi_y, child_week_report, class_lead_board, class_scoreboard, class_tick_matrix, pdr_bang, school_wig_rollup, wig_actual_so',
+select 'Đúng 7 hàm đọc lead_progress, không hơn',
+       'cam_ket_goi_y, child_week_report, class_lead_board, class_tick_matrix, pdr_bang, school_wig_rollup, wig_actual_so',
        string_agg(p.proname, ', ' order by p.proname),
        string_agg(p.proname, ', ' order by p.proname) =
-         'cam_ket_goi_y, child_week_report, class_lead_board, class_scoreboard, class_tick_matrix, pdr_bang, school_wig_rollup, wig_actual_so'
+         'cam_ket_goi_y, child_week_report, class_lead_board, class_tick_matrix, pdr_bang, school_wig_rollup, wig_actual_so'
 from pg_proc p
 join pg_namespace n on n.oid = p.pronamespace
 where n.nspname in ('public', 'private')

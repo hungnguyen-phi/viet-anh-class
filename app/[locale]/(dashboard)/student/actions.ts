@@ -886,13 +886,13 @@ export async function luuMucTieuCuaEm(
 
   let wigId = daCo?.id ?? null;
   if (wigId) {
-    // CỬA SỔ MỘT NGÀY — xem supabase/migrations/0102 để biết vì sao. Chính sách RLS mới là chốt
-    // thật; đây là lớp thứ nhất, để câu báo lỗi nói đúng chuyện thay vì "không có quyền".
-    if (laChinhEm && !conTrongCuaSo(daCo))
-      return {
-        ok: false,
-        error: 'Mục tiêu này đã chốt rồi (quá 1 ngày). Con muốn đổi thì nhắn cô nhé.',
-      };
+    // CỬA SỔ MỘT NGÀY ĐÃ BỎ (15/08/2026). PRD v3: "WIGs có thể được thay đổi trong năm, nhưng
+    // vẫn cần GVCN duyệt." Khoá cứng sau 24 giờ ngược với "thay đổi trong năm" — và `ban.status`
+    // ngay bên dưới đã tự đưa mục tiêu về 'sent' mỗi lần em sửa, nên việc DUYỆT LẠI mới là chốt
+    // thật, không cần thêm một cửa sổ thời gian chặn hẳn việc sửa.
+    //
+    // XOÁ thì KHÁC — xem xoaMucTieuCuaEm(): xoá kéo theo mất cả lịch sử tick (cascade), một hành
+    // động không đảo ngược được như sửa, nên cửa sổ một ngày vẫn giữ nguyên ở đó.
     const {error} = await supabase.from('wigs').update(ban).eq('id', wigId);
     if (error) return {ok: false, error: (friendlyError(error))};
   } else {

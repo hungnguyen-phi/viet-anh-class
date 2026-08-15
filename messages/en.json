@@ -559,7 +559,8 @@
     "noCommitmentsThisWeek": "No commitments yet for {label}",
     "commitmentsHowMeeting": "Commitments are set in the WIG meeting — at most 2 a week, so the class stays on what matters.",
     "verdictWonTag": "Won",
-    "verdictLostTag": "Not met"
+    "verdictLostTag": "Not met",
+    "commitmentPending": "Pending — tap to approve"
   },
   "meeting": {
     "title": "Weekly WIG meeting",

@@ -33,7 +33,6 @@ import {
   Settings,
   ShieldCheck,
   Target,
-  Trophy,
   Users,
   UtensilsCrossed,
   X,
@@ -76,7 +75,6 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/grades', key: 'grades', Icon: GraduationCap},
     // "Họp WIG" đã gộp vào /wig (ClassMeetingSection) → bớt 1 tab cho GVCN.
     {href: '/wig', key: 'wig', Icon: Target},
-    {href: '/scoreboard', key: 'compete', Icon: Trophy},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
   ],
   admin: [
@@ -87,7 +85,6 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/homework', key: 'homework', Icon: BookOpen},
     {href: '/grades', key: 'grades', Icon: GraduationCap},
     {href: '/wig', key: 'wig', Icon: Target},
-    {href: '/scoreboard', key: 'compete', Icon: Trophy},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
   ],
   // BGH làm việc ở CẤP TRƯỜNG, không phải cấp lớp.

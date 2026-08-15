@@ -119,7 +119,6 @@ export async function taoWig(_prev: CreateWigState, formData: FormData): Promise
 // đúng ô sai.
 export async function luuViec(_prev: CreateWigState, formData: FormData): Promise<CreateWigState> {
   await requireRole(['teacher', 'admin']);
-  const id = String(formData.get('lead_measure_id') ?? '').trim();
   const commitment_id = String(formData.get('commitment_id') ?? '').trim();
   const title = String(formData.get('title') ?? '').trim();
   const target_raw = String(formData.get('target_value') ?? '').trim();
@@ -143,7 +142,7 @@ export async function luuViec(_prev: CreateWigState, formData: FormData): Promis
   const nhap_luong = String(formData.get('nhap_luong') ?? '') === '1';
   const heSo = nhap_luong ? 1 : (upt ?? 1);
 
-  if (!id && !commitment_id) return {ok: false, error: 'Chưa rõ việc này thuộc cam kết nào.'};
+  if (!commitment_id) return {ok: false, error: 'Chưa rõ việc này thuộc cam kết nào.'};
   if (!title) return {ok: false, fieldError: 'title', error: 'Hãy đặt tên cho việc này.'};
   if (title.length > 160) return {ok: false, fieldError: 'title', error: 'Tên việc tối đa 160 ký tự.'};
   // MỤC TIÊU LÀ SỐ NGUYÊN.
@@ -161,44 +160,26 @@ export async function luuViec(_prev: CreateWigState, formData: FormData): Promis
   // "không có nửa bài" không áp được cho cân nặng.
   if (kieuDonVi(unit) !== 'do' && !Number.isInteger(target_value))
     return {ok: false, fieldError: 'target_value', error: 'Mục tiêu phải là số nguyên (không có phần thập phân).'};
-  // Ô "mỗi lần tick đáng" bỏ trống khi TẠO MỚI thì lấy 1; khi SỬA thì giữ nguyên giá trị đang có
-  // (xem ghi chú dài ở parseUnitPerTick — ghi đè bằng 1 là chia cả lịch sử tick cho hệ số cũ).
+  // Ô "mỗi lần tick đáng" bỏ trống thì lấy 1 (xem parseUnitPerTick).
   const supabase = await createClient();
 
-  if (id) {
-    const {data, error} = await supabase
-      .from('lead_measures')
-      .update({
-        title,
-        target_value,
-        unit,
-        sub_category,
-        active_weekdays,
-        nhap_luong,
-        ...(nhap_luong ? {unit_per_tick: 1} : upt === null ? {} : {unit_per_tick: upt}),
-      })
-      .eq('id', id)
-      .select('id');
-    if (error) return {ok: false, error: (friendlyError(error))};
-    // .select() để biết có dòng nào thật sự đổi không: RLS chặn (lớp khác) → 0 dòng, error=null.
-    // Không kiểm thì báo "đã lưu" trong khi chẳng có gì đổi.
-    if (!data || data.length === 0)
-      return {ok: false, error: 'Không sửa được việc này (không có quyền hoặc đã bị xoá).'};
-  } else {
-    const {data, error} = await supabase
-      .from('lead_measures')
-      // `wig_id` KHÔNG gửi lên: trigger lead_theo_cam_ket (0121) suy nó từ cam kết. Gửi cũng bị đè.
-      .insert({commitment_id, title, target_value, unit, sub_category, active_weekdays, nhap_luong, unit_per_tick: heSo})
-      .select('id');
-    if (error) return {ok: false, error: (friendlyError(error))};
-    if (!data || data.length === 0)
-      return {ok: false, error: 'Không thêm được việc này (không có quyền với lớp này).'};
-  }
+  // CHỈ THÊM, KHÔNG SỬA (0129). Nhánh cập nhật đã gỡ: việc dẫn dắt khoá ngay khi vừa thêm, vì
+  // đây là thứ các em tick vào mỗi ngày — đổi tên hay đổi chỉ tiêu giữa tuần là đổi luật giữa
+  // trận, và mọi lượt tick đã ghi bỗng nói về một việc khác. Gõ nhầm thì xoá cả CAM KẾT rồi đặt
+  // lại. RLS (rls_sua_viec_chi_quan_tri) mới là thứ chặn thật.
+  const {data, error} = await supabase
+    .from('lead_measures')
+    // `wig_id` KHÔNG gửi lên: trigger lead_theo_cam_ket (0121) suy nó từ cam kết. Gửi cũng bị đè.
+    .insert({commitment_id, title, target_value, unit, sub_category, active_weekdays, nhap_luong, unit_per_tick: heSo})
+    .select('id');
+  if (error) return {ok: false, error: (friendlyError(error))};
+  if (!data || data.length === 0)
+    return {ok: false, error: 'Không thêm được việc này (không có quyền với lớp này).'};
 
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]', 'page');
-  return {ok: true, message: id ? `Đã sửa “${title}”.` : `Đã thêm “${title}”.`};
+  return {ok: true, message: `Đã thêm “${title}”.`};
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -359,16 +340,40 @@ export async function deleteWig(formData: FormData) {
   flash(error ? loi(friendlyError(error)) : 'Đã xoá WIG');
 }
 
-export async function deleteLeadMeasure(formData: FormData) {
+// deleteLeadMeasure ĐÃ GỠ (0129): việc dẫn dắt không xoá được nữa, kể cả bởi GVCN. Đường thoát
+// khi gõ nhầm là xoá cả cam kết — cascade dọn việc theo, và không để lại một việc mồ côi mang
+// lịch sử tick của một lời hứa đã biến mất.
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// DUYỆT CAM KẾT CỦA EM (0129)
+// ════════════════════════════════════════════════════════════════════════════
+//
+// "Học sinh tạo wig, tạo commitment tuần, thì gv duyệt" — chủ dự án chốt 15/08/2026. Cam kết em
+// tự đặt vào trạng thái 'sent'; đây là cái gật.
+//
+// KHÔNG có nút "từ chối": lời hứa của một đứa trẻ thì không ai bác bỏ. Cô thấy chưa ổn thì ngồi
+// nói với em rồi để em sửa lại — sửa xong nó tự về 'sent' lần nữa (trigger cam_ket_trang_thai).
+export async function duyetCamKet(formData: FormData) {
   await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '') || undefined;
   const week = weekOf(formData);
   const flash: (m: string) => never = (m) => flashTo(m, class_id, week);
-  const id = String(formData.get('lead_measure_id') ?? '');
-  if (!id) flash('Thiếu lead measure cần xoá');
+  const id = String(formData.get('commitment_id') ?? '').trim();
+  if (!id) flash(loi('Thiếu cam kết cần duyệt.'));
+
   const supabase = await createClient();
-  const {error} = await supabase.from('lead_measures').delete().eq('id', id);
-  revalidatePath('/[locale]/wig', 'page');
-  revalidatePath('/[locale]', 'page');
-  flash(error ? loi(friendlyError(error)) : 'Đã xoá lead measure');
+  // .select() để phân biệt "RLS chặn" với "đã duyệt": thiếu nó thì cam kết của lớp khác vẫn báo
+  // thành công, và cô đi tìm một cái gật chưa từng xảy ra.
+  const {data, error} = await supabase
+    .from('commitments')
+    .update({status: 'approved'})
+    .eq('id', id)
+    .select('id');
+  if (error) flash(loi(friendlyError(error)));
+  flash(
+    data && data.length > 0
+      ? 'Đã duyệt cam kết'
+      : loi('Không duyệt được cam kết này (không có quyền hoặc đã bị xoá).'),
+  );
 }

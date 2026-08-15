@@ -1,10 +1,21 @@
 begin;
 create temp table kq (buoc text, ky_vong text, thuc_te text) on commit drop;
 do $$
-declare lop uuid; gv1 uuid := '22ec9392-46c6-420a-bae4-d890bd09d54f';
+declare lop uuid; gv1 uuid;
         n_hs int; n_ph int; n1 int; n2 int; v_post uuid;
 begin
-  select id into lop from classes where name='7B1';
+  -- LỚP THẬT BẤT KỲ, không bám cứng vào một tên. Lớp '7B1' từng dùng để thử đã không còn trong
+  -- CSDL (dọn cùng đợt đổi mô hình WIG) — bám cứng vào một tên là chọn cách phép kiểm chắc chắn
+  -- mục theo thời gian. Đây đúng bẫy "test-man-wig-that.mjs" đã ghi: xanh giả ở một lớp trống.
+  select c.id, c.homeroom_teacher_id into lop, gv1
+  from classes c
+  where c.is_active and c.homeroom_teacher_id is not null
+    and exists (select 1 from enrollments e where e.class_id = c.id and e.is_active)
+  limit 1;
+  if lop is null then
+    insert into kq values ('Có lớp để thử', 'có lớp có GVCN và học sinh', 'KHÔNG CÓ');
+    return;
+  end if;
   select count(*) into n_hs from enrollments where class_id=lop and is_active;
   select count(distinct pl.parent_id) into n_ph from enrollments e
     join parent_links pl on pl.student_id=e.student_id where e.class_id=lop and e.is_active;

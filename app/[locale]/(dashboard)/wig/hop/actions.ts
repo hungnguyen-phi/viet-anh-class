@@ -142,23 +142,26 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
           error: `Việc “${hong.title}” chưa có chỉ tiêu hợp lệ (phải là số lớn hơn 0). Cam kết ĐÃ lưu — sửa số rồi lưu lại.`,
         };
       if (viec.length > 0) {
-        // Chỉ xoá những việc CHƯA CÓ TICK NÀO. Xoá một việc đã có tick là xoá dữ liệu thật của
-        // học sinh — thà để lại một dòng thừa còn hơn mất lịch sử làm bài của các em.
+        // CHỈ THÊM CÁI CHƯA CÓ (0129). Bản trước xoá sạch việc chưa có tick rồi chèn lại cả bộ —
+        // cách ấy nay vừa bị RLS chặn (việc dẫn dắt không xoá được nữa), vừa sai về ý: buổi họp
+        // mở ra đã điền sẵn việc của tuần trước, nên "chèn lại cả bộ" là dựng bản sao mỗi lần lưu.
+        //
+        // Lọc theo TÊN đã có dưới cùng cam kết: bấm Lưu hai lần thì lần sau không thêm gì.
         const {data: cu} = await supabase
           .from('lead_measures')
-          .select('id, lead_progress(id)')
+          .select('title')
           .eq('commitment_id', camKetId);
-        const trong = (cu ?? [])
-          .filter((l) => ((l.lead_progress as unknown[]) ?? []).length === 0)
-          .map((l) => l.id);
-        if (trong.length > 0) await supabase.from('lead_measures').delete().in('id', trong);
+        const daCoTen = new Set((cu ?? []).map((l) => l.title.trim().toLowerCase()));
+        const themMoi = viec.filter((v) => !daCoTen.has(v.title.trim().toLowerCase()));
 
-        const {data: moi, error: e2} = await supabase
-          .from('lead_measures')
-          .insert(viec.map((v) => ({commitment_id: camKetId, ...v})))
-          .select('id');
-        if (e2) return {ok: false, error: friendlyError(e2)};
-        soViec += moi?.length ?? 0;
+        if (themMoi.length > 0) {
+          const {data: moi, error: e2} = await supabase
+            .from('lead_measures')
+            .insert(themMoi.map((v) => ({commitment_id: camKetId, ...v})))
+            .select('id');
+          if (e2) return {ok: false, error: friendlyError(e2)};
+          soViec += moi?.length ?? 0;
+        }
       }
     }
     if (soCk > 0) lam.push(`đặt ${soCk} cam kết cho tuần ${dich_label}`);
