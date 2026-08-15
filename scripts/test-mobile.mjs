@@ -378,45 +378,23 @@ const KICH_BAN = [
     chiKhungNhin: true,
   },
   {
-    ten: 'tao-muc-tieu-thang',
+    // MỘT CẢNH THAY CHO HAI. Trước đây có 'tao-muc-tieu-thang' và 'tao-muc-tieu-tuan', mỗi cảnh
+    // bấm sang một thẻ của menu tạo mục tiêu. Từ 0121 chỉ còn MỘT loại mục tiêu (năm) và hàng thẻ
+    // ấy đã bỏ, nên hai cảnh cũ mãi mãi báo "không tìm thấy chỗ để bấm" — một lời cảnh báo về
+    // thứ không còn tồn tại, và nó che mất những lượt bỏ qua THẬT trong cùng danh sách.
+    ten: 'tao-muc-tieu-nam',
     vai: 'gvcn',
     duong: '/wig',
+    // MỞ RỒI THÌ ĐỪNG BẤM LẠI: nút "Tạo mục tiêu" là nút bật-tắt, mà hàm này được gọi lại tới khi
+    // `xong` đúng. Bấm lần hai là đóng đúng cái hộp vừa mở — ở local hydrate kịp nên không lộ,
+    // trên production thì bộ đo mở-đóng-mở-đóng cho tới hết giờ rồi báo oan.
     bam: `(() => {
       const nut = [...document.querySelectorAll('button[aria-haspopup="dialog"]')][0];
       if (!nut) return false;
       if (nut.getAttribute('aria-expanded') !== 'true') nut.click();
-      const tab = [...document.querySelectorAll('button[aria-pressed]')].find(
-        (x) => (x.textContent || '').trim() === 'Tháng' || (x.textContent || '').trim() === 'Month',
-      );
-      if (tab && !tab.disabled) tab.click();
       return true;
     })()`,
-    xong: `(() => {const el = document.querySelector('#wig-ky'); return !!el && el.type === 'month';})()`,
-    chiKhungNhin: true,
-  },
-  {
-    ten: 'tao-muc-tieu-tuan',
-    vai: 'gvcn',
-    duong: '/wig',
-    // Hai bước trong MỘT hàm: mở hộp thoại nếu chưa mở, rồi chuyển sang tab "Tuần".
-    // Hàm này được gọi lại nhiều lần cho tới khi `xong` đúng, nên mỗi lần chỉ cần tiến một bước.
-    // Tab "Tuần" khoá khi lớp chưa có mục tiêu tháng — với lớp trống thì cảnh báo "không mở ra",
-    // đúng như nó nên báo.
-    bam: `(() => {
-      const nut = [...document.querySelectorAll('button[aria-haspopup="dialog"]')][0];
-      if (!nut) return false;
-      // MỞ RỒI THÌ ĐỪNG BẤM LẠI. Hàm này được gọi lại tới khi \`xong\` đúng, mà nút "Tạo mục
-      // tiêu" là nút bật-tắt: bấm lần hai là ĐÓNG hộp thoại vừa mở. Ở local hộp mở kịp trong một
-      // vòng nên không lộ; trên production hydrate chậm hơn, và bộ đo cứ mở-đóng-mở-đóng cho tới
-      // hết giờ rồi báo "cảnh không mở ra" cho một trang hoàn toàn bình thường.
-      if (nut.getAttribute('aria-expanded') !== 'true') nut.click();
-      const tab = [...document.querySelectorAll('button[aria-pressed]')].find(
-        (x) => (x.textContent || '').trim() === 'Tuần' || (x.textContent || '').trim() === 'Week',
-      );
-      if (tab && !tab.disabled) tab.click();
-      return true;
-    })()`,
-    xong: `(() => {const el = document.querySelector('#wig-ky'); return !!el && el.type === 'date';})()`,
+    xong: `!!document.querySelector('form input[name="period_label"]')`,
     chiKhungNhin: true,
   },
   {

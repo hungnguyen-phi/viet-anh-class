@@ -101,14 +101,12 @@ function shift(mon, n) {
   return d.toISOString().slice(0, 10);
 }
 
-const ckGv = await ck('test1.gvcn@truongvietanh.com');
-
 // Lớp mà tài khoản GVCN thật sự chủ nhiệm — không gán cứng id vào phép kiểm.
 const {data: gv} = await admin
   .from('profiles')
   .select('id')
   .eq('email', 'test1.gvcn@truongvietanh.com')
-  .single();
+  .maybeSingle();
 // LỚP ĐỂ ĐO: ưu tiên lớp của tài khoản kiểm thử, nhưng KHÔNG bám cứng vào nó. test1.gvcn hiện
 // không còn chủ nhiệm lớp nào, và bám cứng thì bộ kiểm nổ ngay ở khâu tra cứu ('lop' là null)
 // chứ không kịp đo điều nó sinh ra để đo. Lớp thay người chủ nhiệm là chuyện thường ở trường.
@@ -118,6 +116,11 @@ const {data: dsLop} = await admin
   .eq('is_active', true)
   .not('homeroom_teacher_id', 'is', null)
   .order('name');
+// ƯU TIÊN LỚP CÓ VIỆC THẬT. Mấy phép dưới đây soi thanh tuần và các form ghi của trang — lớp
+// trống thì không có form nào, và bài báo "form đánh mất tuần" cho một trang vốn không có form.
+// Đó là đỏ vì rỗng, không phải đỏ vì lỗi.
+const {data: dsCamKet} = await admin.from('commitments').select('class_id');
+const coViec = new Set((dsCamKet ?? []).map((c) => c.class_id));
 let lop = null;
 for (const c of dsLop ?? []) {
   const {count} = await admin
@@ -126,13 +129,25 @@ for (const c of dsLop ?? []) {
     .eq('class_id', c.id)
     .eq('is_active', true);
   if (!count) continue;
-  if (!lop || c.homeroom_teacher_id === gv?.id) lop = c;
-  if (c.homeroom_teacher_id === gv?.id) break;
+  if (!lop) lop = c;
+  if (coViec.has(c.id)) {
+    lop = c;
+    if (c.homeroom_teacher_id === gv?.id) break;
+  }
 }
 if (!lop) {
   console.log('BỎ QUA: không lớp nào vừa có GVCN vừa có học sinh đang học — CHƯA KIỂM ĐƯỢC.');
   process.exit(1);
 }
+
+// ĐĂNG NHẬP BẰNG GVCN CỦA CHÍNH LỚP VỪA CHỌN. Mở lớp của người khác là bị đá ra (307), và mọi
+// phép đo phía sau sẽ đọc thành "trang không vẽ gì".
+const {data: chuNhiem} = await admin
+  .from('profiles')
+  .select('email')
+  .eq('id', lop.homeroom_teacher_id)
+  .single();
+const ckGv = await ck(chuNhiem.email);
 
 const {data: hnRow} = await admin.rpc('vn_week_start');
 const tuanNay = String(hnRow).slice(0, 10);
@@ -231,8 +246,21 @@ for (const mon of [tuanNay, shift(tuanNay, -1), shift(tuanNay, 1)]) {
 {
   const mon = shift(tuanNay, -1);
   const {html} = await get(`/wig?class=${lop.id}&week=${mon}`, ckGv);
-  const so = (html.match(/name="week"\s+value="[^"]+"/g) ?? []).length;
-  check('Các form mang theo tuần đang xem', so > 0, `${so} ô ẩn name="week"`);
+  // MỌI FORM CÓ MẶT phải mang tuần đang xem — nhưng chỉ khẳng định được khi CÓ form để soi.
+  //
+  // Bản cũ đòi `so > 0`. Ở một tuần không có cam kết nào chờ duyệt thì trang không dựng form nào
+  // cả, và bài báo "form đánh mất tuần" cho một trang không có form — đỏ vì rỗng. Nay tách hai
+  // câu hỏi: có form không, và nếu có thì form nào cũng phải mang tuần.
+  const moiForm = html.match(/<form[\s\S]*?<\/form>/g) ?? [];
+  const formGhi = moiForm.filter((f) => /name="(commitment_id|lead_measure_id|wig_id)"/.test(f));
+  const thieuTuan = formGhi.filter((f) => !/name="week"\s+value="[^"]+"/.test(f));
+  check(
+    formGhi.length > 0
+      ? 'Mọi form ghi đều mang theo tuần đang xem'
+      : 'Tuần này không có form ghi nào để soi — CHƯA KIỂM ĐƯỢC',
+    formGhi.length > 0 && thieuTuan.length === 0,
+    `${formGhi.length} form ghi · ${thieuTuan.length} form quên tuần`,
+  );
   // Ở tuần HIỆN TẠI thì ô ẩn phải rỗng — không đóng cứng tuần vào mọi thao tác sau đó.
   const {html: h2} = await get(`/wig?class=${lop.id}`, ckGv);
   check(

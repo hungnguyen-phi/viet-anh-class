@@ -51,7 +51,7 @@ for (const l of readFileSync('.env.local', 'utf8').split('\n')) {
 const REF = new URL(env.NEXT_PUBLIC_SUPABASE_URL).host.split('.')[0];
 const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: {persistSession: false},
-
+});
 // ── CHỐT CHẶN: BỘ KIỂM KHÔNG ĐƯỢC ĐẺ TÀI KHOẢN ────────────────────────────────────────────
 // `generateLink({type:'magiclink'})` TỰ TẠO người dùng nếu email chưa có. Gõ nhầm một địa chỉ,
 // hoặc dùng một tài khoản thử đã bị xoá, là production mọc thêm một tài khoản 'pending' nằm lại
@@ -71,7 +71,7 @@ const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_RO
     return gocGenLink(opts);
   };
 }
-});
+
 const anon = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
   auth: {persistSession: false},
 });

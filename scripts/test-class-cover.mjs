@@ -62,13 +62,57 @@ const ANH = Buffer.from(
   'base64',
 );
 
-const {data: lop} = await admin.from('classes').select('id, name').eq('name', '7B1').single();
+// Lớp lấy ĐỘNG. Bản cũ neo vào '7B1' — lớp ấy không còn trong CSDL, nên bài vỡ ngay ở dòng này
+// và cả bộ đọc thành "app hỏng" trong khi chỉ là fixture mục.
+const {data: lop} = await admin
+  .from('classes')
+  .select('id, name, homeroom_teacher_id')
+  .eq('is_active', true)
+  .not('homeroom_teacher_id', 'is', null)
+  .order('name')
+  .limit(1)
+  .single();
 const CLASS = lop.id;
-const {data: lopKhac} = await admin.from('classes').select('id').eq('name', '6A2').single();
+
+// GIÁO VIÊN "LỚP KHÁC" — tìm người thật, không viết cứng.
+//
+// Bản cũ dùng test3.gvcn@truongvietanh.com; tài khoản ấy không còn tồn tại, và vì `generateLink`
+// tự tạo người dùng nên chạy bài này sẽ ĐẺ nó ra dưới dạng tài khoản chờ duyệt trên production.
+// Chốt chặn ở đầu tệp nay ném lỗi thay vì tạo — nên phải tìm một giáo viên có thật, chủ nhiệm
+// MỘT LỚP KHÁC. Đó mới đúng vai mà phép kiểm cần: người ngoài lớp thì không được đọc/ghi.
+const {data: gvKhacRow} = await admin
+  .from('classes')
+  .select('homeroom_teacher_id, profiles!classes_homeroom_teacher_id_fkey(email)')
+  .eq('is_active', true)
+  .not('homeroom_teacher_id', 'is', null)
+  .neq('id', lop.id)
+  .limit(1)
+  .maybeSingle();
+const emailGvKhac = gvKhacRow?.profiles?.email ?? null;
+// LỚP CỦA NGƯỜI KIA — chính lớp mà `gvLa` chủ nhiệm, không phải một cái tên viết cứng ('6A2'
+// cũng đã biến mất khỏi CSDL như '7B1'). Phép kiểm cần đúng một điều: người chủ nhiệm lớp kia
+// không đụng được vào ảnh bìa lớp này, và ngược lại.
+const {data: lopKhac} = await admin
+  .from('classes')
+  .select('id')
+  .eq('homeroom_teacher_id', gvKhacRow.homeroom_teacher_id)
+  .limit(1)
+  .single();
 
 const duong = `${CLASS}/${Date.now()}-test.webp`;
-const gv = await nhuLa('test1.gvcn@truongvietanh.com'); // GVCN 7B1
-const gvLa = await nhuLa('test3.gvcn@truongvietanh.com'); // GVCN 6A2
+// GVCN CỦA CHÍNH LỚP VỪA CHỌN — không phải một email viết cứng. Tài khoản test1.gvcn nay không
+// chủ nhiệm lớp nào, nên mở trang bằng nó là bị đá ra (307).
+const {data: gvcn} = await admin
+  .from('profiles')
+  .select('email')
+  .eq('id', lop.homeroom_teacher_id)
+  .single();
+const gv = await nhuLa(gvcn.email);
+if (!emailGvKhac) {
+  console.log('BỎ QUA: trường chỉ có một lớp có GVCN — không có "người lạ" nào để thử. CHƯA KIỂM.');
+  process.exit(1);
+}
+const gvLa = await nhuLa(emailGvKhac);
 
 // ── 1. GVCN tải ảnh bìa lớp MÌNH ──
 const up = await gv.storage.from('class-covers').upload(duong, ANH, {contentType: 'image/webp'});

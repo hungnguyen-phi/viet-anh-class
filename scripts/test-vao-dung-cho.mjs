@@ -88,7 +88,11 @@ check(
 );
 check(
   '/unauthorized có nút kiểm tra lại và tên người duyệt',
-  /checkAgain/.test(unauth) && /role', 'admin'/.test(unauth),
+  // Dò VIỆC, không dò một câu truy vấn cụ thể. Bản cũ đòi đúng chuỗi `role', 'admin'` — tức đòi
+  // trang phải tự chạy select trên profiles. Nhưng đường ấy đã được thay bằng RPC `nguoi_duyet`
+  // (chính là bản vá cho lỗi: người đang chờ duyệt thì RLS không cho họ đọc bảng profiles, nên
+  // danh sách luôn rỗng). Bám vào câu truy vấn cũ là bộ kiểm đòi quay lại đúng cái lỗi ấy.
+  /checkAgain/.test(unauth) && /nguoi_duyet|admins/.test(unauth),
   '',
 );
 

@@ -96,7 +96,42 @@ const check = (nhan, dat, ct = '') => kq.push(`${dat ? 'OK  ' : 'SAI '} ${nhan}$
 
 // Môn lấy từ DANH MỤC (migration 0069), không còn gõ tay. Dùng Toán — môn chắc chắn có.
 const NOIDUNG = 'E2E-BTVN-trang-42-khong-trung-gi';
-const CLASS = (await admin.from('classes').select('id').eq('name', '7B1').single()).data.id;
+// LỚP, GVCN, HỌC SINH, PHỤ HUYNH — LẤY TỪ MỘT CHÙM ĂN KHỚP NHAU.
+//
+// Bản cũ neo vào lớp '7B1' và ba email viết cứng. Lớp ấy không còn, và ba tài khoản kia thì đã
+// không còn dính vào nhau: test1.gvcn không chủ nhiệm lớp nào, con của test1.ph học lớp khác.
+// Bài này đi trọn một luồng (cô đăng bài → em thấy → phụ huynh thấy → em đánh dấu → cô thấy
+// đếm), nên bốn nhân vật PHẢI cùng một lớp — thiếu khớp một mắt là cả luồng đứt ở giữa và mọi
+// phép đo phía sau đỏ vì lý do không liên quan.
+//
+// Nên chọn lớp theo điều kiện: có GVCN, có em đang học, và có phụ huynh nối với chính em đó.
+const {data: chum} = await admin
+  .from('enrollments')
+  .select('class_id, student_id, classes!inner(homeroom_teacher_id, is_active)')
+  .eq('is_active', true)
+  .eq('classes.is_active', true)
+  .not('classes.homeroom_teacher_id', 'is', null);
+let boBa = null;
+for (const e of chum ?? []) {
+  const {data: ph} = await admin
+    .from('parent_links')
+    .select('parent_id')
+    .eq('student_id', e.student_id)
+    .limit(1)
+    .maybeSingle();
+  if (ph) {
+    boBa = {classId: e.class_id, studentId: e.student_id, parentId: ph.parent_id,
+            teacherId: e.classes.homeroom_teacher_id};
+    break;
+  }
+}
+if (!boBa) {
+  console.log('BỎ QUA: không lớp nào có đủ GVCN + học sinh + phụ huynh của chính em ấy. CHƯA KIỂM.');
+  process.exit(1);
+}
+const CLASS = boBa.classId;
+const mail = async (id) =>
+  (await admin.from('profiles').select('email').eq('id', id).single()).data.email;
 const MON_ID = (
   await admin.from('subjects').select('id').eq('code', 'TOAN').is('campus_id', null).single()
 ).data.id;
@@ -112,10 +147,29 @@ await admin.from('class_subjects').upsert(
 await admin.from('homework_posts').delete().eq('content', NOIDUNG);
 await admin.from('notifications').delete().like('title', '%' + MON + '%');
 
-const ckGv = await ck('test1.gvcn@truongvietanh.com');
-const ckHs = await ck('test1.hs@student.truongvietanh.com');
-const ckPh = await ck('test1.ph@truongvietanh.com');
-const ckGv3 = await ck('test3.gvcn@truongvietanh.com');
+const ckGv = await ck(await mail(boBa.teacherId));
+const ckHs = await ck(await mail(boBa.studentId));
+const ckPh = await ck(await mail(boBa.parentId));
+// GIÁO VIÊN "LỚP KHÁC" — tìm người thật, không viết cứng.
+//
+// Bản cũ dùng test3.gvcn@truongvietanh.com; tài khoản ấy không còn tồn tại, và vì `generateLink`
+// tự tạo người dùng nên chạy bài này sẽ ĐẺ nó ra dưới dạng tài khoản chờ duyệt trên production.
+// Chốt chặn ở đầu tệp nay ném lỗi thay vì tạo — nên phải tìm một giáo viên có thật, chủ nhiệm
+// MỘT LỚP KHÁC. Đó mới đúng vai mà phép kiểm cần: người ngoài lớp thì không được đọc/ghi.
+const {data: gvKhacRow} = await admin
+  .from('classes')
+  .select('homeroom_teacher_id, profiles!classes_homeroom_teacher_id_fkey(email)')
+  .eq('is_active', true)
+  .not('homeroom_teacher_id', 'is', null)
+  .neq('id', CLASS)
+  .limit(1)
+  .maybeSingle();
+const emailGvKhac = gvKhacRow?.profiles?.email ?? null;
+if (!emailGvKhac) {
+  console.log('BỎ QUA: trường chỉ có một lớp có GVCN — không có "người lạ" nào để thử. CHƯA KIỂM.');
+  process.exit(1);
+}
+const ckGv3 = await ck(emailGvKhac);
 
 // ── 1. GVCN đăng bài ──
 // Ngày phải lấy theo giờ VN, không phải new Date() của máy chạy test — máy chủ chạy UTC nên

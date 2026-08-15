@@ -54,14 +54,16 @@ const xong = (ma = 0) => {
   process.exit(ma || (so === kq.length ? 0 : 1));
 };
 
-// Lấy lớp CÓ mốc tuần thật (mục tiêu năm đã rải nhịp), rồi mượn phiên của chính GVCN lớp ấy.
+// 0121: KHÔNG CÒN MỐC TUẦN. Mục tiêu chỉ còn cấp NĂM, việc theo tuần nằm ở CAM KẾT. Bản cũ tìm
+// `period='week'` nên không thấy gì và vỡ ở dòng dưới — đọc thành app hỏng, thật ra là mô hình đã
+// đổi. Lấy lớp CÓ mục tiêu năm, rồi mượn phiên của chính GVCN lớp ấy.
 // Không bám cứng vào một email: lớp nào có dữ liệu là chạy lớp đó, và bám cứng thì bài kiểm xanh
 // giả ở một lớp trống — đúng cái bẫy đã ghi trong test-man-wig-that.mjs.
 const {data: nam0} = await admin
   .from('wigs')
   .select('class_id')
   .eq('scope', 'class')
-  .eq('period', 'week')
+  .eq('period', 'year')
   .limit(1)
   .single();
 const {data: lop} = await admin
