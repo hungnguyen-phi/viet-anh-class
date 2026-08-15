@@ -68,6 +68,20 @@ begin
   returning id into w_nam;
 
   -- 0121: không còn WIG tuần. Nhịp tuần là CAM KẾT của lớp, và việc chung treo dưới cam kết.
+  -- DỌN CHỖ TRONG CHÍNH TRANSACTION NÀY.
+  --
+  -- CSDL chỉ cho 2 cam kết mỗi tuần mỗi lớp (0121), và bài này phải dựng cảnh ở ĐÚNG TUẦN ĐANG
+  -- CHẠY — lượt tick của nó ghi vào `homnay`, mà 0124 buộc lượt tick nằm trong bảy ngày của cam
+  -- kết. Đẩy cảnh sang tuần khác là hỏng chính thứ đang đo.
+  --
+  -- Lớp thật đã dùng hết hai chỗ ấy, nên bài đâm trần rồi dừng giữa chừng. Xoá tạm ở đây là an
+  -- toàn: cả tệp nằm trong `begin … rollback`, không dòng nào của lớp thật mất đi sau khi chạy.
+  -- CHỈ cam kết CỦA LỚP (student_id rỗng) — đúng thứ đang chiếm chỗ mà bài này cần. Trần đếm
+  -- theo (lớp, em, tuần), nên cam kết riêng của từng em không cản gì; xoá cả chúng là mở rộng
+  -- tầm sát thương vô cớ, và một ngày nào đó ai chạy tệp này mà thiếu `rollback` thì khác biệt
+  -- ấy là bảy em mất cam kết thay vì hai dòng của lớp.
+  delete from commitments where class_id = lop and week_start = t2 and student_id is null;
+
   insert into commitments (wig_id, class_id, week_start, title, area)
   values (w_nam, lop, t2, '[KIỂM 0073] cam kết của lớp', 'knowledge')
   returning id into ck;
