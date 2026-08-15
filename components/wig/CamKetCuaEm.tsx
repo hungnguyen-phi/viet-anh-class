@@ -1,6 +1,6 @@
 'use client';
 
-import {useActionState} from 'react';
+import {useActionState, useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {AlertCircle, CheckCircle2, Clock, Target} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
@@ -29,6 +29,7 @@ export function CamKetCuaEm({
   weekStart,
   weekLabel,
   daCo,
+  dayShort,
 }: {
   /** Thứ Hai của tuần đang đặt cam kết cho. */
   weekStart: string;
@@ -36,10 +37,16 @@ export function CamKetCuaEm({
   weekLabel: string;
   /** Cam kết em đã đặt cho tuần ấy, kèm trạng thái duyệt. */
   daCo: {id: string; title: string; status: string}[];
+  /** Nhãn thứ trong tuần đã dịch sẵn ở máy chủ — T2…CN. */
+  dayShort: string[];
 }) {
   const t = useTranslations('meeting');
   const tg = useTranslations('goal');
   const [state, formAction] = useActionState(datCamKetTuan, {ok: false});
+  // Mặc định T2–T6: gần như luôn là thứ em định chọn, và ai muốn khác thì chạm hai cái là xong.
+  const [thu, setThu] = useState<number[]>([1, 2, 3, 4, 5]);
+  const doiThu = (d: number) =>
+    setThu((p) => (p.includes(d) ? p.filter((x) => x !== d) : [...p, d].sort((a, b) => a - b)));
 
   const conCho = daCo.length < 2;
 
@@ -95,6 +102,46 @@ export function CamKetCuaEm({
               className={ctlWithBorder(state.fieldError === 'title')}
             />
           </Field>
+          {/* VIỆC ĐỂ TICK — TUỲ CHỌN, nhưng ngay tại đây.
+              Một lời hứa không có việc để tick là lời hứa không ai đo được: cả tuần ô tick trống
+              trơn, tới buổi họp không có gì để nói ngoài trí nhớ. Bắt em sang một màn khác để thêm
+              việc là chỗ người ta bỏ dở — nhất là trẻ con, nhất là trên điện thoại. */}
+          <Field
+            label={t('thisWeekWork')}
+            htmlFor="ck-em-viec"
+            hint={t('thisWeekWorkHint')}
+            error={state.fieldError === 'viec_days' ? state.error : null}
+          >
+            <input
+              id="ck-em-viec"
+              name="viec_title"
+              maxLength={120}
+              placeholder={t('workPlaceholder')}
+              className={ctlWithBorder(false)}
+            />
+          </Field>
+          {thu.map((d) => (
+            <input key={d} type="hidden" name="viec_days" value={d} />
+          ))}
+          <div className="flex flex-wrap gap-1.5">
+            {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => doiThu(d)}
+                aria-pressed={thu.includes(d)}
+                aria-label={dayShort[d - 1]}
+                className={`grid h-11 w-11 cursor-pointer place-items-center rounded-[9px] border-[1.5px] text-[11.5px] font-extrabold transition-all ${
+                  thu.includes(d)
+                    ? 'border-transparent bg-gold text-navy'
+                    : 'border-navy/15 bg-white text-navy/60 hover:border-navy'
+                }`}
+              >
+                {dayShort[d - 1]}
+              </button>
+            ))}
+          </div>
+
           <SubmitButton className={`${btnGold} w-fit`} wrapClass="contents">
             {tg('send')}
           </SubmitButton>

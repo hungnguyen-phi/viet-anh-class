@@ -1237,16 +1237,20 @@ export async function datCamKetTuan(
       error: 'Bạn đặt mục tiêu năm trước đã — cam kết mỗi tuần là một bước đi tới mục tiêu ấy.',
     };
 
-  const {error} = await supabase.from('commitments').insert({
-    wig_id: mucTieu.id,
-    class_id: ghiDanh.class_id,
-    student_id: me.id,
-    week_start: monday,
-    title,
-    // Cột NOT NULL nhưng trigger đè lại bằng lĩnh vực của mục tiêu năm — gửi một giá trị hợp lệ
-    // bất kỳ để qua cửa, đừng đọc nó như lựa chọn của người dùng.
-    area: 'knowledge',
-  });
+  const {data: daTao, error} = await supabase
+    .from('commitments')
+    .insert({
+      wig_id: mucTieu.id,
+      class_id: ghiDanh.class_id,
+      student_id: me.id,
+      week_start: monday,
+      title,
+      // Cột NOT NULL nhưng trigger đè lại bằng lĩnh vực của mục tiêu năm — gửi một giá trị hợp lệ
+      // bất kỳ để qua cửa, đừng đọc nó như lựa chọn của người dùng.
+      area: 'knowledge',
+    })
+    .select('id')
+    .maybeSingle();
 
   if (error) {
     // Trần 2 cam kết là luật CÓ CHỦ Ý, không phải sự cố — nói bằng tiếng người.
@@ -1258,8 +1262,49 @@ export async function datCamKetTuan(
     return {ok: false, error: friendlyError(error)};
   }
 
+  // ── VIỆC ĐỂ TICK, NGAY TRONG CÙNG MỘT LẦN BẤM ─────────────────────────────────────────────
+  //
+  // Một lời hứa không có việc để tick là một lời hứa không ai đo được: cả tuần trôi qua, ô tick
+  // trống trơn, và tới buổi họp thì không có gì để nói ngoài trí nhớ. Bắt em quay lại một màn khác
+  // để thêm việc là chỗ người ta bỏ dở — nhất là trẻ con, nhất là trên điện thoại.
+  //
+  // Nên gộp vào một bước, và để TUỲ CHỌN: em chưa nghĩ ra việc thì cam kết vẫn gửi được, thêm sau.
+  //
+  // Chỉ tiêu = SỐ THỨ ĐƯỢC BẬT, không hỏi thành một ô riêng (0103): mỗi ngày một lượt tick, nên
+  // hai con số ấy không thể lệch nhau — hỏi cả hai là mời người dùng tự mâu thuẫn với mình.
+  const viecTitle = String(formData.get('viec_title') ?? '').trim();
+  const thu = formData
+    .getAll('viec_days')
+    .map((d) => Number(String(d)))
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
+    .sort((a, b) => a - b);
+
+  if (viecTitle && daTao?.id) {
+    if (thu.length === 0)
+      return {
+        ok: false,
+        fieldError: 'viec_days',
+        error: 'Bạn chọn ít nhất một thứ trong tuần cho việc ấy nhé. Cam kết ĐÃ gửi rồi.',
+      };
+    const {error: eViec} = await supabase.from('lead_measures').insert({
+      commitment_id: daTao.id,
+      title: viecTitle,
+      target_value: thu.length,
+      active_weekdays: thu,
+      unit_per_tick: 1,
+    });
+    // Cam kết đã lưu rồi thì nói rõ ra, đừng để em tưởng mất cả hai và gửi lại.
+    if (eViec)
+      return {ok: false, error: `Cam kết đã gửi, nhưng việc chưa lưu được: ${friendlyError(eViec)}`};
+  }
+
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/hop', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  return {ok: true, message: 'Đã gửi cam kết tuần cho thầy cô duyệt.'};
+  return {
+    ok: true,
+    message: viecTitle
+      ? 'Đã gửi cam kết và việc của tuần cho thầy cô duyệt.'
+      : 'Đã gửi cam kết tuần cho thầy cô duyệt.',
+  };
 }

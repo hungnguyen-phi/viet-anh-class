@@ -616,6 +616,8 @@
     "closedHint": "Tuần {week} đã chốt. Tick và số đo đã khoá — muốn mở lại thì gỡ biên bản ở cuối trang.",
     "perStudentCount": "{n} em",
     "thisWeekWork": "Tuần này con làm gì",
+    "workPlaceholder": "vd: Làm 1 bài Toán mỗi tối",
+    "thisWeekWorkHint": "Việc em làm đều mỗi ngày để giữ lời hứa ấy. Chưa nghĩ ra thì bỏ trống, thêm sau cũng được.",
     "emResults": "Tuần rồi",
     "emCommit": "Tuần tới hứa",
     "noGoalYet": "chưa đặt mục tiêu",

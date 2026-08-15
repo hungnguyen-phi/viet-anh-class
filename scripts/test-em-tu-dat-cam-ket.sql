@@ -138,6 +138,13 @@ exception when others then
   insert into kq values ('Em treo được việc để tick lên cam kết ấy', 'được', 'BỊ CHẶN: ' || sqlerrm, false);
 end $$;
 
+-- CHỈ TIÊU = SỐ THỨ ĐƯỢC BẬT (0103). Hỏi thành một ô riêng là mời người dùng tự mâu thuẫn với
+-- mình: mỗi ngày chỉ tick được một lượt, nên hai con số ấy không thể lệch nhau.
+insert into kq
+select 'Chỉ tiêu việc = số thứ được bật', '5', lm.target_value::text,
+       lm.target_value = array_length(lm.active_weekdays, 1)
+from lead_measures lm where lm.commitment_id = (select id from ck_em);
+
 -- Và việc ấy phải tự nối về ĐÚNG mục tiêu năm của em — cột wig_id do trigger suy ra, không ai gõ.
 insert into kq
 select 'Việc tự nối về đúng mục tiêu năm của em', 'khớp',

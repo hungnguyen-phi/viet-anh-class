@@ -616,6 +616,8 @@
     "closedHint": "Week {week} is closed. Ticks and readings are locked — remove the minutes at the bottom to reopen.",
     "perStudentCount": "{n} students",
     "thisWeekWork": "What will you do this week",
+    "workPlaceholder": "e.g. One maths exercise every evening",
+    "thisWeekWorkHint": "The thing you do daily to keep that promise. Leave it blank if you're not sure yet.",
     "emResults": "Last week",
     "emCommit": "Promise for next week",
     "noGoalYet": "no goal set yet",

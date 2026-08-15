@@ -31,6 +31,9 @@ export default async function PhongHopCuaEmPage({
   setRequestLocale(locale);
   const profile = await requireRole(['student']);
   const t = await getTranslations('meeting');
+  // Nhãn thứ dịch ở MÁY CHỦ rồi truyền xuống: khối cam kết là client component, và để nó tự gọi
+  // useTranslations chỉ vì bảy chữ ngắn là kéo thêm một namespace vào gói gửi xuống trình duyệt.
+  const tHs = await getTranslations('student');
   const supabase = await createClient();
 
   const {data: ghiDanh} = await supabase
@@ -196,6 +199,7 @@ export default async function PhongHopCuaEmPage({
         weekStart={dichMonday}
         weekLabel={dichLabel}
         daCo={(ckDich ?? []) as {id: string; title: string; status: string}[]}
+        dayShort={tHs.raw('dayShort') as string[]}
       />
 
       <OBienBanCuaEm
