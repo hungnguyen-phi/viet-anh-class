@@ -84,6 +84,7 @@ const {data: v} = await anon.auth.verifyOtp({type: 'email', token_hash: g.proper
 const cookie = `sb-${REF}-auth-token=base64-${Buffer.from(JSON.stringify(v.session)).toString('base64url')}`;
 
 let wigId = null;
+let camKetCuId = null;
 try {
   const {data: w} = await admin.from('wigs').insert({
     class_id: lop.id, student_id: emThu.student_id, scope: 'student', kind: 'academic',
@@ -92,8 +93,15 @@ try {
     status: 'approved', set_by: 'student', measure_by: 'tick',
   }).select('id').maybeSingle();
   wigId = w.id;
+  // 0121: việc treo dưới CAM KẾT của một tuần, không treo thẳng vào mục tiêu năm.
+  const {data: ckCu, error: eCk} = await admin.from('commitments').insert({
+    wig_id: wigId, class_id: lop.id, student_id: emThu.student_id, week_start: TUAN,
+    title: 'ZZ_TEST việc cũ', area: 'knowledge',
+  }).select('id').single();
+  if (eCk) throw new Error('cam kết tuần cũ: ' + eCk.message);
+  camKetCuId = ckCu.id;
   await admin.from('lead_measures').insert({
-    wig_id: wigId, title: 'ZZ_TEST việc cũ', target_value: 2, unit: 'bài',
+    commitment_id: camKetCuId, title: 'ZZ_TEST việc cũ', target_value: 2, unit: 'bài',
     active_weekdays: [1, 3], unit_per_tick: 1,
   });
 
@@ -144,7 +152,8 @@ try {
     [`em_${emThu.student_id}_ten`]: 'Em thử',
     [`em_${emThu.student_id}_wig`]: wigId,
   };
-  const {data: leadTruoc} = await admin.from('lead_measures').select('id').eq('wig_id', wigId).maybeSingle();
+  const {data: leadTruoc} = await admin
+    .from('lead_measures').select('id').eq('commitment_id', camKetCuId).maybeSingle();
 
   // ① ĐỔI việc + ghi biên bản riêng
   const d1 = await gui({
@@ -157,11 +166,40 @@ try {
   });
   dau('Máy chủ nhận lệnh chốt buổi họp', d1.status === 200 || d1.status === 303, `HTTP ${d1.status}`);
 
-  const {data: sau} = await admin
-    .from('lead_measures').select('title, target_value, active_weekdays').eq('id', leadTruoc.id).maybeSingle();
-  dau('Việc của em đã đổi tên', sau?.title === 'ZZ_TEST việc mới', String(sau?.title));
-  dau('Thứ trong tuần đã đổi', (sau?.active_weekdays ?? []).join(',') === '2,4,6', (sau?.active_weekdays ?? []).join(','));
-  dau('Số lần mỗi tuần = số thứ được bật', Number(sau?.target_value) === 3, String(sau?.target_value));
+  // ── BUỔI HỌP ĐẶT VIỆC CHO TUẦN TỚI, KHÔNG VIẾT LẠI TUẦN VỪA CHỐT ────────────────────────
+  //
+  // Bản trước đòi ngược lại: ô "việc tuần này" phải ĐỔI TÊN chính việc của tuần cũ. Hai lẽ khiến
+  // nó sai: 0129 khoá quyền sửa việc dẫn dắt (câu UPDATE của cô khớp 0 dòng và im lặng trôi qua),
+  // và tuần cũ đã chốt — sửa nó là viết lại quá khứ mà lượt tick đã treo dưới.
+  const dich = new Date(`${TUAN}T00:00:00Z`);
+  dich.setUTCDate(dich.getUTCDate() + 7);
+  const TUAN_TOI = dich.toISOString().slice(0, 10);
+
+  const {data: ckMoi} = await admin
+    .from('commitments')
+    .select('id, title')
+    .eq('class_id', lop.id)
+    .eq('student_id', emThu.student_id)
+    .eq('week_start', TUAN_TOI)
+    .maybeSingle();
+  dau('Buổi họp đặt CAM KẾT cho tuần tới', ckMoi?.title === 'ZZ_TEST việc mới', String(ckMoi?.title));
+
+  const {data: viecMoi} = await admin
+    .from('lead_measures')
+    .select('title, target_value, active_weekdays')
+    .eq('commitment_id', ckMoi?.id ?? '');
+  const v0 = (viecMoi ?? [])[0];
+  dau('… kèm việc dẫn dắt của tuần tới', v0?.title === 'ZZ_TEST việc mới', String(v0?.title));
+  dau('Thứ trong tuần đúng cái vừa chọn', (v0?.active_weekdays ?? []).join(',') === '2,4,6', (v0?.active_weekdays ?? []).join(','));
+  dau('Số lần mỗi tuần = số thứ được bật', Number(v0?.target_value) === 3, String(v0?.target_value));
+
+  const {data: viecCu} = await admin
+    .from('lead_measures').select('title, active_weekdays').eq('id', leadTruoc.id).maybeSingle();
+  dau(
+    'Việc của tuần ĐÃ CHỐT không bị sửa',
+    viecCu?.title === 'ZZ_TEST việc cũ' && (viecCu?.active_weekdays ?? []).join(',') === '1,3',
+    `${viecCu?.title} · ${(viecCu?.active_weekdays ?? []).join(',')}`,
+  );
 
   const {data: bb} = await admin
     .from('wig_meetings').select('results, commitments')
@@ -194,8 +232,8 @@ try {
   await admin.from('wig_meetings').delete().eq('class_id', lop.id).eq('week_start', TUAN);
   await admin.from('wig_meeting_notes').delete().eq('class_id', lop.id).eq('week_start', TUAN);
   if (wigId) {
-    await admin.from('lead_measures').delete().eq('wig_id', wigId);
-    await admin.from('wigs').delete().eq('parent_wig_id', wigId);
+    // Xoá mục tiêu là cam kết + việc + lượt tick đi theo bằng khoá ngoại CASCADE
+    // (xem scripts/test-xoa-wig-ba-tang.mjs), nên một lệnh là đủ và không sót gì.
     await admin.from('wigs').delete().eq('id', wigId);
   }
   // Mốc tuần/tháng mà buổi họp có thể đã bù cho tuần thử.

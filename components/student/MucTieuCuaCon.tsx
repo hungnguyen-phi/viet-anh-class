@@ -81,7 +81,6 @@ export function MucTieuCuaCon({
   dayShort,
   namHoc,
   soDoTheoWig,
-  mocThangTheoWig,
   tuanChuaChot,
 }: {
   studentId: string;
@@ -97,7 +96,6 @@ export function MucTieuCuaCon({
   /** Số đo của tuần này, tra theo id mục tiêu. */
   soDoTheoWig: Record<string, SoDoCuaTuan>;
   /** Mốc THÁNG NÀY, tra theo id mục tiêu năm. Chỉ mục tiêu đếm bằng tick mới có. */
-  mocThangTheoWig: Record<string, {target: number; unit: string}>;
   /** Lớp CHƯA bấm chốt buổi họp tuần này — còn ghi số được (0108). */
   tuanChuaChot: boolean;
 }) {
@@ -109,7 +107,7 @@ export function MucTieuCuaCon({
   const rieng = mucTieu.find((m) => m.kind === 'personal') ?? null;
 
   const chung = {studentId, classId, wigLop, laChinhEm, canManage, dayShort, namHoc,
-                 soDoTheoWig, mocThangTheoWig,
+                 soDoTheoWig,
                  tuanChuaChot, onBao: setBao};
 
   return (
@@ -148,7 +146,6 @@ function MotMucTieu({
   dayShort,
   namHoc,
   soDoTheoWig,
-  mocThangTheoWig,
   tuanChuaChot,
   onBao,
 }: {
@@ -162,7 +159,6 @@ function MotMucTieu({
   dayShort: string[];
   namHoc: string | null;
   soDoTheoWig: Record<string, SoDoCuaTuan>;
-  mocThangTheoWig: Record<string, {target: number; unit: string}>;
   tuanChuaChot: boolean;
   onBao: (s: string) => void;
 }) {
@@ -219,7 +215,6 @@ function MotMucTieu({
     Date.now() - new Date(hocTap.created_at).getTime() < CUA_SO_MS;
   const emSuaDuoc = canManage || (laChinhEm && conMo);
   const soDo = hocTap ? soDoTheoWig[hocTap.id] : undefined;
-  const mocThang = hocTap ? mocThangTheoWig[hocTap.id] : undefined;
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
@@ -273,15 +268,6 @@ function MotMucTieu({
           {hocTap.viec && (
             <p className="text-[12.5px] font-semibold text-navy">
               {t('myWork', {title: hocTap.viec.title, n: hocTap.viec.target_value})}
-            </p>
-          )}
-
-          {/* MỐC THÁNG NÀY. "100 bài trước tháng Năm" là con số không ai bấm được vào; "tháng này
-              12 bài" thì có. Chỉ mục tiêu đếm bằng tick mới có mốc — chia "34kg" cho chín tháng ra
-              "3,8kg mỗi tháng" là một câu vô nghĩa, nên loại ấy dùng ô số đo ngay dưới. */}
-          {mocThang && (
-            <p className="inline-flex w-fit items-center gap-1.5 rounded-full bg-gold/[0.18] px-2.5 py-1 text-[12px] font-extrabold text-navy">
-              {t('monthPace', {n: mocThang.target, unit: mocThang.unit})}
             </p>
           )}
 

@@ -286,15 +286,9 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
       if (m && !emIds.includes(m[1])) emIds.push(m[1]);
     }
 
-    // CÁI ĐANG CÓ, lấy từ CSDL chứ không tin ô trên form: form điền sẵn giá trị cũ, nên nếu so với
-    // chính nó thì mọi thứ đều "không đổi". Hai câu cho cả lớp, không phải hai câu cho mỗi em.
-    const {data: leadHienCo} = await supabase
-      .from('lead_measures')
-      .select('id, title, active_weekdays')
-      .in('id', emIds.map((id) => String(formData.get(`em_${id}_lead`) ?? '')).filter(Boolean));
-    const leadCu = new Map(
-      (leadHienCo ?? []).map((l) => [l.id, {title: l.title, thu: (l.active_weekdays ?? []).join(',')}]),
-    );
+    // (Trước đây chỗ này đọc sẵn việc cũ của từng em để so "có đổi gì không" rồi mới UPDATE. Đường
+    // UPDATE ấy đã bỏ — xem ghi chú trong vòng lặp — nên phép đọc kèm nó cũng đi theo: một câu
+    // truy vấn nữa cho mỗi buổi họp, đổi lấy một so sánh không còn ai dùng.)
     const {data: bbHienCo} = await supabase
       .from('wig_meetings')
       .select('id, student_id, results, commitments')
@@ -309,7 +303,6 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
 
     for (const emId of emIds) {
       const wigId = String(formData.get(`em_${emId}_wig`) ?? '').trim();
-      const leadId = String(formData.get(`em_${emId}_lead`) ?? '').trim();
       const viec = String(formData.get(`em_${emId}_viec`) ?? '').trim();
       const thu = chuanHoaThu(formData.getAll(`em_${emId}_days`));
       const ketQua = String(formData.get(`em_${emId}_ketqua`) ?? '').trim();
@@ -326,48 +319,54 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
         if (thu.length === 0)
           return {ok: false, error: `Việc của ${ten} chưa chọn thứ nào trong tuần — chọn ít nhất một thứ.`};
         const noiDung = {title: viec, target_value: thu.length, active_weekdays: thu};
-        const cu = leadId ? leadCu.get(leadId) : undefined;
-        // KHÔNG ĐỔI THÌ KHÔNG GHI. Ô điền sẵn câu cũ, nên phần lớn buổi họp gửi lên ba mươi giá trị
-        // y hệt cái đang có; ghi hết là ba mươi câu UPDATE, `updated_at` của cả lớp nhảy trong khi
-        // chẳng ai đổi gì, rồi câu báo "giao việc tuần cho 30 em" kể về một việc không xảy ra.
-        const khac = !cu || cu.title !== viec || cu.thu !== thu.join(',');
-        if (leadId && khac) {
-          // SỬA cái đang có, không xoá rồi tạo lại: xoá là mất cả lịch sử tick treo dưới nó.
-          const {data, error} = await supabase
-            .from('lead_measures')
-            .update(noiDung)
-            .eq('id', leadId)
-            .select('id');
-          if (error) return {ok: false, error: friendlyError(error)};
-          if ((data?.length ?? 0) > 0) soViec += 1;
-        } else if (!leadId) {
-          // VIỆC CỦA EM TREO DƯỚI CAM KẾT CỦA EM (0121), không treo thẳng vào mục tiêu năm nữa.
-          //
-          // Ô "việc tuần này" trong buổi họp riêng CHÍNH LÀ cam kết tuần của em — nên tạo cam kết
-          // mang đúng câu ấy rồi treo việc lên nó. Có sẵn cam kết cùng tên cho tuần đích thì dùng
-          // lại, để bấm Lưu hai lần không đẻ bản sao và không đâm vào trần 2 của CSDL.
-          if (!dichMonday)
-            return {ok: false, error: 'Không rõ tuần tới là tuần nào để đặt cam kết.'};
-          const {data: ckCu} = await supabase
-            .from('commitments')
-            .select('id')
-            .eq('class_id', class_id)
-            .eq('student_id', emId)
-            .eq('week_start', dichMonday)
-            .eq('title', viec)
-            .maybeSingle();
-          let ckId = ckCu?.id ?? null;
-          if (!ckId) {
-            const kq = await taoCamKet(supabase, {
-              wig_id: wigId,
-              class_id,
-              student_id: emId,
-              week_start: dichMonday,
-              title: viec,
-            });
-            if (!kq.ok) return {ok: false, error: `Cam kết của ${ten}: ${kq.loi}`};
-            ckId = kq.id;
-          }
+
+        // Ô "việc tuần này" trong buổi họp là VIỆC CỦA TUẦN TỚI, luôn luôn — không phải chỗ sửa
+        // lại việc của tuần vừa tổng kết.
+        //
+        // Bản trước, khi ô có sẵn id việc cũ, đi đường UPDATE lên chính việc ấy. Hai
+        // chỗ hỏng cùng lúc:
+        //
+        //   · 0129 khoá quyền sửa việc dẫn dắt về CHỈ QUẢN TRỊ. Với cô, câu UPDATE ấy khớp 0 dòng
+        //     — PostgREST coi là thành công, nên buổi họp chạy tiếp êm ru trong khi việc không hề
+        //     đổi và không một câu nào báo. Lỗi im lặng, đúng loại tệ nhất.
+        //   · Kể cả nếu sửa được thì cũng sai nghĩa: tuần cũ đã chốt, sửa việc của nó là viết lại
+        //     quá khứ mà lượt tick đã treo dưới.
+        //
+        // Nên nay chỉ còn MỘT đường: đặt cam kết cho tuần đích rồi treo việc lên đó. Id việc cũ
+        // vẫn được giao diện gửi lên để điền sẵn ô, nhưng máy chủ không còn ghi đè lên nó nữa.
+        if (!dichMonday)
+          return {ok: false, error: 'Không rõ tuần tới là tuần nào để đặt cam kết.'};
+        const {data: ckCu} = await supabase
+          .from('commitments')
+          .select('id')
+          .eq('class_id', class_id)
+          .eq('student_id', emId)
+          .eq('week_start', dichMonday)
+          .eq('title', viec)
+          .maybeSingle();
+        let ckId = ckCu?.id ?? null;
+        if (!ckId) {
+          const kq = await taoCamKet(supabase, {
+            wig_id: wigId,
+            class_id,
+            student_id: emId,
+            week_start: dichMonday,
+            title: viec,
+          });
+          if (!kq.ok) return {ok: false, error: `Cam kết của ${ten}: ${kq.loi}`};
+          ckId = kq.id;
+        }
+
+        // BẤM LƯU HAI LẦN KHÔNG ĐƯỢC ĐẺ HAI VIỆC GIỐNG HỆT. Cam kết đã có đường dùng lại, nhưng
+        // việc treo dưới nó thì trước đây chèn vô điều kiện — nên lần lưu thứ hai của cùng một
+        // buổi họp là một bản sao, và ô tick của em có hai dòng y như nhau.
+        const {data: viecDaCo} = await supabase
+          .from('lead_measures')
+          .select('id')
+          .eq('commitment_id', ckId)
+          .eq('title', viec)
+          .maybeSingle();
+        if (!viecDaCo) {
           const {error} = await supabase
             .from('lead_measures')
             .insert({commitment_id: ckId, unit_per_tick: 1, ...noiDung});

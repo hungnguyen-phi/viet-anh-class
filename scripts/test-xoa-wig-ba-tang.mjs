@@ -1,11 +1,19 @@
-// XOÁ MỤC TIÊU NĂM CÓ XOÁ SẠCH CẢ CÂY BA TẦNG KHÔNG.
-//
-// Vì sao có file này: cây WIG là năm → tháng → tuần, còn khoá ngoại parent_wig_id để NO ACTION.
-// Bản deleteWig cũ chỉ gỡ MỘT tầng con nên xoá mục tiêu năm luôn vướng khoá ngoại và thất bại
-// im lìm dưới câu "còn dữ liệu liên quan". Bài này dựng đúng một cây ba tầng GIẢ (không đụng dữ
-// liệu thật), chạy đúng trình tự xoá cháu → con → gốc của deleteWig, rồi đếm lại.
+// XOÁ MỘT MỤC TIÊU THÌ CẢ CHUỖI DƯỚI NÓ PHẢI ĐI THEO — không để lại thứ gì mồ côi.
 //
 //   node scripts/test-xoa-wig-ba-tang.mjs
+//
+// ── VÌ SAO BÀI NÀY ĐỔI HẲN NỘI DUNG (0121) ────────────────────────────────────────────────
+//
+// Bản cũ dựng cây năm → tháng → tuần rồi xoá từ gốc. Cây ấy không còn dựng được: `wig_chi_con_nam_ck`
+// chỉ nhận period='year' và cấm parent_wig_id, nên bài cũ vỡ ngay ở câu chèn đầu tiên và đọc ra
+// như thể app hỏng.
+//
+// Nhưng NỖI LO thì không đổi, chỉ đổi hình: nay chuỗi là mục tiêu năm → cam kết tuần → việc dẫn
+// dắt → lượt tick. Xoá mục tiêu mà bỏ sót một tầng thì còn lại những dòng trỏ vào hư không — và
+// tệ hơn cả sót là VƯỚNG: một khoá ngoại chặn giữa chừng để lại nửa cây đã xoá, nửa còn nguyên.
+//
+// Bài này KHÔNG đọc khai báo khoá ngoại rồi suy ra. Nó dựng thật bốn tầng rồi xoá thật, vì thứ
+// cần biết là hành vi lúc chạy, không phải ý định lúc khai báo.
 import {readFileSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
 
@@ -21,61 +29,80 @@ const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_RO
 const kq = [];
 const dat = (ok, ten, ghi = '') => kq.push({ok, ten, ghi});
 
-// Mượn một lớp thật để qua được ràng buộc class_id, nhưng WIG dựng ra là của riêng bài kiểm.
-const {data: lop} = await admin.from('classes').select('id').limit(1).single();
+// Mượn một lớp thật để qua ràng buộc class_id, nhưng mọi thứ dựng ra là của riêng bài kiểm.
+const {data: lop} = await admin
+  .from('classes')
+  .select('id')
+  .eq('is_active', true)
+  .limit(1)
+  .single();
 const nhan = 'KIEMTUDONG-XOA-' + Date.now().toString(36);
 
-const them = async (period, period_label, start_date, end_date, parent) => {
-  const {data, error} = await admin
+// Thứ Hai của một tuần xa trong tương lai: không đụng vào tuần nào lớp đang dùng thật, và
+// `cam_ket_hop_le` đòi week_start đúng là thứ Hai.
+const T2 = '2031-09-01'; // thứ Hai
+
+let namId = null;
+try {
+  const {data: nam, error: eNam} = await admin
     .from('wigs')
     .insert({
-      class_id: lop.id,
-      scope: 'class',
-      area: 'knowledge',
-      period,
-      period_label,
-      start_date,
-      end_date,
-      title: nhan,
-      target_value: 10,
-      unit: 'buổi',
-      parent_wig_id: parent ?? null,
+      class_id: lop.id, scope: 'class', area: 'knowledge', period: 'year', period_label: nhan,
+      start_date: '2031-07-01', end_date: '2032-06-30', title: nhan,
+      target_value: 10, unit: 'buổi',
     })
     .select('id')
     .single();
-  if (error) throw new Error(`${period}: ${error.message}`);
-  return data.id;
-};
+  if (eNam) throw new Error('mục tiêu năm: ' + eNam.message);
+  namId = nam.id;
 
-const nam = await them('year', nhan, '2030-07-01', '2031-06-30', null);
-const thang = await them('month', nhan + '-M', '2030-07-01', '2030-07-31', nam);
-const tuan = await them('week', nhan + '-W', '2030-07-01', '2030-07-07', thang);
+  const {data: ck, error: eCk} = await admin
+    .from('commitments')
+    .insert({wig_id: namId, class_id: lop.id, week_start: T2, title: nhan, area: 'knowledge'})
+    .select('id')
+    .single();
+  if (eCk) throw new Error('cam kết: ' + eCk.message);
 
-// ── Đúng trình tự deleteWig đang chạy: dò con → dò cháu → xoá cháu → xoá con → xoá gốc ──────
-const conCua = async (ids) => {
-  if (ids.length === 0) return [];
-  const {data} = await admin.from('wigs').select('id').in('parent_wig_id', ids);
-  return (data ?? []).map((w) => w.id);
-};
-const con = await conCua([nam]);
-const chau = await conCua(con);
-dat(con.length === 1 && chau.length === 1, 'Dò ra đủ cả tầng con lẫn tầng cháu', `${con.length} con, ${chau.length} cháu`);
+  const {data: lm, error: eLm} = await admin
+    .from('lead_measures')
+    .insert({commitment_id: ck.id, title: nhan, target_value: 3, unit: 'buổi'})
+    .select('id')
+    .single();
+  if (eLm) throw new Error('việc dẫn dắt: ' + eLm.message);
 
-let hong = null;
-for (const tang of [chau, con]) {
-  if (tang.length === 0) continue;
-  const {error} = await admin.from('wigs').delete().in('id', tang);
-  if (error) hong ??= error.message;
+  const {error: eLp} = await admin
+    .from('lead_progress')
+    .insert({lead_measure_id: lm.id, value: 1, logged_date: T2});
+  if (eLp) throw new Error('lượt tick: ' + eLp.message);
+
+  dat(true, 'Dựng đủ bốn tầng: mục tiêu → cam kết → việc → lượt tick');
+
+  // ── XOÁ TỪ GỐC, MỘT LỆNH ────────────────────────────────────────────────────────────────
+  const {error: eXoa} = await admin.from('wigs').delete().eq('id', namId);
+  dat(!eXoa, 'Xoá mục tiêu năm không vướng khoá ngoại nào', eXoa?.message ?? '');
+
+  // ── KHÔNG TẦNG NÀO SÓT LẠI ──────────────────────────────────────────────────────────────
+  // Đếm bằng CHÍNH ID đã dựng, không đếm theo nhãn: nhãn là chữ người đặt, id mới là thứ mà một
+  // dòng mồ côi còn trỏ vào.
+  const con = async (bang, cot, gt) =>
+    (await admin.from(bang).select('id', {count: 'exact', head: true}).eq(cot, gt)).count ?? 0;
+
+  const soCk = await con('commitments', 'wig_id', namId);
+  const soLm = await con('lead_measures', 'commitment_id', ck.id);
+  const soLp = await con('lead_progress', 'lead_measure_id', lm.id);
+  const {count: soNam} = await admin
+    .from('wigs')
+    .select('id', {count: 'exact', head: true})
+    .eq('id', namId);
+
+  dat(soNam === 0, 'Mục tiêu năm đã đi', `còn ${soNam}`);
+  dat(soCk === 0, 'Cam kết tuần đi theo', `còn ${soCk}`);
+  dat(soLm === 0, 'Việc dẫn dắt đi theo', `còn ${soLm}`);
+  dat(soLp === 0, 'Lượt tick đi theo — không còn dòng nào trỏ vào hư không', `còn ${soLp}`);
+} finally {
+  // Chạy trên CSDL thật thì không được để lại rác, kể cả khi vỡ giữa chừng.
+  if (namId) await admin.from('wigs').delete().eq('id', namId);
 }
-const {error: eGoc} = await admin.from('wigs').delete().eq('id', nam);
-if (eGoc) hong ??= eGoc.message;
-dat(!hong, 'Không lệnh xoá nào vướng khoá ngoại', hong ?? '');
-
-const {count} = await admin.from('wigs').select('id', {count: 'exact', head: true}).in('id', [nam, thang, tuan]);
-dat(count === 0, 'Xoá mục tiêu năm là sạch cả ba tầng, không sót mốc treo', `còn ${count} mốc`);
-
-// Dọn nếu có gì sót — bài kiểm chạy trên CSDL thật, không được để lại rác.
-await admin.from('wigs').delete().in('id', [tuan, thang, nam]);
 
 for (const k of kq) console.log(k.ok ? 'OK  ' : 'SAI ', k.ten, k.ghi ? '— ' + k.ghi : '');
 const so = kq.filter((k) => k.ok).length;

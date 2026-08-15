@@ -53,6 +53,41 @@ function xong(ma) {
   process.exit(ma ?? (d === ketQua.length ? 0 : 1));
 }
 
+
+// KHÔNG CÒN EM NÀO TRỐNG THÌ DỰNG LẤY MỘT EM, ĐỪNG BỎ QUA.
+//
+// Từ đợt gieo lại dữ liệu lớp Test, MỌI tài khoản test đều đã có mục tiêu năm, nên bài này dừng
+// ngay ở câu "không thử mà không phá dữ liệu được" — đúng mực, nhưng kết quả là một phép kiểm
+// vĩnh viễn không chạy. Nay tự tạo một tài khoản học sinh tạm, xếp vào lớp, đo xong XOÁ SẠCH.
+// Đi qua auth.users để trigger handle_new_user cấp vai y như người thật đăng nhập lần đầu.
+let emTam = null; // {id, email, classId} — có giá trị thì phải dọn ở finally
+async function dungEmTam() {
+  const {data: lop} = await admin
+    .from('enrollments')
+    .select('class_id')
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
+  if (!lop) return null;
+  const id = crypto.randomUUID();
+  const email = `kiem.tam.${id.slice(0, 8)}@student.truongvietanh.com`;
+  const {error} = await admin.auth.admin.createUser({
+    id,
+    email,
+    email_confirm: true,
+    user_metadata: {full_name: 'Em Kiểm Tạm'},
+  });
+  if (error) return null;
+  const {error: e2} = await admin
+    .from('enrollments')
+    .insert({student_id: id, class_id: lop.class_id, is_active: true});
+  if (e2) {
+    await admin.auth.admin.deleteUser(id);
+    return null;
+  }
+  return {id, email, classId: lop.class_id};
+}
+
 // Em CHƯA có mục tiêu — gieo cho em đã có là ghi đè mất của em (wigs_em_uidx).
 const {data: hs} = await admin
   .from('profiles').select('id, email').eq('role', 'student').like('email', 'test%').order('email');
@@ -65,7 +100,11 @@ for (const h of hs ?? []) {
     .from('enrollments').select('class_id').eq('student_id', h.id).eq('is_active', true).maybeSingle();
   if (e) { em = h.id; enr = e.class_id; HS = h.email; break; }
 }
-if (!em) { dau('Có em chưa đặt mục tiêu để thử', false, 'mọi tài khoản test đều đã có mục tiêu'); xong(1); }
+if (!em) {
+  emTam = await dungEmTam();
+  if (!emTam) { dau('Có em chưa đặt mục tiêu để thử', false, 'không dựng nổi em tạm'); xong(1); }
+  em = emTam.id; enr = emTam.classId; HS = emTam.email;
+}
 dau('Có em chưa đặt mục tiêu để thử', true, HS);
 
 const {data: g} = await admin.auth.admin.generateLink({type: 'magiclink', email: HS});
@@ -82,7 +121,7 @@ const nay = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Ho_Chi_
 const t2 = new Date(nay); t2.setDate(nay.getDate() - ((nay.getDay() + 6) % 7));
 const THU2 = t2.toISOString().slice(0, 10);
 
-let wigId = null, viecId = null;
+let wigId = null, viecId = null, camKetId = null;
 try {
   // Mục tiêu năm 5000 lead, việc tuần 30 lead, ô ĐIỀN SỐ.
   const {data: w} = await admin.from('wigs').insert({
@@ -92,10 +131,22 @@ try {
     status: 'approved', set_by: 'student', measure_by: 'tick',
   }).select('id').maybeSingle();
   wigId = w.id;
-  const {data: lm} = await admin.from('lead_measures').insert({
-    wig_id: wigId, title: 'ZZ_TEST điền lead', target_value: 30, unit: 'lead',
+  // 0121: VIỆC TREO DƯỚI CAM KẾT CỦA MỘT TUẦN, không treo thẳng vào mục tiêu nữa —
+  // `lead_measures.commitment_id` là NOT NULL và `wig_id` do trigger tự suy ra. Bản cũ chèn thẳng
+  // wig_id nên vỡ ngay ở đây, và cả bài đọc thành "app hỏng" trong khi nó chỉ nói mô hình cũ.
+  const {data: ck0, error: eCk} = await admin
+    .from('commitments')
+    .insert({wig_id: wigId, class_id: enr, student_id: em, week_start: THU2,
+             title: 'ZZ_TEST cam kết điền số', area: 'knowledge'})
+    .select('id')
+    .maybeSingle();
+  if (eCk) throw new Error('không tạo được cam kết: ' + eCk.message);
+  camKetId = ck0.id;
+  const {data: lm, error: eLm} = await admin.from('lead_measures').insert({
+    commitment_id: camKetId, title: 'ZZ_TEST điền lead', target_value: 30, unit: 'lead',
     active_weekdays: [1, 2, 3, 4, 5], unit_per_tick: 1, nhap_luong: true,
   }).select('id').maybeSingle();
+  if (eLm) throw new Error('không tạo được việc: ' + eLm.message);
   viecId = lm.id;
 
   // ① MỖI NGÀY LÀ MỘT NÚT TICK, KÈM MỘT Ô SỐ TUỲ CHỌN BÊN DƯỚI.
@@ -155,6 +206,14 @@ try {
   dau('Việc một-chạm → KHÔNG ô nào là ô số', the.every((x) => !x.includes('type="number"')));
 } finally {
   if (viecId) await admin.from('lead_progress').delete().eq('lead_measure_id', viecId);
+  if (camKetId) await admin.from('commitments').delete().eq('id', camKetId);
+  // Em tạm phải biến mất hoàn toàn — kể cả khi bài chạy hỏng giữa chừng.
+  if (emTam) {
+    await admin.from('wigs').delete().eq('student_id', emTam.id);
+    await admin.from('enrollments').delete().eq('student_id', emTam.id);
+    await admin.auth.admin.deleteUser(emTam.id);
+  }
+
   if (wigId) {
     await admin.from('lead_measures').delete().eq('wig_id', wigId);
     await admin.from('wigs').delete().eq('parent_wig_id', wigId);

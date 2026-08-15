@@ -1380,7 +1380,6 @@
     "readingSave": "Ghi",
     "readingByStudent": "bạn tự ghi",
     "readingByTeacher": "cô ghi",
-    "monthPace": "Tháng này: {n} {unit}",
     "pickBattle": "Chọn mục tiêu của lớp",
     "paceTooEasy": "Với {n} lần mỗi tuần, bạn xong trong {can} tuần mà hạn còn {con} tuần — đặt đích cao hơn nhé?",
     "paceTooHard": "Với {n} lần mỗi tuần, bạn cần {can} tuần mà hạn chỉ còn {con} tuần.",

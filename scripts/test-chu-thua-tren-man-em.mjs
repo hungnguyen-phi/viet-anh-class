@@ -91,8 +91,15 @@ dau('khối tick còn tiêu đề (theo messages/vi.json)',
     .eq('student_id', em?.id ?? '')
     .eq('scope', 'student')
     .eq('kind', 'personal');
-  const coTieuDe = body.includes('Mục tiêu riêng của con');
-  const coNut = body.includes('Con muốn thêm một mục tiêu của riêng con');
+  // NHÃN ĐỌC TỪ GÓI DỊCH. Hai chuỗi này từng viết cứng theo cách xưng "của con"; màn hình nay gọi
+  // em bằng "bạn", nên bản cũ báo MẤT NÚT trong khi nút vẫn ở đó. Điều canh ở đây là có/không có
+  // khối và nút, không phải app gọi em bằng gì.
+  const goiVi = JSON.parse(readFileSync('messages/vi.json', 'utf8'));
+  const nhanTieuDeRieng = goiVi.goal?.titlePersonal;
+  const nhanNutRieng = goiVi.goal?.openFormPersonal;
+  if (!nhanTieuDeRieng || !nhanNutRieng) throw new Error('thiếu khoá goal.titlePersonal/openFormPersonal');
+  const coTieuDe = body.includes(nhanTieuDeRieng);
+  const coNut = body.includes(nhanNutRieng);
   // CHƯA CÓ MỤC TIÊU HỌC TẬP thì cũng KHÔNG bày nút "thêm mục tiêu riêng": hai nút cạnh nhau cùng
   // mở một form đặt mục tiêu đọc ra là một nút bị nhân đôi. Chữ "thêm" chỉ có nghĩa khi đã có một
   // cái rồi. Chủ dự án chỉ ra 13/08/2026 (lần thứ hai của cùng một khối này).
