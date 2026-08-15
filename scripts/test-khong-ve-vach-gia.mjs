@@ -48,13 +48,34 @@ const kq = [];
 const dat = (ok, ten, ghi = '') => kq.push({ok, ten, ghi});
 
 // Lớp CÓ GVCN — trang /wig dựng theo lớp của cô, không có cô thì không có ai để đăng nhập.
-const {data: lop} = await admin
+// LỚP CÒN CHỖ ĐỂ GIEO. Bài này gieo hai mục tiêu năm của lớp ở hai lĩnh vực; CSDL chỉ cho MỖI
+// LĨNH VỰC MỘT mục tiêu năm cho mỗi lớp. Lấy bừa lớp đầu danh sách là đâm vào trần ấy và bài báo
+// "không gieo được dữ liệu thử" — đo sự chật chội của dữ liệu, không đo app.
+const {data: dsLop} = await admin
   .from('classes')
   .select('id, name, school_year, homeroom_teacher_id')
   .eq('is_active', true)
   .not('homeroom_teacher_id', 'is', null)
-  .limit(1)
-  .single();
+  .order('name');
+const {data: daCoNam} = await admin
+  .from('wigs')
+  .select('class_id, area')
+  .eq('scope', 'class')
+  .eq('period', 'year');
+const banLinhVuc = new Map();
+for (const w of daCoNam ?? []) {
+  if (!banLinhVuc.has(w.class_id)) banLinhVuc.set(w.class_id, new Set());
+  banLinhVuc.get(w.class_id).add(w.area);
+}
+const conCho = (c) => {
+  const b = banLinhVuc.get(c.id);
+  return !b || (!b.has('knowledge') && !b.has('skills'));
+};
+const lop = (dsLop ?? []).find(conCho) ?? (dsLop ?? [])[0];
+if (!lop) {
+  console.log('SAI  không lớp nào đang hoạt động có GVCN — CHƯA KIỂM ĐƯỢC.');
+  process.exit(1);
+}
 const {data: gv} = await admin
   .from('profiles')
   .select('email')

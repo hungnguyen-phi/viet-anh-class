@@ -340,7 +340,10 @@ const check = (ten, ok, ghi = '') => {
   for (const ck of wigs ?? []) {
     const w = {...ck, start_date: ck.week_start};
     const {data: cb} = await admin.rpc('lead_measure_canh_bao', {p_commitment: w.id});
-    if ((cb ?? []).some((r) => r.qua_nhieu || r.lech_don_vi)) {
+    // CHỈ `qua_nhieu`. Cảnh báo lệch đơn vị đã bỏ khỏi giao diện (15/08) — CSDL vẫn trả cờ ấy cho
+    // ai muốn dựng lại sau, nhưng trang không vẽ nó nữa. Chọn theo cờ ấy là đi tìm trên màn hình
+    // một thứ cố ý không còn ở đó, rồi báo "trang không vẽ cảnh báo".
+    if ((cb ?? []).some((r) => r.qua_nhieu)) {
       mo = w;
       break;
     }

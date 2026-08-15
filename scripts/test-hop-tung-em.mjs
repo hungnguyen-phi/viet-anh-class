@@ -101,9 +101,34 @@ const {data: dsEm} = await admin
 const {data: daCo} = await admin
   .from('wigs').select('student_id').eq('scope', 'student').eq('period', 'year');
 const banRoi = new Set((daCo ?? []).map((r) => r.student_id));
-const emThu = (dsEm ?? []).find((e) => !banRoi.has(e.student_id));
+let emThu = (dsEm ?? []).find((e) => !banRoi.has(e.student_id));
+
+// KHÔNG CÒN EM NÀO TRỐNG THÌ DỰNG LẤY MỘT EM, ĐỪNG BỎ QUA.
+//
+// Bài này cần một em CHƯA có mục tiêu năm — gieo cho em đã có là ghi đè mất của em. Nhưng từ đợt
+// gieo lại dữ liệu lớp Test thì mọi em đều đã có, nên bài dừng ngay ở câu tiền đề và không bao
+// giờ chạy. Tạo một tài khoản học sinh tạm, xếp vào lớp, đo xong XOÁ SẠCH.
+let emTam = null;
+if (!emTam && !emThu && lop) {
+  const id = crypto.randomUUID();
+  const email = `kiem.tam.${id.slice(0, 8)}@student.truongvietanh.com`;
+  const {error} = await admin.auth.admin.createUser({
+    id, email, email_confirm: true, user_metadata: {full_name: 'Em Kiểm Tạm'},
+  });
+  if (!error) {
+    const {error: e2} = await admin
+      .from('enrollments')
+      .insert({student_id: id, class_id: lop.id, is_active: true});
+    if (e2) await admin.auth.admin.deleteUser(id);
+    else {
+      emTam = {id, email};
+      emThu = {student_id: id, profiles: {full_name: 'Em Kiểm Tạm'}};
+    }
+  }
+}
+
 if (!lop || !gv || !emThu) {
-  dau('Có lớp, GVCN và một em chưa đặt mục tiêu', false, 'thiếu dữ liệu để thử mà không phá của ai');
+  dau('Có lớp, GVCN và một em chưa đặt mục tiêu', false, 'không dựng nổi một em tạm để thử');
   xong(1);
 }
 dau('Có lớp, GVCN và một em chưa đặt mục tiêu', true, `${lop.name} · ${gv.email}`);
@@ -281,6 +306,12 @@ try {
   // Dọn theo đúng thứ tự phụ thuộc, và dọn CẢ DẤU CHỐT — bỏ sót là khoá tick một tuần của lớp thật.
   await admin.from('wig_meetings').delete().eq('class_id', lop.id).eq('week_start', TUAN);
   await admin.from('wig_meeting_notes').delete().eq('class_id', lop.id).eq('week_start', TUAN);
+  // Em tạm phải biến mất hoàn toàn — kể cả khi bài chạy hỏng giữa chừng.
+  if (emTam) {
+    await admin.from('wigs').delete().eq('student_id', emTam.id);
+    await admin.from('enrollments').delete().eq('student_id', emTam.id);
+    await admin.auth.admin.deleteUser(emTam.id);
+  }
   if (wigId) {
     // Xoá mục tiêu là cam kết + việc + lượt tick đi theo bằng khoá ngoại CASCADE
     // (xem scripts/test-xoa-wig-ba-tang.mjs), nên một lệnh là đủ và không sót gì.
