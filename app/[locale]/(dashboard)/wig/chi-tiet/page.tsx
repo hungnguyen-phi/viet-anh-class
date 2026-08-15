@@ -186,6 +186,9 @@ export default async function ChiTietPage({
           rồi ghi con số ấy xuống bản ghi của từng em. Bỏ ở 0100 — thay bằng bức tường dưới đây,
           nơi mục tiêu của em là khoảng cách của chính em và cô duyệt ngay tại chỗ. */}
       <TuongWig
+        // Chỉ quản trị và BGH mới SỬA/XOÁ được mục tiêu của em (0133, 0134). GVCN vẫn đặt hộ cho
+        // em chưa có, vẫn duyệt, vẫn đánh dấu đã đạt — nhưng không gõ đè lên câu em đã viết.
+        suaDuoc={profile.role === 'admin' || profile.role === 'principal'}
         classId={myClass.id}
         wigLop={wigLop ?? []}
         wigLopChon={wigLopChon}

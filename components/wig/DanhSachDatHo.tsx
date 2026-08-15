@@ -41,11 +41,20 @@ export function DanhSachDatHo({
   danhSach,
   wigLop,
   dayShort,
+  suaDuoc,
 }: {
   classId: string;
   danhSach: EmTrongLop[];
   wigLop: WigLop[];
   dayShort: string[];
+  /**
+   * Người đang xem có SỬA/XOÁ được mục tiêu của em không — chỉ quản trị và BGH (0133, 0134).
+   *
+   * Không suy ở đây, để nơi gọi truyền vào: quyền thật nằm ở CSDL, và một màn hình đoán lại luật
+   * ấy là dựng nguồn sự thật thứ hai để rồi lệch. Chỗ này chỉ lo ĐỪNG BÀY RA cái nút mà bấm vào
+   * sẽ ăn lỗi — nút chết còn tệ hơn nút không có, vì nó hứa một việc rồi nuốt lời.
+   */
+  suaDuoc: boolean;
 }) {
   const t = useTranslations('goal');
   const [dangMo, setDangMo] = useState<EmTrongLop | null>(null);
@@ -98,16 +107,23 @@ export function DanhSachDatHo({
               </span>
             )}
 
-            <button
-              type="button"
-              onClick={() => setDangMo(em)}
-              className="inline-flex cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-navy/20 bg-white px-2.5 py-1 text-[11.5px] font-extrabold text-navy transition-colors hover:border-navy"
-            >
-              {m ? <Pencil size={12} strokeWidth={2.5} /> : <Plus size={12} strokeWidth={2.5} />}
-              {m ? t('edit') : t('setFor')}
-            </button>
+            {/* ĐẶT HỘ thì còn, SỬA thì không.
+                Em chưa có mục tiêu nào mà cô đặt hộ là một dòng THÊM MỚI — vẫn cho, vì nếu không
+                thì một em không bao giờ đặt sẽ đứng ngoài mọi buổi họp, và cái nhãn "cô đặt" cùng
+                tỉ lệ tự-đặt ngay dưới đã nói ra ai cầm bút.
+                Còn gõ đè lên câu em đã viết thì từ 0133 chỉ quản trị và BGH mới làm được. */}
+            {(!m || suaDuoc) && (
+              <button
+                type="button"
+                onClick={() => setDangMo(em)}
+                className="inline-flex cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-navy/20 bg-white px-2.5 py-1 text-[11.5px] font-extrabold text-navy transition-colors hover:border-navy"
+              >
+                {m ? <Pencil size={12} strokeWidth={2.5} /> : <Plus size={12} strokeWidth={2.5} />}
+                {m ? t('edit') : t('setFor')}
+              </button>
+            )}
 
-            {m && (
+            {m && suaDuoc && (
               <form
                 action={xoaMucTieuCuaEm}
                 onSubmit={(e) => {

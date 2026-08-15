@@ -29,6 +29,7 @@ export async function TuongWig({
   wigLopChon,
   danhSach,
   dayShort,
+  suaDuoc,
 }: {
   classId: string;
   wigLop: {id: string; title: string; target_value: number; unit: string}[];
@@ -36,6 +37,8 @@ export async function TuongWig({
   wigLopChon: WigLop[];
   danhSach: EmTrongLop[];
   dayShort: string[];
+  /** Chỉ quản trị/BGH mới sửa được mục tiêu của em (0133, 0134) — xem DanhSachDatHo. */
+  suaDuoc: boolean;
 }) {
   const t = await getTranslations('goal');
 
@@ -98,6 +101,7 @@ export async function TuongWig({
             danhSach={danhSach}
             wigLop={wigLopChon}
             dayShort={dayShort}
+            suaDuoc={suaDuoc}
           />
         </div>
       </div>
