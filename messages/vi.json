@@ -487,7 +487,6 @@
     "studentsDoneUnit": "em đủ",
     "perStudentTarget": "mỗi em {n} {unit}",
     "warnTooMany": "Mỗi em cần {can} lượt tick, nhưng cả tuần chỉ có {ngay} ngày để tick ({co} lượt) — không em nào đạt nổi. Hạ mục tiêu, chọn thêm thứ trong tuần, hoặc khai “mỗi lần tick đáng” cho đúng.",
-    "warnUnitMismatch": "Việc đo bằng “{lead}” còn mục tiêu đo bằng “{wig}” — hai đơn vị khác nhau, mà mỗi lượt tick vẫn đang cộng 1 {wig} vào tiến độ. Sửa cho hai bên cùng một đơn vị, hoặc khai “mỗi lần tick đáng” bằng số {wig} mà MỘT lần làm thật sự đáng (không phải con số trong tên việc).",
     "createTitle": "Tạo mục tiêu",
     "needYearFirst": "Phải có mục tiêu NĂM trước đã.",
     "needMonthFirst": "Phải có mục tiêu THÁNG trước đã.",

@@ -487,7 +487,6 @@
     "studentsDoneUnit": "done",
     "perStudentTarget": "{n} {unit} each",
     "warnTooMany": "Each student needs {can} ticks, but the week only has {ngay} tickable days ({co} ticks) — nobody can reach it. Lower the target, add more weekdays, or set “each tick counts as” correctly.",
-    "warnUnitMismatch": "Measured in “{lead}” while the goal is in “{wig}” — different units, yet each tick still adds 1 {wig} to progress. Either make both use the same unit, or set “each tick counts as” to how many {wig} ONE session is really worth (not the number in the task name).",
     "createTitle": "New goal",
     "needYearFirst": "You need a YEAR goal first.",
     "needMonthFirst": "You need a MONTH goal first.",

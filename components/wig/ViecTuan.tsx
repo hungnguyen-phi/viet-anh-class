@@ -33,7 +33,6 @@ export type ViecItem = {
   nhap_luong: boolean | null;
   // Cảnh báo tính ở server (cùng công thức với hàm SQL lead_measure_canh_bao).
   quaNhieu: boolean;
-  lechDonVi: boolean;
   soTickCan: number;
   tran: number;
   soNgay: number;
@@ -107,12 +106,6 @@ export function ViecTuan({
             <p className="mt-2 flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2 py-1.5 text-[11px] font-semibold leading-relaxed text-status-bad">
               <AlertTriangle size={12} strokeWidth={2.5} className="mt-px shrink-0" />
               {t('warnTooMany', {can: v.soTickCan, co: v.tran, ngay: v.soNgay, nguoi: v.soNguoi})}
-            </p>
-          )}
-          {v.lechDonVi && (
-            <p className="mt-2 flex items-start gap-1.5 rounded-[10px] bg-gold/20 px-2 py-1.5 text-[11px] font-semibold leading-relaxed text-gold-text">
-              <AlertTriangle size={12} strokeWidth={2.5} className="mt-px shrink-0" />
-              {t('warnUnitMismatch', {lead: v.unit ?? '', wig: wigUnit})}
             </p>
           )}
 

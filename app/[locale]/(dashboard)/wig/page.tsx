@@ -301,9 +301,12 @@ export default async function WigPage({
       soNgay,
       soNguoi,
       tran,
-      // Hai đơn vị khác nhau mà hệ số vẫn để 1 → đang cộng cái nọ vào cái kia.
-      lechDonVi:
-        Boolean(l.unit) && Boolean(w.unit) && boDau(l.unit!) !== boDau(w.unit) && moiTick === 1,
+      // CẢNH BÁO LỆCH ĐƠN VỊ ĐÃ BỎ (15/08/2026). Nó canh chuyện thật — việc đo bằng "lần" mà mục
+      // tiêu đo bằng "bài" thì mỗi lượt tick vẫn cộng 1 "bài", tức cộng nhầm cái nọ vào cái kia —
+      // nhưng câu chữ dài bốn dòng và không nói được phải bấm vào đâu. Chủ dự án chốt bỏ.
+      //
+      // CSDL vẫn trả về `lech_don_vi` (lead_measure_canh_bao) cho ai muốn dựng lại sau; chỗ này
+      // chỉ thôi vẽ nó ra màn hình.
       quaNhieu: soTickCan > tran,
     };
   };
@@ -352,7 +355,6 @@ export default async function WigPage({
         unit_per_tick: l.unit_per_tick,
         nhap_luong: l.nhap_luong,
         quaNhieu: cb.quaNhieu,
-        lechDonVi: cb.lechDonVi,
         soTickCan: cb.soTickCan,
         tran: cb.tran,
         soNgay: cb.soNgay,
@@ -374,7 +376,6 @@ export default async function WigPage({
         unit_per_tick: l.unit_per_tick,
         nhap_luong: l.nhap_luong,
         quaNhieu: cb.quaNhieu,
-        lechDonVi: cb.lechDonVi,
         soTickCan: cb.soTickCan,
         tran: cb.tran,
         soNgay: cb.soNgay,
