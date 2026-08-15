@@ -14,7 +14,7 @@ import {kieuDonVi} from '@/lib/don-vi';
 // trong sinhNhip). Chép một bản riêng cho học sinh là dựng đúng cái bệnh "hai đường tính cho một
 // khái niệm" mà repo này đã dính nhiều lần.
 import {buddyNote, buddyChat, type BuddyContext, type BuddyLead} from '@/lib/buddy';
-import {weekRangeVN, todayInVN, schoolYearRangeVN, isValidDayVN, mondayOf} from '@/lib/dates';
+import {weekRangeVN, nextWeekRangeVN, todayInVN, schoolYearRangeVN, isValidDayVN, mondayOf} from '@/lib/dates';
 import type {Database} from '@/lib/database.types';
 
 type Mood = Database['public']['Enums']['mood_level'];
@@ -1176,3 +1176,90 @@ export async function chinhNhip(_prev: MucTieuState, formData: FormData): Promis
 // Hàm ghepBuddyTuan và components/wig/BanDongHanh.tsx gỡ khỏi mã nguồn: app chỉ còn MỘT nghĩa
 // Buddy — con sư tử AI (lib/buddy.ts). Bảng buddy_pairs vẫn nằm nguyên trong CSDL cùng dữ liệu
 // đã ghép; không xoá, chỉ thôi đọc và thôi ghi. Xem ghi chú ở components/student/StudentMeetings.
+
+// ════════════════════════════════════════════════════════════════════════════════════════════
+// EM TỰ ĐẶT CAM KẾT TUẦN — mắt xích bị đứt của cả vòng, nối lại (16/08/2026)
+// ════════════════════════════════════════════════════════════════════════════════════════════
+//
+// Cho tới hôm nay, đường DUY NHẤT sinh ra cam kết tuần của một em là ô "việc tuần này" mà GIÁO
+// VIÊN gõ trong phòng họp. Chủ dự án bảo gỡ ("phải là em đặt chứ"), tôi gỡ — và quên rằng phía em
+// chưa hề có đường thay thế. Kết quả: nửa cây cầu. Em viết cam kết thành một câu văn trong biên
+// bản, còn bảng của cô đọc bảng `commitments` — hai bên nói về hai thứ khác nhau, và không có gì
+// để tick suốt cả tuần.
+//
+// Đây là chỗ nối lại. Ba luật, và cả ba đều đã có sẵn trong CSDL — hàm này chỉ nói lại cho đúng
+// câu tiếng Việt thay vì để người dùng nhận một mã lỗi Postgres:
+//
+//   · Cam kết của em treo dưới MỤC TIÊU NĂM CỦA CHÍNH EM (cam_ket_hop_le, 0121).
+//   · Tối đa 2 cam kết mỗi tuần (chan_qua_hai_cam_ket) — "ít thì mới tập trung được".
+//   · Em đặt thì vào trạng thái CHỜ DUYỆT, và máy tự ghi là em đặt (cam_ket_trang_thai, 0129).
+//     Không tin ô nào của trình duyệt về hai chuyện ấy.
+export async function datCamKetTuan(
+  _prev: MucTieuState,
+  formData: FormData,
+): Promise<MucTieuState> {
+  const me = await getCurrentProfile();
+  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
+
+  const title = String(formData.get('title') ?? '').trim();
+  if (!title) return {ok: false, fieldError: 'title', error: 'Bạn viết cam kết của tuần đã nhé.'};
+  if (title.length > 160)
+    return {ok: false, fieldError: 'title', error: 'Cam kết tối đa 160 ký tự — viết ngắn cho dễ nhớ.'};
+
+  // TUẦN NÀO: nhận từ form nhưng KIỂM lại, và luôn quy về thứ Hai. Bỏ trống thì là tuần tới —
+  // buổi họp cuối tuần đặt cam kết cho tuần sắp tới, đó là nhịp mặc định.
+  const tuanGui = String(formData.get('week') ?? '').trim();
+  const monday = isValidDayVN(tuanGui) ? mondayOf(tuanGui) : nextWeekRangeVN().start;
+
+  const supabase = await createClient();
+
+  // Lớp em đang học, và mục tiêu năm của chính em để treo cam kết vào.
+  const {data: ghiDanh} = await supabase
+    .from('enrollments')
+    .select('class_id')
+    .eq('student_id', me.id)
+    .eq('is_active', true)
+    .maybeSingle();
+  if (!ghiDanh?.class_id)
+    return {ok: false, error: 'Bạn chưa được xếp lớp nên chưa đặt cam kết được.'};
+
+  const {data: mucTieu} = await supabase
+    .from('wigs')
+    .select('id')
+    .eq('student_id', me.id)
+    .eq('scope', 'student')
+    .eq('period', 'year')
+    .eq('kind', 'academic')
+    .maybeSingle();
+  if (!mucTieu?.id)
+    return {
+      ok: false,
+      error: 'Bạn đặt mục tiêu năm trước đã — cam kết mỗi tuần là một bước đi tới mục tiêu ấy.',
+    };
+
+  const {error} = await supabase.from('commitments').insert({
+    wig_id: mucTieu.id,
+    class_id: ghiDanh.class_id,
+    student_id: me.id,
+    week_start: monday,
+    title,
+    // Cột NOT NULL nhưng trigger đè lại bằng lĩnh vực của mục tiêu năm — gửi một giá trị hợp lệ
+    // bất kỳ để qua cửa, đừng đọc nó như lựa chọn của người dùng.
+    area: 'knowledge',
+  });
+
+  if (error) {
+    // Trần 2 cam kết là luật CÓ CHỦ Ý, không phải sự cố — nói bằng tiếng người.
+    if (/hai cam k|tối đa 2|qua_hai/i.test(error.message))
+      return {
+        ok: false,
+        error: 'Mỗi tuần chỉ đặt 2 cam kết thôi — ít thì mới tập trung được. Xoá bớt rồi đặt lại nhé.',
+      };
+    return {ok: false, error: friendlyError(error)};
+  }
+
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/hop', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  return {ok: true, message: 'Đã gửi cam kết tuần cho thầy cô duyệt.'};
+}

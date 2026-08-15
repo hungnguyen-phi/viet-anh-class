@@ -5,6 +5,7 @@ import {createClient} from '@/lib/supabase/server';
 import {Link} from '@/i18n/navigation';
 import {isoWeekLabel, mondayOf, shiftWeeks, todayInVN, vnNoon} from '@/lib/dates';
 import {OBienBanCuaEm} from '@/components/wig/OBienBanCuaEm';
+import {CamKetCuaEm} from '@/components/wig/CamKetCuaEm';
 import {NutThamGia} from '@/components/wig/NutThamGia';
 import {NghePhongHop} from '@/components/wig/NghePhongHop';
 
@@ -69,6 +70,17 @@ export default async function PhongHopCuaEmPage({
   const hopMonday = /^\d{4}-\d{2}-\d{2}$/.test(hopParam ?? '') ? mondayOf(hopParam!) : macDinh;
   const hopLabel = isoWeekLabel(vnNoon(hopMonday));
   const truocLabel = isoWeekLabel(vnNoon(shiftWeeks(hopMonday, -1)));
+
+  // CAM KẾT CHO TUẦN TỚI — tuần kế tiếp tuần đang họp. Buổi họp cuối tuần nhìn lại tuần vừa qua
+  // rồi hứa cho tuần sắp tới; đó là nhịp PRD mô tả, và cũng là nhịp mà bước 3 bên màn của cô dùng.
+  const dichMonday = shiftWeeks(hopMonday, 1);
+  const dichLabel = isoWeekLabel(vnNoon(dichMonday));
+  const {data: ckDich} = await supabase
+    .from('commitments')
+    .select('id, title, status')
+    .eq('student_id', profile.id)
+    .eq('week_start', dichMonday)
+    .order('created_at');
 
   // MỘT CÂU cho cả ba thứ cần: dòng của LỚP tuần này (mang dấu chốt), dòng của lớp tuần trước
   // (mang lời hứa), và dòng của chính em. RLS đã lo phần "chỉ thấy dòng của mình": học sinh đọc
@@ -175,6 +187,16 @@ export default async function PhongHopCuaEmPage({
           daThamGia={daThamGia}
         />
       )}
+
+      {/* EM TỰ ĐẶT CAM KẾT TUẦN TỚI. Đây là mắt xích từng đứt: đường duy nhất sinh ra cam kết của
+          em vốn là ô mà CÔ gõ trong phòng họp, và khi gỡ ô ấy đi (16/08) thì không còn đường nào.
+          KHÔNG khoá theo dấu chốt buổi họp — chủ dự án: "điền sau cũng được, miễn là có để mà
+          thực hiện, và gv duyệt sau". */}
+      <CamKetCuaEm
+        weekStart={dichMonday}
+        weekLabel={dichLabel}
+        daCo={(ckDich ?? []) as {id: string; title: string; status: string}[]}
+      />
 
       <OBienBanCuaEm
         key={hopMonday}

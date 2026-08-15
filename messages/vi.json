@@ -1334,6 +1334,7 @@
     "edit": "Sửa",
     "approve": "Duyệt mục tiêu",
     "waiting": "Chờ cô duyệt",
+    "approved": "Cô đã duyệt",
     "setByTeacher": "Cô đặt giúp",
     "fromTo": "Từ {from} đến {to} {unit} · trước {due}",
     "myWork": "Việc của bạn: {title} — {n} lần mỗi tuần",

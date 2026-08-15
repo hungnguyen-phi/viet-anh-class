@@ -1334,6 +1334,7 @@
     "edit": "Edit",
     "approve": "Approve goal",
     "waiting": "Awaiting approval",
+    "approved": "Approved",
     "setByTeacher": "Set by teacher",
     "fromTo": "From {from} to {to} {unit} · by {due}",
     "myWork": "My action: {title} — {n} times a week",
