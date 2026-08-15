@@ -5,6 +5,7 @@ import {createClient} from '@/lib/supabase/server';
 import {Link} from '@/i18n/navigation';
 import {isoWeekLabel, mondayOf, shiftWeeks, todayInVN, vnNoon} from '@/lib/dates';
 import {OBienBanCuaEm} from '@/components/wig/OBienBanCuaEm';
+import {NutThamGia} from '@/components/wig/NutThamGia';
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
 // /student/hop — PHÒNG HỌP WIG, PHẦN CỦA EM
@@ -46,7 +47,24 @@ export default async function PhongHopCuaEmPage({
     );
   }
 
-  const macDinh = shiftWeeks(mondayOf(todayInVN()), -1);
+  // TUẦN MẶC ĐỊNH: PHÒNG NÀO ĐANG MỞ THÌ VÀO PHÒNG ẤY (0130).
+  //
+  // Trước bản này màn của em luôn mở ở "tuần vừa xong", còn cô thì mở phòng cho TUẦN ĐANG CHẠY —
+  // nên em bấm "Vào phòng họp" là rơi thẳng vào một tuần đã chốt, đọc được đúng câu "buổi họp
+  // tuần này đã chốt, phần của bạn không sửa được nữa" trong khi lớp đang họp ở phòng bên cạnh.
+  // Nhìn thấy trên máy thật ngay lần thử đầu.
+  const {data: dangMo} = await supabase
+    .from('wig_meetings')
+    .select('week_start')
+    .eq('class_id', lop.class_id)
+    .is('student_id', null)
+    .not('mo_luc', 'is', null)
+    .is('chot_at', null)
+    .order('week_start', {ascending: false})
+    .limit(1)
+    .maybeSingle();
+
+  const macDinh = dangMo?.week_start ?? shiftWeeks(mondayOf(todayInVN()), -1);
   const hopMonday = /^\d{4}-\d{2}-\d{2}$/.test(hopParam ?? '') ? mondayOf(hopParam!) : macDinh;
   const hopLabel = isoWeekLabel(vnNoon(hopMonday));
   const truocLabel = isoWeekLabel(vnNoon(shiftWeeks(hopMonday, -1)));
@@ -56,7 +74,7 @@ export default async function PhongHopCuaEmPage({
   // được dòng lớp (student_id null) và dòng mang chính id mình, không thấy dòng của bạn khác.
   const {data: rows} = await supabase
     .from('wig_meetings')
-    .select('student_id, week_label, results, commitments, chot_at')
+    .select('student_id, week_label, results, commitments, chot_at, mo_luc, tham_gia_luc, kho_khan, vuot_qua, cach_tot_hon')
     .eq('class_id', lop.class_id)
     .in('week_label', [hopLabel, truocLabel]);
   const all = (rows ?? []) as {
@@ -65,12 +83,20 @@ export default async function PhongHopCuaEmPage({
     results: string | null;
     commitments: string | null;
     chot_at: string | null;
+    mo_luc: string | null;
+    tham_gia_luc: string | null;
+    kho_khan: string | null;
+    vuot_qua: string | null;
+    cach_tot_hon: string | null;
   }[];
   const dongTuan = all.find((r) => r.student_id === null && r.week_label === hopLabel) ?? null;
   const loiHuaTruoc =
     all.find((r) => r.student_id === null && r.week_label === truocLabel)?.commitments ?? null;
   const cuaEm = all.find((r) => r.student_id === profile.id && r.week_label === hopLabel) ?? null;
   const daChot = Boolean(dongTuan?.chot_at);
+  // PHÒNG ĐANG MỞ (0130): cô đã bấm "Bắt đầu họp" và chưa bấm "Kết thúc".
+  const phongMo = Boolean(dongTuan?.mo_luc) && !dongTuan?.chot_at;
+  const daThamGia = Boolean(cuaEm?.tham_gia_luc);
 
   const dm = (x: string) => `${x.slice(8, 10)}/${x.slice(5, 7)}`;
   // CHỦ NHẬT của tuần đang họp — không phải thứ Hai tuần sau. shiftWeeks(+1) nhảy đúng 7
@@ -128,6 +154,21 @@ export default async function PhongHopCuaEmPage({
         </div>
       </div>
 
+      {/* LỜI MỜI VÀO PHÒNG (0130).
+          Chủ dự án: "khi giáo viên ấn họp, tất cả màn hình của các em đều hiện phòng họp, xong
+          rồi các em ấn tham gia, gv sẽ biết ai đang tham gia".
+
+          Bấm Tham gia CHỈ là dấu có mặt — không phải cửa. Em vắng buổi họp vẫn điền được phần của
+          mình sau đó, miễn tuần chưa chốt; nên mấy ô bên dưới luôn mở, bất kể em đã bấm hay chưa. */}
+      {phongMo && (
+        <NutThamGia
+          classId={lop.class_id}
+          weekLabel={hopLabel}
+          weekStart={hopMonday}
+          daThamGia={daThamGia}
+        />
+      )}
+
       <OBienBanCuaEm
         key={hopMonday}
         classId={lop.class_id}
@@ -135,6 +176,9 @@ export default async function PhongHopCuaEmPage({
         weekStart={hopMonday}
         ketQuaBanDau={cuaEm?.results ?? ''}
         camKetBanDau={cuaEm?.commitments ?? ''}
+        khoKhanBanDau={cuaEm?.kho_khan ?? ''}
+        vuotQuaBanDau={cuaEm?.vuot_qua ?? ''}
+        cachTotHonBanDau={cuaEm?.cach_tot_hon ?? ''}
         khoa={daChot}
       />
     </div>

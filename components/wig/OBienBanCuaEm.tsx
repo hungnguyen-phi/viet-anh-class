@@ -29,6 +29,9 @@ export function OBienBanCuaEm({
   weekStart,
   ketQuaBanDau,
   camKetBanDau,
+  khoKhanBanDau,
+  vuotQuaBanDau,
+  cachTotHonBanDau,
   khoa,
 }: {
   classId: string;
@@ -36,6 +39,10 @@ export function OBienBanCuaEm({
   weekStart: string;
   ketQuaBanDau: string;
   camKetBanDau: string;
+  /** Ba câu hỏi của biên bản PDR (0130). */
+  khoKhanBanDau: string;
+  vuotQuaBanDau: string;
+  cachTotHonBanDau: string;
   /** Tuần đã chốt → đọc được, không sửa được. */
   khoa: boolean;
 }) {
@@ -43,6 +50,9 @@ export function OBienBanCuaEm({
   const [supabase] = useState(() => createClient());
   const [ketQua, setKetQua] = useState(ketQuaBanDau);
   const [camKet, setCamKet] = useState(camKetBanDau);
+  const [khoKhan, setKhoKhan] = useState(khoKhanBanDau);
+  const [vuotQua, setVuotQua] = useState(vuotQuaBanDau);
+  const [cachTotHon, setCachTotHon] = useState(cachTotHonBanDau);
   const [trangThai, setTrangThai] = useState<'yen' | 'dangLuu' | 'daLuu' | 'hong'>('yen');
   // CÔ CHỐT GIỮA LÚC EM ĐANG GÕ — cảnh chắc chắn xảy ra ở cuối mỗi buổi họp. Từ lúc ấy máy chủ
   // từ chối mọi lượt ghi, và nếu màn hình vẫn nói "kiểm tra mạng" thì em ngồi gõ lại mãi vào một
@@ -52,7 +62,13 @@ export function OBienBanCuaEm({
   const hen = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Giá trị MỚI NHẤT, đọc trong lúc hẹn giờ nổ. State đóng băng theo lần render nên nếu đọc
   // state ở đó thì lượt ghi mang chữ của 600ms trước, thiếu mất mấy phím cuối.
-  const moiNhat = useRef({ketQua: ketQuaBanDau, camKet: camKetBanDau});
+  const moiNhat = useRef({
+    ketQua: ketQuaBanDau,
+    camKet: camKetBanDau,
+    khoKhan: khoKhanBanDau,
+    vuotQua: vuotQuaBanDau,
+    cachTotHon: cachTotHonBanDau,
+  });
 
   useEffect(() => {
     return () => {
@@ -71,6 +87,9 @@ export function OBienBanCuaEm({
         p_week_start: weekStart,
         p_ket_qua: moiNhat.current.ketQua,
         p_cam_ket: moiNhat.current.camKet,
+        p_kho_khan: moiNhat.current.khoKhan,
+        p_vuot_qua: moiNhat.current.vuotQua,
+        p_cach_tot_hon: moiNhat.current.cachTotHon,
       });
       if (error?.code === 'P0002') {
         setChotGiuaChung(true);
@@ -81,10 +100,13 @@ export function OBienBanCuaEm({
     }, NHIP_MS);
   }
 
-  const doi = (k: 'ketQua' | 'camKet') => (val: string) => {
+  const doi = (k: 'ketQua' | 'camKet' | 'khoKhan' | 'vuotQua' | 'cachTotHon') => (val: string) => {
     moiNhat.current = {...moiNhat.current, [k]: val};
     if (k === 'ketQua') setKetQua(val);
-    else setCamKet(val);
+    else if (k === 'camKet') setCamKet(val);
+    else if (k === 'khoKhan') setKhoKhan(val);
+    else if (k === 'vuotQua') setVuotQua(val);
+    else setCachTotHon(val);
     henGhi();
   };
 
@@ -119,6 +141,33 @@ export function OBienBanCuaEm({
       <p className="mb-3 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
         {daKhoa ? t('closedForYou') : t('myHint')}
       </p>
+
+      {/* BA CÂU HỎI CỦA BIÊN BẢN PDR (0130).
+          PRD v3 viết rõ ba câu, và giải thích luôn vì sao chỉ ba: "Thực ra 6 câu nhưng một số câu
+          đã được trả lời bằng hành động: weekly commitment tuần trước, tick, weekly commitment
+          tuần sau." Nên ba ô này hỏi đúng phần mà hành động không trả lời hộ được.
+
+          Đứng TRƯỚC hai ô cũ, đúng nhịp buổi họp: nhìn lại tuần vừa rồi trước, hứa cho tuần tới
+          sau. Cùng một đường tự lưu — gõ xong ngừng tay là chữ đã sang màn của cô. */}
+      <div className="mb-2.5 flex flex-col gap-2.5">
+        {(
+          [
+            ['khoKhan', 'qKhoKhan', khoKhan],
+            ['vuotQua', 'qVuotQua', vuotQua],
+            ['cachTotHon', 'qCachTotHon', cachTotHon],
+          ] as const
+        ).map(([khoaO, nhan, gt]) => (
+          <Field key={khoaO} label={t(nhan)} htmlFor={`bb-${khoaO}`}>
+            <input
+              id={`bb-${khoaO}`}
+              value={gt}
+              disabled={daKhoa}
+              onChange={(e) => doi(khoaO)(e.target.value)}
+              className={inputCls}
+            />
+          </Field>
+        ))}
+      </div>
 
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         <Field label={t('emResults')} htmlFor="bb-ketqua">

@@ -77,6 +77,9 @@ export type DuLieuHop = {
   daCoBienBan: boolean;
   /** Buổi họp đã được bấm CHỐT chưa — thứ thật sự khoá tick và số đo của tuần (0108). */
   daChot: boolean;
+  // PHÒNG ĐANG MỞ CHƯA (0130). Cô bấm "Bắt đầu họp" là mở; bấm "Kết thúc" là đóng. Màn của em
+  // nghe đúng dấu này để hiện lời mời vào phòng.
+  phongMo: boolean;
   // CAM KẾT CỦA TUẦN VỪA QUA — thứ buổi họp chấm V/X. `goiY` là gợi ý của máy: đủ mọi việc dẫn
   // dắt thì gợi thắng. Gợi ý KHÔNG tự thành kết quả; người bấm mới là kết quả (0121).
   camKetTuanQua: {
@@ -142,7 +145,7 @@ export async function layDuLieuHop(
         .eq('week_start', hopMonday),
       supabase
         .from('wig_meetings')
-        .select('results, commitments, chot_at')
+        .select('results, commitments, chot_at, mo_luc')
         .eq('class_id', classId)
         .is('student_id', null)
         .eq('week_start', hopMonday)
@@ -185,7 +188,7 @@ export async function layDuLieuHop(
       // Biên bản CÁ NHÂN của tuần đang họp. Cùng bảng với biên bản lớp, khác nhau ở student_id.
       supabase
         .from('wig_meetings')
-        .select('student_id, results, commitments')
+        .select('student_id, results, commitments, tham_gia_luc')
         .eq('class_id', classId)
         .eq('week_start', hopMonday)
         .not('student_id', 'is', null),
@@ -275,13 +278,21 @@ export async function layDuLieuHop(
       days: lm?.active_weekdays ?? [1, 3, 5],
     });
   }
-  const bbTheoEm = new Map<string, {results: string; commitments: string}>();
+  const bbTheoEm = new Map<string, {results: string; commitments: string; thamGia: boolean}>();
   for (const b of (bienBanEmRows ?? []) as unknown as {
     student_id: string | null;
     results: string | null;
     commitments: string | null;
+    tham_gia_luc: string | null;
   }[]) {
-    if (b.student_id) bbTheoEm.set(b.student_id, {results: b.results ?? '', commitments: b.commitments ?? ''});
+    if (b.student_id)
+      bbTheoEm.set(b.student_id, {
+        results: b.results ?? '',
+        commitments: b.commitments ?? '',
+        // 0130 — em đã bấm "Tham gia" chưa. Chỉ để cô biết ai đang ngồi trong phòng; không phải
+        // điều kiện để em điền, vì chủ dự án chốt "điền sau cũng được".
+        thamGia: Boolean(b.tham_gia_luc),
+      });
   }
   const emHop: EmHop[] = (
     (emRows ?? []) as unknown as {student_id: string; profiles: {full_name: string | null; email: string | null} | null}[]
@@ -301,6 +312,7 @@ export async function layDuLieuHop(
         viecDays: vi?.days ?? [1, 3, 5],
         ketQua: bb?.results ?? '',
         camKet: bb?.commitments ?? '',
+        thamGia: bb?.thamGia ?? false,
       };
     })
     .sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
@@ -335,6 +347,7 @@ export async function layDuLieuHop(
     // ĐÃ CHỐT hay CHƯA là hai chuyện khác nhau với "đã có biên bản" (0108). Lưu bao nhiêu lần cũng
     // được; tuần chỉ khoá — hết tick, hết nhập số đo — khi có người bấm chốt.
     daChot: Boolean(bienBan?.chot_at),
+    phongMo: Boolean(bienBan?.mo_luc) && !bienBan?.chot_at,
     // GỢI Ý V/X: đủ MỌI việc dẫn dắt của cam kết thì gợi thắng. Cùng một luật với cam_ket_goi_y()
     // ở CSDL (0121) — tính lại ở đây từ bảng việc đã có sẵn thay vì bắn thêm một câu hỏi cho mỗi
     // cam kết, nhưng luật thì phải giống hệt, nếu không màn hình gợi một đằng CSDL hiểu một nẻo.

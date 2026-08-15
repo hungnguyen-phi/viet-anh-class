@@ -146,6 +146,7 @@ export default async function HopPage({
         camKetCu={d.camKetCu}
         daCoBienBan={d.daCoBienBan}
         daChot={d.daChot}
+        phongMo={d.phongMo}
         camKetTuanQua={d.camKetTuanQua}
         camKetDich={d.camKetDich}
         bangPdr={d.bangPdr}

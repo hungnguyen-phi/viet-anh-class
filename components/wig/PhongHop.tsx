@@ -8,7 +8,7 @@ import {Link} from '@/i18n/navigation';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, ctlWithBorder, inputCls, selectCls, btnGold, btnGhost, labelCls} from '@/components/ui/Field';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
-import {ketThucBuoiHop, xoaBienBan} from '@/app/[locale]/(dashboard)/wig/hop/actions';
+import {moPhongHop, ketThucBuoiHop, xoaBienBan} from '@/app/[locale]/(dashboard)/wig/hop/actions';
 import {areaLabel, type Area, type AreaMeta} from '@/lib/areas';
 import {kieuDonVi} from '@/lib/don-vi';
 
@@ -63,6 +63,8 @@ export type EmHop = {
   viecDays: number[];
   ketQua: string;
   camKet: string;
+  /** Em đã bấm "Tham gia" trong buổi họp này chưa (0130). */
+  thamGia: boolean;
 };
 export type WigOption = {id: string; title: string};
 export type ViecMau = {
@@ -102,6 +104,7 @@ export function PhongHop({
   canManage,
   daCoBienBan,
   daChot,
+  phongMo,
   quayVe,
   xemTuanMoi = null,
 }: {
@@ -157,6 +160,8 @@ export function PhongHop({
   // Đã bấm CHỐT chưa (0108). Khác "đã có biên bản": lưu tạm cũng sinh biên bản, nhưng chỉ chốt mới
   // khoá tick và khoá ô số đo của tuần.
   daChot: boolean;
+  /** Phòng đang mở chưa (0130) — cô bấm "Bắt đầu họp" là mở, "Kết thúc" là đóng. */
+  phongMo: boolean;
   // Đường về trang WIG. null với ban giám hiệu — họ KHÔNG vào được /wig, nên vẽ một liên kết tới
   // đó là vẽ một cái cửa dẫn thẳng tới màn hình "bạn không có quyền".
   quayVe: {pathname: '/wig'; query: Record<string, string>} | null;
@@ -275,6 +280,11 @@ export function PhongHop({
   // đăng nhập cũng vào được nếu đoán trúng tên kênh, mà đây là chữ của trẻ con. postgres_changes
   // thì Realtime áp đúng RLS của bảng.
   const [dangGoLuc, setDangGoLuc] = useState<Record<string, number>>({});
+  // AI ĐANG NGỒI TRONG PHÒNG. Khởi tạo từ dữ liệu máy chủ, rồi cập nhật khi có em bấm Tham gia —
+  // cùng gói postgres_changes đang dùng cho chữ "… đang điền", không mở thêm kênh nào.
+  const [coMat, setCoMat] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(emHop.filter((e) => e.thamGia).map((e) => [e.id, true])),
+  );
   // Nhịp đồng hồ để chữ "đang điền…" tự tắt sau vài giây — không có nó thì cái chấm động đậy
   // nằm lại đó suốt buổi họp dù em đã gõ xong từ lâu.
   const [nhip, setNhip] = useState(() => Date.now());
@@ -297,6 +307,7 @@ export function PhongHop({
             results: string | null;
             commitments: string | null;
             hs_go_luc: string | null;
+            tham_gia_luc: string | null;
           } | null;
           if (!r?.student_id || r.week_label !== hopLabel) return;
           // GÓI TIN VỪA TỚI LÀ ĐỦ ĐỂ NÓI "vừa có người gõ" — không dò thêm cột nào.
@@ -308,6 +319,7 @@ export function PhongHop({
           // cả hai lần — mỗi cái chấm động đậy là không.
           // Nay: có tin về dòng của em nào thì em ấy vừa gõ. Chấm hết.
           setDangGoLuc((p) => ({...p, [r.student_id!]: Date.now()}));
+          if (r.tham_gia_luc) setCoMat((p) => ({...p, [r.student_id!]: true}));
           // KHÔNG giật chữ khỏi tay cô. Ô nào cô đang đặt con trỏ vào thì giữ nguyên chữ của cô;
           // hai người gõ cùng một ô là chuyện của buổi họp, không phải chuyện máy phải tự xử.
           setV((p) => {
@@ -442,8 +454,56 @@ export function PhongHop({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.ok]);
 
+  const soCoMat = emHop.filter((e) => coMat[e.id]).length;
+
   return (
     <div className="flex flex-col gap-4">
+    {/* ══ PHÒNG HỌP SỐNG ══ (0130)
+        Chủ dự án: "khi giáo viên ấn họp, tất cả màn hình của các em đều hiện phòng họp, xong rồi
+        các em ấn tham gia, gv sẽ biết ai đang tham gia".
+
+        "Tham gia" chỉ là DẤU CÓ MẶT, không phải cửa: em vắng buổi họp vẫn điền được phần của mình
+        sau đó, miễn tuần chưa chốt. Nên chỗ này đếm người, không chặn ai. */}
+    {canManage && !daChot && (
+      <section className="glass flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[20px] p-4">
+        {phongMo ? (
+          <>
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-[11.5px] font-extrabold text-success-dark">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-success" />
+              {t('roomOpen')}
+            </span>
+            <span className="text-[12.5px] font-bold text-navy">
+              {t('roomJoined', {n: soCoMat, total: emHop.length})}
+            </span>
+            {/* Tên của những em CHƯA vào — đó mới là danh sách cô cần, để nhắc. */}
+            {soCoMat < emHop.length && (
+              <span className="min-w-0 flex-1 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
+                {t('roomMissing', {
+                  ten: emHop
+                    .filter((e) => !coMat[e.id])
+                    .map((e) => e.ten)
+                    .join(', '),
+                })}
+              </span>
+            )}
+          </>
+        ) : (
+          <>
+            <span className="min-w-0 flex-1 text-[12.5px] font-semibold leading-relaxed text-grey-mid">
+              {t('roomClosedHint')}
+            </span>
+            <form action={moPhongHop} className="contents">
+              <input type="hidden" name="class_id" value={classId} />
+              <input type="hidden" name="hop_start" value={hopStart} />
+              <input type="hidden" name="hop_label" value={hopLabel} />
+              <SubmitButton className={btnGold} wrapClass="contents">
+                {t('roomStart')}
+              </SubmitButton>
+            </form>
+          </>
+        )}
+      </section>
+    )}
     {nhapDaKhoiPhuc && (
       <div className="flex flex-wrap items-center gap-2 rounded-[12px] border-[1.5px] border-gold-deep/30 bg-gold/[0.12] px-3 py-2.5">
         <RotateCcw size={14} strokeWidth={2.5} className="shrink-0 text-gold-deep" />

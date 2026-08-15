@@ -25,7 +25,7 @@ import {EditRequestButton} from '@/components/student/EditRequestButton';
 import {MucTieuCuaCon, type MucTieuCuaEm, type SoDoCuaTuan} from '@/components/student/MucTieuCuaCon';
 import {SoCuaCon, type TrangSo} from '@/components/student/SoCuaCon';
 import {MeetingScoreboard} from '@/components/wig/MeetingScoreboard';
-import {ArrowRight} from 'lucide-react';
+import {ArrowRight, Users} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {AREAS, areaLabel, areaIcon, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
@@ -118,6 +118,7 @@ export async function StudentScoreboard({
   // hai cách gọi cho một trạng thái là hai chỗ để trôi khỏi nhau.
   const tg = await getTranslations('goal');
   const tSW = await getTranslations('studentWig');
+  const tm = await getTranslations('meeting');
   const supabase = await createClient();
   const canManage = viewer.role === 'teacher' || viewer.role === 'admin';
   const canEditMood = viewer.id === studentId && viewer.role === 'student';
@@ -440,7 +441,7 @@ export async function StudentScoreboard({
     classId
       ? supabase
           .from('wig_meetings')
-          .select('week_label, results, commitments, chot_at')
+          .select('week_label, week_start, results, commitments, chot_at, mo_luc')
           .eq('class_id', classId)
           .is('student_id', null)
           .order('week_start', {ascending: false})
@@ -467,14 +468,25 @@ export async function StudentScoreboard({
       }
     : null;
 
+  type HopLopRow = {
+    week_label: string;
+    week_start: string;
+    results: string | null;
+    commitments: string | null;
+    chot_at: string | null;
+    mo_luc: string | null;
+  };
   // Biên bản gần nhất của LỚP có nội dung thật — bỏ qua những tuần chỉ có dòng trống.
   const hopLop =
-    ((hopLopRes.data ?? []) as {
-      week_label: string;
-      results: string | null;
-      commitments: string | null;
-      chot_at: string | null;
-    }[]).find((r) => (r.results ?? '').trim() || (r.commitments ?? '').trim()) ?? null;
+    ((hopLopRes.data ?? []) as HopLopRow[]).find(
+      (r) => (r.results ?? '').trim() || (r.commitments ?? '').trim(),
+    ) ?? null;
+
+  // PHÒNG HỌP ĐANG MỞ (0130) — cô vừa bấm "Bắt đầu họp". Hiện lời mời NGAY TRÊN BẢNG THÀNH TÍCH,
+  // không bắt em tự nghĩ ra đường vào /student/hop: chủ dự án chốt "tất cả màn hình của các em
+  // đều hiện phòng họp".
+  const phongDangMo =
+    ((hopLopRes.data ?? []) as HopLopRow[]).find((r) => r.mo_luc && !r.chot_at) ?? null;
 
   const mustCheckin = mangRes.data === true && ipRes.data === true;
   const tickOpen = !daHopRes.data;
@@ -947,6 +959,35 @@ export async function StudentScoreboard({
               vực. Từ 0100 em KHÔNG còn WIG tuần nữa: mục tiêu của em sống cả học kỳ, còn nhịp
               hằng tuần nằm ở việc để tick. Để lại thì nó vĩnh viễn hiện "Chưa thiết lập WIG"
               và giục em đi làm một thứ CSDL đã cấm. Xem docs/MO_HINH_WIG.md §1. */}
+
+          {/* LỚP ĐANG HỌP — LỜI MỜI ĐẶT NGAY TRÊN BẢNG THÀNH TÍCH (0130).
+              Chủ dự án: "khi giáo viên ấn họp, tất cả màn hình của các em đều hiện phòng họp".
+              Nút "Vào phòng họp" cũ vẫn ở dưới, nhưng nó nằm lẫn giữa các khối và chỉ ai biết
+              đường mới bấm — một buổi họp đang diễn ra thì phải tự nói ra, không đợi em đi tìm. */}
+          {canTick && phongDangMo && (
+            <Link
+              // Trỏ THẲNG vào tuần đang họp, không để trang tự đoán: hai bên đoán khác nhau một
+              // lần là em ngồi trong phòng của tuần khác với cả lớp.
+              href={{pathname: '/student/hop', query: {hop: phongDangMo.week_start}}}
+              className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[20px] border-[1.5px] border-gold-deep/30 bg-gold/[0.14] p-4 transition-transform hover:-translate-y-px"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[12px] bg-gold/40 text-gold-text">
+                <Users size={17} strokeWidth={2.5} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-display text-[15px] font-bold text-navy">
+                  {tm('roomInvite')}
+                </span>
+                <span className="mt-0.5 block text-[12px] font-semibold leading-relaxed text-grey-mid">
+                  {tm('roomInviteHint', {week: phongDangMo.week_label})}
+                </span>
+              </span>
+              <span className="btn-gold inline-flex h-10 shrink-0 items-center gap-1.5 rounded-[12px] px-4 font-display text-[13px] font-black">
+                {tm('roomJoin')}
+                <ArrowRight size={14} strokeWidth={2.8} />
+              </span>
+            </Link>
+          )}
 
           <section className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">

@@ -511,3 +511,33 @@ export async function xoaBienBan(_prev: HopState, formData: FormData): Promise<H
     return {ok: false, error: `Không tìm thấy biên bản tuần ${hop_label} để gỡ (có thể đã gỡ rồi).`};
   return {ok: true, message: `Đã gỡ biên bản tuần ${hop_label}. Tick tuần đó mở lại.`};
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// MỞ PHÒNG HỌP (0130)
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Cô bấm là mọi màn hình học sinh trong lớp hiện lời mời vào phòng. Không gửi thông báo, không
+// đẩy tin: màn của em nghe thẳng bảng `wig_meetings` qua postgres_changes — cùng đường mà chữ
+// "… đang điền" đã đi từ 0111, và là đường Realtime áp đúng RLS.
+//
+// MỞ PHÒNG KHÔNG PHẢI CHỐT TUẦN. Hai việc ấy từng bị gộp một lần (0121, phải sửa ở 0122): mở
+// phòng mà khoá luôn cam kết thì buổi họp không còn gì để làm.
+export async function moPhongHop(formData: FormData) {
+  const me = await requireRole(['teacher', 'admin']);
+  const class_id = String(formData.get('class_id') ?? '');
+  const hop_start = String(formData.get('hop_start') ?? '');
+  const hop_label = String(formData.get('hop_label') ?? '').trim();
+  if (!class_id || !hop_start || !hop_label) return;
+
+  const supabase = await createClient();
+  await supabase.rpc('mo_phong_hop', {
+    p_class: class_id,
+    p_week_start: hop_start,
+    p_week_label: hop_label,
+  });
+  void me;
+  revalidatePath('/[locale]/wig/hop', 'page');
+  revalidatePath('/[locale]/meeting', 'page');
+  revalidatePath('/[locale]/student/hop', 'page');
+  revalidatePath('/[locale]/student', 'page');
+}

@@ -2188,6 +2188,7 @@ export type Database = {
           buddy_note_at: string | null
           buddy_note_model: string | null
           buddy_tokens: number | null
+          cach_tot_hon: string | null
           chot_at: string | null
           chot_by: string | null
           class_id: string
@@ -2196,9 +2197,13 @@ export type Database = {
           created_at: string
           hs_go_luc: string | null
           id: string
+          kho_khan: string | null
+          mo_luc: string | null
           next_actions: string | null
           results: string | null
           student_id: string | null
+          tham_gia_luc: string | null
+          vuot_qua: string | null
           week_label: string
           week_start: string | null
         }
@@ -2211,6 +2216,7 @@ export type Database = {
           buddy_note_at?: string | null
           buddy_note_model?: string | null
           buddy_tokens?: number | null
+          cach_tot_hon?: string | null
           chot_at?: string | null
           chot_by?: string | null
           class_id: string
@@ -2219,9 +2225,13 @@ export type Database = {
           created_at?: string
           hs_go_luc?: string | null
           id?: string
+          kho_khan?: string | null
+          mo_luc?: string | null
           next_actions?: string | null
           results?: string | null
           student_id?: string | null
+          tham_gia_luc?: string | null
+          vuot_qua?: string | null
           week_label: string
           week_start?: string | null
         }
@@ -2234,6 +2244,7 @@ export type Database = {
           buddy_note_at?: string | null
           buddy_note_model?: string | null
           buddy_tokens?: number | null
+          cach_tot_hon?: string | null
           chot_at?: string | null
           chot_by?: string | null
           class_id?: string
@@ -2242,9 +2253,13 @@ export type Database = {
           created_at?: string
           hs_go_luc?: string | null
           id?: string
+          kho_khan?: string | null
+          mo_luc?: string | null
           next_actions?: string | null
           results?: string | null
           student_id?: string | null
+          tham_gia_luc?: string | null
+          vuot_qua?: string | null
           week_label?: string
           week_start?: string | null
         }
@@ -2799,14 +2814,32 @@ export type Database = {
         }[]
       }
       homework_class: { Args: { p: string }; Returns: string }
-      hs_ghi_bien_ban: {
-        Args: {
-          p_cam_ket: string
-          p_class: string
-          p_ket_qua: string
-          p_week_label: string
-          p_week_start: string
-        }
+      hs_ghi_bien_ban:
+        | {
+            Args: {
+              p_cam_ket: string
+              p_class: string
+              p_ket_qua: string
+              p_week_label: string
+              p_week_start: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_cach_tot_hon?: string
+              p_cam_ket: string
+              p_class: string
+              p_ket_qua: string
+              p_kho_khan?: string
+              p_vuot_qua?: string
+              p_week_label: string
+              p_week_start: string
+            }
+            Returns: undefined
+          }
+      hs_tham_gia: {
+        Args: { p_class: string; p_week_label: string; p_week_start: string }
         Returns: undefined
       }
       invite_student_to_class: {
@@ -2866,6 +2899,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      mo_phong_hop: {
+        Args: { p_class: string; p_week_label: string; p_week_start: string }
+        Returns: undefined
+      }
       nguoi_duyet: {
         Args: never
         Returns: {
@@ -2890,6 +2927,10 @@ export type Database = {
           viec_dat: number
           viec_tong: number
         }[]
+      }
+      phong_dang_mo: {
+        Args: { p_class: string; p_week_label: string }
+        Returns: boolean
       }
       pt_can_read_thread: { Args: { t: string }; Returns: boolean }
       pt_can_write_thread: { Args: { t: string }; Returns: boolean }
