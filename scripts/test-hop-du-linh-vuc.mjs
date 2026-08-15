@@ -81,18 +81,62 @@ const {data: v} = await anon.auth.verifyOtp({type: 'email', token_hash: g.proper
 const cookie = `sb-${REF}-auth-token=base64-${Buffer.from(JSON.stringify(v.session)).toString('base64url')}`;
 
 // ── Tuần phòng họp đang tổng kết = tuần vừa xong; mốc cần chỉnh là tuần TỚI ────────────────
-const hop = await fetch(`${BASE}/wig/hop?class=${lop.id}`, {headers: {cookie}, redirect: 'manual'});
+// HỌP Ở MỘT TUẦN TƯƠNG LAI, không họp vào tuần đang chạy.
+//
+// Hai lý do, cái nào cũng đủ: (1) chốt buổi họp là KHOÁ TICK của tuần ấy — chốt nhầm tuần hiện
+// tại là cả lớp mất quyền tick mà không hiểu vì sao; (2) trần của CSDL là 2 cam kết mỗi tuần, mà
+// tuần đang chạy của lớp thật đã dùng hết — bài sẽ ghi hụt và báo "0/2 cam kết" như thể app hỏng.
+// TUẦN CHỌN BẰNG `?hop=`, KHÔNG PHẢI `?week=`.
+//
+// Trang phòng họp nhận HAI tham số khác nhau: `hop` chọn tuần đang tổng kết, còn `week` chỉ được
+// mang theo cho các đường quay về /wig. Gửi nhầm `week` thì trang lặng lẽ dùng tuần mặc định
+// (tuần vừa xong) — và bài kiểm tưởng mình đang diễn tập ở một tuần trống, trong khi thật ra nó
+// đang ghi vào tuần đang chạy của lớp thật, nơi đã đủ 2 cam kết nên máy chủ từ chối.
+const tuanDienTap = (() => {
+  const d = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Ho_Chi_Minh'}));
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + 63);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+})();
+const hop = await fetch(`${BASE}/wig/hop?class=${lop.id}&hop=${tuanDienTap}`, {
+  headers: {cookie},
+  redirect: 'manual',
+});
 const html = await hop.text();
 dat(hop.status === 200, 'Phòng họp dựng được', `HTTP ${hop.status}`);
 if (hop.status !== 200) xong(1);
 
-const mocIds = [...new Set([...html.matchAll(/name="moc_target_([0-9a-f-]{36})"/g)].map((m) => m[1]))];
+// 0121: BƯỚC 3 KHÔNG CÒN LÀ "CHỈNH MỐC TUẦN". Mốc tuần đã bỏ; bước 3 nay là đặt CAM KẾT cho
+// tuần tới — tối đa hai ô, mỗi ô có một bộ chọn mục tiêu năm để cô gắn cam kết vào đúng trận.
+//
+// Bản cũ dò `name="moc_target_<uuid>"` và đòi ≥2 mốc, tức đòi một giao diện không còn tồn tại.
+// Điều nó sinh ra để canh — "buổi họp không bó cô vào MỘT lĩnh vực" — nay hỏi bằng: có đủ hai ô
+// cam kết, và ô chọn mục tiêu liệt kê được nhiều hơn một mục tiêu năm để chọn giữa các lĩnh vực.
+const oCamKet = [...new Set([...html.matchAll(/name="ck_(\d+)_title"/g)].map((m) => m[1]))];
+const oChonWig = [...new Set([...html.matchAll(/name="ck_(\d+)_wig"/g)].map((m) => m[1]))];
 const hopStart = html.match(/name="hop_start" value="(\d{4}-\d{2}-\d{2})"/)?.[1];
-dat(mocIds.length >= 2, 'Bước 3 hiện mốc của NHIỀU lĩnh vực, không phải một', `${mocIds.length} mốc`);
-if (mocIds.length < 2 || !hopStart) xong(1);
+dat(
+  oCamKet.length >= 2 && oChonWig.length === oCamKet.length,
+  'Bước 3 có đủ hai ô cam kết, mỗi ô tự chọn mục tiêu năm (không bó vào một lĩnh vực)',
+  `${oCamKet.length} ô cam kết · ${oChonWig.length} ô chọn mục tiêu`,
+);
+if (oCamKet.length < 2 || !hopStart) xong(1);
 
-const {data: truoc} = await admin.from('wigs').select('id, area, target_value').in('id', mocIds);
-const cu = new Map(truoc.map((w) => [w.id, Number(w.target_value)]));
+// Hai mục tiêu năm KHÁC NHAU để gắn hai cam kết vào — đó chính là "không bó vào một lĩnh vực".
+// MỤC TIÊU CUỘN KHÔNG NHẬN CAM KẾT (0121: cam_ket_hop_le). Số của nó đếm ngược từ mục tiêu của
+// từng em, nên treo một lời hứa vào đó là hứa với một cái không đếm lời hứa. Lớp thật có cả loại
+// này lẫn loại thường — chọn bừa là máy chủ trả "Giá trị nhập không hợp lệ" và bài đọc thành
+// "buổi họp không đặt được cam kết nào".
+const {data: namLop} = await admin
+  .from('wigs')
+  .select('id, area, title, measure_by')
+  .eq('class_id', lop.id)
+  .eq('scope', 'class')
+  .eq('period', 'year')
+  .neq('measure_by', 'cuon')
+  .order('area');
+const hai = (namLop ?? []).slice(0, 2);
+dat(hai.length >= 1, 'Lớp có mục tiêu năm để gắn cam kết vào', `${(namLop ?? []).length} mục tiêu`);
+if (hai.length < 1) xong(1);
 
 // ── Mã action + cách mã hoá lấy THẲNG từ HTML mà React đã in ra ───────────────────────────
 //
@@ -112,38 +156,81 @@ dat(
 );
 if (!maAction) xong(1);
 
-// ── Gửi chỉ tiêu MỚI cho TẤT CẢ các mốc trong một lần bấm ──────────────────────────────────
-const moi = new Map(mocIds.map((id, i) => [id, 111 + i]));
+// ── Gửi HAI CAM KẾT trong MỘT lần bấm ──────────────────────────────────────────────────────
+//
+// NHÃN TUẦN CHÉP TỪ CHÍNH TRANG, không tự tính. Máy chủ tra ngày từ nhãn (ngayCuaKy) và chỉ nhận
+// nhãn nằm trong một cửa sổ quanh hôm nay; tự dựng lại phép đánh số tuần ISO trong bài kiểm là
+// thêm một nguồn sự thật thứ hai để lệch. Trang đã in sẵn hai ô ẩn hop_label và dich_label —
+// nguyên tắc ở file này từ đầu vẫn là "chép đúng cái React in ra thay vì đoán".
+const hopLabel = html.match(/name="hop_label" value="([^"]*)"/)?.[1] ?? '';
+const dichLabel = html.match(/name="dich_label" value="([^"]*)"/)?.[1] ?? '';
+dat(!!hopLabel && !!dichLabel, 'Chép được nhãn tuần từ chính trang', `${hopLabel} → ${dichLabel}`);
+if (!hopLabel || !dichLabel) xong(1);
+
+const dichT2 = (() => {
+  const d = new Date(`${hopStart}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 7);
+  return d.toISOString().slice(0, 10);
+})();
+const tenCk = ['ZZTEST cam kết A', 'ZZTEST cam kết B'];
 const bien = '----vacTest' + Math.random().toString(36).slice(2);
 const phan = (ten, gt) => `--${bien}\r\nContent-Disposition: form-data; name="${ten}"\r\n\r\n${gt}\r\n`;
 let than = truongAction.map(([n, val]) => phan(n, val)).join('') +
   phan('class_id', lop.id) +
   phan('hop_start', hopStart) +
-  phan('hop_label', 'kiem-tu-dong') +
-  phan('dich_label', 'kiem-tu-dong') +
+  phan('hop_label', hopLabel) +
+  phan('dich_label', dichLabel) +
   phan('chiem_nghiem', '') +
   phan('cam_ket', '');
-for (const [id, t] of moi) than += phan(`moc_target_${id}`, String(t));
+for (const [i, ten] of tenCk.entries()) {
+  than += phan(`ck_${i}_wig`, (hai[i] ?? hai[0]).id);
+  than += phan(`ck_${i}_title`, ten);
+}
 than += `--${bien}--\r\n`;
 
-const dap = await fetch(`${BASE}/wig/hop?class=${lop.id}`, {
+const dap = await fetch(`${BASE}/wig/hop?class=${lop.id}&hop=${tuanDienTap}`, {
   method: 'POST',
   redirect: 'manual',
   headers: {cookie, origin: BASE, 'Content-Type': `multipart/form-data; boundary=${bien}`},
   body: than,
 });
 dat(dap.status === 200 || dap.status === 303, 'Máy chủ nhận lệnh kết thúc buổi họp', `HTTP ${dap.status}`);
+// Câu máy chủ trả về là thứ duy nhất nói VÌ SAO khi không có gì được ghi.
+{
+  const than = await dap.text();
+  const cau = (than.match(/"error":"[^"]{0,200}"/) ?? than.match(/Xong:[^"<]{0,160}/) ?? [
+    '(không đọc được câu báo)',
+  ])[0];
+  console.log('   máy chủ nói:', cau);
+}
 
-const {data: sau} = await admin.from('wigs').select('id, area, target_value').in('id', mocIds);
-const doiDung = sau.filter((w) => Number(w.target_value) === moi.get(w.id));
+const {data: sau} = await admin
+  .from('commitments')
+  .select('id, title, wig_id')
+  .eq('class_id', lop.id)
+  .is('student_id', null)
+  .eq('week_start', dichT2)
+  .in('title', tenCk);
 dat(
-  doiDung.length === mocIds.length,
-  'MỌI lĩnh vực đều được ghi chỉ tiêu mới trong CÙNG một lần bấm',
-  `${doiDung.length}/${mocIds.length} mốc đổi đúng`,
+  (sau ?? []).length === tenCk.length,
+  'CẢ HAI cam kết được đặt trong CÙNG một lần bấm',
+  `${(sau ?? []).length}/${tenCk.length} cam kết`,
+);
+dat(
+  new Set((sau ?? []).map((c) => c.wig_id)).size === new Set(hai.map((w) => w.id)).size,
+  '… và mỗi cam kết gắn vào đúng mục tiêu năm đã chọn',
+  `${new Set((sau ?? []).map((c) => c.wig_id)).size} mục tiêu khác nhau`,
 );
 
-// Trả lại như cũ — bài kiểm chạy trên dữ liệu thật, không được để lại dấu vết.
-for (const [id, t] of cu) await admin.from('wigs').update({target_value: t}).eq('id', id);
+// Dọn — bài kiểm chạy trên dữ liệu thật, không được để lại dấu vết. Xoá cam kết là việc dẫn dắt
+// treo dưới nó đi theo bằng CASCADE (xem scripts/test-xoa-wig-ba-tang.mjs).
+for (const c of sau ?? []) await admin.from('commitments').delete().eq('id', c.id);
+await admin
+  .from('wig_meetings')
+  .delete()
+  .eq('class_id', lop.id)
+  .eq('week_start', hopStart)
+  .is('student_id', null);
 
 // Phép xoá cây 3 tầng nằm ở scripts/test-xoa-wig-ba-tang.mjs — nó dựng cây giả rồi xoá thật,
 // đo được đúng cái deleteWig làm, thay vì chỉ đoán qua hình dạng dữ liệu đang có.

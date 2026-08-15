@@ -135,7 +135,7 @@ try {
   });
 
   // ── Mở phòng họp của tuần đã qua ──
-  const r = await fetch(`${BASE}/wig/hop?week=${TUAN}`, {headers: {cookie}});
+  const r = await fetch(`${BASE}/wig/hop?hop=${TUAN}`, {headers: {cookie}});
   dau('Phòng họp dựng được', r.status === 200, `HTTP ${r.status}`);
   if (r.status !== 200) xong(1);
   const html = await r.text();
@@ -164,7 +164,7 @@ try {
       else than += phan(k, val);
     }
     than += `--${bien}--\r\n`;
-    const dap = await fetch(`${BASE}/wig/hop?week=${TUAN}`, {
+    const dap = await fetch(`${BASE}/wig/hop?hop=${TUAN}`, {
       method: 'POST',
       redirect: 'manual',
       headers: {cookie, origin: BASE, 'Content-Type': `multipart/form-data; boundary=${bien}`},

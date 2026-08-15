@@ -14,7 +14,7 @@ import {kieuDonVi} from '@/lib/don-vi';
 // trong sinhNhip). Chép một bản riêng cho học sinh là dựng đúng cái bệnh "hai đường tính cho một
 // khái niệm" mà repo này đã dính nhiều lần.
 import {buddyNote, buddyChat, type BuddyContext, type BuddyLead} from '@/lib/buddy';
-import {weekRangeVN, todayInVN, schoolYearRangeVN} from '@/lib/dates';
+import {weekRangeVN, todayInVN, schoolYearRangeVN, isValidDayVN, mondayOf} from '@/lib/dates';
 import type {Database} from '@/lib/database.types';
 
 type Mood = Database['public']['Enums']['mood_level'];
@@ -1032,7 +1032,19 @@ export async function ghiSoDo(_prev: MucTieuState, formData: FormData): Promise<
 
   const vai_tro = me.role === 'student' ? 'student' : 'teacher';
   const supabase = await createClient();
-  const tuan = weekRangeVN();
+
+  // GHI VÀO TUẦN ĐANG XEM, không phải tuần hôm nay.
+  //
+  // Trước đây hàm này luôn dùng weekRangeVN() — tuần hiện tại. Màn của em thì luôn đứng ở tuần
+  // này nên không lộ; nhưng trang /wig của cô lật được sang tuần khác, và ở đó cô gõ một con số
+  // rồi nó lặng lẽ rơi vào TUẦN NÀY, biến mất khỏi màn cô đang nhìn. Đúng họ lỗi "nhập rồi mà
+  // không thấy đâu" — thứ khó chẩn nhất, vì không có câu báo nào và dữ liệu thì vẫn ghi được.
+  //
+  // KIỂM, ĐỪNG TIN Ô ẨN: giá trị này do trình duyệt gửi. Không phải một ngày hợp lệ thì rơi về
+  // tuần hiện tại, và luôn quy về THỨ HAI của tuần chứa ngày ấy (khoá của bảng là tuần, không
+  // phải ngày). Cửa sổ cho phép để nguyên như cũ — RLS và dấu chốt buổi họp mới là thứ chặn thật.
+  const tuanGui = String(formData.get('week') ?? '').trim();
+  const tuan = isValidDayVN(tuanGui) ? weekRangeVN(new Date(`${mondayOf(tuanGui)}T12:00:00Z`)) : weekRangeVN();
 
   // Một dòng cho mỗi (mục tiêu, tuần). Ghi lại trong cùng tuần là SỬA — hai con số cho một tuần
   // thì buổi họp không biết đọc cái nào. 23505 nghĩa là dòng đã có, chuyển sang cập nhật.

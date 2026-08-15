@@ -34,6 +34,7 @@ export function OSoDo({
   moKhoa,
   canGhi,
   laCuaLop = false,
+  tuanDangXem,
 }: {
   wigId: string;
   unit: string;
@@ -47,6 +48,8 @@ export function OSoDo({
   canGhi: boolean;
   /** Mục tiêu của LỚP — đổi chữ, vì "Số của bạn tuần này" là câu nói với học sinh. */
   laCuaLop?: boolean;
+  /** Thứ Hai của TUẦN ĐANG XEM. Bỏ trống = tuần hiện tại (màn của em luôn đứng ở tuần này). */
+  tuanDangXem?: string;
 }) {
   const t = useTranslations('goal');
   const [state, formAction] = useActionState(ghiSoDo, {ok: false});
@@ -85,6 +88,10 @@ export function OSoDo({
   return (
     <form action={formAction} className="flex flex-col gap-1.5">
       <input type="hidden" name="wig_id" value={wigId} />
+      {/* TUẦN ĐANG XEM ĐI KÈM. Không có ô này thì máy chủ mặc định ghi vào TUẦN HIỆN TẠI: cô lật
+          sang tuần trước, gõ một con số, số ấy lặng lẽ rơi vào tuần này và biến mất khỏi màn cô
+          đang nhìn. Đúng họ lỗi "nhập rồi mà không thấy đâu" mà chủ dự án đã gặp một lần. */}
+      {tuanDangXem && <input type="hidden" name="week" value={tuanDangXem} />}
       <div className="flex flex-wrap items-center gap-2">
         <label htmlFor={`sd-${wigId}`} className="text-[12px] font-bold text-grey-mid">
           {t(laCuaLop ? 'readingAskClass' : 'readingAsk')}

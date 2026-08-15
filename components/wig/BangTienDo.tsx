@@ -246,6 +246,7 @@ export function BangTienDo({
                       moKhoa={g.soDoMoKhoa !== false}
                       canGhi
                       laCuaLop
+                      tuanDangXem={weekParam || undefined}
                     />
                   </div>
                 )}

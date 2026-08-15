@@ -136,9 +136,32 @@ for (const [vai, vaiDb] of Object.entries(VAI_DB)) {
     console.log(`GHI CHÚ  Vai ${vai} dùng tài khoản chỉ định: ${chiDinh}`);
     continue;
   }
-  const {data} = await admin.from('profiles').select('email').eq('role', vaiDb).order('email');
+  const {data} = await admin.from('profiles').select('id, email').eq('role', vaiDb).order('email');
   const ds = data ?? [];
-  const chon = ds.find((u) => u.email.startsWith('test')) ?? ds[0];
+
+  // VAI GVCN PHẢI LÀ NGƯỜI THẬT SỰ CÓ LỚP, và ưu tiên lớp CÓ VIỆC.
+  //
+  // Mặc định "email bắt đầu bằng test" trỏ vào test1.gvcn — tài khoản ấy nay không chủ nhiệm lớp
+  // nào, nên /wig của họ trống trơn: không nút "Tạo mục tiêu", không thanh tuần, không việc nào.
+  // Bộ đo im lặng ghi "không tìm thấy chỗ để bấm" và ta MẤT HẲN phần đo của mọi màn WIG trên điện
+  // thoại — đúng những màn vừa sửa nhiều nhất.
+  let chon = null;
+  if (vai === 'gvcn') {
+    const {data: lops} = await admin
+      .from('classes')
+      .select('id, homeroom_teacher_id')
+      .eq('is_active', true)
+      .not('homeroom_teacher_id', 'is', null);
+    const {data: ck} = await admin.from('commitments').select('class_id');
+    const coViec = new Set((ck ?? []).map((c) => c.class_id));
+    const chuNhiemCoViec = new Set(
+      (lops ?? []).filter((c) => coViec.has(c.id)).map((c) => c.homeroom_teacher_id),
+    );
+    const chuNhiem = new Set((lops ?? []).map((c) => c.homeroom_teacher_id));
+    chon =
+      ds.find((u) => chuNhiemCoViec.has(u.id)) ?? ds.find((u) => chuNhiem.has(u.id)) ?? null;
+  }
+  chon = chon ?? ds.find((u) => u.email.startsWith('test')) ?? ds[0];
   if (chon) TK[vai] = chon.email;
   else console.log(`GHI CHÚ  Không có tài khoản nào ở vai "${vaiDb}" — bỏ qua các trang của ${vai}.`);
 }
@@ -394,7 +417,10 @@ const KICH_BAN = [
       if (nut.getAttribute('aria-expanded') !== 'true') nut.click();
       return true;
     })()`,
-    xong: `!!document.querySelector('form input[name="period_label"]')`,
+    // Ô kỳ của nhánh NĂM là một <select id="wig-ky">, không phải <input hidden> (cái ẩn ấy chỉ
+    // có ở nhánh tuần đã bỏ). Dò nhầm loại thẻ là bộ đo chờ hết giờ rồi báo "cảnh không mở ra"
+    // cho một hộp thoại đã mở đàng hoàng.
+    xong: `!!document.querySelector('#wig-ky') || !!document.querySelector('[name="period_label"]')`,
     chiKhungNhin: true,
   },
   {
