@@ -139,7 +139,17 @@ const doc = async () => {
 // Thứ Hai tuần này theo giờ VN.
 const nay = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Ho_Chi_Minh'}));
 const t2 = new Date(nay); t2.setDate(nay.getDate() - ((nay.getDay() + 6) % 7));
-const THU2 = t2.toISOString().slice(0, 10);
+// IN NGÀY THEO ĐÚNG LỊCH VN, KHÔNG QUA toISOString().
+//
+// `new Date(...toLocaleString('Asia/Ho_Chi_Minh'))` cho một Date mang giờ VN nhưng được máy đọc
+// như giờ ĐỊA PHƯƠNG. Gọi toISOString() lên nó là quy về UTC — và trong khung 00:00–07:00 giờ VN
+// thì ngày lùi lại một hôm. Đúng 00:39 sáng 16/08/2026, bài này ghi số đo vào tuần 09/08 (còn
+// chẳng phải thứ Hai) trong khi màn hình đọc tuần 10/08, rồi báo "không thấy 143.5" như thể app
+// đánh mất con số. lib/dates.ts đã cảnh báo đúng cái bẫy này từ lâu; mấy bài kiểm chép tay phép
+// tính thì chưa.
+const inNgay = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const THU2 = inNgay(t2);
 
 let wigId = null, viecId = null, camKetId = null;
 try {

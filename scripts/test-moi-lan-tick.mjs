@@ -367,7 +367,10 @@ const check = (ten, ok, ghi = '') => {
     if (wNam) {
       const d = new Date();
       d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + 70);
-      const t2 = d.toISOString().slice(0, 10);
+      // IN NGÀY THEO LỊCH ĐỊA PHƯƠNG, KHÔNG QUA toISOString(). Quy về UTC là lùi một hôm trong
+      // khung 00:00–07:00 giờ VN — và một "thứ Hai" lùi thành Chủ nhật thì `cam_ket_hop_le` từ
+      // chối thẳng, rồi bài này báo "không dựng nổi một cảnh báo" như thể app hỏng.
+      const t2 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const {data: c0} = await admin
         .from('commitments')
         .insert({wig_id: wNam.id, class_id: wNam.class_id, week_start: t2,
