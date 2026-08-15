@@ -240,7 +240,7 @@ try {
     .eq('student_id', emThu.student_id)
     .eq('week_start', TUAN_TOI)
     .maybeSingle();
-  dau('Buổi họp đặt CAM KẾT cho tuần tới', ckMoi?.title === 'ZZ_TEST việc mới', String(ckMoi?.title));
+  dau('Buổi họp KHÔNG đặt cam kết thay em', !ckMoi, ckMoi ? `LỌT: ${ckMoi.title}` : 'không có');
 
 
   const {data: viecCu} = await admin

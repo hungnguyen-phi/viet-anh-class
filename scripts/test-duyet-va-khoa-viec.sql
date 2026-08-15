@@ -193,16 +193,40 @@ insert into ket_qua
 select 'Cô duyệt xong thì cam kết ở trạng thái đã duyệt', 'approved', c.status, c.status = 'approved'
 from commitments c where c.id = (select id from ck_em);
 
--- Và GVCN VẪN xoá được cả cam kết — đó là đường thoát khi gõ nhầm, thay cho việc sửa từng việc.
+-- ĐƯỜNG THOÁT KHI GÕ NHẦM VẪN CÒN, NHƯNG CHỈ VỚI CAM KẾT CỦA LỚP (0133).
+--
+-- Bản trước khẳng định GVCN xoá được cả cam kết CỦA EM — đúng với luật hồi ấy, sai với luật nay:
+-- chủ dự án chốt 15/08 rằng cô không sửa, không xoá mục tiêu và cam kết của học sinh. Lời hứa của
+-- một đứa trẻ thì không ai gạch hộ; gõ nhầm thì chính em sửa, và sửa xong tự quay về chờ duyệt.
+--
+-- Với cam kết CỦA LỚP thì đường thoát vẫn nguyên — đó là cam kết của chính cô.
 do $$
 declare v_so integer;
 begin
   delete from commitments where id = (select id from ck_em);
   get diagnostics v_so = row_count;
-  insert into ket_qua values ('GVCN xoá được cả cam kết (đường thoát khi gõ nhầm)',
+  insert into ket_qua values ('GVCN KHÔNG xoá được cam kết của em (0133)',
+    'bị chặn', v_so || ' dòng lọt', v_so = 0);
+exception when others then
+  insert into ket_qua values ('GVCN KHÔNG xoá được cam kết của em (0133)',
+    'bị chặn', 'bị chặn', true);
+end $$;
+
+do $$
+declare v_so integer; v_ck uuid;
+begin
+  insert into commitments (wig_id, class_id, week_start, title, area)
+  select w.id, a.lop, a.tuan, 'KIỂM · cam kết của lớp', 'knowledge'
+  from ai a join wigs w on w.class_id = a.lop and w.scope = 'class' and w.period = 'year'
+                        and w.measure_by <> 'cuon'
+  limit 1 returning id into v_ck;
+
+  delete from commitments where id = v_ck;
+  get diagnostics v_so = row_count;
+  insert into ket_qua values ('GVCN VẪN xoá được cam kết CỦA LỚP (đường thoát khi gõ nhầm)',
     '1 dòng', v_so || ' dòng', v_so = 1);
 exception when others then
-  insert into ket_qua values ('GVCN xoá được cả cam kết (đường thoát khi gõ nhầm)',
+  insert into ket_qua values ('GVCN VẪN xoá được cam kết CỦA LỚP (đường thoát khi gõ nhầm)',
     '1 dòng', 'BỊ CHẶN OAN: ' || sqlerrm, false);
 end $$;
 
