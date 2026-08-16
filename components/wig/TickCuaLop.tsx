@@ -107,8 +107,8 @@ export function TickCuaLop({
               on
                 ? 'border-transparent bg-success text-white'
                 : sau || !moKhoa
-                  ? 'border-navy/10 bg-white text-navy/25'
-                  : 'cursor-pointer border-navy/15 bg-white text-navy/60 hover:border-navy'
+                  ? 'border-navy/10 bg-white text-grey-soft'
+                  : 'cursor-pointer border-navy/15 bg-white text-grey-mid hover:border-navy'
             }`}
           >
             {bay ? <Loader2 size={13} strokeWidth={2.5} className="animate-spin" /> : thu}
