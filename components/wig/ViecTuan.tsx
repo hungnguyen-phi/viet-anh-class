@@ -204,7 +204,7 @@ function ViecForm({
       </h2>
       <input type="hidden" name="commitment_id" value={commitmentId ?? ''} />
 
-      <Field label={t('leadTitle')} htmlFor="viec-title" error={err('title')} hint={t('leadHint')}>
+      <Field label={t('leadTitle')} htmlFor="viec-title" error={err('title')}>
         <input
           id="viec-title"
           name="title"
@@ -238,21 +238,8 @@ function ViecForm({
             className={inputCls}
           />
         </Field>
-        {/* LĨNH VỰC KHÔNG PHẢI ĐIỀN — Ô NÀY LÀ NHÓM NHỎ BÊN TRONG NÓ.
-            Nhãn cũ đóng cứng chữ "Nhóm (Kỹ năng)" ở mọi lĩnh vực: mục tiêu thuộc Kiến thức mà ô
-            vẫn ghi "Kỹ năng", nên đọc thành "khai lại lĩnh vực đi, và lĩnh vực là Kỹ năng". Chủ
-            dự án hỏi đúng: "nhóm kĩ năng thì nó phải lấy từ thằng wig trên luôn chứ".
-            Nó LẤY SẴN RỒI — bảng điểm ghép category = wig.area (hàm class_scoreboard, 0028), ô này
-            chỉ để tách nhỏ thêm (5 Giá trị / 7 Thói quen / DEAR). Nay nhãn nói ra đúng lĩnh vực
-            của mục tiêu và nói rõ là không bắt buộc. */}
-        <Field
-          label={t('subCat', {area: wigArea})}
-          hint={t('subCatHint', {area: wigArea})}
-          htmlFor="viec-sub"
-          className="col-span-2 sm:col-span-1"
-        >
-          <input id="viec-sub" name="sub_category" className={inputCls} />
-        </Field>
+        {/* Ô "nhóm nhỏ trong lĩnh vực" (sub_category) đã bỏ 17/08/2026: bảng điểm 4 hạng mục đã bỏ từ 11/08,
+            ô này chỉ còn là một câu giảng giải. Cột giữ nguyên ở CSDL, không ghi nữa. */}
       </div>
 
       {/* `required` để trình duyệt chặn ngay tại chỗ nếu ô bị xoá trắng: hệ số KHÔNG đóng băng vào
@@ -278,7 +265,7 @@ function ViecForm({
         </span>
       </label>
       {!moiLanKhac && (
-      <Field label={t('unitPerTick')} hint={t('unitPerTickHint', {unit: wigUnit})} htmlFor="viec-upt" className="sm:max-w-[300px]">
+      <Field label={t('unitPerTick')} htmlFor="viec-upt" className="sm:max-w-[300px]">
         <input
           id="viec-upt"
           name="unit_per_tick"
@@ -297,7 +284,6 @@ function ViecForm({
 
       <WeekdayPicker
         label={t('weekdays')}
-        hint={t('weekdaysHint')}
         dayLabels={dayShort}
       />
 
