@@ -1,4 +1,4 @@
-import {getTranslations, getLocale} from 'next-intl/server';
+import {getTranslations} from 'next-intl/server';
 import {headers} from 'next/headers';
 import {createClient} from '@/lib/supabase/server';
 import type {Profile} from '@/lib/auth';
@@ -6,8 +6,6 @@ import {clientIp} from '@/lib/ip';
 import {
   todayInVN,
   isoWeekLabel,
-  nextWeekRangeVN,
-  recentWeekLabels,
   weekDaysVN,
   isoDowVN,
   vnNoon,
@@ -19,17 +17,14 @@ import {StudentMeetings, type StudentMeeting} from '@/components/student/Student
 
 import {MyRequests, type MyRequest} from '@/components/student/MyRequests';
 import {BuddyAuto} from '@/components/student/BuddyAuto';
-import {StudentWigManage, type ManageWig, type ManageLead} from '@/components/student/StudentWigManage';
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {EditRequestButton} from '@/components/student/EditRequestButton';
 import {MucTieuCuaCon, type MucTieuCuaEm, type SoDoCuaTuan} from '@/components/student/MucTieuCuaCon';
 import {NghePhongHop} from '@/components/wig/NghePhongHop';
 import {CamKetCuaEm} from '@/components/wig/CamKetCuaEm';
-import {NutXoaCamKet} from '@/components/wig/NutXoaCamKet';
+import {NutXoaCamKet, NutDuyetCamKet} from '@/components/wig/NutXoaCamKet';
 import {ArrowRight, Users} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
-import {areaLabel, type Area} from '@/lib/areas';
-import {getAreaMeta} from '@/lib/area-config';
 import {tenHienThi} from '@/lib/ten-hien-thi';
 
 // Màu/icon/nhãn môn lấy từ area_config (fallback = --color-subj-* cũ ⇒ parity).
@@ -93,7 +88,6 @@ export async function StudentScoreboard({
   flash?: string;
 }) {
   const t = await getTranslations('student');
-  const tSW = await getTranslations('studentWig');
   const tg = await getTranslations('goal');
   const tm = await getTranslations('meeting');
   const supabase = await createClient();
@@ -114,7 +108,6 @@ export async function StudentScoreboard({
   // ngày Thứ Hai để hỏi bảng việc chung của lớp — trước đây đoạn này nằm mãi cuối hàm.
   const weekDays = weekDaysVN(today);
 
-  const locale = await getLocale();
 
   // Truy vấn song song — RLS tự giới hạn quyền xem.
   const [
@@ -123,9 +116,9 @@ export async function StudentScoreboard({
     {data: wigRows},
     {data: meetingRows},
     {data: moodRow},
-    areaMetaFromCache,
+    ,
     {data: myRequestRows},
-    {data: mWigs},
+    ,
     {data: reqs},
   ] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email').eq('id', studentId).maybeSingle(),
@@ -165,7 +158,7 @@ export async function StudentScoreboard({
         .select('mood, buoi, created_at')
         .eq('student_id', studentId)
         .eq('date', today),
-      getAreaMeta(),
+      Promise.resolve(null),
       // Yêu-cầu-sửa của CHÍNH người đang xem. Trước đây nằm mãi cuối hàm, chạy SAU bốn đợt truy
       // vấn khác — mà nó chỉ phụ thuộc viewer.id, thứ đã biết từ trước khi hàm chạy. Tức là một
       // vòng mạng xếp hàng thuần tuý, không chờ gì cả. Kéo lên đây để chạy cùng đợt.
@@ -182,13 +175,8 @@ export async function StudentScoreboard({
       // đã có trong tham số hàm trước khi chạm mạng lần nào. Trước đây chúng nằm trong một
       // Promise.all riêng SAU khi lead_measures về, nên GVCN mở trang của một em phải chờ thêm
       // trọn một vòng mạng mà chẳng để đợi dữ liệu gì.
-      canManage
-        ? supabase
-            .from('wigs')
-            .select('id, area, period, period_label, target_value, unit')
-            .eq('student_id', studentId)
-            .eq('scope', 'student')
-        : Promise.resolve({data: null}),
+      // (Truy vấn wigs cho khối quản lý cá nhân đã gỡ 16/08/2026 — cô chỉ duyệt, không quản lý.)
+      Promise.resolve({data: null}),
       canManage
         ? supabase
             .from('edit_requests')
@@ -198,7 +186,6 @@ export async function StudentScoreboard({
             .order('created_at', {ascending: false})
         : Promise.resolve({data: null}),
     ]);
-  const areaMeta = areaMetaFromCache;
 
   if (!student) {
     return (
@@ -571,29 +558,9 @@ export async function StudentScoreboard({
   // mọi người — chỗ sửa nó là buổi họp WIG với GVCN.
   const myLeadOptions = leadRows.map((l) => ({id: l.id, title: l.title}));
 
-  // GVCN/Admin: dữ liệu QUẢN LÝ WIG/lead/tick cá nhân + yêu cầu-sửa đang chờ (audit: hết ngõ cụt).
-  let manageWigs: ManageWig[] = [];
-  let manageLeads: ManageLead[] = [];
+  // GVCN/Admin: yêu cầu-sửa đang chờ (khối quản lý WIG cá nhân đã gỡ 16/08/2026 — cô chỉ duyệt).
   let requests: EditRequest[] = [];
   if (canManage) {
-    // Không còn truy vấn nào ở đây: `mWigs`/`reqs` đã lấy từ đợt một, `leadRows` từ đợt hai.
-    manageWigs = ((mWigs ?? []) as {id: string; area: string; period: string; period_label: string | null; target_value: number; unit: string}[]).map((w) => ({
-      id: w.id,
-      areaLabel: areaLabel(areaMeta[w.area as Area], locale),
-      periodLabel: (w.period === 'year' ? tSW('yearTag') : tSW('weekTag')) + (w.period_label ? ` · ${w.period_label}` : ''),
-      isYear: w.period === 'year',
-      target: Number(w.target_value),
-      unit: w.unit,
-      period_label: w.period_label,
-    }));
-    manageLeads = leadRows.map((l) => ({
-      id: l.id,
-      wigId: l.wig_id,
-      title: l.title,
-      target: Number(l.target_value),
-      unit: l.unit,
-      entries: (l.lead_progress ?? []).map((e) => ({id: e.id, date: e.logged_date})),
-    }));
     requests = ((reqs ?? []) as unknown as {id: string; kind: string; ref_id: string | null; message: string | null; created_at: string; requester: {full_name: string | null} | null}[]).map((r) => ({
       id: r.id,
       kind: r.kind,
@@ -690,9 +657,8 @@ export async function StudentScoreboard({
               ) : (
                 <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">{tg('approved')}</span>
               )}
-              {(canTick || canManage) && tickOpen && (
-                <NutXoaCamKet commitmentId={c.id} studentId={studentId} />
-              )}
+              {canTick && tickOpen && <NutXoaCamKet commitmentId={c.id} studentId={studentId} />}
+              {canManage && c.status === 'sent' && <NutDuyetCamKet commitmentId={c.id} studentId={studentId} />}
             </div>
             {viec.length > 0 ? (
               <div className="mt-2">
@@ -820,7 +786,6 @@ export async function StudentScoreboard({
 
       {/* GVCN/Admin: yêu cầu-sửa đang chờ + quản lý WIG/lead/tick cá nhân (hết ngõ cụt) */}
       {canManage && <RequestInbox studentId={studentId} requests={requests} />}
-      {canManage && <StudentWigManage studentId={studentId} wigs={manageWigs} leads={manageLeads} />}
 
       {/* ── HỌP WIG — một cột, dưới cây mục tiêu. ("Sổ của bạn" và "Bảng tuần này" đã bỏ 16/08/2026:
           chủ dự án không thấy chúng góp gì cho cam kết tuần — sổ là một ô chữ đứng ngoài cây, còn
@@ -919,19 +884,9 @@ export async function StudentScoreboard({
             )}
             <StudentMeetings
               studentId={studentId}
-              classId={classId}
               meetings={meetings}
               canManage={canManage}
               canChat={canTick}
-              defaultWeek={isoWeekLabel(new Date())}
-              weekOptions={recentWeekLabels(6)}
-              // Chỉ lĩnh vực đã có WIG NĂM: WIG tuần bắt buộc có parent_wig_id trỏ về WIG năm.
-              planAreas={yearRows.map((r) => ({
-                value: r.area,
-                label: areaLabel(areaMeta[r.area as Area], locale),
-                unit: r.unit,
-              }))}
-              nextWeekLabel={nextWeekRangeVN().label}
             />
           </section>
       </div>

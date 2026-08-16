@@ -545,7 +545,12 @@
     "commitmentsHowMeeting": "Commitments are set in the WIG meeting — at most 2 a week, so the class stays on what matters.",
     "verdictWonTag": "Won",
     "verdictLostTag": "Not met",
-    "commitmentPending": "Pending — tap to approve"
+    "commitmentPending": "Pending — tap to approve",
+    "studentsThisWeek": "Students this week",
+    "colStudent": "Student",
+    "colYearGoal": "Year goal",
+    "colCommitment": "This week's commitment",
+    "colWorks": "Works done"
   },
   "meeting": {
     "title": "Weekly WIG meeting",

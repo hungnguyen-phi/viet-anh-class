@@ -1,10 +1,7 @@
 import {getTranslations} from 'next-intl/server';
 import {MessagesSquare, Sparkles, Target, Lock, Unlock} from 'lucide-react';
-import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {SuTu} from '@/components/ui/SuTu';
-import {btnIconDanger} from '@/components/ui/Field';
-import {deleteStudentMeeting, toggleBuddyChat} from '@/app/[locale]/(dashboard)/student/actions';
-import {StudentMeetingForm, type PlanArea} from './StudentMeetingForm';
+import {toggleBuddyChat} from '@/app/[locale]/(dashboard)/student/actions';
 import {BuddyChat, type BuddyMessage} from './BuddyChat';
 
 // Số lượt học sinh được nói mỗi buổi họp — phải khớp BUDDY_CHAT_MAX_USER_TURNS ở server action.
@@ -38,25 +35,15 @@ export type StudentMeeting = {
 // đọc và thôi ghi. Xoá cột là mất biên bản cũ mà không đổi lại được gì.
 export async function StudentMeetings({
   studentId,
-  classId,
   meetings,
   canManage,
   canChat,
-  defaultWeek,
-  weekOptions,
-  planAreas,
-  nextWeekLabel,
 }: {
   studentId: string;
-  classId: string | null;
   meetings: StudentMeeting[];
   canManage: boolean;
   // true = chính em học sinh đó đang xem → được chat khi GVCN mở.
   canChat: boolean;
-  defaultWeek: string;
-  weekOptions: string[];
-  planAreas: PlanArea[];
-  nextWeekLabel: string;
 }) {
   const t = await getTranslations('student');
 
@@ -70,16 +57,8 @@ export async function StudentMeetings({
         {t('buddyIsLion')}
       </div>
 
-      {canManage && classId && (
-        <StudentMeetingForm
-          studentId={studentId}
-          classId={classId}
-          defaultWeek={defaultWeek}
-          weekOptions={weekOptions}
-          planAreas={planAreas}
-          nextWeekLabel={nextWeekLabel}
-        />
-      )}
+      {/* Form "Cô ghi lại buổi họp WIG tuần của riêng bạn" ĐÃ GỠ 16/08/2026: lời của em là em viết ở
+          /student/hop; cô đọc, không ghi thay. */}
 
       {meetings.length === 0 ? (
         <div className="rounded-[20px] border-[1.5px] border-dashed border-navy/15 bg-navy/[0.02] p-5 text-center text-[12.5px] font-semibold italic text-grey-mid">
@@ -112,19 +91,6 @@ export async function StudentMeetings({
                   <MessagesSquare size={12} strokeWidth={2.5} />
                   {m.week_label}
                 </span>
-                {canManage && (
-                  <form action={deleteStudentMeeting} className="ml-auto">
-                    <input type="hidden" name="student_id" value={studentId} />
-                    <input type="hidden" name="meeting_id" value={m.id} />
-                    <ConfirmButton
-                      message={t('confirmDeleteMeeting')}
-                      label={t('deleteMeeting')}
-                      className={btnIconDanger}
-                    >
-                      ✕
-                    </ConfirmButton>
-                  </form>
-                )}
               </div>
               {m.results && (
                 <div className="mt-3 text-[13px] font-semibold text-navy">

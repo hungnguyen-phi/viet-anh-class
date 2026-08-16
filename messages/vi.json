@@ -545,7 +545,12 @@
     "commitmentsHowMeeting": "Cam kết được đặt trong buổi họp WIG — mỗi tuần tối đa 2, để cả lớp tập trung vào đúng thứ đáng làm.",
     "verdictWonTag": "Thắng",
     "verdictLostTag": "Chưa đạt",
-    "commitmentPending": "Chờ duyệt — bấm để duyệt"
+    "commitmentPending": "Chờ duyệt — bấm để duyệt",
+    "studentsThisWeek": "Các em tuần này",
+    "colStudent": "Học sinh",
+    "colYearGoal": "Mục tiêu năm",
+    "colCommitment": "Cam kết tuần này",
+    "colWorks": "Việc đạt"
   },
   "meeting": {
     "title": "Họp WIG tuần",

@@ -26,6 +26,7 @@ import {WeekNav} from '@/components/wig/WeekNav';
 import {TaoWigMenu} from '@/components/wig/TaoWigMenu';
 import {ViecTuan, type ViecItem} from '@/components/wig/ViecTuan';
 import {BangTienDo, type DongTienDo} from '@/components/wig/BangTienDo';
+import {BangCacEm} from '@/components/wig/BangCacEm';
 import {AREAS, areaLabel, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
 import {Flash} from '@/components/ui/Flash';
@@ -220,11 +221,6 @@ export default async function WigPage({
   );
 
   const studentCount = (enrolled ?? []).length;
-  const danhSachHocSinh = (
-    (enrolled ?? []) as unknown as {student_id: string; profiles: {full_name: string | null} | null}[]
-  )
-    .map((e) => ({id: e.student_id, ten: e.profiles?.full_name ?? '—'}))
-    .sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
   const wigsKemLead = (wigsData ?? []) as unknown as (Wig & {lead_measures: Lead[] | null})[];
   const wigs = wigsKemLead as Wig[];
   const progByWig = new Map((progData ?? []).map((p) => [p.wig_id, p as unknown as Prog]));
@@ -650,27 +646,8 @@ export default async function WigPage({
         </section>
       </div>
 
-      {/* DANH SÁCH HỌC SINH — bấm vào tên là sang thẳng /student/{id}, xem WIG của riêng em đó.
-          GVCN/admin hay cần tra một em cụ thể giữa buổi, trước đây không có lối tắt nào từ trang
-          lớp mà phải tự gõ URL. */}
-      <section className="glass rounded-[20px] p-[18px]">
-        <h2 className="mb-3 font-display text-[15px] font-bold text-navy">{t('studentList')}</h2>
-        {danhSachHocSinh.length === 0 ? (
-          <p className="text-[12.5px] font-semibold text-grey-mid">{t('studentListEmpty')}</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {danhSachHocSinh.map((s) => (
-              <Link
-                key={s.id}
-                href={`/student/${s.id}`}
-                className="inline-flex items-center rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 py-1.5 text-[12.5px] font-bold text-navy transition-all hover:border-navy hover:bg-navy/[0.04]"
-              >
-                {s.ten}
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
+      {/* CÁC EM TUẦN NÀY — cùng cây với màn của em, cô chỉ có nút Duyệt (components/wig/BangCacEm). */}
+      <BangCacEm classId={myClass.id} monday={monday} weekQ={weekQ} classParam={classParam} />
 
       {/* MỘT NÚT. Nhịp họp là việc quan trọng nhất của tuần trong 4DX, và trước đây nó là một khối
           dài chôn giữa trang cùng năm khối khác. Nay đứng riêng, không lẫn vào đâu được. */}

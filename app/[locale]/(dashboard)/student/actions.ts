@@ -971,6 +971,23 @@ export async function xoaCamKetTuan(formData: FormData) {
   veTrangEm(student_id, 'Đã xoá cam kết');
 }
 
+
+// CÔ DUYỆT CAM KẾT CỦA EM — ngay trên trang của em (về lại đúng trang ấy). Bản ở /wig (duyetCamKet)
+// về trang lớp; hai nơi, một câu UPDATE, cùng RLS.
+export async function duyetCamKetCuaEm(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const id = String(formData.get('commitment_id') ?? '');
+  const student_id = String(formData.get('student_id') ?? '');
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('commitments').update({status: 'approved'}).eq('id', id).select('id');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if ((data ?? []).length === 0) veTrangEm(student_id, loi('Không duyệt được cam kết này.'));
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  veTrangEm(student_id, 'Đã duyệt cam kết');
+}
+
 // Tick "đã đạt" cho đích ghi nhận ngoài. Cô và trò tự theo dõi ở ngoài app (bài kiểm tra, sổ liên
 // lạc); app chỉ ghi lại AI xác nhận và LÚC NÀO — xem docs/MO_HINH_WIG.md §5.0.
 export async function danhDauDaDat(formData: FormData) {

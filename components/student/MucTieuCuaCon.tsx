@@ -110,7 +110,9 @@ export function MucTieuCuaCon({
   const [moForm, setMoForm] = useState<null | 'academic' | 'personal'>(null);
   const hocTap = mucTieu.find((m) => m.kind === 'academic') ?? null;
   const rieng = mucTieu.find((m) => m.kind === 'personal') ?? null;
-  const canGhi = laChinhEm || canManage;
+  // CÔ KHÔNG ĐẶT HỘ, KHÔNG SỬA, KHÔNG XOÁ (16/08/2026 — chủ dự án: "giáo viên chỉ có nút duyệt thôi, mọi
+  // thứ khác đều chỉ xem"). Mọi động tác ghi ở đây là của chính em; cô còn đúng nút Duyệt.
+  const canGhi = laChinhEm;
   // Còn loại nào chưa có thì mới có gì để thêm; học tập trước, riêng sau (§6.2 bước ④).
   const loaiThem: null | 'academic' | 'personal' = !hocTap ? 'academic' : !rieng ? 'personal' : null;
   const danhSach = [hocTap, rieng].filter(Boolean) as MucTieuCuaEm[];
@@ -147,7 +149,7 @@ export function MucTieuCuaCon({
         {canGhi && loaiThem && (
           <button type="button" onClick={() => setMoForm(loaiThem)} className={btnGold}>
             <Plus size={14} strokeWidth={2.5} />
-            {laChinhEm ? t('addGoal') : t('addGoalFor')}
+            {t('addGoal')}
           </button>
         )}
         {namHoc && danhSach.length > 0 && (
@@ -195,11 +197,11 @@ function TheMucTieu({
   onSua: () => void;
 }) {
   const t = useTranslations('goal');
-  const canGhi = laChinhEm || canManage;
-  // CỬA SỔ MỘT NGÀY (0102/0131). Cô sửa/xoá lúc nào cũng được; em thì khi mục tiêu còn là đề nghị.
+  const canGhi = laChinhEm;
+  // CỬA SỔ MỘT NGÀY (0102/0131): em sửa/xoá khi mục tiêu còn là đề nghị. Cô KHÔNG sửa/xoá — chỉ duyệt.
   const conMo =
     mt.status === 'draft' || mt.status === 'sent' || Date.now() - new Date(mt.created_at).getTime() < CUA_SO_MS;
-  const emSuaDuoc = canManage || (laChinhEm && conMo);
+  const emSuaDuoc = laChinhEm && conMo;
 
   return (
     <div className="flex flex-col gap-3 rounded-[16px] border-[1.5px] border-navy/10 p-3.5">
