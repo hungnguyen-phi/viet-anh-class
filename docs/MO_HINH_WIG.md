@@ -311,10 +311,21 @@ Ba khối, và **không khối nào tạo WIG mới** — điều này nay đã 
 nên buổi họp không còn đẻ ra mục tiêu nào. Nó đặt CAM KẾT, và cam kết thì sống đúng một tuần.
 
 ```
-① Tuần rồi     chấm V/X cho từng cam kết · em nào đủ, em nào chưa
-② Bảng PDR     từng em: mấy cam kết, mấy việc đạt, ai còn chờ duyệt
-③ Tuần tới     cô đặt CAM KẾT của lớp · ba câu PDR
+① Tuần rồi     MỘT trục — cam kết:
+               · của LỚP: việc (cô tick) → x/đích → V/X
+               · của TỪNG EM: cam kết → việc (em tick) → x/đích → V/X, và ngay dưới là NĂM CÂU
+                 em tự viết ở /student/hop (khó khăn · vượt qua · cách tốt hơn · tuần rồi · tuần
+                 tới hứa) — cô ĐỌC, không có ô nào để cô ghi đè
+② Chiêm nghiệm một đoạn của cả lớp
+③ Tuần tới     cô đặt CAM KẾT của lớp (tối đa 2, treo dưới mục tiêu năm)
 ```
+
+Bản 16/08/2026 gom từ sáu khối rời (lời hứa tự do · V/X · bảng PDR · "Việc chung" chấm từng việc ·
+"Từng em 0/8" tick việc chung · "Từng em" cô gõ hộ) về đúng ba nhịp trên; chủ dự án: "rất rời rạc
+và thừa mà ko có tính liên kết chặt chẽ nào", "đã chiêm nghiệm - cam kết rồi còn cam kết cho tuần
+tới nữa?". `lib/hop-data.ts` đọc thẳng `commitments` + `lead_measures` + `lead_progress`; không
+còn qua `class_lead_board` / `class_tick_matrix` / `pdr_bang` (các RPC vẫn tồn tại, bộ kiểm SQL vẫn
+dùng). Bảng `wig_meeting_notes` (chấm từng việc + "rút ra") thôi được ghi từ giao diện.
 
 **Cam kết tuần tới của EM thì em tự đặt trên màn của mình**, không phải cô gõ hộ trong buổi họp
 (16/08/2026 — chủ dự án: "phải là em đặt chứ"). Buổi họp là chỗ nghiệm thu và hứa, không phải chỗ
@@ -348,6 +359,13 @@ cho đúng chuẩn" — đọc bảng này trước.
 - **Chia mục tiêu lớp cho sĩ số** để ra mục tiêu của em — thay bằng §1.
 - **Cam kết / lời hứa tuần của học sinh** — xem §7.
 - **Ô "em đề nghị việc cho lớp"** — bỏ, thêm sau nếu cần.
+- **Câu "Cam kết" chữ tự do trong biên bản lớp** (`wig_meetings.commitments` với student_id null)
+  và **"Tuần trước lớp đã hứa"** đọc từ câu ấy — bỏ 16/08/2026; cam kết là dòng có cấu trúc ở
+  bảng `commitments`.
+- **Ô cô gõ hộ "Tuần rồi / Tuần tới hứa" cho từng em** trong phòng họp — bỏ 16/08/2026; lời của em
+  là em viết.
+- **Bước ③ "Tuần này con làm gì" trong form mục tiêu năm của em** — máy chủ đã thôi đọc từ 0121,
+  form dọn nốt 16/08/2026. Việc treo dưới cam kết tuần (CamKetCuaEm).
 
 ---
 
