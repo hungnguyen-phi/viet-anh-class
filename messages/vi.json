@@ -799,7 +799,8 @@
     "olderWeeks": "{n} tuần trước đó",
     "noWorkUnder": "Chưa có việc để tick dưới cam kết này.",
     "deleteWork": "Xoá việc",
-    "confirmDeleteWork": "Xoá việc này? Lượt tick của nó mất theo, và cam kết về chờ cô duyệt lại."
+    "confirmDeleteWork": "Xoá việc này? Lượt tick của nó mất theo, và cam kết về chờ cô duyệt lại.",
+    "workTag": "Việc"
   },
   "campusReport": {
     "title": "Báo cáo cơ sở",

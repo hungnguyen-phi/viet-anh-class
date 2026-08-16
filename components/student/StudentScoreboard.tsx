@@ -666,7 +666,13 @@ export async function StudentScoreboard({
         return (
           <div key={c.id} className="rounded-[12px] border-[1.5px] border-navy/10 bg-white/70 p-2.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">{c.title}</span>
+              {/* PHÂN TẦNG BẰNG MẮT: cam kết mang nhãn "Cam kết" và chữ đậm hơn việc dưới nó; việc thì
+                  chữ nhỏ hơn một bậc (LeadTicker). Chủ dự án: "font chữ theo cấp mà cái to cái nhỏ
+                  trông rất ko biết cái nào ra cái nào". */}
+              <span className="shrink-0 rounded-[6px] bg-navy px-1.5 py-0.5 text-[9.5px] font-extrabold uppercase tracking-wide text-white">
+                {tm('commitmentOne')}
+              </span>
+              <span className="min-w-0 flex-1 text-[14px] font-extrabold text-navy">{c.title}</span>
               {c.status === 'sent' ? (
                 <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text">{tg('waiting')}</span>
               ) : (

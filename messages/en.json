@@ -799,7 +799,8 @@
     "olderWeeks": "{n} earlier weeks",
     "noWorkUnder": "No work under this commitment yet.",
     "deleteWork": "Delete work",
-    "confirmDeleteWork": "Delete this work? Its ticks go with it and the commitment goes back to pending."
+    "confirmDeleteWork": "Delete this work? Its ticks go with it and the commitment goes back to pending.",
+    "workTag": "Work"
   },
   "campusReport": {
     "title": "Campus report",

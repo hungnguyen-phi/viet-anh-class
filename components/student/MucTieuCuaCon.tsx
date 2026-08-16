@@ -210,7 +210,7 @@ function TheMucTieu({
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[14px] font-extrabold text-navy">{mt.title}</span>
+            <span className="font-display text-[17px] font-bold leading-tight text-navy">{mt.title}</span>
             {mt.status === 'sent' && (
               <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text">
                 {t('waiting')}
