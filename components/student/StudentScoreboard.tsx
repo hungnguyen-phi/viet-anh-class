@@ -324,7 +324,7 @@ export async function StudentScoreboard({
   // MỐC THÁNG ĐÃ BỎ (0121): `wig_chi_con_nam_ck` cấm period='month', nên truy vấn mốc tháng ở đây
   // không bao giờ trả về dòng nào — một vòng đi–về tới CSDL trên MỌI lần em mở trang, đổi lấy một
   // dòng chữ không bao giờ hiện. Cả chuỗi mocThang* gỡ theo, ở cả MucTieuCuaCon.
-  const [cuaSoRes, ipRes, mangRes, daHopRes, leadRes, classLeadRes, mucTieuRes, soDoRes, wigLopRes, soRes, hopLopRes] =
+  const [cuaSoRes, ipRes, mangRes, daHopRes, leadRes, mucTieuRes, soDoRes, wigLopRes, soRes, hopLopRes] =
     await Promise.all([
     // CỬA SỔ CHECK-IN của cơ sở em đang học. Lấy một lần, dùng cho cả buổi sáng lẫn buổi chiều.
     // Null khi em chưa có lớp (chưa biết cơ sở) → giao diện giữ nguyên hành vi cũ, không khoá gì.
@@ -368,18 +368,8 @@ export async function StudentScoreboard({
           )
           .in('wig_id', weekIds)
       : Promise.resolve({data: null}),
-    // VIỆC CHUNG CỦA LỚP (0073). Phải đi qua RPC chứ không hỏi thẳng bảng: RLS chỉ cho một em đọc
-    // dòng tick của CHÍNH em, nên nếu hỏi thẳng thì con số "cả lớp" hiện ra đúng bằng phần của em
-    // — mà đây là scoreboard của cả đội, em phải thấy tỷ số chung mới biết lớp đang thắng hay thua.
-    classId
-      ? supabase.rpc('class_lead_board', {
-          p_class: classId,
-          p_week_start: weekDays[0],
-          // GVCN/phụ huynh mở trang của một em thì `my_dates` là của EM ĐÓ, không phải của người
-          // đang xem. Hàm tự kiểm quyền; truyền id bừa thì rơi về chính mình.
-          p_student: studentId,
-        })
-      : Promise.resolve({data: null}),
+    // (Truy vấn class_lead_board đã gỡ 16/08/2026: việc chung nay là phần của cô — cô đặt, cô
+    //  tick, cô nhìn — nên màn của em không còn ai đọc nó nữa.)
     // MỤC TIÊU CỦA EM (0100). Không lấy từ wig_progress_v được: view ấy không mang kind/status/
     // set_by xuống, mà cả ba đều cần để bày đúng — "chờ cô duyệt", "cô đặt giúp con", và phân
     // biệt mục tiêu học tập với mục tiêu riêng.
@@ -443,7 +433,6 @@ export async function StudentScoreboard({
       : Promise.resolve({data: null}),
   ]);
   const leadData = leadRes.data;
-  const classLeadData = classLeadRes.data;
 
   const cuaSoRaw = Array.isArray(cuaSoRes.data) ? cuaSoRes.data[0] : cuaSoRes.data;
   const cuaSo: {
@@ -538,7 +527,6 @@ export async function StudentScoreboard({
       .reduce((s, p) => s + Number(p.value ?? 0) * moiTick, 0);
     return Number(l.target_value) > 0 && dat >= Number(l.target_value);
   }).length;
-  const classLeadRows = (classLeadData ?? []) as unknown as ClassLeadRow[];
 
   // 7 ngày của tuần → còn những THỨ mà việc đó áp dụng (0073). Trước đây bảng tick luôn bày đủ
   // T2…CN cho mọi việc, kể cả việc chỉ làm ở lớp — em không biết cuối tuần có phải tick không.
@@ -547,36 +535,20 @@ export async function StudentScoreboard({
     return weekDays.filter((d) => on.has(isoDowVN(d)));
   };
 
-  // VIỆC CHUNG đứng trước việc riêng: đây là thứ quyết định lớp thắng hay thua tuần này.
+  // VIỆC CHUNG KHÔNG CÒN HIỆN TRÊN MÀN CỦA EM (16/08/2026).
+  //
+  // Chủ dự án: "có leadmeasure nhưng cô là người tick, các em ko cần thấy cái đó".
+  //
+  // Trước bản này màn của em bày cả hai — việc chung của lớp (mọi em đều phải tick) và việc riêng
+  // của em — tới bốn dòng, không phân hạng, nên em không biết cái nào nhường được cái nào. Chính
+  // chủ dự án nhìn vào và hỏi "sao mà cân bằng được".
+  //
+  // Nay việc chung là phần của cô: cô đặt, cô tick, cô nhìn. Màn của em chỉ còn thứ em tự hứa và
+  // tự làm — mà đó cũng đúng là thứ 4DX muốn em nhìn vào mỗi ngày.
+  //
+  // Và gỡ luôn cả truy vấn class_lead_board: không còn ai đọc, để lại là một vòng đi–về tới CSDL
+  // trên mọi lần em mở trang, đổi lấy không gì cả.
   const tickerLeads: TickerLead[] = [
-    ...classLeadRows.map((l) => ({
-      id: l.lead_measure_id,
-      title: l.title,
-      target: Number(l.target_value),
-      unit: l.unit,
-      kind: 'class' as const,
-      days: daysFor(l.active_weekdays),
-      myDates: l.my_dates ?? [],
-      // Ô ĐIỀN SỐ MỞ CHO CẢ VIỆC CHUNG (0114).
-      //
-      // Dòng cũ khoá cứng `false` với lý do: "mở ô điền số ở đây là mời một em tự khai cho cả
-      // lớp". Lý lẽ ấy không đứng vững — class_lead_board cộng THEO TỪNG EM (`my_total` lọc theo
-      // student_id, `students_done` đếm từng người), nên số em gõ chỉ nhích bộ đếm của chính em,
-      // y hệt một cú tick. Không có đường nào để một em khai hộ cả lớp.
-      //
-      // Đây là thứ chặn "đọc sách: hôm nay 12 trang, mai 40 trang" và chặn luôn cân nặng —
-      // những đơn vị mà một chạm nói dối.
-      nhapLuong: Boolean(l.nhap_luong),
-      myValues: (l.my_values ?? {}) as Record<string, number>,
-      // class_total từ RPC ĐÃ nhân hệ số trong SQL (0076); truyền hệ số xuống chỉ để cập nhật lạc
-      // quan lúc bấm nhích đúng bằng chừng ấy, không phải bằng 1.
-      unitPerTick: Number(l.unit_per_tick ?? 1) || 1,
-      classTotal: Number(l.class_total),
-      contributors: Number(l.contributors),
-      classSize: Number(l.class_size),
-      myTotal: Number(l.my_total),
-      studentsDone: Number(l.students_done),
-    })),
     ...leadRows.map((l) => ({
       id: l.id,
       title: l.title,

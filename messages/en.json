@@ -498,6 +498,7 @@
     "backToWig": "Back to WIG",
     "workToTick": "Things students tick",
     "addWork": "Add a task",
+    "classTickHint": "Class done {n}/{tong} days",
     "editWork": "Edit task",
     "addWorkNeedsWig": "No week goal yet, so there is nothing to attach a task to.",
     "progressRail": "Where the class stands",

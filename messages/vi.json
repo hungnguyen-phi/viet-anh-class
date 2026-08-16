@@ -498,6 +498,7 @@
     "backToWig": "Về trang WIG",
     "workToTick": "Việc để các em tick",
     "addWork": "Thêm việc",
+    "classTickHint": "Lớp đã làm {n}/{tong} ngày",
     "editWork": "Sửa việc",
     "addWorkNeedsWig": "Chưa có mục tiêu tuần thì chưa thêm việc được — việc phải thuộc về một mục tiêu nào đó.",
     "progressRail": "Lớp đang đi tới đâu",

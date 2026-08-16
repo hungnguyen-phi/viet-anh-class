@@ -1,5 +1,6 @@
 'use client';
 
+import {TickCuaLop} from '@/components/wig/TickCuaLop';
 import {useActionState, useEffect, useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {AlertCircle, AlertTriangle, CheckCircle2, Plus} from 'lucide-react';
@@ -37,11 +38,17 @@ export type ViecItem = {
   tran: number;
   soNgay: number;
   soNguoi: number;
+  /** Ngày trong tuần đang xem mà việc này áp dụng — để cô tick ngay tại chỗ (16/08/2026). */
+  ngayTrongTuan: string[];
+  /** Ngày lớp đã có lượt tick (dòng không gắn với em nào). */
+  ngayDaTick: string[];
 };
 
 export function ViecTuan({
   commitmentId,
   wigUnit,
+  homNay,
+  moKhoa,
   wigArea,
   viec,
   dayShort,
@@ -55,6 +62,10 @@ export function ViecTuan({
   /** Cam kết mà việc này treo dưới (0121). null = chưa có cam kết nào cho tuần. */
   commitmentId: string | null;
   wigUnit: string;
+  /** Hôm nay theo giờ VN — cô không tick trước ngày (16/08/2026). */
+  homNay: string;
+  /** Tuần chưa chốt thì còn tick được. */
+  moKhoa: boolean;
   // Lĩnh vực của mục tiêu (đã dịch) — form dùng để NÓI RA rằng lĩnh vực lấy sẵn từ đây.
   wigArea: string;
   viec: ViecItem[];
@@ -95,6 +106,17 @@ export function ViecTuan({
           className="flex flex-col rounded-[14px] border-[1.5px] border-navy/10 bg-white/60 p-3"
         >
           <div className="text-[13.5px] font-extrabold leading-snug text-navy">{v.title}</div>
+
+          {/* CÔ TICK NGAY TẠI ĐÂY (16/08/2026). Việc chung là phần của cô — em không thấy nó nữa,
+              nên nếu chỗ này không có ô bấm thì con số của lớp đứng im mãi mãi. */}
+          <TickCuaLop
+            leadId={v.id}
+            days={v.ngayTrongTuan}
+            daTick={v.ngayDaTick}
+            today={homNay}
+            moKhoa={moKhoa}
+            dayShort={dayShort}
+          />
           <div className="mt-1 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
             {v.target_value} {v.unit ?? ''} · {thu(v.active_weekdays)}
             <br />

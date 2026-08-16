@@ -15,6 +15,8 @@ import {
   monthOptions,
   schoolYearOptions,
   todayInVN,
+  isoDowVN,
+  weekDaysVN,
   vnNoon,
   weekFromMonday,
   weekOptions,
@@ -199,7 +201,7 @@ export default async function WigPage({
       supabase
         .from('commitments')
         .select(
-          'id, title, area, wig_id, verdict, status, set_by, lead_measures(id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick, nhap_luong)',
+          'id, title, area, wig_id, verdict, status, set_by, lead_measures(id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick, nhap_luong, lead_progress(logged_date, student_id))',
         )
         .eq('class_id', myClass.id)
         .is('student_id', null)
@@ -345,7 +347,20 @@ export default async function WigPage({
     } as Wig;
     return ((ck?.lead_measures ?? []) as Lead[]).map((l) => {
       const cb = canhBaoLead(l, tuanCuaCamKet);
+      // NGÀY TRONG TUẦN mà việc này áp dụng, và ngày LỚP đã tick (dòng student_id rỗng) — để cô
+      // bấm ngay tại chỗ. Em không còn thấy việc chung nữa (16/08), nên nếu đây không có ô bấm
+      // thì con số của lớp đứng im mãi mãi.
+      const thuBat = new Set(l.active_weekdays ?? [1, 2, 3, 4, 5, 6, 7]);
+      const ngayTrongTuan = weekDaysVN(wk.start).filter((d) =>
+        thuBat.has(isoDowVN(d)),
+      );
+      const ngayDaTick = ((l as unknown as {lead_progress?: {logged_date: string; student_id: string | null}[]})
+        .lead_progress ?? [])
+        .filter((x) => x.student_id === null && ngayTrongTuan.includes(x.logged_date))
+        .map((x) => x.logged_date);
       return {
+        ngayTrongTuan,
+        ngayDaTick,
         id: l.id,
         title: l.title,
         target_value: Number(l.target_value),
@@ -366,7 +381,20 @@ export default async function WigPage({
   const viecCuaWig = (w: Wig): ViecItem[] =>
     ((wigsKemLead.find((x) => x.id === w.id)?.lead_measures ?? []) as Lead[]).map((l) => {
       const cb = canhBaoLead(l, w);
+      // NGÀY TRONG TUẦN mà việc này áp dụng, và ngày LỚP đã tick (dòng student_id rỗng) — để cô
+      // bấm ngay tại chỗ. Em không còn thấy việc chung nữa (16/08), nên nếu đây không có ô bấm
+      // thì con số của lớp đứng im mãi mãi.
+      const thuBat = new Set(l.active_weekdays ?? [1, 2, 3, 4, 5, 6, 7]);
+      const ngayTrongTuan = weekDaysVN(wk.start).filter((d) =>
+        thuBat.has(isoDowVN(d)),
+      );
+      const ngayDaTick = ((l as unknown as {lead_progress?: {logged_date: string; student_id: string | null}[]})
+        .lead_progress ?? [])
+        .filter((x) => x.student_id === null && ngayTrongTuan.includes(x.logged_date))
+        .map((x) => x.logged_date);
       return {
+        ngayTrongTuan,
+        ngayDaTick,
         id: l.id,
         title: l.title,
         target_value: Number(l.target_value),
@@ -652,6 +680,8 @@ export default async function WigPage({
                     {t('workToTick')}
                   </h3>
                   <ViecTuan
+                    homNay={todayVN}
+                    moKhoa={tuanNayDaHop !== true}
                     commitmentId={c.id}
                     wigUnit={''}
                     wigArea={areaLabel(meta, locale)}
