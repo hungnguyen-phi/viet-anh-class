@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect, useRef} from 'react';
-import {useRouter} from '@/i18n/navigation';
+import {usePathname, useRouter} from '@/i18n/navigation';
 
 // ĐỨNG SẴN Ở ĐÓ TRƯỚC KHI NGƯỜI TA TỚI.
 //
@@ -56,6 +56,27 @@ export function NapTruoc({duong}: {duong: {pathname: string; query?: Record<stri
     // Chạy đúng một lần cho cả phiên — danh sách tab của một vai không đổi giữa chừng.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // TAB VỪA RỜI KHỎI cũng đứng sẵn: đệm của nó hết hạn sau 30 giây, mà "quay lại tab vừa nãy" là
+  // cú bấm hay gặp nhất. Đổi trang xong 2 giây thì tải lại đúng một tab ấy — một lượt dựng, không
+  // phải cả thanh menu.
+  const pathname = usePathname();
+  const truoc = useRef(pathname);
+  useEffect(() => {
+    const cu = truoc.current;
+    truoc.current = pathname;
+    if (cu === pathname) return;
+    const d = duong.find((x) => x.pathname === cu) ?? {pathname: cu};
+    const hen = setTimeout(() => {
+      try {
+        router.prefetch(d as Parameters<typeof router.prefetch>[0], {kind: 'full'} as Parameters<typeof router.prefetch>[1]);
+      } catch {
+        /* thôi */
+      }
+    }, 2000);
+    return () => clearTimeout(hen);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return null;
 }
