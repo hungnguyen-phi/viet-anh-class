@@ -1,6 +1,8 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {Lock, LockOpen, Plus} from 'lucide-react';
+import {redirect} from 'next/navigation';
 import {requireProfile} from '@/lib/auth';
+import {HOC_BA_BAT} from '@/lib/tinh-nang';
 import {createClient} from '@/lib/supabase/server';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext, type ClassOption} from '@/lib/queries';
@@ -133,6 +135,8 @@ export default async function GradesPage({
     child: childParam,
     } = await searchParams;
   setRequestLocale(locale);
+  // Học bạ đang tắt (lib/tinh-nang.ts): vào thẳng bằng đường dẫn cũng về trang chủ.
+  if (!HOC_BA_BAT) redirect('/');
   const profile = await requireProfile();
 
   // Gia đình (phụ huynh + chính học sinh) xem một màn hình hoàn toàn khác: chỉ đọc, chỉ các đợt

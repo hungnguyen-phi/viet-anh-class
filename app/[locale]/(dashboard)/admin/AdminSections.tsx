@@ -6,6 +6,7 @@ import {SubmitButton} from '@/components/ui/SubmitButton';
 import {AREAS, buildAreaMeta} from '@/lib/areas';
 import {clientIp} from '@/lib/ip';
 import {schoolYearLabel} from '@/lib/dates';
+import {HOC_BA_BAT} from '@/lib/tinh-nang';
 import {setCampusActive, setGradeActive, setClassActive} from './actions';
 import {layDanhMuc, layPhuTro, layHocSinhChuaCoLop} from './admin-data';
 import {AreaConfigForm} from './AreaConfigForm';
@@ -23,7 +24,10 @@ const openLink =
 // Tất cả đều là việc làm vài lần một năm, nên chúng chảy về SAU bảng người dùng và không giữ chân
 // nó. Trước đây chúng nằm chung một Promise.all với bảng, nên bấm đổi tab là phải chờ cả chín truy
 // vấn này xong mới thấy được một dòng nào.
-export async function AdminSections() {
+// Hai mảnh — TRƯỜNG & LỚP và CÀI ĐẶT — của thanh chọn MucQuanTri. Cùng một hàm vì chúng dùng chung
+// dữ liệu; layDanhMuc/layPhuTro có cache() nên gọi hai lần trong một lượt dựng không tốn thêm truy
+// vấn nào.
+export async function AdminSections({phan}: {phan: 'truong' | 'khac'}) {
   const t = await getTranslations('admin');
   const tn = await getTranslations('nav');
   const tcommon = await getTranslations('common');
@@ -80,14 +84,17 @@ export async function AdminSections() {
     {href: '/roster', label: tn('roster'), desc: 'Danh sách lớp + gán trưởng điểm danh'},
     {href: '/wig', label: tn('wig'), desc: 'Mục tiêu tuần, việc để các em tick, phòng họp WIG'},
     {href: '/homework', label: tn('homework'), desc: 'Báo bài cho lớp'},
-    {href: '/grades', label: tn('grades'), desc: 'Học bạ: điểm số và rèn luyện'},
+    ...(HOC_BA_BAT ? [{href: '/grades', label: tn('grades'), desc: 'Học bạ: điểm số và rèn luyện'}] : []),
     {href: '/campus', label: tn('campus'), desc: 'Bảng tổng hợp toàn trường (BGH)'},
     {href: '/admin', label: tn('admin'), desc: 'Trang quản trị (màn hình này)'},
   ];
 
-  return (
-    <>
-      {/* Cơ sở → Khối → Lớp: một cây mục cha/mục con, thêm mới nằm ngay trong mục nó thuộc về. */}
+  if (phan === 'truong') {
+    return (
+      <>
+      {/* Cơ sở → Khối → Lớp: một cây mục cha/mục con, thêm mới nằm ngay trong mục nó thuộc về.
+          Mở sẵn — đây là mục chính của thẻ Trường & lớp — nhưng gấp lại được. */}
+      <Disclosure title={t('treeTitle')} count={activeCampuses.length} defaultOpen>
       <CampusTree
         campuses={activeCampuses.map((c) => ({id: c.id, name: c.name, code: c.code, levels: c.levels ?? []}))}
         grades={activeGrades.map((g) => ({
@@ -112,6 +119,7 @@ export async function AdminSections() {
         teachers={staffList}
         defaultYear={schoolYearLabel(new Date())}
       />
+      </Disclosure>
 
       {/* Điểm danh & Wifi trường — cổng IP cho check-in cảm xúc. Đặt TRÊN mục Môn: khai sai dải
           mạng thì điểm danh cả trường hỏng ngay hôm ấy, còn nhãn/màu lĩnh vực thì sửa lúc nào cũng
@@ -153,36 +161,6 @@ export async function AdminSections() {
           lops={activeClasses.map((c) => ({id: c.id, name: c.name, school_year: c.school_year}))}
         />
       </Disclosure>
-
-      {/* Môn (4 lĩnh vực 4DX) — gấp lại: sửa nhãn/màu là việc vài lần một năm. */}
-      <Disclosure title={t('manageAreas')} hint={t('areasHint')} count={areaRows.length}>
-        <AreaConfigForm rows={areaRows} />
-      </Disclosure>
-
-      {/* Hai trang soạn thảo riêng — chỉ là lối vào, không nhét nội dung vào đây. Không làm tab
-          trên thanh menu: đây là việc của một hai người mỗi tuần/mỗi năm, còn thanh menu thì mọi
-          vai đều phải nhìn mỗi ngày (docs/NAV_IA.md). */}
-      <section className="glass rounded-[20px] p-[18px]">
-        <div className={cardTitle}>{t('otherPages')}</div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            {/* Bốn chuỗi trong khối này trước đây gõ thẳng tiếng Việt vào JSX — bản tiếng Anh
-                của màn Quản trị hiện ra hai đoạn tiếng Việt. */}
-            <p className="mb-2 text-xs text-grey-mid">{t('subjectsHint')}</p>
-            <Link href="/subjects" className={openLink}>
-              <BookMarked size={14} strokeWidth={2.2} />
-              {t('openSubjects')}
-            </Link>
-          </div>
-          <div>
-            <p className="mb-2 text-xs text-grey-mid">{t('menuHint')}</p>
-            <Link href="/menu" className={openLink}>
-              <UtensilsCrossed size={14} strokeWidth={2.2} />
-              {t('openMenu')}
-            </Link>
-          </div>
-        </div>
-      </section>
 
       {/* Đã lưu trữ — khôi phục Cơ sở / Khối / Lớp */}
       {archivedCampuses.length + archivedGrades.length + archivedClasses.length > 0 && (
@@ -230,6 +208,42 @@ export async function AdminSections() {
           </div>
         </Disclosure>
       )}
+
+      </>
+    );
+  }
+
+  return (
+    <>
+      {/* Môn (4 lĩnh vực 4DX) — gấp lại: sửa nhãn/màu là việc vài lần một năm. */}
+      <Disclosure title={t('manageAreas')} hint={t('areasHint')} count={areaRows.length}>
+        <AreaConfigForm rows={areaRows} />
+      </Disclosure>
+
+      {/* Hai trang soạn thảo riêng — chỉ là lối vào, không nhét nội dung vào đây. Không làm tab
+          trên thanh menu: đây là việc của một hai người mỗi tuần/mỗi năm, còn thanh menu thì mọi
+          vai đều phải nhìn mỗi ngày (docs/NAV_IA.md). */}
+      <section className="glass rounded-[20px] p-[18px]">
+        <div className={cardTitle}>{t('otherPages')}</div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            {/* Bốn chuỗi trong khối này trước đây gõ thẳng tiếng Việt vào JSX — bản tiếng Anh
+                của màn Quản trị hiện ra hai đoạn tiếng Việt. */}
+            <p className="mb-2 text-xs text-grey-mid">{t('subjectsHint')}</p>
+            <Link href="/subjects" className={openLink}>
+              <BookMarked size={14} strokeWidth={2.2} />
+              {t('openSubjects')}
+            </Link>
+          </div>
+          <div>
+            <p className="mb-2 text-xs text-grey-mid">{t('menuHint')}</p>
+            <Link href="/menu" className={openLink}>
+              <UtensilsCrossed size={14} strokeWidth={2.2} />
+              {t('openMenu')}
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* Giao diện mẫu — mở mọi màn hình */}
       <Disclosure title={t('screensTitle')} hint={t('screensHint')} count={screens.length}>

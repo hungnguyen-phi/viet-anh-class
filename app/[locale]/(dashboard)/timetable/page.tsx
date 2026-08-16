@@ -178,7 +178,6 @@ export default async function TimetablePage({
     loaiTiet: t('kindLabel'),
     luu: t('save'),
     huy: t('cancel'),
-    ghiChu: t('slotPopupHint'),
     loai: (['regular', 'practice', 'exam'] as const).map((k) => ({value: k, label: t(`kind_${k}`)})),
   };
   const monChon = monLop.map((m) => ({id: m.id, name: m.name}));

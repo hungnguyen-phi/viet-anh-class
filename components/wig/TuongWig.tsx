@@ -28,7 +28,6 @@ export async function TuongWig({
   wigLop,
   wigLopChon,
   danhSach,
-  dayShort,
   suaDuoc,
 }: {
   classId: string;
@@ -36,7 +35,6 @@ export async function TuongWig({
   /** Cùng danh sách trên, rút gọn cho ô "việc này giúp lớp ở mục tiêu nào" trong form. */
   wigLopChon: WigLop[];
   danhSach: EmTrongLop[];
-  dayShort: string[];
   /** Chỉ quản trị/BGH mới sửa được mục tiêu của em (0133, 0134) — xem DanhSachDatHo. */
   suaDuoc: boolean;
 }) {
@@ -100,7 +98,6 @@ export async function TuongWig({
             classId={classId}
             danhSach={danhSach}
             wigLop={wigLopChon}
-            dayShort={dayShort}
             suaDuoc={suaDuoc}
           />
         </div>

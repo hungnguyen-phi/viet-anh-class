@@ -249,10 +249,13 @@ declare
 begin
   select c.id into v_class from classes c where c.homeroom_teacher_id is not null limit 1;
 
+  -- Nhãn SAI TUẦN nhưng đúng dạng: từ 0140 nhãn phải là 'Wnn-yyyy' (CHECK) — chữ tự do như
+  -- 'Tuần ba mươi mốt' không vào được nữa. Nhưng nhãn lệch tuần thì CHECK không bắt được, và
+  -- luật cần kiểm vẫn là: NGÀY mới là khoá, nhãn chỉ để đọc.
   insert into wig_meetings (class_id, week_label, week_start, next_actions)
-  values (v_class, 'Tuần ba mươi mốt', '2026-03-02', 'ZZ_TEST cả lớp đọc sách 4 buổi');
+  values (v_class, 'W99-2026', '2026-03-02', 'ZZ_TEST cả lớp đọc sách 4 buổi');
 
-  -- Tra bằng NGÀY: phải thấy, dù nhãn không theo quy ước nào.
+  -- Tra bằng NGÀY: phải thấy, dù nhãn lệch.
   select next_actions into v_hua from wig_meetings
   where class_id = v_class and week_start = '2026-03-02' and student_id is null;
   insert into ket_qua values

@@ -47,7 +47,7 @@ begin
   insert into wigs (class_id, student_id, scope, kind, status, set_by, measure_by, area,
                     period, period_label, title, baseline, target_value, unit, start_date, end_date)
   values (v_lop, v_em, 'student', 'personal', 'approved', 'student', 'manual', 'physical',
-          'year', 'TEST-0108', 'thử số đo tự nhập', 30, 34, 'kg',
+          'year', 'W99-2026', 'thử số đo tự nhập', 30, 34, 'kg',
           vn_today() - 30, vn_today() + 300)
   returning id into v_wig;
 
@@ -61,7 +61,7 @@ begin
   -- `tuan_da_hop` phải nhìn `chot_at`, không nhìn "có tồn tại dòng nào không". Dòng biên bản sinh
   -- từ đường khác (vá dữ liệu cũ, khôi phục) không được khoá tick của một tuần đang chạy.
   insert into wig_meetings (class_id, week_label, week_start, results)
-  values (v_lop, 'TEST-0108', v_thu2, 'ghi giữa chừng buổi họp');
+  values (v_lop, 'W99-2026', v_thu2, 'ghi giữa chừng buổi họp');
   insert into kq values ('Biên bản chưa đóng dấu · chưa khoá', 'false',
     tuan_da_hop(v_lop, v_thu2)::text, tuan_da_hop(v_lop, v_thu2) = false);
 
@@ -81,6 +81,9 @@ begin
   where wig_id = v_wig and week_start = v_thu2;
   get diagnostics n = row_count;
   perform set_config('role', 'postgres', true);
+  -- Trả cả JWT về rỗng: từ 0133 trigger nhìn auth.uid() (không nhìn role) — còn để sub = cô thì
+  -- lệnh đổi measure_by ở ⑤ bị chặn như thể cô đang sửa mục tiêu của em.
+  perform set_config('request.jwt.claims', '', true);
   select count(*) into n from wig_so_do where wig_id = v_wig;
   insert into kq values ('Chưa chốt · CÔ sửa đè, vẫn 1 dòng', '1 dòng', n || ' dòng', n = 1);
 

@@ -2,7 +2,7 @@
 
 import {useActionState, useEffect, useRef, useState, type ChangeEvent} from 'react';
 import {useTranslations} from 'next-intl';
-import {AlertCircle, AlertTriangle, ArrowRight, Check, CheckCircle2, Minus, PencilLine, RotateCcw, Trash2, X} from 'lucide-react';
+import {AlertCircle, ArrowRight, Check, CheckCircle2, PencilLine, RotateCcw, Trash2, X} from 'lucide-react';
 import {createClient} from '@/lib/supabase/client';
 import {Link} from '@/i18n/navigation';
 import {SubmitButton} from '@/components/ui/SubmitButton';
@@ -16,65 +16,60 @@ import {moPhongHop, ketThucBuoiHop, xoaBienBan} from '@/app/[locale]/(dashboard)
 //
 // Nhịp 4DX của một buổi họp WIG có đúng ba nhịp, và bản này bày ra đúng ba nhịp ấy theo thứ tự:
 //
-//   1. Tuần vừa rồi lớp làm được gì   → chấm thắng/thua, ghi lý do, nhìn từng em
-//   2. Cam kết của lớp                → một câu cả lớp hứa với nhau
-//   3. Mục tiêu tuần tới              → điền ở đây là TẠO LUÔN mục tiêu tuần mới
+//   1. Tuần vừa rồi làm được gì   → cam kết của lớp và của từng em: việc → tick → V/X; đọc năm
+//                                   câu em tự viết
+//   2. Chiêm nghiệm                → một đoạn cả lớp rút ra
+//   3. Cam kết tuần tới            → hai lời hứa của lớp, treo dưới mục tiêu năm
 //
-// Bước 3 là thay đổi lớn nhất. Trước đây "kế hoạch tuần sau" là một ô chữ tự do trong biên bản,
-// viết xong nằm im — rồi tuần sau giáo viên phải vào trang WIG tạo lại một mục tiêu tuần từ đầu,
-// gõ lại đúng những thứ vừa bàn. Hai lần nhập cho một quyết định, và không có gì nối chúng lại:
-// biên bản ghi một đằng, mục tiêu tạo một nẻo, không ai đối chiếu. Nay điền một lần là xong.
+// ── VÌ SAO GỌN LẠI THẾ NÀY (16/08/2026) ──────────────────────────────────────────────────────
+//
+// Bản trước có SÁU khối cho một buổi họp: lời hứa tuần trước (chữ tự do), V/X từng cam kết, bảng
+// PDR, bảng "Việc chung" chấm từng việc + rút ra, "Từng em 0/8" (tick việc chung), rồi mãi cuối
+// trang lại một "Từng em" nữa với hai ô cô gõ hộ. Cùng một em xuất hiện ở ba bảng với ba con số,
+// và bước 2 hỏi "Cam kết" bằng chữ trong khi bước 3 đặt cam kết bằng dòng có cấu trúc. Chủ dự án:
+// "rất rời rạc và thừa mà ko có tính liên kết chặt chẽ nào", "đã chiêm nghiệm - cam kết rồi còn
+// cam kết cho tuần tới nữa?".
+//
+// Nay MỘT trục: cam kết. Lớp có cam kết → việc → tick của cô → V/X. Mỗi em có cam kết → việc →
+// tick của em → V/X, ngay dưới là năm câu em tự viết trong phòng họp của em. Không còn ô nào để cô
+// ghi đè lời của em (0129/0133: lời hứa là của em, cô duyệt và chấm, không gõ hộ).
 //
 // MỌI Ô ĐỀU CONTROLLED. Một buổi họp có thể gõ vào đây vài trăm chữ; React reset form sau khi
 // action chạy xong, nên ô không controlled là mất sạch chữ chỉ vì server trả về một câu lỗi.
 
-export type ViecTuanQua = {
+/** Một việc dẫn dắt dưới một cam kết, đã đếm tick của đúng người sở hữu. */
+export type ViecHop = {
   id: string;
   title: string;
-  ketQua: string; // "18/30 phút" — máy đếm, không sửa được ở đây
-  daGop: number;
-  siSo: number;
-  verdict: 'win' | 'lose' | null;
-  note: string;
-  // Lúc mở trang, việc này ĐÃ có ghi nhận hay chưa — quyết định chuyện xoá (xem ketThucBuoiHop).
-  daCo: boolean;
+  unit: string | null;
+  dat: number;
+  target: number;
+  xong: boolean;
 };
 
-export type EmTrongTuan = {id: string; ten: string; lam: number; can: number};
+/** Một cam kết (của lớp hoặc của em) trong tuần đang họp. */
+export type CamKetHop = {
+  id: string;
+  title: string;
+  area: string;
+  verdict: 'win' | 'lose' | null;
+  /** Gợi ý của máy: đủ mọi việc thì 'win'. KHÔNG tự thành kết quả — người bấm mới là kết quả. */
+  goiY: 'win' | 'lose';
+  viec: ViecHop[];
+  /** Em đổi lời hứa giữa tuần mấy lần (0126). Tín hiệu kỷ luật, không phải điểm trừ. */
+  soLanSua: number;
+};
 
-// MỘT EM TRONG BUỔI HỌP — việc tuần này của em, và biên bản riêng của em.
-//
-// Sinh ra ở 0108 (lát 4+5) cho hai việc chủ dự án chốt 13/08/2026:
-//   · "mỗi tuần con làm gì" đổi thành "TUẦN NÀY con làm gì", và tuần sau buổi họp hỏi lại — mặc
-//     định giữ nguyên câu cũ, đổi thì em chọn khác;
-//   · họp WIG của LỚP phải làm được mọi việc của họp Coach × Buddy, để GVCN vắng hoặc bận thì
-//     buổi họp vẫn ghi được biên bản cho từng em.
+/** Một em trong buổi họp: cam kết của em, và năm câu em tự viết ở /student/hop. */
 export type EmHop = {
   id: string;
   ten: string;
-  /** Mục tiêu năm (học tập) của em — chỗ treo việc. null = em chưa đặt mục tiêu. */
-  wigId: string | null;
-  /** Việc đang có. null = chưa có việc nào, gõ tên vào là tạo mới. */
-  leadId: string | null;
-  viecTitle: string;
-  viecUnit: string | null;
-  viecDays: number[];
-  ketQua: string;
-  camKet: string;
+  camKet: CamKetHop[];
+  traLoi: {khoKhan: string; vuotQua: string; cachTotHon: string; ketQua: string; camKet: string};
   /** Em đã bấm "Tham gia" trong buổi họp này chưa (0130). */
   thamGia: boolean;
 };
 export type WigOption = {id: string; title: string};
-export type ViecMau = {
-  title: string;
-  target: string;
-  unit: string;
-  upt: string;
-  days: number[];
-  // Lĩnh vực việc này thuộc về — để khớp đúng khối mốc tuần tới (0106).
-  area: string;
-};
-
 
 export function PhongHop({
   classId,
@@ -83,16 +78,10 @@ export function PhongHop({
   hopRange,
   dichLabel,
   dichRange,
-  viecTuanQua,
+  camKetLop,
   tungEm,
-  emHop,
-  loiHuaTruoc,
-  nhanTuanTruoc,
   chiemNghiemCu,
-  camKetCu,
-  camKetTuanQua,
   camKetDich,
-  bangPdr,
   namHienCo,
   canManage,
   daCoBienBan,
@@ -107,41 +96,13 @@ export function PhongHop({
   hopRange: string;
   dichLabel: string;
   dichRange: string;
-  viecTuanQua: ViecTuanQua[];
-  tungEm: EmTrongTuan[];
-  emHop: EmHop[];
-  loiHuaTruoc: string | null;
-  nhanTuanTruoc: string;
+  camKetLop: CamKetHop[];
+  tungEm: EmHop[];
   chiemNghiemCu: string;
-  camKetCu: string;
-  // Mốc tuần đích, mỗi lĩnh vực một cái — app đã rải sẵn từ mục tiêu năm. Buổi họp chỉnh chỉ tiêu
-  // của mốc, KHÔNG tạo mục tiêu mới.
-  // Cam kết của tuần vừa qua — thứ buổi họp chấm V/X. `goiY` là gợi ý của máy, KHÔNG phải kết quả.
-  camKetTuanQua: {
-    id: string;
-    title: string;
-    area: string;
-    verdict: 'win' | 'lose' | null;
-    goiY: 'win' | 'lose';
-    viecXong: number;
-    viecTong: number;
-  }[];
   /** Cam kết ĐÃ đặt cho tuần tới — mở lại buổi họp thì điền sẵn, không đẻ bản sao. */
   camKetDich: {id: string; title: string; wigId: string}[];
-  /** Ba con số PDR của từng em, cho đúng tuần đang tổng kết (0126). */
-  bangPdr: {
-    id: string;
-    ten: string;
-    camKetTong: number;
-    camKetDat: number;
-    viecTong: number;
-    viecDat: number;
-    soLanSua: number;
-    chamKhacMay: number;
-  }[];
   // Danh sách mục tiêu NĂM để chọn khi đặt cam kết.
   namHienCo: WigOption[];
-  // Tên + màu 4 lĩnh vực, cho nhãn màu trên mỗi khối mốc (0106).
   canManage: boolean;
   // Tuần này đã có biên bản chưa — quyết định có bày nút gỡ hay không. Bày nút gỡ khi chưa có gì
   // để gỡ là mời người ta bấm một nút chỉ biết báo lỗi.
@@ -154,49 +115,21 @@ export function PhongHop({
   // Đường về trang WIG. null với ban giám hiệu — họ KHÔNG vào được /wig, nên vẽ một liên kết tới
   // đó là vẽ một cái cửa dẫn thẳng tới màn hình "bạn không có quyền".
   quayVe: {pathname: '/wig'; query: Record<string, string>} | null;
-  // Trang WIG mở sẵn TUẦN MỚI — đích đến sau khi lưu, nơi mục tiêu tuần vừa tạo nằm. Cùng luật
-  // null với quayVe.
+  // Trang WIG mở sẵn TUẦN MỚI — đích đến sau khi lưu, nơi cam kết vừa tạo nằm. Cùng luật null
+  // với quayVe.
   xemTuanMoi?: {pathname: '/wig'; query: Record<string, string>} | null;
 }) {
   const t = useTranslations('meeting');
   const tw = useTranslations('wig');
-  // Dòng việc nào cho em TỰ ĐIỀN SỐ mỗi ngày. Đơn vị đo lại thì luôn bật, không hỏi.
-  // Lựa chọn V/X đang giữ trên màn (chưa bấm Lưu). Mặc định lấy thứ đã chấm lần trước.
+  // Lựa chọn V/X đang giữ trên màn (chưa bấm Chốt) — cho cả cam kết lớp lẫn cam kết từng em.
   const [vx, setVx] = useState<Record<string, 'win' | 'lose'>>({});
   const [state, formAction] = useActionState(ketThucBuoiHop, {ok: false});
 
-  // ── MỘT KHO GIÁ TRỊ CHO TẤT CẢ Ô ─────────────────────────────────────────────────────────
-  const [v, setV] = useState<Record<string, string>>(() => {
-    const o: Record<string, string> = {
-      chiem_nghiem: chiemNghiemCu,
-      cam_ket: camKetCu,
-      bu_nam: namHienCo[0]?.id ?? '',
-    };
-    // MỖI LĨNH VỰC MỘT CHỈ TIÊU — 0106. Trước đây chỉ ô đầu tiên (moc_id/moc_target) được điền,
-    // ba lĩnh vực còn lại im lặng suốt phòng họp. Nay mỗi mốc trong mocDich giữ đúng ô của nó.
-    for (const r of viecTuanQua) {
-      o[`verdict_${r.id}`] = r.verdict ?? '';
-      o[`note_${r.id}`] = r.note;
-    }
-    // Ô của TỪNG EM. Điền sẵn câu cũ: "mặc định như cũ, có đổi thì chọn khác" — nên mở buổi họp ra
-    // là mọi ô đã đúng, cô chỉ chạm vào những em thật sự đổi.
-    for (const e of emHop) {
-      o[`em_${e.id}_ketqua`] = e.ketQua;
-      o[`em_${e.id}_camket`] = e.camKet;
-    }
-    return o;
-  });
+  // ── MỘT KHO GIÁ TRỊ CHO CÁC Ô CHỮ ────────────────────────────────────────────────────────
+  const [v, setV] = useState<Record<string, string>>(() => ({chiem_nghiem: chiemNghiemCu}));
   const set = (k: string, val: string) => setV((p) => ({...p, [k]: val}));
-  // Ô NÀO ĐANG CÓ CON TRỎ — để lượt cập nhật realtime không giật chữ khỏi tay người đang gõ.
-  const oDangGo = useRef<string | null>(null);
   const oNhap = (k: string) => ({
     value: v[k] ?? '',
-    onFocus: () => {
-      oDangGo.current = k;
-    },
-    onBlur: () => {
-      if (oDangGo.current === k) oDangGo.current = null;
-    },
     onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       set(k, e.target.value),
   });
@@ -217,10 +150,10 @@ export function PhongHop({
     try {
       const raw = window.localStorage.getItem(khoaNhap);
       if (!raw) return;
-      const cu = JSON.parse(raw) as {v?: Record<string, string>};
-      if (!cu?.v) return;
-      setV((p) => ({...p, ...cu.v}));
-      setNhapDaKhoiPhuc(true);
+      const cu = JSON.parse(raw) as {v?: Record<string, string>; vx?: Record<string, 'win' | 'lose'>};
+      if (cu?.v) setV((p) => ({...p, ...cu.v}));
+      if (cu?.vx) setVx((p) => ({...p, ...cu.vx}));
+      if (cu?.v || cu?.vx) setNhapDaKhoiPhuc(true);
     } catch {
       // Nháp hỏng thì bỏ qua — không có gì để cứu, và không được làm hỏng cả trang vì nó.
     }
@@ -229,13 +162,13 @@ export function PhongHop({
     if (!daDocNhap.current) return;
     const id = setTimeout(() => {
       try {
-        window.localStorage.setItem(khoaNhap, JSON.stringify({v}));
+        window.localStorage.setItem(khoaNhap, JSON.stringify({v, vx}));
       } catch {
         // Hết chỗ hoặc chế độ riêng tư — nháp là thứ có thì tốt, không có thì thôi.
       }
     }, 500);
     return () => clearTimeout(id);
-  }, [khoaNhap, v]);
+  }, [khoaNhap, v, vx]);
   const boNhap = () => {
     try {
       window.localStorage.removeItem(khoaNhap);
@@ -247,18 +180,19 @@ export function PhongHop({
 
   // ── EM ĐANG ĐIỀN, CÔ NHÌN THẤY ────────────────────────────────────────────────────────────
   //
-  // Từ 0111, mỗi em tự điền hai ô của mình ngay trong phòng họp (/student/hop). Chữ ấy đi vào
-  // cùng bảng `wig_meetings`, nên chỗ này chỉ cần nghe thay đổi của bảng là bảng "Từng em" tự
-  // cập nhật — cô không phải tải lại trang giữa buổi họp.
+  // Từ 0111, mỗi em tự điền phần của mình ngay trong phòng họp (/student/hop). Chữ ấy đi vào cùng
+  // bảng `wig_meetings`, nên chỗ này chỉ cần nghe thay đổi của bảng là câu trả lời của em tự cập
+  // nhật — cô không phải tải lại trang giữa buổi họp.
   //
   // ĐI QUA postgres_changes chứ không qua kênh broadcast: broadcast của Supabase mặc định ai
   // đăng nhập cũng vào được nếu đoán trúng tên kênh, mà đây là chữ của trẻ con. postgres_changes
   // thì Realtime áp đúng RLS của bảng.
+  const [traLoi, setTraLoi] = useState<Record<string, EmHop['traLoi']>>(() =>
+    Object.fromEntries(tungEm.map((e) => [e.id, e.traLoi])),
+  );
   const [dangGoLuc, setDangGoLuc] = useState<Record<string, number>>({});
-  // AI ĐANG NGỒI TRONG PHÒNG. Khởi tạo từ dữ liệu máy chủ, rồi cập nhật khi có em bấm Tham gia —
-  // cùng gói postgres_changes đang dùng cho chữ "… đang điền", không mở thêm kênh nào.
   const [coMat, setCoMat] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(emHop.filter((e) => e.thamGia).map((e) => [e.id, true])),
+    Object.fromEntries(tungEm.filter((e) => e.thamGia).map((e) => [e.id, true])),
   );
   // Nhịp đồng hồ để chữ "đang điền…" tự tắt sau vài giây — không có nó thì cái chấm động đậy
   // nằm lại đó suốt buổi họp dù em đã gõ xong từ lâu.
@@ -278,62 +212,44 @@ export function PhongHop({
         (payload) => {
           const r = payload.new as {
             student_id: string | null;
+            week_start: string | null;
             week_label: string | null;
             results: string | null;
             commitments: string | null;
-            hs_go_luc: string | null;
+            kho_khan: string | null;
+            vuot_qua: string | null;
+            cach_tot_hon: string | null;
             tham_gia_luc: string | null;
           } | null;
-          if (!r?.student_id || r.week_label !== hopLabel) return;
-          // GÓI TIN VỪA TỚI LÀ ĐỦ ĐỂ NÓI "vừa có người gõ" — không dò thêm cột nào.
-          //
-          // Hai lần hụt trước đó ở đúng chỗ này: bản đầu đọc `hs_go_luc` rồi Date.parse() nó,
-          // mà Postgres trả "2026-08-13 10:52:14+00" (dấu cách, không phải chữ T) nên parse ra
-          // NaN và phép so luôn sai; bản sau lấy giờ máy nhưng vẫn CHỜ có `hs_go_luc` trong gói,
-          // mà gói của Realtime không phải lúc nào cũng mang đủ cột. Chữ trong ô thì hiện đúng
-          // cả hai lần — mỗi cái chấm động đậy là không.
-          // Nay: có tin về dòng của em nào thì em ấy vừa gõ. Chấm hết.
+          // Khớp theo NGÀY thứ Hai, không theo nhãn: nhãn là chữ, và cùng một tuần đã từng mang
+          // hai nhãn ("32-2026" / "W32-2026") trong dữ liệu thật.
+          if (!r?.student_id || (r.week_start ?? '') !== hopStart) return;
+          // GÓI TIN VỪA TỚI LÀ ĐỦ ĐỂ NÓI "vừa có người gõ" — không dò thêm cột nào. (Hai lần hụt
+          // trước ở đúng chỗ này: parse hs_go_luc, rồi chờ hs_go_luc có trong gói — gói Realtime
+          // không phải lúc nào cũng mang đủ cột.)
           setDangGoLuc((p) => ({...p, [r.student_id!]: Date.now()}));
           if (r.tham_gia_luc) setCoMat((p) => ({...p, [r.student_id!]: true}));
-          // KHÔNG giật chữ khỏi tay cô. Ô nào cô đang đặt con trỏ vào thì giữ nguyên chữ của cô;
-          // hai người gõ cùng một ô là chuyện của buổi họp, không phải chuyện máy phải tự xử.
-          setV((p) => {
-            const kq = `em_${r.student_id}_ketqua`;
-            const ck = `em_${r.student_id}_camket`;
-            const moi = {...p};
-            if (oDangGo.current !== kq) moi[kq] = r.results ?? '';
-            if (oDangGo.current !== ck) moi[ck] = r.commitments ?? '';
-            return moi;
-          });
+          setTraLoi((p) => ({
+            ...p,
+            [r.student_id!]: {
+              khoKhan: r.kho_khan ?? '',
+              vuotQua: r.vuot_qua ?? '',
+              cachTotHon: r.cach_tot_hon ?? '',
+              ketQua: r.results ?? '',
+              camKet: r.commitments ?? '',
+            },
+          }));
         },
       )
       .subscribe();
     return () => {
       void supabase.removeChannel(kenh);
     };
-  }, [canManage, classId, hopStart, hopLabel]);
+  }, [canManage, classId, hopStart]);
   // 6 giây: đủ dài để một em gõ chậm không bị nhấp nháy, đủ ngắn để cô không tưởng em còn đang gõ.
   const dangGo = (id: string) => nhip - (dangGoLuc[id] ?? 0) < 6000;
 
-  // ── DÒNG VIỆC CHO TUẦN TỚI ───────────────────────────────────────────────────────────────
-  // Mang sẵn việc của tuần vừa rồi sang: 4DX bảo thước đo dẫn dắt phải bền, đổi mỗi tuần thì
-  // không đo được gì. Nhưng vẫn sửa và xoá được — mang sẵn là gợi ý, không phải ép.
-  //
-  // MỖI DÒNG GIỮ `area` — 0106: một mảng phẳng duy nhất cho cả bốn lĩnh vực, lọc theo lĩnh vực
-  // lúc vẽ từng khối mốc. Một mảng, không phải bốn state riêng: xoá/thêm dòng không phải viết
-  // bốn lần logic giống hệt nhau.
-  // CỖ MÁY "DÒNG VIỆC" ĐÃ GỠ (16/08/2026).
-  //
-  // Chín state và hàm ở đây từng dựng các dòng "việc để em tick" ngay trong buổi họp. Hai đợt sửa
-  // liên tiếp làm chúng thành xác: 15/08 gỡ phần cô gõ việc thay em, rồi 16/08 chuyển việc chung
-  // sang trang lớp (cô đặt ở đó, cô tick ở đó). Bước 3 nay chỉ còn tạo CAM KẾT của lớp.
-  //
-  // Giữ lại thì không sai gì cả — chỉ là lần sau ai đọc file này sẽ mất mười phút để hiểu ra rằng
-  // chúng không nối vào đâu.
   const err = (f: string) => (state.fieldError === f ? state.error : null);
-
-  // (Sĩ số từng dùng để tính nhịp; nhịp đã bỏ ở 0121 và phần đặt việc thay em bỏ ở 15/08/2026,
-  // nên không còn ai hỏi tới con số ấy nữa.)
 
   const buoc = (so: number, tieuDe: string, phu?: string) => (
     <div className="mb-3">
@@ -348,53 +264,9 @@ export function PhongHop({
         </span>
         {tieuDe}
       </h2>
-      {phu && <p className="ml-9 mt-0.5 text-[11.5px] font-semibold leading-relaxed text-grey-mid">{phu}</p>}
+      {phu && <p className="ml-9 mt-0.5 text-[11.5px] font-semibold text-grey-mid">{phu}</p>}
     </div>
   );
-
-  // Ba nút tròn: thắng · thua · CHƯA CHẤM. Nút thứ ba bắt buộc phải có — radio đã chọn thì HTML
-  // không có cách bỏ chọn, thiếu nó là bấm nhầm "thắng" một lần rồi kẹt luôn.
-  const nutCham = (id: string, gt: 'win' | 'lose' | '') => {
-    const dangChon = (v[`verdict_${id}`] ?? '') === gt;
-    const mau =
-      gt === 'win'
-        ? dangChon
-          ? 'border-transparent bg-success text-white'
-          : 'border-success/30 text-success/40 hover:border-success/60'
-        : gt === 'lose'
-          ? dangChon
-            ? 'border-transparent bg-status-bad text-white'
-            : 'border-status-bad/30 text-status-bad/40 hover:border-status-bad/60'
-          : dangChon
-            ? 'border-navy/40 bg-navy/[0.08] text-navy'
-            : 'border-navy/15 text-grey-soft hover:border-navy/40';
-    const nhan = gt === 'win' ? t('verdictWin') : gt === 'lose' ? t('verdictLose') : t('verdictNone');
-    return (
-      <label className="cursor-pointer" title={nhan}>
-        <input
-          type="radio"
-          name={`verdict_${id}`}
-          value={gt}
-          checked={dangChon}
-          onChange={() => set(`verdict_${id}`, gt)}
-          disabled={!canManage}
-          className="peer sr-only"
-          aria-label={nhan}
-        />
-        <span
-          className={`grid h-8 w-8 place-items-center rounded-full border-[1.5px] transition-all ${mau} peer-focus-visible:ring-2 peer-focus-visible:ring-navy/40`}
-        >
-          {gt === 'win' ? (
-            <Check size={15} strokeWidth={3} />
-          ) : gt === 'lose' ? (
-            <X size={15} strokeWidth={3} />
-          ) : (
-            <Minus size={14} strokeWidth={3} />
-          )}
-        </span>
-      </label>
-    );
-  };
 
   // Chốt xong là nháp hết việc — giữ lại thì lần sau mở buổi họp ra nó đè lên số liệu thật.
   useEffect(() => {
@@ -402,7 +274,122 @@ export function PhongHop({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.ok]);
 
-  const soCoMat = emHop.filter((e) => coMat[e.id]).length;
+  const soCoMat = tungEm.filter((e) => coMat[e.id]).length;
+
+  // ══ V / X CHO MỘT CAM KẾT ══ (0121)
+  // Thắng/thua là Ý NGƯỜI, không phải phép so. Máy đã đếm hộ ("2/3 việc đạt") và làm SÁNG nút nó
+  // nghiêng về; nút kia mờ đi nhưng vẫn bấm được. Chủ dự án chốt đúng cách ấy: "nếu đủ rồi thì
+  // nút thắng sáng, nút thua tối đi, ai muốn đổi thì cho chọn lại".
+  // Gửi lên cả hai — người chọn gì (vx_) và máy gợi gì (vxgoi_) — để lần sau nhìn lại còn biết
+  // cô đã đổi ý so với máy ở đâu. Ban giám hiệu (không canManage) chỉ thấy dấu đã chấm.
+  const nutVX = (c: CamKetHop) => {
+    const chon = vx[c.id] ?? c.verdict ?? null;
+    if (!canManage) {
+      return chon ? (
+        <span
+          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${
+            chon === 'win' ? 'bg-success text-white' : 'bg-status-bad text-white'
+          }`}
+          aria-label={chon === 'win' ? t('verdictWin') : t('verdictLose')}
+        >
+          {chon === 'win' ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />}
+        </span>
+      ) : null;
+    }
+    return (
+      <span className="flex shrink-0 gap-1.5">
+        <input type="hidden" name={`vxgoi_${c.id}`} value={c.goiY} />
+        {chon && <input type="hidden" name={`vx_${c.id}`} value={chon} />}
+        {(['win', 'lose'] as const).map((gt) => {
+          const dangChon = chon === gt;
+          const mayGoi = c.goiY === gt;
+          return (
+            <button
+              key={gt}
+              type="button"
+              onClick={() => setVx((p) => ({...p, [c.id]: gt}))}
+              aria-pressed={dangChon}
+              aria-label={gt === 'win' ? t('verdictWin') : t('verdictLose')}
+              className={`grid h-9 w-11 cursor-pointer place-items-center rounded-[10px] border-[1.5px] font-extrabold transition-all ${
+                dangChon
+                  ? gt === 'win'
+                    ? 'border-transparent bg-success text-white'
+                    : 'border-transparent bg-status-bad text-white'
+                  : mayGoi
+                    ? 'border-navy/25 bg-white text-navy'
+                    : 'border-navy/10 bg-white text-navy/35'
+              }`}
+            >
+              {gt === 'win' ? <Check size={16} strokeWidth={3} /> : <X size={16} strokeWidth={3} />}
+            </button>
+          );
+        })}
+      </span>
+    );
+  };
+
+  // Một cam kết: tên · các việc dưới nó (đã đếm tick) · V/X. Cùng một khối cho lớp và cho em.
+  const theCamKet = (c: CamKetHop) => (
+    <div key={c.id} className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <span className="min-w-0 flex-1 text-[13.5px] font-bold text-navy">{c.title}</span>
+        {c.soLanSua > 0 && (
+          <span className="shrink-0 rounded-full bg-status-bad/[0.10] px-2 py-0.5 text-[10.5px] font-extrabold text-status-bad">
+            {t('changedTimes', {n: c.soLanSua})}
+          </span>
+        )}
+        <span className="shrink-0 text-[11.5px] font-bold text-grey-mid">
+          {t('commitmentLeadsDone', {xong: c.viec.filter((x) => x.xong).length, tong: c.viec.length})}
+        </span>
+        {nutVX(c)}
+      </div>
+      {c.viec.length > 0 && (
+        <ul className="mt-2 flex flex-col gap-1">
+          {c.viec.map((x) => (
+            <li key={x.id} className="flex items-center gap-2 text-[12.5px]">
+              <span
+                className={`grid h-4 w-4 shrink-0 place-items-center rounded-full ${
+                  x.xong ? 'bg-success text-white' : 'border-[1.5px] border-navy/20'
+                }`}
+                aria-hidden
+              >
+                {x.xong && <Check size={10} strokeWidth={3.5} />}
+              </span>
+              <span className="min-w-0 flex-1 truncate font-semibold text-navy">{x.title}</span>
+              <span className="shrink-0 font-extrabold tabular-nums text-navy">
+                {x.dat}/{x.target}
+                {x.unit ? <span className="ml-1 font-semibold text-grey-mid">{x.unit}</span> : null}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  // Năm câu em tự viết — chỉ đọc. Trống thì gạch, không đặt câu giả vào miệng em.
+  const cauTraLoi = (id: string) => {
+    const tl = traLoi[id];
+    const dong: [string, string][] = [
+      [t('qKhoKhan'), tl?.khoKhan ?? ''],
+      [t('qVuotQua'), tl?.vuotQua ?? ''],
+      [t('qCachTotHon'), tl?.cachTotHon ?? ''],
+      [t('emResults'), tl?.ketQua ?? ''],
+      [t('emCommit'), tl?.camKet ?? ''],
+    ];
+    return (
+      <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+        {dong.map(([nhan, gt]) => (
+          <div key={nhan} className="min-w-0">
+            <dt className="text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid">{nhan}</dt>
+            <dd className={`text-[12.5px] font-semibold ${gt ? 'text-navy' : 'text-grey-soft'}`}>
+              {gt || '—'}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -421,13 +408,13 @@ export function PhongHop({
               {t('roomOpen')}
             </span>
             <span className="text-[12.5px] font-bold text-navy">
-              {t('roomJoined', {n: soCoMat, total: emHop.length})}
+              {t('roomJoined', {n: soCoMat, total: tungEm.length})}
             </span>
             {/* Tên của những em CHƯA vào — đó mới là danh sách cô cần, để nhắc. */}
-            {soCoMat < emHop.length && (
+            {soCoMat < tungEm.length && (
               <span className="min-w-0 flex-1 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
                 {t('roomMissing', {
-                  ten: emHop
+                  ten: tungEm
                     .filter((e) => !coMat[e.id])
                     .map((e) => e.ten)
                     .join(', '),
@@ -474,297 +461,102 @@ export function PhongHop({
       <input type="hidden" name="hop_label" value={hopLabel} />
       <input type="hidden" name="dich_label" value={dichLabel} />
 
-      {/* ══ BƯỚC 1 ══ */}
+      {/* ══ BƯỚC 1 — TUẦN VỪA RỒI ══ */}
       <section className="glass rounded-[20px] p-[18px]">
-        {buoc(1, t('step1', {week: hopLabel}), t('step1Hint', {range: hopRange}))}
+        {buoc(1, t('step1', {week: hopLabel}), hopRange)}
 
-        {/* Nhịp 4DX mở đầu bằng "tuần trước hứa gì" — đặt TRƯỚC bảng để đọc theo đúng thứ tự ấy.
-            Tuần trước KHÔNG có cam kết thì vẫn hiện khung, ghi rõ là chưa có: ẩn hẳn đi thì người
-            mới dùng tưởng thiếu tính năng — người thử 08/2026 báo đúng chữ "không thấy câu cam
-            kết". */}
-        <div className="mb-3 flex flex-wrap items-start gap-2 rounded-[14px] border-[1.5px] border-gold-deep/25 bg-gold/[0.12] px-3.5 py-2.5">
-          <ArrowRight size={14} strokeWidth={2.5} className="mt-0.5 shrink-0 text-gold-deep" />
-          <div className="min-w-0 flex-1">
-            <span className="text-[11px] font-extrabold uppercase tracking-wide text-gold-text">
-              {t('promisedLastWeek', {week: nhanTuanTruoc})}
-            </span>
-            {loiHuaTruoc ? (
-              <p className="mt-0.5 text-[12.5px] font-semibold leading-relaxed text-navy">{loiHuaTruoc}</p>
-            ) : (
-              <p className="mt-0.5 text-[12.5px] font-semibold italic leading-relaxed text-grey-mid">
-                {t('noPromiseLastWeek')}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* ══ V / X CHO TỪNG CAM KẾT ══ (0121)
-            Thắng/thua nay là Ý NGƯỜI, không phải phép so. Máy đã đếm hộ ("2/3 việc đạt") và làm
-            SÁNG nút nó nghiêng về; nút kia mờ đi nhưng vẫn bấm được. Chủ dự án chốt đúng cách ấy:
-            "nếu đủ rồi thì nút thắng sáng, nút thua tối đi, ai muốn đổi thì cho chọn lại".
-
-            Gửi lên cả hai — người chọn gì (vx_) và máy gợi gì (vxgoi_) — để lần sau nhìn lại còn
-            biết cô đã đổi ý so với máy ở đâu. */}
-        {camKetTuanQua.length > 0 && (
-          <div className="mb-3 flex flex-col gap-2">
-            {camKetTuanQua.map((c) => {
-              const chon = vx[c.id] ?? c.verdict ?? null;
-              return (
-                <div key={c.id} className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-                  <input type="hidden" name={`vxgoi_${c.id}`} value={c.goiY} />
-                  {chon && <input type="hidden" name={`vx_${c.id}`} value={chon} />}
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                    <span className="min-w-0 flex-1 text-[13.5px] font-bold text-navy">{c.title}</span>
-                    <span className="shrink-0 text-[11.5px] font-bold text-grey-mid">
-                      {t('commitmentLeadsDone', {xong: c.viecXong, tong: c.viecTong})}
-                    </span>
-                    {canManage && (
-                      <span className="flex shrink-0 gap-1.5">
-                        {(['win', 'lose'] as const).map((gt) => {
-                          const dangChon = chon === gt;
-                          const mayGoi = c.goiY === gt;
-                          return (
-                            <button
-                              key={gt}
-                              type="button"
-                              onClick={() => setVx((v) => ({...v, [c.id]: gt}))}
-                              aria-pressed={dangChon}
-                              className={`grid h-9 w-11 cursor-pointer place-items-center rounded-[10px] border-[1.5px] font-extrabold transition-all ${
-                                dangChon
-                                  ? gt === 'win'
-                                    ? 'border-transparent bg-success text-white'
-                                    : 'border-transparent bg-status-bad text-white'
-                                  : mayGoi
-                                    ? 'border-navy/25 bg-white text-navy'
-                                    : 'border-navy/10 bg-white text-navy/35'
-                              }`}
-                            >
-                              {gt === 'win' ? <Check size={16} strokeWidth={3} /> : <X size={16} strokeWidth={3} />}
-                            </button>
-                          );
-                        })}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ══ BẢNG PDR ══ (0126)
-            PRD v3 đòi ba con số cho mỗi em, và chủ dự án chốt chúng thuộc về CHÍNH trang này chứ
-            không phải một màn hình riêng: "dashboard pdr chính là cái trang họp wig bên gv đó".
-
-            Đặt ngay dưới V/X của lớp là có chủ ý — cô vừa chấm xong cam kết CHUNG thì nhìn sang
-            ngay từng em, cùng một câu hỏi ở hai thang.
-
-            "Đã đổi" là tín hiệu kỷ luật, không phải điểm trừ: em đổi lời hứa giữa tuần thì lời
-            hứa ấy thôi là một cam kết. Chỉ tô màu khi > 0, để một bảng toàn số 0 không đỏ lòm. */}
-        {canManage && bangPdr.length > 0 && (
-          <details className="mb-3 rounded-[14px] border-[1.5px] border-navy/10 p-3">
-            <summary className="cursor-pointer select-none text-[13px] font-extrabold text-navy">
-              {t('pdrTitle')}{' '}
-              <span className="text-[11.5px] font-semibold text-grey-mid">
-                {t('pdrCount', {n: bangPdr.length})}
-              </span>
-            </summary>
-            <div className="mt-2.5 overflow-x-auto">
-              <table className="w-full min-w-[420px] border-collapse text-[12.5px]">
-                <thead>
-                  <tr className="text-left text-[10.5px] font-extrabold uppercase tracking-wide text-grey-soft">
-                    <th className="pb-1.5 pr-2 font-extrabold">{t('pdrStudent')}</th>
-                    <th className="pb-1.5 pr-2 font-extrabold">{t('pdrCommitments')}</th>
-                    <th className="pb-1.5 pr-2 font-extrabold">{t('pdrLeads')}</th>
-                    <th className="pb-1.5 font-extrabold">{t('pdrChanged')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bangPdr.map((r) => (
-                    <tr key={r.id} className="border-t border-navy/[0.07]">
-                      <td className="py-1.5 pr-2 font-bold text-navy">{r.ten}</td>
-                      <td className="py-1.5 pr-2 font-extrabold tabular-nums text-navy">
-                        {r.camKetDat}/{r.camKetTong}
-                      </td>
-                      <td className="py-1.5 pr-2 font-extrabold tabular-nums text-navy">
-                        {r.viecDat}/{r.viecTong}
-                      </td>
-                      <td
-                        className={`py-1.5 font-extrabold tabular-nums ${
-                          r.soLanSua > 0 ? 'text-status-bad' : 'text-grey-soft'
-                        }`}
-                      >
-                        {r.soLanSua}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </details>
-        )}
-
-        {viecTuanQua.length === 0 ? (
-          <p className="rounded-[14px] border-[1.5px] border-dashed border-navy/15 p-4 text-center text-[12.5px] font-semibold italic leading-relaxed text-grey-mid">
-            {t('noWorkThatWeek', {week: hopLabel})}
-          </p>
+        {/* Cam kết của LỚP: cô đặt tuần trước, cô tick việc trong tuần, nay cô chấm. */}
+        <h3 className="mb-2 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
+          {t('classCommitments')}
+        </h3>
+        {camKetLop.length > 0 ? (
+          <div className="flex flex-col gap-2">{camKetLop.map(theCamKet)}</div>
         ) : (
-          <>
-            {/* Cuộn ngang trong khung riêng — trang không được cuộn ngang (luật của dự án). */}
-            <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
-              <table className="w-full min-w-[680px] border-collapse">
-                <thead>
-                  <tr className="bg-navy/[0.03]">
-                    {[t('colWork'), t('colResult', {week: hopLabel}), t('colVerdict'), t('colLesson')].map(
-                      (h, i) => (
-                        <th
-                          key={h}
-                          className={`px-3 py-2 text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid ${
-                            i >= 1 && i <= 2 ? 'text-center' : 'text-left'
-                          } ${i === 0 ? 'sticky left-0 z-10 bg-white' : ''}`}
-                        >
-                          {h}
-                        </th>
-                      ),
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {viecTuanQua.map((r) => (
-                    <tr key={r.id} className="border-t border-navy/[0.07] align-top">
-                      {/* Tên việc GHIM TRÁI: bảng rộng 680px nên trên điện thoại phải cuộn ngang,
-                          và nếu tên trôi mất thì người ta gõ vào ô "Rút ra" mà không còn biết
-                          mình đang viết cho việc nào. */}
-                      <td className="sticky left-0 z-10 bg-white px-3 py-2.5">
-                        <span className="text-[13px] font-bold text-navy">{r.title}</span>
-                        <span className="mt-0.5 block text-[11px] font-semibold text-grey-mid">
-                          {t('joinedCount', {n: r.daGop, total: r.siSo})}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-center text-[13px] font-extrabold tabular-nums text-navy">
-                        {r.ketQua}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {nutCham(r.id, 'win')}
-                          {nutCham(r.id, 'lose')}
-                          {nutCham(r.id, '')}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        {/* Ảnh chụp lúc mở trang: dòng này lúc ấy ĐÃ có ghi nhận hay chưa. Server
-                            chỉ xoá những dòng người bấm Lưu THẬT SỰ nhìn thấy rồi xoá đi — không
-                            có nó thì thầy A bấm Lưu là xoá mất ghi chú cô B vừa ghi, không báo. */}
-                        {r.daCo && <input type="hidden" name={`co_${r.id}`} value="1" />}
-                        <textarea
-                          name={`note_${r.id}`}
-                          aria-label={t('colLesson') + ' — ' + r.title}
-                          {...oNhap(`note_${r.id}`)}
-                          placeholder={t('lessonPlaceholder')}
-                          disabled={!canManage}
-                          rows={2}
-                          className="w-full min-w-[180px] resize-y rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-navy outline-none transition-colors focus:border-navy disabled:bg-navy/[0.03]"
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <p className="rounded-[14px] border-[1.5px] border-dashed border-navy/15 p-3 text-center text-[12.5px] font-semibold text-grey-mid">
+            {t('noClassCommitment', {week: hopLabel})}
+          </p>
+        )}
 
-            {/* TỪNG EM. Tổng cả lớp "25/30" không cho biết đó là cả lớp làm đều hay vài em gánh
-                phần còn lại; buổi họp cần trả lời "em nào chưa làm", nên em thấp nhất đứng đầu. */}
-            {tungEm.length > 0 && (
-              <div className="mt-3.5">
-                <div className="mb-2 flex flex-wrap items-baseline gap-2">
-                  <h3 className="font-display text-[13.5px] font-bold text-navy">
-                    {t('perStudent', {week: hopLabel})}
-                  </h3>
-                  {tungEm.filter((e) => e.lam === 0).length > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-status-bad/[0.10] px-2 py-0.5 text-[10.5px] font-extrabold text-status-bad">
-                      <AlertTriangle size={11} strokeWidth={2.5} />
-                      {t('noneYet', {n: tungEm.filter((e) => e.lam === 0).length})}
+        {/* TỪNG EM: cam kết của em (việc, tick, V/X) + năm câu em tự viết. Một khối cho một em —
+            không còn ba bảng nói ba số về cùng một người. */}
+        <h3 className="mb-2 mt-4 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
+          {t('perStudent')} · {t('perStudentCount', {n: tungEm.length})}
+        </h3>
+        <div className="flex flex-col gap-2.5">
+          {tungEm.map((e) => {
+            const ckDat = e.camKet.filter((c) => (vx[c.id] ?? c.verdict) === 'win').length;
+            const viecTong = e.camKet.reduce((s, c) => s + c.viec.length, 0);
+            const viecDat = e.camKet.reduce((s, c) => s + c.viec.filter((x) => x.xong).length, 0);
+            return (
+              <div key={e.id} className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <Link
+                    href={`/student/${e.id}`}
+                    className="min-w-0 truncate text-[13.5px] font-extrabold text-navy hover:underline"
+                  >
+                    {e.ten}
+                  </Link>
+                  {coMat[e.id] && (
+                    <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
+                      {t('roomJoined1')}
                     </span>
                   )}
+                  {/* EM ĐANG GÕ. Ba chấm động đậy đúng chỗ cái tên, không phải một khung thông
+                      báo ở góc màn — cô đang nhìn danh sách em, tín hiệu phải nằm trong danh sách
+                      ấy. aria-live để trình đọc màn hình cũng nghe được, nhưng 'polite' thôi. */}
+                  {dangGo(e.id) && (
+                    <span
+                      aria-live="polite"
+                      className="inline-flex items-center gap-1 rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-navy"
+                    >
+                      <PencilLine size={10} strokeWidth={2.5} />
+                      {t('studentTyping')}
+                    </span>
+                  )}
+                  <span className="ml-auto shrink-0 text-[11.5px] font-bold tabular-nums text-grey-mid">
+                    {t('pdrCommitments')} {ckDat}/{e.camKet.length} · {t('pdrLeads')} {viecDat}/{viecTong}
+                  </span>
                 </div>
-                <div className="flex flex-col rounded-[14px] border-[1.5px] border-navy/10 px-3 py-1">
-                  {tungEm.map((e) => {
-                    const pct = e.can > 0 ? Math.round((e.lam / e.can) * 100) : 0;
-                    return (
-                      <div key={e.id} className="flex items-center gap-3 border-t border-navy/[0.07] py-2 first:border-t-0">
-                        <Link
-                          href={`/student/${e.id}`}
-                          className="block min-w-0 flex-1 truncate py-1 text-[12.5px] font-bold text-navy hover:underline"
-                        >
-                          {e.ten}
-                        </Link>
-                        <span className="h-[7px] w-[56px] shrink-0 overflow-hidden rounded-[4px] bg-navy/[0.08] sm:w-[120px]">
-                          <span
-                            className="block h-full rounded-[4px]"
-                            style={{
-                              width: `${pct}%`,
-                              background:
-                                e.lam === 0
-                                  ? 'var(--color-status-bad)'
-                                  : pct >= 80
-                                    ? 'var(--color-success)'
-                                    : 'var(--color-gold-mid)',
-                            }}
-                          />
-                        </span>
-                        <span className="w-[58px] shrink-0 text-right text-[12.5px] font-extrabold tabular-nums text-navy">
-                          {e.lam}/{e.can}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </section>
 
-      {/* ══ BƯỚC 2 ══ */}
-      <section className="glass rounded-[20px] p-[18px]">
-        {buoc(2, t('step2'), t('step2Hint'))}
-        <div className="flex flex-col gap-3">
-          <Field label={t('reflection')} htmlFor="chiem-nghiem">
-            <textarea
-              id="chiem-nghiem"
-              name="chiem_nghiem"
-              {...oNhap('chiem_nghiem')}
-              disabled={!canManage}
-              rows={2}
-              placeholder={t('reflectionPlaceholder')}
-              className="w-full resize-y rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-[13px] font-semibold text-navy outline-none transition-colors focus:border-navy disabled:bg-navy/[0.03]"
-            />
-          </Field>
-          <Field label={t('commitments')} htmlFor="cam-ket" hint={t('commitmentsHint')}>
-            <textarea
-              id="cam-ket"
-              name="cam_ket"
-              {...oNhap('cam_ket')}
-              disabled={!canManage}
-              rows={2}
-              placeholder={t('commitmentsPlaceholder')}
-              className="w-full resize-y rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-[13px] font-semibold text-navy outline-none transition-colors focus:border-navy disabled:bg-navy/[0.03]"
-            />
-          </Field>
+                {e.camKet.length > 0 ? (
+                  <div className="mt-2 flex flex-col gap-2">{e.camKet.map(theCamKet)}</div>
+                ) : (
+                  <p className="mt-2 text-[12px] font-semibold italic text-grey-mid">
+                    {t('noStudentCommitment')}
+                  </p>
+                )}
+
+                {cauTraLoi(e.id)}
+              </div>
+            );
+          })}
         </div>
       </section>
 
-      {/* ══ BƯỚC 3 ══ */}
+      {/* ══ BƯỚC 2 — CHIÊM NGHIỆM ══ Một đoạn của cả lớp. Không còn ô "Cam kết" chữ tự do ở đây:
+          cam kết tuần tới là hai dòng có cấu trúc ở bước 3, viết thêm một câu văn là bản sao. */}
+      <section className="glass rounded-[20px] p-[18px]">
+        {buoc(2, t('step2'))}
+        <textarea
+          id="chiem-nghiem"
+          name="chiem_nghiem"
+          aria-label={t('step2')}
+          {...oNhap('chiem_nghiem')}
+          disabled={!canManage}
+          rows={3}
+          placeholder={t('reflectionPlaceholder')}
+          className="w-full resize-y rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-[13px] font-semibold text-navy outline-none transition-colors focus:border-navy disabled:bg-navy/[0.03]"
+        />
+      </section>
+
+      {/* ══ BƯỚC 3 — CAM KẾT TUẦN TỚI ══ */}
       {canManage && (
         <section className="glass rounded-[20px] p-[18px]">
-          {buoc(3, t('step3', {week: dichLabel}), t('step3Hint', {range: dichRange}))}
+          {buoc(3, t('step3', {week: dichLabel}), dichRange)}
 
-          {/* CAM KẾT CHO TUẦN TỚI (0121) — tối đa 2, và đó là cả điểm của nó.
-              Chủ dự án: "bản chất wig thì nên giới hạn ở như vậy cho dễ tập trung."
-
-              Cam kết là một LỜI HỨA nên không có ô con số nào ở đây: con số nằm ở các việc dẫn
-              dắt, và việc thì gắn ở trang lớp — nơi có sẵn lưới ngày để các em tick. Buổi họp
-              đặt lời hứa; trang lớp treo việc lên lời hứa ấy. */}
+          {/* CAM KẾT CHO TUẦN TỚI (0121) — tối đa 2, và đó là cả điểm của nó. Cam kết là một LỜI
+              HỨA nên không có ô con số nào ở đây: con số nằm ở các việc dẫn dắt, và việc thì gắn ở
+              trang lớp — nơi có sẵn lưới ngày để cô tick. */}
           <div className="flex flex-col gap-3">
             {err('viec') && (
               <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
@@ -773,43 +565,39 @@ export function PhongHop({
               </p>
             )}
             {namHienCo.length > 0 ? (
-              <>
-                {[0, 1].map((n) => {
-                  const daCo = camKetDich[n];
-                  return (
-                    <div key={n} className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-                      <div className="grid gap-2.5 sm:grid-cols-[1.2fr_2fr]">
-                        <Field label={tw('parentYear')} htmlFor={`ck-${n}-wig`}>
-                          <select
-                            id={`ck-${n}-wig`}
-                            name={`ck_${n}_wig`}
-                            defaultValue={daCo?.wigId ?? namHienCo[0]?.id}
-                            className={selectCls}
-                          >
-                            {namHienCo.map((o) => (
-                              <option key={o.id} value={o.id}>
-                                {o.title}
-                              </option>
-                            ))}
-                          </select>
-                        </Field>
-                        <Field label={t('commitmentNo', {n: n + 1})} htmlFor={`ck-${n}-title`}>
-                          <input
-                            id={`ck-${n}-title`}
-                            name={`ck_${n}_title`}
-                            defaultValue={daCo?.title ?? ''}
-                            placeholder={t('commitmentPlaceholder')}
-                            className={inputCls}
-                          />
-                        </Field>
-                      </div>
+              [0, 1].map((n) => {
+                const daCo = camKetDich[n];
+                return (
+                  <div key={n} className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
+                    <div className="grid gap-2.5 sm:grid-cols-[1.2fr_2fr]">
+                      <Field label={tw('parentYear')} htmlFor={`ck-${n}-wig`}>
+                        <select
+                          id={`ck-${n}-wig`}
+                          name={`ck_${n}_wig`}
+                          defaultValue={daCo?.wigId ?? namHienCo[0]?.id}
+                          className={selectCls}
+                        >
+                          {namHienCo.map((o) => (
+                            <option key={o.id} value={o.id}>
+                              {o.title}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field label={t('commitmentNo', {n: n + 1})} htmlFor={`ck-${n}-title`}>
+                        <input
+                          id={`ck-${n}-title`}
+                          name={`ck_${n}_title`}
+                          {...oNhap(`ck_${n}_title`)}
+                          value={v[`ck_${n}_title`] ?? daCo?.title ?? ''}
+                          placeholder={t('commitmentPlaceholder')}
+                          className={inputCls}
+                        />
+                      </Field>
                     </div>
-                  );
-                })}
-                <p className="text-[11.5px] font-semibold leading-relaxed text-grey-mid">
-                  {t('commitmentHint')}
-                </p>
-              </>
+                  </div>
+                );
+              })
             ) : (
               <div className="rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-4 text-center">
                 <p className="text-[12.5px] font-bold text-navy">{t('needYearWig')}</p>
@@ -828,109 +616,11 @@ export function PhongHop({
         </section>
       )}
 
-      {/* ══ TỪNG EM — việc tuần này, và biên bản riêng ══
-          0108 lát 4+5. Hai việc chủ dự án chốt 13/08/2026, và chúng thuộc về cùng một chỗ:
-
-            · "mỗi tuần con làm gì" đổi thành "TUẦN NÀY con làm gì", tuần sau buổi họp HỎI LẠI. Ô
-              điền sẵn câu cũ — không đổi thì cứ để nguyên, đổi thì gõ đè. Nên mở buổi họp ra là
-              mọi ô đã đúng, cô chỉ chạm vào những em thật sự đổi.
-            · Họp lớp làm được mọi việc của họp Coach × Buddy, để GVCN vắng hoặc bận thì buổi họp
-              vẫn ghi được biên bản cho từng em. Cùng bảng `wig_meetings`, chỉ khác `student_id`.
-
-          ĐÓNG SẴN trong <details>: ba mươi em × bốn ô là một bức tường, mà phần lớn buổi họp chỉ
-          đụng tới vài em. Mở ra là việc của người chủ trì, không phải mặc định của trang. */}
-      {canManage && emHop.length > 0 && (
-        <details className="glass rounded-[20px] p-4">
-          <summary className="cursor-pointer select-none font-display text-[15px] font-bold text-navy">
-            {t('perStudent')}{' '}
-            <span className="text-[11.5px] font-semibold text-grey-mid">
-              {t('perStudentCount', {n: emHop.length})}
-            </span>
-          </summary>
-
-          <div className="mt-3 flex flex-col gap-2.5">
-            {emHop.map((e) => (
-              <div key={e.id} className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-                <div className="mb-2 flex flex-wrap items-baseline gap-x-2">
-                  <span className="text-[13.5px] font-extrabold text-navy">{e.ten}</span>
-                  {/* Em chưa đặt mục tiêu thì KHÔNG có chỗ treo việc. Nói ra ngay cạnh tên, đừng
-                      để cô gõ xong mới biết chữ vừa gõ không đi đâu cả. */}
-                  {!e.wigId && (
-                    <span className="text-[11px] font-bold text-status-bad">{t('noGoalYet')}</span>
-                  )}
-                  {/* EM ĐANG GÕ. Ba chấm động đậy đúng chỗ cái tên, không phải một khung thông
-                      báo ở góc màn — cô đang nhìn danh sách em, tín hiệu phải nằm trong danh sách
-                      ấy. aria-live để trình đọc màn hình cũng nghe được, nhưng 'polite' thôi:
-                      đây không phải chuyện cắt ngang. */}
-                  {dangGo(e.id) && (
-                    <span
-                      aria-live="polite"
-                      className="inline-flex items-center gap-1 rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-navy"
-                    >
-                      <PencilLine size={10} strokeWidth={2.5} />
-                      {t('studentTyping')}
-                    </span>
-                  )}
-                </div>
-
-                {/* Tên đi cùng để câu báo lỗi gọi được đúng em ("Việc của Nguyễn Văn A chưa
-                    chọn thứ nào"). Máy chủ không có tên trong tay ở tầng này. */}
-                <input type="hidden" name={`em_${e.id}_ten`} value={e.ten} />
-
-                {/* Ô "việc tuần này" và hàng nút chọn thứ ĐÃ BỎ (15/08/2026).
-                    Chủ dự án: "sao giáo viên lại được sửa cho từng em? phải là em đặt chứ, lại
-                    còn tick được luôn?".
-
-                    Đúng. Cả mô hình này dựng trên một điều: mục tiêu và cam kết là LỜI CỦA EM,
-                    cô duyệt chứ không gõ hộ (0129, 0133). Nhưng chính màn họp lại chừa một cửa
-                    sau to hơn cả cửa trước — cô gõ thẳng việc cho từng em rồi bấm luôn các thứ
-                    trong tuần, ngay giữa buổi họp, trước mặt cả lớp.
-
-                    Nay em đặt cam kết tuần tới ở màn của em; buổi họp còn lại đúng việc của nó:
-                    nhìn lại tuần qua, chấm V/X, và ghi biên bản. */}
-
-                {/* aria-label KÈM TÊN EM. Nhãn nhìn bằng mắt chỉ ghi "Tuần rồi", và cả trang có
-                    hai ô như thế cho MỖI em — nghe bằng trình đọc màn hình thì ba mươi ô đều tên
-                    là "Tuần rồi", không biết đang ở ô của ai. Mấy nút thứ ngay trên đã kèm tên
-                    từ lâu; hai ô này bị bỏ sót. */}
-                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <Field label={t('emResults')} htmlFor={`em-${e.id}-kq`}>
-                    <input
-                      id={`em-${e.id}-kq`}
-                      name={`em_${e.id}_ketqua`}
-                      aria-label={`${e.ten} — ${t('emResults')}`}
-                      {...oNhap(`em_${e.id}_ketqua`)}
-                      className={inputCls}
-                    />
-                  </Field>
-                  <Field label={t('emCommit')} htmlFor={`em-${e.id}-ck`}>
-                    <input
-                      id={`em-${e.id}-ck`}
-                      name={`em_${e.id}_camket`}
-                      aria-label={`${e.ten} — ${t('emCommit')}`}
-                      {...oNhap(`em_${e.id}_camket`)}
-                      className={inputCls}
-                    />
-                  </Field>
-                </div>
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
-
       {/* ══ MỘT NÚT: CUỐI BUỔI HỌP, LƯU LÀ CHỐT ══
           Bản 0108 từng tách đôi thành "Lưu tạm" và "Chốt". Chủ dự án gộp lại 13/08/2026: buổi họp
-          chỉ có một thời điểm ghi, và đó là lúc họp xong. Hai nút cạnh nhau chỉ tạo ra câu hỏi
-          "bấm cái nào" cho một việc mỗi tuần làm một lần.
-          Cột `chot_at` ở CSDL vẫn giữ nguyên và vẫn là thứ khoá tuần — nay nút này luôn đóng dấu
-          nó. Giữ cột thay vì quay lại luật cũ ("có dòng nào là khoá") vì luật cũ khoá cả những
-          dòng biên bản sinh ra từ đường khác, và vì gỡ biên bản cần một chỗ để gỡ dấu. */}
+          chỉ có một thời điểm ghi, và đó là lúc họp xong. */}
       {canManage && (
-        <div className="flex flex-wrap items-center gap-3 rounded-[20px] bg-navy/[0.04] p-4">
-          <span className="min-w-0 flex-1 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
-            {daChot ? t('closedHint', {week: hopLabel}) : t('finishHint', {week: hopLabel})}
-          </span>
+        <div className="flex flex-wrap items-center justify-end gap-3 rounded-[20px] bg-navy/[0.04] p-4">
           <SubmitButton className={btnGold} wrapClass="contents">
             {t('finish')}
           </SubmitButton>
@@ -947,9 +637,6 @@ export function PhongHop({
         <div className="flex flex-wrap items-center gap-2 rounded-[12px] bg-success/[0.10] px-3 py-2.5">
           <CheckCircle2 size={15} strokeWidth={2.5} className="shrink-0 text-success" />
           <span className="text-[13px] font-bold text-success-dark">{state.message}</span>
-          {/* Link ĐẦU trỏ vào tuần mới — nơi mục tiêu vừa tạo nằm. Trước đây chỉ có "Về trang
-              WIG" (tuần đang xem cũ): người thử bấm vào và thấy "nhảy về trang wig" chứ không
-              thấy thứ mình vừa tạo. */}
           {xemTuanMoi && (
             <Link
               href={xemTuanMoi}
@@ -972,12 +659,9 @@ export function PhongHop({
       )}
     </form>
 
-    {/* GỠ BIÊN BẢN — đường lùi cho một việc một chiều.
-        Ghi nhận buổi họp là thứ khoá tick của tuần đó (0081). Bấm ← quá tay một nhịp rồi lưu là
-        khoá tick của tuần lớp đang làm dở, và các em lập tức không tick được mà không hiểu vì
-        sao. Form RIÊNG, không lồng trong form trên: HTML không cho lồng form, và gộp chung thì
-        một cái nút xoá đứng cạnh nút Lưu là công thức để bấm nhầm.
-        Đặt cuối trang, chữ nhỏ: đây là việc hiếm, không phải việc chính. */}
+    {/* GỠ BIÊN BẢN — đường lùi cho một việc một chiều. Ghi nhận buổi họp là thứ khoá tick của tuần
+        đó (0081). Form RIÊNG, không lồng trong form trên: HTML không cho lồng form, và gộp chung
+        thì một cái nút xoá đứng cạnh nút Chốt là công thức để bấm nhầm. */}
     {canManage && daCoBienBan && <NutGoBienBan classId={classId} hopStart={hopStart} hopLabel={hopLabel} />}
     </div>
   );
@@ -987,13 +671,10 @@ function NutGoBienBan({classId, hopStart, hopLabel}: {classId: string; hopStart:
   const t = useTranslations('meeting');
   const [state, formAction] = useActionState(xoaBienBan, {ok: false});
   return (
-    <form action={formAction} className="flex flex-wrap items-center gap-2 border-t border-navy/[0.08] pt-3">
+    <form action={formAction} className="flex flex-wrap items-center justify-end gap-2 border-t border-navy/[0.08] pt-3">
       <input type="hidden" name="class_id" value={classId} />
       <input type="hidden" name="hop_start" value={hopStart} />
       <input type="hidden" name="hop_label" value={hopLabel} />
-      <span className="mr-auto text-[11px] font-semibold italic leading-relaxed text-grey-mid">
-        {t('undoHint', {week: hopLabel})}
-      </span>
       {state.error && (
         <span className="text-[11.5px] font-bold text-status-bad">{state.error}</span>
       )}

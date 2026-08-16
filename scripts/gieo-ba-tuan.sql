@@ -171,7 +171,7 @@ begin
       if v_i < 3 then
         insert into wig_meetings (class_id, student_id, week_label, week_start,
                                   results, commitments, kho_khan, vuot_qua, cach_tot_hon, coach_id)
-        values (v_lop, v_em.id, to_char(v_tuan, 'IW') || '-' || to_char(v_tuan, 'IYYY'), v_tuan,
+        values (v_lop, v_em.id, 'W' || to_char(v_tuan, 'IW') || '-' || to_char(v_tuan, 'IYYY'), v_tuan,
                 format('Tuần %s con làm được %s hôm', v_i,
                        case (v_em.thu_tu % 4) when 1 then '5' when 2 then '2' when 3 then '3' else '0' end),
                 'Tuần tới con cố gắng đều hơn',
@@ -208,7 +208,7 @@ begin
 
       insert into wig_meetings (class_id, student_id, week_label, week_start,
                                 results, commitments, coach_id, mo_luc, chot_at, chot_by)
-      values (v_lop, null, to_char(v_tuan, 'IW') || '-' || to_char(v_tuan, 'IYYY'), v_tuan,
+      values (v_lop, null, 'W' || to_char(v_tuan, 'IW') || '-' || to_char(v_tuan, 'IYYY'), v_tuan,
               format('Tuần %s: lớp %s', v_i, case when v_i = 1 then 'đạt cam kết' else 'chưa đạt' end),
               'Tuần tới cả lớp nộp bài đúng hạn hơn',
               v_gvcn, now(), now(), v_gvcn);

@@ -22,6 +22,22 @@ function flash(msg: string): never {
 // người dùng chờ thêm một lượt đi-về cho mỗi lần bấm — đây là một phần lý do màn Quản trị bị
 // than "bấm xong không thấy gì, tưởng treo".
 
+// ĐỔI VAI THÌ LỚP CŨ THÔI GẮN.
+//
+// Chủ dự án 16/08/2026: cho một GVCN lên ban giám hiệu mà người ấy vẫn đứng tên chủ nhiệm lớp cũ.
+// Chủ nhiệm là việc của vai giáo viên; sang vai khác mà vẫn giữ tên trên lớp thì lớp ấy hiện
+// "đã có GVCN" trong khi không còn ai chủ nhiệm thật — và cô giáo mới không nhận lớp được (0097
+// chỉ gán khi homeroom_teacher_id còn trống). Chỉ admin mới tới được đây nên trigger bảo vệ cột
+// (0018/0097) cho qua.
+async function thoiChuNhiemNeuKhongConLaGiaoVien(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userIds: string[],
+  role: Role,
+) {
+  if (role === 'teacher' || userIds.length === 0) return;
+  await supabase.from('classes').update({homeroom_teacher_id: null}).in('homeroom_teacher_id', userIds);
+}
+
 export async function setUserRole(formData: FormData) {
   const me = await requireRole(['admin']);
   const userId = String(formData.get('userId'));
@@ -33,6 +49,7 @@ export async function setUserRole(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.from('profiles').update({role}).eq('id', userId);
   if (!error) {
+    await thoiChuNhiemNeuKhongConLaGiaoVien(supabase, [userId], role);
     await supabase.rpc('log_audit', {
       p_action: 'set_user_role',
       p_detail: {target_user: userId, new_role: role},
@@ -63,6 +80,7 @@ export async function bulkSetUserRole(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.from('profiles').update({role}).in('id', targets);
   if (!error) {
+    await thoiChuNhiemNeuKhongConLaGiaoVien(supabase, targets, role);
     await supabase.rpc('log_audit', {
       p_action: 'bulk_set_user_role',
       p_detail: {targets, new_role: role},
@@ -644,7 +662,8 @@ export async function updateUserGrants(formData: FormData) {
   const nhom = new Map<string, {role: Role; class_id: string | null; emails: string[]}>();
   emails.forEach((email, i) => {
     const role = roles[i] as Role;
-    const class_id = classIds[i] || null;
+    // BGH/admin không thuộc lớp nào — trigger 0139 cũng ép về null, đây chỉ để gom nhóm đúng.
+    const class_id = role === 'principal' || role === 'admin' ? null : classIds[i] || null;
     const khoa = `${role}|${class_id ?? ''}`;
     const g = nhom.get(khoa) ?? {role, class_id, emails: []};
     g.emails.push(email);

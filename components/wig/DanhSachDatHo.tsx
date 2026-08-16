@@ -40,13 +40,11 @@ export function DanhSachDatHo({
   classId,
   danhSach,
   wigLop,
-  dayShort,
   suaDuoc,
 }: {
   classId: string;
   danhSach: EmTrongLop[];
   wigLop: WigLop[];
-  dayShort: string[];
   /**
    * Người đang xem có SỬA/XOÁ được mục tiêu của em không — chỉ quản trị và BGH (0133, 0134).
    *
@@ -152,7 +150,6 @@ export function DanhSachDatHo({
           wigLop={wigLop}
           dangSua={dangMo.mucTieu}
           laChinhEm={false}
-          dayShort={dayShort}
           onClose={() => setDangMo(null)}
         />
       )}

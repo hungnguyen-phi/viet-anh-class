@@ -16,6 +16,8 @@ export type LopChon = {id: string; name: string};
 // parent_invitations, gắn với CON chứ không gắn lớp) nhưng vẫn phải xem chung một chỗ.
 const VAI_KHAI_DUOC = ['teacher', 'principal', 'admin', 'student', 'parent'] as const;
 const TABS = ['all', ...VAI_KHAI_DUOC] as const;
+// Vai không gắn lớp — cột lớp của họ luôn trống, cả ở CSDL (trigger 0139) lẫn ở ô chọn.
+const KHONG_LOP: string[] = ['principal', 'admin'];
 type Tab = (typeof TABS)[number];
 
 // THỨ TỰ ĐỌC: người phụ trách trước, học sinh sau.
@@ -336,10 +338,6 @@ export function GrantsPanel({
           </div>
         </div>
 
-        {/* Nói rõ danh sách đang khoá, để người ta khỏi ngồi tìm ô chọn không có ở đó. */}
-        {!sua && (
-          <p className="text-[12px] font-semibold text-grey-mid">{t('grantsFrozen')}</p>
-        )}
       </div>
 
       {/* role="row" phải nằm TRONG một role="table"/"grid" thì trình đọc màn hình mới hiểu; đứng
@@ -523,7 +521,15 @@ function DongKhai({
           <span className={cotSuaVai}>
             <select
               value={gia.role}
-              onChange={(e) => onDoi(g.email, {role: e.target.value})}
+              onChange={(e) =>
+                // BGH/admin không thuộc lớp nào (0139): đổi sang vai ấy là ô lớp về trống và khoá.
+                onDoi(
+                  g.email,
+                  KHONG_LOP.includes(e.target.value)
+                    ? {role: e.target.value, class_id: ''}
+                    : {role: e.target.value},
+                )
+              }
               aria-label={t('grantRoleFor', {name: g.email})}
               className={oChon}
             >
@@ -536,10 +542,11 @@ function DongKhai({
           </span>
           <span className={cotSuaLop}>
             <select
-              value={gia.class_id}
+              value={KHONG_LOP.includes(gia.role) ? '' : gia.class_id}
+              disabled={KHONG_LOP.includes(gia.role)}
               onChange={(e) => onDoi(g.email, {class_id: e.target.value})}
               aria-label={t('classFor', {name: g.email})}
-              className={oChon}
+              className={`${oChon} disabled:cursor-not-allowed disabled:opacity-50`}
             >
               <option value="">{t('classNone')}</option>
               {classes.map((c) => (

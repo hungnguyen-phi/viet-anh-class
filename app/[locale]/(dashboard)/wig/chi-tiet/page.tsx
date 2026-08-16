@@ -58,7 +58,7 @@ export default async function ChiTietPage({
     supabase
       .from('wigs')
       .select(
-        'id, student_id, kind, status, set_by, measure_by, title, baseline, target_value, unit, end_date, created_at, achieved_at, area, source_wig_id, lead_measures(title, target_value, active_weekdays)',
+        'id, student_id, kind, status, set_by, measure_by, title, baseline, target_value, unit, end_date, created_at, achieved_at, area, source_wig_id',
       )
       .eq('class_id', myClass.id)
       .eq('scope', 'student')
@@ -92,8 +92,8 @@ export default async function ChiTietPage({
     thangTheoNam.set(m.parent_wig_id, [...(thangTheoNam.get(m.parent_wig_id) ?? []), m]);
   }
 
-  // Mục tiêu HỌC TẬP của từng em, gom theo student_id. `lead_measures` là mảng vì PostgREST trả
-  // quan hệ 1-nhiều; trigger chan_viec_thu_hai (0100) đảm bảo tối đa một phần tử.
+  // Mục tiêu HỌC TẬP của từng em, gom theo student_id. (Việc tuần không còn treo thẳng dưới mục
+  // tiêu năm — 0121/0137 — nên không nhúng lead_measures ở đây nữa.)
   type HangMucTieu = {
     id: string;
     student_id: string | null;
@@ -109,7 +109,6 @@ export default async function ChiTietPage({
     achieved_at: string | null;
     area: string;
     source_wig_id: string | null;
-    lead_measures: {title: string; target_value: number; active_weekdays: number[] | null}[] | null;
   };
 
   const theoEm = new Map<string, EmTrongLop['mucTieu']>();
@@ -127,7 +126,6 @@ export default async function ChiTietPage({
       area: m.area,
       achieved_at: m.achieved_at,
       source_wig_id: m.source_wig_id,
-      viec: m.lead_measures?.[0] ?? null,
     });
   }
 
@@ -193,7 +191,6 @@ export default async function ChiTietPage({
         wigLop={wigLop ?? []}
         wigLopChon={wigLopChon}
         danhSach={danhSach}
-        dayShort={t.raw('dayShort') as string[]}
       />
 
       {/* Khối "chỉnh nhịp tháng" đã bỏ cùng mô hình cũ (0121): WIG chỉ còn cấp năm, không

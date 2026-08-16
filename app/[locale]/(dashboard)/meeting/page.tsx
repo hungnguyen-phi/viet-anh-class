@@ -7,7 +7,7 @@ import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {Link} from '@/i18n/navigation';
-import {isValidDayVN, isoWeekLabel, mondayOf, shiftWeeks, todayInVN, vnNoon} from '@/lib/dates';
+import {isValidDayVN, mondayOf, shiftWeeks, todayInVN} from '@/lib/dates';
 import {layDuLieuHop} from '@/lib/hop-data';
 import {PhongHop} from '@/components/wig/PhongHop';
 
@@ -119,19 +119,13 @@ export default async function MeetingPage({
         hopRange={`${dm(d.hop.start)} → ${dm(d.hop.end)}`}
         dichLabel={d.dich.label}
         dichRange={`${dm(d.dich.start)} → ${dm(d.dich.end)}`}
-        viecTuanQua={d.viecTuanQua}
         tungEm={d.tungEm}
-        emHop={d.emHop}
-        loiHuaTruoc={d.loiHuaTruoc}
-        nhanTuanTruoc={isoWeekLabel(vnNoon(d.truocMonday))}
         chiemNghiemCu={d.chiemNghiemCu}
-        camKetCu={d.camKetCu}
         daCoBienBan={d.daCoBienBan}
         daChot={d.daChot}
         phongMo={d.phongMo}
-        camKetTuanQua={d.camKetTuanQua}
+        camKetLop={d.camKetLop}
         camKetDich={d.camKetDich}
-        bangPdr={d.bangPdr}
         namHienCo={d.namHienCo}
         canManage={false}
         quayVe={null}

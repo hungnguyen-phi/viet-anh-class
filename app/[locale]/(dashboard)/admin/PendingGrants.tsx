@@ -58,7 +58,7 @@ export async function PendingGrants() {
   );
 
   return (
-    <Disclosure title={t('grantsTitle')} hint={t('grantsHint')} count={tong}>
+    <Disclosure title={t('grantsTitle')} count={tong}>
       <GrantsPanel
         key={vanTay}
         grants={grants}

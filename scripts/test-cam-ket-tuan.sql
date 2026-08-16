@@ -152,16 +152,15 @@ from viec1 v;
 do $$
 declare v_ok boolean := false;
 begin
-  -- Đã có 1 việc; thêm 9 nữa là chạm trần 10.
+  -- Đã có 1 việc; thêm 1 nữa là chạm trần 2 (0137 — trần 10 của 0121 đã bỏ).
   insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
-  select (select id from ck_lop limit 1), 'KIỂM · việc thêm ' || i, 1, 'bài', '{1,2,3,4,5}', 1
-  from generate_series(2, 10) i;
+  select (select id from ck_lop limit 1), 'KIỂM · việc thêm 2', 1, 'bài', '{1,2,3,4,5}', 1;
   begin
     insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
-    select (select id from ck_lop limit 1), 'KIỂM · việc thứ mười một', 1, 'bài', '{1,2,3,4,5}', 1;
+    select (select id from ck_lop limit 1), 'KIỂM · việc thứ ba', 1, 'bài', '{1,2,3,4,5}', 1;
   exception when check_violation then v_ok := true;
   end;
-  insert into ket_qua values ('Việc thứ 11 trong tuần bị chặn', 'bị chặn',
+  insert into ket_qua values ('Việc thứ 3 cùng lúc bị chặn (0137)', 'bị chặn',
     case when v_ok then 'bị chặn' else 'LỌT' end, v_ok);
 end $$;
 

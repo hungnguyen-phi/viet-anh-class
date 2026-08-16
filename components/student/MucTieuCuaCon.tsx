@@ -54,14 +54,6 @@ export type MucTieuCuaEm = {
   created_at: string;
   achieved_at: string | null;
   source_wig_id: string | null;
-  viec: {
-    title: string;
-    target_value: number;
-    active_weekdays: number[] | null;
-    // 0110 — mở lại form sửa phải bày đúng cái em đã khai: mỗi lần bao nhiêu, hay mỗi lần một khác.
-    unitPerTick?: number;
-    nhapLuong?: boolean;
-  } | null;
 };
 
 export type {WigLop};
@@ -78,7 +70,6 @@ export function MucTieuCuaCon({
   wigLop,
   laChinhEm,
   canManage,
-  dayShort,
   namHoc,
   soDoTheoWig,
   tuanChuaChot,
@@ -89,7 +80,6 @@ export function MucTieuCuaCon({
   wigLop: WigLop[];
   laChinhEm: boolean;
   canManage: boolean;
-  dayShort: string[];
   // Nhãn năm học của lớp ("2026–2027") — để nói rõ mục tiêu này sống bao lâu. Không có lớp thì
   // thôi, đừng bịa một khoảng thời gian ra.
   namHoc: string | null;
@@ -106,7 +96,7 @@ export function MucTieuCuaCon({
   const hocTap = mucTieu.find((m) => m.kind === 'academic') ?? null;
   const rieng = mucTieu.find((m) => m.kind === 'personal') ?? null;
 
-  const chung = {studentId, classId, wigLop, laChinhEm, canManage, dayShort, namHoc,
+  const chung = {studentId, classId, wigLop, laChinhEm, canManage, namHoc,
                  soDoTheoWig,
                  tuanChuaChot, onBao: setBao};
 
@@ -143,7 +133,6 @@ function MotMucTieu({
   wigLop,
   laChinhEm,
   canManage,
-  dayShort,
   namHoc,
   soDoTheoWig,
   tuanChuaChot,
@@ -156,7 +145,6 @@ function MotMucTieu({
   wigLop: WigLop[];
   laChinhEm: boolean;
   canManage: boolean;
-  dayShort: string[];
   namHoc: string | null;
   soDoTheoWig: Record<string, SoDoCuaTuan>;
   tuanChuaChot: boolean;
@@ -196,8 +184,7 @@ function MotMucTieu({
             wigLop={wigLop}
             dangSua={null}
             laChinhEm={laChinhEm}
-            dayShort={dayShort}
-            onClose={() => setMoForm(false)}
+              onClose={() => setMoForm(false)}
             onDone={onBao}
           />
         )}
@@ -265,11 +252,6 @@ function MotMucTieu({
               due: ngayVN(hocTap.end_date),
             })}
           </p>
-          {hocTap.viec && (
-            <p className="text-[12.5px] font-semibold text-navy">
-              {t('myWork', {title: hocTap.viec.title, n: hocTap.viec.target_value})}
-            </p>
-          )}
 
           {/* ĐÍCH GHI NHẬN NGOÀI — không vẽ vạch phần trăm, chỉ có đạt hay chưa (0101).
               Từ 0108 có thêm ô SỐ ĐO ở ngay trên: "đạt/chưa đạt" là một bit cho cả một năm học,
@@ -382,7 +364,6 @@ function MotMucTieu({
           wigLop={wigLop}
           dangSua={hocTap}
           laChinhEm={laChinhEm}
-          dayShort={dayShort}
           onClose={() => setMoForm(false)}
           onDone={onBao}
         />

@@ -4,7 +4,7 @@ import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
-import {taoCamKet, chuanHoaThu, chuanHoaHeSo} from '@/lib/wig-tao';
+import {taoCamKet} from '@/lib/wig-tao';
 import {ngayCuaKy} from '@/lib/dates';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -30,51 +30,6 @@ export type HopState = {
   fieldError?: string;
 };
 
-type ViecMoi = {
-  title: string;
-  target_value: number;
-  unit: string | null;
-  unit_per_tick: number;
-  nhap_luong: boolean;
-  active_weekdays: number[];
-};
-
-// Đọc các dòng "việc cho tuần tới" ra khỏi FormData. Tên trường dạng viec_<k>_title, và <k> là
-// khoá do trình duyệt sinh khi bấm "+ Thêm việc" — quét theo mẫu thay vì tin vào một danh sách
-// chỉ số gửi kèm, vì danh sách ấy cũng do trình duyệt gửi nên không đáng tin hơn mà lại thêm một
-// chỗ có thể lệch.
-// mocId truyền vào thì CHỈ lấy những dòng khai `viec_<k>_moc` đúng bằng mốc ấy (0106: mỗi lĩnh
-// vực một khối, phải tách đúng việc của khối nào cho khối đó). Không truyền (nhánh bù mốc, chỉ
-// một khối chung) thì lấy hết, không lọc.
-function docViec(formData: FormData, mocId?: string): ViecMoi[] {
-  const khoa: string[] = [];
-  for (const key of formData.keys()) {
-    const m = key.match(/^viec_(.+)_title$/);
-    if (m && !khoa.includes(m[1])) khoa.push(m[1]);
-  }
-  const out: ViecMoi[] = [];
-  for (const k of khoa) {
-    if (mocId !== undefined && String(formData.get(`viec_${k}_moc`) ?? '') !== mocId) continue;
-    const title = String(formData.get(`viec_${k}_title`) ?? '').trim();
-    // Dòng để trống hoàn toàn thì bỏ qua, không báo lỗi: người ta bấm "+ Thêm việc" rồi đổi ý là
-    // chuyện bình thường, bắt họ đi tìm cái nút xoá mới lưu được là gây khó vô cớ.
-    if (!title) continue;
-    const unit = String(formData.get(`viec_${k}_unit`) ?? '').trim() || null;
-    // Chỉ theo ô tích của cô, không suy từ đơn vị: con số kg/điểm thuộc về MỤC TIÊU (ô số đo mỗi
-    // tuần), còn việc dẫn dắt thì luôn tick hằng ngày.
-    const nhap_luong = String(formData.get(`viec_${k}_nhap`) ?? '') === '1';
-    out.push({
-      title,
-      target_value: Number(String(formData.get(`viec_${k}_target`) ?? '').trim()),
-      unit,
-      nhap_luong,
-      unit_per_tick: nhap_luong ? 1 : (chuanHoaHeSo(String(formData.get(`viec_${k}_upt`) ?? '')) ?? 1),
-      active_weekdays: chuanHoaThu(formData.getAll(`viec_${k}_days`)),
-    });
-  }
-  return out;
-}
-
 export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promise<HopState> {
   const me = await requireRole(['teacher', 'admin']);
   const class_id = String(formData.get('class_id') ?? '');
@@ -82,7 +37,6 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
   const hop_label = String(formData.get('hop_label') ?? '').trim();
   const dich_label = String(formData.get('dich_label') ?? '').trim();
   const chiem_nghiem = String(formData.get('chiem_nghiem') ?? '').trim();
-  const cam_ket = String(formData.get('cam_ket') ?? '').trim();
 
   if (!class_id || !/^\d{4}-\d{2}-\d{2}$/.test(hop_start))
     return {ok: false, error: 'Thiếu lớp hoặc tuần đang tổng kết.'};
@@ -117,7 +71,6 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
     const tenDaCo = new Map((daCoCk ?? []).map((c) => [c.title.trim().toLowerCase(), c.id]));
 
     let soCk = 0;
-    let soViec = 0;
     for (const n of ckKeys) {
       const title = String(formData.get(`ck_${n}_title`) ?? '').trim();
       // Dòng bỏ trống thì bỏ qua — cô mở ra hai ô rồi chỉ dùng một là chuyện bình thường.
@@ -131,47 +84,19 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
         camKetId = kq.id;
         soCk += 1;
       }
-
-      const viec = docViec(formData, n);
-      const hong = viec.find((v) => !Number.isFinite(v.target_value) || v.target_value <= 0);
-      if (hong)
-        return {
-          ok: false,
-          fieldError: 'viec',
-          error: `Việc “${hong.title}” chưa có chỉ tiêu hợp lệ (phải là số lớn hơn 0). Cam kết ĐÃ lưu — sửa số rồi lưu lại.`,
-        };
-      if (viec.length > 0) {
-        // CHỈ THÊM CÁI CHƯA CÓ (0129). Bản trước xoá sạch việc chưa có tick rồi chèn lại cả bộ —
-        // cách ấy nay vừa bị RLS chặn (việc dẫn dắt không xoá được nữa), vừa sai về ý: buổi họp
-        // mở ra đã điền sẵn việc của tuần trước, nên "chèn lại cả bộ" là dựng bản sao mỗi lần lưu.
-        //
-        // Lọc theo TÊN đã có dưới cùng cam kết: bấm Lưu hai lần thì lần sau không thêm gì.
-        const {data: cu} = await supabase
-          .from('lead_measures')
-          .select('title')
-          .eq('commitment_id', camKetId);
-        const daCoTen = new Set((cu ?? []).map((l) => l.title.trim().toLowerCase()));
-        const themMoi = viec.filter((v) => !daCoTen.has(v.title.trim().toLowerCase()));
-
-        if (themMoi.length > 0) {
-          const {data: moi, error: e2} = await supabase
-            .from('lead_measures')
-            .insert(themMoi.map((v) => ({commitment_id: camKetId, ...v})))
-            .select('id');
-          if (e2) return {ok: false, error: friendlyError(e2)};
-          soViec += moi?.length ?? 0;
-        }
-      }
     }
     if (soCk > 0) lam.push(`đặt ${soCk} cam kết cho tuần ${dich_label}`);
-    if (soViec > 0) lam.push(`đặt ${soViec} việc cho các em tick`);
   }
 
-  // ── 1b. CHẤM V/X CHO CAM KẾT CỦA TUẦN VỪA QUA ────────────────────────────────────────────
+  // ── 1b. CHẤM V/X CHO CAM KẾT CỦA TUẦN VỪA QUA — của LỚP và của TỪNG EM ────────────────────
   //
   // Thắng/thua nay là Ý NGƯỜI, không phải phép so. Máy đã gợi ý sẵn (cam_ket_goi_y) và form gửi
   // lên cả hai: gợi ý là gì, cô chọn gì. Lưu cả hai để "cô chấm khác máy" không thành vô hình —
   // đó chính là nguồn của chỉ số "commitment đã thay đổi" trên Dashboard PDR.
+  //
+  // Cùng một vòng cho cả cam kết của lớp lẫn cam kết của em (16/08/2026): chủ dự án chốt "gvcn
+  // đánh thắng thua giống học sinh trong buổi họp". `.eq('class_id')` giữ cho một id lạ gửi lên
+  // không chấm được cam kết của lớp khác; trigger 0133 giữ cho cô chỉ đụng được cột verdict.
   let soCham = 0;
   for (const key of formData.keys()) {
     const m = key.match(/^vx_(.+)$/);
@@ -193,151 +118,9 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
   }
   if (soCham > 0) lam.push(`chấm ${soCham} cam kết`);
 
-  // ── 2. GHI NHẬN TỪNG VIỆC CỦA TUẦN VỪA QUA ───────────────────────────────────────────────
-  // Gom theo id việc. `daCo` là ảnh chụp lúc trang được dựng: dòng ấy lúc đó đã có ghi nhận hay
-  // chưa. Chỉ dùng cho nhánh XOÁ — xem ghi chú ở đó.
-  const theoViec = new Map<string, {verdict: string | null; note: string; daCo: boolean}>();
-  for (const [key, val] of formData.entries()) {
-    const mV = key.match(/^verdict_(.+)$/);
-    const mN = key.match(/^note_(.+)$/);
-    const mC = key.match(/^co_(.+)$/);
-    if (!mV && !mN && !mC) continue;
-    const id = (mV ?? mN ?? mC)![1];
-    const cur = theoViec.get(id) ?? {verdict: null, note: '', daCo: false};
-    if (mV) {
-      const v = String(val);
-      cur.verdict = v === 'win' || v === 'lose' ? v : null;
-    } else if (mN) {
-      cur.note = String(val).trim();
-    } else {
-      cur.daCo = true;
-    }
-    theoViec.set(id, cur);
-  }
-
-  const rows = [...theoViec.entries()]
-    // Không ghi dòng rỗng: chưa chấm mà cũng chưa ghi gì thì để trống, đừng đẻ ra một dòng
-    // "đã họp" giả trong CSDL.
-    .filter(([, v]) => v.verdict !== null || v.note !== '')
-    .map(([lead_measure_id, v]) => ({
-      class_id,
-      week_start: hop_start,
-      lead_measure_id,
-      verdict: v.verdict,
-      note: v.note || null,
-      updated_by: me.id,
-    }));
-
-  // Bỏ chấm VÀ xoá trắng ô ghi chú → xoá hẳn dòng. Đây cũng là đường duy nhất để gỡ một lần chấm
-  // nhầm: nút "chưa chấm" gửi verdict rỗng, rơi vào đây.
-  //
-  // NHƯNG CHỈ XOÁ THỨ NGƯỜI BẤM LƯU THẬT SỰ NHÌN THẤY (`daCo`). Nút "chưa chấm" được tích sẵn cho
-  // MỌI dòng chưa có ghi nhận, nên mỗi lần lưu là form gửi lên một danh sách rỗng dài bằng cả
-  // bảng. Không lọc theo ảnh chụp thì: thầy A mở bảng, cô B ghi chú một việc, A bấm Lưu — lệnh
-  // xoá của A quét trúng việc đó và ghi chú của B biến mất, không một lời báo.
-  const idsRong = [...theoViec.entries()]
-    .filter(([, v]) => v.verdict === null && v.note === '' && v.daCo)
-    .map(([id]) => id);
-  if (idsRong.length > 0) {
-    // .select() ở cả nhánh xoá: không có nó thì RLS chặn cũng im lặng, và người dùng đọc được
-    // "đã xoá" trong khi dòng vẫn nằm nguyên đó.
-    const {data, error} = await supabase
-      .from('wig_meeting_notes')
-      .delete()
-      .eq('class_id', class_id)
-      .eq('week_start', hop_start)
-      .in('lead_measure_id', idsRong)
-      .select('id');
-    if (error) return {ok: false, error: (friendlyError(error))};
-    if ((data?.length ?? 0) > 0) lam.push(`bỏ ghi nhận ${data!.length} việc`);
-  }
-
-  if (rows.length > 0) {
-    const {data, error} = await supabase
-      .from('wig_meeting_notes')
-      .upsert(rows, {onConflict: 'class_id,week_start,lead_measure_id'})
-      .select('id');
-    if (error) return {ok: false, error: (friendlyError(error))};
-    // .select() để phân biệt "RLS chặn" với "đã lưu" — không báo thành công giả.
-    if ((data?.length ?? 0) === 0)
-      return {ok: false, error: 'Không lưu được (không có quyền với lớp này).'};
-    lam.push(`chấm ${data!.length} việc`);
-  }
-
-  // ── 2b. TỪNG EM: việc tuần này + biên bản riêng (0108, lát 4+5) ──────────────────────────
-  //
-  // Hai việc chủ dự án chốt 13/08/2026:
-  //   · "mỗi tuần con làm gì" thành "TUẦN NÀY con làm gì", tuần sau buổi họp hỏi lại. Form điền
-  //     sẵn câu cũ, nên KHÔNG ĐỔI thì mọi giá trị gửi lên y hệt cái đang có — và chỗ này chỉ ghi
-  //     khi thật sự khác. Không có luật ấy thì mỗi lần lưu là một lần UPDATE cho ba mươi em, và
-  //     `updated_at` của cả lớp nhảy dù chẳng ai đổi gì.
-  //   · Họp LỚP ghi được biên bản cá nhân, để GVCN vắng hoặc bận thì buổi họp vẫn không tắc. Cùng
-  //     bảng `wig_meetings` với biên bản lớp, chỉ khác `student_id`.
-  //
-  // Quét theo TÊN TRƯỜNG chứ không theo một danh sách id gửi kèm: danh sách ấy cũng do trình duyệt
-  // gửi, không đáng tin hơn, mà lại là chỗ để hai bên lệch nhau.
-  let soBienBan = 0;
-  {
-    const emIds: string[] = [];
-    for (const key of formData.keys()) {
-      // Dò theo `_ten` — ô ẩn duy nhất còn lại của mỗi em sau khi bỏ phần đặt việc. Dò theo
-      // `_wig` như trước là dò một trường KHÔNG CÒN ĐƯỢC GỬI, và khi ấy danh sách em rỗng, biên
-      // bản riêng của cả lớp lặng lẽ không lưu — hỏng đúng phần còn lại của buổi họp.
-      const m = key.match(/^em_([0-9a-f-]{36})_ten$/);
-      if (m && !emIds.includes(m[1])) emIds.push(m[1]);
-    }
-
-    // (Trước đây chỗ này đọc sẵn việc cũ của từng em để so "có đổi gì không" rồi mới UPDATE. Đường
-    // UPDATE ấy đã bỏ — xem ghi chú trong vòng lặp — nên phép đọc kèm nó cũng đi theo: một câu
-    // truy vấn nữa cho mỗi buổi họp, đổi lấy một so sánh không còn ai dùng.)
-    const {data: bbHienCo} = await supabase
-      .from('wig_meetings')
-      .select('id, student_id, results, commitments')
-      .eq('class_id', class_id)
-      .eq('week_start', hop_start)
-      .in('student_id', emIds);
-    const bbCu = new Map(
-      (bbHienCo ?? [])
-        .filter((b) => b.student_id)
-        .map((b) => [b.student_id as string, {id: b.id, kq: b.results ?? '', ck: b.commitments ?? ''}]),
-    );
-
-    for (const emId of emIds) {
-      const ketQua = String(formData.get(`em_${emId}_ketqua`) ?? '').trim();
-      const camKet = String(formData.get(`em_${emId}_camket`) ?? '').trim();
-
-      // ĐẶT VIỆC THAY EM ĐÃ BỎ (15/08/2026).
-      //
-      // Chỗ này từng đọc `em_<id>_viec` và `em_<id>_days` rồi tạo cam kết + việc dẫn dắt cho tuần
-      // tới THAY CHO EM. Chủ dự án: "sao giáo viên lại được sửa cho từng em? phải là em đặt chứ".
-      //
-      // Gỡ ở cả hai đầu, không chỉ giấu cái ô đi: giao diện không còn gửi hai trường ấy, và máy
-      // chủ không còn đọc chúng — ai gửi tay lên cũng không ăn. Cam kết tuần tới của em nay đặt ở
-      // màn của em, rồi cô duyệt (0129); còn cam kết của LỚP vẫn đặt ngay trong buổi họp, ở bước
-      // 3 phía trên.
-      // BIÊN BẢN RIÊNG. Trống cả hai ô thì không đẻ ra một dòng "đã họp" rỗng; không đổi thì không
-      // ghi lại, cùng lý do với việc ở trên.
-      const bbCuEm = bbCu.get(emId);
-      if ((ketQua || camKet) && (!bbCuEm || bbCuEm.kq !== ketQua || bbCuEm.ck !== camKet)) {
-        const cuEm = bbCuEm ? {id: bbCuEm.id} : null;
-        const banEm = {
-          class_id,
-          student_id: emId,
-          week_label: hop_label || dich_label,
-          week_start: hop_start,
-          results: ketQua || null,
-          commitments: camKet || null,
-          coach_id: me.id,
-        };
-        const {error} = cuEm
-          ? await supabase.from('wig_meetings').update(banEm).eq('id', cuEm.id)
-          : await supabase.from('wig_meetings').insert(banEm);
-        if (error) return {ok: false, error: friendlyError(error)};
-        soBienBan += 1;
-      }
-    }
-    if (soBienBan > 0) lam.push(`ghi biên bản riêng cho ${soBienBan} em`);
-  }
+  // (Bảng "chấm từng việc + rút ra điều gì" (wig_meeting_notes) và hai ô "Tuần rồi / Tuần tới
+  //  hứa" cô gõ hộ từng em đã gỡ 16/08/2026. Việc là bằng chứng của cam kết, thắng/thua chấm ở
+  //  cam kết; còn lời của em là em tự viết ở /student/hop, cô đọc — không có ô nào để cô ghi đè.)
 
   // ── 3. BIÊN BẢN — VÀ ĐÂY LÀ THỨ CHỐT TUẦN ────────────────────────────────────────────────
   //
@@ -348,11 +131,9 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
   // Vẫn đóng dấu vào `chot_at` chứ không quay lại luật cũ ("có dòng biên bản nào là khoá"): luật cũ
   // khoá lây cả những dòng sinh ra từ đường khác, và nút gỡ biên bản cần một chỗ cụ thể để gỡ dấu.
   //
-  // ĐẾM CẢ PHẦN TỪNG EM. Bản đầu chỉ xét chiêm nghiệm / cam kết / chấm việc, nên một buổi họp chỉ
-  // ghi biên bản riêng cho các em — không chấm việc chung nào — thì KHÔNG sinh
-  // dòng biên bản lớp, và tuần không khoá dù cô đã bấm chốt. Bài kiểm test-hop-tung-em bắt đúng
-  // chỗ này ("Một nút: lưu cũng là CHỐT → chưa chốt").
-  if (chiem_nghiem || cam_ket || rows.length > 0 || soBienBan > 0) {
+  // Chốt khi buổi họp CÓ LÀM một việc: chấm ít nhất một cam kết, ghi chiêm nghiệm, hoặc đặt cam
+  // kết tuần tới. Không có gì trong ba thứ ấy thì không phải một buổi họp — trả lỗi ở dưới.
+  if (chiem_nghiem || soCham > 0 || lam.length > 0) {
     // 1 biên bản / (lớp, tuần). Tìm theo NGÀY: nhãn là chữ để người đọc, ngày mới là khoá thật
     // (0080). Trước đây tra theo nhãn nên ai sửa tay thành "Tuần 31" là vòng cam kết đứt lặng lẽ.
     const {data: cu} = await supabase
@@ -368,7 +149,10 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
       week_label: hop_label || dich_label,
       week_start: hop_start,
       results: chiem_nghiem || null,
-      commitments: cam_ket || null,
+      // `commitments` (câu cam kết tự do của lớp) ĐỂ TRỐNG từ 16/08/2026: cam kết tuần tới nay là
+      // hai dòng có cấu trúc ở bước 3 (bảng commitments), một câu văn chép lại là bản sao thứ hai
+      // — chủ dự án: "đã chiêm nghiệm - cam kết rồi còn cam kết cho tuần tới nữa?".
+      commitments: null,
       // next_actions ĐỂ TRỐNG từ bản này. Nó vốn là ô chữ tự do "WIG & Lead measure tuần sau" —
       // nay việc ấy tạo ra một mục tiêu tuần THẬT, có thanh tiến độ và có việc để tick, nên chép
       // lại nó thành một câu văn là dựng bản sao thứ hai của cùng một thứ.
@@ -388,7 +172,7 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
   }
 
   if (lam.length === 0)
-    return {ok: false, error: 'Chưa điền gì cả — chấm ít nhất một việc, hoặc ghi chiêm nghiệm/cam kết.'};
+    return {ok: false, error: 'Chưa có gì để chốt — chấm ít nhất một cam kết, hoặc ghi chiêm nghiệm.'};
 
 
   revalidatePath('/[locale]/wig', 'page');

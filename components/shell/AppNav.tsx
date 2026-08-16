@@ -9,6 +9,7 @@ import {
   type CSSProperties,
 } from 'react';
 import {useTranslations, useLocale} from 'next-intl';
+import {HOC_BA_BAT} from '@/lib/tinh-nang';
 import {useLinkStatus} from 'next/link';
 import {useSearchParams} from 'next/navigation';
 import {Link, usePathname, useRouter} from '@/i18n/navigation';
@@ -190,7 +191,8 @@ export function AppNav({
   }
 
   const role = profile.role;
-  const baseLinks = LINKS[role] ?? [];
+  // Học bạ đang tắt (lib/tinh-nang.ts) thì mục ấy biến khỏi menu của mọi vai.
+  const baseLinks = (LINKS[role] ?? []).filter((l) => HOC_BA_BAT || l.href !== '/grades');
   const links =
     role === 'student' && isAttendanceLeader
       ? [...baseLinks, {href: '/attendance', key: 'attendance', Icon: ClipboardCheck}]

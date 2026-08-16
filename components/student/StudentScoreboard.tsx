@@ -337,13 +337,20 @@ export async function StudentScoreboard({
     // KHÔNG CÒN hỏi danh sách bạn cùng lớp và bảng buddy_pairs (12/08/2026): Buddy của em là con
     // sư tử AI, không phải bạn ngồi bên cạnh. Xem ghi chú "MỘT CHỮ BUDDY, MỘT NGHĨA" ở
     // StudentMeetings. Bỏ được luôn hai vòng đi-về mỗi lần mở trang.
+    //
+    // CHỈ VIỆC CỦA TUẦN NÀY. Việc treo dưới cam kết tuần (commitment_id, 0137/0138), và cam kết
+    // thì có week_start. Bản trước lấy MỌI việc dưới mục tiêu năm của em — sang tuần thứ ba là ba
+    // dòng "Làm bài buổi tối 0/5" xếp chồng, không dòng nào nói mình của tuần nào (chủ dự án thấy
+    // đúng cảnh ấy 16/08/2026). Nối vào commitments bằng !inner để lọc theo tuần ngay trong câu
+    // hỏi, không kéo hết về rồi lọc.
     weekIds.length > 0
       ? supabase
           .from('lead_measures')
           .select(
-            'id, wig_id, title, target_value, unit, active_weekdays, unit_per_tick, nhap_luong, lead_progress(id, value, logged_date, created_at, logged_by, student_id)',
+            'id, wig_id, title, target_value, unit, active_weekdays, unit_per_tick, nhap_luong, lead_progress(id, value, logged_date, created_at, logged_by, student_id), commitments!inner(week_start)',
           )
           .in('wig_id', weekIds)
+          .eq('commitments.week_start', weekDays[0])
       : Promise.resolve({data: null}),
     // (Truy vấn class_lead_board đã gỡ 16/08/2026: việc chung nay là phần của cô — cô đặt, cô
     //  tick, cô nhìn — nên màn của em không còn ai đọc nó nữa.)
@@ -353,7 +360,7 @@ export async function StudentScoreboard({
     supabase
       .from('wigs')
       .select(
-        'id, kind, status, set_by, measure_by, title, baseline, target_value, unit, area, end_date, created_at, achieved_at, source_wig_id, lead_measures(title, target_value, active_weekdays, unit_per_tick, nhap_luong)',
+        'id, kind, status, set_by, measure_by, title, baseline, target_value, unit, area, end_date, created_at, achieved_at, source_wig_id',
       )
       .eq('student_id', studentId)
       .eq('scope', 'student')
@@ -656,30 +663,7 @@ export async function StudentScoreboard({
   const displayName = tenHienThi(student.full_name, student.email);
 
   // Mục tiêu của em + trận đánh của lớp để chọn — cho khối MucTieuCuaCon.
-  const mucTieuCuaEm = ((mucTieuRes.data ?? []) as unknown as (Omit<MucTieuCuaEm, 'viec'> & {
-    lead_measures:
-      | {
-          title: string;
-          target_value: number;
-          active_weekdays: number[] | null;
-          unit_per_tick: number | null;
-          nhap_luong: boolean | null;
-        }[]
-      | null;
-  })[]).map((m) => ({
-    ...m,
-    // Mỗi mục tiêu của em chỉ một việc — trigger chan_viec_thu_hai (0100) chặn cái thứ hai, nên
-    // lấy phần tử đầu là đủ, không cần lo còn sót cái nào.
-    viec: m.lead_measures?.[0]
-      ? {
-          title: m.lead_measures[0].title,
-          target_value: m.lead_measures[0].target_value,
-          active_weekdays: m.lead_measures[0].active_weekdays,
-          unitPerTick: Number(m.lead_measures[0].unit_per_tick ?? 1) || 1,
-          nhapLuong: Boolean(m.lead_measures[0].nhap_luong),
-        }
-      : null,
-  }));
+  const mucTieuCuaEm = (mucTieuRes.data ?? []) as unknown as MucTieuCuaEm[];
 
   // SỐ ĐO TUẦN NÀY, tra theo id mục tiêu. Định dạng giờ ghi Ở ĐÂY chứ không ở component: khối kia
   // là client component, để nó tự gọi toLocaleString là mời sai lệch máy chủ/trình duyệt in ra hai
@@ -871,7 +855,6 @@ export async function StudentScoreboard({
               wigLop={wigLopChon}
               laChinhEm={canTick}
               canManage={canManage}
-              dayShort={t.raw('dayShort') as string[]}
               namHoc={cls?.school_year ?? null}
               soDoTheoWig={soDoTheoWig}
               tuanChuaChot={tickOpen}

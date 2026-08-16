@@ -1,14 +1,15 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {redirect} from 'next/navigation';
-import {Lock, CalendarDays, Users} from 'lucide-react';
+import {CalendarDays, Users} from 'lucide-react';
 import {NutDoiTrang} from '@/components/ui/NutDoiTrang';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {tenHienThi} from '@/lib/ten-hien-thi';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext} from '@/lib/queries';
-import {todayInVN} from '@/lib/dates';
+import {isValidDayVN, ngayVN, shiftWeeks, todayInVN, weekDaysVN} from '@/lib/dates';
 import {AttendanceTable} from '@/components/attendance/AttendanceTable';
+import {ChonNgayDiemDanh} from '@/components/attendance/ChonNgayDiemDanh';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {ClassOwnerNote} from '@/components/shell/ClassOwnerNote';
 
@@ -16,6 +17,9 @@ type EnrRow = {
   student_id: string;
   profiles: {id: string; full_name: string | null; email: string | null} | null;
 };
+
+const nutTuan =
+  'inline-flex h-[42px] items-center gap-1 rounded-[10px] border-[1.5px] border-navy/15 bg-navy/[0.02] px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
 
 export default async function AttendancePage({
   params,
@@ -67,43 +71,34 @@ export default async function AttendancePage({
       .eq('class_id', myClass.id)
       .eq('is_active', true),
   ]);
-  // ĐIỂM DANH LÀ VIỆC CỦA EM (0127). GVCN và tổ trưởng THÔI ghi — em tự check-in mới là điểm
-  // danh, ai không check-in thì mặc định vắng. Chữa một ngày ghi nhầm là việc của ban giám hiệu.
-  // Cửa sổ bù 7 ngày nay thuộc về BGH/Admin, không còn của GVCN.
-  const canBackfill = profile.role === 'principal' || profile.role === 'admin';
-  const days: string[] = [];
-  const base = new Date(realToday + 'T00:00:00Z');
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(base);
-    d.setUTCDate(base.getUTCDate() - i);
-    days.push(d.toISOString().slice(0, 10));
-  }
-  // Quản trị viên được sửa điểm danh của BẤT KỲ ngày nào trong quá khứ — RLS
-  // (rls_all_attendance_records) vốn đã cho phép, nhưng giao diện trước đây chỉ dựng đúng 7 nút
-  // ngày nên không có cách nào đi xa hơn. Người thử vai quản trị đã báo đúng chỗ này: "bấm vào
-  // ngày trước đó nhưng không mở được gì".
-  const canPickAnyDate = profile.role === 'admin';
+  // XEM NGÀY NÀO CŨNG ĐƯỢC — bảng này chỉ để NHÌN (0127: em tự check-in, cô không ghi thay), nên
+  // không còn lý do khoá "7 ngày gần nhất" như thời cô còn sửa được điểm danh. Đi theo tuần: thứ
+  // Hai → Chủ nhật của tuần chứa ngày đang xem, hai nút lùi/tiến tuần, và một ô lịch cho ngày lẻ.
+  // Tổ trưởng điểm danh (học sinh) thì chỉ có hôm nay: RLS mood_checkins không cho em đọc ngày
+  // khác của bạn, bày nút ra là bày một bảng trống.
+  const xemDuocNgayKhac = profile.role !== 'student';
 
-  // Ngày đang xem + LÝ DO nếu không nhận được ?date=.
-  // Trước đây ngày ngoài phạm vi bị âm thầm thay bằng hôm nay: người dùng thấy màn hình đổi về
-  // hôm nay mà không hiểu vì sao, tưởng tính năng hỏng. Nay nói rõ.
+  // Ngày đang xem. Ngày sai dạng hay ở tương lai → hôm nay, nói một câu.
   let today = realToday;
   let dateNotice: string | null = null;
   if (dateParam) {
-    const looksLikeDate = /^\d{4}-\d{2}-\d{2}$/.test(dateParam);
-    if (!looksLikeDate) {
+    if (!isValidDayVN(dateParam)) {
       dateNotice = 'Ngày không hợp lệ — đang hiển thị hôm nay.';
     } else if (dateParam > realToday) {
-      dateNotice = 'Không điểm danh cho ngày trong tương lai — đang hiển thị hôm nay.';
-    } else if (canPickAnyDate || days.includes(dateParam)) {
+      dateNotice = 'Chưa tới ngày ấy — đang hiển thị hôm nay.';
+    } else if (xemDuocNgayKhac) {
       today = dateParam;
-    } else if (canBackfill) {
-      dateNotice =
-        'Giáo viên chỉ sửa được điểm danh trong 7 ngày gần nhất. Ngày cũ hơn cần quản trị viên — đang hiển thị hôm nay.';
-    } else {
-      dateNotice = 'Bạn chỉ điểm danh được ngày hôm nay — đang hiển thị hôm nay.';
     }
   }
+  const tuan = weekDaysVN(today);
+  const tuanTruoc = shiftWeeks(tuan[0], -1);
+  const tuanSau = shiftWeeks(tuan[0], 1);
+  // Tuần sau chỉ có nghĩa khi ít nhất thứ Hai của nó đã tới.
+  const coTuanSau = tuanSau <= realToday;
+  const duongNgay = (d: string) => ({
+    pathname: '/attendance' as const,
+    query: {...(classParam ? {class: classParam} : {}), date: d},
+  });
 
   const students = ((enrolls ?? []) as unknown as EnrRow[])
     // TÊN, KHÔNG PHẢI UUID. Em chưa khai tên thì trước đây bảng in nguyên
@@ -136,13 +131,6 @@ export default async function AttendancePage({
     };
   });
 
-  // CHỈ BGH VÀ ADMIN SỬA ĐƯỢC (0127). Tổ trưởng vẫn vào được màn này — nhưng để NHÌN ai chưa
-  // check-in mà đi nhắc, đúng một việc ấy. GVCN cũng chỉ đọc: bảng này là gương của việc các em
-  // đã làm, không phải chỗ cô làm thay.
-  //
-  // RLS mới là thứ chặn thật; cờ này chỉ để giao diện đừng bày ra những nút bấm vào sẽ báo lỗi.
-  const canEdit = profile.role === 'principal' || profile.role === 'admin';
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
@@ -152,7 +140,7 @@ export default async function AttendancePage({
           </h1>
           <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-txt">
             <CalendarDays size={14} strokeWidth={2.2} className="text-grey-mid" />
-            {t('todayLabel')}: <b className="text-navy">{today}</b>
+            {today === realToday ? t('todayLabel') : t('viewingDay')}: <b className="text-navy">{ngayVN(today)}</b>
           </span>
           <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-txt">
             <Users size={14} strokeWidth={2.2} className="text-grey-mid" />
@@ -166,33 +154,36 @@ export default async function AttendancePage({
           <ClassPicker classes={accessible} current={myClass.id} />
         )}
         <ClassOwnerNote classId={myClass.id} viewerId={profile.id} viewerRole={profile.role} />
-          {!canBackfill && (
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold text-status-bad"
-              style={{backgroundColor: 'rgba(192,57,43,0.12)'}}
-            >
-              <Lock size={12} strokeWidth={2.5} />
-              {t('lockedPast')}
-            </span>
-          )}
         </div>
       </div>
 
-      {/* GVCN/Admin: chọn ngày để bổ sung/sửa điểm danh trong 7 ngày gần nhất */}
-      {canBackfill && (
+      {/* Thanh tuần: ← tuần trước · T2…CN (ngày/tháng) · tuần sau → · ô lịch. Ngày trước, tháng
+          sau — người Việt đọc 11/8, không đọc 08-11. */}
+      {xemDuocNgayKhac && (
         <div className="flex flex-wrap items-center gap-1.5">
-          {days.map((d) => {
+          <NutDoiTrang href={duongNgay(tuanTruoc)} className={nutTuan} ariaLabel={t('prevWeek')}>
+            ← {t('prevWeek')}
+          </NutDoiTrang>
+          {tuan.map((d, i) => {
             const active = d === today;
             const isToday = d === realToday;
-            const label = new Date(d + 'T00:00:00Z');
-            const dow = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][label.getUTCDay()];
-            // NutDoiTrang chứ không phải <Link>: đổi ngày phải chạy lại truy vấn điểm danh, và
-            // người thử 08/2026 báo "bấm lùi rất chậm, như kiểu nút không ăn" — nút giờ mờ đi
-            // ngay khi bấm thay vì đứng im chờ server.
+            const dow = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'][i];
+            // Ngày chưa tới: chữ mờ, không bấm — tuần đang xem vẫn đủ bảy ô cho mắt bám.
+            if (d > realToday) {
+              return (
+                <span
+                  key={d}
+                  className="inline-flex flex-col items-center rounded-[10px] border-[1.5px] border-navy/[0.08] px-2.5 py-1.5 text-[11px] font-extrabold leading-tight text-grey-soft"
+                >
+                  <span>{dow}</span>
+                  <span className="text-[10px] font-bold">{ngayVN(d).slice(0, 5)}</span>
+                </span>
+              );
+            }
             return (
               <NutDoiTrang
                 key={d}
-                href={{pathname: '/attendance', query: {...(classParam ? {class: classParam} : {}), date: d}}}
+                href={duongNgay(d)}
                 className={`inline-flex flex-col items-center rounded-[10px] px-2.5 py-1.5 text-[11px] font-extrabold leading-tight transition-all ${
                   active
                     ? 'btn-gold border border-transparent'
@@ -200,45 +191,20 @@ export default async function AttendancePage({
                 }`}
               >
                 <span>{isToday ? t('todayLabel') : dow}</span>
-                <span className="text-[10px] font-bold opacity-70">{d.slice(5)}</span>
+                <span className="text-[10px] font-bold opacity-70">{ngayVN(d).slice(0, 5)}</span>
               </NutDoiTrang>
             );
           })}
-
-          {/* Người thử tưởng "chỉ hiện 7 ngày" là lỗi — nó là luật, nói thẳng ra thì hết hiểu lầm. */}
-          {!canPickAnyDate && (
-            <span className="self-center pl-1 text-[11px] font-semibold italic text-grey-mid">
-              Chỉ sửa được 7 ngày gần nhất — ngày cũ hơn nhờ quản trị viên.
-            </span>
+          {coTuanSau ? (
+            <NutDoiTrang href={duongNgay(tuanSau)} className={nutTuan} ariaLabel={t('nextWeek')}>
+              {t('nextWeek')} →
+            </NutDoiTrang>
+          ) : (
+            <span className={`${nutTuan} cursor-not-allowed opacity-40`}>{t('nextWeek')} →</span>
           )}
-
-          {/* Quản trị viên: chọn ngày bất kỳ. Form GET → chỉ đổi ?date= trên URL, không cần
-              server action. Giữ luôn ?class= để không nhảy sang lớp khác khi đang xem một lớp. */}
-          {canPickAnyDate && (
-            <form method="get" className="ml-1 flex items-center gap-1.5">
-              {classParam && <input type="hidden" name="class" value={classParam} />}
-              <label
-                htmlFor="pick-date"
-                className="text-[11px] font-extrabold uppercase tracking-wide text-navy/70"
-              >
-                Ngày khác
-              </label>
-              <input
-                id="pick-date"
-                type="date"
-                name="date"
-                defaultValue={today}
-                max={realToday}
-                className="h-9 rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2 text-[12.5px] font-bold text-navy outline-none focus:border-navy"
-              />
-              <button
-                type="submit"
-                className="h-9 cursor-pointer rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12px] font-extrabold text-navy transition-colors hover:border-navy"
-              >
-                Xem
-              </button>
-            </form>
-          )}
+          <span className="ml-1">
+            <ChonNgayDiemDanh ngay={today} toiDa={realToday} classParam={classParam} />
+          </span>
         </div>
       )}
 
@@ -246,9 +212,6 @@ export default async function AttendancePage({
         <p className="rounded-[10px] bg-gold/15 px-3 py-2 text-[12.5px] font-semibold text-gold-text">
           {dateNotice}
         </p>
-      )}
-      {canEdit && (
-        <p className="text-xs italic text-grey-mid">{t('tickAllHint')}</p>
       )}
       {/* key ép remount khi đổi lớp/ngày → xoá sạch state pending, tránh ghi
           điểm danh của lớp này sang lớp khác (nhiễm chéo dữ liệu). */}
@@ -259,10 +222,6 @@ export default async function AttendancePage({
         students={dong}
       />
 
-      {/* BẢNG CẢM XÚC ĐÃ BỎ KHỎI MÀN GIÁO VIÊN (quyết định chủ dự án).
-          Giáo viên nhìn TRẠNG THÁI ĐIỂM DANH — có mặt / muộn / vắng / có phép — chứ không nhìn
-          cảm xúc từng em. Cảm xúc chỉ còn ở màn quản trị, dưới dạng biểu đồ.
-          Không xoá component ClassMoodBoard: nó vẫn dùng được nếu sau này đổi ý. */}
     </div>
   );
 }

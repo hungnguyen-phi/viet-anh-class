@@ -41,7 +41,6 @@ export type NhanTiet = {
   loaiTiet: string;
   luu: string;
   huy: string;
-  ghiChu: string;
   loai: {value: string; label: string}[];
 };
 
@@ -173,8 +172,6 @@ function HopTiet({
             {state.error}
           </p>
         )}
-
-        <p className="text-[11px] font-semibold italic leading-relaxed text-grey-mid">{nhan.ghiChu}</p>
 
         <div className="flex justify-end gap-2">
           <button type="button" onClick={dong} className={btnGhost}>

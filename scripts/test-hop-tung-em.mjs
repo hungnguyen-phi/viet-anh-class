@@ -1,11 +1,12 @@
-// HỌP WIG: TỪNG EM — việc tuần này, và biên bản riêng (0108, lát 4+5).
+// HỌP WIG: TỪNG EM — cam kết của em (việc, tick, V/X) và năm câu em tự viết đổ về màn của cô.
 //
 //   npm run dev  rồi:  node scripts/test-hop-tung-em.mjs [http://localhost:6880]
 //
-// Hai luật đang kiểm, cả hai đều do chủ dự án chốt 13/08/2026:
-//   A. "mỗi tuần con làm gì" thành "TUẦN NÀY con làm gì", tuần sau buổi họp HỎI LẠI. Ô điền sẵn
-//      câu cũ; không đổi thì không ghi lại, đổi thì ghi đè.
-//   B. Họp LỚP ghi được biên bản CÁ NHÂN cho từng em, để GVCN vắng hoặc bận thì buổi họp không tắc.
+// Luật đang kiểm (chủ dự án chốt 15–16/08/2026):
+//   A. Lời hứa và lời kể là CỦA EM: em viết ở /student/hop, cô đọc trong phòng họp — không có ô
+//      nào để cô gõ hộ hay ghi đè, và máy chủ thôi đọc các trường cũ dù ai gửi tay lên.
+//   B. Cô CHẤM V/X cam kết của em ngay trong buổi họp ("đánh thắng thua giống học sinh").
+//   C. Bước 2 chỉ còn chiêm nghiệm; câu "cam kết" tự do đã gỡ (bước 3 mới là cam kết thật).
 //
 // ── GỌI ĐƯỢC ACTION THẬT, và đây là cách ──────────────────────────────────────────────────────
 //
@@ -137,6 +138,16 @@ const {data: g} = await admin.auth.admin.generateLink({type: 'magiclink', email:
 const {data: v} = await anon.auth.verifyOtp({type: 'email', token_hash: g.properties.hashed_token});
 const cookie = `sb-${REF}-auth-token=base64-${Buffer.from(JSON.stringify(v.session)).toString('base64url')}`;
 
+// Nhãn tuần đúng dạng máy chủ dùng (weekFromMonday → isoWeekLabel).
+const nhanTuanCua = (thu2) => {
+  const dt = new Date(`${thu2}T00:00:00Z`);
+  const dayNum = dt.getUTCDay() || 7;
+  dt.setUTCDate(dt.getUTCDate() + 4 - dayNum);
+  const dauNam = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
+  const so = Math.ceil(((dt.getTime() - dauNam.getTime()) / 86400000 + 1) / 7);
+  return `W${String(so).padStart(2, '0')}-${dt.getUTCFullYear()}`;
+};
+
 let wigId = null;
 let camKetCuId = null;
 try {
@@ -159,6 +170,15 @@ try {
     active_weekdays: [1, 3], unit_per_tick: 1,
   });
 
+  // ── EM TỰ VIẾT NĂM CÂU trong phòng họp của em — cô chỉ đọc (0111/0130) ──
+  // Ghi thẳng bằng service_role đúng vào bảng mà hs_ghi_bien_ban ghi (chỉ đo phần cô nhìn).
+  await admin.from('wig_meetings').insert({
+    class_id: lop.id, student_id: emThu.student_id, week_label: nhanTuanCua(TUAN), week_start: TUAN,
+    results: 'ZZ_TEST tuần rồi làm được 2 hôm', commitments: 'ZZ_TEST tuần tới đủ 3 hôm',
+    kho_khan: 'ZZ_TEST con hay quên', vuot_qua: 'ZZ_TEST nhờ mẹ nhắc', cach_tot_hon: 'ZZ_TEST đặt báo thức',
+    hs_go_luc: new Date().toISOString(),
+  });
+
   // ── Mở phòng họp của tuần đã qua ──
   const r = await fetch(`${BASE}/wig/hop?hop=${TUAN}`, {headers: {cookie}});
   dau('Phòng họp dựng được', r.status === 200, `HTTP ${r.status}`);
@@ -166,18 +186,21 @@ try {
   const html = await r.text();
   const dom = html.replace(/<script[\s\S]*?<\/script>/g, '');
 
-  dau('Em có dòng riêng trong khối "Từng em"', dom.includes(`name="em_${emThu.student_id}_ten"`));
-  // Ô "tuần này con làm gì" và hàng nút chọn thứ đã GỠ khỏi phòng họp — nay canh chiều ngược lại.
+  // TRỤC CAM KẾT (16/08/2026): cam kết của em hiện trong khối của em, kèm việc và V/X.
+  dau('Cam kết của em hiện trong khối "Từng em"', dom.includes('ZZ_TEST việc cũ'));
+  dau('Có nút V/X cho cam kết của em', dom.includes(`name="vxgoi_${camKetCuId}"`));
+  // NĂM CÂU EM VIẾT ĐỔ VỀ màn của cô — chủ dự án: "ko chỗ nào hiện các câu trả lời của các em".
+  for (const cau of ['ZZ_TEST con hay quên', 'ZZ_TEST nhờ mẹ nhắc', 'ZZ_TEST đặt báo thức', 'ZZ_TEST tuần rồi làm được 2 hôm', 'ZZ_TEST tuần tới đủ 3 hôm'])
+    dau(`Cô đọc được câu em viết: "${cau.slice(8)}"`, dom.includes(cau));
+  // KHÔNG còn ô nào để cô ghi đè lời của em.
   dau(
-    'Phòng họp KHÔNG còn ô gõ việc thay em',
-    !dom.includes(`name="em_${emThu.student_id}_viec"`),
-    dom.includes(`name="em_${emThu.student_id}_viec"`) ? 'CÒN Ô GÕ' : 'đã gỡ',
+    'Phòng họp KHÔNG còn ô cô gõ hộ "Tuần rồi / Tuần tới hứa" cho em',
+    !dom.includes(`name="em_${emThu.student_id}_ketqua"`) && !dom.includes(`name="em_${emThu.student_id}_camket"`),
   );
-  dau(
-    'Phòng họp KHÔNG còn nút chọn thứ cho em',
-    !dom.includes(`name="em_${emThu.student_id}_days"`),
-    dom.includes(`name="em_${emThu.student_id}_days"`) ? 'CÒN NÚT THỨ' : 'đã gỡ',
-  );
+  dau('Phòng họp KHÔNG còn ô gõ việc thay em', !dom.includes(`name="em_${emThu.student_id}_viec"`));
+  // Hai khối cũ đã gỡ: bảng "Việc chung" chấm từng việc, và ô "Cam kết" chữ tự do ở bước 2.
+  dau('Không còn ô "Cam kết" chữ tự do ở bước 2', !dom.includes('name="cam_ket"'));
+  dau('Không còn bảng chấm từng việc (note_/verdict_)', !/name="note_[0-9a-f-]{36}"/.test(dom));
 
   const an = truongAction(html);
   dau('Bóc được trường ẩn của action', an.length >= 3, an.map(([k]) => k).join(', '));
@@ -202,106 +225,54 @@ try {
     return {status: dap.status, body: await dap.text()};
   }
 
-  // NHÃN TUẦN PHẢI LÀ NHÃN THẬT. Bản cũ gửi 'ZZTEST-W11' và máy chủ nuốt được, vì hồi ấy nhãn
-  // tuần đích chỉ dùng ở nhánh tạo mới. Nay mọi việc của buổi họp đều treo vào tuần đích, nên nhãn
-  // không đọc được là buổi họp dừng lại — đúng như nó nên làm. Giao diện thật luôn gửi nhãn do máy
-  // chủ tính (weekFromMonday), nên đây là chỗ bộ kiểm phải theo app, không phải ngược lại.
-  const nhanTuan = (thu2) => {
-    const dt = new Date(`${thu2}T00:00:00Z`);
-    const dayNum = dt.getUTCDay() || 7;
-    dt.setUTCDate(dt.getUTCDate() + 4 - dayNum);
-    const dauNam = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
-    const so = Math.ceil(((dt.getTime() - dauNam.getTime()) / 86400000 + 1) / 7);
-    return `W${String(so).padStart(2, '0')}-${dt.getUTCFullYear()}`;
-  };
   const sang = new Date(`${TUAN}T00:00:00Z`);
   sang.setUTCDate(sang.getUTCDate() + 7);
   const TUAN_SAU = sang.toISOString().slice(0, 10);
 
-  const chung = {
+  // ① CÔ CHẤM V cho cam kết của em + ghi chiêm nghiệm; gửi kèm cả các trường CŨ (gõ hộ, đặt việc)
+  //    để chứng minh máy chủ thôi đọc chúng.
+  const d1 = await gui({
     class_id: lop.id,
     hop_start: TUAN,
-    hop_label: nhanTuan(TUAN),
-    dich_label: nhanTuan(TUAN_SAU),
+    hop_label: nhanTuanCua(TUAN),
+    dich_label: nhanTuanCua(TUAN_SAU),
+    chiem_nghiem: 'ZZ_TEST chiêm nghiệm của lớp',
+    [`vx_${camKetCuId}`]: 'win',
+    [`vxgoi_${camKetCuId}`]: 'lose',
     [`em_${emThu.student_id}_ten`]: 'Em thử',
-    [`em_${emThu.student_id}_wig`]: wigId,
-  };
-  const {data: leadTruoc} = await admin
-    .from('lead_measures').select('id').eq('commitment_id', camKetCuId).maybeSingle();
-
-  // ① ĐỔI việc + ghi biên bản riêng
-  const d1 = await gui({
-    ...chung,
-    [`em_${emThu.student_id}_lead`]: leadTruoc.id,
+    [`em_${emThu.student_id}_ketqua`]: 'CÔ GÕ HỘ — không được ghi',
+    [`em_${emThu.student_id}_camket`]: 'CÔ GÕ HỘ — không được ghi',
     [`em_${emThu.student_id}_viec`]: 'ZZ_TEST việc mới',
     [`em_${emThu.student_id}_days`]: ['2', '4', '6'],
-    [`em_${emThu.student_id}_ketqua`]: 'tuần rồi làm được 2 hôm',
-    [`em_${emThu.student_id}_camket`]: 'tuần tới đủ 3 hôm',
+    cam_ket: 'CÂU CAM KẾT TỰ DO — không được ghi',
   });
   dau('Máy chủ nhận lệnh chốt buổi họp', d1.status === 200 || d1.status === 303, `HTTP ${d1.status}`);
-  // `SOI=1 node scripts/test-hop-tung-em.mjs …` in ra câu máy chủ trả về. Khi buổi họp không lưu,
-  // mọi phép dưới đây đỏ cùng lúc mà không cái nào nói VÌ SAO — câu lỗi thật nằm trong thân trả
-  // về, và đây là đường ngắn nhất để đọc nó.
   if (process.env.SOI)
     console.log('SOI:', (d1.body.match(/"error":"[^"]{0,200}"|Xong:[^"\\]{0,160}/g) ?? ['(không thấy câu báo)'])[0]);
 
-  // ── BUỔI HỌP KHÔNG ĐẶT VIỆC THAY EM (15/08/2026) ────────────────────────────────────────
-  //
-  // Chủ dự án: "sao giáo viên lại được sửa cho từng em? phải là em đặt chứ". Ô "việc tuần này" và
-  // hàng nút chọn thứ đã gỡ khỏi phòng họp, và máy chủ thôi đọc hai trường ấy. Nên phép đo đảo
-  // chiều: gửi chúng lên vẫn phải KHÔNG sinh ra cam kết nào cho em — gỡ ở giao diện mà máy chủ
-  // còn nhận thì chỉ là giấu cái nút, không phải khoá cửa.
-  // ── (cũ) BUỔI HỌP ĐẶT VIỆC CHO TUẦN TỚI, KHÔNG VIẾT LẠI TUẦN VỪA CHỐT ───────────────────
-  //
-  // Bản trước đòi ngược lại: ô "việc tuần này" phải ĐỔI TÊN chính việc của tuần cũ. Hai lẽ khiến
-  // nó sai: 0129 khoá quyền sửa việc dẫn dắt (câu UPDATE của cô khớp 0 dòng và im lặng trôi qua),
-  // và tuần cũ đã chốt — sửa nó là viết lại quá khứ mà lượt tick đã treo dưới.
-  const TUAN_TOI = TUAN_SAU;
+  const {data: ckSau} = await admin
+    .from('commitments').select('verdict, verdict_goi_y, verdict_by').eq('id', camKetCuId).maybeSingle();
+  dau('Cô chấm được V/X cho cam kết của em', ckSau?.verdict === 'win' && ckSau?.verdict_goi_y === 'lose',
+    `${ckSau?.verdict} (máy gợi ${ckSau?.verdict_goi_y})`);
 
   const {data: ckMoi} = await admin
-    .from('commitments')
-    .select('id, title')
-    .eq('class_id', lop.id)
-    .eq('student_id', emThu.student_id)
-    .eq('week_start', TUAN_TOI)
-    .maybeSingle();
+    .from('commitments').select('id, title').eq('class_id', lop.id)
+    .eq('student_id', emThu.student_id).eq('week_start', TUAN_SAU).maybeSingle();
   dau('Buổi họp KHÔNG đặt cam kết thay em', !ckMoi, ckMoi ? `LỌT: ${ckMoi.title}` : 'không có');
 
-
-  const {data: viecCu} = await admin
-    .from('lead_measures').select('title, active_weekdays').eq('id', leadTruoc.id).maybeSingle();
-  dau(
-    'Việc của tuần ĐÃ CHỐT không bị sửa',
-    viecCu?.title === 'ZZ_TEST việc cũ' && (viecCu?.active_weekdays ?? []).join(',') === '1,3',
-    `${viecCu?.title} · ${(viecCu?.active_weekdays ?? []).join(',')}`,
-  );
-
   const {data: bb} = await admin
-    .from('wig_meetings').select('results, commitments')
+    .from('wig_meetings').select('results, commitments, kho_khan')
     .eq('class_id', lop.id).eq('student_id', emThu.student_id).eq('week_start', TUAN).maybeSingle();
-  dau('Họp LỚP ghi được biên bản CÁ NHÂN', bb?.results === 'tuần rồi làm được 2 hôm' && bb?.commitments === 'tuần tới đủ 3 hôm',
+  dau('Lời của em KHÔNG bị cô ghi đè',
+    bb?.results === 'ZZ_TEST tuần rồi làm được 2 hôm' && bb?.commitments === 'ZZ_TEST tuần tới đủ 3 hôm' && bb?.kho_khan === 'ZZ_TEST con hay quên',
     bb ? `${bb.results} | ${bb.commitments}` : 'không có dòng nào');
 
   const {data: bbLop} = await admin
-    .from('wig_meetings').select('chot_at').eq('class_id', lop.id).is('student_id', null).eq('week_start', TUAN).maybeSingle();
+    .from('wig_meetings').select('chot_at, results, commitments')
+    .eq('class_id', lop.id).is('student_id', null).eq('week_start', TUAN).maybeSingle();
   dau('Một nút: lưu cũng là CHỐT', !!bbLop?.chot_at, bbLop?.chot_at ?? 'chưa chốt');
-
-  // ② GỬI LẠI Y HỆT — không đổi thì không ghi lại
-  const d2 = await gui({
-    ...chung,
-    [`em_${emThu.student_id}_lead`]: leadTruoc.id,
-    [`em_${emThu.student_id}_viec`]: 'ZZ_TEST việc mới',
-    [`em_${emThu.student_id}_days`]: ['2', '4', '6'],
-    [`em_${emThu.student_id}_ketqua`]: 'tuần rồi làm được 2 hôm',
-    [`em_${emThu.student_id}_camket`]: 'tuần tới đủ 3 hôm',
-  });
-  // Không decodeURIComponent cả thân trả về: luồng RSC có dấu % trong chuỗi thường và ném URIError.
-  const noiBao = d2.body;
-  dau(
-    'Gửi lại y hệt → KHÔNG báo đã giao việc/ghi biên bản',
-    !/giao việc tuần cho/.test(noiBao) && !/ghi biên bản riêng cho/.test(noiBao),
-    (noiBao.match(/Xong: [^"\\]{0,90}/) ?? ['(không đọc được câu báo)'])[0],
-  );
+  dau('Chiêm nghiệm của lớp được ghi', bbLop?.results === 'ZZ_TEST chiêm nghiệm của lớp', bbLop?.results ?? '');
+  dau('Câu "cam kết" tự do KHÔNG còn được ghi', !bbLop?.commitments, bbLop?.commitments ?? 'trống');
 } finally {
   // Dọn theo đúng thứ tự phụ thuộc, và dọn CẢ DẤU CHỐT — bỏ sót là khoá tick một tuần của lớp thật.
   await admin.from('wig_meetings').delete().eq('class_id', lop.id).eq('week_start', TUAN);

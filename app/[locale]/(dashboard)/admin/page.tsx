@@ -3,6 +3,7 @@ import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {requireRole} from '@/lib/auth';
 import {Flash} from '@/components/ui/Flash';
 import {AdminSections} from './AdminSections';
+import {MucQuanTri} from './MucQuanTri';
 import {CreateMenuLoader, CreateMenuSkeleton} from './CreateMenuLoader';
 import {PendingGrants} from './PendingGrants';
 import {PendingSection} from './PendingSection';
@@ -61,7 +62,10 @@ export default async function AdminPage({
   // Khoá dựng lại cho Suspense: đổi tab / đổi cỡ trang / sang trang là một truy vấn khác, nên phải
   // cho React biết đây là nội dung MỚI. Thiếu key thì nó giữ nguyên bảng cũ trên màn hình cho tới
   // khi bảng mới về — người dùng bấm xong thấy y hệt lúc chưa bấm, tưởng cú bấm rơi mất.
-  const khoaBang = `${tab}|${q}|${page}|${upage}`;
+  // KHÔNG đưa q vào khoá: ô tìm nay lọc ngay khi gõ (UsersToolbar), mà đổi khoá là dựng lại cả
+  // mảnh — ô gõ mất chữ, mất con trỏ giữa chừng. Lúc tìm, chấm quay nằm trong chính ô gõ; bảng cũ
+  // đứng yên tới khi bảng mới về, không nhấp nháy khung xương sau mỗi phím.
+  const khoaBang = `${tab}|${page}|${upage}`;
 
   // revision = dấu vân tay để hộp thoại "Tạo mới" tự đóng khi form bên trong vừa lưu xong. Mọi
   // server action ở đây kết thúc bằng redirect kèm ?flash=… nên đường dẫn luôn đổi sau khi lưu.
@@ -84,23 +88,36 @@ export default async function AdminPage({
 
       <Flash />
 
+      {/* Người chờ duyệt nằm TRÊN thanh chọn mục: đây là việc phải làm ngay, mục nào đang mở cũng
+          phải thấy. */}
       <Suspense fallback={null}>
         <PendingSection />
       </Suspense>
 
-      {/* Đã khai sẵn, chờ đăng nhập lần đầu — đặt TRÊN bảng người dùng vì đây là những người CHƯA
-          có trong bảng ấy. Không có mục này thì khai xong ba mươi ba email là mất dấu. */}
-      <Suspense fallback={null}>
-        <PendingGrants />
-      </Suspense>
-
-      <Suspense key={khoaBang} fallback={<UsersSectionSkeleton rows={Math.min(page, 10)} />}>
-        <UsersSection q={q} tab={tab} page={page} upage={upage} meId={me.id} />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <AdminSections />
-      </Suspense>
+      <MucQuanTri
+        nguoi={
+          <>
+            {/* Đã khai sẵn, chờ đăng nhập lần đầu — đặt TRÊN bảng người dùng vì đây là những người
+                CHƯA có trong bảng ấy. Không có mục này thì khai xong ba mươi ba email là mất dấu. */}
+            <Suspense fallback={null}>
+              <PendingGrants />
+            </Suspense>
+            <Suspense key={khoaBang} fallback={<UsersSectionSkeleton rows={Math.min(page, 10)} />}>
+              <UsersSection q={q} tab={tab} page={page} upage={upage} meId={me.id} />
+            </Suspense>
+          </>
+        }
+        truong={
+          <Suspense fallback={null}>
+            <AdminSections phan="truong" />
+          </Suspense>
+        }
+        khac={
+          <Suspense fallback={null}>
+            <AdminSections phan="khac" />
+          </Suspense>
+        }
+      />
     </div>
   );
 }

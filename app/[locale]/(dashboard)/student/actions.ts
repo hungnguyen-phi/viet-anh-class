@@ -8,7 +8,6 @@ import {createAdminClient} from '@/lib/supabase/admin';
 import {getCurrentProfile, requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
-import {chuanHoaThu} from '@/lib/wig-tao';
 import {kieuDonVi} from '@/lib/don-vi';
 // MỘT nguồn duy nhất cho phép chia nhịp — cùng hàm mà mục tiêu LỚP đang dùng (lib/wig-tao gọi nó
 // trong sinhNhip). Chép một bản riêng cho học sinh là dựng đúng cái bệnh "hai đường tính cho một
@@ -454,7 +453,15 @@ export async function refreshBuddyNote(): Promise<BuddyAskResult> {
     ? await admin.from('wig_meetings').update(patch).eq('id', existing.id)
     : await admin
         .from('wig_meetings')
-        .insert({class_id: enr.class_id, student_id: profile.id, week_label: weekLabel, ...patch});
+        // Kèm week_start: mọi màn hình tra biên bản theo NGÀY (0080), dòng thiếu ngày là dòng vô
+        // hình. Trigger 0140 cũng tự điền, đây là để mã nói đúng ý.
+        .insert({
+          class_id: enr.class_id,
+          student_id: profile.id,
+          week_label: weekLabel,
+          week_start: mondayOf(todayVN),
+          ...patch,
+        });
   if (error) {
     console.error('[buddy] save', error.message);
     return {ok: false, error: 'save'};
@@ -727,8 +734,6 @@ export async function luuMucTieuCuaEm(
   const target_raw = String(formData.get('target_value') ?? '').trim();
   const han = String(formData.get('due_on') ?? '').trim();
   const source_wig_id = String(formData.get('source_wig_id') ?? '').trim();
-  const viec_title = String(formData.get('viec_title') ?? '').trim();
-  const viec_days = chuanHoaThu(formData.getAll('viec_days'));
 
   // AI ĐANG GÕ. Chính em thì set_by='student'; cô hoặc quản trị gõ hộ thì 'teacher'. KHÔNG suy từ
   // một ô trên form — người dùng gửi gì lên cũng được, mà cột này là thước đo của cả chương trình.
@@ -758,54 +763,15 @@ export async function luuMucTieuCuaEm(
     };
   if (!unit) return {ok: false, fieldError: 'unit', error: 'Đơn vị là gì (điểm, bài, lần…)?'};
 
-  // KIỂU ĐƠN VỊ (0110) — suy từ chính đơn vị em gõ, ở MÁY CHỦ, không tin ô trên form.
+  // ĐO BẰNG GÌ — suy từ ĐƠN VỊ, ở máy chủ (0110).
   //
-  //   'do'    (điểm, kg, cm) → cộng lại không có nghĩa, nên KHÔNG có lưới ngày. Ép thành đích
-  //           ghi-nhận-ngoài và bỏ luôn việc tuần nếu em có gõ: 7 điểm thứ Hai cộng 8 điểm thứ Tư
-  //           ra 15 điểm là con số app không có quyền bày.
-  //   'luong' (giờ, bài, trang) → ô ngày là ô ĐIỀN SỐ; chỉ tiêu tuần là một LƯỢNG em tự khai.
-  //   'luot'  (ngày, buổi, tiết) → một chạm như cũ; chỉ tiêu tuần = số thứ được bật (0103).
+  //   'do'    (điểm, kg, cm) → cộng lại không có nghĩa → đích ghi nhận ngoài, 'manual': cô và trò
+  //           tự theo dõi, đạt thì tick một ô. App không có dữ liệu điểm môn, vẽ vạch là bịa (0101).
+  //   'luong' / 'luot' (bài, giờ, buổi) → máy đếm được từ tick → 'tick'. Việc để tick không đặt ở
+  //           đây nữa mà treo dưới cam kết của từng tuần (0121/0137); form này thôi đọc các ô
+  //           viec_* từ 0121 — phần đọc và kiểm chúng đã dọn 16/08/2026.
   const kieu = kieuDonVi(unit);
-  // MỘT CÂU HỎI, HAI CÂU TRẢ LỜI — đúng hai ví dụ chủ dự án đưa 13/08/2026:
-  //   "10000 giờ học, 1 tick ngày = 3 giờ" → mỗi lần CỐ ĐỊNH 3 → một chạm, unit_per_tick = 3
-  //   "5000 lead, thứ Hai điền 10 lead"    → mỗi lần MỘT KHÁC   → ô điền số, lượng nằm ở value
-  const nhap_luong = kieu === 'luong' && String(formData.get('viec_nhap_luong') ?? '') === '1';
-
-  // ĐO BẰNG GÌ, suy ra từ việc em điền chứ không hỏi thêm một câu nữa.
-  //
-  // Có việc để tick → máy đếm được → 'tick'. Không có → đây là đích ghi nhận ngoài ("điểm trung
-  // bình 8,0"), cô và trò tự theo dõi, đạt thì tick một ô → 'manual'. App KHÔNG có dữ liệu điểm
-  // môn, nên vẽ vạch tiến độ cho loại thứ hai là bịa — 0101 đã chặn ở tầng view.
-  const measure_by = viec_title && kieu !== 'do' ? 'tick' : 'manual';
-
-  // MỖI TUẦN BAO NHIÊU LẦN = ĐẾM SỐ THỨ EM ĐÃ CHỌN. Không hỏi thành một ô riêng nữa.
-  //
-  // Ô ấy nói dối được, và đã nói dối: uq_lead_progress_daily (0020) chỉ cho MỘT lượt tick mỗi
-  // (việc, em, ngày), nên số lần tối đa trong tuần đúng bằng số thứ được bật. Em chọn 5 thứ rồi
-  // gõ 3 vào ô "mấy lần/tuần" thì tick đủ cả tuần vẫn hiện 5/3; gõ 7 thì vạch không bao giờ đầy
-  // dù em không bỏ buổi nào. Chủ dự án bắt đúng chỗ này 12/08/2026 ("rất vô lí").
-  //
-  // Với ô ĐIỀN SỐ thì hai con số ấy tách hẳn nhau: em chọn 5 thứ nhưng mỗi tuần 10 giờ. Nên loại
-  // này hỏi thẳng "mỗi tuần bao nhiêu {đơn vị}" — 0103 bỏ ô ấy đi là đúng cho một-chạm, và sai
-  // cho đếm-theo-lượng.
-  // MỖI LƯỢT TICK ĐÁNG BAO NHIÊU. Đơn vị đếm-được-bằng-lượt thì luôn 1 (một buổi là một buổi).
-  // Đơn vị theo lượng mà mỗi lần một khác thì lượng nằm thẳng trong `lead_progress.value`, nên hệ
-  // số cũng là 1 — nhân hai lần là đếm gấp đôi.
-  const upt_raw = String(formData.get('viec_upt') ?? '').trim();
-  const unit_per_tick = kieu === 'luong' && !nhap_luong ? Number(upt_raw) : 1;
-
-  // CHỈ TIÊU TUẦN tính theo ĐƠN VỊ của mục tiêu, không theo số lần:
-  //   một chạm  → số thứ được bật × mỗi lần bao nhiêu  (3 ngày × 3 giờ = 9 giờ/tuần)
-  //   điền số   → em tự khai, vì "5 buổi" và "10 giờ" là hai con số khác nhau
-  const luong_raw = String(formData.get('viec_luong') ?? '').trim();
-  const viec_target = nhap_luong ? Number(luong_raw) : viec_days.length * unit_per_tick;
-
-  if (viec_title && kieu !== 'do' && viec_days.length === 0)
-    return {ok: false, fieldError: 'viec_days', error: 'Con chọn ít nhất một thứ trong tuần nhé.'};
-  if (viec_title && kieu === 'luong' && !nhap_luong && (!Number.isFinite(unit_per_tick) || unit_per_tick <= 0))
-    return {ok: false, fieldError: 'viec_upt', error: `Mỗi lần con làm được bao nhiêu ${unit}?`};
-  if (viec_title && nhap_luong && (!Number.isFinite(viec_target) || viec_target <= 0))
-    return {ok: false, fieldError: 'viec_luong', error: `Mỗi tuần con làm bao nhiêu ${unit}?`};
+  const measure_by = kieu !== 'do' ? 'tick' : 'manual';
 
   const supabase = await createClient();
   const nam = schoolYearRangeVN();

@@ -103,11 +103,10 @@ export function CampusTree({
     setOpenIds((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
   return (
-    <section className="glass rounded-[20px] p-[18px]">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="font-display text-[15px] font-bold text-navy">
-          {t('treeTitle')} <span className="font-semibold text-grey-mid">({campuses.length})</span>
-        </div>
+    // Khung và tiêu đề do Disclosure bên ngoài lo (AdminSections) — mục này gấp lại được như
+    // mọi mục khác của trang. Ở đây chỉ còn nút thêm cơ sở và cây.
+    <div>
+      <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
         <button type="button" onClick={() => setAdding((v) => !v)} className={ghost}>
           <span className="inline-flex items-center gap-1">
             <Plus size={13} strokeWidth={2.6} />
@@ -149,7 +148,7 @@ export function CampusTree({
           ))}
         </div>
       )}
-    </section>
+    </div>
   );
 }
 

@@ -1,16 +1,13 @@
 'use client';
 
-import type {ReactNode} from 'react';
+import {useEffect, useState, useTransition, type ReactNode} from 'react';
 import {useTranslations} from 'next-intl';
 import {Loader2, Search, X} from 'lucide-react';
 import {useLinkStatus} from 'next/link';
 import {Link, useRouter} from '@/i18n/navigation';
-import {SubmitButton} from '@/components/ui/SubmitButton';
 // Hằng số nằm ở file trung lập, KHÔNG khai báo lại ở đây — xem ghi chú trong user-tabs.ts.
 import {USER_TABS, PAGE_SIZES, type UserTab} from './user-tabs';
 
-const navyBtn =
-  'h-10 cursor-pointer whitespace-nowrap rounded-[10px] bg-navy px-3 text-[12px] font-extrabold text-white transition-all hover:bg-navy-700';
 const selectCls =
   'h-10 cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy';
 
@@ -48,6 +45,25 @@ export function UsersToolbar({
   const router = useRouter();
 
   const label = (k: UserTab) => (k === 'all' ? t('tabAll') : tr(k));
+
+  const [goi, setGoi] = useState(q);
+  const [dangTim, batDauTim] = useTransition();
+  // Ô gõ theo người dùng; đường dẫn theo ô gõ, trễ 300 ms. Chỉ đẩy khi khác với ?q= hiện tại —
+  // nếu không, lần dựng đầu tiên (goi === q) cũng đẩy một lần vô ích.
+  useEffect(() => {
+    const sach = goi.replace(/[,()*%]/g, '').trim();
+    if (sach === q) return;
+    const hen = setTimeout(() => {
+      batDauTim(() =>
+        router.replace({
+          pathname: '/admin',
+          query: {...(sach ? {q: sach} : {}), ...(tab !== 'all' ? {vai: tab} : {}), size},
+        }),
+      );
+    }, 300);
+    return () => clearTimeout(hen);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goi]);
   // Đổi số dòng/trang thì luôn về TRANG 1: đang ở trang 7 với 10 dòng mà chuyển sang 100 dòng
   // thì trang 7 không còn tồn tại, và một bảng rỗng trông hệt như "không có ai".
   const goSize = (n: number) =>
@@ -84,35 +100,42 @@ export function UsersToolbar({
 
       {/* Tìm kiếm + số dòng mỗi trang */}
       <div className="flex flex-wrap items-center gap-2">
-        <form method="get" className="flex items-center gap-1.5">
-          {/* Giữ tab và cỡ trang khi tìm — nếu không, mỗi lần gõ tìm là bị ném về "Tất cả". */}
-          {tab !== 'all' && <input type="hidden" name="vai" value={tab} />}
-          <input type="hidden" name="size" value={size} />
-          <span className="relative">
-            <Search
+        {/* TÌM NGAY KHI GÕ. Bản trước là <form method="get"> với nút "Tìm": gõ xong còn phải bấm
+            thêm một cái, và người quản trị hỏi thẳng "code gì lạc hậu vậy". Nay gõ tới đâu lọc tới
+            đó — chờ 300 ms sau phím cuối rồi mới hỏi máy chủ, để mười ký tự không thành mười vòng
+            đi-về; chấm quay hiện trong ô lúc đang chờ kết quả. Kết quả vẫn đi qua đường dẫn (?q=)
+            nên tải lại trang hay gửi link cho người khác vẫn ra đúng danh sách ấy. */}
+        <span className="relative">
+          <Search
+            size={14}
+            strokeWidth={2.4}
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-grey-mid"
+          />
+          <input
+            value={goi}
+            onChange={(e) => setGoi(e.target.value)}
+            placeholder={t('searchUser')}
+            aria-label={t('searchUser')}
+            className="h-10 w-[230px] rounded-[10px] border-[1.5px] border-navy/15 bg-white pl-8 pr-8 text-[12.5px] font-semibold text-navy outline-none focus:border-navy"
+          />
+          {dangTim ? (
+            <Loader2
               size={14}
-              strokeWidth={2.4}
-              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-grey-mid"
+              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-grey-mid"
             />
-            <input
-              name="q"
-              defaultValue={q}
-              placeholder={t('searchUser')}
-              aria-label={t('searchUser')}
-              className="h-10 w-[230px] rounded-[10px] border-[1.5px] border-navy/15 bg-white pl-8 pr-3 text-[12.5px] font-semibold text-navy outline-none focus:border-navy"
-            />
-          </span>
-          <SubmitButton className={navyBtn}>{t('search')}</SubmitButton>
-        </form>
-        {q && (
-          <Link
-            href={{pathname: '/admin', query: {...(tab !== 'all' ? {vai: tab} : {}), size}}}
-            className="inline-flex h-10 items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white/60 px-2.5 text-[12px] font-extrabold text-navy transition-all hover:border-navy"
-          >
-            <X size={13} strokeWidth={2.6} />
-            {t('clear')}
-          </Link>
-        )}
+          ) : (
+            goi && (
+              <button
+                type="button"
+                onClick={() => setGoi('')}
+                aria-label={t('clear')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-grey-mid hover:text-navy"
+              >
+                <X size={14} strokeWidth={2.6} />
+              </button>
+            )
+          )}
+        </span>
         <label className="ml-auto flex items-center gap-1.5 text-[12px] font-bold text-grey-mid">
           {t('perPage')}
           <select

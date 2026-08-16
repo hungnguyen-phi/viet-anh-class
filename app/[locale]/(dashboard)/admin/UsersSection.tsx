@@ -1,6 +1,7 @@
 import {getTranslations} from 'next-intl/server';
 import {Link} from '@/i18n/navigation';
 import {createClient} from '@/lib/supabase/server';
+import {Disclosure} from './Disclosure';
 import {UsersToolbar} from './UsersToolbar';
 import {UsersTable} from './UsersTable';
 import {USER_TABS, type UserTab} from './user-tabs';
@@ -73,11 +74,7 @@ export async function UsersSection({
   });
 
   return (
-    <section className="glass rounded-[20px] p-[18px]">
-      <div className="mb-3 font-display text-[15px] font-bold text-navy">
-        {t('users')} <span className="font-semibold text-grey-mid">({counts.all})</span>
-      </div>
-
+    <Disclosure title={t('users')} count={counts.all} defaultOpen>
       <UsersToolbar q={q} tab={tab} size={page} counts={counts} />
 
       <UsersTable rows={rows} meId={meId} q={q} />
@@ -102,7 +99,7 @@ export async function UsersSection({
           )}
         </div>
       )}
-    </section>
+    </Disclosure>
   );
 }
 

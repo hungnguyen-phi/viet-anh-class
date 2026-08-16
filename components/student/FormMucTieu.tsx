@@ -5,7 +5,7 @@ import {useTranslations} from 'next-intl';
 import {AlertCircle} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Popup} from '@/components/ui/Popup';
-import {Field, ctlWithBorder, inputCls, selectCls, btnGold} from '@/components/ui/Field';
+import {Field, ctlWithBorder, selectCls, btnGold} from '@/components/ui/Field';
 import {ONgayVN, ngayVN} from '@/components/ui/ONgayVN';
 import {luuMucTieuCuaEm, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
 import {kieuDonVi, coTrongDanhSach, DON_VI} from '@/lib/don-vi';
@@ -24,16 +24,6 @@ import {ChonCuon} from '@/components/ui/ChonCuon';
 // trống dài nửa màn hình mới tới việc hôm nay. Chủ dự án chốt 12/08/2026: "cho cái form thành cái
 // popup là được rồi".
 
-export type ViecCuaEm = {
-  title: string;
-  target_value: number;
-  active_weekdays: number[] | null;
-  /** 0110 — một lượt tick đáng bao nhiêu đơn vị. */
-  unitPerTick?: number;
-  /** 0110 — ô ngày là ô điền số. */
-  nhapLuong?: boolean;
-};
-
 export type DangSua = {
   id: string;
   title: string;
@@ -43,12 +33,10 @@ export type DangSua = {
   end_date: string;
   area: string;
   source_wig_id: string | null;
-  viec: ViecCuaEm | null;
 } | null;
 
 export type WigLop = {id: string; area: string; title: string};
 
-const DOW = [1, 2, 3, 4, 5, 6, 7];
 
 export function FormMucTieu({
   studentId,
@@ -58,7 +46,6 @@ export function FormMucTieu({
   wigLop,
   dangSua,
   laChinhEm,
-  dayShort,
   onClose,
   onDone,
 }: {
@@ -79,13 +66,11 @@ export function FormMucTieu({
   wigLop: WigLop[];
   dangSua: DangSua;
   laChinhEm: boolean;
-  dayShort: string[];
   onClose: () => void;
   onDone?: (message: string) => void;
 }) {
   const t = useTranslations('goal');
   const [state, formAction] = useActionState<MucTieuState, FormData>(luuMucTieuCuaEm, {ok: false});
-  const [thu, setThu] = useState<number[]>(dangSua?.viec?.active_weekdays ?? [1, 3, 5]);
 
   // MỤC TIÊU LỚP mà việc này góp sức vào — nay BẮT BUỘC với cả hai loại, và là nguồn duy nhất của
   // lĩnh vực. Mục tiêu riêng đang sửa thì không có `source_wig_id` để mở lại (CSDL bắt nó null),
@@ -100,9 +85,6 @@ export function FormMucTieu({
     target: dangSua?.target_value != null ? String(dangSua.target_value) : '',
     unit: dangSua?.unit ?? '',
     due: dangSua?.end_date ?? '',
-    viec: dangSua?.viec?.title ?? '',
-    luong: dangSua?.viec?.target_value != null ? String(dangSua.viec.target_value) : '',
-    upt: dangSua?.viec?.unitPerTick != null ? String(dangSua.viec.unitPerTick) : '1',
   });
   const duCau = Boolean(g.title && g.target && g.unit && g.due);
 
@@ -117,34 +99,15 @@ export function FormMucTieu({
   }, [state]);
 
   const err = (f: string) => (state.fieldError === f ? state.error : null);
-  const doiThu = (d: number) =>
-    setThu((p) => (p.includes(d) ? p.filter((x) => x !== d) : [...p, d].sort((a, b) => a - b)));
 
   // KIỂU ĐƠN VỊ (0110) quyết định bước ③ trông ra sao. Máy chủ tự suy lại từ đơn vị nên đây chỉ
   // là để bày đúng ô — không phải nguồn quyết định.
   const kieu = kieuDonVi(g.unit);
-  // "Mỗi lần một khác" = ô điền số mỗi ngày; ngược lại = một chạm, mỗi chạm đáng `upt` đơn vị.
-  const [moiLanKhac, setMoiLanKhac] = useState(Boolean(dangSua?.viec?.nhapLuong));
   // Mục tiêu cũ có thể mang đơn vị gõ tay không nằm trong danh sách — mở thẳng ô "Khác" cho nó,
   // đừng lặng lẽ xoá mất chữ em đã khai.
   const [khacDonVi, setKhacDonVi] = useState(
     Boolean(dangSua?.unit) && !coTrongDanhSach(dangSua?.unit),
   );
-  // Chỉ tiêu TUẦN, tính theo ĐƠN VỊ của mục tiêu — không phải theo số lần.
-  const moiTuan =
-    kieu !== 'luong'
-      ? thu.length
-      : moiLanKhac
-        ? Number(g.luong || 0)
-        : thu.length * (Number(g.upt || 0) || 0);
-
-  // (Hai con số "quãng phải đi" và "số tuần còn lại" đã gỡ: chúng chỉ nuôi cảnh báo nhịp, mà
-  //  cảnh báo ấy bỏ cùng mô hình cũ ở 0121 — xem ghi chú ngay dưới.)
-  // Cảnh báo nhịp đã bỏ cùng mô hình cũ (0121): form này thôi tạo việc dẫn dắt, nên không còn
-  // "mỗi tuần làm được bao nhiêu" để đem so với quãng đường phải đi. Việc nay treo dưới CAM KẾT
-  // của từng tuần, và chính buổi họp là chỗ nhìn nhịp.
-
-
   return (
     <Popup
       title={
@@ -161,9 +124,6 @@ export function FormMucTieu({
         <input type="hidden" name="student_id" value={studentId} />
         <input type="hidden" name="class_id" value={classId} />
         <input type="hidden" name="kind" value={kind} />
-        {thu.map((d) => (
-          <input key={d} type="hidden" name="viec_days" value={d} />
-        ))}
 
         {state.error && !state.fieldError && (
           <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
@@ -321,126 +281,9 @@ export function FormMucTieu({
           </div>
         </div>
 
-        {/* ③ Tuần này con làm gì. Bỏ trống được: khi ấy đây là đích ghi nhận ngoài (0101).
-            ĐƠN VỊ ĐO LẠI (điểm, kg, cm) KHÔNG có bước này: cộng 7 điểm với 8 điểm ra 15 điểm là
-            con số app không có quyền bày. Loại ấy ghi con số thật ở ô số đo mỗi tuần (0108). */}
-        {kieu !== 'do' && (
-        <div className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-          <p className="mb-2 text-[13px] font-extrabold text-navy">{t('step3')}</p>
-          {/* Không còn `hint`. Câu cũ ("Để trống cũng được — xem dòng chữ nghiêng bên dưới") bắt
-              em đọc một câu chỉ để được chỉ sang một câu khác, rồi câu kia lại dài bốn dòng. Ô này
-              vốn đã không bắt buộc: bỏ trống thì bước ④ không hiện, gửi vẫn được. */}
-          <Field label={t('workTitle')} htmlFor="mt-viec">
-            <input
-              id="mt-viec"
-              name="viec_title"
-              value={g.viec}
-              onChange={(e) => setG((p) => ({...p, viec: e.target.value}))}
-              placeholder={t('workPlaceholder')}
-              className={inputCls}
-            />
-          </Field>
-
-          {/* Ô "mấy lần/tuần" từng đứng ở đây. Bỏ hẳn: mỗi ngày chỉ tick được MỘT lượt
-              (uq_lead_progress_daily, 0020), nên số lần mỗi tuần luôn đúng bằng số thứ được bật —
-              hỏi thành hai chỗ chỉ tạo ra cơ hội cho chúng đá nhau ("chọn 5 thứ, đích 3 lần"). */}
-          {g.viec && (
-            <div className="mt-2.5">
-              <p className="mb-1.5 text-[12px] font-extrabold text-navy">{t('whichDays')}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {DOW.map((d, i) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => doiThu(d)}
-                    aria-pressed={thu.includes(d)}
-                    className={`grid h-11 w-11 cursor-pointer select-none place-items-center rounded-[10px] border-[1.5px] text-[11.5px] font-extrabold transition-all ${
-                      thu.includes(d)
-                        ? 'border-transparent bg-gold text-navy'
-                        : 'border-navy/15 bg-white text-navy/60 hover:border-navy'
-                    }`}
-                  >
-                    {dayShort[i]}
-                  </button>
-                ))}
-              </div>
-              <p
-                className={`mt-1.5 text-[12px] font-bold ${thu.length === 0 ? 'text-status-bad' : 'text-grey-mid'}`}
-              >
-                {thu.length === 0 ? t('pickADay') : t('perWeekCount', {n: thu.length})}
-              </p>
-
-              {/* CẢNH BÁO NHỊP ĐÃ BỎ (0121). Nó so quãng phải đi với "mỗi tuần em làm được bao
-                  nhiêu" — mà form này thôi tạo việc dẫn dắt, nên vế thứ hai không còn. Nhịp nay
-                  nhìn ở buổi họp, trên từng cam kết tuần. */}
-
-              {/* MỘT CÂU HỎI, HAI CÂU TRẢ LỜI (0110) — và đây đúng là hai ví dụ chủ dự án đưa:
-                    · "10000 giờ học, 1 tick ngày = 3 giờ"  → trả lời 3   → vẫn MỘT CHẠM, mỗi chạm 3 giờ
-                    · "5000 lead, thứ Hai điền 10 lead"     → "mỗi lần một khác" → Ô ĐIỀN SỐ
-                  Bản trước hỏi "mỗi tuần bao nhiêu" — một con số thứ ba, không diễn đạt được vế
-                  nào trong hai vế trên.
-                  CHỈ HỎI KHI ĐÃ CÓ ĐƠN VỊ: chưa gõ đơn vị mà bày ô ra thì nhãn đọc thành "Mỗi lần
-                  con làm được bao nhiêu ?" — một câu hỏi cụt. */}
-              {kieu === 'luong' && g.unit && (
-                <div className="mt-2.5 rounded-[12px] bg-navy/[0.04] p-2.5">
-                  <label className="flex cursor-pointer items-center gap-2 text-[12px] font-bold text-navy">
-                    <input
-                      type="checkbox"
-                      checked={moiLanKhac}
-                      onChange={(e) => setMoiLanKhac(e.target.checked)}
-                      className="h-4 w-4 cursor-pointer accent-[var(--color-gold)]"
-                    />
-                    {t('eachTimeVaries')}
-                  </label>
-
-                  {moiLanKhac ? (
-                    <div className="mt-2">
-                      <Field label={t('weekAmount', {unit: g.unit})} htmlFor="mt-luong" error={err('viec_luong')}>
-                        <input
-                          id="mt-luong"
-                          name="viec_luong"
-                          type="number"
-                          step="any"
-                          min="0.01"
-                          inputMode="decimal"
-                          value={g.luong}
-                          onChange={(e) => setG((p) => ({...p, luong: e.target.value}))}
-                          className={ctlWithBorder(state.fieldError === 'viec_luong')}
-                        />
-                      </Field>
-                    </div>
-                  ) : (
-                    <div className="mt-2">
-                      <Field label={t('perTick', {unit: g.unit})} htmlFor="mt-upt" error={err('viec_upt')}>
-                        <input
-                          id="mt-upt"
-                          name="viec_upt"
-                          type="number"
-                          step="any"
-                          min="0.01"
-                          inputMode="decimal"
-                          value={g.upt}
-                          onChange={(e) => setG((p) => ({...p, upt: e.target.value}))}
-                          className={ctlWithBorder(state.fieldError === 'viec_upt')}
-                        />
-                      </Field>
-                      {/* Nói ra con số RÁP LẠI, đừng bắt em tự nhân. Đây cũng là chỗ em nhìn ra
-                          kế hoạch của mình có hợp lý không trước khi bấm Gửi. */}
-                      {moiTuan > 0 && (
-                        <p className="mt-1.5 text-[12px] font-bold text-grey-mid">
-                          {t('perTickSum', {n: thu.length, moi: g.upt, tuan: moiTuan, unit: g.unit})}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  <input type="hidden" name="viec_nhap_luong" value={moiLanKhac ? '1' : ''} />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        )}
-
+        {/* BƯỚC ③ "TUẦN NÀY CON LÀM GÌ" ĐÃ RỜI KHỎI ĐÂY (0121, dọn nốt 16/08/2026). Máy chủ đã
+            thôi đọc các ô ấy từ 0121 mà form vẫn bày ra: em điền một việc, bấm Gửi, và việc ấy
+            đi vào hư không. Việc tuần nay đặt ở CamKetCuaEm, treo dưới cam kết của từng tuần. */}
         {kieu === 'do' && g.unit && (
           <p className="rounded-[10px] bg-navy/[0.05] px-2.5 py-2 text-[12px] font-semibold text-grey-mid">
             {t('unitMeasured', {unit: g.unit})}
