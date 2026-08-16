@@ -552,7 +552,11 @@
     "colCommitment": "This week's commitment",
     "colWorks": "Works done",
     "contributesTo": "contributes to: {title}",
-    "weekPick": "Pick a week"
+    "weekPick": "Pick a week",
+    "detailPerStudent": "Each student this week",
+    "noCommitmentYet": "no commitment this week",
+    "doneCol": "Done",
+    "commitNoWork": "Committed \"{title}\" — no work yet."
   },
   "meeting": {
     "title": "Weekly WIG meeting",
@@ -1360,6 +1364,8 @@
     "askEdit": "Request change",
     "askEditWhat": "What do you want to change or remove in \"{title}\"?",
     "askEditPlaceholder": "e.g. I want the target to be 200 because…",
-    "askSend": "Send"
+    "askSend": "Send",
+    "confirmDeleteWorkLop": "Delete this class work? Its ticks go with it.",
+    "confirmDeleteCommitmentLop": "Delete this class commitment? Its works and ticks go with it."
   }
 }

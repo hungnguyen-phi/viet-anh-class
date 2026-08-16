@@ -25,6 +25,7 @@ import {
 import {WeekNav} from '@/components/wig/WeekNav';
 import {TaoWigMenu} from '@/components/wig/TaoWigMenu';
 import {ViecTuan, type ViecItem} from '@/components/wig/ViecTuan';
+import {SuaCamKetLop} from '@/components/wig/SuaCamKetLop';
 import {BangTienDo, type DongTienDo} from '@/components/wig/BangTienDo';
 import {BangCacEm} from '@/components/wig/BangCacEm';
 import {AREAS, areaLabel, type Area} from '@/lib/areas';
@@ -609,6 +610,16 @@ export default async function WigPage({
                         {c.verdict === 'win' ? <Check size={11} strokeWidth={3} /> : null}
                         {c.verdict === 'win' ? t('verdictWonTag') : t('verdictLostTag')}
                       </span>
+                    )}
+                    {/* CÔ SỬA / XOÁ cam kết và việc của lớp khi tuần chưa chốt (16/08/2026). */}
+                    {tuanNayDaHop !== true && (
+                      <SuaCamKetLop
+                        commitmentId={c.id}
+                        title={c.title}
+                        viec={viecCuaCamKet(c.id).map((v) => ({id: v.id, title: v.title, target: Number(v.target_value), unit: v.unit}))}
+                        classParam={classParam}
+                        weekQ={weekQ}
+                      />
                     )}
                   </div>
 

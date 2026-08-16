@@ -552,7 +552,11 @@
     "colCommitment": "Cam kết tuần này",
     "colWorks": "Việc đạt",
     "contributesTo": "góp vào: {title}",
-    "weekPick": "Chọn tuần"
+    "weekPick": "Chọn tuần",
+    "detailPerStudent": "Từng em tuần này",
+    "noCommitmentYet": "chưa hứa gì tuần này",
+    "doneCol": "Đã làm",
+    "commitNoWork": "Đã hứa \"{title}\" — chưa đặt việc."
   },
   "meeting": {
     "title": "Họp WIG tuần",
@@ -1360,6 +1364,8 @@
     "askEdit": "Xin sửa",
     "askEditWhat": "Bạn muốn sửa hay xoá gì ở \"{title}\"?",
     "askEditPlaceholder": "vd: Con muốn đổi đích thành 200 bài vì…",
-    "askSend": "Gửi cô"
+    "askSend": "Gửi cô",
+    "confirmDeleteWorkLop": "Xoá việc này của lớp? Lượt tick của nó mất theo.",
+    "confirmDeleteCommitmentLop": "Xoá cam kết này của lớp? Việc và lượt tick dưới nó mất theo."
   }
 }

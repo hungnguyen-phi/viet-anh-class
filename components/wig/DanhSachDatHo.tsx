@@ -110,7 +110,8 @@ export function DanhSachDatHo({
                 thì một em không bao giờ đặt sẽ đứng ngoài mọi buổi họp, và cái nhãn "cô đặt" cùng
                 tỉ lệ tự-đặt ngay dưới đã nói ra ai cầm bút.
                 Còn gõ đè lên câu em đã viết thì từ 0133 chỉ quản trị và BGH mới làm được. */}
-            {(!m || suaDuoc) && (
+            {/* CHỈ quản trị/BGH — GVCN không đặt hộ, không sửa (chủ dự án 16/08/2026: cô chỉ duyệt). */}
+            {suaDuoc && (
               <button
                 type="button"
                 onClick={() => setDangMo(em)}

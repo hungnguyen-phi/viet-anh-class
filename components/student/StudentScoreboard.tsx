@@ -693,7 +693,7 @@ export async function StudentScoreboard({
                   <LeadTicker
                     leads={viec}
                     studentId={studentId}
-                    canTick={canTick || canManage}
+                    canTick={canTick}
                     nguoiGhi={viewer.id}
                     today={today}
                     tickOpen={tickOpen}
@@ -912,7 +912,6 @@ export async function StudentScoreboard({
               />
             )}
             <StudentMeetings
-              studentId={studentId}
               meetings={meetings}
               canManage={canManage}
               canChat={canTick}

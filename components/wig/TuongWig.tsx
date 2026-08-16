@@ -40,18 +40,12 @@ export async function TuongWig({
 }) {
   const t = await getTranslations('goal');
 
-  const mucTieu = danhSach.map((e) => e.mucTieu).filter((m) => m !== null);
   const choDuyet = danhSach.filter((e) => e.mucTieu?.status === 'sent');
-  const tuDat = mucTieu.filter((m) => m.set_by === 'student').length;
-  const tyLe = mucTieu.length > 0 ? Math.round((tuDat / mucTieu.length) * 100) : 0;
 
   return (
     <section className="glass rounded-[20px] p-[18px]">
       <div className="mb-3 flex flex-wrap items-baseline gap-2">
         <h2 className="font-display text-[16px] font-bold text-navy">{t('wallTitle')}</h2>
-        <span className="text-[11.5px] font-semibold text-grey-mid">
-          {t('wallCount', {n: mucTieu.length, si: danhSach.length})}
-        </span>
       </div>
 
       {/* HÀNG ĐỢI DUYỆT đứng trước — đây là việc cô cần làm ngay, phần còn lại chỉ để đọc. */}
@@ -103,14 +97,6 @@ export async function TuongWig({
         </div>
       </div>
 
-      {/* Chỉ số cảnh báo sớm của cả chương trình — xem ghi chú đầu tệp. */}
-      {mucTieu.length > 0 && (
-        <p
-          className={`mt-2.5 text-[11.5px] font-bold ${tyLe >= 70 ? 'text-success-dark' : 'text-status-bad'}`}
-        >
-          {t('selfSetRate', {n: tyLe})}
-        </p>
-      )}
     </section>
   );
 }

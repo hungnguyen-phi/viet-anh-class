@@ -1,7 +1,6 @@
 import {getTranslations} from 'next-intl/server';
-import {MessagesSquare, Sparkles, Target, Lock, Unlock} from 'lucide-react';
+import {MessagesSquare, Sparkles, Target} from 'lucide-react';
 import {SuTu} from '@/components/ui/SuTu';
-import {toggleBuddyChat} from '@/app/[locale]/(dashboard)/student/actions';
 import {BuddyChat, type BuddyMessage} from './BuddyChat';
 
 // Số lượt học sinh được nói mỗi buổi họp — phải khớp BUDDY_CHAT_MAX_USER_TURNS ở server action.
@@ -34,12 +33,10 @@ export type StudentMeeting = {
 // Bảng buddy_pairs và cột wig_meetings.buddy_id KHÔNG xoá — dữ liệu cũ vẫn còn nguyên, chỉ thôi
 // đọc và thôi ghi. Xoá cột là mất biên bản cũ mà không đổi lại được gì.
 export async function StudentMeetings({
-  studentId,
   meetings,
   canManage,
   canChat,
 }: {
-  studentId: string;
   meetings: StudentMeeting[];
   canManage: boolean;
   // true = chính em học sinh đó đang xem → được chat khi GVCN mở.
@@ -135,27 +132,8 @@ export async function StudentMeetings({
                 </div>
               )}
 
-              {/* GVCN: công tắc mở Buddy cho buổi họp. Học sinh chỉ chat được khi đang mở → lúc
-                  đó GVCN đang ngồi cạnh, đây là lớp bảo vệ chính cho chat với trẻ em. */}
-              {canManage && (
-                <form action={toggleBuddyChat} className="mt-3">
-                  <input type="hidden" name="student_id" value={studentId} />
-                  <input type="hidden" name="meeting_id" value={m.id} />
-                  <input type="hidden" name="open" value={m.buddy_chat_open ? '0' : '1'} />
-                  <button
-                    type="submit"
-                    className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[9px] border-[1.5px] border-navy/20 bg-white px-2.5 text-[11.5px] font-extrabold text-navy transition-colors hover:border-navy"
-                  >
-                    {m.buddy_chat_open ? (
-                      <Lock size={12} strokeWidth={2.5} />
-                    ) : (
-                      <Unlock size={12} strokeWidth={2.5} />
-                    )}
-                    {m.buddy_chat_open ? t('buddyChatClose') : t('buddyChatOpen')}
-                  </button>
-                </form>
-              )}
-
+              {/* Công tắc "Mở Buddy cho buổi họp" của cô ĐÃ GỠ 16/08/2026 (cô chỉ duyệt, mọi thứ khác
+                  chỉ xem). Chat Buddy vì thế chưa có đường mở — bật lại khi có quyết định mới. */}
               {/* Học sinh: khung chat, chỉ hiện khi GVCN đã mở */}
               {canChat && m.buddy_chat_open && (
                 <BuddyChat

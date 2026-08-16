@@ -377,3 +377,53 @@ export async function duyetCamKet(formData: FormData) {
       : loi('Không duyệt được cam kết này (không có quyền hoặc đã bị xoá).'),
   );
 }
+
+// ── CÔ SỬA / XOÁ CAM KẾT VÀ VIỆC CỦA LỚP (16/08/2026) ─────────────────────────────────────────
+// Chủ dự án: "ko thấy xóa sửa cam kết tuần/lead measure của gvcn nữa". Cam kết lớp: RLS
+// rls_cam_ket_gvcn; việc lớp: rls_sua/xoa_viec_cua_lop (0142) — cả hai khoá khi tuần đã chốt.
+export type CamKetLopState = {ok: boolean; message?: string; error?: string; fieldError?: string};
+
+export async function suaCamKetLop(_prev: CamKetLopState, formData: FormData): Promise<CamKetLopState> {
+  await requireRole(['teacher', 'admin']);
+  const id = String(formData.get('commitment_id') ?? '');
+  const title = String(formData.get('title') ?? '').trim();
+  if (!id) return {ok: false, error: 'Thiếu cam kết.'};
+  if (!title) return {ok: false, fieldError: 'title', error: 'Cam kết không được để trống.'};
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('commitments').update({title}).eq('id', id).is('student_id', null).select('id');
+  if (error) return {ok: false, error: friendlyError(error)};
+  if ((data ?? []).length === 0) return {ok: false, error: 'Không sửa được — cam kết không còn, hoặc tuần đã chốt.'};
+  for (const vId of formData.getAll('viec_id').map(String)) {
+    const vTitle = String(formData.get(`viec_title_${vId}`) ?? '').trim();
+    const vTarget = Number(String(formData.get(`viec_target_${vId}`) ?? '').trim());
+    if (!vTitle) return {ok: false, error: 'Tên việc không được để trống.'};
+    if (!Number.isFinite(vTarget) || vTarget <= 0) return {ok: false, error: `Đích của "${vTitle}" phải là số lớn hơn 0.`};
+    const {error: e2} = await supabase.from('lead_measures').update({title: vTitle, target_value: vTarget}).eq('id', vId);
+    if (e2) return {ok: false, error: friendlyError(e2)};
+  }
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]/wig/hop', 'page');
+  return {ok: true, message: 'Đã sửa cam kết.'};
+}
+
+export async function xoaCamKetLop(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const class_id = String(formData.get('class_id') ?? '') || undefined;
+  const week = weekOf(formData);
+  const id = String(formData.get('commitment_id') ?? '');
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('commitments').delete().eq('id', id).is('student_id', null).select('id');
+  if (error) flashTo(loi(friendlyError(error)), class_id, week);
+  flashTo((data ?? []).length > 0 ? 'Đã xoá cam kết' : loi('Không xoá được — cam kết không còn, hoặc tuần đã chốt.'), class_id, week);
+}
+
+export async function xoaViecLop(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const class_id = String(formData.get('class_id') ?? '') || undefined;
+  const week = weekOf(formData);
+  const id = String(formData.get('lead_id') ?? '');
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('lead_measures').delete().eq('id', id).select('id');
+  if (error) flashTo(loi(friendlyError(error)), class_id, week);
+  flashTo((data ?? []).length > 0 ? 'Đã xoá việc' : loi('Không xoá được — việc không còn, hoặc tuần đã chốt.'), class_id, week);
+}
