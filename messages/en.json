@@ -550,7 +550,8 @@
     "colStudent": "Student",
     "colYearGoal": "Year goal",
     "colCommitment": "This week's commitment",
-    "colWorks": "Works done"
+    "colWorks": "Works done",
+    "contributesTo": "contributes to: {title}"
   },
   "meeting": {
     "title": "Weekly WIG meeting",
@@ -1340,6 +1341,7 @@
     "addGoalFor": "Set a goal for this student",
     "deleteCommitment": "Delete",
     "confirmDeleteCommitment": "Delete this commitment? Its works and ticks go with it.",
-    "approveShort": "Approve"
+    "approveShort": "Approve",
+    "contributesTo": "Contributes to class goal: {title}"
   }
 }

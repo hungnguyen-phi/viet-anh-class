@@ -31,7 +31,7 @@ export async function BangCacEm({
   const t = await getTranslations('wig');
   const tg = await getTranslations('goal');
   const supabase = await createClient();
-  const [{data: emRows}, {data: mtRows}, {data: ckRows}] = await Promise.all([
+  const [{data: emRows}, {data: mtRows}, {data: lopRows}, {data: ckRows}] = await Promise.all([
     supabase
       .from('enrollments')
       .select('student_id, profiles!enrollments_student_id_fkey(full_name, email)')
@@ -39,10 +39,12 @@ export async function BangCacEm({
       .eq('is_active', true),
     supabase
       .from('wigs')
-      .select('id, student_id, kind, title, status, target_value, unit')
+      .select('id, student_id, kind, title, status, target_value, unit, source_wig_id')
       .eq('class_id', classId)
       .eq('scope', 'student')
       .eq('period', 'year'),
+    // Tên mục tiêu năm của LỚP — để nói rõ mục tiêu của em góp vào cái nào ("300 bài lấy từ đâu ra?").
+    supabase.from('wigs').select('id, title').eq('class_id', classId).eq('scope', 'class').eq('period', 'year'),
     supabase
       .from('commitments')
       .select('id, student_id, title, status, verdict, lead_measures(id, title, target_value, lead_progress(student_id, value))')
@@ -52,7 +54,8 @@ export async function BangCacEm({
       .order('created_at'),
   ]);
 
-  type MT = {id: string; student_id: string | null; kind: string | null; title: string; status: string; target_value: number; unit: string};
+  type MT = {id: string; student_id: string | null; kind: string | null; title: string; status: string; target_value: number; unit: string; source_wig_id: string | null};
+  const tenLop = new Map(((lopRows ?? []) as {id: string; title: string | null}[]).map((w) => [w.id, w.title ?? '']));
   type CK = {
     id: string;
     student_id: string | null;
@@ -114,6 +117,11 @@ export async function BangCacEm({
                             <li key={m.id} className="flex flex-wrap items-center gap-1.5 text-[12.5px] font-semibold text-navy">
                               <span className="min-w-0">{m.title}</span>
                               <span className="text-grey-mid">· {m.target_value} {m.unit}</span>
+                              {m.source_wig_id && tenLop.get(m.source_wig_id) && (
+                                <span className="basis-full text-[11px] font-semibold text-grey-mid">
+                                  {t('contributesTo', {title: tenLop.get(m.source_wig_id) ?? ''})}
+                                </span>
+                              )}
                               {m.status === 'sent' && (
                                 <form action={duyetMucTieu} className="contents">
                                   <input type="hidden" name="wig_id" value={m.id} />

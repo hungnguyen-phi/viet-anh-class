@@ -137,6 +137,7 @@ export function MucTieuCuaCon({
           tuanChuaChot={tuanChuaChot}
           pct={pctTheoWig[mt.id]}
           tuanNay={tuanNayTheoWig[mt.id]}
+          wigLop={wigLop}
           onSua={() => setMoForm(mt.kind === 'personal' ? 'personal' : 'academic')}
         />
       ))}
@@ -184,9 +185,11 @@ function TheMucTieu({
   tuanChuaChot,
   pct,
   tuanNay,
+  wigLop,
   onSua,
 }: {
   mt: MucTieuCuaEm;
+  wigLop: WigLop[];
   studentId: string;
   laChinhEm: boolean;
   canManage: boolean;
@@ -198,6 +201,7 @@ function TheMucTieu({
 }) {
   const t = useTranslations('goal');
   const canGhi = laChinhEm;
+  const tenLopNguon = mt.source_wig_id ? (wigLop.find((w) => w.id === mt.source_wig_id)?.title ?? null) : null;
   // CỬA SỔ MỘT NGÀY (0102/0131): em sửa/xoá khi mục tiêu còn là đề nghị. Cô KHÔNG sửa/xoá — chỉ duyệt.
   const conMo =
     mt.status === 'draft' || mt.status === 'sent' || Date.now() - new Date(mt.created_at).getTime() < CUA_SO_MS;
@@ -223,6 +227,11 @@ function TheMucTieu({
           <p className="mt-0.5 text-[12.5px] font-semibold tabular-nums text-grey-mid">
             {t('fromTo', {from: mt.baseline ?? 0, to: mt.target_value, unit: mt.unit, due: ngayVN(mt.end_date)})}
           </p>
+          {/* DÂY NỐI LÊN LỚP — nói ra, đừng để người ta đoán "300 bài lấy từ đâu": đây là phần em tự
+              nhận góp vào mục tiêu năm của lớp (source_wig_id, 0100/0138). */}
+          {tenLopNguon && (
+            <p className="mt-0.5 text-[11.5px] font-semibold text-gold-text">{t('contributesTo', {title: tenLopNguon})}</p>
+          )}
         </div>
         {/* VÒNG % NGAY TRÊN THẺ — đây là chỗ nối "việc làm đều" với "biểu đồ": tick dưới kia lên
             là vòng này lên. Đích ghi nhận ngoài (điểm, kg) thì không vẽ % (0101) — chỉ Đạt/Chưa. */}

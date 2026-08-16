@@ -550,7 +550,8 @@
     "colStudent": "Học sinh",
     "colYearGoal": "Mục tiêu năm",
     "colCommitment": "Cam kết tuần này",
-    "colWorks": "Việc đạt"
+    "colWorks": "Việc đạt",
+    "contributesTo": "góp vào: {title}"
   },
   "meeting": {
     "title": "Họp WIG tuần",
@@ -1340,6 +1341,7 @@
     "addGoalFor": "Đặt mục tiêu cho em",
     "deleteCommitment": "Xoá",
     "confirmDeleteCommitment": "Xoá cam kết này? Việc và lượt tick dưới nó cũng mất.",
-    "approveShort": "Duyệt"
+    "approveShort": "Duyệt",
+    "contributesTo": "Góp vào mục tiêu lớp: {title}"
   }
 }
