@@ -22,7 +22,13 @@ select c.id as lop,
        c.homeroom_teacher_id as gvcn,
        (select e.student_id from enrollments e
         where e.class_id = c.id and e.is_active order by e.student_id limit 1) as em,
-       vn_week_start(current_date) + 91 as tuan_xa
+       vn_week_start(current_date) + 91 as tuan_xa,
+       -- Mục tiêu năm của MỘT LỚP KHÁC. Phải lấy Ở ĐÂY, lúc còn quyền postgres: khi đã đóng vai
+       -- em thì RLS che mất nó (đúng như nó phải làm), và bài kiểm sẽ tưởng trường không có lớp
+       -- nào khác — rồi bỏ qua đúng phép đo về ranh giới giữa các lớp.
+       (select w.id from wigs w
+         where w.scope = 'class' and w.period = 'year' and w.measure_by <> 'cuon'
+           and w.class_id is distinct from c.id limit 1) as wig_lop_khac
 from classes c where c.name = 'Test' and c.is_active limit 1;
 
 -- Mục tiêu năm của chính em — cam kết phải treo dưới nó.
@@ -86,15 +92,33 @@ exception when others then
   insert into kq values ('Cam kết thứ BA bị chặn (tối đa 2)', 'bị chặn', 'bị chặn', true);
 end $$;
 
--- ── C. TREO NHẦM CHỖ THÌ CHẶN ───────────────────────────────────────────────────────────────
--- Cam kết của em mà treo dưới mục tiêu của LỚP là con số của em đi vào bộ đếm của cả lớp.
+-- ── C. EM CHỌN TRẬN ĐÁNH CỦA LỚP (0138) ─────────────────────────────────────────────────────
+-- Chủ dự án: "trong 1 tuần em chỉ được tạo tối đa 2, và 2 cái đó liên kết 2/3 hay 2/4 cái nào đó
+-- tuỳ em". Nên treo dưới mục tiêu năm CỦA LỚP là hợp lệ — đó chính là em chọn trận để đánh.
 do $$
 begin
   insert into commitments (wig_id, class_id, student_id, week_start, title, area)
-  select (select id from wig_lop), a.lop, a.em, a.tuan_xa + 7, 'KIỂM · treo nhầm', 'knowledge' from ai a;
-  insert into kq values ('Treo cam kết của em dưới mục tiêu của LỚP → chặn', 'bị chặn', 'LỌT', false);
+  select (select id from wig_lop), a.lop, a.em, a.tuan_xa + 7, 'KIỂM · em chọn trận của lớp', 'knowledge' from ai a;
+  insert into kq values ('Em treo cam kết dưới mục tiêu năm CỦA LỚP', 'được', 'được', true);
 exception when others then
-  insert into kq values ('Treo cam kết của em dưới mục tiêu của LỚP → chặn', 'bị chặn', 'bị chặn', true);
+  insert into kq values ('Em treo cam kết dưới mục tiêu năm CỦA LỚP', 'được', 'BỊ CHẶN: ' || sqlerrm, false);
+end $$;
+
+-- NHƯNG KHÔNG ĐƯỢC VỚI SANG LỚP KHÁC. Đây mới là ranh giới thật: con số của một đứa trẻ không
+-- được rơi vào bộ đếm của một lớp nó không học.
+do $$
+declare v_wig_lop_khac uuid := (select wig_lop_khac from ai);
+begin
+  if v_wig_lop_khac is null then
+    insert into kq values ('Với sang mục tiêu của LỚP KHÁC → chặn', 'bị chặn',
+      'không có lớp khác có mục tiêu — CHƯA KIỂM', false);
+    return;
+  end if;
+  insert into commitments (wig_id, class_id, student_id, week_start, title, area)
+  select v_wig_lop_khac, a.lop, a.em, a.tuan_xa + 14, 'KIỂM · với sang lớp khác', 'knowledge' from ai a;
+  insert into kq values ('Với sang mục tiêu của LỚP KHÁC → chặn', 'bị chặn', 'LỌT', false);
+exception when others then
+  insert into kq values ('Với sang mục tiêu của LỚP KHÁC → chặn', 'bị chặn', 'bị chặn', true);
 end $$;
 
 -- ── D. CÔ THẤY ĐÚNG THỨ EM VỪA ĐẶT ──────────────────────────────────────────────────────────

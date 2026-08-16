@@ -4,7 +4,7 @@ import {useActionState, useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {AlertCircle, CheckCircle2, Clock, Target} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {Field, ctlWithBorder, btnGold} from '@/components/ui/Field';
+import {Field, ctlWithBorder, selectCls, btnGold} from '@/components/ui/Field';
 import {datCamKetTuan} from '@/app/[locale]/(dashboard)/student/actions';
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
@@ -30,6 +30,7 @@ export function CamKetCuaEm({
   weekLabel,
   daCo,
   dayShort,
+  wigLop,
 }: {
   /** Thứ Hai của tuần đang đặt cam kết cho. */
   weekStart: string;
@@ -39,9 +40,15 @@ export function CamKetCuaEm({
   daCo: {id: string; title: string; status: string}[];
   /** Nhãn thứ trong tuần đã dịch sẵn ở máy chủ — T2…CN. */
   dayShort: string[];
+  /**
+   * Những trận đánh em chọn được cho tuần này: mục tiêu năm của LỚP, cộng mục tiêu năm của chính
+   * em nếu có (0138). Lớp có ba bốn trận; mỗi tuần em hứa vào cái nào là quyền của em.
+   */
+  wigLop: {id: string; title: string; area: string}[];
 }) {
   const t = useTranslations('meeting');
   const tg = useTranslations('goal');
+  const tw = useTranslations('wig');
   const [state, formAction] = useActionState(datCamKetTuan, {ok: false});
   // Mặc định T2–T6: gần như luôn là thứ em định chọn, và ai muốn khác thì chạm hai cái là xong.
   const [thu, setThu] = useState<number[]>([1, 2, 3, 4, 5]);
@@ -52,12 +59,12 @@ export function CamKetCuaEm({
 
   return (
     <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
-      <div className="flex flex-wrap items-baseline gap-x-2">
-        <h2 className="font-display text-[16px] font-bold text-navy">
-          {t('step3', {week: weekLabel})}
-        </h2>
-        <span className="text-[11.5px] font-semibold text-grey-mid">{t('commitmentHint')}</span>
-      </div>
+      {/* KHÔNG GIẢNG VỀ GIỚI HẠN. Chủ dự án: "bạn không cần nói tôi giới hạn chỗ này, nó không
+          tạo được nữa thì nó tự hiểu". Ô biến mất khi đã đủ hai — đó là câu trả lời rõ hơn mọi
+          dòng chữ, và không chiếm chỗ của thứ em đang cần đọc. */}
+      <h2 className="font-display text-[16px] font-bold text-navy">
+        {t('step3', {week: weekLabel})}
+      </h2>
 
       {daCo.length > 0 && (
         <ul className="flex flex-col gap-1.5">
@@ -89,6 +96,23 @@ export function CamKetCuaEm({
       {conCho && (
         <form action={formAction} className="flex flex-col gap-2">
           <input type="hidden" name="week" value={weekStart} />
+          {/* TRẬN ĐÁNH CỦA TUẦN NÀY. Bỏ trống danh sách (lớp chưa đặt mục tiêu năm nào) thì không
+              bày ô rỗng ra — máy chủ tự rơi về mục tiêu năm của chính em. */}
+          {wigLop.length > 0 && (
+            <Field
+              label={tw('parentYear')}
+              htmlFor="ck-em-wig"
+              error={state.fieldError === 'wig_id' ? state.error : null}
+            >
+              <select id="ck-em-wig" name="wig_id" className={selectCls} defaultValue={wigLop[0]?.id}>
+                {wigLop.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.title}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
           <Field
             label={t('commitmentNo', {n: daCo.length + 1})}
             htmlFor="ck-em-title"

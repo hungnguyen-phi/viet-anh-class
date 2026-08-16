@@ -85,6 +85,16 @@ export default async function PhongHopCuaEmPage({
     .eq('week_start', dichMonday)
     .order('created_at');
 
+  // NHỮNG TRẬN ĐÁNH EM CHỌN ĐƯỢC (0138): mục tiêu năm của LỚP, cộng mục tiêu năm của chính em.
+  // Bỏ mục tiêu CUỘN — nó đếm ngược từ mục tiêu của từng em nên không nhận cam kết.
+  const {data: wigChon} = await supabase
+    .from('wigs')
+    .select('id, title, area, scope')
+    .eq('period', 'year')
+    .neq('measure_by', 'cuon')
+    .or(`and(scope.eq.class,class_id.eq.${lop.class_id}),and(scope.eq.student,student_id.eq.${profile.id})`)
+    .order('area');
+
   // MỘT CÂU cho cả ba thứ cần: dòng của LỚP tuần này (mang dấu chốt), dòng của lớp tuần trước
   // (mang lời hứa), và dòng của chính em. RLS đã lo phần "chỉ thấy dòng của mình": học sinh đọc
   // được dòng lớp (student_id null) và dòng mang chính id mình, không thấy dòng của bạn khác.
@@ -200,6 +210,7 @@ export default async function PhongHopCuaEmPage({
         weekLabel={dichLabel}
         daCo={(ckDich ?? []) as {id: string; title: string; status: string}[]}
         dayShort={tHs.raw('dayShort') as string[]}
+        wigLop={(wigChon ?? []) as {id: string; title: string; area: string}[]}
       />
 
       <OBienBanCuaEm

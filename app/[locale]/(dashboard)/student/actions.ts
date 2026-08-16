@@ -1223,15 +1223,40 @@ export async function datCamKetTuan(
   if (!ghiDanh?.class_id)
     return {ok: false, error: 'Bạn chưa được xếp lớp nên chưa đặt cam kết được.'};
 
-  const {data: mucTieu} = await supabase
-    .from('wigs')
-    .select('id')
-    .eq('student_id', me.id)
-    .eq('scope', 'student')
-    .eq('period', 'year')
-    .eq('kind', 'academic')
-    .maybeSingle();
-  if (!mucTieu?.id)
+  // EM CHỌN TRẬN ĐÁNH CỦA TUẦN NÀY (0138). Lớp có ba bốn mục tiêu năm; mỗi tuần em hứa vào cái
+  // nào là quyền của em. Không gửi lên thì rơi về mục tiêu năm của chính em — đường cũ, vẫn giữ
+  // cho mục tiêu riêng không thuộc trận nào của lớp.
+  //
+  // KIỂM Ở ĐÂY LÀ ĐỂ CÂU BÁO NÓI ĐƯỢC TIẾNG NGƯỜI; chốt thật nằm ở trigger cam_ket_hop_le, và nó
+  // mới là thứ chặn khi ai đó gửi tay lên id mục tiêu của một lớp khác.
+  const wigGui = String(formData.get('wig_id') ?? '').trim();
+  let wigId: string | null = null;
+
+  if (wigGui) {
+    const {data: chon} = await supabase
+      .from('wigs')
+      .select('id')
+      .eq('id', wigGui)
+      .eq('period', 'year')
+      .neq('measure_by', 'cuon')
+      .or(`and(scope.eq.class,class_id.eq.${ghiDanh.class_id}),and(scope.eq.student,student_id.eq.${me.id})`)
+      .maybeSingle();
+    if (!chon?.id)
+      return {ok: false, fieldError: 'wig_id', error: 'Mục tiêu bạn chọn không thuộc lớp mình.'};
+    wigId = chon.id;
+  } else {
+    const {data: cuaEm} = await supabase
+      .from('wigs')
+      .select('id')
+      .eq('student_id', me.id)
+      .eq('scope', 'student')
+      .eq('period', 'year')
+      .eq('kind', 'academic')
+      .maybeSingle();
+    wigId = cuaEm?.id ?? null;
+  }
+
+  if (!wigId)
     return {
       ok: false,
       error: 'Bạn đặt mục tiêu năm trước đã — cam kết mỗi tuần là một bước đi tới mục tiêu ấy.',
@@ -1240,7 +1265,7 @@ export async function datCamKetTuan(
   const {data: daTao, error} = await supabase
     .from('commitments')
     .insert({
-      wig_id: mucTieu.id,
+      wig_id: wigId,
       class_id: ghiDanh.class_id,
       student_id: me.id,
       week_start: monday,
