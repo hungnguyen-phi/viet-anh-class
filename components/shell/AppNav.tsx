@@ -10,6 +10,7 @@ import {
 } from 'react';
 import {useTranslations, useLocale} from 'next-intl';
 import {HOC_BA_BAT} from '@/lib/tinh-nang';
+import {NapTruoc} from '@/components/shell/NapTruoc';
 import {useLinkStatus} from 'next/link';
 import {useSearchParams} from 'next/navigation';
 import {Link, usePathname, useRouter} from '@/i18n/navigation';
@@ -171,6 +172,7 @@ export function AppNav({
   const t = useTranslations('nav');
   const tr = useTranslations('roles');
   const tc = useTranslations('common');
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
@@ -202,6 +204,18 @@ export function AppNav({
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
   const activeItem = links.find((l) => isActive(l.href));
+  // Các tab để NapTruoc tải sẵn — trừ tab đang đứng; cùng query giữ lại (?class=, ?child=) để đúng
+  // là cái đường mà cú bấm sẽ đi.
+  const duongNapTruoc = links.filter((l) => !isActive(l.href)).map((l) => ({pathname: l.href, query: giuLai}));
+  // Rê chuột / chạm vào tab là tải đầy đủ ngay — lớp thứ hai sau NapTruoc, cho lúc đệm 30 giây đã
+  // hết hạn: vẫn đi trước cú bấm vài trăm mili-giây.
+  const napKhiCham = (href: string) => () => {
+    try {
+      router.prefetch({pathname: href, query: giuLai} as Parameters<typeof router.prefetch>[0], {kind: 'full'} as Parameters<typeof router.prefetch>[1]);
+    } catch {
+      /* tải trước hỏng thì thôi */
+    }
+  };
 
   // Đóng menu mobile mỗi khi đổi trang.
   useEffect(() => {
@@ -215,6 +229,7 @@ export function AppNav({
       data-appnav
       className="sticky top-0 z-20 px-4 pb-2.5 pt-3.5 sm:px-6 [background:linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.85)_70%,rgba(255,255,255,0)_100%)]"
     >
+      <NapTruoc duong={duongNapTruoc} />
       {/* Bar full-width navy. Desktop (lg+): logo | tabs | cụm phải. Mobile (<lg): logo | tên trang | hamburger. */}
       <div className="flex w-full items-center gap-3 rounded-[24px] bg-[linear-gradient(180deg,#2f3170,#26275d)] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_10px_28px_-6px_rgba(38,39,93,0.5)] ring-1 ring-white/10">
         {/* Logo + tên */}
@@ -245,6 +260,8 @@ export function AppNav({
               <Link
                 key={href}
                 href={{pathname: href, query: giuLai}}
+                onMouseEnter={napKhiCham(href)}
+                onTouchStart={napKhiCham(href)}
                 aria-current={active ? 'page' : undefined}
                 className={`inline-flex h-11 shrink-0 items-center gap-[7px] whitespace-nowrap rounded-xl px-3.5 text-[13px] font-extrabold transition-all ${
                   active
@@ -358,6 +375,7 @@ export function AppNav({
                   <Link
                     key={href}
                     href={{pathname: href, query: giuLai}}
+                    onTouchStart={napKhiCham(href)}
                     onClick={() => setOpen(false)}
                     aria-current={active ? 'page' : undefined}
                     style={{'--i': i} as CSSProperties}

@@ -13,6 +13,16 @@ const nextConfig: NextConfig = {
   // bằng scheme node: mà loader không xử lý. Khai external là Next để nguyên lời gọi require lúc
   // chạy, và bộ tracer của standalone tự chép thư viện vào node_modules của bản gói.
   serverExternalPackages: ['undici'],
+  // ĐỨNG SẴN Ở ĐÓ TRƯỚC KHI NGƯỜI TA TỚI (16/08/2026).
+  //
+  // Mọi trang sau đăng nhập là force-dynamic, và Next mặc định staleTimes.dynamic = 0: thứ vừa
+  // tải trước KHÔNG được dùng lại cho cú bấm thật — nên prefetch từng bị tắt cả app vì chỉ tốn
+  // công máy chủ. Nay cho trang dynamic sống 30 giây trong bộ nhớ đệm phía trình duyệt: thanh
+  // menu tải trước từng tab sau khi trang hiện xong (components/shell/NapTruoc.tsx), và cú bấm
+  // trong 30 giây kế là hiện NGAY, không phải chờ đường truyền một lần nữa. Server action nào gọi
+  // revalidatePath vẫn xoá đệm như thường, nên việc mình vừa làm không bao giờ hiện bản cũ.
+  // 30 giây, không hơn: dữ liệu ở đây là tick của em, cam kết vừa duyệt — để lâu là nói dối.
+  experimental: {staleTimes: {dynamic: 30, static: 300}},
   // DẤU PHIÊN BẢN BẢN BUILD — chữa lỗi "Ứng dụng gặp sự cố" sau mỗi lần deploy.
   //
   // Không có nó thì mỗi lần đẩy bản mới, MỌI TAB ĐANG MỞ đều hỏng: trình duyệt giữ mã của bản cũ,
