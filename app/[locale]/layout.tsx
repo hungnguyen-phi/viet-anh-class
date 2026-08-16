@@ -2,28 +2,14 @@ import type {Metadata} from 'next';
 import {NextIntlClientProvider, hasLocale} from 'next-intl';
 import {getMessages, setRequestLocale} from 'next-intl/server';
 import {notFound} from 'next/navigation';
-import {Baloo_2, Nunito} from 'next/font/google';
 import {routing} from '@/i18n/routing';
 import {SITE_URL, SCHOOL} from '@/lib/site';
 import {KhoaLanChuotTrenSo} from '@/components/ui/KhoaLanChuotTrenSo';
 import '../globals.css';
 
-// Design system v3: Baloo 2 (display, bo tròn, có tiếng Việt) + Nunito (body).
-// Thay Paytone One của prototype vì Paytone One không có subset tiếng Việt.
-const baloo = Baloo_2({
-  subsets: ['latin', 'vietnamese'],
-  weight: ['500', '600', '700', '800'],
-  variable: '--font-baloo',
-  display: 'swap',
-});
-
-const nunito = Nunito({
-  subsets: ['latin', 'vietnamese'],
-  weight: ['400', '600', '700', '800'],
-  variable: '--font-nunito',
-  display: 'swap',
-});
-
+// Design system v3: Baloo 2 (display) + Nunito (body). Từ 17/08/2026 font TỰ CHỨA — @font-face khai
+// trong app/globals.css, tệp ở public/fonts — không còn next/font/google (build từng đỏ hai lần vì
+// runner không tải được fonts.gstatic.com).
 const DESCRIPTION = 'App lãnh đạo lớp học theo khung 4DX — Trường Việt Anh';
 
 // Namespace mà BUNDLE CLIENT cần (xem chỗ dùng ở dưới, và chốt chặn ở
@@ -121,7 +107,7 @@ export default async function LocaleLayout({
   );
 
   return (
-    <html lang={locale} className={`${baloo.variable} ${nunito.variable}`}>
+    <html lang={locale}>
       <body className="min-h-screen font-body text-ink antialiased">
         {/* Đặt ở lớp ngoài cùng vì nó che MỌI ô số của app, kể cả ô nằm trong server component
             — chỗ không gắn được onWheel. Xem ghi chú trong chính file ấy. */}
