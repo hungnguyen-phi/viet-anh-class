@@ -100,7 +100,9 @@ console.log('── PHỤ HUYNH: sáu thứ được xin trong phiếu ──');
 // Bốn thứ nằm trên thanh nav (nav render ở layout nên có mặt trên mọi trang của vai này).
 for (const [ten, re] of [
   ['Bài tập về nhà / dặn dò', /href="(\/(?:vi\/|en\/)?homework[^"]*)"/],
-  ['Điểm số môn học', /href="(\/(?:vi\/|en\/)?grades[^"]*)"/],
+  // ['Điểm số môn học' — /grades] TẮT 16/08/2026 (lib/tinh-nang.ts HOC_BA_BAT=false): chủ dự án
+  //  "hiện tại ẩn phần học bạ trước, sau này launch thời gian thì hoàn thiện sau". Bật lại thì
+  //  mở lại dòng này.
   ['Thời khoá biểu', /href="(\/(?:vi\/|en\/)?timetable[^"]*)"/],
 ]) {
   await loiVao({ten, tuTrang: '/report', mau: re, cookie: ckPh});

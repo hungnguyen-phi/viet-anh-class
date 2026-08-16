@@ -133,7 +133,6 @@ export function CamKetCuaEm({
           <Field
             label={t('thisWeekWork')}
             htmlFor="ck-em-viec"
-            hint={t('thisWeekWorkHint')}
             error={state.fieldError === 'viec_days' ? state.error : null}
           >
             <input

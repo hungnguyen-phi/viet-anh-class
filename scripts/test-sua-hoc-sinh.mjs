@@ -251,6 +251,12 @@ try {
   const emailThu = `kiem.tu.dong.${Date.now()}@student.truongvietanh.com`;
   const tenThu = `Kiểm Tự Động ${String(Date.now()).slice(-5)}`;
   try {
+    // Form ghi danh MẶC ĐỊNH GẤP (16/08/2026) — bấm "Ghi danh học sinh" cho nó bung ra trước.
+    await chay(`(() => {
+      const nut = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Ghi danh học sinh');
+      if (nut) nut.click();
+    })()`);
+    await doi(`document.querySelector('#enroll-email') ? 'co' : ''`, 10);
     await chay(`(() => {
       const set = (sel, gt) => {
         const o = document.querySelector(sel);

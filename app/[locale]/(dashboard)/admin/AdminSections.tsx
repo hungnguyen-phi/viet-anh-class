@@ -24,10 +24,10 @@ const openLink =
 // Tất cả đều là việc làm vài lần một năm, nên chúng chảy về SAU bảng người dùng và không giữ chân
 // nó. Trước đây chúng nằm chung một Promise.all với bảng, nên bấm đổi tab là phải chờ cả chín truy
 // vấn này xong mới thấy được một dòng nào.
-// Hai mảnh — TRƯỜNG & LỚP và CÀI ĐẶT — của thanh chọn MucQuanTri. Cùng một hàm vì chúng dùng chung
-// dữ liệu; layDanhMuc/layPhuTro có cache() nên gọi hai lần trong một lượt dựng không tốn thêm truy
-// vấn nào.
-export async function AdminSections({phan}: {phan: 'truong' | 'khac'}) {
+// Ba mảnh của thanh chọn MucQuanTri — NGƯỜI DÙNG (chỉ khối "học sinh chưa vào lớp"), TRƯỜNG & LỚP,
+// CÀI ĐẶT. Cùng một hàm vì chúng dùng chung dữ liệu; layDanhMuc/layPhuTro có cache() nên gọi ba
+// lần trong một lượt dựng không tốn thêm truy vấn nào.
+export async function AdminSections({phan}: {phan: 'nguoi' | 'truong' | 'khac'}) {
   const t = await getTranslations('admin');
   const tn = await getTranslations('nav');
   const tcommon = await getTranslations('common');
@@ -89,6 +89,27 @@ export async function AdminSections({phan}: {phan: 'truong' | 'khac'}) {
     {href: '/admin', label: tn('admin'), desc: 'Trang quản trị (màn hình này)'},
   ];
 
+  if (phan === 'nguoi') {
+    return (
+      <>
+      {/* Học sinh đã đăng nhập mà chưa thuộc lớp nào.
+          MỞ SẴN khi đang có em nào lơ lửng, gấp lại khi không — đây là việc phải xử lý trong ngày
+          (em ấy mở app ra không thấy gì cả), nhưng ngày thường thì danh sách rỗng và một mục rỗng
+          mở toang chỉ tổ chiếm chỗ. */}
+      <Disclosure
+        title="Học sinh chưa vào lớp nào"
+        count={hocSinhChuaCoLop.length}
+        defaultOpen={hocSinhChuaCoLop.length > 0}
+      >
+        <HocSinhChuaCoLop
+          hocSinh={hocSinhChuaCoLop}
+          lops={activeClasses.map((c) => ({id: c.id, name: c.name, school_year: c.school_year}))}
+        />
+      </Disclosure>
+      </>
+    );
+  }
+
   if (phan === 'truong') {
     return (
       <>
@@ -146,22 +167,6 @@ export async function AdminSections({phan}: {phan: 'truong' | 'khac'}) {
         />
       </Disclosure>
 
-      {/* Học sinh đã đăng nhập mà chưa thuộc lớp nào.
-          MỞ SẴN khi đang có em nào lơ lửng, gấp lại khi không — đây là việc phải xử lý trong ngày
-          (em ấy mở app ra không thấy gì cả), nhưng ngày thường thì danh sách rỗng và một mục rỗng
-          mở toang chỉ tổ chiếm chỗ. */}
-      <Disclosure
-        title="Học sinh chưa vào lớp nào"
-        hint="Em đã đăng nhập được nhưng chưa ai xếp lớp — chọn lớp rồi xếp ngay tại đây."
-        count={hocSinhChuaCoLop.length}
-        defaultOpen={hocSinhChuaCoLop.length > 0}
-      >
-        <HocSinhChuaCoLop
-          hocSinh={hocSinhChuaCoLop}
-          lops={activeClasses.map((c) => ({id: c.id, name: c.name, school_year: c.school_year}))}
-        />
-      </Disclosure>
-
       {/* Đã lưu trữ — khôi phục Cơ sở / Khối / Lớp */}
       {archivedCampuses.length + archivedGrades.length + archivedClasses.length > 0 && (
         <Disclosure
@@ -216,7 +221,7 @@ export async function AdminSections({phan}: {phan: 'truong' | 'khac'}) {
   return (
     <>
       {/* Môn (4 lĩnh vực 4DX) — gấp lại: sửa nhãn/màu là việc vài lần một năm. */}
-      <Disclosure title={t('manageAreas')} hint={t('areasHint')} count={areaRows.length}>
+      <Disclosure title={t('manageAreas')} count={areaRows.length}>
         <AreaConfigForm rows={areaRows} />
       </Disclosure>
 
@@ -229,14 +234,12 @@ export async function AdminSections({phan}: {phan: 'truong' | 'khac'}) {
           <div>
             {/* Bốn chuỗi trong khối này trước đây gõ thẳng tiếng Việt vào JSX — bản tiếng Anh
                 của màn Quản trị hiện ra hai đoạn tiếng Việt. */}
-            <p className="mb-2 text-xs text-grey-mid">{t('subjectsHint')}</p>
             <Link href="/subjects" className={openLink}>
               <BookMarked size={14} strokeWidth={2.2} />
               {t('openSubjects')}
             </Link>
           </div>
           <div>
-            <p className="mb-2 text-xs text-grey-mid">{t('menuHint')}</p>
             <Link href="/menu" className={openLink}>
               <UtensilsCrossed size={14} strokeWidth={2.2} />
               {t('openMenu')}
@@ -246,7 +249,7 @@ export async function AdminSections({phan}: {phan: 'truong' | 'khac'}) {
       </section>
 
       {/* Giao diện mẫu — mở mọi màn hình */}
-      <Disclosure title={t('screensTitle')} hint={t('screensHint')} count={screens.length}>
+      <Disclosure title={t('screensTitle')} count={screens.length}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {screens.map((s) => (
             <Link

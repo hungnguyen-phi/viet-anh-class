@@ -97,15 +97,12 @@ check(
 );
 
 // ── 6. Trang Điểm danh nói ĐÚNG việc nó làm ───────────────────────────────────────────────
+// Từ 16/08/2026 bảng điểm danh CHỈ ĐỌC (cảm xúc + giờ check-in của em; 0127: em tự check-in, cô
+// không ghi thay). Không còn nút Lưu, không còn tick — nên không còn gì để "hứa tự lưu" hay để
+// chặn rời trang. Phép kiểm nay đảo chiều: bảng không được bày ra bất kỳ nút ghi nào.
 check(
-  'Không còn hứa "tự lưu realtime"',
-  !/[Tt]ự lưu realtime/.test(vi.attendance.realtimeNote) &&
-    /KHÔNG tự lưu/.test(vi.attendance.realtimeNote),
-  '',
-);
-check(
-  'Còn tick chưa lưu thì chặn rời trang + có dải nhắc',
-  /beforeunload/.test(att) && /t\('unsaved'/.test(att),
+  'Bảng điểm danh không còn nút Lưu / tick / cảnh báo chưa lưu',
+  !/t\('save'\)|t\('unsaved'|beforeunload|realtimeNote/.test(att),
   '',
 );
 

@@ -169,10 +169,8 @@ if (r.status === 200) {
 
   if (kManual) {
     dat(!coVach(kManual), 'manual: KHÔNG vẽ vạch tiến độ');
-    dat(
-      /Theo dõi ở ngoài app/.test(kManual),
-      'manual: nói rõ con số này ghi nhận ngoài app',
-    );
+    // (Nhãn "Theo dõi ở ngoài app:" đã gỡ khỏi BangTienDo 16/08/2026 theo lời chủ dự án — bớt chữ
+    //  giảng giải. Luật còn lại vẫn đủ: không vạch, chỉ Đạt/Chưa đạt, không "0 / 100".)
     dat(/Chưa đạt|Đã đạt/.test(kManual), 'manual: chỉ nói Đạt / Chưa đạt');
     // "0 / 100" là đúng cái lời nói dối cũ: app khoe một con số nó không hề đo.
     dat(!/0\s*\/\s*100/.test(kManual), 'manual: KHÔNG khoe "0 / 100"');

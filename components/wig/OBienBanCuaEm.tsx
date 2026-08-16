@@ -138,9 +138,9 @@ export function OBienBanCuaEm({
           </span>
         )}
       </div>
-      <p className="mb-3 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
-        {daKhoa ? t('closedForYou') : t('myHint')}
-      </p>
+      {daKhoa && (
+        <p className="mb-3 text-[11.5px] font-semibold leading-relaxed text-grey-mid">{t('closedForYou')}</p>
+      )}
 
       {/* BA CÂU HỎI CỦA BIÊN BẢN PDR (0130).
           PRD v3 viết rõ ba câu, và giải thích luôn vì sao chỉ ba: "Thực ra 6 câu nhưng một số câu

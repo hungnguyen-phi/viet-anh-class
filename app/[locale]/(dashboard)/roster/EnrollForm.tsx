@@ -128,7 +128,7 @@ export function EnrollForm({classId}: {classId: string}) {
       <button
         type="button"
         onClick={() => setMo(false)}
-        className="mt-2 cursor-pointer text-[12px] font-extrabold text-grey-mid underline"
+        className="mt-2 inline-flex min-h-[24px] cursor-pointer items-center text-[12px] font-extrabold text-grey-mid underline"
       >
         {t('enrollClose')}
       </button>

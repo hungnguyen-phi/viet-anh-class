@@ -1,5 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
-import {ArrowLeft, ArrowRight} from 'lucide-react';
+import {ArrowLeft, ArrowRight, Check, X} from 'lucide-react';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {Link} from '@/i18n/navigation';
@@ -72,7 +72,6 @@ export default async function PhongHopCuaEmPage({
   const macDinh = dangMo?.week_start ?? shiftWeeks(mondayOf(todayInVN()), -1);
   const hopMonday = /^\d{4}-\d{2}-\d{2}$/.test(hopParam ?? '') ? mondayOf(hopParam!) : macDinh;
   const hopLabel = isoWeekLabel(vnNoon(hopMonday));
-  const truocLabel = isoWeekLabel(vnNoon(shiftWeeks(hopMonday, -1)));
 
   // CAM KẾT CHO TUẦN TỚI — tuần kế tiếp tuần đang họp. Buổi họp cuối tuần nhìn lại tuần vừa qua
   // rồi hứa cho tuần sắp tới; đó là nhịp PRD mô tả, và cũng là nhịp mà bước 3 bên màn của cô dùng.
@@ -95,14 +94,26 @@ export default async function PhongHopCuaEmPage({
     .or(`and(scope.eq.class,class_id.eq.${lop.class_id}),and(scope.eq.student,student_id.eq.${profile.id})`)
     .order('area');
 
-  // MỘT CÂU cho cả ba thứ cần: dòng của LỚP tuần này (mang dấu chốt), dòng của lớp tuần trước
-  // (mang lời hứa), và dòng của chính em. RLS đã lo phần "chỉ thấy dòng của mình": học sinh đọc
-  // được dòng lớp (student_id null) và dòng mang chính id mình, không thấy dòng của bạn khác.
+  // CAM KẾT CỦA LỚP tuần đang họp — nhịp mở đầu của buổi họp WIG: cả lớp đã hứa gì, và cô đã
+  // chấm chưa. Đọc bảng commitments (có cấu trúc), không đọc câu chữ tự do trong biên bản nữa —
+  // câu ấy đã bỏ ở phòng họp của cô (16/08/2026). Em thấy được cam kết lớp qua RLS (0138).
+  const {data: ckLopRows} = await supabase
+    .from('commitments')
+    .select('id, title, verdict')
+    .eq('class_id', lop.class_id)
+    .is('student_id', null)
+    .eq('week_start', hopMonday)
+    .order('created_at');
+  const ckLop = (ckLopRows ?? []) as {id: string; title: string; verdict: string | null}[];
+
+  // MỘT CÂU cho cả hai thứ cần: dòng của LỚP tuần này (mang dấu chốt) và dòng của chính em. RLS
+  // đã lo phần "chỉ thấy dòng của mình": học sinh đọc được dòng lớp (student_id null) và dòng mang
+  // chính id mình, không thấy dòng của bạn khác.
   const {data: rows} = await supabase
     .from('wig_meetings')
     .select('student_id, week_label, results, commitments, chot_at, mo_luc, tham_gia_luc, kho_khan, vuot_qua, cach_tot_hon')
     .eq('class_id', lop.class_id)
-    .in('week_label', [hopLabel, truocLabel]);
+    .eq('week_label', hopLabel);
   const all = (rows ?? []) as {
     student_id: string | null;
     week_label: string;
@@ -116,8 +127,6 @@ export default async function PhongHopCuaEmPage({
     cach_tot_hon: string | null;
   }[];
   const dongTuan = all.find((r) => r.student_id === null && r.week_label === hopLabel) ?? null;
-  const loiHuaTruoc =
-    all.find((r) => r.student_id === null && r.week_label === truocLabel)?.commitments ?? null;
   const cuaEm = all.find((r) => r.student_id === profile.id && r.week_label === hopLabel) ?? null;
   const daChot = Boolean(dongTuan?.chot_at);
   // PHÒNG ĐANG MỞ (0130): cô đã bấm "Bắt đầu họp" và chưa bấm "Kết thúc".
@@ -162,21 +171,37 @@ export default async function PhongHopCuaEmPage({
         </Link>
       </section>
 
-      {/* Lời hứa của cả lớp tuần trước — nhịp mở đầu của một buổi họp WIG, và là thứ duy nhất từ
-          buổi họp mà em cần đọc trước khi viết phần của mình. */}
+      {/* Cam kết của cả lớp tuần đang họp — nhịp mở đầu của một buổi họp WIG, và là thứ duy nhất
+          từ buổi họp mà em cần đọc trước khi viết phần của mình. Cô chấm rồi thì có dấu V/X. */}
       <div className="flex flex-wrap items-start gap-2 rounded-[14px] border-[1.5px] border-gold-deep/25 bg-gold/[0.12] px-3.5 py-2.5">
         <ArrowRight size={14} strokeWidth={2.5} className="mt-0.5 shrink-0 text-gold-deep" />
         <div className="min-w-0 flex-1">
           <span className="text-[11px] font-extrabold uppercase tracking-wide text-gold-text">
-            {t('promisedLastWeek', {week: truocLabel})}
+            {t('classPromised', {week: hopLabel})}
           </span>
-          <p
-            className={`mt-0.5 text-[12.5px] font-semibold leading-relaxed ${
-              loiHuaTruoc ? 'text-navy' : 'italic text-grey-mid'
-            }`}
-          >
-            {loiHuaTruoc ?? t('noPromiseLastWeek')}
-          </p>
+          {ckLop.length > 0 ? (
+            <ul className="mt-0.5 flex flex-col gap-0.5">
+              {ckLop.map((c) => (
+                <li key={c.id} className="flex items-center gap-2 text-[12.5px] font-semibold text-navy">
+                  {c.verdict && (
+                    <span
+                      className={`grid h-4 w-4 shrink-0 place-items-center rounded-full text-white ${
+                        c.verdict === 'win' ? 'bg-success' : 'bg-status-bad'
+                      }`}
+                      aria-label={c.verdict === 'win' ? t('verdictWin') : t('verdictLose')}
+                    >
+                      {c.verdict === 'win' ? <Check size={10} strokeWidth={3.5} /> : <X size={10} strokeWidth={3.5} />}
+                    </span>
+                  )}
+                  {c.title}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-0.5 text-[12.5px] font-semibold italic leading-relaxed text-grey-mid">
+              {t('noClassCommitment', {week: hopLabel})}
+            </p>
+          )}
         </div>
       </div>
 

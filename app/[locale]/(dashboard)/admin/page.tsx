@@ -105,6 +105,10 @@ export default async function AdminPage({
             <Suspense key={khoaBang} fallback={<UsersSectionSkeleton rows={Math.min(page, 10)} />}>
               <UsersSection q={q} tab={tab} page={page} upage={upage} meId={me.id} />
             </Suspense>
+            {/* Học sinh đã đăng nhập mà chưa thuộc lớp nào — chuyện của NGƯỜI, đứng ở đây. */}
+            <Suspense fallback={null}>
+              <AdminSections phan="nguoi" />
+            </Suspense>
           </>
         }
         truong={

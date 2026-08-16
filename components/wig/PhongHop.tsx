@@ -424,9 +424,7 @@ export function PhongHop({
           </>
         ) : (
           <>
-            <span className="min-w-0 flex-1 text-[12.5px] font-semibold leading-relaxed text-grey-mid">
-              {t('roomClosedHint')}
-            </span>
+            <span className="min-w-0 flex-1" />
             <form action={moPhongHop} className="contents">
               <input type="hidden" name="class_id" value={classId} />
               <input type="hidden" name="hop_start" value={hopStart} />
@@ -492,7 +490,7 @@ export function PhongHop({
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <Link
                     href={`/student/${e.id}`}
-                    className="min-w-0 truncate text-[13.5px] font-extrabold text-navy hover:underline"
+                    className="inline-flex min-h-[24px] min-w-0 items-center truncate text-[13.5px] font-extrabold text-navy hover:underline"
                   >
                     {e.ten}
                   </Link>
