@@ -615,7 +615,9 @@
     "noStudentCommitment": "No commitment this week",
     "changedTimes": "changed {n}×",
     "thisWeekWork": "What will you do this week",
-    "classPromised": "Class commitments for {week}"
+    "classPromised": "Class commitments for {week}",
+    "addCommitment": "Add commitment",
+    "commitmentOne": "Commitment"
   },
   "report": {
     "title": "Parent report",

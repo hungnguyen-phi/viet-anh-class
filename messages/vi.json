@@ -615,7 +615,9 @@
     "noStudentCommitment": "Chưa hứa gì tuần này",
     "changedTimes": "đã đổi {n} lần",
     "thisWeekWork": "Tuần này con làm gì",
-    "classPromised": "Tuần {week} lớp đã hứa"
+    "classPromised": "Tuần {week} lớp đã hứa",
+    "addCommitment": "Thêm cam kết",
+    "commitmentOne": "Cam kết"
   },
   "report": {
     "title": "Báo cáo phụ huynh",

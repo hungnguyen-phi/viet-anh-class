@@ -1,10 +1,10 @@
 'use client';
 
-import {useActionState, useState} from 'react';
+import {useActionState, useEffect, useState} from 'react';
 import {useTranslations} from 'next-intl';
-import {AlertCircle, CheckCircle2, Clock, Target} from 'lucide-react';
+import {AlertCircle, CheckCircle2, Clock, Plus, Target} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {Field, ctlWithBorder, selectCls, btnGold} from '@/components/ui/Field';
+import {Field, ctlWithBorder, selectCls, btnGold, btnGhost} from '@/components/ui/Field';
 import {datCamKetTuan} from '@/app/[locale]/(dashboard)/student/actions';
 import {kieuDonVi} from '@/lib/don-vi';
 
@@ -65,6 +65,13 @@ export function CamKetCuaEm({
   const [state, formAction] = useActionState(datCamKetTuan, {ok: false});
   // Mặc định T2–T6: gần như luôn là thứ em định chọn, và ai muốn khác thì chạm hai cái là xong.
   const [thu, setThu] = useState<number[]>([1, 2, 3, 4, 5]);
+  // FORM GẤP SAU MỘT NÚT NHỎ. Chủ dự án: "để + tạo cam kết là 1 nút nhỏ thôi, ai cần thì mới tạo,
+  // không thì thôi — để như này giống như bắt buộc điền cam kết 2". Chưa có cam kết nào thì mở sẵn
+  // (đó là việc phải làm), có rồi thì gấp; gửi xong tự gấp lại.
+  const [moForm, setMoForm] = useState(daCo.length === 0);
+  useEffect(() => {
+    if (state.ok) setMoForm(false);
+  }, [state.ok]);
   const doiThu = (d: number) =>
     setThu((p) => (p.includes(d) ? p.filter((x) => x !== d) : [...p, d].sort((a, b) => a - b)));
 
@@ -121,7 +128,13 @@ export function CamKetCuaEm({
         </ul>
       )}
 
-      {conCho && (
+      {conCho && !moForm && (
+        <button type="button" onClick={() => setMoForm(true)} className={`${btnGhost} w-fit`}>
+          <Plus size={13} strokeWidth={2.6} />
+          {t('addCommitment')}
+        </button>
+      )}
+      {conCho && moForm && (
         <form action={formAction} className="flex flex-col gap-2">
           <input type="hidden" name="week" value={weekStart} />
           {/* TRẬN ĐÁNH CỦA TUẦN NÀY. Bỏ trống danh sách (lớp chưa đặt mục tiêu năm nào) thì không
@@ -152,7 +165,7 @@ export function CamKetCuaEm({
             </Field>
           )}
           <Field
-            label={t('commitmentNo', {n: daCo.length + 1})}
+            label={daCo.length === 0 ? t('commitmentOne') : t('commitmentNo', {n: daCo.length + 1})}
             htmlFor="ck-em-title"
             error={state.fieldError === 'title' ? state.error : null}
           >
@@ -260,9 +273,20 @@ export function CamKetCuaEm({
             ))}
           </div>
 
-          <SubmitButton className={`${btnGold} w-fit`} wrapClass="contents">
-            {tg('send')}
-          </SubmitButton>
+          <div className="flex flex-wrap items-center gap-3">
+            <SubmitButton className={btnGold} wrapClass="contents">
+              {tg('send')}
+            </SubmitButton>
+            {daCo.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setMoForm(false)}
+                className="inline-flex min-h-[24px] cursor-pointer items-center text-[12px] font-extrabold text-grey-mid underline"
+              >
+                {tg('cancel')}
+              </button>
+            )}
+          </div>
         </form>
       )}
 
