@@ -120,7 +120,7 @@ export async function BangCacEm({
                                   <input type="hidden" name="student_id" value={e.id} />
                                   <button type="submit" className={nutDuyet}>
                                     <Check size={11} strokeWidth={3} />
-                                    {tg('approve')}
+                                    {tg('approveShort')}
                                   </button>
                                 </form>
                               )}
@@ -144,7 +144,7 @@ export async function BangCacEm({
                                   <input type="hidden" name="commitment_id" value={c.id} />
                                   <button type="submit" className={nutDuyet}>
                                     <Check size={11} strokeWidth={3} />
-                                    {tg('approve')}
+                                    {tg('approveShort')}
                                   </button>
                                 </form>
                               ) : c.verdict ? (

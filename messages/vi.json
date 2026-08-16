@@ -1339,6 +1339,7 @@
     "addGoal": "Thêm mục tiêu",
     "addGoalFor": "Đặt mục tiêu cho em",
     "deleteCommitment": "Xoá",
-    "confirmDeleteCommitment": "Xoá cam kết này? Việc và lượt tick dưới nó cũng mất."
+    "confirmDeleteCommitment": "Xoá cam kết này? Việc và lượt tick dưới nó cũng mất.",
+    "approveShort": "Duyệt"
   }
 }

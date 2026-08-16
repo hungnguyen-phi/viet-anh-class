@@ -1339,6 +1339,7 @@
     "addGoal": "Add a goal",
     "addGoalFor": "Set a goal for this student",
     "deleteCommitment": "Delete",
-    "confirmDeleteCommitment": "Delete this commitment? Its works and ticks go with it."
+    "confirmDeleteCommitment": "Delete this commitment? Its works and ticks go with it.",
+    "approveShort": "Approve"
   }
 }

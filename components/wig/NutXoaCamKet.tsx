@@ -33,7 +33,7 @@ export function NutDuyetCamKet({commitmentId, studentId}: {commitmentId: string;
         type="submit"
         className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-2.5 py-0.5 text-[10.5px] font-extrabold text-gold-text transition-all hover:bg-gold/30"
       >
-        {t('approve')}
+        {t('approveShort')}
       </button>
     </form>
   );

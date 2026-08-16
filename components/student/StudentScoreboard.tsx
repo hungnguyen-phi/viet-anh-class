@@ -641,7 +641,9 @@ export async function StudentScoreboard({
   // MỖI CAM KẾT MỘT KHỐI: tên + trạng thái + xoá, rồi VIỆC CỦA CHÍNH NÓ ngay dưới. Chủ dự án nhìn
   // bản đầu và hỏi "lead measure nào gắn với cam kết tuần nào" — vì bản ấy bày hai cam kết rồi mới
   // tới hai việc, đọc không ra cha con. Nay việc đứng trong khối của cam kết mẹ.
-  const khoiTuanNay = (ckCua: typeof ckTuan, wigMacDinh: string | undefined) => (
+  const khoiTuanNay = (ckCua: typeof ckTuan, wigMacDinh: string | undefined) =>
+    // Người xem không phải em (cô, BGH, phụ huynh) mà em chưa hứa gì → không bày một tiêu đề trống.
+    !canTick && ckCua.length === 0 ? null : (
     <div className="flex flex-col gap-2.5 rounded-[14px] bg-navy/[0.03] p-3">
       <span className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
         {tm('step3', {week: nhanTuanNay})}
