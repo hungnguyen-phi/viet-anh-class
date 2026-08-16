@@ -131,9 +131,11 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
   // Vẫn đóng dấu vào `chot_at` chứ không quay lại luật cũ ("có dòng biên bản nào là khoá"): luật cũ
   // khoá lây cả những dòng sinh ra từ đường khác, và nút gỡ biên bản cần một chỗ cụ thể để gỡ dấu.
   //
-  // Chốt khi buổi họp CÓ LÀM một việc: chấm ít nhất một cam kết, ghi chiêm nghiệm, hoặc đặt cam
-  // kết tuần tới. Không có gì trong ba thứ ấy thì không phải một buổi họp — trả lỗi ở dưới.
-  if (chiem_nghiem || soCham > 0 || lam.length > 0) {
+  // BẤM CHỐT LÀ CHỐT — luôn luôn, không đòi hỏi gì. Bản 16/08 sáng từng bắt "phải chấm hoặc ghi gì
+  // đó mới cho chốt": cô mở phòng, các em điền xong, cô bấm Chốt và nhận "Chưa có gì để chốt" —
+  // phòng không đóng, chủ dự án hỏi "ấn chốt buổi họp mà nó không đóng phòng họp là sao". Cái nút
+  // ấy CHÍNH LÀ hành động; đóng phòng + khoá tuần là việc của nó, dù cô không đổi ô nào.
+  {
     // 1 biên bản / (lớp, tuần). Tìm theo NGÀY: nhãn là chữ để người đọc, ngày mới là khoá thật
     // (0080). Trước đây tra theo nhãn nên ai sửa tay thành "Tuần 31" là vòng cam kết đứt lặng lẽ.
     const {data: cu} = await supabase
@@ -168,11 +170,8 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
       ? await supabase.from('wig_meetings').update(payload).eq('id', cu.id)
       : await supabase.from('wig_meetings').insert(payload);
     if (error) return {ok: false, error: (friendlyError(error))};
-    lam.push(cu ? 'cập nhật biên bản' : 'lưu biên bản');
+    lam.push('chốt tuần');
   }
-
-  if (lam.length === 0)
-    return {ok: false, error: 'Chưa có gì để chốt — chấm ít nhất một cam kết, hoặc ghi chiêm nghiệm.'};
 
 
   revalidatePath('/[locale]/wig', 'page');
@@ -184,7 +183,7 @@ export async function ketThucBuoiHop(_prev: HopState, formData: FormData): Promi
 
   return {
     ok: true,
-    message: `Xong: ${lam.join(', ')}. Tick và số đo của tuần ${hop_label} đã chốt.`,
+    message: `Xong: ${lam.join(', ')}. Phòng họp đã đóng.`,
   };
 }
 
