@@ -271,11 +271,12 @@ let ck = null;
         .eq('class_id', lop.id)
         .eq('is_active', true);
       const ten = (ds ?? []).map((r) => r.profiles?.full_name).filter(Boolean);
-      const coViec = /Tới giờ trong tuần này/.test(ct.html);
+      // 16/08/2026: chi tiết tuần là "Từng em tuần này" — MỌI em đều có một khối (kể cả em chưa hứa
+      // gì), việc là việc CỦA EM. Không còn ma trận việc chung, không còn "Tới giờ trong tuần này".
       check(
-        'Màn chi tiết hiện từng em (hoặc nói rõ tuần này chưa có việc)',
-        coViec ? ten.length > 0 && ten.every((n) => ct.html.includes(n)) : /chưa có việc chung nào/.test(ct.html),
-        coViec ? `${ten.length} em` : 'tuần này lớp chưa có việc chung',
+        'Màn chi tiết hiện từng em (mỗi em một khối, kể cả em chưa hứa)',
+        ten.length > 0 && ten.every((n) => ct.html.includes(n)) && !/Tới giờ trong tuần này/.test(ct.html),
+        `${ten.length} em`,
       );
     }
 
