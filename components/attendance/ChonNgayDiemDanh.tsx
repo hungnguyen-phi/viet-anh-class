@@ -1,14 +1,16 @@
 'use client';
 
-import {useTransition} from 'react';
+import {useState, useTransition} from 'react';
 import {Loader2} from 'lucide-react';
 import {useRouter} from '@/i18n/navigation';
+import {ONgayVN} from '@/components/ui/ONgayVN';
 
-// Ô CHỌN NGÀY RIÊNG — chọn là đi, không có nút "Xem".
+// Ô CHỌN NGÀY RIÊNG — gõ đủ ngày/tháng/năm là đi, không có nút "Xem".
 //
-// Bản trước là <form method="get"> có nhãn "Ngày khác", ô ngày và nút Xem: ba thứ cho một việc.
-// Chọn xong một ngày trong lịch là người ta đã nói rõ muốn gì rồi; bắt bấm thêm một nút là hỏi
-// lại lần nữa. Chấm quay hiện thay ô lúc đang chờ trang mới, cùng cách NutDoiTrang đang làm.
+// Bản trước là <form method="get"> có nhãn "Ngày khác", <input type="date"> và nút Xem: ba thứ
+// cho một việc. Và <input type="date"> hiện `08/16/2026` trên trình duyệt cài tiếng Anh — đúng
+// cái chủ dự án vừa nhắc "ngày trước tháng sau". Dùng ONgayVN (ngày / tháng / năm) như mọi chỗ
+// khác của dự án (lib/dob.ts, hạn mục tiêu). Chấm quay hiện lúc đang chờ trang mới.
 export function ChonNgayDiemDanh({
   ngay,
   toiDa,
@@ -20,35 +22,26 @@ export function ChonNgayDiemDanh({
 }) {
   const router = useRouter();
   const [dangTai, batDau] = useTransition();
+  const [gt, setGt] = useState(ngay);
   return (
-    <span className="relative inline-flex items-center">
-      <input
-        type="date"
-        value={ngay}
-        max={toiDa}
-        aria-label="Chọn ngày"
-        disabled={dangTai}
-        onChange={(e) => {
-          const v = e.target.value;
-          if (!v || v === ngay) return;
+    <span className="inline-flex items-center gap-2">
+      <ONgayVN
+        name="date"
+        nhan="Chọn ngày"
+        value={gt}
+        onChange={(iso) => {
+          setGt(iso);
+          // ONgayVN trả '' khi chưa đủ ba ô; đủ rồi mà là ngày chưa tới thì thôi.
+          if (!iso || iso === ngay || iso > toiDa) return;
           batDau(() =>
             router.push({
               pathname: '/attendance',
-              query: {...(classParam ? {class: classParam} : {}), date: v},
+              query: {...(classParam ? {class: classParam} : {}), date: iso},
             }),
           );
         }}
-        className={`h-9 rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2 text-[12.5px] font-bold text-navy outline-none focus:border-navy ${
-          dangTai ? 'cursor-wait opacity-50' : 'cursor-pointer'
-        }`}
       />
-      {dangTai && (
-        <Loader2
-          size={14}
-          strokeWidth={2.5}
-          className="pointer-events-none absolute right-2 animate-spin text-navy"
-        />
-      )}
+      {dangTai && <Loader2 size={14} strokeWidth={2.5} className="animate-spin text-navy" />}
     </span>
   );
 }

@@ -332,7 +332,7 @@ export function PhongHop({
   const theCamKet = (c: CamKetHop) => (
     <div key={c.id} className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <span className="min-w-0 flex-1 text-[13.5px] font-bold text-navy">{c.title}</span>
+        <span className="min-w-0 flex-1 basis-[11rem] text-[13.5px] font-bold text-navy">{c.title}</span>
         {c.soLanSua > 0 && (
           <span className="shrink-0 rounded-full bg-status-bad/[0.10] px-2 py-0.5 text-[10.5px] font-extrabold text-status-bad">
             {t('changedTimes', {n: c.soLanSua})}
