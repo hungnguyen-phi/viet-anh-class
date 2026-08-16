@@ -947,6 +947,30 @@ export async function xoaMucTieuCuaEm(formData: FormData) {
   veTrangEm(student_id, 'Đã xoá mục tiêu');
 }
 
+
+// XOÁ MỘT CAM KẾT TUẦN — của chính em (chưa chốt tuần) hoặc do cô/quản trị dọn.
+//
+// Chủ dự án 16/08/2026: "liệu tôi muốn bỏ đi để làm lại thì sao?". Trước đây cam kết đặt rồi là
+// không có đường lùi trên màn — em hứa nhầm trận đánh, hay gõ "tét" để thử, thì kẹt luôn tới cuối
+// tuần. Việc và tick dưới cam kết đi theo (cascade); tuần đã chốt thì trigger trg_khoa_sau_khi_chot
+// chặn, RLS lo phần "của ai".
+export async function xoaCamKetTuan(formData: FormData) {
+  const me = await getCurrentProfile();
+  if (!me) return;
+  const id = String(formData.get('commitment_id') ?? '');
+  const student_id = String(formData.get('student_id') ?? '');
+  if (!id) veTrangEm(student_id, loi('Thiếu cam kết.'));
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('commitments').delete().eq('id', id).select('id');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if ((data ?? []).length === 0) veTrangEm(student_id, loi('Không xoá được — cam kết không còn, hoặc tuần đã chốt.'));
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/student/hop', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  veTrangEm(student_id, 'Đã xoá cam kết');
+}
+
 // Tick "đã đạt" cho đích ghi nhận ngoài. Cô và trò tự theo dõi ở ngoài app (bài kiểm tra, sổ liên
 // lạc); app chỉ ghi lại AI xác nhận và LÚC NÀO — xem docs/MO_HINH_WIG.md §5.0.
 export async function danhDauDaDat(formData: FormData) {

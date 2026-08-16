@@ -25,6 +25,7 @@ import {EditRequestButton} from '@/components/student/EditRequestButton';
 import {MucTieuCuaCon, type MucTieuCuaEm, type SoDoCuaTuan} from '@/components/student/MucTieuCuaCon';
 import {NghePhongHop} from '@/components/wig/NghePhongHop';
 import {CamKetCuaEm} from '@/components/wig/CamKetCuaEm';
+import {NutXoaCamKet} from '@/components/wig/NutXoaCamKet';
 import {ArrowRight, Users} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {areaLabel, type Area} from '@/lib/areas';
@@ -93,6 +94,7 @@ export async function StudentScoreboard({
 }) {
   const t = await getTranslations('student');
   const tSW = await getTranslations('studentWig');
+  const tg = await getTranslations('goal');
   const tm = await getTranslations('meeting');
   const supabase = await createClient();
   const canManage = viewer.role === 'teacher' || viewer.role === 'admin';
@@ -669,46 +671,61 @@ export async function StudentScoreboard({
     ...mucTieuCuaEm.map((m) => ({id: m.id, area: m.area, title: m.title, unit: m.unit})),
   ];
   const daXep = new Set<string>();
-  const khoiTuanNay = (ckCua: typeof ckTuan, wigMacDinh: string | undefined) => {
-    const ids = new Set(ckCua.map((c) => c.id));
-    const viec = tickerLeads.filter((l) => l.commitmentId && ids.has(l.commitmentId));
-    return (
-      <div className="flex flex-col gap-2.5 rounded-[14px] bg-navy/[0.03] p-3">
-        {canTick ? (
-          <CamKetCuaEm
-            gon
-            weekStart={weekDays[0]}
-            weekLabel={nhanTuanNay}
-            daCo={ckCua}
-            tongDaCo={ckTuan.length}
-            dayShort={dayShort}
-            wigLop={tranDanh}
-            wigMacDinh={wigMacDinh}
-          />
-        ) : (
-          ckCua.length > 0 && (
-            <ul className="flex flex-col gap-1">
-              {ckCua.map((c) => (
-                <li key={c.id} className="text-[13px] font-bold text-navy">
-                  {c.title}
-                </li>
-              ))}
-            </ul>
-          )
-        )}
-        {viec.length > 0 && (
-          <LeadTicker
-            leads={viec}
-            studentId={studentId}
-            canTick={canTick || canManage}
-            nguoiGhi={viewer.id}
-            today={today}
-            tickOpen={tickOpen}
-          />
-        )}
-      </div>
-    );
-  };
+  // MỖI CAM KẾT MỘT KHỐI: tên + trạng thái + xoá, rồi VIỆC CỦA CHÍNH NÓ ngay dưới. Chủ dự án nhìn
+  // bản đầu và hỏi "lead measure nào gắn với cam kết tuần nào" — vì bản ấy bày hai cam kết rồi mới
+  // tới hai việc, đọc không ra cha con. Nay việc đứng trong khối của cam kết mẹ.
+  const khoiTuanNay = (ckCua: typeof ckTuan, wigMacDinh: string | undefined) => (
+    <div className="flex flex-col gap-2.5 rounded-[14px] bg-navy/[0.03] p-3">
+      <span className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
+        {tm('step3', {week: nhanTuanNay})}
+      </span>
+      {ckCua.map((c) => {
+        const viec = tickerLeads.filter((l) => l.commitmentId === c.id);
+        return (
+          <div key={c.id} className="rounded-[12px] border-[1.5px] border-navy/10 bg-white/70 p-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">{c.title}</span>
+              {c.status === 'sent' ? (
+                <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text">{tg('waiting')}</span>
+              ) : (
+                <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">{tg('approved')}</span>
+              )}
+              {(canTick || canManage) && tickOpen && (
+                <NutXoaCamKet commitmentId={c.id} studentId={studentId} />
+              )}
+            </div>
+            {viec.length > 0 ? (
+              <div className="mt-2">
+                <LeadTicker
+                  leads={viec}
+                  studentId={studentId}
+                  canTick={canTick || canManage}
+                  nguoiGhi={viewer.id}
+                  today={today}
+                  tickOpen={tickOpen}
+                />
+              </div>
+            ) : (
+              <p className="mt-1 text-[12px] font-semibold italic text-grey-mid">{t('noWorkUnder')}</p>
+            )}
+          </div>
+        );
+      })}
+      {canTick && (
+        <CamKetCuaEm
+          gon
+          anDanhSach
+          weekStart={weekDays[0]}
+          weekLabel={nhanTuanNay}
+          daCo={ckCua}
+          tongDaCo={ckTuan.length}
+          dayShort={dayShort}
+          wigLop={tranDanh}
+          wigMacDinh={wigMacDinh}
+        />
+      )}
+    </div>
+  );
   const tuanNayTheoWig: Record<string, React.ReactNode> = {};
   for (const g of mucTieuCuaEm) {
     const ckCua = ckTuan.filter(

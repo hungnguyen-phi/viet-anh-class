@@ -35,6 +35,7 @@ export function CamKetCuaEm({
   wigMacDinh,
   tongDaCo,
   gon = false,
+  anDanhSach = false,
 }: {
   /** Thứ Hai của tuần đang đặt cam kết cho. */
   weekStart: string;
@@ -55,6 +56,8 @@ export function CamKetCuaEm({
   tongDaCo?: number;
   /** Bản gọn để đặt TRONG thẻ mục tiêu năm: không khung, tiêu đề nhỏ. */
   gon?: boolean;
+  /** Màn cha đã tự bày danh sách cam kết (kèm việc) — ở đây chỉ còn form. */
+  anDanhSach?: boolean;
 }) {
   const t = useTranslations('meeting');
   const tg = useTranslations('goal');
@@ -78,18 +81,20 @@ export function CamKetCuaEm({
   const tongTuan = moiLanKhac ? Number(luong || 0) : thu.length * (Number(upt || 0) || 0);
   // Bản gọn trong thẻ mục tiêu: chưa hứa gì vào mục tiêu này VÀ đã hết chỗ hứa (đủ 2 ở mục tiêu
   // khác) thì không có gì để bày — một tiêu đề trơ trọi chỉ gây thắc mắc. Đứng SAU mọi hook.
-  if (gon && daCo.length === 0 && !conCho) return null;
+  if (gon && (daCo.length === 0 || anDanhSach) && !conCho) return null;
 
   return (
     <section className={gon ? 'flex flex-col gap-2.5' : 'glass flex flex-col gap-3 rounded-[20px] p-[18px]'}>
       {/* KHÔNG GIẢNG VỀ GIỚI HẠN. Chủ dự án: "bạn không cần nói tôi giới hạn chỗ này, nó không
           tạo được nữa thì nó tự hiểu". Ô biến mất khi đã đủ hai — đó là câu trả lời rõ hơn mọi
           dòng chữ, và không chiếm chỗ của thứ em đang cần đọc. */}
-      <h2 className={gon ? 'text-[11px] font-extrabold uppercase tracking-wide text-grey-mid' : 'font-display text-[16px] font-bold text-navy'}>
-        {t('step3', {week: weekLabel})}
-      </h2>
+      {!anDanhSach && (
+        <h2 className={gon ? 'text-[11px] font-extrabold uppercase tracking-wide text-grey-mid' : 'font-display text-[16px] font-bold text-navy'}>
+          {t('step3', {week: weekLabel})}
+        </h2>
+      )}
 
-      {daCo.length > 0 && (
+      {!anDanhSach && daCo.length > 0 && (
         <ul className="flex flex-col gap-1.5">
           {daCo.map((c) => (
             <li

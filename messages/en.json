@@ -787,7 +787,8 @@
     "classMinutes": "Class meeting minutes",
     "classPromise": "The class promises",
     "luongOLabel": "how much (optional)",
-    "olderWeeks": "{n} earlier weeks"
+    "olderWeeks": "{n} earlier weeks",
+    "noWorkUnder": "No work under this commitment yet."
   },
   "campusReport": {
     "title": "Campus report",
@@ -1331,6 +1332,8 @@
     "perTick": "How many {unit} per time?",
     "perTickSum": "{n} times × {moi} = {tuan} {unit} this week.",
     "addGoal": "Add a goal",
-    "addGoalFor": "Set a goal for this student"
+    "addGoalFor": "Set a goal for this student",
+    "deleteCommitment": "Delete",
+    "confirmDeleteCommitment": "Delete this commitment? Its works and ticks go with it."
   }
 }

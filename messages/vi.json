@@ -787,7 +787,8 @@
     "classMinutes": "Biên bản họp của lớp",
     "classPromise": "Cả lớp hứa",
     "luongOLabel": "làm được bao nhiêu (không bắt buộc)",
-    "olderWeeks": "{n} tuần trước đó"
+    "olderWeeks": "{n} tuần trước đó",
+    "noWorkUnder": "Chưa có việc để tick dưới cam kết này."
   },
   "campusReport": {
     "title": "Báo cáo cơ sở",
@@ -1331,6 +1332,8 @@
     "perTick": "Mỗi lần bạn làm được bao nhiêu {unit}?",
     "perTickSum": "{n} lần × {moi} = {tuan} {unit} tuần này.",
     "addGoal": "Thêm mục tiêu",
-    "addGoalFor": "Đặt mục tiêu cho em"
+    "addGoalFor": "Đặt mục tiêu cho em",
+    "deleteCommitment": "Xoá",
+    "confirmDeleteCommitment": "Xoá cam kết này? Việc và lượt tick dưới nó cũng mất."
   }
 }
