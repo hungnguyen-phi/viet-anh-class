@@ -823,6 +823,7 @@
     "streakHint": "Days in a row you have ticked",
     "remainingMine": "{n} more to reach your goal",
     "remainingFriends": "waiting on {n} more classmate(s)",
+    "quotaWindow": "{n} times across {songay} days — any of them, and extra is a bonus.",
     "mineLabel": "You",
     "moodAt": "Checked in at {time}",
     "moodLate": "Late",

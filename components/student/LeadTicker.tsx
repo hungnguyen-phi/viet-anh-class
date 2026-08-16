@@ -335,7 +335,15 @@ export function LeadTicker({
             {/* Ghi rõ "Em:" ở việc chung — cùng một thẻ mà có hai con số (của em và của lớp),
                 không gắn nhãn thì lại đọc nhầm y như bản cũ. */}
             {l.kind === 'class' ? `${t('mineLabel')}: ` : ''}
-            {Math.min(mine, l.target)}/{l.target} {l.unit ?? ''}
+            {/* KHÔNG KẸP CON SỐ Ở ĐÍCH.
+                Bản cũ in `Math.min(mine, target)`, nên em làm 5 lần cho một việc chỉ tiêu 3 vẫn
+                đọc thấy "3/3" — app giấu mất hai lần em đã làm. Chủ dự án chỉ đúng chỗ này
+                (16/08/2026): "chỉ 3/3 mà hiện T2 tới T6? tick T5 T6 luôn" — bấm thêm mà con số
+                đứng im thì hoặc là em tưởng app hỏng, hoặc em học được rằng làm thêm thì cũng thế.
+                Cả hai đều tệ hơn một con số vượt đích.
+                Vạch tiến độ vẫn kẹp ở 100% (pct) — vạch mà tràn ra ngoài khung là lỗi hiển thị;
+                con số thì phải nói thật. */}
+            {mine}/{l.target} {l.unit ?? ''}
           </span>
         </div>
 
@@ -359,6 +367,17 @@ export function LeadTicker({
             {!done && left > 0
               ? t('remainingMine', {n: left})
               : t('remainingFriends', {n: banConThieu})}
+          </p>
+        )}
+
+        {/* CHỈ TIÊU ÍT HƠN SỐ NGÀY THÌ NÓI RA. "3 lần" mà bày 5 ô ngày là một câu đố: chủ dự án
+            nhìn vào và hỏi thẳng "sao chỉ 3/3 mà hiện T2 tới T6?". Hai con số ấy nói hai chuyện
+            khác nhau — 5 ngày là CỬA SỔ được phép bấm, 3 là HẠN MỨC phải đạt — và màn hình chưa
+            bao giờ nói ra điều đó. Chỉ hiện khi chúng thật sự lệch; bằng nhau thì thêm một dòng
+            chữ là thêm tiếng ồn. */}
+        {l.target > 0 && l.days.length > l.target && l.unitPerTick === 1 && (
+          <p className="mt-1.5 text-[11.5px] font-semibold text-grey-mid">
+            {t('quotaWindow', {n: l.target, songay: l.days.length})}
           </p>
         )}
 

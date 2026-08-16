@@ -823,6 +823,7 @@
     "streakHint": "Số ngày liên tiếp bạn đã tick",
     "remainingMine": "còn {n} nữa là bạn đạt",
     "remainingFriends": "chờ {n} bạn nữa là lớp thắng",
+    "quotaWindow": "Cần {n} lần trong {songay} ngày — hôm nào cũng được, làm thêm càng tốt.",
     "mineLabel": "Bạn",
     "moodAt": "Đã điểm danh lúc {time}",
     "moodLate": "Muộn",
