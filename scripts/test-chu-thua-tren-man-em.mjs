@@ -89,10 +89,15 @@ for (const [ten, chuoi] of PHAI_MAT) {
 // Nhãn LẤY TỪ GÓI DỊCH, không viết cứng. Bản cũ chốt chết chuỗi 'Lead Measure', nên hôm chủ dự
 // án cho cắt tiếng lóng tiếng Anh khỏi màn trẻ con (13/08, 'tám chỗ nói sai') bộ kiểm quay ra tố
 // cáo chính quyết định ấy. Điều đáng canh là KHỐI TICK CÒN TIÊU ĐỀ — không phải nó tên gì.
-const nhanTick = JSON.parse(readFileSync('messages/vi.json', 'utf8')).student?.leads;
-dau('khối tick còn tiêu đề (theo messages/vi.json)',
-    Boolean(nhanTick) && body.includes(nhanTick),
-    nhanTick ? (body.includes(nhanTick) ? `có — "${nhanTick}"` : `MẤT NHÃN "${nhanTick}"`) : 'THIẾU KHOÁ student.leads');
+// 16/08/2026 — khối tick KHÔNG CÒN đứng riêng: việc để tick nằm TRONG thẻ mục tiêu năm (cây mục
+// tiêu → cam kết → việc). Nên phép canh nay đảo: KHÔNG được có tiêu đề "Việc làm đều" đứng lẻ, và
+// tiêu đề "Mục tiêu năm của bạn" phải có (thẻ là chỗ duy nhất của việc).
+const goiViDau = JSON.parse(readFileSync('messages/vi.json', 'utf8'));
+const nhanTick = goiViDau.student?.leads;
+const nhanCay = goiViDau.student?.wigYear;
+dau('việc để tick nằm trong thẻ mục tiêu — không còn khối "Việc làm đều" đứng riêng',
+    Boolean(nhanCay) && body.includes(nhanCay) && !(nhanTick && body.includes(nhanTick)),
+    nhanTick && body.includes(nhanTick) ? `CÒN KHỐI RIÊNG "${nhanTick}"` : `cây "${nhanCay}" có mặt`);
 
 // ── KHỐI MỤC TIÊU RIÊNG: CHƯA ĐẶT THÌ CHỈ LÀ MỘT NÚT ──────────────────────────────────────────
 // Bản trước dựng đủ bộ khung cho cái chưa tồn tại — cũng biểu tượng đích, cũng tiêu đề mở đầu bằng
@@ -115,9 +120,11 @@ dau('khối tick còn tiêu đề (theo messages/vi.json)',
   // em bằng "bạn", nên bản cũ báo MẤT NÚT trong khi nút vẫn ở đó. Điều canh ở đây là có/không có
   // khối và nút, không phải app gọi em bằng gì.
   const goiVi = JSON.parse(readFileSync('messages/vi.json', 'utf8'));
-  const nhanTieuDeRieng = goiVi.goal?.titlePersonal;
-  const nhanNutRieng = goiVi.goal?.openFormPersonal;
-  if (!nhanTieuDeRieng || !nhanNutRieng) throw new Error('thiếu khoá goal.titlePersonal/openFormPersonal');
+  // 16/08/2026: một danh sách thẻ, một nút "Thêm mục tiêu" (goal.addGoal) — không còn tiêu đề
+  // "Mục tiêu riêng của bạn" cũng không còn nút riêng cho loại riêng.
+  const nhanTieuDeRieng = 'Mục tiêu riêng'; // khoá goal.titlePersonal đã xoá — canh chữ cũ không quay lại
+  const nhanNutRieng = goiVi.goal?.addGoal;
+  if (!nhanNutRieng) throw new Error('thiếu khoá goal.addGoal');
   const coTieuDe = body.includes(nhanTieuDeRieng);
   const coNut = body.includes(nhanNutRieng);
   // CHƯA CÓ MỤC TIÊU HỌC TẬP thì cũng KHÔNG bày nút "thêm mục tiêu riêng": hai nút cạnh nhau cùng
@@ -130,20 +137,14 @@ dau('khối tick còn tiêu đề (theo messages/vi.json)',
     .eq('scope', 'student')
     .eq('kind', 'academic');
 
-  if ((count ?? 0) === 0 && (soHocTap ?? 0) === 0) {
+  if ((count ?? 0) === 0) {
     dau(
-      'chưa có mục tiêu nào → KHÔNG bày nút mục tiêu riêng',
-      !coTieuDe && !coNut,
-      coNut ? 'vẫn còn nút "thêm mục tiêu riêng" khi chưa có gì để thêm vào' : 'đúng: chỉ một nút Đặt mục tiêu',
-    );
-  } else if ((count ?? 0) === 0) {
-    dau(
-      'đã có mục tiêu học tập, chưa có riêng → chỉ một nút, KHÔNG dựng khối rỗng',
+      `còn loại chưa đặt (học tập: ${soHocTap ?? 0}) → một nút "Thêm mục tiêu", KHÔNG dựng khối rỗng`,
       !coTieuDe && coNut,
-      coTieuDe ? 'vẫn còn tiêu đề "Mục tiêu riêng của con" cho một khối rỗng' : coNut ? 'đúng: chỉ có nút' : 'MẤT LUÔN nút mời đặt',
+      coTieuDe ? 'vẫn còn tiêu đề "Mục tiêu riêng" cho một khối rỗng' : coNut ? 'đúng: chỉ có nút' : 'MẤT LUÔN nút thêm',
     );
   } else {
-    dau('đã có mục tiêu riêng → có tiêu đề của nó', coTieuDe, coTieuDe ? 'có' : 'thiếu tiêu đề');
+    dau('đủ hai mục tiêu → không còn nút thêm, không tiêu đề riêng', !coTieuDe && !coNut, coNut ? 'còn nút' : 'đúng');
   }
 }
 
