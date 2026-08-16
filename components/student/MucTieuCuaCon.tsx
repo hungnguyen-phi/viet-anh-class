@@ -1,6 +1,6 @@
 'use client';
 
-import {useState, type ReactNode} from 'react';
+import {useState} from 'react';
 import {ngayVN} from '@/lib/dates';
 import {useTranslations} from 'next-intl';
 import {Check, CheckCircle2, Pencil, Plus, Trash2} from 'lucide-react';
@@ -88,7 +88,6 @@ export function MucTieuCuaCon({
   soDoTheoWig,
   tuanChuaChot,
   pctTheoWig,
-  tuanNayTheoWig,
 }: {
   studentId: string;
   classId: string;
@@ -101,8 +100,6 @@ export function MucTieuCuaCon({
   tuanChuaChot: boolean;
   /** % tiến độ (wig_progress_v) theo id mục tiêu; thiếu = chưa có số. */
   pctTheoWig: Record<string, number>;
-  /** Khối "tuần này" của từng mục tiêu, dựng ở màn cha: cam kết + việc để tick. */
-  tuanNayTheoWig: Record<string, ReactNode>;
 }) {
   const t = useTranslations('goal');
   const [bao, setBao] = useState('');
@@ -135,7 +132,6 @@ export function MucTieuCuaCon({
           soDo={soDoTheoWig[mt.id]}
           tuanChuaChot={tuanChuaChot}
           pct={pctTheoWig[mt.id]}
-          tuanNay={tuanNayTheoWig[mt.id]}
           wigLop={wigLop}
           onSua={() => setMoForm(mt.kind === 'personal' ? 'personal' : 'academic')}
         />
@@ -183,7 +179,6 @@ function TheMucTieu({
   soDo,
   tuanChuaChot,
   pct,
-  tuanNay,
   wigLop,
   onSua,
 }: {
@@ -195,7 +190,6 @@ function TheMucTieu({
   soDo: SoDoCuaTuan | undefined;
   tuanChuaChot: boolean;
   pct: number | undefined;
-  tuanNay: ReactNode;
   onSua: () => void;
 }) {
   const t = useTranslations('goal');
@@ -282,9 +276,6 @@ function TheMucTieu({
           )}
         </form>
       )}
-
-      {/* ── TUẦN NÀY: cam kết + việc — chính là cái nối mục tiêu năm với việc làm mỗi ngày ── */}
-      {tuanNay}
 
       <div className="flex flex-wrap items-center gap-2">
         {canManage && mt.status === 'sent' && (

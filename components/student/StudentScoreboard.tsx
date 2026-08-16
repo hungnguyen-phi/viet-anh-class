@@ -633,107 +633,96 @@ export async function StudentScoreboard({
     (w) => ({id: w.id, area: w.area, title: w.title ?? w.area}),
   );
 
-  // ── CÂY: MỤC TIÊU NĂM → CAM KẾT TUẦN NÀY → VIỆC (16/08/2026) ──────────────────────────────
+  // ── HAI KHU PHẲNG, KHÔNG LỒNG (16/08/2026, lần ba) ──────────────────────────────────────────
   //
-  // Chủ dự án: "mỗi em đều có wig năm, dưới wig năm chính là lead measures và cam kết tuần để thực
-  // hiện điều đó… chứ không phải chắp vá như hiện tại". Nên mỗi thẻ mục tiêu năm mang đúng nhánh của
-  // nó: cam kết em đã hứa tuần này (treo vào chính mục tiêu ấy, hoặc vào trận đánh của lớp mà mục
-  // tiêu ấy góp vào — 0138), và dưới cam kết là việc để tick / điền số. Không còn khối "Việc làm
-  // đều" đứng riêng đầu trang, không còn dãy vòng % đứng riêng — cả hai đã vào thẻ.
+  // Bản trước nhét cả cây vào một thẻ: thẻ mục tiêu › khung "tuần này" › khung cam kết › khung việc
+  // — bốn khung lồng nhau. Chủ dự án: "4 cấp nằm bên trong đè lên nhau… quá rối". Đúng. Cây thì
+  // vẫn là cây, nhưng bày ra thì phải phẳng:
+  //   KHU 1 — MỤC TIÊU NĂM: mỗi mục tiêu một thẻ gọn (tên, khoảng ngày, vòng %, góp vào lớp).
+  //   KHU 2 — TUẦN ĐANG XEM: một danh sách phẳng — dòng CAM KẾT (nhãn, tên, trạng thái, Sửa) rồi
+  //           các dòng VIỆC của nó (ô ngày để tick / điền số) — không khung bọc, chỉ vạch ngăn.
+  //           Cuối danh sách là nút "+ Thêm cam kết" (chọn mục tiêu năm của em nếu có hơn một).
   const pctTheoWig: Record<string, number> = Object.fromEntries(
     yearRows.map((w) => [w.wig_id, Number(w.pct ?? 0)]),
   );
-  const nhanTuanNay = isoWeekLabel(vnNoon(weekDays[0]));
+  const nhanTuanNay = isoWeekLabel(vnNoon(monday));
   const dayShort = t.raw('dayShort') as string[];
-  // Trận đánh em chọn được khi hứa: mục tiêu năm của lớp + mục tiêu năm của chính em (0138).
-  const tranDanh = [
-    ...wigLopChon,
-    ...mucTieuCuaEm.map((m) => ({id: m.id, area: m.area, title: m.title, unit: m.unit})),
-  ];
-  const daXep = new Set<string>();
-  // MỖI CAM KẾT MỘT KHỐI: tên + trạng thái + xoá, rồi VIỆC CỦA CHÍNH NÓ ngay dưới. Chủ dự án nhìn
-  // bản đầu và hỏi "lead measure nào gắn với cam kết tuần nào" — vì bản ấy bày hai cam kết rồi mới
-  // tới hai việc, đọc không ra cha con. Nay việc đứng trong khối của cam kết mẹ.
-  const khoiTuanNay = (ckCua: typeof ckTuan, wigMacDinh: string | undefined) =>
-    // Người xem không phải em (cô, BGH, phụ huynh) mà em chưa hứa gì → không bày một tiêu đề trống.
-    !canTick && ckCua.length === 0 ? null : (
-    <div className="flex flex-col gap-2.5 rounded-[14px] bg-navy/[0.03] p-3">
-      <span className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
-        {tm('step3', {week: nhanTuanNay})}
-      </span>
-      {ckCua.map((c) => {
-        const viec = tickerLeads.filter((l) => l.commitmentId === c.id);
-        return (
-          <div key={c.id} className="rounded-[12px] border-[1.5px] border-navy/10 bg-white/70 p-2.5">
-            <div className="flex flex-wrap items-center gap-2">
-              {/* PHÂN TẦNG BẰNG MẮT: cam kết mang nhãn "Cam kết" và chữ đậm hơn việc dưới nó; việc thì
-                  chữ nhỏ hơn một bậc (LeadTicker). Chủ dự án: "font chữ theo cấp mà cái to cái nhỏ
-                  trông rất ko biết cái nào ra cái nào". */}
-              <span className="shrink-0 rounded-[6px] bg-navy px-1.5 py-0.5 text-[9.5px] font-extrabold uppercase tracking-wide text-white">
-                {tm('commitmentOne')}
-              </span>
-              <span className="min-w-0 flex-1 text-[14px] font-extrabold text-navy">{c.title}</span>
-              {c.status === 'sent' ? (
-                <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text">{tg('waiting')}</span>
+  const mucTieuChon = mucTieuCuaEm.map((m) => ({id: m.id, area: m.area, title: m.title, unit: m.unit}));
+  const tenMucTieu = new Map(mucTieuCuaEm.map((m) => [m.id, m.title]));
+
+  const khuTuan = (
+    <section className="glass rounded-[20px] p-[18px]">
+      <h2 className="mb-2 font-display text-[16px] font-bold text-navy">{tm('step3', {week: nhanTuanNay})}</h2>
+      {ckTuan.length === 0 && !canTick && (
+        <p className="text-[12.5px] italic text-grey-mid">{t('noCommitmentThisWeek')}</p>
+      )}
+      <div className="flex flex-col">
+        {ckTuan.map((c) => {
+          const viec = tickerLeads.filter((l) => l.commitmentId === c.id);
+          return (
+            <div key={c.id} className="border-t border-navy/[0.08] py-3 first:border-t-0 first:pt-0">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="shrink-0 rounded-[6px] bg-navy px-1.5 py-0.5 text-[9.5px] font-extrabold uppercase tracking-wide text-white">
+                  {tm('commitmentOne')}
+                </span>
+                <span className="min-w-0 flex-1 text-[14px] font-extrabold text-navy">{c.title}</span>
+                {mucTieuCuaEm.length > 1 && tenMucTieu.get(c.wig_id) && (
+                  <span className="basis-full text-[11px] font-semibold text-grey-mid sm:basis-auto">
+                    → {tenMucTieu.get(c.wig_id)}
+                  </span>
+                )}
+                {c.status === 'sent' ? (
+                  <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text">{tg('waiting')}</span>
+                ) : (
+                  <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">{tg('approved')}</span>
+                )}
+                {canManage && c.status === 'sent' && <NutDuyetCamKet commitmentId={c.id} studentId={studentId} />}
+                {canTick && tickOpen && classId && (
+                  <SuaCamKet
+                    commitmentId={c.id}
+                    studentId={studentId}
+                    classId={classId}
+                    title={c.title}
+                    status={c.status}
+                    viec={viec.map((l) => ({id: l.id, title: l.title, target: l.target, unit: l.unit}))}
+                  />
+                )}
+              </div>
+              {viec.length > 0 ? (
+                <div className="mt-2 pl-0 sm:pl-6">
+                  <LeadTicker
+                    leads={viec}
+                    studentId={studentId}
+                    canTick={canTick || canManage}
+                    nguoiGhi={viewer.id}
+                    today={today}
+                    tickOpen={tickOpen}
+                  />
+                </div>
               ) : (
-                <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">{tg('approved')}</span>
-              )}
-              {canManage && c.status === 'sent' && <NutDuyetCamKet commitmentId={c.id} studentId={studentId} />}
-              {canTick && tickOpen && classId && (
-                <SuaCamKet
-                  commitmentId={c.id}
-                  studentId={studentId}
-                  classId={classId}
-                  title={c.title}
-                  status={c.status}
-                  viec={viec.map((l) => ({id: l.id, title: l.title, target: l.target, unit: l.unit}))}
-                />
+                <p className="mt-1 pl-0 text-[12px] font-semibold italic text-grey-mid sm:pl-6">{t('noWorkUnder')}</p>
               )}
             </div>
-            {viec.length > 0 ? (
-              <div className="mt-2">
-                <LeadTicker
-                  leads={viec}
-                  studentId={studentId}
-                  canTick={canTick || canManage}
-                  nguoiGhi={viewer.id}
-                  today={today}
-                  tickOpen={tickOpen}
-                />
-              </div>
-            ) : (
-              <p className="mt-1 text-[12px] font-semibold italic text-grey-mid">{t('noWorkUnder')}</p>
-            )}
-          </div>
-        );
-      })}
-      {canTick && (
-        <CamKetCuaEm
-          gon
-          anDanhSach
-          weekStart={weekDays[0]}
-          weekLabel={nhanTuanNay}
-          daCo={ckCua}
-          tongDaCo={ckTuan.length}
-          dayShort={dayShort}
-          wigLop={tranDanh}
-          wigMacDinh={wigMacDinh}
-        />
+          );
+        })}
+      </div>
+      {canTick && mucTieuCuaEm.length > 0 && (
+        <div className={ckTuan.length > 0 ? 'mt-3 border-t border-navy/[0.08] pt-3' : ''}>
+          <CamKetCuaEm
+            gon
+            anDanhSach
+            weekStart={weekDays[0]}
+            weekLabel={nhanTuanNay}
+            daCo={ckTuan}
+            tongDaCo={ckTuan.length}
+            dayShort={dayShort}
+            wigLop={mucTieuChon}
+            wigMacDinh={mucTieuChon.length === 1 ? mucTieuChon[0].id : undefined}
+          />
+        </div>
       )}
-    </div>
+    </section>
   );
-  const tuanNayTheoWig: Record<string, React.ReactNode> = {};
-  for (const g of mucTieuCuaEm) {
-    const ckCua = ckTuan.filter(
-      (c) => !daXep.has(c.id) && (c.wig_id === g.id || (g.source_wig_id != null && c.wig_id === g.source_wig_id)),
-    );
-    ckCua.forEach((c) => daXep.add(c.id));
-    // Cam kết đặt từ thẻ này treo THẲNG vào mục tiêu của em (g.id), không vào mục tiêu lớp.
-    tuanNayTheoWig[g.id] = khoiTuanNay(ckCua, g.id);
-  }
-  // Cam kết treo vào một trận đánh KHÔNG phải nguồn của mục tiêu nào của em — vẫn phải có chỗ đứng.
-  const ckKhac = ckTuan.filter((c) => !daXep.has(c.id));
-  const khoiKhac = ckKhac.length > 0 ? khoiTuanNay(ckKhac, undefined) : null;
 
   return (
     <div className="mt-4 flex flex-col gap-[22px]">
@@ -803,13 +792,17 @@ export async function StudentScoreboard({
               soDoTheoWig={soDoTheoWig}
               tuanChuaChot={tickOpen}
               pctTheoWig={pctTheoWig}
-              tuanNayTheoWig={tuanNayTheoWig}
             />
-            {khoiKhac && <div className="mt-3 border-t border-navy/10 pt-3">{khoiKhac}</div>}
           </div>
         ) : (
           <p className="text-sm italic text-grey-mid">{t('noLeads')}</p>
         )}
+      </section>
+
+      {/* KHU 2 — TUẦN ĐANG XEM: danh sách phẳng cam kết → việc, không khung lồng. */}
+      {classId && khuTuan}
+
+      <section>
         {/* Học sinh: xin GVCN sửa (vd gỡ tick của ngày đã qua, đổi mục tiêu) — hết ngõ cụt phía HS */}
         {canTick && classId && myLeadOptions.length > 0 && (
           <div className="mt-3">
