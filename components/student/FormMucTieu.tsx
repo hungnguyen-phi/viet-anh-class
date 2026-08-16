@@ -2,12 +2,12 @@
 
 import {useActionState, useEffect, useState} from 'react';
 import {useTranslations} from 'next-intl';
-import {AlertCircle} from 'lucide-react';
+import {AlertCircle, Trash2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder, selectCls, btnGold} from '@/components/ui/Field';
 import {ONgayVN, ngayVN} from '@/components/ui/ONgayVN';
-import {luuMucTieuCuaEm, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
+import {luuMucTieuCuaEm, xoaMucTieuCuaEm, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
 import {kieuDonVi, coTrongDanhSach, DON_VI} from '@/lib/don-vi';
 import {ChonCuon} from '@/components/ui/ChonCuon';
 
@@ -332,6 +332,27 @@ export function FormMucTieu({
           </button>
         </div>
       </form>
+      {/* XOÁ — chữ nhỏ ở góc form sửa, không đứng lộ ngoài thẻ (chủ dự án 16/08/2026). Form riêng vì
+          không lồng form; máy chủ và RLS quyết có xoá được không. */}
+      {dangSua && laChinhEm && (
+        <form
+          action={xoaMucTieuCuaEm}
+          className="mt-2 flex justify-end"
+          onSubmit={(e) => {
+            if (!window.confirm(t('confirmDelete'))) e.preventDefault();
+          }}
+        >
+          <input type="hidden" name="wig_id" value={dangSua.id} />
+          <input type="hidden" name="student_id" value={studentId} />
+          <SubmitButton
+            className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 text-[11.5px] font-extrabold text-status-bad underline"
+            wrapClass="contents"
+          >
+            <Trash2 size={12} strokeWidth={2.5} />
+            {t('deleteGoal')}
+          </SubmitButton>
+        </form>
+      )}
     </Popup>
   );
 }

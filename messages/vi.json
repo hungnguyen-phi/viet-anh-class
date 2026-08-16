@@ -1356,6 +1356,10 @@
     "target": "Đích",
     "deleteWork": "Xoá việc",
     "confirmDeleteWork": "Xoá việc này? Lượt tick của nó mất theo, cam kết về chờ cô duyệt lại.",
-    "deleteCommitmentLong": "Xoá cam kết"
+    "deleteCommitmentLong": "Xoá cam kết",
+    "askEdit": "Xin sửa",
+    "askEditWhat": "Bạn muốn sửa hay xoá gì ở \"{title}\"?",
+    "askEditPlaceholder": "vd: Con muốn đổi đích thành 200 bài vì…",
+    "askSend": "Gửi cô"
   }
 }

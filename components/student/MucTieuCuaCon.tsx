@@ -3,17 +3,14 @@
 import {useState} from 'react';
 import {ngayVN} from '@/lib/dates';
 import {useTranslations} from 'next-intl';
-import {Check, CheckCircle2, Pencil, Plus, Trash2} from 'lucide-react';
+import {Check, CheckCircle2, Pencil, Plus} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {btnGhost, btnGold} from '@/components/ui/Field';
 import {FormMucTieu, type WigLop} from '@/components/student/FormMucTieu';
 import {OSoDo} from '@/components/student/OSoDo';
+import {XinSuaMucTieu} from '@/components/student/XinSuaMucTieu';
 import {DonutRing} from '@/components/charts/DonutRing';
-import {
-  duyetMucTieu,
-  danhDauDaDat,
-  xoaMucTieuCuaEm,
-} from '@/app/[locale]/(dashboard)/student/actions';
+import {duyetMucTieu, danhDauDaDat} from '@/app/[locale]/(dashboard)/student/actions';
 
 // ════════════════════════════════════════════════════════════════════════════
 // MỤC TIÊU CỦA CON — một thẻ nhỏ đọc trong ba giây, form nằm sau một cú bấm
@@ -133,6 +130,7 @@ export function MucTieuCuaCon({
           tuanChuaChot={tuanChuaChot}
           pct={pctTheoWig[mt.id]}
           wigLop={wigLop}
+          classId={classId}
           onSua={() => setMoForm(mt.kind === 'personal' ? 'personal' : 'academic')}
         />
       ))}
@@ -180,10 +178,12 @@ function TheMucTieu({
   tuanChuaChot,
   pct,
   wigLop,
+  classId,
   onSua,
 }: {
   mt: MucTieuCuaEm;
   wigLop: WigLop[];
+  classId: string;
   studentId: string;
   laChinhEm: boolean;
   canManage: boolean;
@@ -195,9 +195,6 @@ function TheMucTieu({
   const t = useTranslations('goal');
   const canGhi = laChinhEm;
   const tenLopNguon = mt.source_wig_id ? (wigLop.find((w) => w.id === mt.source_wig_id)?.title ?? null) : null;
-  // Em sửa/xoá mục tiêu CỦA MÌNH lúc nào cũng bấm được — sửa xong thì về chờ duyệt (0129); xoá thì
-  // CSDL chặn nếu đã có tick (0131) và câu báo nói rõ. Cửa sổ 24 giờ không còn chắn ở giao diện.
-  const emSuaDuoc = laChinhEm;
 
   return (
     <div className="flex flex-col gap-3 rounded-[16px] border-[1.5px] border-navy/10 p-3.5">
@@ -287,29 +284,17 @@ function TheMucTieu({
             </SubmitButton>
           </form>
         )}
-        {emSuaDuoc && (
-          <>
-            <button type="button" onClick={onSua} className={btnGhost}>
-              <Pencil size={13} strokeWidth={2.5} />
-              {t('edit')}
-            </button>
-            <form
-              action={xoaMucTieuCuaEm}
-              onSubmit={(e) => {
-                if (!window.confirm(t('confirmDelete'))) e.preventDefault();
-              }}
-            >
-              <input type="hidden" name="wig_id" value={mt.id} />
-              <input type="hidden" name="student_id" value={studentId} />
-              <SubmitButton
-                className="inline-flex min-h-11 cursor-pointer items-center gap-1 px-1.5 text-[12px] font-extrabold text-status-bad underline"
-                wrapClass="contents"
-              >
-                <Trash2 size={13} strokeWidth={2.5} className="shrink-0" />
-                {t('deleteGoal')}
-              </SubmitButton>
-            </form>
-          </>
+        {/* CHƯA DUYỆT → nút Sửa nhỏ (Xoá nằm trong form sửa, không đứng lộ ở đây).
+            ĐÃ DUYỆT → ĐÓNG BĂNG: chỉ còn "Xin sửa" — sửa hay xoá đều qua cô (chủ dự án 16/08/2026:
+            "duyệt là cả năm không đụng vào nữa"). */}
+        {laChinhEm && mt.status !== 'approved' && (
+          <button type="button" onClick={onSua} className={`${btnGhost} h-8 px-2.5 text-[11.5px]`}>
+            <Pencil size={12} strokeWidth={2.5} />
+            {t('edit')}
+          </button>
+        )}
+        {laChinhEm && mt.status === 'approved' && (
+          <XinSuaMucTieu studentId={studentId} classId={classId} wigId={mt.id} title={mt.title} />
         )}
       </div>
     </div>

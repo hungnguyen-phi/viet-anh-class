@@ -1356,6 +1356,10 @@
     "target": "Target",
     "deleteWork": "Delete work",
     "confirmDeleteWork": "Delete this work? Its ticks go with it; the commitment goes back to pending.",
-    "deleteCommitmentLong": "Delete commitment"
+    "deleteCommitmentLong": "Delete commitment",
+    "askEdit": "Request change",
+    "askEditWhat": "What do you want to change or remove in \"{title}\"?",
+    "askEditPlaceholder": "e.g. I want the target to be 200 because…",
+    "askSend": "Send"
   }
 }
