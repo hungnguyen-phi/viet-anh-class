@@ -84,14 +84,17 @@ export default async function PhongHopCuaEmPage({
     .eq('week_start', dichMonday)
     .order('created_at');
 
-  // NHỮNG TRẬN ĐÁNH EM CHỌN ĐƯỢC (0138): mục tiêu năm của LỚP, cộng mục tiêu năm của chính em.
-  // Bỏ mục tiêu CUỘN — nó đếm ngược từ mục tiêu của từng em nên không nhận cam kết.
+  // MỤC TIÊU NĂM CỦA EM — nơi cam kết tuần treo vào. (Bản 0138 từng cho chọn cả mục tiêu lớp; bỏ
+  // 16/08/2026 theo chủ dự án.)
   const {data: wigChon} = await supabase
     .from('wigs')
     .select('id, title, area, scope, unit')
     .eq('period', 'year')
     .neq('measure_by', 'cuon')
-    .or(`and(scope.eq.class,class_id.eq.${lop.class_id}),and(scope.eq.student,student_id.eq.${profile.id})`)
+    // CHỈ mục tiêu năm CỦA EM (16/08/2026): cam kết tuần treo vào mục tiêu của chính em; mục tiêu ấy
+    // đã tự nói nó góp vào trận nào của lớp (source_wig_id).
+    .eq('scope', 'student')
+    .eq('student_id', profile.id)
     .order('area');
 
   // CAM KẾT CỦA LỚP tuần đang họp — nhịp mở đầu của buổi họp WIG: cả lớp đã hứa gì, và cô đã

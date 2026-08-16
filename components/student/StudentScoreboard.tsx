@@ -701,7 +701,8 @@ export async function StudentScoreboard({
       (c) => !daXep.has(c.id) && (c.wig_id === g.id || (g.source_wig_id != null && c.wig_id === g.source_wig_id)),
     );
     ckCua.forEach((c) => daXep.add(c.id));
-    tuanNayTheoWig[g.id] = khoiTuanNay(ckCua, g.source_wig_id ?? g.id);
+    // Cam kết đặt từ thẻ này treo THẲNG vào mục tiêu của em (g.id), không vào mục tiêu lớp.
+    tuanNayTheoWig[g.id] = khoiTuanNay(ckCua, g.id);
   }
   // Cam kết treo vào một trận đánh KHÔNG phải nguồn của mục tiêu nào của em — vẫn phải có chỗ đứng.
   const ckKhac = ckTuan.filter((c) => !daXep.has(c.id));

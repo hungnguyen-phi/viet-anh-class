@@ -126,7 +126,11 @@ export function CamKetCuaEm({
           <input type="hidden" name="week" value={weekStart} />
           {/* TRẬN ĐÁNH CỦA TUẦN NÀY. Bỏ trống danh sách (lớp chưa đặt mục tiêu năm nào) thì không
               bày ô rỗng ra — máy chủ tự rơi về mục tiêu năm của chính em. */}
-          {wigLop.length > 0 && (
+          {/* TRONG THẺ MỤC TIÊU (gon) thì không hỏi "thuộc mục tiêu nào" — thẻ CHÍNH LÀ mục tiêu ấy
+              (chủ dự án 16/08/2026: "cái thẻ nằm trong wig năm cá nhân rồi, chỉ có việc là điền cam
+              kết tuần + lead measure"). Gửi ẩn id mục tiêu của thẻ. */}
+          {gon && wigMacDinh && <input type="hidden" name="wig_id" value={wigMacDinh} />}
+          {!gon && wigLop.length > 0 && (
             <Field
               label={tw('parentYear')}
               htmlFor="ck-em-wig"
