@@ -66,9 +66,6 @@ export function CamKetCuaEm({
     setThu((p) => (p.includes(d) ? p.filter((x) => x !== d) : [...p, d].sort((a, b) => a - b)));
 
   const conCho = (tongDaCo ?? daCo.length) < 2;
-  // Bản gọn trong thẻ mục tiêu: chưa hứa gì vào mục tiêu này VÀ đã hết chỗ hứa (đủ 2 ở mục tiêu
-  // khác) thì không có gì để bày — một tiêu đề trơ trọi chỉ gây thắc mắc.
-  if (gon && daCo.length === 0 && !conCho) return null;
 
   // ĐƠN VỊ THEO MỤC TIÊU ĐANG CHỌN — quyết định việc này đo bằng gì (0110, xem datCamKetTuan).
   const [wigChon, setWigChon] = useState(wigMacDinh ?? wigLop[0]?.id ?? '');
@@ -79,6 +76,9 @@ export function CamKetCuaEm({
   const [luong, setLuong] = useState('');
   const [tenViec, setTenViec] = useState('');
   const tongTuan = moiLanKhac ? Number(luong || 0) : thu.length * (Number(upt || 0) || 0);
+  // Bản gọn trong thẻ mục tiêu: chưa hứa gì vào mục tiêu này VÀ đã hết chỗ hứa (đủ 2 ở mục tiêu
+  // khác) thì không có gì để bày — một tiêu đề trơ trọi chỉ gây thắc mắc. Đứng SAU mọi hook.
+  if (gon && daCo.length === 0 && !conCho) return null;
 
   return (
     <section className={gon ? 'flex flex-col gap-2.5' : 'glass flex flex-col gap-3 rounded-[20px] p-[18px]'}>
