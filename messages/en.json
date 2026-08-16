@@ -551,7 +551,8 @@
     "colYearGoal": "Year goal",
     "colCommitment": "This week's commitment",
     "colWorks": "Works done",
-    "contributesTo": "contributes to: {title}"
+    "contributesTo": "contributes to: {title}",
+    "weekPick": "Pick a week"
   },
   "meeting": {
     "title": "Weekly WIG meeting",
@@ -1346,6 +1347,13 @@
     "deleteCommitment": "Delete",
     "confirmDeleteCommitment": "Delete this commitment? Its works and ticks go with it.",
     "approveShort": "Approve",
-    "contributesTo": "Contributes to class goal: {title}"
+    "contributesTo": "Contributes to class goal: {title}",
+    "startOn": "From",
+    "fromToRange": "From {from} to {to} {unit} · {start} → {due}",
+    "save": "Save",
+    "target": "Target",
+    "deleteWork": "Delete work",
+    "confirmDeleteWork": "Delete this work? Its ticks go with it; the commitment goes back to pending.",
+    "deleteCommitmentLong": "Delete commitment"
   }
 }

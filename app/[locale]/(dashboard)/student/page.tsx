@@ -9,10 +9,10 @@ export default async function MyScoreboardPage({
   searchParams,
 }: {
   params: Promise<{locale: string}>;
-  searchParams: Promise<{flash?: string}>;
+  searchParams: Promise<{flash?: string; week?: string}>;
 }) {
   const {locale} = await params;
-  const {flash} = await searchParams;
+  const {flash, week} = await searchParams;
   setRequestLocale(locale);
   const profile = await requireProfile();
   if (profile.role !== 'student') redirect(homeRouteForRole(profile.role));
@@ -24,7 +24,7 @@ export default async function MyScoreboardPage({
           một ô trống nằm giữa đường. Thực đơn vẫn quan trọng, chỉ là nó không thuộc về đây; nó
           xứng đáng một chỗ riêng để em bấm vào khi muốn xem, kể cả xem cả tuần.
           Trang /report của phụ huynh giữ nguyên thẻ ấy — chủ dự án chỉ nói về trang học sinh. */}
-      <StudentScoreboard studentId={profile.id} viewer={profile} flash={flash} />
+      <StudentScoreboard studentId={profile.id} viewer={profile} flash={flash} weekParam={week} pathname="/student" />
     </div>
   );
 }

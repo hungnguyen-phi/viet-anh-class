@@ -9,6 +9,8 @@ import {
   weekDaysVN,
   isoDowVN,
   vnNoon,
+  mondayOf,
+  isValidDayVN,
 } from '@/lib/dates';
 import {kieuDonVi} from '@/lib/don-vi';
 import {MoodCheckin, MoodGate, type MoodKey} from '@/components/student/MoodCheckin';
@@ -22,7 +24,10 @@ import {EditRequestButton} from '@/components/student/EditRequestButton';
 import {MucTieuCuaCon, type MucTieuCuaEm, type SoDoCuaTuan} from '@/components/student/MucTieuCuaCon';
 import {NghePhongHop} from '@/components/wig/NghePhongHop';
 import {CamKetCuaEm} from '@/components/wig/CamKetCuaEm';
-import {NutXoaCamKet, NutDuyetCamKet} from '@/components/wig/NutXoaCamKet';
+import {NutDuyetCamKet} from '@/components/wig/NutXoaCamKet';
+import {SuaCamKet} from '@/components/wig/SuaCamKet';
+import {FlashToast} from '@/components/ui/FlashToast';
+import {ChonTuanCuaEm} from '@/components/student/ChonTuanCuaEm';
 import {ArrowRight, Users} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {tenHienThi} from '@/lib/ten-hien-thi';
@@ -82,10 +87,16 @@ export async function StudentScoreboard({
   studentId,
   viewer,
   flash,
+  weekParam,
+  pathname,
 }: {
   studentId: string;
   viewer: Profile;
   flash?: string;
+  /** ?week= — tuần đang xem (bất kỳ ngày nào trong tuần); thiếu = tuần chứa hôm nay. */
+  weekParam?: string;
+  /** Đường dẫn của trang đang nhúng, để thanh tuần đổi ?week= tại chỗ. */
+  pathname: string;
 }) {
   const t = await getTranslations('student');
   const tg = await getTranslations('goal');
@@ -104,9 +115,11 @@ export async function StudentScoreboard({
   // đã tin nó đúng rồi. lib/dates.ts tính bằng Intl với múi giờ Asia/Ho_Chi_Minh nên không phụ
   // thuộc giờ máy chủ (máy chủ chạy UTC, lệch 7 tiếng).
   const today = todayInVN();
-  // 7 ngày của tuần hiện tại (Thứ Hai → Chủ Nhật). Tính SỚM ở đây vì đợt truy vấn thứ hai cần
-  // ngày Thứ Hai để hỏi bảng việc chung của lớp — trước đây đoạn này nằm mãi cuối hàm.
-  const weekDays = weekDaysVN(today);
+  // 7 ngày của TUẦN ĐANG XEM (Thứ Hai → Chủ Nhật). Mặc định là tuần chứa hôm nay; ?week= (thanh
+  // tuần, 16/08/2026) thì là tuần ấy — cam kết, việc, tick, biên bản đều đọc theo cùng một tuần.
+  const thisMonday = mondayOf(today);
+  const monday = isValidDayVN(weekParam) ? mondayOf(weekParam!) : thisMonday;
+  const weekDays = weekDaysVN(monday);
 
 
   // Truy vấn song song — RLS tự giới hạn quyền xem.
@@ -293,7 +306,7 @@ export async function StudentScoreboard({
     // đúng cái hàm mà RLS dùng, để màn hình không nói khác tầng chặn — bấm được rồi bị từ chối
     // còn khó hiểu hơn là thấy nút xám ngay từ đầu.
     classId
-      ? supabase.rpc('tuan_da_hop', {p_class: classId, d: today})
+      ? supabase.rpc('tuan_da_hop', {p_class: classId, d: weekDays[0]})
       : Promise.resolve({data: false}),
 
     // ── Hai câu dưới đây trước là "ĐỢT HAI", một tầng chờ riêng ────────────────────────────
@@ -326,7 +339,7 @@ export async function StudentScoreboard({
     supabase
       .from('wigs')
       .select(
-        'id, kind, status, set_by, measure_by, title, baseline, target_value, unit, area, end_date, created_at, achieved_at, source_wig_id',
+        'id, kind, status, set_by, measure_by, title, baseline, target_value, unit, area, start_date, end_date, created_at, achieved_at, source_wig_id',
       )
       .eq('student_id', studentId)
       .eq('scope', 'student')
@@ -659,8 +672,17 @@ export async function StudentScoreboard({
               ) : (
                 <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">{tg('approved')}</span>
               )}
-              {canTick && tickOpen && <NutXoaCamKet commitmentId={c.id} studentId={studentId} />}
               {canManage && c.status === 'sent' && <NutDuyetCamKet commitmentId={c.id} studentId={studentId} />}
+              {canTick && tickOpen && classId && (
+                <SuaCamKet
+                  commitmentId={c.id}
+                  studentId={studentId}
+                  classId={classId}
+                  title={c.title}
+                  status={c.status}
+                  viec={viec.map((l) => ({id: l.id, title: l.title, target: l.target, unit: l.unit}))}
+                />
+              )}
             </div>
             {viec.length > 0 ? (
               <div className="mt-2">
@@ -671,7 +693,6 @@ export async function StudentScoreboard({
                   nguoiGhi={viewer.id}
                   today={today}
                   tickOpen={tickOpen}
-                  xoaDuoc={canTick && tickOpen}
                 />
               </div>
             ) : (
@@ -712,11 +733,7 @@ export async function StudentScoreboard({
     <div className="mt-4 flex flex-col gap-[22px]">
       {/* Lớp chặn bắt buộc check-in — đặt NGOÀI hero (hero có backdrop-filter, sẽ phá position:fixed) */}
       {mustCheckin && <MoodGate />}
-      {flash && (
-        <div className="rounded-2xl border border-success/30 bg-success/10 px-4 py-2.5 text-sm font-bold text-success-dark">
-          {flash}
-        </div>
-      )}
+      {flash && <FlashToast message={flash} />}
 
       {/* Hero: chào mừng + mood check-in (2 cột glass) */}
       <div className="animate-rise grid grid-cols-1 overflow-hidden rounded-[26px] glass md:grid-cols-2">
@@ -753,6 +770,15 @@ export async function StudentScoreboard({
           />
         </div>
       </div>
+
+      <ChonTuanCuaEm
+        pathname={pathname}
+        monday={monday}
+        thisMonday={thisMonday}
+        label={isoWeekLabel(vnNoon(monday))}
+        start={weekDays[0]}
+        end={weekDays[6]}
+      />
 
       {/* ── MỤC TIÊU NĂM → CAM KẾT TUẦN → VIỆC — một cây, một chỗ ────────────────────────────
           Ngay dưới hero, vì việc tick mỗi ngày nằm TRONG các thẻ này. */}

@@ -51,6 +51,7 @@ export type MucTieuCuaEm = {
   target_value: number;
   unit: string;
   area: string;
+  start_date: string;
   end_date: string;
   created_at: string;
   achieved_at: string | null;
@@ -222,7 +223,7 @@ function TheMucTieu({
             )}
           </div>
           <p className="mt-0.5 text-[12.5px] font-semibold tabular-nums text-grey-mid">
-            {t('fromTo', {from: mt.baseline ?? 0, to: mt.target_value, unit: mt.unit, due: ngayVN(mt.end_date)})}
+            {t('fromToRange', {from: mt.baseline ?? 0, to: mt.target_value, unit: mt.unit, start: ngayVN(mt.start_date), due: ngayVN(mt.end_date)})}
           </p>
           {/* DÂY NỐI LÊN LỚP — nói ra, đừng để người ta đoán "300 bài lấy từ đâu": đây là phần em tự
               nhận góp vào mục tiêu năm của lớp (source_wig_id, 0100/0138). */}

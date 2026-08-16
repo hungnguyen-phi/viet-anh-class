@@ -733,6 +733,7 @@ export async function luuMucTieuCuaEm(
   const baseline_raw = String(formData.get('baseline') ?? '').trim();
   const target_raw = String(formData.get('target_value') ?? '').trim();
   const han = String(formData.get('due_on') ?? '').trim();
+  const batDau = String(formData.get('start_on') ?? '').trim();
   const source_wig_id = String(formData.get('source_wig_id') ?? '').trim();
 
   // AI ĐANG GÕ. Chính em thì set_by='student'; cô hoặc quản trị gõ hộ thì 'teacher'. KHÔNG suy từ
@@ -748,6 +749,8 @@ export async function luuMucTieuCuaEm(
   if (title.length > 160) return {ok: false, fieldError: 'title', error: 'Tối đa 160 ký tự.'};
   if (!han || !/^\d{4}-\d{2}-\d{2}$/.test(han))
     return {ok: false, fieldError: 'due_on', error: 'Chọn ngày con muốn đạt được.'};
+  if (batDau && /^\d{4}-\d{2}-\d{2}$/.test(batDau) && batDau >= han)
+    return {ok: false, fieldError: 'start_on', error: 'Ngày bắt đầu phải trước ngày đạt.'};
 
   const target_value = Number(target_raw);
   const baseline = baseline_raw === '' ? null : Number(baseline_raw);
@@ -832,8 +835,8 @@ export async function luuMucTieuCuaEm(
     baseline,
     target_value,
     unit,
-    start_date: nam.start,
-    // Hạn của em, nhưng không được thò ra ngoài năm học.
+    // Khoảng ngày của em, kẹp trong năm học: không sớm hơn đầu năm, không muộn hơn cuối năm.
+    start_date: /^\d{4}-\d{2}-\d{2}$/.test(batDau) && batDau > nam.start ? batDau : nam.start,
     end_date: han > nam.end ? nam.end : han,
     source_wig_id: soi,
   };
@@ -1004,6 +1007,37 @@ export async function xoaViecCuaEm(formData: FormData) {
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
   veTrangEm(student_id, 'Đã xoá việc');
+}
+
+
+export type CamKetState = {ok: boolean; message?: string; error?: string; fieldError?: string};
+
+// SỬA CAM KẾT TUẦN + VIỆC DƯỚI NÓ — của chính em, khi chưa duyệt (đã duyệt thì đi đường "xin sửa").
+// Trigger 0129/0141 tự đưa cam kết về 'sent' khi tên đổi hay việc bị đụng; RLS lo "của ai".
+export async function suaCamKetTuan(_prev: CamKetState, formData: FormData): Promise<CamKetState> {
+  const me = await getCurrentProfile();
+  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
+  const id = String(formData.get('commitment_id') ?? '');
+  const title = String(formData.get('title') ?? '').trim();
+  if (!id) return {ok: false, error: 'Thiếu cam kết.'};
+  if (!title) return {ok: false, fieldError: 'title', error: 'Cam kết không được để trống.'};
+  if (title.length > 160) return {ok: false, fieldError: 'title', error: 'Tối đa 160 ký tự.'};
+  const supabase = await createClient();
+  const {data: ck, error: e1} = await supabase.from('commitments').update({title}).eq('id', id).select('id');
+  if (e1) return {ok: false, error: friendlyError(e1)};
+  if ((ck ?? []).length === 0) return {ok: false, error: 'Không sửa được — cam kết không còn, hoặc tuần đã chốt.'};
+  for (const vId of formData.getAll('viec_id').map(String)) {
+    const vTitle = String(formData.get(`viec_title_${vId}`) ?? '').trim();
+    const vTarget = Number(String(formData.get(`viec_target_${vId}`) ?? '').trim());
+    if (!vTitle) return {ok: false, error: 'Tên việc không được để trống.'};
+    if (!Number.isFinite(vTarget) || vTarget <= 0) return {ok: false, error: `Đích của "${vTitle}" phải là số lớn hơn 0.`};
+    const {error: e2} = await supabase.from('lead_measures').update({title: vTitle, target_value: vTarget}).eq('id', vId);
+    if (e2) return {ok: false, error: friendlyError(e2)};
+  }
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  return {ok: true, message: 'Đã sửa — cam kết về chờ cô duyệt lại.'};
 }
 
 // Tick "đã đạt" cho đích ghi nhận ngoài. Cô và trò tự theo dõi ở ngoài app (bài kiểm tra, sổ liên

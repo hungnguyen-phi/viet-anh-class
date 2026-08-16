@@ -30,6 +30,7 @@ export type DangSua = {
   baseline: number | null;
   target_value: number;
   unit: string;
+  start_date?: string;
   end_date: string;
   area: string;
   source_wig_id: string | null;
@@ -84,6 +85,7 @@ export function FormMucTieu({
     baseline: dangSua?.baseline != null ? String(dangSua.baseline) : '',
     target: dangSua?.target_value != null ? String(dangSua.target_value) : '',
     unit: dangSua?.unit ?? '',
+    start: dangSua?.start_date ?? '',
     due: dangSua?.end_date ?? '',
   });
   const duCau = Boolean(g.title && g.target && g.unit && g.due);
@@ -263,18 +265,25 @@ export function FormMucTieu({
                 không đưa được con trỏ đi đâu cả. */}
             {/* Cả một hàng riêng: ba ô ngày/tháng/năm cộng hai dấu gạch không nhét vừa một cột
                 của lưới bốn cột — chữ trong ô bị cắt thành "Ng / Th / Nă". */}
+            {/* KHOẢNG NGÀY — từ ngày nào tới ngày nào (chủ dự án 16/08/2026: "phải chọn lịch từ ngày
+                tháng năm nào đến ngày tháng năm nào, chứ ko phải mỗi ngày cuối"). Máy chủ kẹp cả
+                hai đầu trong năm học. */}
+            <Field label={t('startOn')} error={err('start_on')} className="col-span-2 sm:col-span-3">
+              <ONgayVN
+                name="start_on"
+                nhan={t('startOn')}
+                value={g.start}
+                loi={state.fieldError === 'start_on'}
+                onChange={(iso) => setG((p) => ({...p, start: iso}))}
+              />
+            </Field>
             <Field label={t('due')} error={err('due_on')} className="col-span-2 sm:col-span-3">
-              {/* NGÀY / THÁNG / NĂM, không phải <input type="date">: ô đó chạy theo ngôn ngữ
-                  của trình duyệt nên máy cài tiếng Anh hiện `mm/dd/yyyy`, và một em lớp 6 đọc
-                  "06/30/2027" thì không biết đó là ngày nào. Cùng luật với ngày sinh (lib/dob.ts). */}
               <ONgayVN
                 name="due_on"
                 nhan={t('due')}
                 value={g.due}
+                min={g.start || undefined}
                 loi={state.fieldError === 'due_on'}
-                chuNgay={t('dayPart')}
-                chuThang={t('monthPart')}
-                chuNam={t('yearPart')}
                 onChange={(iso) => setG((p) => ({...p, due: iso}))}
               />
             </Field>

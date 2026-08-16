@@ -551,7 +551,8 @@
     "colYearGoal": "Mục tiêu năm",
     "colCommitment": "Cam kết tuần này",
     "colWorks": "Việc đạt",
-    "contributesTo": "góp vào: {title}"
+    "contributesTo": "góp vào: {title}",
+    "weekPick": "Chọn tuần"
   },
   "meeting": {
     "title": "Họp WIG tuần",
@@ -1346,6 +1347,13 @@
     "deleteCommitment": "Xoá",
     "confirmDeleteCommitment": "Xoá cam kết này? Việc và lượt tick dưới nó cũng mất.",
     "approveShort": "Duyệt",
-    "contributesTo": "Góp vào mục tiêu lớp: {title}"
+    "contributesTo": "Góp vào mục tiêu lớp: {title}",
+    "startOn": "Từ ngày",
+    "fromToRange": "Từ {from} đến {to} {unit} · {start} → {due}",
+    "save": "Lưu",
+    "target": "Đích",
+    "deleteWork": "Xoá việc",
+    "confirmDeleteWork": "Xoá việc này? Lượt tick của nó mất theo, cam kết về chờ cô duyệt lại.",
+    "deleteCommitmentLong": "Xoá cam kết"
   }
 }
