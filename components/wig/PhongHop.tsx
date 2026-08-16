@@ -2,15 +2,13 @@
 
 import {useActionState, useEffect, useRef, useState, type ChangeEvent} from 'react';
 import {useTranslations} from 'next-intl';
-import {AlertCircle, AlertTriangle, ArrowRight, Check, CheckCircle2, Minus, PencilLine, Plus, RotateCcw, Trash2, X} from 'lucide-react';
+import {AlertCircle, AlertTriangle, ArrowRight, Check, CheckCircle2, Minus, PencilLine, RotateCcw, Trash2, X} from 'lucide-react';
 import {createClient} from '@/lib/supabase/client';
 import {Link} from '@/i18n/navigation';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {Field, ctlWithBorder, inputCls, selectCls, btnGold, btnGhost, labelCls} from '@/components/ui/Field';
+import {Field, inputCls, selectCls, btnGold} from '@/components/ui/Field';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {moPhongHop, ketThucBuoiHop, xoaBienBan} from '@/app/[locale]/(dashboard)/wig/hop/actions';
-import {areaLabel, type Area, type AreaMeta} from '@/lib/areas';
-import {kieuDonVi} from '@/lib/don-vi';
 
 // ════════════════════════════════════════════════════════════════════════════
 // PHÒNG HỌP WIG — ba bước, một nút, một lần lưu.
@@ -77,7 +75,6 @@ export type ViecMau = {
   area: string;
 };
 
-const DOW = [1, 2, 3, 4, 5, 6, 7] as const;
 
 export function PhongHop({
   classId,
@@ -97,10 +94,6 @@ export function PhongHop({
   camKetDich,
   bangPdr,
   namHienCo,
-  viecMau,
-  areaMeta,
-  locale,
-  dayShort,
   canManage,
   daCoBienBan,
   daChot,
@@ -148,11 +141,7 @@ export function PhongHop({
   }[];
   // Danh sách mục tiêu NĂM để chọn khi đặt cam kết.
   namHienCo: WigOption[];
-  viecMau: ViecMau[];
   // Tên + màu 4 lĩnh vực, cho nhãn màu trên mỗi khối mốc (0106).
-  areaMeta: Record<Area, AreaMeta>;
-  locale: string;
-  dayShort: string[];
   canManage: boolean;
   // Tuần này đã có biên bản chưa — quyết định có bày nút gỡ hay không. Bày nút gỡ khi chưa có gì
   // để gỡ là mời người ta bấm một nút chỉ biết báo lỗi.
@@ -171,10 +160,7 @@ export function PhongHop({
 }) {
   const t = useTranslations('meeting');
   const tw = useTranslations('wig');
-  const tg = useTranslations('goal');
   // Dòng việc nào cho em TỰ ĐIỀN SỐ mỗi ngày. Đơn vị đo lại thì luôn bật, không hỏi.
-  const [nhapSo, setNhapSo] = useState<Record<string, boolean>>({});
-  const nhapSoCuaDong = (k: string) => Boolean(nhapSo[k]);
   // Lựa chọn V/X đang giữ trên màn (chưa bấm Lưu). Mặc định lấy thứ đã chấm lần trước.
   const [vx, setVx] = useState<Record<string, 'win' | 'lose'>>({});
   const [state, formAction] = useActionState(ketThucBuoiHop, {ok: false});
@@ -336,41 +322,14 @@ export function PhongHop({
   // MỖI DÒNG GIỮ `area` — 0106: một mảng phẳng duy nhất cho cả bốn lĩnh vực, lọc theo lĩnh vực
   // lúc vẽ từng khối mốc. Một mảng, không phải bốn state riêng: xoá/thêm dòng không phải viết
   // bốn lần logic giống hệt nhau.
-  const [dong, setDong] = useState<{k: string; area: string; days: number[]}[]>(() =>
-    viecMau.map((m, i) => ({k: `m${i}`, area: m.area, days: m.days})),
-  );
-  const [viecVal, setViecVal] = useState<Record<string, string>>(() => {
-    const o: Record<string, string> = {};
-    viecMau.forEach((m, i) => {
-      o[`viec_m${i}_title`] = m.title;
-      o[`viec_m${i}_target`] = m.target;
-      o[`viec_m${i}_unit`] = m.unit;
-      o[`viec_m${i}_upt`] = m.upt;
-    });
-    return o;
-  });
-  const [demMoi, setDemMoi] = useState(0);
-  const setViec = (k: string, val: string) => setViecVal((p) => ({...p, [k]: val}));
-  const oViec = (k: string) => ({
-    value: viecVal[k] ?? '',
-    onChange: (e: ChangeEvent<HTMLInputElement>) => setViec(k, e.target.value),
-  });
-  const doiThu = (k: string, d: number) =>
-    setDong((p) =>
-      p.map((r) =>
-        r.k === k
-          ? {...r, days: r.days.includes(d) ? r.days.filter((x) => x !== d) : [...r.days, d].sort()}
-          : r,
-      ),
-    );
-  const themDong = (area: string) => {
-    const k = `n${demMoi}`;
-    setDemMoi((n) => n + 1);
-    setDong((p) => [...p, {k, area, days: [1, 2, 3, 4, 5]}]);
-    setViecVal((p) => ({...p, [`viec_${k}_upt`]: '1'}));
-  };
-  const xoaDong = (k: string) => setDong((p) => p.filter((r) => r.k !== k));
-
+  // CỖ MÁY "DÒNG VIỆC" ĐÃ GỠ (16/08/2026).
+  //
+  // Chín state và hàm ở đây từng dựng các dòng "việc để em tick" ngay trong buổi họp. Hai đợt sửa
+  // liên tiếp làm chúng thành xác: 15/08 gỡ phần cô gõ việc thay em, rồi 16/08 chuyển việc chung
+  // sang trang lớp (cô đặt ở đó, cô tick ở đó). Bước 3 nay chỉ còn tạo CAM KẾT của lớp.
+  //
+  // Giữ lại thì không sai gì cả — chỉ là lần sau ai đọc file này sẽ mất mười phút để hiểu ra rằng
+  // chúng không nối vào đâu.
   const err = (f: string) => (state.fieldError === f ? state.error : null);
 
   // (Sĩ số từng dùng để tính nhịp; nhịp đã bỏ ở 0121 và phần đặt việc thay em bỏ ở 15/08/2026,

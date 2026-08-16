@@ -237,13 +237,12 @@ export default async function WigPage({
   // nhất bảo đảm thứ GVCN thấy trùng khít thứ học sinh thấy — hai luật khác nhau là gốc sự cố 7B1.
   // Cùng vị ngữ ấy áp cho mục tiêu THÁNG: tháng nào phủ tuần đang xem thì đó là tháng của tuần
   // này. Một hàm, không phải hai bản chép tay — hai bản là hai cơ hội trôi khỏi nhau.
-  const trongTuan = (w: Wig) => w.start_date <= wk.end && w.end_date >= wk.start;
+  // (trongTuan đã gỡ: nó lọc mục tiêu theo tuần, mà mục tiêu tuần không còn tồn tại từ 0121.)
 
   const yearWigs = wigs
     .filter((w) => w.period === 'year')
     .sort((a, b) => a.area.localeCompare(b.area));
   const monthWigs = wigs.filter((w) => w.period === 'month');
-  const weekWigs = wigs.filter((w) => w.period === 'week' && trongTuan(w));
 
   // ── MẤY EM CHƯA TICK LẦN NÀO ──────────────────────────────────────────────────────────────
   // Tuần chưa bắt đầu thì KHÔNG báo động: chưa tới ngày nào để tick, đỏ ở đây là báo động giả và
@@ -263,16 +262,7 @@ export default async function WigPage({
   // lấy về. Hàm SQL kia vẫn giữ — scripts/test-* dùng nó làm nguồn đối chiếu ĐỘC LẬP, hai bên
   // lệch nhau là phép kiểm báo ngay.
   //
-  // Bỏ dấu tiếng Việt khi so đơn vị: production có cả 'buoi' lẫn 'buổi' trong cùng một cột (dữ
-  // liệu cũ gõ không dấu) mà chúng là một thứ. Phải khớp private.bo_dau() trong 0078.
-  const boDau = (s: string) =>
-    s
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/Đ/g, 'D')
-      .trim()
-      .toLowerCase();
+  // (Hàm bỏ dấu tiếng Việt đã gỡ: nó chỉ phục vụ cảnh báo lệch đơn vị, mà cảnh báo ấy bỏ 15/08.)
 
   const canhBaoLead = (l: Lead, w: Wig) => {
     const moiTick = Number(l.unit_per_tick ?? 1) || 1;
@@ -378,38 +368,7 @@ export default async function WigPage({
     });
   };
 
-  const viecCuaWig = (w: Wig): ViecItem[] =>
-    ((wigsKemLead.find((x) => x.id === w.id)?.lead_measures ?? []) as Lead[]).map((l) => {
-      const cb = canhBaoLead(l, w);
-      // NGÀY TRONG TUẦN mà việc này áp dụng, và ngày LỚP đã tick (dòng student_id rỗng) — để cô
-      // bấm ngay tại chỗ. Em không còn thấy việc chung nữa (16/08), nên nếu đây không có ô bấm
-      // thì con số của lớp đứng im mãi mãi.
-      const thuBat = new Set(l.active_weekdays ?? [1, 2, 3, 4, 5, 6, 7]);
-      const ngayTrongTuan = weekDaysVN(wk.start).filter((d) =>
-        thuBat.has(isoDowVN(d)),
-      );
-      const ngayDaTick = ((l as unknown as {lead_progress?: {logged_date: string; student_id: string | null}[]})
-        .lead_progress ?? [])
-        .filter((x) => x.student_id === null && ngayTrongTuan.includes(x.logged_date))
-        .map((x) => x.logged_date);
-      return {
-        ngayTrongTuan,
-        ngayDaTick,
-        id: l.id,
-        title: l.title,
-        target_value: Number(l.target_value),
-        unit: l.unit,
-        sub_category: l.sub_category,
-        active_weekdays: l.active_weekdays,
-        unit_per_tick: l.unit_per_tick,
-        nhap_luong: l.nhap_luong,
-        quaNhieu: cb.quaNhieu,
-        soTickCan: cb.soTickCan,
-        tran: cb.tran,
-        soNgay: cb.soNgay,
-        soNguoi: cb.soNguoi,
-      };
-    });
+  // (viecCuaWig đã gỡ: từ 0121 việc treo dưới CAM KẾT chứ không dưới mục tiêu.)
 
   // ── CỘT PHẢI: NĂM → THÁNG → TUẦN ──────────────────────────────────────────────────────────
   // Mỗi mục tiêu năm một nhóm ba dòng. Cấp nào chưa có thì vẫn chiếm một dòng ghi "chưa đặt" —
@@ -483,21 +442,11 @@ export default async function WigPage({
   //
   // Cách sửa KHÔNG phải là nới luật trongTuan — luật ấy đang giữ cho màn giáo viên và màn học
   // sinh cắt ra cùng một kết quả (sự cố 7B1). Mà là nói cho đủ: có thì bảo có, kèm kỳ của nó.
-  const kyGanNhat = (ds: Wig[]): Wig | undefined =>
-    [...ds].sort((a, b) => a.start_date.localeCompare(b.start_date)).find((w) => w.end_date >= wk.start) ??
-    [...ds].sort((a, b) => b.end_date.localeCompare(a.end_date))[0];
+  // (kyGanNhat đã gỡ cùng mục tiêu tháng/tuần.)
 
   const nhomTienDo = yearWigs.map((yw) => {
-    const thangCuaNam = monthWigs.filter((m) => m.parent_wig_id === yw.id);
-    const thang = thangCuaNam.find(trongTuan);
-    // Không có tháng nào phủ tuần này, nhưng lớp CÓ mục tiêu tháng: lấy cái gần nhất để nói ra.
-    const thangKhac = thang ? undefined : kyGanNhat(thangCuaNam);
-    const thangIds = new Set(thangCuaNam.map((m) => m.id));
-    // Tuần có thể treo dưới THÁNG (luật mới) hoặc thẳng dưới NĂM (dữ liệu cũ) — nhận cả hai,
-    // nếu không thì mục tiêu tuần đang chạy của các lớp cũ biến mất khỏi cột này.
-    const tuan = weekWigs.find(
-      (w) => w.parent_wig_id === yw.id || (w.parent_wig_id != null && thangIds.has(w.parent_wig_id)),
-    );
+    // (Mọi phép dò mục tiêu THÁNG và TUẦN đã gỡ: 0121 bỏ hẳn hai cấp ấy, `wig_chi_con_nam_ck`
+    //  cấm chúng tồn tại, nên chúng chỉ còn là một phép lọc trên một danh sách vĩnh viễn rỗng.)
     const meta = areaMeta[yw.area as Area];
     const dongNam = dongCua(yw, 'year', t('emptyYear'));
     // Số đo tuần này của mục tiêu năm — chỉ mục tiêu đo lại mới dùng tới.
@@ -687,10 +636,6 @@ export default async function WigPage({
                     wigArea={areaLabel(meta, locale)}
                     viec={viecCuaCamKet(c.id)}
                     dayShort={t.raw('dayShort') as string[]}
-                    weekParam={weekQ}
-                    classParam={classParam}
-                    mocTarget={0}
-                    siSo={studentCount}
                   />
                 </div>
               );

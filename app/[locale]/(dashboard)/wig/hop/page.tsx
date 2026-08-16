@@ -9,7 +9,6 @@ import {NutDoiTrang} from '@/components/ui/NutDoiTrang';
 import {isValidDayVN, isoWeekLabel, mondayOf, todayInVN, shiftWeeks, vnNoon} from '@/lib/dates';
 import {layDuLieuHop} from '@/lib/hop-data';
 import {PhongHop} from '@/components/wig/PhongHop';
-import {getAreaMeta} from '@/lib/area-config';
 
 // ════════════════════════════════════════════════════════════════════════════
 // /wig/hop — PHÒNG HỌP WIG
@@ -48,14 +47,13 @@ export default async function HopPage({
   const hopMonday = isValidDayVN(hopParam) ? mondayOf(hopParam as string) : macDinh;
   const laTuanVuaXong = hopMonday === macDinh;
 
-  const [d, areaMeta] = await Promise.all([
-    layDuLieuHop(supabase, myClass.id, hopMonday, {
-      year: tw('year'),
-      month: tw('month'),
-      week: tw('week'),
-    }),
-    getAreaMeta(),
-  ]);
+  // Chỉ còn MỘT việc phải chờ: bảng màu lĩnh vực (getAreaMeta) từng truyền xuống PhongHop, mà
+  // khối ấy thôi dùng từ 16/08 — gọi tiếp là một vòng đi–về không ai đọc kết quả.
+  const d = await layDuLieuHop(supabase, myClass.id, hopMonday, {
+    year: tw('year'),
+    month: tw('month'),
+    week: tw('week'),
+  });
 
   // BẠN ĐỒNG HÀNH (0104): bảng buddy_pairs và nút ghép cặp vẫn còn (lib/buddy-pair.ts,
   // components/wig/BanDongHanh.tsx) — chỉ ẨN khỏi phòng họp theo yêu cầu 12/08/2026, vì đây là
@@ -151,10 +149,6 @@ export default async function HopPage({
         camKetDich={d.camKetDich}
         bangPdr={d.bangPdr}
         namHienCo={d.namHienCo}
-        viecMau={d.viecMau}
-        areaMeta={areaMeta}
-        locale={locale}
-        dayShort={tw.raw('dayShort') as string[]}
         canManage
         quayVe={quayVe}
         // Trỏ thẳng vào TUẦN MỚI trên trang WIG. Trước đây sau khi lưu chỉ có "Về trang WIG"

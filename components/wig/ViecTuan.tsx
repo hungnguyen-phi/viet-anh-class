@@ -52,10 +52,6 @@ export function ViecTuan({
   wigArea,
   viec,
   dayShort,
-  weekParam,
-  classParam,
-  mocTarget,
-  siSo,
 }: {
   // Mục tiêu tuần mà những việc này thuộc về. Rỗng = tuần này chưa có mục tiêu nào → không thêm
   // việc được, và thẻ trống phải nói ra lý do thay vì chỉ biến mất.
@@ -70,11 +66,6 @@ export function ViecTuan({
   wigArea: string;
   viec: ViecItem[];
   dayShort: string[];
-  weekParam: string;
-  classParam?: string;
-  // Nhịp: mốc tuần cần bao nhiêu, lớp có mấy em (§6.1 bước 4 — cảnh báo phải hiện NGAY LÚC CÔ GÕ).
-  mocTarget: number;
-  siSo: number;
 }) {
   const t = useTranslations('wig');
   // 'none' | 'them'. Không còn nhánh "đang sửa việc nào": việc dẫn dắt khoá ngay khi thêm (0129).
@@ -90,9 +81,6 @@ export function ViecTuan({
         wigUnit={wigUnit}
         wigArea={wigArea}
         dayShort={dayShort}
-        mocTarget={mocTarget}
-        siSo={siSo}
-        khac={viec}
         onDong={() => setMo('none')}
       />
     );
@@ -169,9 +157,6 @@ function ViecForm({
   wigUnit,
   wigArea,
   dayShort,
-  mocTarget,
-  siSo,
-  khac,
   onDong,
 }: {
   /** Cam kết mà việc này treo dưới (0121). null = chưa có cam kết nào cho tuần. */
@@ -179,15 +164,11 @@ function ViecForm({
   wigUnit: string;
   wigArea: string;
   dayShort: string[];
-  mocTarget: number;
-  siSo: number;
   // Những việc KHÁC đang treo dưới cùng mốc tuần. Nhịp là phép cộng của cả nhóm: sửa một việc mà
   // chỉ nhìn riêng nó thì con số hụt luôn sai.
-  khac: ViecItem[];
   onDong: () => void;
 }) {
   const t = useTranslations('wig');
-  const tm = useTranslations('meeting');
   const [state, formAction] = useActionState(luuViec, {ok: false});
 
   // CẢNH BÁO LỆCH NHỊP, SỐNG THEO TỪNG PHÍM (§6.1 bước 4). Trước đây câu này chỉ có ở phòng họp —

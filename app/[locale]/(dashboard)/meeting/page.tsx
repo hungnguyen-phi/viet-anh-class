@@ -10,7 +10,6 @@ import {Link} from '@/i18n/navigation';
 import {isValidDayVN, isoWeekLabel, mondayOf, shiftWeeks, todayInVN, vnNoon} from '@/lib/dates';
 import {layDuLieuHop} from '@/lib/hop-data';
 import {PhongHop} from '@/components/wig/PhongHop';
-import {getAreaMeta} from '@/lib/area-config';
 
 // ════════════════════════════════════════════════════════════════════════════
 // /meeting — BAN GIÁM HIỆU ĐỌC BIÊN BẢN HỌP WIG CỦA MỘT LỚP
@@ -58,14 +57,13 @@ export default async function MeetingPage({
   const hopMonday = isValidDayVN(hopParam) ? mondayOf(hopParam as string) : macDinh;
   const laTuanVuaXong = hopMonday === macDinh;
 
-  const [d, areaMeta] = await Promise.all([
-    layDuLieuHop(supabase, myClass.id, hopMonday, {
-      year: tw('year'),
-      month: tw('month'),
-      week: tw('week'),
-    }),
-    getAreaMeta(),
-  ]);
+  // Chỉ còn MỘT việc phải chờ: bảng màu lĩnh vực (getAreaMeta) từng truyền xuống PhongHop, mà
+  // khối ấy thôi dùng từ 16/08 — gọi tiếp là một vòng đi–về không ai đọc kết quả.
+  const d = await layDuLieuHop(supabase, myClass.id, hopMonday, {
+    year: tw('year'),
+    month: tw('month'),
+    week: tw('week'),
+  });
 
   const dm = (x: string) => `${x.slice(8, 10)}/${x.slice(5, 7)}`;
   const linkHop = (m: string) => ({
@@ -135,10 +133,6 @@ export default async function MeetingPage({
         camKetDich={d.camKetDich}
         bangPdr={d.bangPdr}
         namHienCo={d.namHienCo}
-        viecMau={d.viecMau}
-        areaMeta={areaMeta}
-        locale={locale}
-        dayShort={tw.raw('dayShort') as string[]}
         canManage={false}
         quayVe={null}
       />

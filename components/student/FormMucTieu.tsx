@@ -8,7 +8,6 @@ import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder, inputCls, selectCls, btnGold} from '@/components/ui/Field';
 import {ONgayVN, ngayVN} from '@/components/ui/ONgayVN';
 import {luuMucTieuCuaEm, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
-import {todayInVN} from '@/lib/dates';
 import {kieuDonVi, coTrongDanhSach, DON_VI} from '@/lib/don-vi';
 import {ChonCuon} from '@/components/ui/ChonCuon';
 
@@ -139,15 +138,8 @@ export function FormMucTieu({
         ? Number(g.luong || 0)
         : thu.length * (Number(g.upt || 0) || 0);
 
-  // QUÃNG PHẢI ĐI và số tuần còn lại — hai con số để nói với em "còn ngần này, còn ngần kia tuần".
-  // Tính ngay ở đây để hiện LÚC EM ĐANG GÕ, không đợi bấm Gửi rồi mới biết.
-  //
-  // (Trước đây chỗ này chú là "dùng chung lib/wig-nhip với phòng họp". Tệp ấy đã bị gỡ cùng cỗ
-  // máy rải nhịp ở fb8dab7 — để nguyên câu chú là chỉ người đọc sau đi tìm một tệp không còn.)
-  const quang = Math.max(Number(g.target || 0) - Number(g.baseline || 0), 0);
-  const tuanCon = g.due
-    ? Math.max(Math.ceil((Date.parse(g.due) - Date.parse(todayInVN())) / 604800000), 0)
-    : 0;
+  // (Hai con số "quãng phải đi" và "số tuần còn lại" đã gỡ: chúng chỉ nuôi cảnh báo nhịp, mà
+  //  cảnh báo ấy bỏ cùng mô hình cũ ở 0121 — xem ghi chú ngay dưới.)
   // Cảnh báo nhịp đã bỏ cùng mô hình cũ (0121): form này thôi tạo việc dẫn dắt, nên không còn
   // "mỗi tuần làm được bao nhiêu" để đem so với quãng đường phải đi. Việc nay treo dưới CAM KẾT
   // của từng tuần, và chính buổi họp là chỗ nhìn nhịp.

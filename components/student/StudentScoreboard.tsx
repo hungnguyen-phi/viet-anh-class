@@ -77,32 +77,9 @@ type LeadRow = {
 };
 
 // Một dòng của class_lead_board() — VIỆC CHUNG của lớp tuần này (0073).
-type ClassLeadRow = {
-  lead_measure_id: string;
-  title: string;
-  target_value: number | string;
-  unit: string | null;
-  active_weekdays: number[] | null;
-  // 0077 — chỉ dùng cho cập nhật lạc quan lúc bấm; class_total dưới đây đã nhân sẵn trong SQL.
-  unit_per_tick: number | string | null;
-  class_total: number | string;
-  contributors: number | string;
-  class_size: number | string;
-  my_dates: string[] | null;
-  // 0098 — hai con số của cách đo MỖI EM MỘT BỘ ĐẾM: tổng của chính em, và số em đã đạt đủ.
-  my_total: number | string;
-  students_done: number | string;
-  // 0114 — việc chung cũng có thể là Ô ĐIỀN SỐ, và khi ấy phải biết em đã gõ gì từng ngày.
-  nhap_luong: boolean | null;
-  my_values: Record<string, number> | null;
-};
+// (Kiểu ClassLeadRow đã gỡ: màn của em thôi đọc class_lead_board từ 16/08 — việc chung là phần của cô.)
 
-function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
+// (initialsOf đã gỡ: chỗ duy nhất dùng nó là danh sách bạn cùng tick việc chung.)
 
 export async function StudentScoreboard({
   studentId,
