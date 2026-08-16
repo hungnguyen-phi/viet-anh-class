@@ -26,6 +26,7 @@ import {WeekNav} from '@/components/wig/WeekNav';
 import {TaoWigMenu} from '@/components/wig/TaoWigMenu';
 import {ViecTuan, type ViecItem} from '@/components/wig/ViecTuan';
 import {SuaCamKetLop} from '@/components/wig/SuaCamKetLop';
+import {DatCamKetLop} from '@/components/wig/DatCamKetLop';
 import {BangTienDo, type DongTienDo} from '@/components/wig/BangTienDo';
 import {BangCacEm} from '@/components/wig/BangCacEm';
 import {AREAS, areaLabel, type Area} from '@/lib/areas';
@@ -558,12 +559,10 @@ export default async function WigPage({
               Cam kết là một LỜI HỨA nên không có vạch tiến độ, không có "x / y đơn vị": con số
               nằm ở các việc dẫn dắt bên dưới, và thắng/thua thì buổi họp chấm bằng V/X. Vạch
               tiến độ vẫn còn, nhưng ở MỤC TIÊU NĂM — cột bên phải. */}
-          {camKet.length === 0 ? (
+          {camKet.length === 0 && yearWigs.length === 0 ? (
             <div className="rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-5 text-center">
               <p className="text-[13px] font-bold text-navy">{t('noCommitmentsThisWeek', {label: wk.label})}</p>
-              <p className="mx-auto mt-1 max-w-[420px] text-[11.5px] font-semibold leading-relaxed text-grey-mid">
-                {yearWigs.length === 0 ? t('noWeekWigsHow') : t('commitmentsHowMeeting')}
-              </p>
+              <p className="mx-auto mt-1 max-w-[420px] text-[11.5px] font-semibold leading-relaxed text-grey-mid">{t('noWeekWigsHow')}</p>
             </div>
           ) : (
             camKet.map((c) => {
@@ -638,6 +637,15 @@ export default async function WigPage({
                 </div>
               );
             })
+          )}
+          {/* ĐẶT CAM KẾT NGAY TẠI ĐÂY — không chờ buổi họp (chủ dự án 16/08/2026). Trần 2 do máy chặn. */}
+          {tuanNayDaHop !== true && (
+            <DatCamKetLop
+              classId={myClass.id}
+              weekStart={monday}
+              daCo={camKet.length}
+              namHienCo={yearWigs.filter((w) => w.measure_by !== 'cuon').map((w) => ({id: w.id, title: w.title ?? ''}))}
+            />
           )}
 
           {/* Dòng "n/m em đã tick trong tuần này" đã bỏ (16/08/2026).

@@ -542,7 +542,6 @@
     "schoolGoalsEmpty": "Cơ sở chưa đặt mục tiêu năm nào. Mục tiêu ở đây đếm ngược từ mục tiêu năm của từng lớp, nên hãy để các lớp đặt mục tiêu năm trước.",
     "schoolGoalPlaceholder": "80% lớp đạt mục tiêu học tập năm nay",
     "noCommitmentsThisWeek": "Tuần {label} chưa có cam kết nào",
-    "commitmentsHowMeeting": "Cam kết được đặt trong buổi họp WIG — mỗi tuần tối đa 2, để cả lớp tập trung vào đúng thứ đáng làm.",
     "verdictWonTag": "Thắng",
     "verdictLostTag": "Chưa đạt",
     "commitmentPending": "Chờ duyệt — bấm để duyệt",

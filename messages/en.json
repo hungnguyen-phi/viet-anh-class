@@ -542,7 +542,6 @@
     "schoolGoalsEmpty": "This campus has no year goals yet. Goals here count up from each class's year goals, so let the classes set theirs first.",
     "schoolGoalPlaceholder": "80% of classes reach their learning goal this year",
     "noCommitmentsThisWeek": "No commitments yet for {label}",
-    "commitmentsHowMeeting": "Commitments are set in the WIG meeting — at most 2 a week, so the class stays on what matters.",
     "verdictWonTag": "Won",
     "verdictLostTag": "Not met",
     "commitmentPending": "Pending — tap to approve",

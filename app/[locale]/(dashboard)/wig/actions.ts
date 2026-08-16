@@ -5,7 +5,7 @@ import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
-import {taoMotWig, chuanHoaThu, chuanHoaHeSo} from '@/lib/wig-tao';
+import {taoMotWig, taoCamKet, chuanHoaThu, chuanHoaHeSo} from '@/lib/wig-tao';
 import {AREAS} from '@/lib/areas';
 import type {Database} from '@/lib/database.types';
 import {kieuDonVi} from '@/lib/don-vi';
@@ -426,4 +426,21 @@ export async function xoaViecLop(formData: FormData) {
   const {data, error} = await supabase.from('lead_measures').delete().eq('id', id).select('id');
   if (error) flashTo(loi(friendlyError(error)), class_id, week);
   flashTo((data ?? []).length > 0 ? 'Đã xoá việc' : loi('Không xoá được — việc không còn, hoặc tuần đã chốt.'), class_id, week);
+}
+
+// ĐẶT CAM KẾT CỦA LỚP NGAY TRÊN TRANG WIG — không phải chờ tới buổi họp.
+// Chủ dự án 16/08/2026: "nên có phần đặt cam kết và lead measure chứ ko phải chờ đến khi vào họp".
+// Cùng luật với bước 3 của phòng họp (taoCamKet: trần 2, treo dưới mục tiêu năm của lớp).
+export async function datCamKetLop(_prev: CamKetLopState, formData: FormData): Promise<CamKetLopState> {
+  await requireRole(['teacher', 'admin']);
+  const class_id = String(formData.get('class_id') ?? '');
+  const week_start = String(formData.get('week_start') ?? '');
+  const wig_id = String(formData.get('wig_id') ?? '');
+  const title = String(formData.get('title') ?? '').trim();
+  const supabase = await createClient();
+  const kq = await taoCamKet(supabase, {wig_id, class_id, week_start, title});
+  if (!kq.ok) return {ok: false, fieldError: kq.field, error: kq.loi};
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]/wig/hop', 'page');
+  return {ok: true, message: 'Đã đặt cam kết.'};
 }
