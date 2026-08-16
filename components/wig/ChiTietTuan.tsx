@@ -97,10 +97,19 @@ export async function ChiTietTuan({classId, weekStart}: {classId: string; weekSt
               </div>
               {hang.length > 0 && (
                 <div className="mt-2 overflow-x-auto">
-                  <table className="w-full min-w-[520px] border-collapse text-[12.5px]">
+                  {/* CỘT CỐ ĐỊNH: mỗi ngày đúng một ô rộng 40px, kể cả ngày không áp dụng (ô mờ) —
+                      không thì hàng nào thiếu ô là cột trôi. Chủ dự án: "các cột cứ lệch tùm lum". */}
+                  <table className="w-full min-w-[560px] table-fixed border-collapse text-[12.5px]">
+                    <colgroup>
+                      <col />
+                      {days.map((d) => (
+                        <col key={d} className="w-10" />
+                      ))}
+                      <col className="w-[92px]" />
+                    </colgroup>
                     <thead>
                       <tr className="text-left text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid">
-                        <th className="pb-1 pr-2 font-extrabold">{t('colWorks')}</th>
+                        <th className="pb-1 pr-2 font-extrabold">{t('colWorkOnly')}</th>
                         {days.map((d, i) => (
                           <th key={d} className="pb-1 text-center font-extrabold">
                             {dayShort[i]}
@@ -113,12 +122,17 @@ export async function ChiTietTuan({classId, weekStart}: {classId: string; weekSt
                       {hang.map(({l, c, apDung, theoNgay, daLam, dich, xong, nhapLuong}) => (
                         <tr key={l.id} className="border-t border-navy/[0.07]">
                           <td className="py-1.5 pr-2">
-                            <span className="block font-bold text-navy">{l.title}</span>
-                            <span className="block text-[11px] font-semibold text-grey-mid">{c.title}</span>
+                            <span className="block truncate font-bold text-navy">{l.title}</span>
+                            <span className="block truncate text-[11px] font-semibold text-grey-mid">{c.title}</span>
                           </td>
                           {days.map((d) => {
                             const dow = isoDowVN(d);
-                            if (!apDung.has(dow)) return <td key={d} />;
+                            if (!apDung.has(dow))
+                              return (
+                                <td key={d} className="py-1.5 text-center">
+                                  <span className="inline-block h-7 w-7 rounded-[7px] bg-navy/[0.03]" aria-hidden />
+                                </td>
+                              );
                             const gt = theoNgay.get(d);
                             const co = gt !== undefined;
                             const chuaToi = d > today;

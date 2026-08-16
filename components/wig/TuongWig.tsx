@@ -74,27 +74,39 @@ export async function TuongWig({
         </div>
       )}
 
-      {/* Trận đánh của lớp — cái đích chung mà mọi mục tiêu bên dưới đang phục vụ. */}
-      <div className="flex flex-col gap-1 rounded-[14px] border-[1.5px] border-navy/10 p-3">
-        {wigLop.length === 0 ? (
-          <p className="text-[12.5px] italic text-grey-mid">{t('noClassWig')}</p>
-        ) : (
-          wigLop.map((w) => (
-            <p key={w.id} className="text-[13px] font-extrabold tabular-nums text-navy">
-              {w.title} · {w.target_value} {w.unit}
-            </p>
-          ))
-        )}
-
-        {/* DANH SÁCH CẢ LỚP — kể cả em chưa đặt, kèm nút đặt hộ ngay tại chỗ. */}
-        <div className="mt-2 border-t border-navy/[0.08] pt-2">
-          <DanhSachDatHo
-            classId={classId}
-            danhSach={danhSach}
-            wigLop={wigLopChon}
-            suaDuoc={suaDuoc}
-          />
-        </div>
+      {/* GOM THEO TỪNG MỤC TIÊU CỦA LỚP (16/08/2026): dưới mỗi trận đánh của lớp là những em góp vào
+          nó (source_wig_id); em góp vào mục tiêu riêng / chưa đặt xếp riêng ở cuối. Chủ dự án nhìn bản
+          liệt kê phẳng và "ko hiểu nó thuộc về wig nào". */}
+      <div className="flex flex-col gap-3">
+        {wigLop.length === 0 && <p className="text-[12.5px] italic text-grey-mid">{t('noClassWig')}</p>}
+        {wigLop.map((w) => {
+          const cuaW = danhSach.filter((e) => e.mucTieu?.source_wig_id === w.id);
+          return (
+            <div key={w.id} className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
+              <p className="text-[13.5px] font-extrabold tabular-nums text-navy">
+                {w.title} <span className="font-semibold text-grey-mid">· {w.target_value} {w.unit}</span>
+              </p>
+              <p className="mb-1 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
+                {t('contributors', {n: cuaW.length})}
+              </p>
+              {cuaW.length > 0 ? (
+                <DanhSachDatHo classId={classId} danhSach={cuaW} wigLop={wigLopChon} suaDuoc={suaDuoc} />
+              ) : (
+                <p className="text-[12px] italic text-grey-mid">{t('noContributor')}</p>
+              )}
+            </div>
+          );
+        })}
+        {(() => {
+          const conLai = danhSach.filter((e) => !e.mucTieu || !wigLop.some((w) => w.id === e.mucTieu?.source_wig_id));
+          if (conLai.length === 0) return null;
+          return (
+            <div className="rounded-[14px] border-[1.5px] border-dashed border-navy/15 p-3">
+              <p className="mb-1 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('notLinked')}</p>
+              <DanhSachDatHo classId={classId} danhSach={conLai} wigLop={wigLopChon} suaDuoc={suaDuoc} />
+            </div>
+          );
+        })()}
       </div>
 
     </section>

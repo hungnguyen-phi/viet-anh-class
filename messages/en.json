@@ -555,7 +555,8 @@
     "detailPerStudent": "Each student this week",
     "noCommitmentYet": "no commitment this week",
     "doneCol": "Done",
-    "commitNoWork": "Committed \"{title}\" — no work yet."
+    "commitNoWork": "Committed \"{title}\" — no work yet.",
+    "colWorkOnly": "Work"
   },
   "meeting": {
     "title": "Weekly WIG meeting",
@@ -1365,6 +1366,9 @@
     "askEditPlaceholder": "e.g. I want the target to be 200 because…",
     "askSend": "Send",
     "confirmDeleteWorkLop": "Delete this class work? Its ticks go with it.",
-    "confirmDeleteCommitmentLop": "Delete this class commitment? Its works and ticks go with it."
+    "confirmDeleteCommitmentLop": "Delete this class commitment? Its works and ticks go with it.",
+    "contributors": "{n} students contribute",
+    "noContributor": "No student contributes to this goal yet.",
+    "notLinked": "Not linked to a class goal / not set"
   }
 }

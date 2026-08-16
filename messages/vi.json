@@ -555,7 +555,8 @@
     "detailPerStudent": "Từng em tuần này",
     "noCommitmentYet": "chưa hứa gì tuần này",
     "doneCol": "Đã làm",
-    "commitNoWork": "Đã hứa \"{title}\" — chưa đặt việc."
+    "commitNoWork": "Đã hứa \"{title}\" — chưa đặt việc.",
+    "colWorkOnly": "Việc"
   },
   "meeting": {
     "title": "Họp WIG tuần",
@@ -1365,6 +1366,9 @@
     "askEditPlaceholder": "vd: Con muốn đổi đích thành 200 bài vì…",
     "askSend": "Gửi cô",
     "confirmDeleteWorkLop": "Xoá việc này của lớp? Lượt tick của nó mất theo.",
-    "confirmDeleteCommitmentLop": "Xoá cam kết này của lớp? Việc và lượt tick dưới nó mất theo."
+    "confirmDeleteCommitmentLop": "Xoá cam kết này của lớp? Việc và lượt tick dưới nó mất theo.",
+    "contributors": "{n} em góp vào",
+    "noContributor": "Chưa em nào góp vào mục tiêu này.",
+    "notLinked": "Chưa gắn vào mục tiêu lớp / chưa đặt"
   }
 }
