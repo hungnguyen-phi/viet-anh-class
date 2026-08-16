@@ -362,13 +362,10 @@ function MotMucTieu({
               </>
             )}
 
-            {/* Hết cửa sổ: nói rõ vì sao không còn nút, và đi đâu để đổi. Không có câu này thì hai
-                em ngồi cạnh nhau thấy hai màn khác nhau mà không ai giải thích được. */}
-            {laChinhEm && !emSuaDuoc && (
-              <span className="text-[11.5px] font-semibold italic text-grey-mid">
-                {t('lockedHint')}
-              </span>
-            )}
+            {/* CÂU "Mục tiêu đã chốt (quá 1 ngày)" ĐÃ BỎ (16/08/2026, chủ dự án chỉ định).
+                Nó còn sót lại từ luật CŨ: 0102 khoá mục tiêu sau 24 giờ. Luật ấy đã thay ở 0131 —
+                em sửa được chừng nào chưa có dấu chân nào, và sửa xong thì tự về chờ duyệt (0129).
+                Nên câu này vừa thừa vừa SAI: nó nói với em một cái cửa không còn tồn tại. */}
           </div>
         </div>
       ) : (

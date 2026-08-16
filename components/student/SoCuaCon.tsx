@@ -88,7 +88,9 @@ export function SoCuaCon({
         <Popup title={t('journal')} onClose={() => setMo(false)} width="max-w-[560px]">
           <div className="flex flex-col gap-3">
             <div className="rounded-[10px] bg-gold/[0.10] px-3 py-2 text-[11.5px] font-bold leading-relaxed text-navy">
-              {t('journalWeek', {dau: ngay(tuanDau), cuoi: ngay(tuanCuoi)})} · {t('journalReset')}
+              {/* Bỏ đuôi "Sang thứ Hai là một trang mới…" (16/08/2026, chủ dự án chỉ định): nút
+                  "Các tuần trước" nằm ngay dưới đã nói xong việc ấy bằng cách chạm được. */}
+              {t('journalWeek', {dau: ngay(tuanDau), cuoi: ngay(tuanCuoi)})}
             </div>
 
             {state.error && (
