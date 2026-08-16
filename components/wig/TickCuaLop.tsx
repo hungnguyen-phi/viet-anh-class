@@ -105,7 +105,11 @@ export function TickCuaLop({
             aria-label={`${thu} ${d.slice(8, 10)}/${d.slice(5, 7)}`}
             className={`grid h-11 w-11 place-items-center rounded-[9px] border-[1.5px] text-[11.5px] font-extrabold transition-all disabled:cursor-not-allowed ${
               on
-                ? 'border-transparent bg-success text-white'
+                // Ô ĐÃ TICK DÙNG ĐÚNG KIỂU CỦA MÀN EM: nền vàng, chữ navy. Bản đầu tôi chọn nền
+                // xanh chữ trắng — nhìn thì hợp lý, nhưng đo ra 4.34:1, dưới ngưỡng 4.5 của chính
+                // dự án. Bảng màu đã có sẵn một cặp đạt và quen mắt; thêm một cặp mới chỉ để đẹp
+                // theo ý mình là vừa lệch kiểu vừa hỏng tương phản.
+                ? 'border-transparent bg-gold text-navy shadow-[var(--shadow-gold)]'
                 : sau || !moKhoa
                   ? 'border-navy/10 bg-white text-grey-soft'
                   : 'cursor-pointer border-navy/15 bg-white text-grey-mid hover:border-navy'
