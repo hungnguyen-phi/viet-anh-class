@@ -53,3 +53,4 @@ next-env.d.ts
 # script bị Ctrl-C giữa chừng: file này bọc global.fetch, lọt lên production là hỏng đăng nhập.
 /instrumentation.ts
 /instrumentation-node.ts
+xem-trang.html

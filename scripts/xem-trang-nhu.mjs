@@ -37,7 +37,8 @@ const cookie = `sb-${REF}-auth-token=base64-${Buffer.from(JSON.stringify(v.sessi
 const res = await fetch(`${base}${duong}`, {headers: {cookie}, redirect: 'manual'});
 console.log('HTTP', res.status, res.headers.get('location') ?? '');
 const html = await res.text();
-writeFileSync(process.env.LUU_HTML ?? 'xem-trang.html', html);
+// Chỉ lưu HTML khi được bảo (LUU_HTML=đường/dẫn) — đừng đẻ tệp vào thư mục dự án.
+if (process.env.LUU_HTML) writeFileSync(process.env.LUU_HTML, html);
 const chu = html
   .replace(/<script[\s\S]*?<\/script>/g, '')
   .replace(/<style[\s\S]*?<\/style>/g, '')
