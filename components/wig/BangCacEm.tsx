@@ -104,7 +104,7 @@ export async function BangCacEm({
                 return (
                   <tr key={e.id} className="border-t border-navy/[0.07] align-top">
                     <td className="px-3 py-2.5">
-                      <Link href={`/student/${e.id}`} className="text-[13px] font-bold text-navy hover:underline">
+                      <Link href={`/student/${e.id}`} className="inline-flex min-h-[24px] items-center text-[13px] font-bold text-navy hover:underline">
                         {e.ten}
                       </Link>
                     </td>
