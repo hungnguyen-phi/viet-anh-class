@@ -34,16 +34,19 @@ Mục tiêu của em **không cắt ra từ** mục tiêu lớp. Nó là khoản
 lớp bằng **hướng đi**, không bằng số học.
 
 ```
-CÂY CỦA LỚP  (cô đặt)
-  WIG lớp · Điểm TB Toán 6,5 → 8,0 · 30/06
-    └─ mốc tháng/tuần (app sinh, cô chỉnh)
-         └─ việc của lớp · "mỗi bạn 3 bài/tuần"
+CÂY CỦA LỚP  (cô đặt, cô tick)
+  WIG NĂM của lớp · Điểm TB Toán 6,5 → 8,0 · 30/06
+    └─ CAM KẾT TUẦN của lớp (cô đặt, chấm V/X trong buổi họp)
+         └─ việc dẫn dắt · CÔ tick — em không thấy khối này
 
-CÂY CỦA EM   (em đặt cùng cô)          ← không cộng, không chia, không tràn
-  Minh    · Điểm Toán 5,8 → 7,0 · 31/12   → việc: làm lại bài sai, 3 lần/tuần
-  Claudia · Điểm Toán 7,5 → 8,5 · 31/12   → việc: giảng lại cho bạn, 1 buổi/tuần
-  Alex    · Nộp bài đúng hạn 60% → 100%   → việc: soạn cặp tối hôm trước
+CÂY CỦA EM   (em đặt, cô duyệt)        ← không cộng, không chia, không tràn
+  WIG NĂM của em · Điểm Toán 5,8 → 7,0 · 31/12   (nối với WIG năm của lớp bằng HƯỚNG ĐI)
+    └─ CAM KẾT TUẦN của em · tối đa 2, em chọn hứa vào trận nào của lớp
+         └─ việc dẫn dắt của em · tối đa 2 · EM tick mỗi ngày
 ```
+
+**KHÔNG CÒN MỐC THÁNG/TUẦN.** Migration 0121 bỏ hẳn hai cấp ấy — `wig_chi_con_nam_ck` cấm chúng
+tồn tại. Nhịp tuần nay nằm ở CAM KẾT, không ở một mục tiêu con.
 
 Minh yếu tính toán thì đánh tính toán. Claudia đã khá thì đánh chỗ khác. **Không ai lãnh "400 bài"**
 — vì con số ấy không mô tả khoảng cách của ai cả.
@@ -66,10 +69,10 @@ Bảng `lead_measures` hôm nay đã trỏ `wig_id → wigs.id`, nên **việc t
 | Thực thể | Là gì | Bảng |
 |---|---|---|
 | **WIG lớp** | "Từ X đến Y trước ngày nào" — năm. | `wigs` scope=`class` period=`year` |
-| **Mốc nhịp** | Tháng + tuần của chính WIG ấy. **App sinh, cô chỉnh.** | `wigs` scope=`class` period=`month`/`week` |
-| **Việc của lớp** | Hành vi chung, cả lớp cùng làm. "Mỗi bạn 3 bài." | `lead_measures` treo dưới WIG tuần |
+| **Cam kết tuần** | Lời hứa của MỘT tuần. Của lớp (cô đặt) hoặc của em (em đặt, cô duyệt). | `commitments` |
+| **Việc của lớp** | Hành vi chung. **CÔ tick**, em không thấy (16/08/2026). | `lead_measures` treo dưới cam kết CỦA LỚP |
 | **Mục tiêu của em** | Khoảng cách của chính em. Tự do về nội dung và đơn vị. | `wigs` scope=`student` |
-| **Việc của em** | Cách em tự chọn để tới đó. | `lead_measures` treo dưới mục tiêu của em |
+| **Việc của em** | Cách em tự chọn để tới đó. **EM tick.** | `lead_measures` treo dưới cam kết CỦA EM |
 | **Lượt tick** | Một lần làm xong. | `lead_progress` |
 | **Sổ của con** | Chiêm nghiệm hằng tuần của em. | `student_reflections` *(mới)* |
 
@@ -91,7 +94,12 @@ Cột thêm vào `wigs`:
 |---|---|---|
 | WIG của **lớp** | **4** — mỗi lĩnh vực một cái | chính sách trường (canon là 2 — xem §7) |
 | Mục tiêu của **em** đang chạy | **2** — một học thuật + một của riêng em | Leader in Me |
-| Việc của mỗi mục tiêu cá nhân | **1** | ⇒ em không bao giờ tick quá **2 việc của mình** mỗi tuần |
+| **Cam kết mỗi tuần** | **2** — cho lớp, và cho mỗi em | 0121 · `chan_qua_hai_cam_ket` |
+| **Việc dẫn dắt mỗi tuần** | **2** — đếm theo NGƯỜI THEO DÕI, không theo cam kết | 0137 · `chan_qua_hai_viec` |
+
+Trần việc đếm theo **người phải theo dõi**, không theo từng cam kết: lớp có hai cam kết × hai việc
+là bốn dòng trên màn — đúng cảnh chủ dự án nhìn thấy 16/08 và hỏi "sao mà cân bằng được". Hai bộ
+đếm tách nhau (việc của lớp / việc của em) để lớp dùng hết chỗ không làm em mất chỗ đặt việc mình.
 
 Trần là lý do sống còn của 4DX, không phải lời khuyên mềm: nghiên cứu của FranklinCovey trên
 ~300.000 người — đội theo 2–3 mục tiêu đạt xuất sắc 2–3; theo 4–10 chỉ đạt 1–2; **theo 11–20 đạt 0**.
@@ -299,15 +307,18 @@ vì việc thì máy đếm được.
 
 ### 6.4 Họp WIG lớp — 25 phút, thứ 2
 
-Ba khối, và **không khối nào tạo WIG mới**. Đây là chỗ đổi so với app hôm nay: bước 3 hiện đang đẻ
-ra một WIG tuần mới mỗi tuần, khiến số WIG phình theo thời gian và mỗi cái có thể lệch đơn vị với
-cha nó.
+Ba khối, và **không khối nào tạo WIG mới** — điều này nay đã đúng trong mã: 0121 bỏ hẳn WIG tuần,
+nên buổi họp không còn đẻ ra mục tiêu nào. Nó đặt CAM KẾT, và cam kết thì sống đúng một tuần.
 
 ```
-① Tuần rồi     việc của lớp thắng/thua · em nào đủ, em nào chưa
-② Bảng điểm    tiến độ so với mốc — "lẽ ra ở đâu"
-③ Tuần tới     chỉnh chỉ tiêu của VIỆC · ghi vật cản + cách cô dọn đường
+① Tuần rồi     chấm V/X cho từng cam kết · em nào đủ, em nào chưa
+② Bảng PDR     từng em: mấy cam kết, mấy việc đạt, ai còn chờ duyệt
+③ Tuần tới     cô đặt CAM KẾT của lớp · ba câu PDR
 ```
+
+**Cam kết tuần tới của EM thì em tự đặt trên màn của mình**, không phải cô gõ hộ trong buổi họp
+(16/08/2026 — chủ dự án: "phải là em đặt chứ"). Buổi họp là chỗ nghiệm thu và hứa, không phải chỗ
+một người điền thay ba mươi người.
 
 ### 6.5 Bức tường WIG
 
