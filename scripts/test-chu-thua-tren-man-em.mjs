@@ -161,8 +161,9 @@ for (const [ten, bo] of [
   dau(`messages/${ten}.json không còn khoá chữ thừa`, con.length === 0, con.join(', ') || 'sạch');
   // Chỉ đòi khoá CÓ MẶT và không rỗng. Đòi nó bằng đúng một chuỗi là biến bộ kiểm thành cái khoá
   // tay chủ dự án mỗi lần muốn sửa chữ.
-  dau(`messages/${ten}.json: student.leads có nhãn`,
-      Boolean(bo.student?.leads?.trim()), String(bo.student?.leads));
+  // student.leads đã xoá 16/08/2026 (khối tick không còn đứng riêng); nhãn cây là student.wigYear.
+  dau(`messages/${ten}.json: student.wigYear có nhãn`,
+      Boolean(bo.student?.wigYear?.trim()), String(bo.student?.wigYear));
 }
 
 for (const k of ketQua) console.log(`${k.dat ? 'OK  ' : 'SAI '} ${k.ten}  → ${k.chiTiet}`);
