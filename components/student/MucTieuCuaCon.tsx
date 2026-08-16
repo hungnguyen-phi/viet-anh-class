@@ -62,8 +62,6 @@ export type {WigLop};
 /** Số đo tuần này của một mục tiêu đo-ngoài-app (0108). `ghi_luc` đã định dạng sẵn ở máy chủ. */
 export type SoDoCuaTuan = {wig_id: string; gia_tri: number; vai_tro: string; ghi_luc: string | null};
 
-const CUA_SO_MS = 24 * 60 * 60 * 1000;
-
 // ── MỘT DANH SÁCH, MỘT LOẠI THẺ (16/08/2026) ──────────────────────────────────────────────────
 //
 // Chủ dự án: "tôi vẫn chưa thấy việc tạo ra mục tiêu riêng của bạn và mục tiêu của bạn có khác gì
@@ -202,10 +200,9 @@ function TheMucTieu({
   const t = useTranslations('goal');
   const canGhi = laChinhEm;
   const tenLopNguon = mt.source_wig_id ? (wigLop.find((w) => w.id === mt.source_wig_id)?.title ?? null) : null;
-  // CỬA SỔ MỘT NGÀY (0102/0131): em sửa/xoá khi mục tiêu còn là đề nghị. Cô KHÔNG sửa/xoá — chỉ duyệt.
-  const conMo =
-    mt.status === 'draft' || mt.status === 'sent' || Date.now() - new Date(mt.created_at).getTime() < CUA_SO_MS;
-  const emSuaDuoc = laChinhEm && conMo;
+  // Em sửa/xoá mục tiêu CỦA MÌNH lúc nào cũng bấm được — sửa xong thì về chờ duyệt (0129); xoá thì
+  // CSDL chặn nếu đã có tick (0131) và câu báo nói rõ. Cửa sổ 24 giờ không còn chắn ở giao diện.
+  const emSuaDuoc = laChinhEm;
 
   return (
     <div className="flex flex-col gap-3 rounded-[16px] border-[1.5px] border-navy/10 p-3.5">

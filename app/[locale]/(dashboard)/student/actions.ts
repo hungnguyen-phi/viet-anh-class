@@ -988,6 +988,24 @@ export async function duyetCamKetCuaEm(formData: FormData) {
   veTrangEm(student_id, 'Đã duyệt cam kết');
 }
 
+
+// XOÁ MỘT VIỆC DẪN DẮT — của chính em, tuần chưa chốt (RLS rls_xoa_viec_cua_em, 0141). Cam kết mẹ
+// tự về chờ duyệt (trigger). Cô/quản trị dọn thì đi đường quản trị (rls_xoa_viec_chi_quan_tri).
+export async function xoaViecCuaEm(formData: FormData) {
+  const me = await getCurrentProfile();
+  if (!me) return;
+  const id = String(formData.get('lead_id') ?? '');
+  const student_id = String(formData.get('student_id') ?? '');
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('lead_measures').delete().eq('id', id).select('id');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if ((data ?? []).length === 0) veTrangEm(student_id, loi('Không xoá được — việc không còn, hoặc tuần đã chốt.'));
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  veTrangEm(student_id, 'Đã xoá việc');
+}
+
 // Tick "đã đạt" cho đích ghi nhận ngoài. Cô và trò tự theo dõi ở ngoài app (bài kiểm tra, sổ liên
 // lạc); app chỉ ghi lại AI xác nhận và LÚC NÀO — xem docs/MO_HINH_WIG.md §5.0.
 export async function danhDauDaDat(formData: FormData) {

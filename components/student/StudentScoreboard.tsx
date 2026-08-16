@@ -671,6 +671,7 @@ export async function StudentScoreboard({
                   nguoiGhi={viewer.id}
                   today={today}
                   tickOpen={tickOpen}
+                  xoaDuoc={canTick && tickOpen}
                 />
               </div>
             ) : (

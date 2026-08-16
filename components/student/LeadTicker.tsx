@@ -4,6 +4,8 @@ import {useOptimistic, useRef, useState, useTransition} from 'react';
 import {useRouter} from '@/i18n/navigation';
 import {useTranslations} from 'next-intl';
 import {Check, Flame, Loader2, Lock} from 'lucide-react';
+import {ConfirmButton} from '@/components/ui/ConfirmButton';
+import {xoaViecCuaEm} from '@/app/[locale]/(dashboard)/student/actions';
 import {createClient} from '@/lib/supabase/client';
 
 export type TickerLead = {
@@ -74,10 +76,14 @@ export function LeadTicker({
   nguoiGhi,
   today,
   tickOpen,
+  xoaDuoc = false,
 }: {
   leads: TickerLead[];
   studentId: string;
   canTick: boolean;
+  /** Chính em đang xem và tuần chưa chốt → mỗi việc có nút Xoá (0141: việc là của em; xoá xong cam kết
+   *  mẹ về chờ cô duyệt lại). */
+  xoaDuoc?: boolean;
   // AI ĐANG BẤM — không phải lúc nào cũng là chính em.
   //
   // Chủ dự án chốt 10/08/2026: "ai cũng có điện thoại, vẫn có gv tick hộ". Trước bản này giao
@@ -332,6 +338,19 @@ export function LeadTicker({
               <Check size={11} strokeWidth={3} />
               {t('doneTag')}
             </span>
+          )}
+          {xoaDuoc && l.kind === 'mine' && (
+            <form action={xoaViecCuaEm} className="contents">
+              <input type="hidden" name="lead_id" value={l.id} />
+              <input type="hidden" name="student_id" value={studentId} />
+              <ConfirmButton
+                message={t('confirmDeleteWork')}
+                label={t('deleteWork')}
+                className="inline-flex min-h-[24px] shrink-0 cursor-pointer items-center px-1 text-[11px] font-extrabold text-status-bad underline"
+              >
+                {t('deleteWork')}
+              </ConfirmButton>
+            </form>
           )}
           <span className="shrink-0 text-[12.5px] font-extrabold tabular-nums text-grey-mid">
             {/* Ghi rõ "Em:" ở việc chung — cùng một thẻ mà có hai con số (của em và của lớp),

@@ -794,7 +794,9 @@
     "classPromise": "The class promises",
     "luongOLabel": "how much (optional)",
     "olderWeeks": "{n} earlier weeks",
-    "noWorkUnder": "No work under this commitment yet."
+    "noWorkUnder": "No work under this commitment yet.",
+    "deleteWork": "Delete work",
+    "confirmDeleteWork": "Delete this work? Its ticks go with it and the commitment goes back to pending."
   },
   "campusReport": {
     "title": "Campus report",
