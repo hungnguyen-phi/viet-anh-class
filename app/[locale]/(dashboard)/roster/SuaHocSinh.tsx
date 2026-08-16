@@ -140,10 +140,6 @@ export function SuaHocSinh({
               </p>
             )}
 
-            <p className="text-[11px] italic leading-relaxed text-grey-mid">
-              Xoá trắng một ô là xoá luôn thông tin đó. Email không sửa ở đây — muốn đổi email thì
-              huỷ rồi ghi danh lại.
-            </p>
 
             <div className="flex justify-end gap-2">
               <button

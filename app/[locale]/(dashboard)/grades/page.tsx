@@ -258,9 +258,11 @@ export default async function GradesPage({
           <p className="font-display text-[16px] font-bold text-navy">
             {t('noTermTitle', {year: myClass.school_year})}
           </p>
-          <p className="mx-auto mt-2 max-w-[520px] text-[12.5px] font-semibold leading-relaxed text-grey-mid">
-            {canTerm ? t('noTermForLeader') : t('askLeadershipTerm')}
-          </p>
+          {canTerm && (
+            <p className="mx-auto mt-2 max-w-[520px] text-[12.5px] font-semibold leading-relaxed text-grey-mid">
+              {t('noTermForLeader')}
+            </p>
+          )}
         </div>
         {canTerm && (
           <TermCreateForm

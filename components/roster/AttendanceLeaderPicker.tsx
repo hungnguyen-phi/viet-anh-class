@@ -91,7 +91,6 @@ export function AttendanceLeaderPicker({
         </span>
       </div>
 
-      <p className="mt-1.5 text-[11.5px] font-semibold italic text-grey-mid">{t('leaderOnlyOne')}</p>
 
       {open && (
         <div className="mt-2.5 rounded-[12px] border-[1.5px] border-navy/12 bg-white/70 p-2">

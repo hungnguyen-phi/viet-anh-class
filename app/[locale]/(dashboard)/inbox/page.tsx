@@ -304,21 +304,17 @@ export default async function InboxPage({
             ? t('openLabelParent')
             : t('openLabelTeacher')
         }
-        hint={
-          laPhuHuynh
-            ? t('openHintParent')
-            : t('openHintTeacher')
-        }
+        hint={laPhuHuynh ? t('openHintParent') : undefined}
         nutMotLuaChon={(ten) => t('openOneBtn', {name: ten})}
         nutNhieuLuaChon={t('openManyBtn')}
       />
 
-      <p className="inline-flex items-start gap-1.5 text-[11px] italic text-grey-mid">
-        <ShieldCheck size={13} strokeWidth={2.5} className="mt-px shrink-0" />
-        {laPhuHuynh
-          ? t('privacyFootParent')
-          : t('privacyFootTeacher')}
-      </p>
+      {laPhuHuynh && (
+        <p className="inline-flex items-start gap-1.5 text-[11px] italic text-grey-mid">
+          <ShieldCheck size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+          {t('privacyFootParent')}
+        </p>
+      )}
     </div>
   );
 }

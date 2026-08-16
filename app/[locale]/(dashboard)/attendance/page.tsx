@@ -11,9 +11,7 @@ import {todayInVN} from '@/lib/dates';
 import {AttendanceTable} from '@/components/attendance/AttendanceTable';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {ClassOwnerNote} from '@/components/shell/ClassOwnerNote';
-import type {Database} from '@/lib/database.types';
 
-type Status = Database['public']['Enums']['attendance_status'];
 type EnrRow = {
   student_id: string;
   profiles: {id: string; full_name: string | null; email: string | null} | null;
@@ -114,15 +112,28 @@ export default async function AttendancePage({
     .map((e) => ({id: e.student_id, name: tenHienThi(e.profiles?.full_name, e.profiles?.email)}))
     .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
 
-  // Đợt 2: bản ghi điểm danh phụ thuộc `today` nên phải chờ đợt 1.
-  const {data: recs} = await supabase
-    .from('attendance_records')
-    .select('student_id, status')
+  // Đợt 2: CẢM XÚC VÀ GIỜ CHECK-IN của hôm nay (16/08/2026).
+  //
+  // Không đọc attendance_records nữa: từ 0127 bản ghi ấy SINH RA TỪ cú check-in, nên nó là bản
+  // sao của thứ ngay dưới đây — và bảng của cô thì cần đúng hai thứ em thật sự làm: bấm lúc mấy
+  // giờ, và hôm nay thấy thế nào.
+  const {data: moods} = await supabase
+    .from('mood_checkins')
+    .select('student_id, mood, buoi, created_at')
     .eq('class_id', myClass.id)
     .eq('date', today);
-  const initial: Record<string, Status> = {};
-  (recs ?? []).forEach((r) => {
-    initial[r.student_id] = r.status;
+
+  const dong = students.map((st) => {
+    const sang = (moods ?? []).find((m) => m.student_id === st.id && m.buoi !== 'chieu');
+    const chieu = (moods ?? []).find((m) => m.student_id === st.id && m.buoi === 'chieu');
+    return {
+      id: st.id,
+      name: st.name,
+      moodSang: sang?.mood ?? null,
+      gioSang: sang?.created_at ?? null,
+      moodChieu: chieu?.mood ?? null,
+      gioChieu: chieu?.created_at ?? null,
+    };
   });
 
   // CHỈ BGH VÀ ADMIN SỬA ĐƯỢC (0127). Tổ trưởng vẫn vào được màn này — nhưng để NHÌN ai chưa
@@ -236,9 +247,6 @@ export default async function AttendancePage({
           {dateNotice}
         </p>
       )}
-      {!canEdit && (
-        <p className="text-xs italic text-grey-mid">{t('readOnly')}</p>
-      )}
       {canEdit && (
         <p className="text-xs italic text-grey-mid">{t('tickAllHint')}</p>
       )}
@@ -248,9 +256,7 @@ export default async function AttendancePage({
         key={`${myClass.id}-${today}`}
         classId={myClass.id}
         today={today}
-        students={students}
-        initial={initial}
-        canEdit={canEdit}
+        students={dong}
       />
 
       {/* BẢNG CẢM XÚC ĐÃ BỎ KHỎI MÀN GIÁO VIÊN (quyết định chủ dự án).

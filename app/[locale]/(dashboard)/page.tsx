@@ -230,7 +230,7 @@ export default async function ClassPage({
               {isWinning ? t('class.winning') : t('class.losing')}
             </div>
             <p className="mt-0.5 text-[13px] font-bold text-white/85">
-              {isWinning ? t('class.winningDesc') : t('class.losingDesc')}
+              {isWinning ? t('class.winningDesc') : ''}
             </p>
           </div>
           <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-extrabold">
@@ -498,7 +498,6 @@ export default async function ClassPage({
         </div>
       </div>
 
-      <p className="text-xs italic text-grey-mid">{t('class.noWigDesc')}</p>
     </div>
   );
 }

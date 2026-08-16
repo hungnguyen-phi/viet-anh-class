@@ -2,8 +2,9 @@
 
 import {useActionState, useEffect, useState, type KeyboardEvent} from 'react';
 import {useTranslations} from 'next-intl';
-import {CheckCircle2, AlertCircle} from 'lucide-react';
+import {CheckCircle2, AlertCircle, Plus} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
+import {btnGhost} from '@/components/ui/Field';
 import {enrollStudent} from './actions';
 import {OThongTinHocSinh, THONG_TIN_RONG, type ThongTinHS} from './OThongTinHocSinh';
 
@@ -28,11 +29,21 @@ export function EnrollForm({classId}: {classId: string}) {
   const [email, setEmail] = useState('');
   const [v, setV] = useState<ThongTinHS>(THONG_TIN_RONG);
 
-  // Ghi danh thành công → xoá sạch form cho em tiếp theo.
+  // FORM NÀY MẶC ĐỊNH ĐÓNG (16/08/2026).
+  //
+  // Chủ dự án: "cái form ghi danh này có thể thu gọn, ẩn, đóng băng khi xong, đừng có hiện trơ
+  // trơ ra". Ghi danh là việc làm vài lần đầu năm; để một biểu mẫu sáu ô mở sẵn trên đầu danh
+  // sách nghĩa là mỗi ngày ai vào xem lớp cũng phải cuộn qua nó.
+  //
+  // Xong một em thì GẤP LẠI, không giữ mở: cú gấp ấy chính là câu "đã xong" — rõ hơn một dòng
+  // chữ báo thành công nằm dưới một biểu mẫu vẫn còn nguyên đó.
+  const [mo, setMo] = useState(false);
+
   useEffect(() => {
     if (state.ok) {
       setEmail('');
       setV(THONG_TIN_RONG);
+      setMo(false);
     }
   }, [state]);
 
@@ -52,6 +63,23 @@ export function EnrollForm({classId}: {classId: string}) {
       ? 'border-status-bad focus:border-status-bad'
       : 'border-navy/15 focus:border-navy';
 
+  if (!mo) {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => setMo(true)} className={btnGhost}>
+          <Plus size={15} strokeWidth={2.8} />
+          {t('enrollOpen')}
+        </button>
+        {state.ok && state.message && (
+          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-success-dark">
+            <CheckCircle2 size={14} strokeWidth={2.5} />
+            {state.message}
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <form action={formAction} onKeyDown={onKeyDown} className="glass rounded-[16px] p-3" noValidate>
       <input type="hidden" name="class_id" value={classId} />
@@ -59,7 +87,7 @@ export function EnrollForm({classId}: {classId: string}) {
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <label className={lbl} htmlFor="enroll-email">
-            {t('enrollLabel')} *
+            {t('enrollLabel')} <span className="text-status-bad">*</span>
           </label>
           <input
             id="enroll-email"
@@ -96,10 +124,14 @@ export function EnrollForm({classId}: {classId: string}) {
         </div>
       </div>
 
-      <p className="mt-2 text-[11px] italic text-grey-mid">
-        Chỉ email là bắt buộc. Điền thêm được tới đâu thì tới — em chưa có tài khoản vẫn ghi danh
-        được và sẽ hiện ngay trong danh sách với nhãn “chưa đăng nhập”.
-      </p>
+
+      <button
+        type="button"
+        onClick={() => setMo(false)}
+        className="mt-2 cursor-pointer text-[12px] font-extrabold text-grey-mid underline"
+      >
+        {t('enrollClose')}
+      </button>
 
       {/* Lỗi chung (không gắn field cụ thể) */}
       {state.error && !state.fieldError && (

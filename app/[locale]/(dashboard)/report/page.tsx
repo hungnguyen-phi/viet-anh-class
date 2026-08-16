@@ -198,7 +198,6 @@ export default async function ReportPage({
                 nowTag={t('thisWeek')}
               />
             )}
-            <span className="text-[10.5px] font-semibold italic text-grey-mid">{t('readOnly')}</span>
           </div>
         </div>
       </div>

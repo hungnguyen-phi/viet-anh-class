@@ -230,9 +230,6 @@ export default async function TimetablePage({
           Thực ra app đã cố định sẵn từ đầu — lưới này lặp cho mọi tuần, ô chọn tuần chỉ để đánh
           dấu huỷ/dời/dạy thay cho một ngày cụ thể. Đây là lỗi diễn đạt của màn hình chứ không
           thiếu tính năng, nên sửa chữ. */}
-      <p className="text-[12px] font-semibold leading-[1.55] text-grey-mid">
-        {t('repeatNote')}
-      </p>
 
       {/* Điều hướng tuần + chú thích màu */}
       <div className="flex flex-wrap items-center gap-2">
