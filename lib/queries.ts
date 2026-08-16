@@ -1,4 +1,5 @@
 import type {SupabaseClient} from '@supabase/supabase-js';
+import {nho} from '@/lib/dem-ram';
 import type {Database} from '@/lib/database.types';
 import type {Profile} from '@/lib/auth';
 import {tenHienThi} from '@/lib/ten-hien-thi';
@@ -209,13 +210,18 @@ export async function getClassContext(
   // campuses(name) đi kèm luôn: trang chủ vốn phải hỏi RIÊNG một câu `classes` nữa chỉ để lấy
   // TÊN CƠ SỞ (audit tốc độ 10/08/2026). Một cột join thêm ở câu đã chạy sẵn rẻ hơn nhiều so với
   // một vòng mạng — mà trên đường này mỗi vòng mạng là ~225ms.
-  let q = supabase
-    .from('classes')
-    .select('*, grades(name, sort_order), campuses(name)')
-    .eq('is_active', true);
-  if (profile.role === 'teacher') q = q.eq('homeroom_teacher_id', profile.id);
-  const {data} = await q.order('name');
-  const rows = (data ?? []) as unknown as ClassRowWithGrade[];
+  // NHỚ 60 GIÂY TRONG RAM (lib/dem-ram.ts): danh sách lớp của một người đổi vài lần một năm, mà
+  // câu này đứng thứ hai trong chuỗi nối tiếp của mọi trang nhân sự. Khoá theo vai + id người
+  // (RLS lọc theo đúng hai thứ ấy). Màn quản trị ghi vào `classes` thì gọi quen('lop:').
+  const rows = await nho(`lop:${profile.role}:${profile.id}`, 60_000, async () => {
+    let q = supabase
+      .from('classes')
+      .select('*, grades(name, sort_order), campuses(name)')
+      .eq('is_active', true);
+    if (profile.role === 'teacher') q = q.eq('homeroom_teacher_id', profile.id);
+    const {data} = await q.order('name');
+    return (data ?? []) as unknown as ClassRowWithGrade[];
+  });
 
   const classes = rows.map((r) => toOption(r as unknown as RawClass)).sort(sortByGradeThenName);
 

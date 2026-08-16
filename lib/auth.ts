@@ -1,6 +1,7 @@
 import {cache} from 'react';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
+import {nho} from '@/lib/dem-ram';
 import type {Database} from '@/lib/database.types';
 
 export type Role = Database['public']['Enums']['user_role'];
@@ -46,17 +47,22 @@ export const getUserId = cache(async (): Promise<string | null> => {
   return data?.claims?.sub ?? null;
 });
 
+// HÀNG `profiles` NHỚ 60 GIÂY TRONG RAM (lib/dem-ram.ts, 16/08/2026): đây là vòng đi-về đứng đầu
+// MỌI trang, mà vai trò của một người thì đổi vài lần một năm. Đổi vai/xoá người ở màn quản trị
+// gọi quen('profile:') nên không ai bị kẹt vai cũ 60 giây. Khoá theo userId — không lẫn người.
 export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const {data} = await supabase.auth.getClaims();
   const userId = data?.claims?.sub;
   if (!userId) return null;
-  const {data: profile} = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
-  return profile ?? null;
+  return nho(`profile:${userId}`, 60_000, async () => {
+    const {data: profile} = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+    return profile ?? null;
+  });
 });
 
 // Dùng trong layout/page server: bắt buộc đã đăng nhập + đã được cấp quyền.
