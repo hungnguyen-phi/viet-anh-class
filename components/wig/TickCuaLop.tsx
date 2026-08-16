@@ -2,7 +2,6 @@
 
 import {useOptimistic, useState, useTransition} from 'react';
 import {useRouter} from '@/i18n/navigation';
-import {useTranslations} from 'next-intl';
 import {Loader2} from 'lucide-react';
 import {createClient} from '@/lib/supabase/client';
 
@@ -46,7 +45,6 @@ export function TickCuaLop({
   moKhoa: boolean;
   dayShort: string[];
 }) {
-  const t = useTranslations('wig');
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [, startTransition] = useTransition();
@@ -119,9 +117,6 @@ export function TickCuaLop({
           </button>
         );
       })}
-      <span className="text-[11.5px] font-bold text-grey-mid">
-        {t('classTickHint', {n: view.length, tong: days.length})}
-      </span>
     </div>
   );
 }

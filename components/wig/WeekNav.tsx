@@ -1,7 +1,9 @@
 import {getTranslations} from 'next-intl/server';
-import {ChevronLeft, ChevronRight, CalendarDays, RotateCcw} from 'lucide-react';
+import {CalendarDays, RotateCcw} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {shiftWeeks} from '@/lib/dates';
+import {btnGhost} from '@/components/ui/Field';
+import {NutChuyenTuan} from '@/components/wig/NutChuyenTuan';
 
 // Thanh chọn TUẦN của trang /wig — ← tuần trước · tuần đang xem · tuần sau →
 //
@@ -60,16 +62,19 @@ export async function WeekNav({
   // 'YYYY-MM-DD' → '03/08'. Cắt chuỗi, không qua Date: chuỗi đã đúng lịch VN rồi.
   const dm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
-  // Cùng chiều cao ctl-h (44px) với mọi điều khiển khác — xem ghi chú ở components/ui/Field.
-  const nut =
-    'ctl-h inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy';
+  // DÙNG NÚT CHUẨN CỦA APP, không chép tay lại.
+  //
+  // Bản cũ tự dựng một chuỗi class gần giống `btnGhost` nhưng lệch cỡ chữ (12.5 thay vì 13) và
+  // lệch padding (px-3 thay vì px-4) — đủ để hai nút này trông khác mọi nút khác trên cùng trang,
+  // và chủ dự án nhìn ra ngay ("2 nút đó có màu khác đi"). Một bản chép tay của một style dùng
+  // chung là một chỗ để nó trôi khỏi bản gốc, và nó đã trôi.
+  const nut = `${btnGhost} shrink-0`;
 
   return (
     <section className="glass rounded-[20px] p-3">
       <div className="flex flex-wrap items-center justify-center gap-2">
         <Link href={href(shiftWeeks(monday, -1))} className={nut} aria-label={t('weekPrev')}>
-          <ChevronLeft size={17} strokeWidth={2.5} />
-          <span className="hidden sm:inline">{t('weekPrev')}</span>
+          <NutChuyenTuan huong="truoc" nhan={t('weekPrev')} />
         </Link>
 
         <div className="flex min-w-0 flex-1 flex-col items-center px-1 text-center">
@@ -90,8 +95,7 @@ export async function WeekNav({
         </div>
 
         <Link href={href(shiftWeeks(monday, 1))} className={nut} aria-label={t('weekNext')}>
-          <span className="hidden sm:inline">{t('weekNext')}</span>
-          <ChevronRight size={17} strokeWidth={2.5} />
+          <NutChuyenTuan huong="sau" nhan={t('weekNext')} />
         </Link>
       </div>
 

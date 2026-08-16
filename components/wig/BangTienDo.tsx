@@ -195,7 +195,6 @@ export function BangTienDo({
                     em đang làm đúng (MucTieuCuaCon). */}
                 {laManual ? (
                   <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-grey-mid">
-                    <span>{t('outsideApp')}</span>
                     {d.achievedAt ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
                         <Check size={11} strokeWidth={3} />
@@ -218,11 +217,8 @@ export function BangTienDo({
                     />
                   </div>
                 )}
-                {d.id && d.baseline != null && (
-                  <p className="mt-1 text-[10.5px] font-semibold text-grey-mid">
-                    {t('from')} {d.baseline} → {d.target} {d.unit}
-                  </p>
-                )}
+                {/* Dòng "Từ 6 → 8 điểm" đã bỏ (16/08/2026): tiêu đề mục tiêu ngay trên đã ghi
+                    đúng câu ấy ("Điểm trung bình thể lực từ 6 lên 8"), nên đây là nhắc lại. */}
                 {/* Ô SỐ ĐO CỦA TUẦN — chỉ ở dòng NĂM, và chỉ với đích ghi-nhận-ngoài.
                     Chủ dự án chốt 14/08/2026: kg/điểm không nhập hằng ngày; điền lại mỗi tuần,
                     đúng nhịp buổi họp. Ô này đã có sẵn ở màn của em từ 0108 (wig_so_do khoá theo

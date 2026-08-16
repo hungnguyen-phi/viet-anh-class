@@ -1,5 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
-import {AlertTriangle, ArrowRight, Check, Users} from 'lucide-react';
+import {ArrowRight, Check} from 'lucide-react';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
@@ -91,7 +91,6 @@ type Prog = {
   measure_by: string | null;
   achieved_at: string | null;
 };
-type MatrixRow = {student_id: string; ticked_dates: string[] | null};
 
 export default async function WigPage({
   params,
@@ -140,7 +139,6 @@ export default async function WigPage({
     {data: wigsData},
     {data: progData},
     {data: enrolled},
-    {data: matrixData},
     {data: hopRoi},
     {data: soDoData},
     {data: tuanNayDaHop},
@@ -174,7 +172,6 @@ export default async function WigPage({
       // Ma trận (em × việc) của tuần đang xem — chỉ để đếm "mấy em chưa tick lần nào". Đó là con
       // số DUY NHẤT trên màn này đòi hành động ngay, nên đáng một lượt hỏi; phần chi tiết ai quên
       // hôm nào thì nằm ở /wig/chi-tiet.
-      supabase.rpc('class_tick_matrix', {p_class: myClass.id, p_week_start: monday}),
       // Tuần vừa xong đã họp chưa — quyết định câu chữ trên nút mở phòng họp.
       supabase
         .from('wig_meetings')
@@ -247,14 +244,8 @@ export default async function WigPage({
   // ── MẤY EM CHƯA TICK LẦN NÀO ──────────────────────────────────────────────────────────────
   // Tuần chưa bắt đầu thì KHÔNG báo động: chưa tới ngày nào để tick, đỏ ở đây là báo động giả và
   // làm nhờn cảnh báo thật của tuần đang chạy.
-  const matrix = (matrixData ?? []) as MatrixRow[];
-  const theoEm = new Map<string, number>();
-  for (const m of matrix) {
-    theoEm.set(m.student_id, (theoEm.get(m.student_id) ?? 0) + (m.ticked_dates ?? []).length);
-  }
-  const daGop = [...theoEm.values()].filter((n) => n > 0).length;
-  const coViecTrongTuan = matrix.length > 0;
-  const chuaLam = coViecTrongTuan ? theoEm.size - daGop : 0;
+  // (Cả khối đếm "em × việc chung" đã gỡ cùng dòng chữ nó nuôi: từ 16/08 việc chung do CÔ tick,
+  //  nên một bảng đếm xem em nào đã tick việc chung là đếm một việc không ai được làm.)
   const tuanChuaToi = monday > todayVN;
 
   // ── CẢNH BÁO ĐẶT SAI (0076/0078) ──────────────────────────────────────────────────────────
@@ -642,19 +633,10 @@ export default async function WigPage({
             })
           )}
 
-          {/* Một dòng duy nhất tổng kết cả lớp — và chỉ hiện khi nó có nghĩa. */}
-          {coViecTrongTuan && !tuanChuaToi && (
-            <p className="flex flex-wrap items-center gap-1.5 border-t border-navy/[0.08] pt-3 text-[12px] font-semibold text-grey-mid">
-              <Users size={13} strokeWidth={2.5} className="shrink-0" />
-              {t('tickSummary', {n: daGop, total: theoEm.size})}
-              {chuaLam > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-status-bad/[0.10] px-2 py-0.5 text-[11px] font-extrabold text-status-bad">
-                  <AlertTriangle size={11} strokeWidth={2.5} />
-                  {t('tickBoardSilent', {n: chuaLam})}
-                </span>
-              )}
-            </p>
-          )}
+          {/* Dòng "n/m em đã tick trong tuần này" đã bỏ (16/08/2026).
+              Hai lý do, và lý do thứ hai mới là lý do thật: (1) chủ dự án muốn bớt chữ nhỏ;
+              (2) từ hôm nay VIỆC CHUNG DO CÔ TICK, em không còn tick nó nữa — nên câu "0/7 em đã
+              tick" vĩnh viễn đọc là 0/7 và tố cáo cả lớp về một việc không ai được làm. */}
           {tuanChuaToi && (
             <p className="border-t border-navy/[0.08] pt-3 text-[12px] font-semibold text-grey-mid">
               {t('tickBoardNotStarted')}

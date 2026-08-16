@@ -71,8 +71,7 @@ export function ViecTuan({
   // 'none' | 'them'. Không còn nhánh "đang sửa việc nào": việc dẫn dắt khoá ngay khi thêm (0129).
   const [mo, setMo] = useState<'none' | 'them'>('none');
 
-  const thu = (w: number[] | null) =>
-    (w ?? [1, 2, 3, 4, 5, 6, 7]).map((d) => dayShort[d - 1]).join(' · ');
+  // (Hàm `thu` đã gỡ cùng dòng chữ liệt kê thứ: hàng ô ngày nói việc ấy bằng hình.)
 
   if (mo === 'them') {
     return (
@@ -105,11 +104,9 @@ export function ViecTuan({
             moKhoa={moKhoa}
             dayShort={dayShort}
           />
-          <div className="mt-1 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
-            {v.target_value} {v.unit ?? ''} · {thu(v.active_weekdays)}
-            <br />
-            {t('perTickShort', {n: Number(v.unit_per_tick ?? 1), unit: wigUnit})}
-          </div>
+          {/* Dòng "5 lần · T2 · T3 · T4 · T5 · T6" và "mỗi lần 1" đã bỏ (16/08/2026, chủ dự án
+              chỉ định). Hàng ô ngày ngay trên đã nói cả hai điều ấy bằng hình: có mấy ô là mấy
+              ngày, ô nào sáng là ngày nào. Viết lại bằng chữ là kể lại thứ mắt vừa thấy. */}
 
           {/* Cảnh báo, KHÔNG phải rào chắn: giáo viên vẫn lưu được, chỉ là từ nay họ nhìn thấy. */}
           {v.quaNhieu && (
