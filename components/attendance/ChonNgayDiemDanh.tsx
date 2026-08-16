@@ -29,6 +29,7 @@ export function ChonNgayDiemDanh({
         name="date"
         nhan="Chọn ngày"
         value={gt}
+        max={toiDa}
         onChange={(iso) => {
           setGt(iso);
           // ONgayVN trả '' khi chưa đủ ba ô; đủ rồi mà là ngày chưa tới thì thôi.

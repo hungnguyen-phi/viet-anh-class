@@ -1,10 +1,15 @@
 'use client';
 
-import {useId, useRef, useState, type ChangeEvent} from 'react';
-import {inputCls} from '@/components/ui/Field';
+import {LichVN} from '@/components/ui/LichVN';
 export {ngayVN} from '@/lib/dates';
 
-// Ô NGÀY KIỂU VIỆT NAM — ngày / tháng / năm, ba ô có nhãn.
+// Ô NGÀY KIỂU VIỆT NAM — từ 16/08/2026 là LỊCH BẤM CHỌN (LichVN), không còn ba ô gõ số.
+//
+// Chủ dự án: "phải nhập ngày/tháng/năm thay vì có cái lịch rồi chọn không sướng hơn à?". Giữ
+// nguyên tên hàm và props (name/value/onChange/nhan) nên ba nơi gọi không đổi; hai hàm taiNgay /
+// ghepNgay giữ lại cho chỗ nào còn ghép ngày tay.
+//
+// (Ghi chú cũ, vẫn đúng về LÝ DO không dùng <input type="date">:)
 //
 // VÌ SAO KHÔNG DÙNG <input type="date">: thứ tự hiện ra của ô đó chạy theo ngôn ngữ của TRÌNH
 // DUYỆT chứ không theo ngôn ngữ của trang. Chrome cài tiếng Anh — mặc định của gần như mọi máy
@@ -41,85 +46,28 @@ export function ONgayVN({
   onChange,
   nhan,
   loi = false,
-  chuNgay = 'Ngày',
-  chuThang = 'Tháng',
-  chuNam = 'Năm',
+  min,
+  max,
 }: {
   /** Tên trường gửi lên máy chủ — nhận chuỗi yyyy-mm-dd qua ô ẩn. */
   name: string;
   /** ISO yyyy-mm-dd, hoặc '' khi chưa chọn. */
   value: string;
   onChange: (iso: string) => void;
-  /** Nhãn của cả nhóm, cho trình đọc màn hình gọi đúng tên từng ô con. */
+  /** Nhãn của cả nhóm, cho trình đọc màn hình gọi đúng tên. */
   nhan: string;
   loi?: boolean;
+  min?: string;
+  max?: string;
+  /** @deprecated ba nhãn ô cũ — lịch không còn ba ô, giữ để nơi gọi cũ không vỡ kiểu. */
   chuNgay?: string;
   chuThang?: string;
   chuNam?: string;
 }) {
-  const id = useId();
-  const oThang = useRef<HTMLInputElement>(null);
-  const oNam = useRef<HTMLInputElement>(null);
-  // BA Ô LÀ NGUỒN THẬT của chữ đang gõ, không phải `value`.
-  //
-  // `value` chỉ mang ngày ĐÃ ghép được. Nếu ba ô đọc thẳng từ nó thì lúc mới gõ "3" vào ô tháng
-  // (chưa thành ngày nào cả) chữ vừa gõ sẽ biến mất ngay dưới tay người đang gõ.
-  const [phan, setPhan] = useState(() => taiNgay(value));
-  const doi = (k: 'day' | 'month' | 'year') => (e: ChangeEvent<HTMLInputElement>) => {
-    const so = e.target.value.replace(/\D/g, '').slice(0, k === 'year' ? 4 : 2);
-    const moi = {...phan, [k]: so};
-    setPhan(moi);
-    // Gõ đủ hai số ngày/tháng thì nhảy sang ô kế — cùng nhịp với ô ngày sinh ở trang hồ sơ.
-    if (k === 'day' && so.length === 2) oThang.current?.focus();
-    if (k === 'month' && so.length === 2) oNam.current?.focus();
-    onChange(ghepNgay(moi.day, moi.month, moi.year));
-  };
-
-  const o = `${inputCls} w-full text-center${loi ? ' border-status-bad' : ''}`;
   return (
-    <div role="group" aria-labelledby={`${id}-nhan`} className="flex items-center gap-1.5">
-      <span id={`${id}-nhan`} className="sr-only">
-        {nhan}
-      </span>
+    <>
       <input type="hidden" name={name} value={value} />
-      <input
-        aria-label={`${nhan} — ${chuNgay}`}
-        aria-invalid={loi || undefined}
-        inputMode="numeric"
-        maxLength={2}
-        placeholder={chuNgay}
-        value={phan.day}
-        onChange={doi('day')}
-        className={`${o} max-w-[110px]`}
-      />
-      <span aria-hidden className="text-sm font-bold text-grey-soft">
-        /
-      </span>
-      <input
-        ref={oThang}
-        aria-label={`${nhan} — ${chuThang}`}
-        aria-invalid={loi || undefined}
-        inputMode="numeric"
-        maxLength={2}
-        placeholder={chuThang}
-        value={phan.month}
-        onChange={doi('month')}
-        className={`${o} max-w-[110px]`}
-      />
-      <span aria-hidden className="text-sm font-bold text-grey-soft">
-        /
-      </span>
-      <input
-        ref={oNam}
-        aria-label={`${nhan} — ${chuNam}`}
-        aria-invalid={loi || undefined}
-        inputMode="numeric"
-        maxLength={4}
-        placeholder={chuNam}
-        value={phan.year}
-        onChange={doi('year')}
-        className={`${o} max-w-[120px]`}
-      />
-    </div>
+      <LichVN value={value} onChange={onChange} nhan={nhan} loi={loi} min={min} max={max} />
+    </>
   );
 }
