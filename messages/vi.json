@@ -787,7 +787,8 @@
     "enterMeetingRoom": "Vào phòng họp WIG",
     "classMinutes": "Biên bản họp của lớp",
     "classPromise": "Cả lớp hứa",
-    "luongOLabel": "làm được bao nhiêu (không bắt buộc)"
+    "luongOLabel": "làm được bao nhiêu (không bắt buộc)",
+    "olderWeeks": "{n} tuần trước đó"
   },
   "campusReport": {
     "title": "Báo cáo cơ sở",
@@ -1331,6 +1332,12 @@
     "dayPart": "Ngày",
     "monthPart": "Tháng",
     "yearPart": "Năm",
-    "readingAskClass": "Số của lớp tuần này"
+    "readingAskClass": "Số của lớp tuần này",
+    "weekAmount": "Tuần này bạn mong muốn đạt bao nhiêu {unit}?",
+    "eachTimeVaries": "Mỗi lần một khác — bạn tự điền số mỗi ngày",
+    "perTick": "Mỗi lần bạn làm được bao nhiêu {unit}?",
+    "perTickSum": "{n} lần × {moi} = {tuan} {unit} tuần này.",
+    "addGoal": "Thêm mục tiêu",
+    "addGoalFor": "Đặt mục tiêu cho em"
   }
 }

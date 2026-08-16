@@ -787,7 +787,8 @@
     "enterMeetingRoom": "Open the WIG meeting room",
     "classMinutes": "Class meeting minutes",
     "classPromise": "The class promises",
-    "luongOLabel": "how much (optional)"
+    "luongOLabel": "how much (optional)",
+    "olderWeeks": "{n} earlier weeks"
   },
   "campusReport": {
     "title": "Campus report",
@@ -1331,6 +1332,12 @@
     "dayPart": "Day",
     "monthPart": "Month",
     "yearPart": "Year",
-    "readingAskClass": "The class number this week"
+    "readingAskClass": "The class number this week",
+    "weekAmount": "How many {unit} do you aim for this week?",
+    "eachTimeVaries": "Varies each time — you enter the number each day",
+    "perTick": "How many {unit} per time?",
+    "perTickSum": "{n} times × {moi} = {tuan} {unit} this week.",
+    "addGoal": "Add a goal",
+    "addGoalFor": "Set a goal for this student"
   }
 }

@@ -10,9 +10,9 @@ import {
   recentWeekLabels,
   weekDaysVN,
   isoDowVN,
+  vnNoon,
 } from '@/lib/dates';
 import {kieuDonVi} from '@/lib/don-vi';
-import {DonutRing} from '@/components/charts/DonutRing';
 import {MoodCheckin, MoodGate, type MoodKey} from '@/components/student/MoodCheckin';
 import {LeadTicker, type TickerLead} from '@/components/student/LeadTicker';
 import {StudentMeetings, type StudentMeeting} from '@/components/student/StudentMeetings';
@@ -24,11 +24,10 @@ import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox'
 import {EditRequestButton} from '@/components/student/EditRequestButton';
 import {MucTieuCuaCon, type MucTieuCuaEm, type SoDoCuaTuan} from '@/components/student/MucTieuCuaCon';
 import {NghePhongHop} from '@/components/wig/NghePhongHop';
-import {SoCuaCon, type TrangSo} from '@/components/student/SoCuaCon';
-import {MeetingScoreboard} from '@/components/wig/MeetingScoreboard';
+import {CamKetCuaEm} from '@/components/wig/CamKetCuaEm';
 import {ArrowRight, Users} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
-import {AREAS, areaLabel, areaIcon, type Area} from '@/lib/areas';
+import {areaLabel, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
 import {tenHienThi} from '@/lib/ten-hien-thi';
 
@@ -55,6 +54,8 @@ type LeadRow = {
   // wig_id chỉ khối quản lý dùng (gom việc theo từng WIG tuần) — có ở đây vì một câu
   // lead_measures duy nhất nay phục vụ cả bảng tick lẫn khối quản lý.
   wig_id: string;
+  // 0121/0137 — việc treo dưới CAM KẾT tuần; dùng để xếp việc vào đúng thẻ mục tiêu năm.
+  commitment_id: string | null;
   title: string;
   target_value: number;
   unit: string | null;
@@ -91,10 +92,6 @@ export async function StudentScoreboard({
   flash?: string;
 }) {
   const t = await getTranslations('student');
-  const tc = await getTranslations('class');
-  // Đích ghi-nhận-ngoài dùng chung chữ Đạt/Chưa đạt với khối "Mục tiêu của con" ngay dưới —
-  // hai cách gọi cho một trạng thái là hai chỗ để trôi khỏi nhau.
-  const tg = await getTranslations('goal');
   const tSW = await getTranslations('studentWig');
   const tm = await getTranslations('meeting');
   const supabase = await createClient();
@@ -239,14 +236,6 @@ export async function StudentScoreboard({
   const weekRows = rows
     .filter((r) => r.period === 'week')
     .sort((a, b) => a.end_date.localeCompare(b.end_date));
-  const wigByArea = new Map(yearRows.map((r) => [r.area, r]));
-  const areaCoMucTieu = AREAS.filter((a) => wigByArea.has(a));
-  const weeksByArea = new Map<string, WigRow[]>();
-  for (const w of weekRows) {
-    const arr = weeksByArea.get(w.area) ?? [];
-    arr.push(w);
-    weeksByArea.set(w.area, arr);
-  }
 
   // Bảng "tick hằng ngày" chỉ được chứa lead measure của WIG TUẦN NÀY.
   // Trước đây lấy mọi WIG tuần (W29, W30, W31…) nên cùng một việc hiện nhiều dòng với số đếm
@@ -271,18 +260,6 @@ export async function StudentScoreboard({
   //     Mục tiêu của em nay sống cả học kỳ chứ không đẻ lại mỗi tuần, nên nếu chỉ hỏi WIG tuần
   //     thì bảng tick của em trống trơn trong khi em vừa tự đặt việc xong.
   const weekIds = [...wigTuanNay.map((w) => w.wig_id), ...yearRows.map((w) => w.wig_id)];
-  // Bảng điểm "cầm mà họp" ở cuối trang đọc từ ĐÂY, không tự hỏi lại CSDL nữa: cùng dải ngày,
-  // cùng dữ liệu, mà bớt được hai tầng chờ sâu nhất trang (xem MeetingScoreboard).
-  //
-  // MỤC TIÊU NĂM CŨNG TÍNH — nếu không thì bảng này vĩnh viễn trống. Từ 0100 em KHÔNG còn WIG
-  // tuần; mục tiêu của em sống cả học kỳ (period='year'). Bản cũ chỉ đọc `wigTuanNay`, tức là
-  // chỉ đọc một loại dữ liệu CSDL đã thôi sinh ra — nên "Bảng tuần này" luôn báo "Chưa có số
-  // liệu WIG của tuần này" ngay cả khi em vừa đặt mục tiêu và đang tick đều. Vẫn giữ WIG tuần
-  // đời cũ trong phép gộp: dữ liệu trước 0100 còn nguyên và vẫn phải đọc được.
-  const wonByArea = new Map(
-    [...wigTuanNay, ...yearRows].map((w) => [w.area, Number(w.pct ?? 0) >= 1]),
-  );
-
 
   const campusId = cls?.campus_id ?? null;
   const canGoiCong = canEditMood && mood === null;
@@ -301,7 +278,7 @@ export async function StudentScoreboard({
   // MỐC THÁNG ĐÃ BỎ (0121): `wig_chi_con_nam_ck` cấm period='month', nên truy vấn mốc tháng ở đây
   // không bao giờ trả về dòng nào — một vòng đi–về tới CSDL trên MỌI lần em mở trang, đổi lấy một
   // dòng chữ không bao giờ hiện. Cả chuỗi mocThang* gỡ theo, ở cả MucTieuCuaCon.
-  const [cuaSoRes, ipRes, mangRes, daHopRes, leadRes, mucTieuRes, soDoRes, wigLopRes, soRes, hopLopRes] =
+  const [cuaSoRes, ipRes, mangRes, daHopRes, leadRes, mucTieuRes, soDoRes, wigLopRes, , hopLopRes, ckTuanRes] =
     await Promise.all([
     // CỬA SỔ CHECK-IN của cơ sở em đang học. Lấy một lần, dùng cho cả buổi sáng lẫn buổi chiều.
     // Null khi em chưa có lớp (chưa biết cơ sở) → giao diện giữ nguyên hành vi cũ, không khoá gì.
@@ -347,7 +324,7 @@ export async function StudentScoreboard({
       ? supabase
           .from('lead_measures')
           .select(
-            'id, wig_id, title, target_value, unit, active_weekdays, unit_per_tick, nhap_luong, lead_progress(id, value, logged_date, created_at, logged_by, student_id), commitments!inner(week_start)',
+            'id, wig_id, commitment_id, title, target_value, unit, active_weekdays, unit_per_tick, nhap_luong, lead_progress(id, value, logged_date, created_at, logged_by, student_id), commitments!inner(week_start)',
           )
           .in('wig_id', weekIds)
           .eq('commitments.week_start', weekDays[0])
@@ -381,7 +358,7 @@ export async function StudentScoreboard({
     classId
       ? supabase
           .from('wigs')
-          .select('id, area, title')
+          .select('id, area, title, unit')
           .eq('class_id', classId)
           .eq('scope', 'class')
           .eq('period', 'year')
@@ -390,18 +367,8 @@ export async function StudentScoreboard({
           // nhìn thấy loại này (0116).
           .neq('measure_by', 'cuon')
       : Promise.resolve({data: null}),
-    // SỔ CỦA CON — tuần này VÀ các tuần đã viết.
-    //
-    // Trước 12/08/2026 chỗ này chỉ lấy đúng dòng của tuần đang chạy, nên sáng thứ Hai em mở ra
-    // thấy ô trống và không có đường nào đọc lại chữ tuần trước — chữ vẫn nằm nguyên trong CSDL,
-    // chỉ là không màn nào hỏi tới. Nay lấy cả xấp, mới nhất trước. Chặn 20 tuần: đủ gần hết một
-    // học kỳ, mà không để một em viết đều ba năm kéo theo một cục dữ liệu mỗi lần mở trang.
-    supabase
-      .from('student_reflections')
-      .select('week_start, body')
-      .eq('student_id', studentId)
-      .order('week_start', {ascending: false})
-      .limit(20),
+    // (Sổ của con — student_reflections — thôi đọc ở đây 16/08/2026: khối đã bỏ khỏi màn.)
+    Promise.resolve({data: null}),
     // BIÊN BẢN HỌP CỦA CẢ LỚP (student_id null). Trước 13/08/2026 em chỉ thấy dòng riêng của
     // mình, nên buổi họp xong là chiêm nghiệm và LỜI HỨA của cả lớp biến mất khỏi màn hình em —
     // trong khi đó chính là thứ 4DX bảo cả nhóm phải nhìn thấy suốt tuần. RLS đã cho học sinh
@@ -415,8 +382,17 @@ export async function StudentScoreboard({
           .order('week_start', {ascending: false})
           .limit(3)
       : Promise.resolve({data: null}),
+    // CAM KẾT TUẦN NÀY CỦA EM — trục nối mục tiêu năm với việc để tick (0121/0138). Mỗi cam kết
+    // treo vào một mục tiêu (của lớp hoặc của chính em); thẻ mục tiêu năm bày cam kết + việc của nó.
+    supabase
+      .from('commitments')
+      .select('id, title, status, wig_id, verdict')
+      .eq('student_id', studentId)
+      .eq('week_start', weekDays[0])
+      .order('created_at'),
   ]);
   const leadData = leadRes.data;
+  const ckTuan = (ckTuanRes.data ?? []) as {id: string; title: string; status: string; wig_id: string; verdict: string | null}[];
 
   const cuaSoRaw = Array.isArray(cuaSoRes.data) ? cuaSoRes.data[0] : cuaSoRes.data;
   const cuaSo: {
@@ -496,21 +472,6 @@ export async function StudentScoreboard({
 
   const leadRows = (leadData ?? []) as unknown as LeadRow[];
 
-  // "Việc đã xong: 3/5" của bảng điểm họp — tính TẠI ĐÂY từ dữ liệu vừa lấy, thay cho một truy
-  // vấn lead_measures thứ hai ở tầng sâu nhất trang.
-  //
-  // Tick phải nằm trong TUẦN đang xét: không ràng thì một việc đã đạt ở tuần trước vẫn được đếm
-  // "hoàn thành" cho tuần này, và buổi họp đọc ra một con số không thuộc về tuần mình đang bàn.
-  // unit_per_tick (0076): một lượt tick đáng bao nhiêu đơn vị của mục tiêu — không nhân thì bảng
-  // họp hiện 3 trong khi thanh tiến độ ngay trên nó hiện 90.
-  const leadsTotal = leadRows.length;
-  const leadsDone = leadRows.filter((l) => {
-    const moiTick = Number(l.unit_per_tick ?? 1) || 1;
-    const dat = (l.lead_progress ?? [])
-      .filter((p) => p.logged_date >= tuanNay.dau && p.logged_date <= tuanNay.cuoi)
-      .reduce((s, p) => s + Number(p.value ?? 0) * moiTick, 0);
-    return Number(l.target_value) > 0 && dat >= Number(l.target_value);
-  }).length;
 
   // 7 ngày của tuần → còn những THỨ mà việc đó áp dụng (0073). Trước đây bảng tick luôn bày đủ
   // T2…CN cho mọi việc, kể cả việc chỉ làm ở lớp — em không biết cuối tuần có phải tick không.
@@ -535,6 +496,7 @@ export async function StudentScoreboard({
   const tickerLeads: TickerLead[] = [
     ...leadRows.map((l) => ({
       id: l.id,
+      commitmentId: l.commitment_id ?? null,
       title: l.title,
       target: Number(l.target_value),
       unit: l.unit,
@@ -685,10 +647,79 @@ export async function StudentScoreboard({
     };
   }
   // Sổ của con — mới nhất trước; thẻ tự tách trang của tuần đang chạy ra khỏi phần lịch sử.
-  const trangSo = (soRes.data ?? []) as TrangSo[];
   const wigLopChon = ((wigLopRes.data ?? []) as {id: string; area: string; title: string | null}[]).map(
     (w) => ({id: w.id, area: w.area, title: w.title ?? w.area}),
   );
+
+  // ── CÂY: MỤC TIÊU NĂM → CAM KẾT TUẦN NÀY → VIỆC (16/08/2026) ──────────────────────────────
+  //
+  // Chủ dự án: "mỗi em đều có wig năm, dưới wig năm chính là lead measures và cam kết tuần để thực
+  // hiện điều đó… chứ không phải chắp vá như hiện tại". Nên mỗi thẻ mục tiêu năm mang đúng nhánh của
+  // nó: cam kết em đã hứa tuần này (treo vào chính mục tiêu ấy, hoặc vào trận đánh của lớp mà mục
+  // tiêu ấy góp vào — 0138), và dưới cam kết là việc để tick / điền số. Không còn khối "Việc làm
+  // đều" đứng riêng đầu trang, không còn dãy vòng % đứng riêng — cả hai đã vào thẻ.
+  const pctTheoWig: Record<string, number> = Object.fromEntries(
+    yearRows.map((w) => [w.wig_id, Number(w.pct ?? 0)]),
+  );
+  const nhanTuanNay = isoWeekLabel(vnNoon(weekDays[0]));
+  const dayShort = t.raw('dayShort') as string[];
+  // Trận đánh em chọn được khi hứa: mục tiêu năm của lớp + mục tiêu năm của chính em (0138).
+  const tranDanh = [
+    ...wigLopChon,
+    ...mucTieuCuaEm.map((m) => ({id: m.id, area: m.area, title: m.title, unit: m.unit})),
+  ];
+  const daXep = new Set<string>();
+  const khoiTuanNay = (ckCua: typeof ckTuan, wigMacDinh: string | undefined) => {
+    const ids = new Set(ckCua.map((c) => c.id));
+    const viec = tickerLeads.filter((l) => l.commitmentId && ids.has(l.commitmentId));
+    return (
+      <div className="flex flex-col gap-2.5 rounded-[14px] bg-navy/[0.03] p-3">
+        {canTick ? (
+          <CamKetCuaEm
+            gon
+            weekStart={weekDays[0]}
+            weekLabel={nhanTuanNay}
+            daCo={ckCua}
+            tongDaCo={ckTuan.length}
+            dayShort={dayShort}
+            wigLop={tranDanh}
+            wigMacDinh={wigMacDinh}
+          />
+        ) : (
+          ckCua.length > 0 && (
+            <ul className="flex flex-col gap-1">
+              {ckCua.map((c) => (
+                <li key={c.id} className="text-[13px] font-bold text-navy">
+                  {c.title}
+                </li>
+              ))}
+            </ul>
+          )
+        )}
+        {viec.length > 0 && (
+          <LeadTicker
+            leads={viec}
+            studentId={studentId}
+            canTick={canTick || canManage}
+            nguoiGhi={viewer.id}
+            today={today}
+            tickOpen={tickOpen}
+          />
+        )}
+      </div>
+    );
+  };
+  const tuanNayTheoWig: Record<string, React.ReactNode> = {};
+  for (const g of mucTieuCuaEm) {
+    const ckCua = ckTuan.filter(
+      (c) => !daXep.has(c.id) && (c.wig_id === g.id || (g.source_wig_id != null && c.wig_id === g.source_wig_id)),
+    );
+    ckCua.forEach((c) => daXep.add(c.id));
+    tuanNayTheoWig[g.id] = khoiTuanNay(ckCua, g.source_wig_id ?? g.id);
+  }
+  // Cam kết treo vào một trận đánh KHÔNG phải nguồn của mục tiêu nào của em — vẫn phải có chỗ đứng.
+  const ckKhac = ckTuan.filter((c) => !daXep.has(c.id));
+  const khoiKhac = ckKhac.length > 0 ? khoiTuanNay(ckKhac, undefined) : null;
 
   return (
     <div className="mt-4 flex flex-col gap-[22px]">
@@ -736,36 +767,32 @@ export async function StudentScoreboard({
         </div>
       </div>
 
-      {/* ── VIỆC HÔM NAY, NGAY DƯỚI HERO ────────────────────────────────────────────────────
-          Đây là việc DUY NHẤT em làm mỗi ngày, nên nó phải là thứ đầu tiên em chạm được khi mở
-          trang — vào phát là tick được ngay, không cuộn. Trước 12/08/2026 nó nằm ở cột trái của
-          lưới cuối trang, sau hero, hai thẻ lớn (mục tiêu + sổ), khối của giáo viên và cả dãy
-          vòng tròn lĩnh vực; còn hai thứ em chỉ đụng vài lần một kỳ thì chiếm chỗ trên cùng. */}
+      {/* ── MỤC TIÊU NĂM → CAM KẾT TUẦN → VIỆC — một cây, một chỗ ────────────────────────────
+          Ngay dưới hero, vì việc tick mỗi ngày nằm TRONG các thẻ này. */}
       <section>
-        {/* MỘT nhãn, không giải thích. Trước đây chỗ này là bốn dòng chữ chồng nhau: tiêu đề
-            "Việc của em — tick mỗi ngày", câu phụ "tick mỗi ngày" lặp lại y hệt nửa sau tiêu đề,
-            rồi LeadTicker bên dưới lại tự dựng thêm một tiêu đề + một câu phụ nữa. Bốn dòng để
-            giới thiệu một bảng mà bản thân mỗi thẻ đã ghi rõ "của lớp"/"của em" và có sẵn dải ô
-            ngày để bấm. Chủ dự án chốt: chỉ ghi Lead Measure. */}
-        <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('leads')}</h2>
-        {tickerLeads.length === 0 ? (
-          <p className="text-sm italic text-grey-mid">{t('noLeads')}</p>
+        <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('wigYear')}</h2>
+        {classId ? (
+          <div className="glass rounded-[20px] p-[18px]">
+            <MucTieuCuaCon
+              studentId={studentId}
+              classId={classId}
+              mucTieu={mucTieuCuaEm}
+              wigLop={wigLopChon}
+              laChinhEm={canTick}
+              canManage={canManage}
+              namHoc={cls?.school_year ?? null}
+              soDoTheoWig={soDoTheoWig}
+              tuanChuaChot={tickOpen}
+              pctTheoWig={pctTheoWig}
+              tuanNayTheoWig={tuanNayTheoWig}
+            />
+            {khoiKhac && <div className="mt-3 border-t border-navy/10 pt-3">{khoiKhac}</div>}
+          </div>
         ) : (
-          <LeadTicker
-            leads={tickerLeads}
-            studentId={studentId}
-            // GVCN/Admin tick HỘ được — chủ dự án chốt 10/08/2026 ("vẫn có gv tick hộ"), cho
-            // em nghỉ ốm, quên máy, hoặc lớp nhỏ chưa dùng điện thoại. Quyền ở CSDL đã mở sẵn
-            // (rls_all_lead_progress); trước bản này màn hình chỉ có đường GỠ tick.
-            canTick={canTick || canManage}
-            // Công vẫn thuộc về EM (student_id), chỉ ghi lại ai là người bấm.
-            nguoiGhi={viewer.id}
-            today={today}
-            tickOpen={tickOpen}
-          />
+          <p className="text-sm italic text-grey-mid">{t('noLeads')}</p>
         )}
         {/* Học sinh: xin GVCN sửa (vd gỡ tick của ngày đã qua, đổi mục tiêu) — hết ngõ cụt phía HS */}
-        {canTick && classId && (
+        {canTick && classId && myLeadOptions.length > 0 && (
           <div className="mt-3">
             <EditRequestButton studentId={studentId} classId={classId} leads={myLeadOptions} />
           </div>
@@ -778,100 +805,10 @@ export async function StudentScoreboard({
       {canManage && <RequestInbox studentId={studentId} requests={requests} />}
       {canManage && <StudentWigManage studentId={studentId} wigs={manageWigs} leads={manageLeads} />}
 
-      {/* Vòng tiến độ mục tiêu của em.
-          Trước 0100 khối này luôn bày đủ BỐN ô — em phải có WIG ở cả bốn lĩnh vực. Nay em có tối
-          đa HAI mục tiêu (một học tập, một của riêng em) và CSDL chặn cái thứ ba, nên bày bốn ô
-          là giục em làm một thứ đã bị cấm; ba ô kia sẽ hiện "Chưa thiết lập WIG" vĩnh viễn.
-          Chỉ vẽ lĩnh vực em THẬT SỰ có mục tiêu. Chưa có cái nào thì ẩn hẳn — khối "Mục tiêu của
-          con" ở trên đã có sẵn ô để đặt, không cần một lời nhắc thứ hai. */}
-      {areaCoMucTieu.length > 0 && (
-      <section>
-        {/* Câu định nghĩa "WIG = Wildly Important Goal… Lead measure = hành vi dẫn dắt…" đã bỏ.
-            Đây là màn của một đứa trẻ tiểu học: nó không cần biết chữ viết tắt tiếng Anh nghĩa là
-            gì, nó cần biết mình đang ở đâu so với đích. Bốn vòng tròn ngay dưới nói điều đó. */}
-        <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('wigYear')}</h2>
-        <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-          {areaCoMucTieu.map((a) => {
-            const w = wigByArea.get(a);
-            const s = areaMeta[a];
-            const Icon = areaIcon(s);
-            return (
-              <div key={a} className="glass glass-hover rounded-[20px] p-4">
-                <div className="flex items-center gap-[7px] text-[13.5px] font-extrabold text-navy">
-                  <span
-                    className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg"
-                    style={{background: s.soft, color: s.hex}}
-                  >
-                    <Icon size={15} strokeWidth={2.5} />
-                  </span>
-                  {areaLabel(s, locale)}
-                </div>
-                <div className="mt-3.5 flex justify-center">
-                  {/* ĐÍCH GHI NHẬN NGOÀI: không vẽ vòng phần trăm. Con số ấy (điểm trung bình,
-                      kết quả thi) không nằm trong app, nên mọi % vòng tròn vẽ ra đều là bịa —
-                      §5.0 MO_HINH_WIG. Chỉ nói Đạt / Chưa đạt. */}
-                  {w && w.measure_by === 'manual' ? (
-                    <div className="grid h-[78px] place-items-center">
-                      <span
-                        className={`rounded-full px-3 py-1 text-[12px] font-extrabold ${
-                          w.achieved_at
-                            ? 'bg-success/15 text-success-dark'
-                            : 'bg-navy/[0.07] text-grey-mid'
-                        }`}
-                      >
-                        {w.achieved_at ? tg('achieved') : tg('notYet')}
-                      </span>
-                    </div>
-                  ) : w ? (
-                    <DonutRing pct={Number(w.pct ?? 0)} color={s.hex} />
-                  ) : (
-                    <div className="grid h-[78px] place-items-center text-xs font-semibold text-grey-mid">
-                      {tc('noWig')}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-      )}
-
-      {/* Họp WIG + THẺ NHỎ "mục tiêu & sổ" (2 cột).
-          Khối tick từng đứng ở cột trái chỗ này — nay đã lên ngay dưới hero. */}
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
-        {/* ── MỘT THẺ NHỎ: MỤC TIÊU CỦA CON + SỔ CỦA CON ───────────────────────────────────
-            Hai khối này từng chiếm nguyên hai thẻ lớn ngay dưới hero — chỗ đắt nhất của trang.
-            Sai về thứ tự ưu tiên: đặt mục tiêu là việc MỖI HỌC KỲ MỘT LẦN, viết sổ là việc mỗi
-            tuần một lần, còn tick việc là việc MỖI NGÀY — mà cái mỗi-ngày lại nằm dưới cùng.
-            Chủ dự án chốt 12/08/2026: gộp thành một thẻ nhỏ, đẩy xuống, ưu tiên việc tick.
-            Cả hai nửa đều mở chi tiết bằng hộp thoại nên thẻ này luôn cao vài dòng. */}
-        {classId && (
-          <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
-            <MucTieuCuaCon
-              studentId={studentId}
-              classId={classId}
-              mucTieu={mucTieuCuaEm}
-              wigLop={wigLopChon}
-              laChinhEm={canTick}
-              canManage={canManage}
-              namHoc={cls?.school_year ?? null}
-              soDoTheoWig={soDoTheoWig}
-              tuanChuaChot={tickOpen}
-            />
-            <div className="border-t border-navy/10 pt-3">
-              <SoCuaCon
-                classId={classId}
-                tuanDau={weekDays[0]}
-                tuanCuoi={weekDays[6]}
-                lichSu={trangSo}
-                laChinhEm={canTick}
-              />
-            </div>
-          </section>
-        )}
-
-        <div className="flex flex-col gap-[22px]">
+      {/* ── HỌP WIG — một cột, dưới cây mục tiêu. ("Sổ của bạn" và "Bảng tuần này" đã bỏ 16/08/2026:
+          chủ dự án không thấy chúng góp gì cho cam kết tuần — sổ là một ô chữ đứng ngoài cây, còn
+          bảng tuần chỉ chép lại con số đã nằm trên từng thẻ mục tiêu.) */}
+      <div className="flex flex-col gap-[22px]">
           {/* Khối "WIG tuần của em" từng đứng ở đây — năm dòng pip thắng/thua theo bốn lĩnh
               vực. Từ 0100 em KHÔNG còn WIG tuần nữa: mục tiêu của em sống cả học kỳ, còn nhịp
               hằng tuần nằm ở việc để tick. Để lại thì nó vĩnh viễn hiện "Chưa thiết lập WIG"
@@ -954,19 +891,6 @@ export async function StudentScoreboard({
                 )}
               </div>
             )}
-            {/* PRD Màn 6: "cầm scoreboard mà họp" — panel WIG tuần/lead của em */}
-            {/* weekDays đã là 7 ngày của tuần hiện tại theo lịch VN (tính ở đầu hàm, cùng nguồn
-                `today`) — truyền xuống để bảng điểm họp lọc theo NGÀY, khớp với dải ô tick ngay
-                trên nó, thay vì theo nhãn kỳ do người gõ. */}
-            {classId && (
-              <MeetingScoreboard
-                weekLabel={isoWeekLabel(new Date())}
-                areaMeta={areaMeta}
-                wonByArea={wonByArea}
-                leadsDone={leadsDone}
-                leadsTotal={leadsTotal}
-              />
-            )}
             {/* PRD §7 "ghi chú Buddy" — Buddy là LLM. KHÔNG có nút: mở trang là tự sinh, server
                 chặn tối đa 1 lượt/ngày và chỉ gọi LLM khi có tick mới (0043). */}
             {canTick && (
@@ -993,7 +917,6 @@ export async function StudentScoreboard({
               nextWeekLabel={nextWeekRangeVN().label}
             />
           </section>
-        </div>
       </div>
     </div>
   );

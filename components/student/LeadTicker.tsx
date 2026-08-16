@@ -8,6 +8,8 @@ import {createClient} from '@/lib/supabase/client';
 
 export type TickerLead = {
   id: string;
+  /** Cam kết tuần mà việc treo dưới (0121/0137) — để xếp việc vào đúng thẻ mục tiêu. */
+  commitmentId?: string | null;
   title: string;
   target: number;
   unit: string | null;

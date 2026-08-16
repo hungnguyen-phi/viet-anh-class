@@ -1197,11 +1197,13 @@ export async function datCamKetTuan(
   // mới là thứ chặn khi ai đó gửi tay lên id mục tiêu của một lớp khác.
   const wigGui = String(formData.get('wig_id') ?? '').trim();
   let wigId: string | null = null;
+  // Đơn vị của việc = đơn vị của MỤC TIÊU nó góp vào (không hỏi thêm một ô): "bài", "giờ", "trang".
+  let donVi = '';
 
   if (wigGui) {
     const {data: chon} = await supabase
       .from('wigs')
-      .select('id')
+      .select('id, unit')
       .eq('id', wigGui)
       .eq('period', 'year')
       .neq('measure_by', 'cuon')
@@ -1210,16 +1212,18 @@ export async function datCamKetTuan(
     if (!chon?.id)
       return {ok: false, fieldError: 'wig_id', error: 'Mục tiêu bạn chọn không thuộc lớp mình.'};
     wigId = chon.id;
+    donVi = chon.unit ?? '';
   } else {
     const {data: cuaEm} = await supabase
       .from('wigs')
-      .select('id')
+      .select('id, unit')
       .eq('student_id', me.id)
       .eq('scope', 'student')
       .eq('period', 'year')
       .eq('kind', 'academic')
       .maybeSingle();
     wigId = cuaEm?.id ?? null;
+    donVi = cuaEm?.unit ?? '';
   }
 
   if (!wigId)
@@ -1270,6 +1274,20 @@ export async function datCamKetTuan(
     .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
     .sort((a, b) => a - b);
 
+  // ĐO BẰNG GÌ (0110 — luật đã có ở mục tiêu năm, nay đặt lại đúng chỗ là VIỆC TUẦN; chủ dự án
+  // 16/08/2026: "lead measures phải có sự đong đếm ở đó, hoặc dữ liệu có thể điền được như điểm số,
+  // bài học... không chỉ mỗi tick, trước đó đã làm đúng rồi bạn lại ẩn đi").
+  //   'luot' (buổi, ngày)          → một chạm mỗi ngày; chỉ tiêu = số thứ được bật.
+  //   'luong' (bài, giờ, trang)    → HAI cách: mỗi lần CỐ ĐỊNH n (một chạm, đáng n) — hoặc "mỗi lần
+  //                                  một khác" (ô điền số mỗi ngày, chỉ tiêu tuần em tự khai).
+  //   'do' (điểm, kg)              → không có việc tick; con số ghi ở ô số đo của mục tiêu.
+  const kieu = kieuDonVi(donVi);
+  const nhapLuong = kieu === 'luong' && String(formData.get('viec_nhap_luong') ?? '') === '1';
+  const uptRaw = String(formData.get('viec_upt') ?? '').trim();
+  const luongRaw = String(formData.get('viec_luong') ?? '').trim();
+  const unitPerTick = kieu === 'luong' && !nhapLuong ? Number(uptRaw || '1') : 1;
+  const viecTarget = nhapLuong ? Number(luongRaw) : thu.length * unitPerTick;
+
   if (viecTitle && daTao?.id) {
     if (thu.length === 0)
       return {
@@ -1277,12 +1295,18 @@ export async function datCamKetTuan(
         fieldError: 'viec_days',
         error: 'Bạn chọn ít nhất một thứ trong tuần cho việc ấy nhé. Cam kết ĐÃ gửi rồi.',
       };
+    if (kieu === 'luong' && !nhapLuong && (!Number.isFinite(unitPerTick) || unitPerTick <= 0))
+      return {ok: false, fieldError: 'viec_upt', error: `Mỗi lần bạn làm được bao nhiêu ${donVi}? Cam kết ĐÃ gửi rồi.`};
+    if (nhapLuong && (!Number.isFinite(viecTarget) || viecTarget <= 0))
+      return {ok: false, fieldError: 'viec_luong', error: `Tuần này bạn mong đạt bao nhiêu ${donVi}? Cam kết ĐÃ gửi rồi.`};
     const {error: eViec} = await supabase.from('lead_measures').insert({
       commitment_id: daTao.id,
       title: viecTitle,
-      target_value: thu.length,
+      target_value: viecTarget,
+      unit: kieu === 'do' ? null : donVi || null,
       active_weekdays: thu,
-      unit_per_tick: 1,
+      unit_per_tick: unitPerTick,
+      nhap_luong: nhapLuong,
     });
     // Cam kết đã lưu rồi thì nói rõ ra, đừng để em tưởng mất cả hai và gửi lại.
     if (eViec)

@@ -87,7 +87,25 @@ export async function StudentMeetings({
         </div>
       ) : (
         <div className="flex flex-col gap-2.5">
-          {meetings.map((m) => (
+          {/* TUẦN MỚI NHẤT MỞ, TUẦN CŨ GẤP (16/08/2026). Chủ dự án: "càng ngày càng nhiều tuần thì
+              không thể cứ đặt xuống dài bên dưới". Mỗi tuần một thẻ đầy đủ là sau một học kỳ trang
+              dài thêm hai chục thẻ; ai cần đọc lại thì mở. */}
+          {meetings.slice(0, 1).map(theBienBan)}
+          {meetings.length > 1 && (
+            <details className="rounded-[16px] border-[1.5px] border-navy/10">
+              <summary className="cursor-pointer select-none px-4 py-2.5 text-[12.5px] font-extrabold text-navy">
+                {t('olderWeeks', {n: meetings.length - 1})}
+              </summary>
+              <div className="flex flex-col gap-2.5 px-3 pb-3">{meetings.slice(1).map(theBienBan)}</div>
+            </details>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  function theBienBan(m: StudentMeeting) {
+    return (
             <div key={m.id} className="glass rounded-[20px] p-[18px]">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-navy px-3 py-1 font-display text-xs font-bold text-white">
@@ -200,9 +218,6 @@ export async function StudentMeetings({
                 </details>
               )}
             </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+    );
+  }
 }

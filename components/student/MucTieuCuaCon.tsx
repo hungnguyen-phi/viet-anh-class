@@ -1,13 +1,14 @@
 'use client';
 
-import {useState} from 'react';
+import {useState, type ReactNode} from 'react';
 import {ngayVN} from '@/lib/dates';
 import {useTranslations} from 'next-intl';
-import {Check, CheckCircle2, Pencil, Plus, Target, Trash2} from 'lucide-react';
+import {Check, CheckCircle2, Pencil, Plus, Trash2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {btnGhost, btnGhostDai, btnGold} from '@/components/ui/Field';
+import {btnGhost, btnGold} from '@/components/ui/Field';
 import {FormMucTieu, type WigLop} from '@/components/student/FormMucTieu';
 import {OSoDo} from '@/components/student/OSoDo';
+import {DonutRing} from '@/components/charts/DonutRing';
 import {
   duyetMucTieu,
   danhDauDaDat,
@@ -63,6 +64,20 @@ export type SoDoCuaTuan = {wig_id: string; gia_tri: number; vai_tro: string; ghi
 
 const CUA_SO_MS = 24 * 60 * 60 * 1000;
 
+// ── MỘT DANH SÁCH, MỘT LOẠI THẺ (16/08/2026) ──────────────────────────────────────────────────
+//
+// Chủ dự án: "tôi vẫn chưa thấy việc tạo ra mục tiêu riêng của bạn và mục tiêu của bạn có khác gì
+// nhau mà lại thành 2 mục khác nhau, tôi cũng chưa thấy sự liên kết giữa việc làm đều và biểu đồ
+// mục tiêu năm". Đúng cả hai. Bản trước bày hai khối với hai tiêu đề ("Mục tiêu của bạn" / "Mục
+// tiêu riêng của bạn") cho hai thứ CÙNG HÌNH — đều là mục tiêu năm của em; còn vòng % thì nằm ở một
+// khối khác đầu trang, việc để tick lại ở một khối khác nữa. Ba chỗ cho một cây.
+//
+// Nay: MỘT danh sách thẻ. Mỗi thẻ là một mục tiêu năm và mang đủ cây của nó:
+//   tiêu đề · từ→đến · vòng %   ←  cam kết tuần này (+ đặt cam kết)  ←  việc để tick / điền số
+// Phần "tuần này" do màn cha dựng và đưa vào theo id mục tiêu (`tuanNayTheoWig`) — thẻ chỉ là chỗ
+// đứng. Học tập / riêng vẫn là hai `kind` ở CSDL (mỗi loại một, 0100), nhưng trên màn không còn là
+// hai mục: nút "Thêm mục tiêu" tự biết còn loại nào để thêm.
+
 export function MucTieuCuaCon({
   studentId,
   classId,
@@ -73,6 +88,8 @@ export function MucTieuCuaCon({
   namHoc,
   soDoTheoWig,
   tuanChuaChot,
+  pctTheoWig,
+  tuanNayTheoWig,
 }: {
   studentId: string;
   classId: string;
@@ -80,294 +97,221 @@ export function MucTieuCuaCon({
   wigLop: WigLop[];
   laChinhEm: boolean;
   canManage: boolean;
-  // Nhãn năm học của lớp ("2026–2027") — để nói rõ mục tiêu này sống bao lâu. Không có lớp thì
-  // thôi, đừng bịa một khoảng thời gian ra.
   namHoc: string | null;
-  /** Số đo của tuần này, tra theo id mục tiêu. */
   soDoTheoWig: Record<string, SoDoCuaTuan>;
-  /** Mốc THÁNG NÀY, tra theo id mục tiêu năm. Chỉ mục tiêu đếm bằng tick mới có. */
-  /** Lớp CHƯA bấm chốt buổi họp tuần này — còn ghi số được (0108). */
   tuanChuaChot: boolean;
+  /** % tiến độ (wig_progress_v) theo id mục tiêu; thiếu = chưa có số. */
+  pctTheoWig: Record<string, number>;
+  /** Khối "tuần này" của từng mục tiêu, dựng ở màn cha: cam kết + việc để tick. */
+  tuanNayTheoWig: Record<string, ReactNode>;
 }) {
+  const t = useTranslations('goal');
   const [bao, setBao] = useState('');
-  // HAI MỤC TIÊU, KHÔNG PHẢI MỘT. CSDL cho mỗi em đúng một `academic` và một `personal`
-  // (wigs_em_uidx, 0100) và máy chủ đã nhận cả hai từ lâu — chỉ màn hình này là chưa bao giờ hỏi
-  // tới cái thứ hai, nên "mục tiêu của riêng con" (§6.2 bước ④) không có đường nào đi tới.
+  const [moForm, setMoForm] = useState<null | 'academic' | 'personal'>(null);
   const hocTap = mucTieu.find((m) => m.kind === 'academic') ?? null;
   const rieng = mucTieu.find((m) => m.kind === 'personal') ?? null;
-
-  const chung = {studentId, classId, wigLop, laChinhEm, canManage, namHoc,
-                 soDoTheoWig,
-                 tuanChuaChot, onBao: setBao};
+  const canGhi = laChinhEm || canManage;
+  // Còn loại nào chưa có thì mới có gì để thêm; học tập trước, riêng sau (§6.2 bước ④).
+  const loaiThem: null | 'academic' | 'personal' = !hocTap ? 'academic' : !rieng ? 'personal' : null;
+  const danhSach = [hocTap, rieng].filter(Boolean) as MucTieuCuaEm[];
 
   return (
-    <div className="flex min-w-0 flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-3">
       {bao && (
         <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-success/[0.10] px-2.5 py-2 text-[12px] font-bold text-success-dark">
           <CheckCircle2 size={13} strokeWidth={2.5} className="mt-px shrink-0" />
           {bao}
         </p>
       )}
-      <MotMucTieu kind="academic" mt={hocTap} {...chung} />
-      {/* MỤC TIÊU RIÊNG CHỈ XUẤT HIỆN KHI ĐÃ CÓ CÁI ĐỂ THÊM VÀO.
-          Em chưa đặt gì mà bày sẵn nút "Con muốn THÊM một mục tiêu của riêng con" thì màn hình có
-          hai cái nút cạnh nhau cùng mở một form đặt mục tiêu — đọc ra là một nút bị nhân đôi, chứ
-          không đọc ra là "cái bắt buộc" và "cái tuỳ chọn". Chữ "thêm" chỉ có nghĩa khi đã có một
-          cái rồi (§6.2 bước ④: mục tiêu riêng là phần THÊM sau khi đặt xong mục tiêu học tập).
-          Đã có mục tiêu riêng thì vẫn hiện, kể cả khi mục tiêu học tập bị xoá — không giấu đi một
-          thứ em đang có. */}
-      {(hocTap || rieng) && <MotMucTieu kind="personal" mt={rieng} {...chung} />}
-    </div>
-  );
-}
 
-// MỘT MỤC TIÊU — dùng cho cả HỌC TẬP và RIÊNG CỦA CON.
-//
-// Một bản dùng chung thay vì hai khối chép tay: cửa sổ 24 giờ, đường duyệt, đích ghi-nhận-ngoài,
-// nút xoá — mọi luật ở đây đều tinh tế, và hai bản chép là hai chỗ để chúng trôi khỏi nhau.
-function MotMucTieu({
-  kind,
-  mt,
-  studentId,
-  classId,
-  wigLop,
-  laChinhEm,
-  canManage,
-  namHoc,
-  soDoTheoWig,
-  tuanChuaChot,
-  onBao,
-}: {
-  kind: 'academic' | 'personal';
-  mt: MucTieuCuaEm | null;
-  studentId: string;
-  classId: string;
-  wigLop: WigLop[];
-  laChinhEm: boolean;
-  canManage: boolean;
-  namHoc: string | null;
-  soDoTheoWig: Record<string, SoDoCuaTuan>;
-  tuanChuaChot: boolean;
-  onBao: (s: string) => void;
-}) {
-  const t = useTranslations('goal');
-  const hocTap = mt;
-  const laRieng = kind === 'personal';
-  const [moForm, setMoForm] = useState(false);
+      {danhSach.map((mt) => (
+        <TheMucTieu
+          key={mt.id}
+          mt={mt}
+          studentId={studentId}
+          laChinhEm={laChinhEm}
+          canManage={canManage}
+          soDo={soDoTheoWig[mt.id]}
+          tuanChuaChot={tuanChuaChot}
+          pct={pctTheoWig[mt.id]}
+          tuanNay={tuanNayTheoWig[mt.id]}
+          onSua={() => setMoForm(mt.kind === 'personal' ? 'personal' : 'academic')}
+        />
+      ))}
 
-  // Ai cũng ĐỌC được khối này (phụ huynh, BGH), nhưng chỉ chính em và nhân sự mới GHI.
-  const canGhi = laChinhEm || canManage;
-
-  // MỤC TIÊU RIÊNG CHƯA CÓ → MỘT CÁI NÚT, KHÔNG PHẢI MỘT KHỐI.
-  //
-  // Bản trước vẫn dựng đủ bộ khung cho cái chưa tồn tại: cũng biểu tượng đích, cũng tiêu đề mở đầu
-  // bằng "Mục tiêu … của con", cũng một nút vàng. Em chưa đặt gì thì màn hình có hai khối trông
-  // như nhau nằm chồng, và khối dưới thì rỗng — đọc ra thành một khối bị nhân đôi chứ không thành
-  // "còn một việc tuỳ chọn nữa". Mục tiêu riêng là TUỲ CHỌN (§6.2 bước ④): chưa có thì nó chỉ
-  // đáng một dòng mời, và chính chữ trên nút đã nói hết. Đặt rồi mới có tiêu đề và thẻ của nó.
-  if (laRieng && !hocTap) {
-    if (!canGhi) return null;
-    return (
-      <div className="flex min-w-0 flex-col gap-2">
-        {/* btnGhostDai chứ không btnGhost: nhãn này là cả một câu ("Bạn muốn thêm một mục
-            tiêu của riêng bạn"), dài hơn bề ngang máy 360px — nút thường không ngắt dòng được
-            nên nó thò ra khỏi thẻ 33px. */}
-        <button type="button" onClick={() => setMoForm(true)} className={`${btnGhostDai} self-start`}>
-          <Plus size={14} strokeWidth={2.5} className="shrink-0" />
-          {laChinhEm ? t('openFormPersonal') : t('openFormPersonalFor')}
-        </button>
-        {moForm && (
-          <FormMucTieu
-            studentId={studentId}
-            classId={classId}
-            kind={kind}
-            wigLop={wigLop}
-            dangSua={null}
-            laChinhEm={laChinhEm}
-              onClose={() => setMoForm(false)}
-            onDone={onBao}
-          />
-        )}
-      </div>
-    );
-  }
-
-  // CỬA SỔ MỘT NGÀY (0102). Cô sửa/xoá lúc nào cũng được; em thì chỉ khi mục tiêu còn là đề nghị —
-  // chưa duyệt, hoặc vừa tạo chưa quá 24 giờ. Tính ở đây chỉ để giao diện nói trước; chốt thật nằm
-  // ở RLS và ở hàm máy chủ.
-  const conMo =
-    !hocTap ||
-    hocTap.status === 'draft' ||
-    hocTap.status === 'sent' ||
-    Date.now() - new Date(hocTap.created_at).getTime() < CUA_SO_MS;
-  const emSuaDuoc = canManage || (laChinhEm && conMo);
-  const soDo = hocTap ? soDoTheoWig[hocTap.id] : undefined;
-
-  return (
-    <div className="flex min-w-0 flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <h3 className="flex items-center gap-1.5 font-display text-[14px] font-bold text-navy">
-          <Target size={14} strokeWidth={2.5} />
-          {laRieng ? t('titlePersonal') : t('title')}
-        </h3>
-        {/* Mục tiêu này sống cả năm học — nói ra, đừng để em đoán. Nhưng chỉ nói MỘT lần: khối
-            riêng nằm ngay dưới khối học tập, cùng một năm học, nên nhắc lại chỉ thành trùng. */}
-        {namHoc && !laRieng && (
-          <span className="text-[11px] font-extrabold text-gold-text">
-            {t('yearScope', {nam: namHoc})}
-          </span>
-        )}
-        {/* Chỉ còn nhánh HỌC TẬP: mục tiêu riêng chưa có thì không dựng tới đây (xem ghi chú ở
-            chỗ thoát sớm bên trên). */}
-        {!hocTap && canGhi && (
-          <button type="button" onClick={() => setMoForm(true)} className={`${btnGold} ml-auto`}>
-            <Plus size={14} strokeWidth={2.5} />
-            {laChinhEm ? t('openForm') : t('openFormFor')}
-          </button>
-        )}
-      </div>
-
-      {/* ── THẺ MỤC TIÊU ─────────────────────────────────────────────────────────────────── */}
-      {hocTap ? (
-        <div className="flex flex-col gap-2.5 rounded-[14px] border-[1.5px] border-navy/10 p-3.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[13.5px] font-extrabold text-navy">{hocTap.title}</span>
-            {hocTap.status === 'sent' && (
-              <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text">
-                {t('waiting')}
-              </span>
-            )}
-            {/* Van an toàn phải lộ ra: em phải biết mục tiêu này không do mình đặt. */}
-            {hocTap.set_by === 'teacher' && (
-              <span className="rounded-full bg-navy/[0.07] px-2 py-0.5 text-[10.5px] font-extrabold text-grey-mid">
-                {t('setByTeacher')}
-              </span>
-            )}
-          </div>
-          <p className="text-[12.5px] font-semibold tabular-nums text-grey-mid">
-            {t('fromTo', {
-              from: hocTap.baseline ?? 0,
-              to: hocTap.target_value,
-              unit: hocTap.unit,
-              due: ngayVN(hocTap.end_date),
-            })}
-          </p>
-
-          {/* ĐÍCH GHI NHẬN NGOÀI — không vẽ vạch phần trăm, chỉ có đạt hay chưa (0101).
-              Từ 0108 có thêm ô SỐ ĐO ở ngay trên: "đạt/chưa đạt" là một bit cho cả một năm học,
-              em cao thêm 3cm giữa kỳ thì không chỗ nào ghi và buổi họp không có gì để cầm. */}
-          {hocTap.measure_by === 'manual' && (
-            <OSoDo
-              wigId={hocTap.id}
-              unit={hocTap.unit}
-              soHienTai={soDo?.gia_tri ?? null}
-              nguoiGhi={soDo?.vai_tro ?? null}
-              ghiLuc={soDo?.ghi_luc ?? null}
-              moKhoa={tuanChuaChot}
-              canGhi={canGhi}
-            />
-          )}
-          {hocTap.measure_by === 'manual' && (
-            <form action={danhDauDaDat} className="flex flex-wrap items-center gap-2">
-              <input type="hidden" name="wig_id" value={hocTap.id} />
-              <input type="hidden" name="student_id" value={studentId} />
-              <span className="text-[12px] font-bold text-grey-mid">{t('outsideApp')}</span>
-              {hocTap.achieved_at ? (
-                <>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-1 text-[11.5px] font-extrabold text-success-dark">
-                    <Check size={12} strokeWidth={3} />
-                    {t('achieved')}
-                  </span>
-                  {canGhi && (
-                    <>
-                      <input type="hidden" name="bo" value="1" />
-                      <SubmitButton
-                        // Vùng chạm ≥24px — chữ giữ nguyên 11.5px, chỉ nới chỗ đặt ngón tay.
-                        className="inline-flex min-h-[24px] items-center py-1 text-[11.5px] font-extrabold text-navy underline"
-                        wrapClass="contents"
-                      >
-                        {t('undoAchieved')}
-                      </SubmitButton>
-                    </>
-                  )}
-                </>
-              ) : canGhi ? (
-                <SubmitButton className={btnGold} wrapClass="contents">
-                  {t('markAchieved')}
-                </SubmitButton>
-              ) : (
-                <span className="text-[11.5px] font-bold text-grey-mid">{t('notYet')}</span>
-              )}
-            </form>
-          )}
-
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Cô duyệt — duyệt xong em mới tick được. Đứng trước vì đây là việc cần làm ngay. */}
-            {canManage && hocTap.status === 'sent' && (
-              <form action={duyetMucTieu}>
-                <input type="hidden" name="wig_id" value={hocTap.id} />
-                <input type="hidden" name="student_id" value={studentId} />
-                <SubmitButton className={btnGold} wrapClass="contents">
-                  {t('approve')}
-                </SubmitButton>
-              </form>
-            )}
-
-            {emSuaDuoc && (
-              <>
-                <button type="button" onClick={() => setMoForm(true)} className={btnGhost}>
-                  <Pencil size={13} strokeWidth={2.5} />
-                  {t('edit')}
-                </button>
-                {/* XOÁ — với em, đây là đường "con không nhận mục tiêu này" khi cô đặt hộ. Nó chỉ
-                    mở trong 24 giờ đầu, nên không cần hộp xác nhận riêng: confirm là đủ. */}
-                <form
-                  action={xoaMucTieuCuaEm}
-                  onSubmit={(e) => {
-                    if (!window.confirm(t('confirmDelete'))) e.preventDefault();
-                  }}
-                >
-                  <input type="hidden" name="wig_id" value={hocTap.id} />
-                  <input type="hidden" name="student_id" value={studentId} />
-                  {/* min-h-11: vùng chạm cũ chỉ 39×19px — dưới sàn 24×24 của WCAG 2.5.8, và
-                      đây là màn các em bấm bằng ngón tay nên dự án lấy chuẩn 44px (xem ctl-h).
-                      Nút "Sửa" ngay bên trái đã cao 44px, nên cùng lúc hai nút cũng thẳng hàng.
-                      Giữ nguyên dáng chữ gạch chân, chỉ nới vùng bấm quanh nó. */}
-                  <SubmitButton
-                    className="inline-flex min-h-11 cursor-pointer items-center gap-1 px-1.5 text-[12px] font-extrabold text-status-bad underline"
-                    wrapClass="contents"
-                  >
-                    <Trash2 size={13} strokeWidth={2.5} className="shrink-0" />
-                    {t('deleteGoal')}
-                  </SubmitButton>
-                </form>
-              </>
-            )}
-
-            {/* CÂU "Mục tiêu đã chốt (quá 1 ngày)" ĐÃ BỎ (16/08/2026, chủ dự án chỉ định).
-                Nó còn sót lại từ luật CŨ: 0102 khoá mục tiêu sau 24 giờ. Luật ấy đã thay ở 0131 —
-                em sửa được chừng nào chưa có dấu chân nào, và sửa xong thì tự về chờ duyệt (0129).
-                Nên câu này vừa thừa vừa SAI: nó nói với em một cái cửa không còn tồn tại. */}
-          </div>
-        </div>
-      ) : (
-        /* Chỉ còn mục tiêu HỌC TẬP đi tới được nhánh này — mục tiêu riêng chưa có thì đã thoát ở
-           trên, chỉ để lại cái nút. Học tập là cái BẮT BUỘC nên thiếu thì phải nói ra. */
+      {danhSach.length === 0 && (
         <p className="text-[12.5px] italic text-grey-mid">{canGhi ? t('hint') : t('none')}</p>
       )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        {canGhi && loaiThem && (
+          <button type="button" onClick={() => setMoForm(loaiThem)} className={btnGold}>
+            <Plus size={14} strokeWidth={2.5} />
+            {laChinhEm ? t('addGoal') : t('addGoalFor')}
+          </button>
+        )}
+        {namHoc && danhSach.length > 0 && (
+          <span className="text-[11px] font-extrabold text-gold-text">{t('yearScope', {nam: namHoc})}</span>
+        )}
+      </div>
 
       {moForm && (
         <FormMucTieu
           studentId={studentId}
           classId={classId}
-          kind={kind}
+          kind={moForm}
           wigLop={wigLop}
-          dangSua={hocTap}
+          dangSua={moForm === 'personal' ? rieng : hocTap}
           laChinhEm={laChinhEm}
-          onClose={() => setMoForm(false)}
-          onDone={onBao}
+          onClose={() => setMoForm(null)}
+          onDone={setBao}
         />
       )}
+    </div>
+  );
+}
+
+// MỘT THẺ MỤC TIÊU — dùng cho cả HỌC TẬP và RIÊNG. Một bản dùng chung thay vì hai khối chép tay:
+// cửa sổ 24 giờ, đường duyệt, đích ghi-nhận-ngoài, nút xoá — mọi luật ở đây đều tinh tế.
+function TheMucTieu({
+  mt,
+  studentId,
+  laChinhEm,
+  canManage,
+  soDo,
+  tuanChuaChot,
+  pct,
+  tuanNay,
+  onSua,
+}: {
+  mt: MucTieuCuaEm;
+  studentId: string;
+  laChinhEm: boolean;
+  canManage: boolean;
+  soDo: SoDoCuaTuan | undefined;
+  tuanChuaChot: boolean;
+  pct: number | undefined;
+  tuanNay: ReactNode;
+  onSua: () => void;
+}) {
+  const t = useTranslations('goal');
+  const canGhi = laChinhEm || canManage;
+  // CỬA SỔ MỘT NGÀY (0102/0131). Cô sửa/xoá lúc nào cũng được; em thì khi mục tiêu còn là đề nghị.
+  const conMo =
+    mt.status === 'draft' || mt.status === 'sent' || Date.now() - new Date(mt.created_at).getTime() < CUA_SO_MS;
+  const emSuaDuoc = canManage || (laChinhEm && conMo);
+
+  return (
+    <div className="flex flex-col gap-3 rounded-[16px] border-[1.5px] border-navy/10 p-3.5">
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[14px] font-extrabold text-navy">{mt.title}</span>
+            {mt.status === 'sent' && (
+              <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text">
+                {t('waiting')}
+              </span>
+            )}
+            {mt.set_by === 'teacher' && (
+              <span className="rounded-full bg-navy/[0.07] px-2 py-0.5 text-[10.5px] font-extrabold text-grey-mid">
+                {t('setByTeacher')}
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 text-[12.5px] font-semibold tabular-nums text-grey-mid">
+            {t('fromTo', {from: mt.baseline ?? 0, to: mt.target_value, unit: mt.unit, due: ngayVN(mt.end_date)})}
+          </p>
+        </div>
+        {/* VÒNG % NGAY TRÊN THẺ — đây là chỗ nối "việc làm đều" với "biểu đồ": tick dưới kia lên
+            là vòng này lên. Đích ghi nhận ngoài (điểm, kg) thì không vẽ % (0101) — chỉ Đạt/Chưa. */}
+        {mt.measure_by === 'manual' ? (
+          <span
+            className={`shrink-0 self-center rounded-full px-3 py-1 text-[12px] font-extrabold ${
+              mt.achieved_at ? 'bg-success/15 text-success-dark' : 'bg-navy/[0.07] text-grey-mid'
+            }`}
+          >
+            {mt.achieved_at ? t('achieved') : t('notYet')}
+          </span>
+        ) : (
+          <div className="shrink-0">
+            <DonutRing pct={pct ?? 0} color="var(--color-navy)" />
+          </div>
+        )}
+      </div>
+
+      {/* Số đo tuần (đích đo ngoài app, 0108) + đánh dấu đạt. */}
+      {mt.measure_by === 'manual' && (
+        <OSoDo
+          wigId={mt.id}
+          unit={mt.unit}
+          soHienTai={soDo?.gia_tri ?? null}
+          nguoiGhi={soDo?.vai_tro ?? null}
+          ghiLuc={soDo?.ghi_luc ?? null}
+          moKhoa={tuanChuaChot}
+          canGhi={canGhi}
+        />
+      )}
+      {mt.measure_by === 'manual' && canGhi && (
+        <form action={danhDauDaDat} className="flex flex-wrap items-center gap-2">
+          <input type="hidden" name="wig_id" value={mt.id} />
+          <input type="hidden" name="student_id" value={studentId} />
+          {mt.achieved_at ? (
+            <>
+              <input type="hidden" name="bo" value="1" />
+              <SubmitButton
+                className="inline-flex min-h-[24px] items-center py-1 text-[11.5px] font-extrabold text-navy underline"
+                wrapClass="contents"
+              >
+                {t('undoAchieved')}
+              </SubmitButton>
+            </>
+          ) : (
+            <SubmitButton className={btnGhost} wrapClass="contents">
+              <Check size={13} strokeWidth={3} />
+              {t('markAchieved')}
+            </SubmitButton>
+          )}
+        </form>
+      )}
+
+      {/* ── TUẦN NÀY: cam kết + việc — chính là cái nối mục tiêu năm với việc làm mỗi ngày ── */}
+      {tuanNay}
+
+      <div className="flex flex-wrap items-center gap-2">
+        {canManage && mt.status === 'sent' && (
+          <form action={duyetMucTieu}>
+            <input type="hidden" name="wig_id" value={mt.id} />
+            <input type="hidden" name="student_id" value={studentId} />
+            <SubmitButton className={btnGold} wrapClass="contents">
+              {t('approve')}
+            </SubmitButton>
+          </form>
+        )}
+        {emSuaDuoc && (
+          <>
+            <button type="button" onClick={onSua} className={btnGhost}>
+              <Pencil size={13} strokeWidth={2.5} />
+              {t('edit')}
+            </button>
+            <form
+              action={xoaMucTieuCuaEm}
+              onSubmit={(e) => {
+                if (!window.confirm(t('confirmDelete'))) e.preventDefault();
+              }}
+            >
+              <input type="hidden" name="wig_id" value={mt.id} />
+              <input type="hidden" name="student_id" value={studentId} />
+              <SubmitButton
+                className="inline-flex min-h-11 cursor-pointer items-center gap-1 px-1.5 text-[12px] font-extrabold text-status-bad underline"
+                wrapClass="contents"
+              >
+                <Trash2 size={13} strokeWidth={2.5} className="shrink-0" />
+                {t('deleteGoal')}
+              </SubmitButton>
+            </form>
+          </>
+        )}
+      </div>
     </div>
   );
 }

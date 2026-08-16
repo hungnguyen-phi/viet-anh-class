@@ -6,6 +6,7 @@ import {AlertCircle, CheckCircle2, Clock, Target} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, ctlWithBorder, selectCls, btnGold} from '@/components/ui/Field';
 import {datCamKetTuan} from '@/app/[locale]/(dashboard)/student/actions';
+import {kieuDonVi} from '@/lib/don-vi';
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
 // EM TỰ ĐẶT CAM KẾT CHO TUẦN TỚI — mắt xích bị đứt của cả vòng
@@ -31,6 +32,9 @@ export function CamKetCuaEm({
   daCo,
   dayShort,
   wigLop,
+  wigMacDinh,
+  tongDaCo,
+  gon = false,
 }: {
   /** Thứ Hai của tuần đang đặt cam kết cho. */
   weekStart: string;
@@ -44,7 +48,13 @@ export function CamKetCuaEm({
    * Những trận đánh em chọn được cho tuần này: mục tiêu năm của LỚP, cộng mục tiêu năm của chính
    * em nếu có (0138). Lớp có ba bốn trận; mỗi tuần em hứa vào cái nào là quyền của em.
    */
-  wigLop: {id: string; title: string; area: string}[];
+  wigLop: {id: string; title: string; area: string; unit?: string | null}[];
+  /** Mục tiêu chọn sẵn (thẻ mục tiêu năm mở form cho đúng mục tiêu ấy). */
+  wigMacDinh?: string;
+  /** Tổng cam kết em đã đặt tuần này (mọi mục tiêu) — trần 2 tính trên tổng, không trên `daCo`. */
+  tongDaCo?: number;
+  /** Bản gọn để đặt TRONG thẻ mục tiêu năm: không khung, tiêu đề nhỏ. */
+  gon?: boolean;
 }) {
   const t = useTranslations('meeting');
   const tg = useTranslations('goal');
@@ -55,14 +65,24 @@ export function CamKetCuaEm({
   const doiThu = (d: number) =>
     setThu((p) => (p.includes(d) ? p.filter((x) => x !== d) : [...p, d].sort((a, b) => a - b)));
 
-  const conCho = daCo.length < 2;
+  const conCho = (tongDaCo ?? daCo.length) < 2;
+
+  // ĐƠN VỊ THEO MỤC TIÊU ĐANG CHỌN — quyết định việc này đo bằng gì (0110, xem datCamKetTuan).
+  const [wigChon, setWigChon] = useState(wigMacDinh ?? wigLop[0]?.id ?? '');
+  const donVi = wigLop.find((w) => w.id === wigChon)?.unit ?? '';
+  const kieu = kieuDonVi(donVi);
+  const [moiLanKhac, setMoiLanKhac] = useState(false);
+  const [upt, setUpt] = useState('1');
+  const [luong, setLuong] = useState('');
+  const [tenViec, setTenViec] = useState('');
+  const tongTuan = moiLanKhac ? Number(luong || 0) : thu.length * (Number(upt || 0) || 0);
 
   return (
-    <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
+    <section className={gon ? 'flex flex-col gap-2.5' : 'glass flex flex-col gap-3 rounded-[20px] p-[18px]'}>
       {/* KHÔNG GIẢNG VỀ GIỚI HẠN. Chủ dự án: "bạn không cần nói tôi giới hạn chỗ này, nó không
           tạo được nữa thì nó tự hiểu". Ô biến mất khi đã đủ hai — đó là câu trả lời rõ hơn mọi
           dòng chữ, và không chiếm chỗ của thứ em đang cần đọc. */}
-      <h2 className="font-display text-[16px] font-bold text-navy">
+      <h2 className={gon ? 'text-[11px] font-extrabold uppercase tracking-wide text-grey-mid' : 'font-display text-[16px] font-bold text-navy'}>
         {t('step3', {week: weekLabel})}
       </h2>
 
@@ -104,7 +124,13 @@ export function CamKetCuaEm({
               htmlFor="ck-em-wig"
               error={state.fieldError === 'wig_id' ? state.error : null}
             >
-              <select id="ck-em-wig" name="wig_id" className={selectCls} defaultValue={wigLop[0]?.id}>
+              <select
+                id="ck-em-wig"
+                name="wig_id"
+                className={selectCls}
+                value={wigChon}
+                onChange={(e) => setWigChon(e.target.value)}
+              >
                 {wigLop.map((w) => (
                   <option key={w.id} value={w.id}>
                     {w.title}
@@ -139,10 +165,67 @@ export function CamKetCuaEm({
               id="ck-em-viec"
               name="viec_title"
               maxLength={120}
+              value={tenViec}
+              onChange={(e) => setTenViec(e.target.value)}
               placeholder={t('workPlaceholder')}
               className={ctlWithBorder(false)}
             />
           </Field>
+          {/* ĐONG ĐẾM — chỉ hỏi khi có việc và đơn vị đếm theo LƯỢNG (bài, giờ, trang). Đơn vị theo
+              lượt (buổi) thì mỗi ngày là một chạm, không hỏi thêm gì; đơn vị đo lại (điểm, kg) thì
+              con số ghi ở ô số đo của mục tiêu, việc chỉ là nhắc làm. */}
+          {tenViec && kieu === 'luong' && donVi && (
+            <div className="rounded-[12px] bg-navy/[0.04] p-2.5">
+              <label className="flex cursor-pointer items-center gap-2 text-[12px] font-bold text-navy">
+                <input
+                  type="checkbox"
+                  checked={moiLanKhac}
+                  onChange={(e) => setMoiLanKhac(e.target.checked)}
+                  className="h-4 w-4 cursor-pointer accent-[var(--color-gold)]"
+                />
+                {tg('eachTimeVaries')}
+              </label>
+              <input type="hidden" name="viec_nhap_luong" value={moiLanKhac ? '1' : ''} />
+              {moiLanKhac ? (
+                <div className="mt-2">
+                  <Field label={tg('weekAmount', {unit: donVi})} htmlFor="ck-em-luong" error={state.fieldError === 'viec_luong' ? state.error : null}>
+                    <input
+                      id="ck-em-luong"
+                      name="viec_luong"
+                      type="number"
+                      step="any"
+                      min="0.01"
+                      inputMode="decimal"
+                      value={luong}
+                      onChange={(e) => setLuong(e.target.value)}
+                      className={ctlWithBorder(state.fieldError === 'viec_luong')}
+                    />
+                  </Field>
+                </div>
+              ) : (
+                <div className="mt-2">
+                  <Field label={tg('perTick', {unit: donVi})} htmlFor="ck-em-upt" error={state.fieldError === 'viec_upt' ? state.error : null}>
+                    <input
+                      id="ck-em-upt"
+                      name="viec_upt"
+                      type="number"
+                      step="any"
+                      min="0.01"
+                      inputMode="decimal"
+                      value={upt}
+                      onChange={(e) => setUpt(e.target.value)}
+                      className={ctlWithBorder(state.fieldError === 'viec_upt')}
+                    />
+                  </Field>
+                  {tongTuan > 0 && (
+                    <p className="mt-1.5 text-[12px] font-bold text-grey-mid">
+                      {tg('perTickSum', {n: thu.length, moi: upt, tuan: tongTuan, unit: donVi})}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {thu.map((d) => (
             <input key={d} type="hidden" name="viec_days" value={d} />
           ))}

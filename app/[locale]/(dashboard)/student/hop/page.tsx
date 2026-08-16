@@ -88,7 +88,7 @@ export default async function PhongHopCuaEmPage({
   // Bỏ mục tiêu CUỘN — nó đếm ngược từ mục tiêu của từng em nên không nhận cam kết.
   const {data: wigChon} = await supabase
     .from('wigs')
-    .select('id, title, area, scope')
+    .select('id, title, area, scope, unit')
     .eq('period', 'year')
     .neq('measure_by', 'cuon')
     .or(`and(scope.eq.class,class_id.eq.${lop.class_id}),and(scope.eq.student,student_id.eq.${profile.id})`)
@@ -235,7 +235,7 @@ export default async function PhongHopCuaEmPage({
         weekLabel={dichLabel}
         daCo={(ckDich ?? []) as {id: string; title: string; status: string}[]}
         dayShort={tHs.raw('dayShort') as string[]}
-        wigLop={(wigChon ?? []) as {id: string; title: string; area: string}[]}
+        wigLop={(wigChon ?? []) as {id: string; title: string; area: string; unit?: string | null}[]}
       />
 
       <OBienBanCuaEm
