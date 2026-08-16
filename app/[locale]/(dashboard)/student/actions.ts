@@ -888,7 +888,7 @@ export async function luuMucTieuCuaEm(
   return {
     ok: true,
     message: laChinhEm
-      ? 'Đã gửi cô xem. Cô duyệt xong là con bắt đầu tick được.'
+      ? 'Đã gửi cô duyệt.'
       : 'Đã lưu mục tiêu cho em.',
   };
 }
