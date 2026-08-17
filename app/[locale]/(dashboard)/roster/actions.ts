@@ -49,7 +49,7 @@ export async function assignAttendanceLeader(
       .select('student_id');
     if (error) return {ok: false, error: (friendlyError(error))};
     if (!data || data.length === 0)
-      return {ok: false, error: 'Không đặt được — em này không còn trong lớp, hoặc bạn không có quyền.'};
+      return {ok: false, error: 'Không đặt được — học sinh này không còn trong lớp, hoặc bạn không có quyền.'};
   }
 
   revalidatePath('/[locale]/roster', 'page');
@@ -255,7 +255,7 @@ export async function capNhatHocSinh(_prev: EnrollState, formData: FormData): Pr
   if (error) return {ok: false, error: friendlyError(error), values};
   // RLS chặn thì upsert trả 0 dòng mà error vẫn null — không kiểm là báo thành công giả.
   if (!data || data.length === 0)
-    return {ok: false, error: 'Không sửa được — em này không thuộc lớp bạn chủ nhiệm.', values};
+    return {ok: false, error: 'Không sửa được — học sinh này không thuộc lớp bạn chủ nhiệm.', values};
 
   revalidatePath('/[locale]/roster', 'page');
   // Quản trị viên nhìn cùng một hàng dữ liệu ấy; không gọi thì trang họ đang mở còn bản cũ.
@@ -335,7 +335,7 @@ export async function requestTransfer(formData: FormData) {
     data === 'moved'
       ? 'Đã chuyển em sang lớp mới.'
       : data === 'exists'
-        ? loi('Em này đã có một đề nghị dời lớp đang chờ duyệt.')
+        ? loi('Học sinh này đã có một đề nghị dời lớp đang chờ duyệt.')
         : 'Đã gửi đề nghị. Em vẫn ở lớp này cho tới khi lớp bên kia duyệt.',
   );
 }

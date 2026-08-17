@@ -583,7 +583,7 @@ export async function updateEditRequest(formData: FormData) {
   back(
     data && data.length
       ? 'Đã cập nhật yêu cầu'
-      : 'Không sửa được — GVCN đã xử lý yêu cầu này rồi.',
+      : 'Không sửa được — giáo viên đã xử lý yêu cầu này rồi.',
   );
 }
 
@@ -609,7 +609,7 @@ export async function withdrawEditRequest(formData: FormData) {
   back(
     data && data.length
       ? 'Đã rút lại yêu cầu'
-      : 'Không rút được — GVCN đã xử lý yêu cầu này rồi.',
+      : 'Không rút được — giáo viên đã xử lý yêu cầu này rồi.',
   );
 }
 
@@ -745,10 +745,10 @@ export async function luuMucTieuCuaEm(
   if (kind !== 'academic' && kind !== 'personal')
     return {ok: false, error: 'Không rõ đây là mục tiêu học tập hay mục tiêu riêng.'};
   if (!title)
-    return {ok: false, fieldError: 'title', error: 'Con muốn tiến bộ ở chuyện gì? Viết một câu.'};
+    return {ok: false, fieldError: 'title', error: 'Em muốn tiến bộ ở chuyện gì? Viết một câu.'};
   if (title.length > 160) return {ok: false, fieldError: 'title', error: 'Tối đa 160 ký tự.'};
   if (!han || !/^\d{4}-\d{2}-\d{2}$/.test(han))
-    return {ok: false, fieldError: 'due_on', error: 'Chọn ngày con muốn đạt được.'};
+    return {ok: false, fieldError: 'due_on', error: 'Chọn ngày em muốn đạt được.'};
   if (batDau && /^\d{4}-\d{2}-\d{2}$/.test(batDau) && batDau >= han)
     return {ok: false, fieldError: 'start_on', error: 'Ngày bắt đầu phải trước ngày đạt.'};
 
@@ -795,7 +795,7 @@ export async function luuMucTieuCuaEm(
     return {
       ok: false,
       fieldError: 'source_wig_id',
-      error: 'Con chọn mục tiêu của lớp mà việc này góp sức vào nhé.',
+      error: 'Em chọn mục tiêu của lớp mà việc này góp sức vào nhé.',
     };
   const {data: chaLop} = await supabase
     .from('wigs')
@@ -888,7 +888,7 @@ export async function luuMucTieuCuaEm(
   return {
     ok: true,
     message: laChinhEm
-      ? 'Đã gửi cô duyệt.'
+      ? 'Đã gửi giáo viên duyệt.'
       : 'Đã lưu mục tiêu cho em.',
   };
 }
@@ -938,7 +938,7 @@ export async function xoaMucTieuCuaEm(formData: FormData) {
 
   const laChinhEm = me.id === student_id && me.role === 'student';
   if (laChinhEm && !conTrongCuaSo(w))
-    veTrangEm(student_id, loi('Mục tiêu này đã chốt rồi (quá 1 ngày). Con muốn bỏ thì nhắn cô nhé.'));
+    veTrangEm(student_id, loi('Mục tiêu này đã chốt rồi (quá 1 ngày). Em muốn bỏ thì nhắn giáo viên nhé.'));
 
   // lead_measures và lead_progress dưới nó đi theo (on delete cascade, 0002).
   const {error} = await supabase.from('wigs').delete().eq('id', wig_id).eq('scope', 'student');
@@ -1037,7 +1037,7 @@ export async function suaCamKetTuan(_prev: CamKetState, formData: FormData): Pro
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  return {ok: true, message: 'Đã sửa — cam kết về chờ cô duyệt lại.'};
+  return {ok: true, message: 'Đã sửa — cam kết về chờ giáo viên duyệt lại.'};
 }
 
 // Tick "đã đạt" cho đích ghi nhận ngoài. Cô và trò tự theo dõi ở ngoài app (bài kiểm tra, sổ liên
@@ -1083,7 +1083,7 @@ export async function ghiSoDo(_prev: MucTieuState, formData: FormData): Promise<
   const wig_id = String(formData.get('wig_id') ?? '');
   const raw = String(formData.get('gia_tri') ?? '').trim();
   if (!wig_id) return {ok: false, error: 'Không rõ đang ghi cho mục tiêu nào.'};
-  if (raw === '') return {ok: false, fieldError: 'gia_tri', error: 'Con điền số đã nhé.'};
+  if (raw === '') return {ok: false, fieldError: 'gia_tri', error: 'Em điền số đã nhé.'};
 
   const gia_tri = Number(raw);
   if (!Number.isFinite(gia_tri) || gia_tri < 0)
@@ -1142,7 +1142,7 @@ export async function luuSoCuaCon(_prev: MucTieuState, formData: FormData): Prom
 
   const class_id = String(formData.get('class_id') ?? '');
   const body = String(formData.get('body') ?? '').trim();
-  if (!body) return {ok: false, fieldError: 'body', error: 'Con viết vài chữ đã nhé.'};
+  if (!body) return {ok: false, fieldError: 'body', error: 'Em viết vài chữ đã nhé.'};
   if (body.length > 2000) return {ok: false, fieldError: 'body', error: 'Tối đa 2000 ký tự.'};
 
   const supabase = await createClient();
@@ -1166,7 +1166,7 @@ export async function luuSoCuaCon(_prev: MucTieuState, formData: FormData): Prom
 
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
-  return {ok: true, message: 'Đã lưu vào sổ của con.'};
+  return {ok: true, message: 'Đã lưu vào sổ của em.'};
 }
 
 // ── CHỈNH NHỊP ───────────────────────────────────────────────────────────────────────────────
@@ -1261,7 +1261,7 @@ export async function datCamKetTuan(
   if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
 
   const title = String(formData.get('title') ?? '').trim();
-  if (!title) return {ok: false, fieldError: 'title', error: 'Bạn viết cam kết của tuần đã nhé.'};
+  if (!title) return {ok: false, fieldError: 'title', error: 'Em viết cam kết của tuần đã nhé.'};
   if (title.length > 160)
     return {ok: false, fieldError: 'title', error: 'Cam kết tối đa 160 ký tự — viết ngắn cho dễ nhớ.'};
 
@@ -1280,7 +1280,7 @@ export async function datCamKetTuan(
     .eq('is_active', true)
     .maybeSingle();
   if (!ghiDanh?.class_id)
-    return {ok: false, error: 'Bạn chưa được xếp lớp nên chưa đặt cam kết được.'};
+    return {ok: false, error: 'Em chưa được xếp lớp nên chưa đặt cam kết được.'};
 
   // EM CHỌN TRẬN ĐÁNH CỦA TUẦN NÀY (0138). Lớp có ba bốn mục tiêu năm; mỗi tuần em hứa vào cái
   // nào là quyền của em. Không gửi lên thì rơi về mục tiêu năm của chính em — đường cũ, vẫn giữ
@@ -1303,7 +1303,7 @@ export async function datCamKetTuan(
       .or(`and(scope.eq.class,class_id.eq.${ghiDanh.class_id}),and(scope.eq.student,student_id.eq.${me.id})`)
       .maybeSingle();
     if (!chon?.id)
-      return {ok: false, fieldError: 'wig_id', error: 'Mục tiêu bạn chọn không thuộc lớp mình.'};
+      return {ok: false, fieldError: 'wig_id', error: 'Mục tiêu em chọn không thuộc lớp mình.'};
     wigId = chon.id;
     donVi = chon.unit ?? '';
   } else {
@@ -1322,7 +1322,7 @@ export async function datCamKetTuan(
   if (!wigId)
     return {
       ok: false,
-      error: 'Bạn đặt mục tiêu năm trước đã — cam kết mỗi tuần là một bước đi tới mục tiêu ấy.',
+      error: 'Em đặt mục tiêu năm trước đã — cam kết mỗi tuần là một bước đi tới mục tiêu ấy.',
     };
 
   const {data: daTao, error} = await supabase
@@ -1386,12 +1386,12 @@ export async function datCamKetTuan(
       return {
         ok: false,
         fieldError: 'viec_days',
-        error: 'Bạn chọn ít nhất một thứ trong tuần cho việc ấy nhé. Cam kết ĐÃ gửi rồi.',
+        error: 'Em chọn ít nhất một thứ trong tuần cho việc ấy nhé. Cam kết ĐÃ gửi rồi.',
       };
     if (kieu === 'luong' && !nhapLuong && (!Number.isFinite(unitPerTick) || unitPerTick <= 0))
-      return {ok: false, fieldError: 'viec_upt', error: `Mỗi lần bạn làm được bao nhiêu ${donVi}? Cam kết ĐÃ gửi rồi.`};
+      return {ok: false, fieldError: 'viec_upt', error: `Mỗi lần em làm được bao nhiêu ${donVi}? Cam kết ĐÃ gửi rồi.`};
     if (nhapLuong && (!Number.isFinite(viecTarget) || viecTarget <= 0))
-      return {ok: false, fieldError: 'viec_luong', error: `Tuần này bạn mong đạt bao nhiêu ${donVi}? Cam kết ĐÃ gửi rồi.`};
+      return {ok: false, fieldError: 'viec_luong', error: `Tuần này em mong đạt bao nhiêu ${donVi}? Cam kết ĐÃ gửi rồi.`};
     const {error: eViec} = await supabase.from('lead_measures').insert({
       commitment_id: daTao.id,
       title: viecTitle,
@@ -1412,7 +1412,7 @@ export async function datCamKetTuan(
   return {
     ok: true,
     message: viecTitle
-      ? 'Đã gửi cam kết và việc của tuần cho thầy cô duyệt.'
-      : 'Đã gửi cam kết tuần cho thầy cô duyệt.',
+      ? 'Đã gửi cam kết và việc của tuần cho giáo viên duyệt.'
+      : 'Đã gửi cam kết tuần cho giáo viên duyệt.',
   };
 }
