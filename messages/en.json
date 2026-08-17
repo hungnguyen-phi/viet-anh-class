@@ -460,7 +460,6 @@
     "weekNow": "THIS WEEK",
     "weekPast": "PAST",
     "weekFuture": "UPCOMING",
-    "weekBackToThis": "Back to this week",
     "noWeekWigsThisWeek": "No weekly WIG for {label} — so students have no shared work to tick.",
     "weekDateOff": "Off-week dates: {start} → {end}",
     "eachTimeVaries": "Varies each time — enter the number each day",
@@ -667,7 +666,6 @@
     "planTarget": "Target",
     "planUnit": "Unit",
     "planTitlePlaceholder": "e.g. Math tutoring session",
-    "buddyIsLion": "Your Buddy",
     "buddyNote": "Buddy says",
     "buddyAsking": "Buddy is looking…",
     "buddyToday": "Today's action",
@@ -799,7 +797,8 @@
     "deleteWork": "Delete work",
     "confirmDeleteWork": "Delete this work? Its ticks go with it and the commitment goes back to pending.",
     "workTag": "Work",
-    "noCommitmentThisWeek": "No commitment this week."
+    "noCommitmentThisWeek": "No commitment this week.",
+    "thisWeekTitle": "Weekly commitments"
   },
   "campusReport": {
     "title": "Campus report",
@@ -1326,7 +1325,7 @@
     "readingNow": "Latest:",
     "readingSave": "Save",
     "readingByStudent": "entered by you",
-    "readingByTeacher": "entered by your teacher",
+    "readingByTeacher": "teacher logged",
     "pickBattle": "Pick a class goal",
     "paceTooEasy": "At {n} times a week you finish in {can} weeks but have {con} — aim higher?",
     "paceTooHard": "At {n} times a week you need {can} weeks but only have {con}.",

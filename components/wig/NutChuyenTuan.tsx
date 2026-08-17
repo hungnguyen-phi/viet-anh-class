@@ -18,7 +18,7 @@ import {ChevronLeft, ChevronRight, Loader2} from 'lucide-react';
 // riêng cái ruột này thay vì gắn trạng thái lên chính thẻ Link. Đổi lại được đúng thứ cần: mũi
 // tên biến thành vòng xoay ngay lúc bấm, chữ mờ đi, và `aria-busy` để trình đọc màn hình cũng
 // nghe được là đang chờ.
-export function NutChuyenTuan({huong, nhan}: {huong: 'truoc' | 'sau'; nhan: string}) {
+export function NutChuyenTuan({huong, nhan, chiIcon}: {huong: 'truoc' | 'sau'; nhan: string; chiIcon?: boolean}) {
   const {pending} = useLinkStatus();
   const Mui = huong === 'truoc' ? ChevronLeft : ChevronRight;
 
@@ -32,9 +32,10 @@ export function NutChuyenTuan({huong, nhan}: {huong: 'truoc' | 'sau'; nhan: stri
     <span
       aria-busy={pending || undefined}
       className={`inline-flex items-center gap-1 transition-opacity ${pending ? 'opacity-60' : ''}`}
+      title={chiIcon ? nhan : undefined}
     >
       {huong === 'truoc' && icon}
-      <span className="hidden sm:inline">{nhan}</span>
+      {!chiIcon && <span className="hidden sm:inline">{nhan}</span>}
       {huong === 'sau' && icon}
     </span>
   );

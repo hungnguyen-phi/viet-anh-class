@@ -4,7 +4,7 @@ import {useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {PencilLine} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {btnGold, btnGhost} from '@/components/ui/Field';
+import {btnGold} from '@/components/ui/Field';
 import {createEditRequest} from '@/app/[locale]/(dashboard)/student/actions';
 
 // XIN CÔ SỬA / XOÁ MỤC TIÊU NĂM ĐÃ DUYỆT.
@@ -17,7 +17,7 @@ export function XinSuaMucTieu({studentId, classId, wigId, title}: {studentId: st
   const [mo, setMo] = useState(false);
   if (!mo)
     return (
-      <button type="button" onClick={() => setMo(true)} className={`${btnGhost} h-8 px-2.5 text-[11.5px]`}>
+      <button type="button" onClick={() => setMo(true)} className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 text-[12px] font-extrabold text-navy underline">
         <PencilLine size={12} strokeWidth={2.5} />
         {t('askEdit')}
       </button>

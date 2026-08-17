@@ -119,6 +119,9 @@ export function MucTieuCuaCon({
         </p>
       )}
 
+      {/* HAI THẺ CẠNH NHAU trên màn rộng: mỗi em tối đa hai mục tiêu năm, xếp ngang là hết một hàng —
+          không còn hai thẻ dài chồng lên nhau với vòng % lơ lửng bên phải (17/08/2026). */}
+      <div className="grid gap-3 sm:grid-cols-2">
       {danhSach.map((mt) => (
         <TheMucTieu
           key={mt.id}
@@ -134,22 +137,25 @@ export function MucTieuCuaCon({
           onSua={() => setMoForm(mt.kind === 'personal' ? 'personal' : 'academic')}
         />
       ))}
-
-      {danhSach.length === 0 && (
-        <p className="text-[12.5px] italic text-grey-mid">{canGhi ? t('hint') : t('none')}</p>
+      {/* Ô "thêm" đứng như một thẻ trống cạnh thẻ thật — chỗ nó sẽ xuất hiện. */}
+      {canGhi && loaiThem && (
+        <button
+          type="button"
+          onClick={() => setMoForm(loaiThem)}
+          className="flex min-h-[112px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[16px] border-[1.5px] border-dashed border-navy/20 bg-white/40 p-4 text-navy transition-colors hover:border-navy hover:bg-white/70"
+        >
+          <span className="grid h-9 w-9 place-items-center rounded-full bg-gold text-navy">
+            <Plus size={18} strokeWidth={2.8} />
+          </span>
+          <span className="text-[13px] font-extrabold">{t('addGoal')}</span>
+          {namHoc && <span className="text-[11px] font-semibold text-grey-mid">{namHoc}</span>}
+        </button>
       )}
-
-      <div className="flex flex-wrap items-center gap-3">
-        {canGhi && loaiThem && (
-          <button type="button" onClick={() => setMoForm(loaiThem)} className={btnGold}>
-            <Plus size={14} strokeWidth={2.5} />
-            {t('addGoal')}
-          </button>
-        )}
-        {namHoc && danhSach.length > 0 && (
-          <span className="text-[11px] font-extrabold text-gold-text">{t('yearScope', {nam: namHoc})}</span>
-        )}
       </div>
+
+      {danhSach.length === 0 && !canGhi && (
+        <p className="text-[12.5px] italic text-grey-mid">{t('none')}</p>
+      )}
 
       {moForm && (
         <FormMucTieu
@@ -197,11 +203,24 @@ function TheMucTieu({
   const tenLopNguon = mt.source_wig_id ? (wigLop.find((w) => w.id === mt.source_wig_id)?.title ?? null) : null;
 
   return (
-    <div className="flex flex-col gap-3 rounded-[16px] border-[1.5px] border-navy/10 p-3.5">
-      <div className="flex items-start gap-3">
+    <div className="glass flex flex-col gap-3 rounded-[16px] p-4">
+      <div className="flex items-start gap-3.5">
+        {/* VÒNG % ĐỨNG ĐẦU THẺ, bên trái — đọc "bao nhiêu phần trăm rồi" trước, rồi mới đọc tên. Đích
+            ghi nhận ngoài (điểm, kg) không vẽ % (0101): thay bằng huy hiệu Đạt / Chưa. */}
+        {mt.measure_by === 'manual' ? (
+          <span
+            className={`grid h-[60px] w-[60px] shrink-0 place-items-center rounded-full text-center text-[10.5px] font-extrabold leading-tight ${
+              mt.achieved_at ? 'bg-success/15 text-success-dark' : 'bg-navy/[0.07] text-grey-mid'
+            }`}
+          >
+            {mt.achieved_at ? t('achieved') : t('notYet')}
+          </span>
+        ) : (
+          <DonutRing pct={pct ?? 0} color="var(--color-gold-mid)" size={60} />
+        )}
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-display text-[17px] font-bold leading-tight text-navy">{mt.title}</span>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="font-display text-[16px] font-bold leading-tight text-navy">{mt.title}</span>
             {mt.status === 'sent' && (
               <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text">
                 {t('waiting')}
@@ -213,30 +232,18 @@ function TheMucTieu({
               </span>
             )}
           </div>
-          <p className="mt-0.5 text-[12.5px] font-semibold tabular-nums text-grey-mid">
+          <p className="mt-1 text-[12.5px] font-semibold tabular-nums text-grey-mid">
             {t('fromToRange', {from: mt.baseline ?? 0, to: mt.target_value, unit: mt.unit, start: ngayVN(mt.start_date), due: ngayVN(mt.end_date)})}
           </p>
           {/* DÂY NỐI LÊN LỚP — nói ra, đừng để người ta đoán "300 bài lấy từ đâu": đây là phần em tự
-              nhận góp vào mục tiêu năm của lớp (source_wig_id, 0100/0138). */}
+              nhận góp vào mục tiêu năm của lớp (source_wig_id, 0100/0138). Một chip, không phải một câu. */}
           {tenLopNguon && (
-            <p className="mt-0.5 text-[11.5px] font-semibold text-gold-text">{t('contributesTo', {title: tenLopNguon})}</p>
+            <span className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded-full bg-gold/[0.16] px-2 py-0.5 text-[11px] font-extrabold text-gold-text">
+              <span aria-hidden>↳</span>
+              <span className="truncate">{tenLopNguon}</span>
+            </span>
           )}
         </div>
-        {/* VÒNG % NGAY TRÊN THẺ — đây là chỗ nối "việc làm đều" với "biểu đồ": tick dưới kia lên
-            là vòng này lên. Đích ghi nhận ngoài (điểm, kg) thì không vẽ % (0101) — chỉ Đạt/Chưa. */}
-        {mt.measure_by === 'manual' ? (
-          <span
-            className={`shrink-0 self-center rounded-full px-3 py-1 text-[12px] font-extrabold ${
-              mt.achieved_at ? 'bg-success/15 text-success-dark' : 'bg-navy/[0.07] text-grey-mid'
-            }`}
-          >
-            {mt.achieved_at ? t('achieved') : t('notYet')}
-          </span>
-        ) : (
-          <div className="shrink-0">
-            <DonutRing pct={pct ?? 0} color="var(--color-navy)" />
-          </div>
-        )}
       </div>
 
       {/* Số đo tuần (đích đo ngoài app, 0108) + đánh dấu đạt. */}
@@ -274,7 +281,7 @@ function TheMucTieu({
         </form>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-navy/[0.06] pt-2.5">
         {canManage && mt.status === 'sent' && (
           <form action={duyetMucTieu}>
             <input type="hidden" name="wig_id" value={mt.id} />
@@ -288,7 +295,7 @@ function TheMucTieu({
             ĐÃ DUYỆT → ĐÓNG BĂNG: chỉ còn "Xin sửa" — sửa hay xoá đều qua cô (chủ dự án 16/08/2026:
             "duyệt là cả năm không đụng vào nữa"). */}
         {laChinhEm && mt.status !== 'approved' && (
-          <button type="button" onClick={onSua} className={`${btnGhost} h-8 px-2.5 text-[11.5px]`}>
+          <button type="button" onClick={onSua} className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 text-[12px] font-extrabold text-navy underline">
             <Pencil size={12} strokeWidth={2.5} />
             {t('edit')}
           </button>

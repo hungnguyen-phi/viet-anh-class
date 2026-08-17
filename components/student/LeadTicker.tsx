@@ -319,7 +319,7 @@ export function LeadTicker({
     const banConThieu = Math.max(0, (l.classSize ?? 0) - (l.studentsDone ?? 0));
 
     return (
-      <div key={l.id} className="rounded-[14px] border-[1.5px] border-navy/[0.08] bg-navy/[0.02] p-3">
+      <div key={l.id} className="rounded-[12px] bg-navy/[0.035] p-3">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           {/* Việc đứng DƯỚI cam kết một bậc: nhãn "Việc" nhỏ + chữ 13px, không đậm bằng cam kết. */}
           <span className="shrink-0 rounded-[6px] border-[1.5px] border-navy/20 px-1.5 py-0.5 text-[9.5px] font-extrabold uppercase tracking-wide text-grey-mid">

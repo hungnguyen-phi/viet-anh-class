@@ -460,7 +460,6 @@
     "weekNow": "TUẦN NÀY",
     "weekPast": "ĐÃ QUA",
     "weekFuture": "SẮP TỚI",
-    "weekBackToThis": "Về tuần này",
     "noWeekWigsThisWeek": "Tuần {label} chưa có WIG tuần nào — nên màn hình học sinh sẽ không có việc chung nào để tick.",
     "weekDateOff": "Lệch tuần: {start} → {end}",
     "eachTimeVaries": "Mỗi lần một khác — điền số mỗi ngày",
@@ -667,7 +666,6 @@
     "planTarget": "Mục tiêu",
     "planUnit": "Đơn vị",
     "planTitlePlaceholder": "Vd: Buổi tutor Toán",
-    "buddyIsLion": "Buddy của em",
     "buddyNote": "Buddy nhắn",
     "buddyAsking": "Buddy đang xem…",
     "buddyToday": "Việc hôm nay",
@@ -799,7 +797,8 @@
     "deleteWork": "Xoá việc",
     "confirmDeleteWork": "Xoá việc này? Lượt tick của nó mất theo, và cam kết về chờ giáo viên duyệt lại.",
     "workTag": "Việc",
-    "noCommitmentThisWeek": "Tuần này chưa có cam kết."
+    "noCommitmentThisWeek": "Tuần này chưa có cam kết.",
+    "thisWeekTitle": "Cam kết tuần"
   },
   "campusReport": {
     "title": "Báo cáo cơ sở",
@@ -1326,7 +1325,7 @@
     "readingNow": "Số mới nhất:",
     "readingSave": "Ghi",
     "readingByStudent": "em tự ghi",
-    "readingByTeacher": "cô ghi",
+    "readingByTeacher": "giáo viên ghi",
     "pickBattle": "Chọn mục tiêu của lớp",
     "paceTooEasy": "Với {n} lần mỗi tuần, em xong trong {can} tuần mà hạn còn {em} tuần — đặt đích cao hơn nhé?",
     "paceTooHard": "Với {n} lần mỗi tuần, em cần {can} tuần mà hạn chỉ còn {em} tuần.",

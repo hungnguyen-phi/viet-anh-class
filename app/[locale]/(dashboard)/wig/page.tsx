@@ -542,7 +542,7 @@ export default async function WigPage({
 
       {/* 2/3 — 1/3: bên trái là việc của tuần này (thứ phải làm), bên phải là lớp đang đi tới đâu
           (thứ phải biết). Chủ dự án chốt đúng tỉ lệ này. */}
-      <div className="grid gap-4 lg:grid-cols-[1.9fr_1fr]">
+      <div className="grid items-start gap-4 lg:grid-cols-[1.9fr_1fr]">
         <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-[15px] font-bold text-navy">{t('goalThisWeek')}</h2>

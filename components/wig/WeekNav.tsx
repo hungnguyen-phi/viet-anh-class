@@ -1,5 +1,5 @@
 import {getTranslations} from 'next-intl/server';
-import {CalendarDays, RotateCcw} from 'lucide-react';
+import {RotateCcw} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {shiftWeeks} from '@/lib/dates';
 import {btnGhost} from '@/components/ui/Field';
@@ -71,50 +71,37 @@ export async function WeekNav({
   const nut = `${btnGhost} shrink-0`;
 
   return (
-    <section className="glass rounded-[20px] p-3">
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <Link href={href(shiftWeeks(monday, -1))} className={nut} aria-label={t('weekPrev')}>
-          <NutChuyenTuan huong="truoc" nhan={t('weekPrev')} />
-        </Link>
+    <div className="flex items-center gap-2">
+      <Link href={href(shiftWeeks(monday, -1))} className={`${nut} h-10 w-10 !px-0`} aria-label={t('weekPrev')}>
+        <NutChuyenTuan huong="truoc" nhan={t('weekPrev')} chiIcon />
+      </Link>
 
-        <div className="flex min-w-0 flex-1 flex-col items-center px-1 text-center">
-          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-            <span className="inline-flex items-center gap-1.5 font-display text-[15px] font-bold text-navy">
-              <CalendarDays size={15} strokeWidth={2.5} className="text-gold-deep" />
-              {label}
-            </span>
-            <span
-              className={`rounded-full border-[1.5px] px-2 py-0.5 text-[10.5px] font-extrabold tracking-wide ${badge.cls}`}
-            >
-              {badge.text}
-            </span>
-          </div>
-          <span className="mt-0.5 text-[11.5px] font-bold tabular-nums text-grey-mid">
-            {dm(start)} → {dm(end)}
+      {/* MỘT DÒNG: nhãn · dải ngày · chip. Bản cũ là một thẻ glass ba tầng (nhãn, ngày, rồi
+          "Về tuần này" xuống dòng riêng) cao bằng cả khối cam kết bên dưới — thanh tuần là thứ để
+          liếc, không phải để đọc (17/08/2026, cùng kiểu với ChonTuanCuaEm bên màn em). */}
+      <div className="flex min-w-0 flex-1 flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5 text-center">
+        <span className="font-display text-[16px] font-bold leading-none text-navy">{label}</span>
+        <span className="text-[12.5px] font-bold tabular-nums text-grey-mid">
+          {dm(start)} → {dm(end)}
+        </span>
+        {khi === 'now' ? (
+          <span className={`rounded-full border-[1.5px] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${badge.cls}`}>
+            {badge.text}
           </span>
-        </div>
-
-        <Link href={href(shiftWeeks(monday, 1))} className={nut} aria-label={t('weekNext')}>
-          <NutChuyenTuan huong="sau" nhan={t('weekNext')} />
-        </Link>
-      </div>
-
-      {/* Đường về, chỉ hiện khi đã đi khỏi tuần này. Chiếm trọn một dòng riêng để không đẩy lệch
-          cụm ← nhãn → ở trên — cụm đó phải đứng cân, nó là thứ mắt bám vào. */}
-      {khi !== 'now' && (
-        <div className="mt-2 flex justify-center">
+        ) : (
           <Link
             href={href(thisMonday)}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-navy/[0.06] px-3 py-1.5 text-[11.5px] font-extrabold text-navy transition-all hover:bg-navy/[0.12]"
+            className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-navy/15 px-2 text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid transition-colors hover:border-navy"
           >
-            <RotateCcw size={12} strokeWidth={2.5} />
-            {t('weekBackToThis')}
+            <RotateCcw size={10} strokeWidth={2.5} />
+            {badge.text} · {t('weekNow')}
           </Link>
-        </div>
-      )}
-      {/* Câu "Mọi khối bên dưới … đều thuộc tuần đang chọn ở đây" ĐÃ BỎ theo yêu cầu chủ dự án
-          (09/08/2026): nhãn tuần kèm dải ngày ngay trên đầu đã nói đủ, thêm một dòng giải thích
-          nữa chỉ làm thanh này dày lên. */}
-    </section>
+        )}
+      </div>
+
+      <Link href={href(shiftWeeks(monday, 1))} className={`${nut} h-10 w-10 !px-0`} aria-label={t('weekNext')}>
+        <NutChuyenTuan huong="sau" nhan={t('weekNext')} chiIcon />
+      </Link>
+    </div>
   );
 }

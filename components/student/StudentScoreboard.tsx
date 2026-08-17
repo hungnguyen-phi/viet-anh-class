@@ -20,7 +20,6 @@ import {StudentMeetings, type StudentMeeting} from '@/components/student/Student
 import {MyRequests, type MyRequest} from '@/components/student/MyRequests';
 import {BuddyAuto} from '@/components/student/BuddyAuto';
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
-import {EditRequestButton} from '@/components/student/EditRequestButton';
 import {MucTieuCuaCon, type MucTieuCuaEm, type SoDoCuaTuan} from '@/components/student/MucTieuCuaCon';
 import {NghePhongHop} from '@/components/wig/NghePhongHop';
 import {CamKetCuaEm} from '@/components/wig/CamKetCuaEm';
@@ -569,7 +568,6 @@ export async function StudentScoreboard({
   ];
   // Chỉ việc RIÊNG mới xin đổi tên được: việc chung là của cả lớp, một em đổi tên là đổi cho
   // mọi người — chỗ sửa nó là buổi họp WIG với GVCN.
-  const myLeadOptions = leadRows.map((l) => ({id: l.id, title: l.title}));
 
   // GVCN/Admin: yêu cầu-sửa đang chờ (khối quản lý WIG cá nhân đã gỡ 16/08/2026 — cô chỉ duyệt).
   let requests: EditRequest[] = [];
@@ -652,20 +650,19 @@ export async function StudentScoreboard({
 
   const khuTuan = (
     <section className="glass rounded-[20px] p-[18px]">
-      <h2 className="mb-2 font-display text-[16px] font-bold text-navy">{tm('step3', {week: nhanTuanNay})}</h2>
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <h2 className="font-display text-[17px] font-bold text-navy">{t('thisWeekTitle')}</h2>
+      </div>
       {ckTuan.length === 0 && !canTick && (
         <p className="text-[12.5px] italic text-grey-mid">{t('noCommitmentThisWeek')}</p>
       )}
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-3">
         {ckTuan.map((c) => {
           const viec = tickerLeads.filter((l) => l.commitmentId === c.id);
           return (
-            <div key={c.id} className="border-t border-navy/[0.08] py-3 first:border-t-0 first:pt-0">
+            <div key={c.id} className="rounded-[14px] border-l-[3px] border-gold-mid bg-white/50 py-2.5 pl-3.5 pr-2">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="shrink-0 rounded-[6px] bg-navy px-1.5 py-0.5 text-[9.5px] font-extrabold uppercase tracking-wide text-white">
-                  {tm('commitmentOne')}
-                </span>
-                <span className="min-w-0 flex-1 text-[14px] font-extrabold text-navy">{c.title}</span>
+                <span className="min-w-0 flex-1 text-[14.5px] font-extrabold text-navy">{c.title}</span>
                 {mucTieuCuaEm.length > 1 && tenMucTieu.get(c.wig_id) && (
                   <span className="basis-full text-[11px] font-semibold text-grey-mid sm:basis-auto">
                     → {tenMucTieu.get(c.wig_id)}
@@ -689,7 +686,7 @@ export async function StudentScoreboard({
                 )}
               </div>
               {viec.length > 0 ? (
-                <div className="mt-2 pl-0 sm:pl-6">
+                <div className="mt-2">
                   <LeadTicker
                     leads={viec}
                     studentId={studentId}
@@ -700,14 +697,14 @@ export async function StudentScoreboard({
                   />
                 </div>
               ) : (
-                <p className="mt-1 pl-0 text-[12px] font-semibold italic text-grey-mid sm:pl-6">{t('noWorkUnder')}</p>
+                <p className="mt-1 text-[12px] font-semibold italic text-grey-mid">{t('noWorkUnder')}</p>
               )}
             </div>
           );
         })}
       </div>
       {canTick && mucTieuCuaEm.length > 0 && (
-        <div className={ckTuan.length > 0 ? 'mt-3 border-t border-navy/[0.08] pt-3' : ''}>
+        <div className={ckTuan.length > 0 ? 'mt-3' : ''}>
           <CamKetCuaEm
             gon
             anDanhSach
@@ -766,60 +763,51 @@ export async function StudentScoreboard({
         </div>
       </div>
 
-      <ChonTuanCuaEm
-        pathname={pathname}
-        monday={monday}
-        thisMonday={thisMonday}
-        label={isoWeekLabel(vnNoon(monday))}
-        start={weekDays[0]}
-        end={weekDays[6]}
-      />
-
-      {/* ── MỤC TIÊU NĂM → CAM KẾT TUẦN → VIỆC — một cây, một chỗ ────────────────────────────
-          Ngay dưới hero, vì việc tick mỗi ngày nằm TRONG các thẻ này. */}
+      {/* ── MỤC TIÊU NĂM: hai thẻ cạnh nhau, không khung bọc ngoài (17/08/2026). ─────────────── */}
       <section>
         <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('wigYear')}</h2>
         {classId ? (
-          <div className="glass rounded-[20px] p-[18px]">
-            <MucTieuCuaCon
-              studentId={studentId}
-              classId={classId}
-              mucTieu={mucTieuCuaEm}
-              wigLop={wigLopChon}
-              laChinhEm={canTick}
-              canManage={canManage}
-              namHoc={cls?.school_year ?? null}
-              soDoTheoWig={soDoTheoWig}
-              tuanChuaChot={tickOpen}
-              pctTheoWig={pctTheoWig}
-            />
-          </div>
+          <MucTieuCuaCon
+            studentId={studentId}
+            classId={classId}
+            mucTieu={mucTieuCuaEm}
+            wigLop={wigLopChon}
+            laChinhEm={canTick}
+            canManage={canManage}
+            namHoc={cls?.school_year ?? null}
+            soDoTheoWig={soDoTheoWig}
+            tuanChuaChot={tickOpen}
+            pctTheoWig={pctTheoWig}
+          />
         ) : (
           <p className="text-sm italic text-grey-mid">{t('noLeads')}</p>
         )}
       </section>
 
-      {/* KHU 2 — TUẦN ĐANG XEM: danh sách phẳng cam kết → việc, không khung lồng. */}
-      {classId && khuTuan}
+      {/* ── TUẦN ĐANG XEM: thanh tuần ngay trên khu tuần — thứ nó điều khiển. Trên màn rộng khu
+          tuần (việc mỗi ngày, rộng) chiếm 2/3, họp WIG 1/3 bên phải. */}
+      <div className="grid grid-cols-1 items-start gap-[22px] lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="flex flex-col gap-3">
+          <ChonTuanCuaEm
+            pathname={pathname}
+            monday={monday}
+            thisMonday={thisMonday}
+            label={isoWeekLabel(vnNoon(monday))}
+            start={weekDays[0]}
+            end={weekDays[6]}
+          />
+          {classId && khuTuan}
+          {/* Học sinh: xin GVCN sửa (vd gỡ tick của ngày đã qua) — hết ngõ cụt phía HS */}
+          {/* Nút "Xin sửa" chung ở đây ĐÃ GỠ 18/08/2026: từng cam kết đã duyệt có nút xin sửa riêng
+              (SuaCamKet); thêm một nút nữa đứng ngoài thẻ là hai chữ "Xin sửa" trên một màn. */}
+          {/* Yêu cầu đã gửi mà GVCN chưa xử lý → còn sửa/rút lại được */}
+          {canTick && <MyRequests studentId={studentId} requests={myRequests} />}
+          {/* GVCN/Admin: yêu cầu-sửa đang chờ */}
+          {canManage && <RequestInbox studentId={studentId} requests={requests} />}
+        </div>
 
-      <section>
-        {/* Học sinh: xin GVCN sửa (vd gỡ tick của ngày đã qua, đổi mục tiêu) — hết ngõ cụt phía HS */}
-        {canTick && classId && myLeadOptions.length > 0 && (
-          <div className="mt-3">
-            <EditRequestButton studentId={studentId} classId={classId} leads={myLeadOptions} />
-          </div>
-        )}
-        {/* Yêu cầu đã gửi mà GVCN chưa xử lý → còn sửa/rút lại được */}
-        {canTick && <MyRequests studentId={studentId} requests={myRequests} />}
-      </section>
-
-      {/* GVCN/Admin: yêu cầu-sửa đang chờ + quản lý WIG/lead/tick cá nhân (hết ngõ cụt) */}
-      {canManage && <RequestInbox studentId={studentId} requests={requests} />}
-
-      {/* ── HỌP WIG — một cột, dưới cây mục tiêu. ("Sổ của bạn" và "Bảng tuần này" đã bỏ 16/08/2026:
-          chủ dự án không thấy chúng góp gì cho cam kết tuần — sổ là một ô chữ đứng ngoài cây, còn
-          bảng tuần chỉ chép lại con số đã nằm trên từng thẻ mục tiêu.) */}
-      <div className="flex flex-col gap-[22px]">
+      {/* ── HỌP WIG — cột phải trên màn rộng. ("Sổ của bạn" và "Bảng tuần này" đã bỏ 16/08/2026.) */}
+      <div className="flex flex-col gap-3">
           {/* Khối "WIG tuần của em" từng đứng ở đây — năm dòng pip thắng/thua theo bốn lĩnh
               vực. Từ 0100 em KHÔNG còn WIG tuần nữa: mục tiêu của em sống cả học kỳ, còn nhịp
               hằng tuần nằm ở việc để tick. Để lại thì nó vĩnh viễn hiện "Chưa thiết lập WIG"
@@ -917,6 +905,7 @@ export async function StudentScoreboard({
               canChat={canTick}
             />
           </section>
+      </div>
       </div>
     </div>
   );

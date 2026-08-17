@@ -35,40 +35,49 @@ export function ChonTuanCuaEm({
     batDau(() =>
       router.push({pathname, query: m === thisMonday ? {} : {week: m}} as Parameters<typeof router.push>[0]),
     );
-  const nut = `${btnGhost} shrink-0 ${dangTai ? 'cursor-wait opacity-60' : ''}`;
   const khi = monday === thisMonday ? 'now' : monday < thisMonday ? 'past' : 'future';
 
   return (
-    <div className="glass flex flex-wrap items-center justify-center gap-2 rounded-[20px] p-3">
-      <button type="button" onClick={() => di(shiftWeeks(monday, -1))} className={nut} aria-label={t('weekPrev')} disabled={dangTai}>
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => di(shiftWeeks(monday, -1))}
+        className={`${btnGhost} h-10 w-10 shrink-0 !px-0 ${dangTai ? 'cursor-wait opacity-60' : ''}`}
+        aria-label={t('weekPrev')}
+        disabled={dangTai}
+      >
         <ChevronLeft size={16} strokeWidth={2.5} />
-        {t('weekPrev')}
       </button>
-      <div className="flex min-w-0 flex-1 flex-col items-center px-1 text-center">
-        <span className="flex items-center gap-2 font-display text-[15px] font-bold text-navy">
-          {label}
-          {dangTai && <Loader2 size={14} className="animate-spin text-grey-mid" />}
-          {khi !== 'now' && (
-            <span className="rounded-full border-[1.5px] border-navy/15 bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-extrabold text-grey-mid">
-              {khi === 'past' ? t('weekPast') : t('weekFuture')}
-            </span>
-          )}
-        </span>
-        <span className="text-[12px] font-bold tabular-nums text-grey-mid">
+      <div className="flex min-w-0 flex-1 flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5 text-center">
+        <span className="font-display text-[16px] font-bold leading-none text-navy">{label}</span>
+        <span className="text-[12.5px] font-bold tabular-nums text-grey-mid">
           {ngayVN(start).slice(0, 5)} → {ngayVN(end).slice(0, 5)}
         </span>
+        {khi === 'now' ? (
+          <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-gold-text">{t('weekNow')}</span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => di(thisMonday)}
+            disabled={dangTai}
+            className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-navy/15 px-2 text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid hover:border-navy"
+          >
+            <RotateCcw size={10} strokeWidth={2.5} />
+            {khi === 'past' ? t('weekPast') : t('weekFuture')} · {t('weekNow')}
+          </button>
+        )}
+        {dangTai && <Loader2 size={14} className="animate-spin text-grey-mid" />}
       </div>
-      <button type="button" onClick={() => di(shiftWeeks(monday, 1))} className={nut} aria-label={t('weekNext')} disabled={dangTai}>
-        {t('weekNext')}
+      <button
+        type="button"
+        onClick={() => di(shiftWeeks(monday, 1))}
+        className={`${btnGhost} h-10 w-10 shrink-0 !px-0 ${dangTai ? 'cursor-wait opacity-60' : ''}`}
+        aria-label={t('weekNext')}
+        disabled={dangTai}
+      >
         <ChevronRight size={16} strokeWidth={2.5} />
       </button>
-      <LichVN value={monday} nhan={t('weekPick')} onChange={(iso) => iso && di(mondayOf(iso))} />
-      {khi !== 'now' && (
-        <button type="button" onClick={() => di(thisMonday)} className={nut} disabled={dangTai}>
-          <RotateCcw size={13} strokeWidth={2.5} />
-          {t('weekNow')}
-        </button>
-      )}
+      <LichVN value={monday} nhan={t('weekPick')} onChange={(iso) => iso && di(mondayOf(iso))} className="hidden sm:block" />
     </div>
   );
 }

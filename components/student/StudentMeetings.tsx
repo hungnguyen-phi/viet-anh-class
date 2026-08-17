@@ -1,5 +1,5 @@
 import {getTranslations} from 'next-intl/server';
-import {MessagesSquare, Sparkles, Target} from 'lucide-react';
+import {MessagesSquare, Target} from 'lucide-react';
 import {SuTu} from '@/components/ui/SuTu';
 import {BuddyChat, type BuddyMessage} from './BuddyChat';
 
@@ -46,13 +46,8 @@ export async function StudentMeetings({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Buddy của em là con sư tử AI — nói bằng HÌNH, không bằng chữ giải thích (yêu cầu
-          12/08/2026): icon đầu sư tử đứng cạnh chữ đã đủ, thêm "là chú sư tử AI" thành ra giảng
-          giải. Khung ghi chú Buddy bên dưới mỗi biên bản mới là chỗ nó nói. */}
-      <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-gold/15 px-3 py-1.5 text-[12px] font-bold text-navy">
-        <SuTu size={15} />
-        {t('buddyIsLion')}
-      </div>
+      {/* Huy hiệu "Buddy của em" (sư tử) ĐÃ GỠ 17/08/2026 — một cái pill đứng một mình, không
+          bấm được, chỉ thêm một dòng cho khu họp. Sư tử vẫn nói trong khung ghi chú dưới biên bản. */}
 
       {/* Form "Cô ghi lại buổi họp WIG tuần của riêng bạn" ĐÃ GỠ 16/08/2026: lời của em là em viết ở
           /student/hop; cô đọc, không ghi thay. */}
@@ -82,12 +77,10 @@ export async function StudentMeetings({
 
   function theBienBan(m: StudentMeeting) {
     return (
-            <div key={m.id} className="glass rounded-[20px] p-[18px]">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-navy px-3 py-1 font-display text-xs font-bold text-white">
-                  <MessagesSquare size={12} strokeWidth={2.5} />
-                  {m.week_label}
-                </span>
+            <div key={m.id} className="glass rounded-[16px] p-4">
+              <div className="flex flex-wrap items-center gap-2 text-navy">
+                <MessagesSquare size={14} strokeWidth={2.5} className="text-gold-deep" />
+                <span className="font-display text-[14px] font-bold">{m.week_label}</span>
               </div>
               {m.results && (
                 <div className="mt-3 text-[13px] font-semibold text-navy">
@@ -110,7 +103,7 @@ export async function StudentMeetings({
               {m.buddy_note && (
                 <div className="mt-3 rounded-[14px] border-[1.5px] border-gold/40 bg-gold/[0.07] p-3">
                   <div className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.04em] text-gold-text">
-                    <Sparkles size={12} strokeWidth={2.5} />
+                    <SuTu size={15} />
                     {t('buddyNote')}
                   </div>
                   <p className="mt-1 whitespace-pre-line text-[13px] font-semibold text-navy">
