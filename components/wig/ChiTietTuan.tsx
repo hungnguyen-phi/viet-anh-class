@@ -39,7 +39,7 @@ export async function ChiTietTuan({classId, weekStart}: {classId: string; weekSt
   const supabase = await createClient();
   const today = todayInVN();
   const days = weekDaysVN(weekStart);
-  const dayShort = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  const dayShort = t.raw('dayShort') as string[]; // dùng bản dịch, không gõ cứng (audit: /en hiện T2..CN)
 
   const [{data: emRows}, {data: ckRows}] = await Promise.all([
     supabase

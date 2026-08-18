@@ -73,7 +73,7 @@ export default async function ClassDetailPage({
     {href: '/roster', label: tn('roster'), desc: t('linkRoster'), Icon: Users, hex: 'var(--color-subj-knowledge)', soft: softOf('var(--color-subj-knowledge)')},
     {href: '/wig', label: tn('wig'), desc: t('linkWig'), Icon: Target, hex: 'var(--color-subj-skills)', soft: softOf('var(--color-subj-skills)')},
     {href: '/attendance', label: tn('attendance'), desc: t('linkAttendance'), Icon: ClipboardCheck, hex: 'var(--color-subj-english)', soft: softOf('var(--color-subj-english)')},
-    {href: '/scoreboard', label: tn('compete'), desc: t('linkScoreboard'), Icon: Trophy, hex: 'var(--color-warn)', soft: softOf('var(--color-warn)')},
+    {href: '/', label: tn('compete'), desc: t('linkScoreboard'), Icon: Trophy, hex: 'var(--color-warn)', soft: softOf('var(--color-warn)')},
     {href: '/meeting', label: tn('meeting'), desc: t('linkMeeting'), Icon: MessagesSquare, hex: 'var(--color-subj-physical)', soft: softOf('var(--color-subj-physical)')},
   ];
 

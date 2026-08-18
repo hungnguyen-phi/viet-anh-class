@@ -32,12 +32,12 @@ import {createClient} from '@/lib/supabase/client';
 // — `staff_can_read_class` nằm sẵn trong `rls_select_mood_checkins` — chỉ có giao diện là chưa
 // bày ra. Nghĩa là bản này KHÔNG nới một quyền nào; nó thôi giấu một thứ mà người có quyền vẫn
 // luôn được xem.
-const MOODS: Record<string, {emoji: string; nhan: string}> = {
-  great: {emoji: '😄', nhan: 'Rất vui'},
-  good: {emoji: '🙂', nhan: 'Vui'},
-  ok: {emoji: '😐', nhan: 'Bình thường'},
-  low: {emoji: '😟', nhan: 'Hơi buồn'},
-  bad: {emoji: '😢', nhan: 'Buồn'},
+// 6 CẢM XÚC v3 (18/08/2026) + 5 mức thang cũ để đọc lịch sử. Từ 0148 bộ chọn của em chỉ gửi 6
+// khoá mới; thiếu chúng ở đây (audit) thì mọi check-in mới hiện giờ bấm mà KHÔNG có emoji/nhãn —
+// đúng thứ màn này vừa mở ra để cô thấy. Nhãn lấy qua i18n roster.mood.* (đủ 11 khoá vi+en).
+const MOOD_EMOJI: Record<string, string> = {
+  happy: '😄', okay: '😐', sad: '😢', tired: '😪', worried: '😟', angry: '😠',
+  great: '😄', good: '🙂', ok: '😐', low: '😟', bad: '😢',
 };
 
 export type DongDiemDanh = {
@@ -61,14 +61,14 @@ const gio = (iso?: string | null) =>
       })
     : null;
 
-function O({m, t}: {m?: string | null; t?: string | null}) {
-  const mo = m ? MOODS[m] : null;
-  if (!mo && !t) return <span className="text-grey-soft">—</span>;
+function O({m, t, nhan}: {m?: string | null; t?: string | null; nhan?: string}) {
+  const emoji = m ? MOOD_EMOJI[m] : null;
+  if (!emoji && !t) return <span className="text-grey-soft">—</span>;
   return (
     <span className="inline-flex items-center gap-1.5">
-      {mo && (
-        <span title={mo.nhan} aria-label={mo.nhan} className="text-[17px] leading-none">
-          {mo.emoji}
+      {emoji && (
+        <span title={nhan} aria-label={nhan} className="text-[17px] leading-none">
+          {emoji}
         </span>
       )}
       {t && <span className="text-[12px] font-bold tabular-nums text-grey-mid">{t}</span>}
@@ -86,6 +86,8 @@ export function AttendanceTable({
   students: DongDiemDanh[];
 }) {
   const t = useTranslations('attendance');
+  const tMood = useTranslations('roster');
+  const nhanMood = (m?: string | null) => (m ? tMood(`mood.${m}`) : undefined);
   const [supabase] = useState(() => createClient());
   const [rows, setRows] = useState(students);
 
@@ -156,10 +158,10 @@ export function AttendanceTable({
               {st.name}
             </span>
             <span className="w-[78px] flex-none">
-              <O m={st.moodSang} t={gio(st.gioSang)} />
+              <O m={st.moodSang} t={gio(st.gioSang)} nhan={nhanMood(st.moodSang)} />
             </span>
             <span className="w-[78px] flex-none">
-              <O m={st.moodChieu} t={gio(st.gioChieu)} />
+              <O m={st.moodChieu} t={gio(st.gioChieu)} nhan={nhanMood(st.moodChieu)} />
             </span>
           </div>
         ))}

@@ -279,11 +279,15 @@ export async function deleteStudentMeeting(formData: FormData) {
 export async function createEditRequest(formData: FormData) {
   const profile = await getCurrentProfile();
   if (!profile) redirect('/login');
-  const student_id = String(formData.get('student_id') ?? '');
+  let student_id = String(formData.get('student_id') ?? '');
   const class_id = String(formData.get('class_id') ?? '');
   const kind = String(formData.get('kind') ?? 'other');
   const ref_id = String(formData.get('ref_id') ?? '') || null;
   const message = String(formData.get('message') ?? '').trim();
+  // YÊU CẦU-SỬA PHẢI ĐỨNG TÊN CHÍNH MÌNH (audit 18/08/2026): policy er_requester_insert chỉ đòi
+  // requester_id=auth.uid() + cùng lớp, KHÔNG đòi student_id=auth.uid(). Học sinh A gửi form với
+  // student_id của bạn B → cô duyệt là gỡ tick / đổi tên việc của B. Ép student_id = chính em.
+  if (profile.role === 'student') student_id = profile.id;
   const back = (m: string): never => veTrangEm(student_id, m);
   if (!student_id || !class_id) back('Thiếu thông tin yêu cầu');
   const supabase = await createClient();
@@ -740,7 +744,10 @@ export async function luuMucTieuCuaEm(
   // AI ĐANG GÕ. Chính em thì set_by='student'; cô hoặc quản trị gõ hộ thì 'teacher'. KHÔNG suy từ
   // một ô trên form — người dùng gửi gì lên cũng được, mà cột này là thước đo của cả chương trình.
   const laChinhEm = me.id === student_id && me.role === 'student';
-  const laNhanSu = me.role === 'teacher' || me.role === 'admin';
+  // ĐẶT HỘ CHỈ QUẢN TRỊ/BGH (audit 18/08/2026 + quyết định 16/08 "cô chỉ duyệt"): teacher bỏ khỏi
+  // đây — GVCN có nút Duyệt/Trả lại riêng, không gõ đè lời em. Trước đây teacher lọt vào nhánh
+  // này và mọi lượt lưu đè WIG em tự đặt đều văng 42501 ở trigger 0133.
+  const laNhanSu = me.role === 'admin' || me.role === 'principal';
   if (!laChinhEm && !laNhanSu) return {ok: false, error: 'Không có quyền đặt mục tiêu cho em này.'};
 
   if (kind !== 'academic' && kind !== 'personal')
@@ -857,7 +864,12 @@ export async function luuMucTieuCuaEm(
     //
     // XOÁ thì KHÁC — xem xoaMucTieuCuaEm(): xoá kéo theo mất cả lịch sử tick (cascade), một hành
     // động không đảo ngược được như sửa, nên cửa sổ một ngày vẫn giữ nguyên ở đó.
-    const {error} = await supabase.from('wigs').update(ban).eq('id', wigId);
+    // SỬA thì KHÔNG gửi set_by/kind: đè set_by='teacher' lên WIG em tự đặt vừa phá thước đo
+    // "% em tự đặt" vừa trip trigger 0133. Giữ nguyên giá trị cũ — chỉ nhánh INSERT mới đặt set_by.
+    const {set_by: _sb, kind: _k, ...banSua} = ban;
+    void _sb;
+    void _k;
+    const {error} = await supabase.from('wigs').update(banSua).eq('id', wigId);
     if (error) return {ok: false, error: (friendlyError(error))};
   } else {
     const {data, error} = await supabase.from('wigs').insert(ban).select('id').maybeSingle();

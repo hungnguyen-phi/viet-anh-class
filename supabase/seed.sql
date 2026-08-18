@@ -74,16 +74,16 @@ update auth.users set
 -- WIG năm cấp lớp 6A1 (4 lĩnh vực) + lead measure + tiến độ demo (donut on/off-track).
 insert into wigs (class_id, scope, area, period, period_label, target_value, unit, start_date, end_date, note)
 select (select id from classes where name='6A1' and school_year='2026-2027' limit 1),
-       'class', a.area::wig_area, 'year', '2026', a.target, a.unit, date '2026-01-01', date '2026-12-31', a.note
+       'class', a.area::wig_domain, 'year', '2026', a.target, a.unit, date '2026-01-01', date '2026-12-31', a.note
 from (values
   ('knowledge', 200, 'buổi tutor', '80% học sinh đạt giỏi'),
-  ('skills', 100, 'hành vi', '95% hành vi xây dựng văn hoá'),
-  ('english', 50, 'buổi luyện nói', '95% tiến bộ AVQT 1 level'),
-  ('physical', 100, 'buổi tập', '100% tiến bộ thể chất')
+  ('leadership_skills', 100, 'hành vi', '95% hành vi xây dựng văn hoá'),
+  ('character', 50, 'buổi luyện nói', '95% tiến bộ AVQT 1 level'),
+  ('physical_wellbeing', 100, 'buổi tập', '100% tiến bộ thể chất')
 ) as a(area, target, unit, note)
 where not exists (
   select 1 from wigs w where w.class_id = (select id from classes where name='6A1' and school_year='2026-2027' limit 1)
-    and w.scope='class' and w.period='year' and w.area = a.area::wig_area
+    and w.scope='class' and w.period='year' and w.area = a.area::wig_domain
 );
 
 insert into lead_measures (wig_id, title, target_value, unit)
@@ -97,7 +97,7 @@ insert into lead_progress (lead_measure_id, student_id, value, logged_date, logg
 select lm.id, null, p.val, current_date, (select id from profiles where email='co.lan@truongvietanh.com')
 from lead_measures lm
 join wigs w on w.id = lm.wig_id
-join (values ('knowledge',144),('skills',40),('english',40),('physical',35)) as p(area, val) on p.area = w.area::text
+join (values ('knowledge',144),('leadership_skills',40),('character',40),('physical_wellbeing',35)) as p(area, val) on p.area = w.area::text
 where w.class_id = (select id from classes where name='6A1' and school_year='2026-2027' limit 1)
   and w.scope='class' and w.period='year'
   and not exists (select 1 from lead_progress lp where lp.lead_measure_id = lm.id);
@@ -178,21 +178,21 @@ begin
   for v_area, v_title, v_unit, p29, p30 in
     select * from (values
       ('knowledge', 'Buổi tutor Toán',      'buổi', 5, 1),
-      ('skills',    'Hành vi văn hoá tốt',  'lần',  2, 0),
-      ('english',   'Học 10 từ vựng mới',   'lần',  1, 0),
-      ('physical',  'Buổi tập thể thao',    'buổi', 5, 1)
+      ('leadership_skills',    'Hành vi văn hoá tốt',  'lần',  2, 0),
+      ('character',   'Học 10 từ vựng mới',   'lần',  1, 0),
+      ('physical_wellbeing',  'Buổi tập thể thao',    'buổi', 5, 1)
     ) v(a, t, u, x, y)
   loop
     insert into wigs (class_id, student_id, scope, area, period, period_label, target_value, unit, start_date, end_date)
-    values (cid, sid, 'student', v_area::wig_area, 'year', '2026-2027', 40, v_unit, date '2026-07-01', date '2027-06-30')
+    values (cid, sid, 'student', v_area::wig_domain, 'year', '2026-2027', 40, v_unit, date '2026-07-01', date '2027-06-30')
     returning id into yw;
 
     insert into wigs (class_id, student_id, scope, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date)
-    values (cid, sid, 'student', v_area::wig_area, 'week', 'W29-2026', yw, 5, v_unit, date '2026-07-13', date '2026-07-19')
+    values (cid, sid, 'student', v_area::wig_domain, 'week', 'W29-2026', yw, 5, v_unit, date '2026-07-13', date '2026-07-19')
     returning id into w29;
 
     insert into wigs (class_id, student_id, scope, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date)
-    values (cid, sid, 'student', v_area::wig_area, 'week', 'W30-2026', yw, 5, v_unit, date '2026-07-20', date '2026-07-26')
+    values (cid, sid, 'student', v_area::wig_domain, 'week', 'W30-2026', yw, 5, v_unit, date '2026-07-20', date '2026-07-26')
     returning id into w30;
 
     insert into lead_measures (wig_id, title, target_value, unit) values (w29, v_title, 5, v_unit) returning id into lm29;
@@ -248,21 +248,21 @@ begin
   for v_area, v_title, v_unit, p29, p30 in
     select * from (values
       ('knowledge', 'Buổi tutor Toán',      'buổi', 5, 4),
-      ('skills',    'Hành vi văn hoá tốt',  'lần',  5, 3),
-      ('english',   'Học 10 từ vựng mới',   'lần',  4, 3),
-      ('physical',  'Buổi tập thể thao',    'buổi', 5, 4)
+      ('leadership_skills',    'Hành vi văn hoá tốt',  'lần',  5, 3),
+      ('character',   'Học 10 từ vựng mới',   'lần',  4, 3),
+      ('physical_wellbeing',  'Buổi tập thể thao',    'buổi', 5, 4)
     ) v(a, t, u, x, y)
   loop
     insert into wigs (class_id, student_id, scope, area, period, period_label, target_value, unit, start_date, end_date)
-    values (cid, sid, 'student', v_area::wig_area, 'year', '2026-2027', 40, v_unit, date '2026-07-01', date '2027-06-30')
+    values (cid, sid, 'student', v_area::wig_domain, 'year', '2026-2027', 40, v_unit, date '2026-07-01', date '2027-06-30')
     returning id into yw;
 
     insert into wigs (class_id, student_id, scope, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date)
-    values (cid, sid, 'student', v_area::wig_area, 'week', 'W29-2026', yw, 5, v_unit, date '2026-07-13', date '2026-07-19')
+    values (cid, sid, 'student', v_area::wig_domain, 'week', 'W29-2026', yw, 5, v_unit, date '2026-07-13', date '2026-07-19')
     returning id into w29;
 
     insert into wigs (class_id, student_id, scope, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date)
-    values (cid, sid, 'student', v_area::wig_area, 'week', 'W30-2026', yw, 5, v_unit, date '2026-07-20', date '2026-07-26')
+    values (cid, sid, 'student', v_area::wig_domain, 'week', 'W30-2026', yw, 5, v_unit, date '2026-07-20', date '2026-07-26')
     returning id into w30;
 
     insert into lead_measures (wig_id, title, target_value, unit) values (w29, v_title, 5, v_unit) returning id into lm29;

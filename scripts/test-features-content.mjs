@@ -67,10 +67,10 @@ function than(html) {
 
 // [vai, đường dẫn, phải-có[], không-được-có[]]
 const CASES = [
-  ['teacher', '/homework', ['Báo bài', 'Nội dung', 'Hạn nộp'], []],
-  ['student', '/homework', ['Báo bài'], ['Hạn nộp cho cả lớp']],
-  ['parent', '/homework', ['Báo bài'], []],
-  ['principal', '/homework', ['Báo bài'], ['Đăng bài']],
+  // Báo bài đã GỠ 18/08/2026 (PRD v3) — mọi vai vào /homework phải KHÔNG còn thấy trang bài,
+  // route trả 404/redirect. Canh cho nó đừng lặng lẽ quay lại.
+  ['teacher', '/homework', [], ['Báo bài', 'Đăng bài', 'Hạn nộp']],
+  ['student', '/homework', [], ['Báo bài', 'Hạn nộp cho cả lớp']],
 
   ['teacher', '/grades', ['Học bạ'], []],
   ['principal', '/grades', ['Học bạ'], []],

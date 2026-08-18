@@ -115,7 +115,7 @@
     },
     "grade": "Grade",
     "campus": "Campus",
-    "noClassTeacher": "Your account is not the homeroom teacher of any class. Scoreboard, Attendance, Homework and WIG are all organised by homeroom class, so they are empty until you are assigned one — nothing is broken. If you do lead a class, ask an administrator to assign it to you.",
+    "noClassTeacher": "Your account is not the homeroom teacher of any class. Scoreboard, Attendance, WIG and Timetable are all organised by homeroom class, so they are empty until you are assigned one — nothing is broken. If you do lead a class, ask an administrator to assign it to you.",
     "noClassParent": "Your child is not enrolled in a class, or has just left. Please ask the homeroom teacher or the school office to check.",
     "noClassStudent": "You are not enrolled in a class yet. Tell your homeroom teacher so they can add you.",
     "noClassStaff": "This campus has no active classes yet. Create one in Admin, then come back here.",
@@ -814,7 +814,8 @@
     "confirmDeleteWork": "Delete this work? Its ticks go with it and the commitment goes back to pending.",
     "workTag": "Work",
     "noCommitmentThisWeek": "No commitment this week.",
-    "thisWeekTitle": "Weekly commitments"
+    "thisWeekTitle": "Weekly commitments",
+    "buddyChatBuddy": "The Lion"
   },
   "campusReport": {
     "title": "Campus report",
@@ -930,7 +931,8 @@
     "periodLen": "Length (min)",
     "periodGap": "Break (min)",
     "applyDays": "Also apply to",
-    "today": "Today"
+    "today": "Today",
+    "confirmRemoveOverride": "Remove this change? The period returns to normal on that day."
   },
   "subjects": {
     "title": "Subjects & teaching assignments",

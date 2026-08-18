@@ -3,6 +3,8 @@ import {Check} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {tenHienThi} from '@/lib/ten-hien-thi';
+import {kieuDonVi} from '@/lib/don-vi';
+import {weekFromMonday} from '@/lib/dates';
 import {duyetMucTieu} from '@/app/[locale]/(dashboard)/student/actions';
 import {duyetCamKet} from '@/app/[locale]/(dashboard)/wig/actions';
 
@@ -47,7 +49,7 @@ export async function BangCacEm({
     supabase.from('wigs').select('id, title').eq('class_id', classId).eq('scope', 'class').eq('period', 'year'),
     supabase
       .from('commitments')
-      .select('id, student_id, title, status, verdict, lead_measures(id, title, target_value, lead_progress(student_id, value))')
+      .select('id, student_id, title, status, verdict, lead_measures(id, title, target_value, unit, unit_per_tick, lead_progress(student_id, value, logged_date))')
       .eq('class_id', classId)
       .eq('week_start', monday)
       .not('student_id', 'is', null)
@@ -62,8 +64,9 @@ export async function BangCacEm({
     title: string;
     status: string;
     verdict: string | null;
-    lead_measures: {id: string; title: string; target_value: number | string; lead_progress: {student_id: string | null; value: number | string | null}[] | null}[] | null;
+    lead_measures: {id: string; title: string; target_value: number | string; unit: string | null; unit_per_tick: number | string | null; lead_progress: {student_id: string | null; value: number | string | null; logged_date: string}[] | null}[] | null;
   };
+  const tuanDen = weekFromMonday(monday).end; // Chủ Nhật của tuần đang xem — biên lọc tick
   const mtTheoEm = new Map<string, MT[]>();
   for (const m of (mtRows ?? []) as MT[]) if (m.student_id) mtTheoEm.set(m.student_id, [...(mtTheoEm.get(m.student_id) ?? []), m]);
   const ckTheoEm = new Map<string, CK[]>();
@@ -98,7 +101,19 @@ export async function BangCacEm({
                 const cks = ckTheoEm.get(e.id) ?? [];
                 const viec = cks.flatMap((c) => c.lead_measures ?? []);
                 const viecDat = viec.filter((l) => {
-                  const dat = (l.lead_progress ?? []).filter((p) => p.student_id === e.id).reduce((s, p) => s + Number(p.value ?? 1), 0);
+                  // Cùng luật với màn của em + phòng họp (audit 18/08): lọc tick trong tuần; đơn vị
+                  // 'do' lấy số mới nhất, còn lại cộng value × unit_per_tick.
+                  const tick = (l.lead_progress ?? []).filter(
+                    (p) => p.student_id === e.id && p.logged_date >= monday && p.logged_date <= tuanDen,
+                  );
+                  const upt = Number(l.unit_per_tick) || 1;
+                  let dat: number;
+                  if (kieuDonVi(l.unit ?? '') === 'do') {
+                    const moi = tick.slice().sort((a, b) => b.logged_date.localeCompare(a.logged_date))[0];
+                    dat = moi ? Number(moi.value) || 0 : 0;
+                  } else {
+                    dat = tick.reduce((s, p) => s + (Number(p.value) || 0), 0) * upt;
+                  }
                   return Number(l.target_value) > 0 && dat >= Number(l.target_value);
                 }).length;
                 return (

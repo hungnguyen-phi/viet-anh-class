@@ -1,4 +1,5 @@
 import {shiftWeeks, weekFromMonday} from '@/lib/dates';
+import {kieuDonVi} from '@/lib/don-vi';
 import type {createClient} from '@/lib/supabase/server';
 import type {CamKetHop, EmHop, WigOption} from '@/components/wig/PhongHop';
 import {tenHienThi} from '@/lib/ten-hien-thi';
@@ -54,7 +55,10 @@ type CkRow = {
         title: string;
         target_value: number | string;
         unit: string | null;
-        lead_progress: {student_id: string | null; value: number | string | null}[] | null;
+        unit_per_tick: number | string | null;
+        lead_progress:
+          | {student_id: string | null; value: number | string | null; logged_date: string}[]
+          | null;
       }[]
     | null;
 };
@@ -83,10 +87,24 @@ export type DuLieuHop = {
 
 // Từ một dòng commitments ra hình mà phòng họp bày. `cuaAi` = null với cam kết lớp (đếm tick của
 // cô — student_id null), = id em với cam kết riêng (đếm tick của chính em).
-function docCamKet(c: CkRow, cuaAi: string | null): CamKetHop {
+function docCamKet(c: CkRow, cuaAi: string | null, tuan: string, den: string): CamKetHop {
   const viec = (c.lead_measures ?? []).map((lm) => {
     const target = Number(lm.target_value) || 0;
-    const dat = (lm.lead_progress ?? []).filter((p) => (p.student_id ?? null) === cuaAi).length;
+    // ĐẾM ĐÚNG LUẬT GỘP (audit 18/08/2026): bản cũ đếm SỐ DÒNG tick — sai với đơn vị 'do' (điểm,
+    // kg: lấy số MỚI NHẤT) và với việc nhập-lượng (viết 15 bài trong 1 dòng value=15, ×hệ số).
+    // Cùng luật cam_ket_goi_y (0121) và myTotal (StudentScoreboard): lọc tick TRONG TUẦN, đơn vị
+    // 'do' lấy giá trị mới nhất theo ngày, còn lại cộng value × unit_per_tick.
+    const upt = Number(lm.unit_per_tick) || 1;
+    const tick = (lm.lead_progress ?? []).filter(
+      (p) => (p.student_id ?? null) === cuaAi && p.logged_date >= tuan && p.logged_date <= den,
+    );
+    let dat: number;
+    if (kieuDonVi(lm.unit ?? '') === 'do') {
+      const moiNhat = tick.slice().sort((a, b) => b.logged_date.localeCompare(a.logged_date))[0];
+      dat = moiNhat ? Number(moiNhat.value) || 0 : 0;
+    } else {
+      dat = tick.reduce((s, p) => s + (Number(p.value) || 0), 0) * upt;
+    }
     return {id: lm.id, title: lm.title, unit: lm.unit, dat, target, xong: target > 0 && dat >= target};
   });
   const xong = viec.filter((v) => v.xong).length;
@@ -153,7 +171,7 @@ export async function layDuLieuHop(
       supabase
         .from('commitments')
         .select(
-          'id, student_id, title, area, verdict, so_lan_sua, lead_measures(id, title, target_value, unit, lead_progress(student_id, value))',
+          'id, student_id, title, area, verdict, so_lan_sua, lead_measures(id, title, target_value, unit, unit_per_tick, lead_progress(student_id, value, logged_date))',
         )
         .eq('class_id', classId)
         .eq('week_start', hopMonday)
@@ -167,11 +185,13 @@ export async function layDuLieuHop(
     ]);
 
   const ck = (ckRows ?? []) as unknown as CkRow[];
-  const camKetLop = ck.filter((c) => !c.student_id).map((c) => docCamKet(c, null));
+  // Biên tuần đang họp [Thứ Hai, Chủ Nhật] để lọc tick — cùng khung cam_ket_goi_y (0121).
+  const tuanDen = hopWk.end;
+  const camKetLop = ck.filter((c) => !c.student_id).map((c) => docCamKet(c, null, hopMonday, tuanDen));
   const ckTheoEm = new Map<string, CamKetHop[]>();
   for (const c of ck) {
     if (!c.student_id) continue;
-    ckTheoEm.set(c.student_id, [...(ckTheoEm.get(c.student_id) ?? []), docCamKet(c, c.student_id)]);
+    ckTheoEm.set(c.student_id, [...(ckTheoEm.get(c.student_id) ?? []), docCamKet(c, c.student_id, hopMonday, tuanDen)]);
   }
 
   const traLoiTheoEm = new Map<string, EmHop['traLoi'] & {thamGia: boolean}>();

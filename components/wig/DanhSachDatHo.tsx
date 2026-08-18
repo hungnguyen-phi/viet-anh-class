@@ -24,26 +24,33 @@ import {ngayVN} from '@/lib/dates';
 // trong 24 giờ đầu em sửa hoặc xoá được (0102). Cô đặt hộ là để em có chỗ bắt đầu, không phải để
 // thay em quyết định.
 
+// MỘT WIG của một em (một domain). Từ 0145 mỗi em có tới 4 cái — xem MtCuaEm.
+export type MtItem = DangSua & {
+  status: string;
+  set_by: string | null;
+  achieved_at: string | null;
+};
+
+// Một em kèm TOÀN BỘ WIG của em (mọi domain). Trước v3 chỉ 1 nên field cũ là object đơn; nay
+// là mảng, nếu không thì hàng đợi duyệt và cách gom theo trận chỉ thấy 1 trong 4 (audit 18/08).
 export type EmTrongLop = {
   id: string;
   ten: string;
-  mucTieu:
-    | (DangSua & {
-        status: string;
-        set_by: string | null;
-        achieved_at: string | null;
-      })
-    | null;
+  mucTieus: MtItem[];
 };
+
+// Một DÒNG của bảng đặt-hộ: một em + ĐÚNG MỘT WIG (của nhóm đang xét). TuongWig tự dẫn xuất.
+export type DongDatHo = {id: string; ten: string; mucTieu: MtItem | null};
 
 export function DanhSachDatHo({
   classId,
   danhSach,
   wigLop,
   suaDuoc,
+  areaMacDinh,
 }: {
   classId: string;
-  danhSach: EmTrongLop[];
+  danhSach: DongDatHo[];
   wigLop: WigLop[];
   /**
    * Người đang xem có SỬA/XOÁ được mục tiêu của em không — chỉ quản trị và BGH (0133, 0134).
@@ -53,9 +60,11 @@ export function DanhSachDatHo({
    * sẽ ăn lỗi — nút chết còn tệ hơn nút không có, vì nó hứa một việc rồi nuốt lời.
    */
   suaDuoc: boolean;
+  /** Domain của nhóm đang xét — đặt-hộ cho em CHƯA có WIG ở domain này tạo đúng domain ấy. */
+  areaMacDinh?: string;
 }) {
   const t = useTranslations('goal');
-  const [dangMo, setDangMo] = useState<EmTrongLop | null>(null);
+  const [dangMo, setDangMo] = useState<DongDatHo | null>(null);
 
   if (danhSach.length === 0)
     return <p className="text-[12.5px] italic text-grey-mid">{t('wallEmpty')}</p>;
@@ -147,7 +156,7 @@ export function DanhSachDatHo({
         <FormMucTieu
           studentId={dangMo.id}
           classId={classId}
-          area={dangMo.mucTieu?.area ?? 'knowledge'}
+          area={dangMo.mucTieu?.area ?? areaMacDinh ?? 'knowledge'}
           tenEm={dangMo.ten}
           wigLop={wigLop}
           dangSua={dangMo.mucTieu}

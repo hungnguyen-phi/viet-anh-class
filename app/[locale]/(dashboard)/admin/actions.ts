@@ -360,21 +360,33 @@ export async function xepLopChoHocSinh(formData: FormData) {
   );
 }
 
-// Phân công GVCN: đặt 1 người làm giáo viên chủ nhiệm của lớp (đồng thời set role=teacher).
+// Phân công GVCN: đặt 1 người làm giáo viên chủ nhiệm của lớp.
 export async function assignGvcn(formData: FormData) {
-  await requireRole(['admin']);
+  const me = await requireRole(['admin']);
   const userId = String(formData.get('userId') ?? '');
   const classId = String(formData.get('class_id') ?? '');
   if (!userId || !classId) flash('Thiếu giáo viên hoặc lớp');
   const supabase = await createClient();
-  const {error: e1} = await supabase.from('profiles').update({role: 'teacher'}).eq('id', userId);
+
+  // KHÔNG HẠ VAI BỪA (audit 18/08/2026). Bản cũ `update({role:'teacher'})` KHÔNG lọc — chọn một
+  // hiệu trưởng/admin (ô chọn đổ cả ba vai) là âm thầm giật mất vai của họ; chọn CHÍNH MÌNH là
+  // admin tự đá mình khỏi /admin. GVCN phải là teacher/pending: admin/principal thì từ chối;
+  // pending thì nâng lên teacher (promoteToTeacher đã lọc .eq('role','pending')); teacher thì
+  // để nguyên.
+  const {data: nguoi} = await supabase.from('profiles').select('role').eq('id', userId).maybeSingle();
+  if (!nguoi) flash(loi('Không tìm thấy người này.'));
+  if (userId === me.id) flash(loi('Bạn là quản trị — không tự phân công mình làm GVCN.'));
+  if (nguoi!.role === 'admin' || nguoi!.role === 'principal')
+    flash(loi('Người này đang là quản trị/BGH — không hạ xuống GVCN. Chọn một giáo viên.'));
+  if (nguoi!.role === 'pending') await promoteToTeacher(supabase, userId);
+
   const {error: e2} = await supabase
     .from('classes')
     .update({homeroom_teacher_id: userId})
     .eq('id', classId);
   quen();
   revalidatePath('/[locale]/admin', 'page');
-  flash(e1 || e2 ? loi(friendlyError(e1 || e2)) : 'Đã phân công GVCN');
+  flash(e2 ? loi(friendlyError(e2)) : 'Đã phân công GVCN');
 }
 
 export type ParentState = {

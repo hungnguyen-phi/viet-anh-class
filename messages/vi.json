@@ -115,7 +115,7 @@
     },
     "grade": "Khối",
     "campus": "Cơ sở",
-    "noClassTeacher": "Tài khoản của bạn chưa chủ nhiệm lớp nào. Các mục Bảng điểm, Điểm danh, Báo bài, WIG đều xếp theo lớp chủ nhiệm — nên khi chưa nhận lớp thì chúng trống, và đó không phải lỗi. Nếu bạn đang chủ nhiệm một lớp, nhờ quản trị viên gán lớp đó cho bạn.",
+    "noClassTeacher": "Tài khoản của bạn chưa chủ nhiệm lớp nào. Các mục Bảng điểm, Điểm danh, WIG, Thời khoá biểu đều xếp theo lớp chủ nhiệm — nên khi chưa nhận lớp thì chúng trống, và đó không phải lỗi. Nếu bạn đang chủ nhiệm một lớp, nhờ quản trị viên gán lớp đó cho bạn.",
     "noClassParent": "Con của bạn chưa được xếp vào lớp nào, hoặc vừa thôi học. Nhờ giáo viên chủ nhiệm hoặc văn phòng nhà trường kiểm tra lại giúp.",
     "noClassStudent": "Học sinh chưa được ghi danh vào lớp nào. Báo với giáo viên chủ nhiệm để được thêm vào lớp.",
     "noClassStaff": "Cơ sở này chưa có lớp nào đang hoạt động. Tạo lớp ở mục Quản trị rồi quay lại đây.",
@@ -814,7 +814,8 @@
     "confirmDeleteWork": "Xoá việc này? Lượt tick của nó mất theo, và cam kết về chờ giáo viên duyệt lại.",
     "workTag": "Việc",
     "noCommitmentThisWeek": "Tuần này chưa có cam kết.",
-    "thisWeekTitle": "Cam kết tuần"
+    "thisWeekTitle": "Cam kết tuần",
+    "buddyChatBuddy": "Sư Tử"
   },
   "campusReport": {
     "title": "Báo cáo cơ sở",
@@ -930,7 +931,8 @@
     "periodLen": "Độ dài (phút)",
     "periodGap": "Nghỉ (phút)",
     "applyDays": "Áp dụng thêm cho",
-    "today": "Hôm nay"
+    "today": "Hôm nay",
+    "confirmRemoveOverride": "Gỡ thay đổi này? Tiết trở lại bình thường ở ngày đó."
   },
   "subjects": {
     "title": "Môn học và phân công",

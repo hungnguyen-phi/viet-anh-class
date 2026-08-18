@@ -95,6 +95,9 @@ export default async function PhongHopCuaEmPage({
     // đã tự nói nó góp vào trận nào của lớp (source_wig_id).
     .eq('scope', 'student')
     .eq('student_id', profile.id)
+    // CHỈ WIG ĐÃ DUYỆT (0148/audit 18/08): datCamKetTuan + trigger cam_ket_hop_le chỉ nhận
+    // 'approved'. Không lọc thì em điền cả form mới bị server bác.
+    .eq('status', 'approved')
     .order('area');
 
   // CAM KẾT CỦA LỚP tuần đang họp — nhịp mở đầu của buổi họp WIG: cả lớp đã hứa gì, và cô đã

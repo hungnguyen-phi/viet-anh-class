@@ -629,9 +629,13 @@ export default async function TimetablePage({
                       <form action={deleteOverride} className="ml-auto">
                         <input type="hidden" name="class_id" value={myClass.id} />
                         <input type="hidden" name="id" value={o.id} />
-                        <SubmitButton className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-1 text-[11px] font-extrabold text-navy hover:border-navy">
+                        <ConfirmButton
+                          message={t('confirmRemoveOverride')}
+                          label={t('ovRemove')}
+                          className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-1 text-[11px] font-extrabold text-navy hover:border-navy"
+                        >
                           {t('ovRemove')}
-                        </SubmitButton>
+                        </ConfirmButton>
                       </form>
                     </div>
                   );

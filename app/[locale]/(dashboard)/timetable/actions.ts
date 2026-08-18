@@ -58,28 +58,44 @@ export async function luuOTiet(_prev: LuuOState, formData: FormData): Promise<Lu
   ];
 
   const supabase = await createClient();
+
+  // KHÔNG GHI ĐÈ LẶNG LẼ (audit 18/08/2026): ngày được tick "áp thêm" mà ĐÃ có tiết khác môn thì
+  // bỏ qua, chỉ ghi vào ô TRỐNG — xoá một ô đã bắt hỏi lại, nên áp đè cả tuần càng không được im.
+  // Ô gốc (day_of_week) luôn ghi: ở chế độ thêm nó vốn trống; nếu là sửa thì chỉ có một thứ.
+  const apThem = cacThu.filter((thu) => thu !== day_of_week);
+  let biChiem: number[] = [];
+  if (apThem.length > 0) {
+    const {data: daCo} = await supabase
+      .from('timetable_slots')
+      .select('day_of_week')
+      .eq('class_id', class_id)
+      .eq('period_no', period_no)
+      .in('day_of_week', apThem);
+    biChiem = (daCo ?? []).map((r) => r.day_of_week);
+  }
+  const seChiem = new Set(biChiem);
+  const seGhi = [day_of_week, ...apThem.filter((thu) => !seChiem.has(thu))];
+
   const {error} = await supabase
     .from('timetable_slots')
     // CHỈ ghi subject_id. Cột chữ `subject` cũ cố ý KHÔNG đụng tới: ghi cả hai là dựng lại đúng
     // hai nguồn sự thật mà 0069 vừa dẹp. onConflict giữ nguyên (class, thứ, tiết) — cột môn
     // không nằm trong khoá nên đổi môn của một ô vẫn là SỬA ô đó, không đẻ ô mới.
     .upsert(
-      cacThu.map((thu) => ({
-        class_id,
-        day_of_week: thu,
-        period_no,
-        subject_id,
-        room,
-        teacher_name,
-        kind,
-      })),
+      seGhi.map((thu) => ({class_id, day_of_week: thu, period_no, subject_id, room, teacher_name, kind})),
       {onConflict: 'class_id,day_of_week,period_no'},
     );
   if (error) return {ok: false, error: friendlyError(error)};
   revalidatePath('/[locale]/timetable', 'page');
+  const boQua = biChiem.length;
   return {
     ok: true,
-    message: cacThu.length > 1 ? `Đã lưu tiết này cho ${cacThu.length} ngày` : 'Đã lưu ô thời khoá biểu',
+    message:
+      seGhi.length > 1
+        ? `Đã lưu tiết này cho ${seGhi.length} ngày${boQua > 0 ? `, bỏ qua ${boQua} ngày đã có tiết` : ''}`
+        : boQua > 0
+          ? `Đã lưu; bỏ qua ${boQua} ngày đã có tiết khác`
+          : 'Đã lưu ô thời khoá biểu',
   };
 }
 
@@ -176,6 +192,28 @@ export async function saveOverride(formData: FormData) {
     flash(class_id, 'Dạy thay thì phải ghi tên người dạy thay.');
 
   const supabase = await createClient();
+
+  // NGÀY PHẢI KHỚP THỨ CỦA TIẾT (audit 18/08/2026): lưới tra ngoại lệ bằng khoá slot.id|ngày-của
+  // -cột-đúng-thứ. Ghi ngoại lệ cho 'T2 tiết 3' vào một ngày thứ Tư thì lưu thành công nhưng
+  // KHÔNG BAO GIỜ hiện — ô mờ đi mà không ai hiểu vì sao. Chặn ở đây. Thứ của repo là 2..8
+  // (T2..CN); getUTCDay() trả 0..6 với 0=CN → quy đổi.
+  const {data: slot} = await supabase
+    .from('timetable_slots')
+    .select('day_of_week')
+    .eq('id', slot_id)
+    .maybeSingle();
+  if (!slot) flash(class_id, 'Tiết này không còn nữa.');
+  const dowCuaNgay = (() => {
+    const d = new Date(`${date}T00:00:00Z`).getUTCDay();
+    return d === 0 ? 8 : d + 1;
+  })();
+  if (slot!.day_of_week !== dowCuaNgay)
+    flash(class_id, 'Ngày em chọn không rơi vào đúng thứ của tiết này — chọn lại ngày cho khớp.');
+  if (status === 'moved' && new_date) {
+    const dnew = new Date(`${new_date}T00:00:00Z`).getUTCDay();
+    void dnew; // ngày đích tự do (dời sang thứ khác được) — chỉ ngày GỐC phải khớp thứ của tiết.
+  }
+
   // 1 ngoại lệ / (tiết, ngày) — ghi lại thì thay cái cũ, không chồng nhiều trạng thái lên nhau.
   const {error} = await supabase.from('timetable_overrides').upsert(
     {

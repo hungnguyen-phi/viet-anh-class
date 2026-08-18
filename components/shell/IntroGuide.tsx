@@ -56,16 +56,16 @@ function buildSteps(role: Role, locale: string): Step[] {
     title: vi ? 'Lớp mình làm việc thế nào?' : 'How your class works',
     bullets: vi
       ? [
-          'Mục tiêu (WIG) — điều quan trọng nhất lớp muốn đạt trong năm, ở 4 mảng: Kiến thức, Kỹ năng, Tiếng Anh, Thể chất. Mục tiêu năm được chia nhỏ ra từng tháng, từng tuần.',
+          'Mục tiêu (WIG) — điều quan trọng nhất lớp muốn đạt trong năm, ở 4 mảng: Kiến thức, Kỹ năng lãnh đạo, Phẩm chất, Sức khoẻ thể chất.',
           'Việc làm đều — việc nhỏ bạn làm hằng ngày để đi tới mục tiêu, ví dụ làm bài tập mỗi tối. Làm xong thì tick vào ô của ngày hôm đó.',
           'Bảng tiến độ — vòng tròn phần trăm cho biết bạn đang đi đúng nhịp, giữa nhịp hay chậm so với kế hoạch.',
-          'Họp WIG — mỗi tuần cả lớp nhìn lại số của tuần vừa rồi, rút ra điều gì, rồi hứa với nhau việc tuần tới.',
+          'Họp lớp — mỗi tuần cả lớp nhìn lại số của tuần vừa rồi, rút ra điều gì, rồi hứa với nhau việc tuần tới.',
         ]
       : [
-          'Goals (WIGs) — the most important things your class wants to reach this year, in 4 areas: Knowledge, Skills, English, Physical. A yearly goal is broken down by month and by week.',
+          'Goals (WIGs) — the most important things your class wants to reach this year, in 4 domains: Knowledge, Leadership skills, Character, Physical Well-being.',
           'Daily habits — the small things you do every day to get there, like homework each evening. Tick the box for the day once you have done it.',
           'Progress ring — a percentage that tells you whether you are on track, mid-pace, or behind.',
-          'WIG meeting — each week the class looks back at the numbers, says what it learned, and promises what comes next.',
+          'Class meeting — each week the class looks back at the numbers, says what it learned, and promises what comes next.',
         ],
   };
   const roleStep: Record<Role, Step> = {

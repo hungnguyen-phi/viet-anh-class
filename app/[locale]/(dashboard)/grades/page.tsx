@@ -681,7 +681,6 @@ export default async function GradesPage({
       {term.is_locked && (canEdit || laGVBM) && profile.role !== 'admin' && (
         <p className="text-[12px] font-bold text-status-bad">
           {t('lockedNotice')}
-          mở lại đợt.
         </p>
       )}
 

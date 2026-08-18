@@ -31,7 +31,7 @@ export async function TuongWig({
   suaDuoc,
 }: {
   classId: string;
-  wigLop: {id: string; title: string; target_value: number; unit: string}[];
+  wigLop: {id: string; title: string; target_value: number; unit: string; area: string}[];
   /** Cùng danh sách trên, rút gọn cho ô "việc này giúp lớp ở mục tiêu nào" trong form. */
   wigLopChon: WigLop[];
   danhSach: EmTrongLop[];
@@ -40,7 +40,11 @@ export async function TuongWig({
 }) {
   const t = await getTranslations('goal');
 
-  const choDuyet = danhSach.filter((e) => e.mucTieu?.status === 'sent');
+  // HÀNG ĐỢI DUYỆT = TỪNG WIG đang 'sent', không phải từng em (từ 0145 mỗi em tới 4 WIG; gom theo
+  // em thì 3 cái còn lại tàng hình — audit 18/08/2026).
+  const choDuyet = danhSach.flatMap((e) =>
+    e.mucTieus.filter((m) => m.status === 'sent').map((m) => ({em: e, m})),
+  );
 
   return (
     <section className="glass rounded-[20px] p-[18px]">
@@ -52,18 +56,18 @@ export async function TuongWig({
       {choDuyet.length > 0 && (
         <div className="mb-3 flex flex-col gap-2 rounded-[14px] border-[1.5px] border-gold/50 bg-gold/[0.08] p-3">
           <p className="text-[12px] font-extrabold text-navy">{t('queue', {n: choDuyet.length})}</p>
-          {choDuyet.map((e) => (
-            <form key={e.id} action={duyetMucTieu} className="flex flex-wrap items-center gap-2">
-              <input type="hidden" name="wig_id" value={e.mucTieu!.id} />
-              <input type="hidden" name="student_id" value={e.id} />
-              <span className="min-w-[110px] text-[12.5px] font-extrabold text-navy">{e.ten}</span>
+          {choDuyet.map(({em, m}) => (
+            <form key={m.id} action={duyetMucTieu} className="flex flex-wrap items-center gap-2">
+              <input type="hidden" name="wig_id" value={m.id} />
+              <input type="hidden" name="student_id" value={em.id} />
+              <span className="min-w-[110px] text-[12.5px] font-extrabold text-navy">{em.ten}</span>
               <span className="min-w-0 flex-1 text-[12.5px] font-semibold text-grey-mid">
-                {e.mucTieu!.title} ·{' '}
+                {m.title} ·{' '}
                 {t('fromTo', {
-                  from: e.mucTieu!.baseline ?? 0,
-                  to: e.mucTieu!.target_value,
-                  unit: e.mucTieu!.unit,
-                  due: ngayVN(e.mucTieu!.end_date),
+                  from: m.baseline ?? 0,
+                  to: m.target_value,
+                  unit: m.unit,
+                  due: ngayVN(m.end_date),
                 })}
               </span>
               <SubmitButton className={btnGold} wrapClass="contents">
@@ -75,12 +79,23 @@ export async function TuongWig({
       )}
 
       {/* GOM THEO TỪNG MỤC TIÊU CỦA LỚP (16/08/2026): dưới mỗi trận đánh của lớp là những em góp vào
-          nó (source_wig_id); em góp vào mục tiêu riêng / chưa đặt xếp riêng ở cuối. Chủ dự án nhìn bản
-          liệt kê phẳng và "ko hiểu nó thuộc về wig nào". */}
+          nó. Một em nay có thể góp vào nhiều trận (một WIG/domain), nên mỗi nhóm dẫn xuất ĐÚNG WIG
+          của em ở domain ấy. */}
       <div className="flex flex-col gap-3">
         {wigLop.length === 0 && <p className="text-[12.5px] italic text-grey-mid">{t('noClassWig')}</p>}
         {wigLop.map((w) => {
-          const cuaW = danhSach.filter((e) => e.mucTieu?.source_wig_id === w.id);
+          // Ưu tiên khớp bằng source_wig_id (em tự nối); nếu chưa nối thì khớp theo domain của
+          // trận (cùng area) — để WIG cùng lĩnh vực vẫn hiện đúng chỗ.
+          const cuaW = danhSach
+            .map((e) => ({
+              id: e.id,
+              ten: e.ten,
+              mucTieu:
+                e.mucTieus.find((m) => m.source_wig_id === w.id) ??
+                e.mucTieus.find((m) => m.area === w.area && !m.source_wig_id) ??
+                null,
+            }))
+            .filter((r) => r.mucTieu);
           return (
             <div key={w.id} className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
               <p className="text-[13.5px] font-extrabold tabular-nums text-navy">
@@ -90,7 +105,7 @@ export async function TuongWig({
                 {t('contributors', {n: cuaW.length})}
               </p>
               {cuaW.length > 0 ? (
-                <DanhSachDatHo classId={classId} danhSach={cuaW} wigLop={wigLopChon} suaDuoc={suaDuoc} />
+                <DanhSachDatHo classId={classId} danhSach={cuaW} wigLop={wigLopChon} suaDuoc={suaDuoc} areaMacDinh={w.area} />
               ) : (
                 <p className="text-[12px] italic text-grey-mid">{t('noContributor')}</p>
               )}
@@ -98,7 +113,18 @@ export async function TuongWig({
           );
         })}
         {(() => {
-          const conLai = danhSach.filter((e) => !e.mucTieu || !wigLop.some((w) => w.id === e.mucTieu?.source_wig_id));
+          // CÒN LẠI: em CHƯA có WIG nào (để cô đặt hộ), và WIG không nối được vào trận lớp nào
+          // (mục tiêu riêng, hoặc domain lớp chưa khai).
+          const idNhom = new Set(wigLop.map((w) => w.id));
+          const areaNhom = new Set(wigLop.map((w) => w.area));
+          const conLai: {id: string; ten: string; mucTieu: (typeof danhSach)[number]['mucTieus'][number] | null}[] = [];
+          for (const e of danhSach) {
+            const treo = e.mucTieus.filter(
+              (m) => !(m.source_wig_id && idNhom.has(m.source_wig_id)) && !(!m.source_wig_id && areaNhom.has(m.area)),
+            );
+            if (e.mucTieus.length === 0) conLai.push({id: e.id, ten: e.ten, mucTieu: null});
+            else for (const m of treo) conLai.push({id: e.id, ten: e.ten, mucTieu: m});
+          }
           if (conLai.length === 0) return null;
           return (
             <div className="rounded-[14px] border-[1.5px] border-dashed border-navy/15 p-3">

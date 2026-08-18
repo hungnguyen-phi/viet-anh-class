@@ -147,7 +147,7 @@ export async function StudentMeetings({
                   <div className="mt-1.5 flex flex-col gap-1">
                     {m.buddy_messages.map((x) => (
                       <div key={x.id} className="text-[12px] font-semibold text-navy">
-                        <b className="text-grey-mid">{x.role === 'user' ? t('buddyChatStudent') : 'Buddy'}: </b>
+                        <b className="text-grey-mid">{x.role === 'user' ? t('buddyChatStudent') : t('buddyChatBuddy')}: </b>
                         <span className="whitespace-pre-line">{x.content}</span>
                       </div>
                     ))}

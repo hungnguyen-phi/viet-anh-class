@@ -119,12 +119,23 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
     const monTruoc = d.toISOString().slice(0, 10);
     const {data: ckTruoc} = await supabase
       .from('commitments')
-      .select('id, pdr_meeting_id, verdict')
+      .select('id, pdr_meeting_id, verdict, pdr_meetings(type)')
       .eq('student_id', me.id)
       .eq('week_start', monTruoc)
       .is('verdict', null);
-    const ds = ckTruoc ?? [];
-    const muctieu = ds.find((c) => c.pdr_meeting_id) ?? (ds.length === 1 ? ds[0] : null);
+    const ds = (ckTruoc ?? []) as unknown as {
+      id: string;
+      pdr_meeting_id: string | null;
+      verdict: string | null;
+      pdr_meetings: {type: string} | null;
+    }[];
+    // ƯU TIÊN cam kết mà buổi sinh ra nó CÙNG LOẠI với buổi đang lưu (audit 18/08): tuần trước có
+    // cả buổi buddy lẫn coach thì mỗi buổi một cam kết cùng week_start — không phân loại thì
+    // Thắng/Thua của buổi buddy có thể ghi nhầm vào cam kết của buổi coach.
+    const muctieu =
+      ds.find((c) => c.pdr_meetings?.type === loai) ??
+      ds.find((c) => c.pdr_meeting_id) ??
+      (ds.length === 1 ? ds[0] : null);
     if (muctieu) {
       const {data: goiY} = await supabase.rpc('cam_ket_goi_y', {p_commitment: muctieu.id});
       const {error} = await supabase

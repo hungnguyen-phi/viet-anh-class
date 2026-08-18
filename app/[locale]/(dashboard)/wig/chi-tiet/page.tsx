@@ -9,7 +9,7 @@ import {isValidDayVN, mondayOf, todayInVN, weekFromMonday} from '@/lib/dates';
 import {WeekNav} from '@/components/wig/WeekNav';
 import {ChiTietTuan} from '@/components/wig/ChiTietTuan';
 import {TuongWig} from '@/components/wig/TuongWig';
-import type {EmTrongLop} from '@/components/wig/DanhSachDatHo';
+import type {EmTrongLop, MtItem} from '@/components/wig/DanhSachDatHo';
 import {Flash} from '@/components/ui/Flash';
 
 // /wig/chi-tiet — "em nào làm tới đâu, quên hôm nào".
@@ -111,10 +111,13 @@ export default async function ChiTietPage({
     source_wig_id: string | null;
   };
 
-  const theoEm = new Map<string, EmTrongLop['mucTieu']>();
+  // TẤT CẢ WIG của mỗi em (mọi domain — từ 0145 tới 4 cái). Bỏ lọc kind: 'personal' cũ nay cũng
+  // chiếm một domain và vẫn cần duyệt. Gom vào MẢNG, nếu không thì hàng đợi duyệt chỉ thấy 1/4.
+  const theoEm = new Map<string, MtItem[]>();
   for (const m of (mucTieuRows ?? []) as unknown as HangMucTieu[]) {
-    if (!m.student_id || m.kind !== 'academic') continue;
-    theoEm.set(m.student_id, {
+    if (!m.student_id) continue;
+    const arr = theoEm.get(m.student_id) ?? [];
+    arr.push({
       id: m.id,
       status: m.status,
       set_by: m.set_by,
@@ -127,6 +130,7 @@ export default async function ChiTietPage({
       achieved_at: m.achieved_at,
       source_wig_id: m.source_wig_id,
     });
+    theoEm.set(m.student_id, arr);
   }
 
   const danhSach: EmTrongLop[] = (
@@ -138,7 +142,7 @@ export default async function ChiTietPage({
     .map((e) => ({
       id: e.student_id,
       ten: e.profiles?.full_name ?? '—',
-      mucTieu: theoEm.get(e.student_id) ?? null,
+      mucTieus: theoEm.get(e.student_id) ?? [],
     }))
     .sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
 
