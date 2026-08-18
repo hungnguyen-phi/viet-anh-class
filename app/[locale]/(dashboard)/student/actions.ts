@@ -812,7 +812,7 @@ export async function luuMucTieuCuaEm(
       fieldError: 'source_wig_id',
       error: 'Mục tiêu của lớp này không còn nữa — chọn lại.',
     };
-  const area: Database['public']['Enums']['wig_area'] = chaLop.area;
+  const area: Database['public']['Enums']['wig_domain'] = chaLop.area;
 
   // MỤC TIÊU RIÊNG CHỈ MƯỢN LĨNH VỰC, KHÔNG MANG LIÊN KẾT. `wig_source_ck` (0100) bắt
   // source_wig_id phải null với kind='personal' — mục tiêu riêng không góp vào trận nào của lớp,

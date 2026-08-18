@@ -33,7 +33,7 @@ begin
   -- transaction sẽ rollback nên dữ liệu thật không suy suyển.
   delete from wigs where class_id = v_lop and scope = 'class' and period = 'year';
 
-  select enum_range(null::wig_area)::text[] into areas;
+  select enum_range(null::wig_domain)::text[] into areas;
 
   -- ① Bốn lĩnh vực, bốn mục tiêu — phải lọt hết.
   foreach a in array areas loop
@@ -41,7 +41,7 @@ begin
     insert into wigs (class_id, scope, kind, status, set_by, measure_by, area,
                       period, period_label, title, baseline, target_value, unit,
                       start_date, end_date)
-    values (v_lop, 'class', null, 'approved', null, 'tick', a::wig_area,
+    values (v_lop, 'class', null, 'approved', null, 'tick', a::wig_domain,
             'year', 'TEST-TRAN', 'thử trần ' || a, 0, 100, 'lần',
             current_date, current_date + 300);
   end loop;
@@ -52,7 +52,7 @@ begin
     insert into wigs (class_id, scope, kind, status, set_by, measure_by, area,
                       period, period_label, title, baseline, target_value, unit,
                       start_date, end_date)
-    values (v_lop, 'class', null, 'approved', null, 'tick', areas[1]::wig_area,
+    values (v_lop, 'class', null, 'approved', null, 'tick', areas[1]::wig_domain,
             'year', 'TEST-TRAN', 'cái thứ năm', 0, 100, 'lần',
             current_date, current_date + 300);
     insert into kq values ('Cái thứ 5 cùng nhãn kỳ · bị chặn', 'bị từ chối', 'CHÈN ĐƯỢC', false);
@@ -67,7 +67,7 @@ begin
     insert into wigs (class_id, scope, kind, status, set_by, measure_by, area,
                       period, period_label, title, baseline, target_value, unit,
                       start_date, end_date)
-    values (v_lop, 'class', null, 'approved', null, 'tick', areas[2]::wig_area,
+    values (v_lop, 'class', null, 'approved', null, 'tick', areas[2]::wig_domain,
             'year', 'TEST-TRAN-KHAC', 'cái thứ năm đổi nhãn', 0, 100, 'lần',
             current_date, current_date + 300);
     insert into kq values ('Cái thứ 5 ĐỔI NHÃN KỲ · vẫn bị chặn', 'bị từ chối', 'CHÈN ĐƯỢC — trần bốc hơi', false);
@@ -85,7 +85,7 @@ begin
       insert into wigs (class_id, scope, kind, status, set_by, measure_by, area,
                         period, period_label, title, baseline, target_value, unit,
                         start_date, end_date)
-      values (v_lop2, 'class', null, 'approved', null, 'tick', areas[1]::wig_area,
+      values (v_lop2, 'class', null, 'approved', null, 'tick', areas[1]::wig_domain,
               'year', 'TEST-TRAN', 'lớp khác', 0, 100, 'lần',
               current_date, current_date + 300);
       insert into kq values ('Lớp khác không vạ lây', 'chèn được', 'chèn được', true);

@@ -2,7 +2,7 @@
 // giá trị hiện tại → khi chưa cấu hình, giao diện y hệt bản cũ (parity, tôn trọng freeze).
 import {BookOpen, Sparkles, Languages, Bike, GraduationCap, Star, Trophy, Heart, type LucideIcon} from 'lucide-react';
 
-export const AREAS = ['knowledge', 'skills', 'english', 'physical'] as const;
+export const AREAS = ['knowledge', 'leadership_skills', 'character', 'physical_wellbeing'] as const;
 export type Area = (typeof AREAS)[number];
 
 // Tên icon (lưu trong area_config.icon_name) → component lucide. Danh sách cho phép ở form cấu hình.
@@ -30,9 +30,9 @@ export type AreaMeta = {
 // FALLBACK = map SUBJ trong page.tsx + nhãn messages class.areas.* (bản hiện tại).
 export const AREA_FALLBACK: Record<Area, AreaMeta> = {
   knowledge: {hex: '#3a62c9', soft: 'rgba(58,98,201,0.14)', icon_name: 'BookOpen', label_vi: 'Kiến thức', label_en: 'Knowledge', default_unit: null},
-  skills: {hex: '#557f3c', soft: 'rgba(85,127,60,0.14)', icon_name: 'Sparkles', label_vi: 'Kỹ năng', label_en: 'Skills', default_unit: null},
-  english: {hex: '#0e7c86', soft: 'rgba(14,124,134,0.14)', icon_name: 'Languages', label_vi: 'Tiếng Anh', label_en: 'English', default_unit: null},
-  physical: {hex: '#cf5a42', soft: 'rgba(207,90,66,0.14)', icon_name: 'Bike', label_vi: 'Thể chất', label_en: 'Physical', default_unit: null},
+  leadership_skills: {hex: '#557f3c', soft: 'rgba(85,127,60,0.14)', icon_name: 'Sparkles', label_vi: 'Kỹ năng lãnh đạo', label_en: 'Leadership skills', default_unit: null},
+  character: {hex: '#0e7c86', soft: 'rgba(14,124,134,0.14)', icon_name: 'Heart', label_vi: 'Phẩm chất', label_en: 'Character', default_unit: null},
+  physical_wellbeing: {hex: '#cf5a42', soft: 'rgba(207,90,66,0.14)', icon_name: 'Bike', label_vi: 'Sức khoẻ thể chất', label_en: 'Physical Well-being', default_unit: null},
 };
 
 export type AreaConfigRow = {

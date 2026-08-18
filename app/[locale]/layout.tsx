@@ -23,7 +23,6 @@ const NAMESPACE_CHO_CLIENT = [
   'gallery',
   'goal',
   'grades',
-  'homework',
   'inbox',
   'login',
   'meeting',

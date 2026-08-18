@@ -129,6 +129,51 @@ export async function deleteOverride(formData: FormData) {
   flash(class_id, error ? loi(friendlyError(error)) : 'Đã gỡ thay đổi, tiết trở lại bình thường');
 }
 
+// ============================================================
+// CLB (PRD v3 #14): mục theo GIỜ, nằm ở dải period_no 13–18 dưới lưới tiết (xem migration 0144).
+// Tên CLB ghi vào cột `subject` dạng chữ: CLB không phải MÔN nên không có chỗ trong danh mục
+// subjects — quyết định E của 0069 ("chỉ ghi subject_id") là nói về tiết chính khoá.
+// ============================================================
+export async function luuCLB(formData: FormData) {
+  await requireRole(['teacher', 'admin', 'principal']);
+  const class_id = String(formData.get('class_id') ?? '');
+  const day_of_week = Number(formData.get('day_of_week') ?? 0);
+  const name = String(formData.get('name') ?? '').trim();
+  const start_time = String(formData.get('start_time') ?? '').trim();
+  const end_time = String(formData.get('end_time') ?? '').trim();
+  const room = String(formData.get('room') ?? '').trim() || null;
+  if (!class_id || day_of_week < 2 || day_of_week > 8) flash(class_id, 'Thiếu thông tin ngày');
+  if (!name) flash(class_id, 'Hãy ghi tên CLB');
+  if (!start_time || !end_time) flash(class_id, 'Hãy chọn giờ bắt đầu và kết thúc');
+  if (end_time <= start_time) flash(class_id, 'Giờ kết thúc phải sau giờ bắt đầu');
+
+  const supabase = await createClient();
+  // Chỗ đứng trong dải 13–18: lấy số trống nhỏ nhất của ngày đó. Unique (lớp, thứ, tiết) vẫn
+  // là trọng tài cuối — hai người cùng bấm thì một người nhận lỗi trùng chứ không đè nhau.
+  const {data: daCo} = await supabase
+    .from('timetable_slots')
+    .select('period_no')
+    .eq('class_id', class_id)
+    .eq('day_of_week', day_of_week)
+    .gte('period_no', 13);
+  const dung = new Set((daCo ?? []).map((r) => r.period_no));
+  const cho = [13, 14, 15, 16, 17, 18].find((p) => !dung.has(p));
+  if (!cho) flash(class_id, 'Ngày này đã đủ 6 CLB');
+
+  const {error} = await supabase.from('timetable_slots').insert({
+    class_id,
+    day_of_week,
+    period_no: cho,
+    subject: name,
+    kind: 'club',
+    start_time,
+    end_time,
+    room,
+  });
+  revalidatePath('/[locale]/timetable', 'page');
+  flash(class_id, error ? loi(friendlyError(error)) : 'Đã thêm CLB');
+}
+
 export async function deleteSlot(formData: FormData) {
   await requireRole(['teacher', 'admin', 'principal']);
   const class_id = String(formData.get('class_id') ?? '');

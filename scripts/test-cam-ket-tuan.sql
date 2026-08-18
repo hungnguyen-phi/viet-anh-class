@@ -120,12 +120,12 @@ declare v_cuon uuid; v_ok boolean := false;
 begin
   insert into wigs (class_id, scope, area, period, period_label, title, target_value, unit,
                     start_date, end_date, measure_by, ty_le_can, so_dich_can)
-  select lop, 'class', 'skills', 'year', '2030-2031', 'KIỂM · mục tiêu cuộn', 86, '%',
+  select lop, 'class', 'leadership_skills', 'year', '2030-2031', 'KIỂM · mục tiêu cuộn', 86, '%',
          tu, den, 'cuon', 86, 6 from boi_canh
   returning id into v_cuon;
   begin
     insert into commitments (wig_id, class_id, week_start, title, area)
-    select v_cuon, lop, tuan, 'KIỂM · treo vào mục tiêu cuộn', 'skills' from boi_canh;
+    select v_cuon, lop, tuan, 'KIỂM · treo vào mục tiêu cuộn', 'leadership_skills' from boi_canh;
   exception when check_violation then v_ok := true;
   end;
   insert into ket_qua values ('Mục tiêu cuộn không nhận cam kết', 'bị chặn',

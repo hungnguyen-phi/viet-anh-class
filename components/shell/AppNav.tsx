@@ -19,7 +19,6 @@ import type {Profile} from '@/lib/auth';
 import {tenHienThi} from '@/lib/ten-hien-thi';
 import {
   Bell,
-  BookOpen,
   BookOpenCheck,
   Building2,
   CalendarDays,
@@ -73,7 +72,6 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/', key: 'scoreboard', Icon: LayoutDashboard},
     {href: '/roster', key: 'roster', Icon: Users},
     {href: '/attendance', key: 'attendance', Icon: ClipboardCheck},
-    {href: '/homework', key: 'homework', Icon: BookOpen},
     {href: '/grades', key: 'grades', Icon: GraduationCap},
     // "Họp WIG" đã gộp vào /wig (ClassMeetingSection) → bớt 1 tab cho GVCN.
     {href: '/wig', key: 'wig', Icon: Target},
@@ -84,7 +82,6 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/', key: 'scoreboard', Icon: LayoutDashboard},
     {href: '/roster', key: 'roster', Icon: Users},
     {href: '/attendance', key: 'attendance', Icon: ClipboardCheck},
-    {href: '/homework', key: 'homework', Icon: BookOpen},
     {href: '/grades', key: 'grades', Icon: GraduationCap},
     {href: '/wig', key: 'wig', Icon: Target},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
@@ -114,14 +111,12 @@ const LINKS: Record<string, NavItem[]> = {
   // (Thời khoá biểu vốn đã đọc được về mặt quyền, chỉ chưa có link — xem lib/queries.ts.)
   parent: [
     {href: '/report', key: 'report', Icon: LineChart},
-    {href: '/homework', key: 'homework', Icon: BookOpen},
     {href: '/grades', key: 'grades', Icon: GraduationCap},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
   ],
   // Học sinh thường chỉ thấy scoreboard cá nhân; tổ trưởng được thêm Điểm danh.
   student: [
     {href: '/student', key: 'myScoreboard', Icon: LayoutDashboard},
-    {href: '/homework', key: 'homework', Icon: BookOpen},
     {href: '/grades', key: 'grades', Icon: GraduationCap},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
     // Thực đơn: trước đây là một thẻ nằm giữa màn của em, phần lớn thời gian chỉ để nói "nhà

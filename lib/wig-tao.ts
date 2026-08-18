@@ -4,7 +4,7 @@ import type {createClient} from '@/lib/supabase/server';
 import type {Database} from '@/lib/database.types';
 
 type Sb = Awaited<ReturnType<typeof createClient>>;
-type Area = Database['public']['Enums']['wig_area'];
+type Area = Database['public']['Enums']['wig_domain'];
 
 // ════════════════════════════════════════════════════════════════════════════
 // TẠO MỘT MỤC TIÊU (WIG) — MỘT ĐƯỜNG DUY NHẤT cho mọi nơi trong app.

@@ -8,7 +8,7 @@ import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {AREAS} from '@/lib/areas';
 import type {Database} from '@/lib/database.types';
 
-type Area = Database['public']['Enums']['wig_area'];
+type Area = Database['public']['Enums']['wig_domain'];
 
 function flash(msg: string): never {
   const g = tachLoi(msg);
@@ -65,7 +65,7 @@ export async function updateArea(formData: FormData) {
 
 // Khôi phục 1 lĩnh vực về mặc định = XOÁ dòng cấu hình; lib/areas.ts tự rơi về AREA_FALLBACK.
 //
-// Vì sao không có "Thêm lĩnh vực thứ 5" ở đây: `area` là kiểu enum wig_area của Postgres, đúng
+// Vì sao không có "Thêm lĩnh vực thứ 5" ở đây: `area` là kiểu enum wig_domain của Postgres, đúng
 // bốn giá trị, và nó là khoá của bảng wigs cùng kiểu trả về của tám hàm báo cáo. Thêm một lĩnh
 // vực là một migration đụng cả tám hàm ấy chứ không phải một dòng chèn từ màn quản trị — và một
 // nút "Xoá" thật sự ở đây sẽ để lại những WIG trỏ vào lĩnh vực không còn nhãn.

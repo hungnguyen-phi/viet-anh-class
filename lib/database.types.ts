@@ -16,7 +16,7 @@ export type Database = {
     Tables: {
       area_config: {
         Row: {
-          area: Database["public"]["Enums"]["wig_area"]
+          area: Database["public"]["Enums"]["wig_domain"]
           color_hex: string
           default_unit: string | null
           icon_name: string
@@ -27,7 +27,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          area: Database["public"]["Enums"]["wig_area"]
+          area: Database["public"]["Enums"]["wig_domain"]
           color_hex: string
           default_unit?: string | null
           icon_name: string
@@ -38,7 +38,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          area?: Database["public"]["Enums"]["wig_area"]
+          area?: Database["public"]["Enums"]["wig_domain"]
           color_hex?: string
           default_unit?: string | null
           icon_name?: string
@@ -606,7 +606,7 @@ export type Database = {
       }
       commitments: {
         Row: {
-          area: Database["public"]["Enums"]["wig_area"]
+          area: Database["public"]["Enums"]["wig_domain"]
           class_id: string
           created_at: string
           created_by: string | null
@@ -624,7 +624,7 @@ export type Database = {
           wig_id: string
         }
         Insert: {
-          area: Database["public"]["Enums"]["wig_area"]
+          area: Database["public"]["Enums"]["wig_domain"]
           class_id: string
           created_at?: string
           created_by?: string | null
@@ -642,7 +642,7 @@ export type Database = {
           wig_id: string
         }
         Update: {
-          area?: Database["public"]["Enums"]["wig_area"]
+          area?: Database["public"]["Enums"]["wig_domain"]
           class_id?: string
           created_at?: string
           created_by?: string | null
@@ -2081,6 +2081,8 @@ export type Database = {
           subject: string | null
           subject_id: string | null
           teacher_name: string | null
+          start_time: string | null
+          end_time: string | null
         }
         Insert: {
           class_id: string
@@ -2093,6 +2095,8 @@ export type Database = {
           subject?: string | null
           subject_id?: string | null
           teacher_name?: string | null
+          start_time?: string | null
+          end_time?: string | null
         }
         Update: {
           class_id?: string
@@ -2105,6 +2109,8 @@ export type Database = {
           subject?: string | null
           subject_id?: string | null
           teacher_name?: string | null
+          start_time?: string | null
+          end_time?: string | null
         }
         Relationships: [
           {
@@ -2370,7 +2376,7 @@ export type Database = {
         Row: {
           achieved_at: string | null
           achieved_by: string | null
-          area: Database["public"]["Enums"]["wig_area"]
+          area: Database["public"]["Enums"]["wig_domain"]
           baseline: number | null
           campus_id: string | null
           class_id: string | null
@@ -2399,7 +2405,7 @@ export type Database = {
         Insert: {
           achieved_at?: string | null
           achieved_by?: string | null
-          area: Database["public"]["Enums"]["wig_area"]
+          area: Database["public"]["Enums"]["wig_domain"]
           baseline?: number | null
           campus_id?: string | null
           class_id?: string | null
@@ -2428,7 +2434,7 @@ export type Database = {
         Update: {
           achieved_at?: string | null
           achieved_by?: string | null
-          area?: Database["public"]["Enums"]["wig_area"]
+          area?: Database["public"]["Enums"]["wig_domain"]
           baseline?: number | null
           campus_id?: string | null
           class_id?: string | null
@@ -2546,7 +2552,7 @@ export type Database = {
         Row: {
           achieved_at: string | null
           actual: number | null
-          area: Database["public"]["Enums"]["wig_area"] | null
+          area: Database["public"]["Enums"]["wig_domain"] | null
           class_id: string | null
           end_date: string | null
           expected_pct: number | null
@@ -2653,7 +2659,7 @@ export type Database = {
       child_class_progress: {
         Args: { s: string }
         Returns: {
-          area: Database["public"]["Enums"]["wig_area"]
+          area: Database["public"]["Enums"]["wig_domain"]
           pct: number
           status: string
         }[]
@@ -2661,7 +2667,7 @@ export type Database = {
       child_week_report: {
         Args: { s: string; wk: string }
         Returns: {
-          area: Database["public"]["Enums"]["wig_area"]
+          area: Database["public"]["Enums"]["wig_domain"]
           leads_done: number
           leads_total: number
           wig_actual: number
@@ -3095,7 +3101,7 @@ export type Database = {
       meal_slot: "breakfast" | "lunch" | "snack" | "dinner"
       mood_level: "great" | "good" | "ok" | "low" | "bad"
       school_level: "mam_non" | "tieu_hoc" | "thcs" | "thpt"
-      score_category: "knowledge" | "skills" | "english" | "physical"
+      score_category: "knowledge" | "leadership_skills" | "character" | "physical_wellbeing"
       score_kind: "mieng" | "15p" | "1tiet" | "giua_ky" | "cuoi_ky"
       user_role:
         | "admin"
@@ -3104,7 +3110,7 @@ export type Database = {
         | "student"
         | "parent"
         | "pending"
-      wig_area: "knowledge" | "skills" | "english" | "physical"
+      wig_domain: "knowledge" | "leadership_skills" | "character" | "physical_wellbeing"
       wig_period: "year" | "month" | "week"
       wig_scope: "class" | "student" | "school"
     }

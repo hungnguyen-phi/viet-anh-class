@@ -18,10 +18,10 @@ from classes c where c.name = 'Test' and c.is_active limit 1;
 -- ── MỤC TIÊU NĂM CỦA LỚP ───────────────────────────────────────────────────────────────────
 insert into wigs (class_id, scope, area, period, period_label, title, baseline, target_value,
                   unit, start_date, end_date, measure_by)
-select b.lop, 'class', v.area::wig_area, 'year', b.nam, v.ten, v.tu_so, v.dich, v.dv, b.tu, b.den, v.do_bang
+select b.lop, 'class', v.area::wig_domain, 'year', b.nam, v.ten, v.tu_so, v.dich, v.dv, b.tu, b.den, v.do_bang
 from b, (values
   ('knowledge', 'Cả lớp làm đủ 1200 bài tập về nhà', 0, 1200, 'bài', 'tick'),
-  ('physical',  'Điểm trung bình thể lực từ 6 lên 8', 6, 8, 'điểm', 'manual')
+  ('physical_wellbeing',  'Điểm trung bình thể lực từ 6 lên 8', 6, 8, 'điểm', 'manual')
 ) as v(area, ten, tu_so, dich, dv, do_bang)
 where not exists (
   select 1 from wigs w where w.class_id = b.lop and w.scope = 'class' and w.title = v.ten
@@ -30,7 +30,7 @@ where not exists (
 -- Mục tiêu CUỘN của lớp — dạng thật của 13 mục tiêu lớp ở Gò Vấp.
 insert into wigs (class_id, scope, area, period, period_label, title, target_value, unit,
                   start_date, end_date, measure_by, ty_le_can, so_dich_can, tong_dich)
-select b.lop, 'class', 'skills', 'year', b.nam,
+select b.lop, 'class', 'leadership_skills', 'year', b.nam,
        '86% học sinh có 6/8 môn từ 6.5 trở lên', 86, '%', b.tu, b.den, 'cuon', 86, 6, 8
 from b
 where not exists (

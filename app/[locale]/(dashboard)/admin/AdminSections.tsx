@@ -83,7 +83,6 @@ export async function AdminSections({phan}: {phan: 'nguoi' | 'truong' | 'khac'})
     {href: '/attendance', label: tn('attendance'), desc: 'Điểm danh hằng ngày (tick cả lớp rồi bấm Lưu)'},
     {href: '/roster', label: tn('roster'), desc: 'Danh sách lớp + gán trưởng điểm danh'},
     {href: '/wig', label: tn('wig'), desc: 'Mục tiêu tuần, việc để các em tick, phòng họp WIG'},
-    {href: '/homework', label: tn('homework'), desc: 'Báo bài cho lớp'},
     ...(HOC_BA_BAT ? [{href: '/grades', label: tn('grades'), desc: 'Học bạ: điểm số và rèn luyện'}] : []),
     {href: '/campus', label: tn('campus'), desc: 'Bảng tổng hợp toàn trường (BGH)'},
     {href: '/admin', label: tn('admin'), desc: 'Trang quản trị (màn hình này)'},

@@ -59,16 +59,16 @@ begin
   select student_id into v_b from enrollments where class_id=v_class and is_active order by student_id offset 1 limit 1;
   select student_id into v_c from enrollments where class_id=v_class and is_active order by student_id offset 2 limit 1;
 
-  -- ── Cây của LỚP. Dùng lĩnh vực 'skills' để không đụng khoá duy nhất với dữ liệu đang có. ────
+  -- ── Cây của LỚP. Dùng lĩnh vực 'leadership_skills' để không đụng khoá duy nhất với dữ liệu đang có. ────
   insert into wigs (class_id, scope, title, area, period, period_label, target_value, unit,
                     start_date, end_date, measure_by)
-  values (v_class, 'class', 'ZZ_TEST năm', 'skills', 'year', 'ZZ-N', 1200, 'bài',
+  values (v_class, 'class', 'ZZ_TEST năm', 'leadership_skills', 'year', 'ZZ-N', 1200, 'bài',
           '2026-01-01', '2026-12-31', 'tick')
   returning id into v_nam;
 
   -- 0121: không còn WIG tuần — nhịp tuần là CAM KẾT, việc treo dưới cam kết.
   insert into commitments (wig_id, class_id, week_start, title, area)
-  values (v_nam, v_class, date '2026-03-02', 'ZZ_TEST cam kết của lớp', 'skills')
+  values (v_nam, v_class, date '2026-03-02', 'ZZ_TEST cam kết của lớp', 'leadership_skills')
   returning id into v_ck;
 
   insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
@@ -103,12 +103,12 @@ begin
                     title, area, period, period_label, target_value, unit,
                     start_date, end_date, source_wig_id)
   values (v_class, v_a, 'student', 'academic', 'approved', 'student', 'tick',
-          'ZZ_TEST mục tiêu của em A', 'skills', 'year', 'ZZ-N', 30, 'lần',
+          'ZZ_TEST mục tiêu của em A', 'leadership_skills', 'year', 'ZZ-N', 30, 'lần',
           '2026-01-01', '2026-12-31', v_nam)
   returning id into v_muc_tieu_a;
 
   insert into commitments (wig_id, class_id, student_id, week_start, title, area)
-  values (v_muc_tieu_a, v_class, v_a, date '2026-03-02', 'ZZ_TEST cam kết của em A', 'skills')
+  values (v_muc_tieu_a, v_class, v_a, date '2026-03-02', 'ZZ_TEST cam kết của em A', 'leadership_skills')
   returning id into v_ck_a;
 
   insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick)
@@ -141,7 +141,7 @@ begin
   begin
     insert into wigs (class_id, scope, title, area, period, period_label, target_value, unit,
                       start_date, end_date)
-    values (v_class, 'class', 'ZZ_TEST trùng', 'skills', 'year', 'ZZ-N', 9, 'bài',
+    values (v_class, 'class', 'ZZ_TEST trùng', 'leadership_skills', 'year', 'ZZ-N', 9, 'bài',
             '2026-01-01', '2026-12-31');
     insert into ket_qua values ('④ Trần: mục tiêu năm thứ 5 của lớp', 'bị chặn', 'LỌT', false);
   -- Bắt `others`: chặn ở đây đến từ HAI cơ chế khác nhau — chỉ mục duy nhất (lĩnh vực+kỳ trùng)
@@ -154,7 +154,7 @@ begin
   insert into wigs (class_id, student_id, scope, kind, status, set_by, measure_by,
                     title, area, period, period_label, target_value, unit, start_date, end_date)
   values (v_class, v_a, 'student', 'personal', 'approved', 'student', 'manual',
-          'ZZ_TEST mục tiêu riêng', 'skills', 'year', 'ZZ-N', 1, 'lần',
+          'ZZ_TEST mục tiêu riêng', 'leadership_skills', 'year', 'ZZ-N', 1, 'lần',
           '2026-01-01', '2026-12-31');
   insert into ket_qua values ('④ Em có đúng 2 mục tiêu (1 học thuật + 1 riêng)', 'được', 'được', true);
 
@@ -162,7 +162,7 @@ begin
     insert into wigs (class_id, student_id, scope, kind, status, set_by, measure_by,
                       title, area, period, period_label, target_value, unit, start_date, end_date)
     values (v_class, v_a, 'student', 'personal', 'approved', 'student', 'manual',
-            'ZZ_TEST mục tiêu riêng 2', 'skills', 'year', 'ZZ-N', 1, 'lần',
+            'ZZ_TEST mục tiêu riêng 2', 'leadership_skills', 'year', 'ZZ-N', 1, 'lần',
             '2026-01-01', '2026-12-31');
     insert into ket_qua values ('④ Trần: mục tiêu thứ 3 của một em', 'bị chặn', 'LỌT', false);
   exception when unique_violation then
@@ -173,9 +173,9 @@ begin
   -- "mỗi tuần tối đa 2 cam kết, tối đa 10 việc").
   begin
     insert into commitments (wig_id, class_id, student_id, week_start, title, area)
-    values (v_muc_tieu_a, v_class, v_a, date '2026-03-02', 'ZZ_TEST cam kết thứ hai', 'skills');
+    values (v_muc_tieu_a, v_class, v_a, date '2026-03-02', 'ZZ_TEST cam kết thứ hai', 'leadership_skills');
     insert into commitments (wig_id, class_id, student_id, week_start, title, area)
-    values (v_muc_tieu_a, v_class, v_a, date '2026-03-02', 'ZZ_TEST cam kết thứ ba', 'skills');
+    values (v_muc_tieu_a, v_class, v_a, date '2026-03-02', 'ZZ_TEST cam kết thứ ba', 'leadership_skills');
     insert into ket_qua values ('④ Trần: cam kết thứ 3 của một em trong tuần', 'bị chặn', 'LỌT', false);
   exception when check_violation then
     insert into ket_qua values ('④ Trần: cam kết thứ 3 của một em trong tuần', 'bị chặn', 'bị chặn', true);

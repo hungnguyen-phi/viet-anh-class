@@ -109,7 +109,7 @@ export function SuaHocSinh({
               type="button"
               onClick={() => setMo(false)}
               aria-label="Đóng"
-              className="grid h-7 w-7 flex-none cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-navy/15 bg-white text-navy/60 transition-all hover:border-navy hover:text-navy"
+              className="grid h-7 w-7 flex-none cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-navy/15 bg-white text-grey-mid transition-all hover:border-navy hover:text-navy"
             >
               <X size={13} strokeWidth={2.5} />
             </button>

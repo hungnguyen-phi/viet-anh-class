@@ -10,11 +10,11 @@ import {ClassPicker} from '@/components/shell/ClassPicker';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {TietProvider, NutTiet} from '@/components/timetable/OTiet';
 import {OverrideForm} from './OverrideForm';
-import {deleteSlot, deleteOverride, seedSubjects} from './actions';
+import {deleteSlot, deleteOverride, seedSubjects, luuCLB} from './actions';
 import {Flash} from '@/components/ui/Flash';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 
-const DAYS = [2, 3, 4, 5, 6, 7]; // T2..T7 (tuần học VN)
+const DAYS = [2, 3, 4, 5, 6, 7, 8]; // T2..CN — PRD v3 #14 thêm Chủ Nhật (8 = CN, xem migration 0144)
 const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 type Slot = {
@@ -30,6 +30,8 @@ type Slot = {
   room: string | null;
   teacher_name: string | null;
   kind: string;
+  start_time: string | null;
+  end_time: string | null;
 };
 // Một môn trong chương trình của lớp (class_subjects → subjects).
 type MonHoc = {id: string; name: string; short_name: string; sort_order: number; is_active: boolean};
@@ -50,6 +52,7 @@ const KIND_STYLE: Record<string, {box: string; dot: string}> = {
   exam: {box: 'border-gold/60 bg-gold/[0.18]', dot: 'bg-gold-deep'},
   practice: {box: 'border-success/40 bg-success/[0.12]', dot: 'bg-success'},
   regular: {box: 'border-navy/12 bg-navy/[0.05]', dot: 'bg-navy/40'},
+  club: {box: 'border-navy/30 bg-navy/[0.08]', dot: 'bg-navy'},
 };
 
 export default async function TimetablePage({
@@ -115,7 +118,7 @@ export default async function TimetablePage({
       .from('timetable_slots')
       // Nhặt luôn tên môn từ danh mục trong CÙNG một truy vấn — hỏi riêng bảng subjects là thêm
       // một chặng mạng mà chẳng biết thêm gì.
-      .select('id, day_of_week, period_no, subject, subject_id, room, teacher_name, kind, subjects(name, short_name)')
+      .select('id, day_of_week, period_no, subject, subject_id, room, teacher_name, kind, start_time, end_time, subjects(name, short_name)')
       .eq('class_id', myClass.id),
     // Ngoại lệ của TUẦN ĐANG XEM. Lọc theo dải ngày → không tải cả năm.
     supabase
@@ -148,7 +151,7 @@ export default async function TimetablePage({
   const overrides = ((overData ?? []) as Override[]).filter((o) => slotById.has(o.slot_id));
   const overByKey = new Map(overrides.map((o) => [`${o.slot_id}|${o.date}`, o]));
 
-  const dayLabel = (d: number) => (d === 7 ? t('sat') : `${t('dayShort')}${d}`);
+  const dayLabel = (d: number) => (d === 8 ? t('sun') : d === 7 ? t('sat') : `${t('dayShort')}${d}`);
   const cellInput =
     'w-full rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy';
 
@@ -159,8 +162,20 @@ export default async function TimetablePage({
   // cắt cụt. Cột short_name sinh ra chính vì lý do đó (xem comment trong migration 0069).
   const tenMonNgan = (s: Slot) => s.subjects?.short_name ?? s.subject ?? '—';
 
+  // CLB tách khỏi lưới tiết: chúng đứng ở dải period_no 13–18 (migration 0144) và đi theo giờ.
+  const clbTheoNgay = new Map<number, Slot[]>();
+  for (const s of slots.filter((x) => x.kind === 'club')) {
+    const ds = clbTheoNgay.get(s.day_of_week) ?? [];
+    ds.push(s);
+    clbTheoNgay.set(s.day_of_week, ds);
+  }
+  for (const ds of clbTheoNgay.values())
+    ds.sort((a, b) => (a.start_time ?? '').localeCompare(b.start_time ?? ''));
+  const gio = (x: string | null) => (x ?? '').slice(0, 5);
+
   const slotOptions = slots
     .slice()
+    .filter((s) => s.kind !== 'club') // ngoại lệ huỷ/dời/dạy thay là chuyện của TIẾT chính khoá
     .sort((a, b) => a.day_of_week - b.day_of_week || a.period_no - b.period_no)
     .map((s) => ({
       id: s.id,
@@ -259,7 +274,7 @@ export default async function TimetablePage({
           ))}
         </span>
         <span className="ml-auto flex flex-wrap items-center gap-2.5">
-          {(['regular', 'practice', 'exam'] as const).map((k) => (
+          {(['regular', 'practice', 'exam', 'club'] as const).map((k) => (
             <span key={k} className="inline-flex items-center gap-1.5 text-[11px] font-bold text-grey-mid">
               <span className={`h-2.5 w-2.5 rounded-full ${KIND_STYLE[k].dot}`} />
               {t(`kind_${k}`)}
@@ -277,7 +292,7 @@ export default async function TimetablePage({
         batDuoc={canManage && monChon.length > 0}
       >
       <div className="glass overflow-x-auto rounded-[20px] p-2">
-        <div className="min-w-[860px]">
+        <div className="min-w-[1000px]">
           <div className="flex">
             {/* CỘT "TIẾT" DÍNH LẠI KHI CUỘN NGANG.
                 Lưới này rộng 860px và là lưới HAI CHIỀU — không xuống thẻ được như các bảng
@@ -422,6 +437,88 @@ export default async function TimetablePage({
         </div>
       </div>
       </TietProvider>
+
+      {/* CLB (PRD v3 #14): chạy theo GIỜ chứ không theo tiết — một dải riêng dưới lưới, mỗi
+          ngày một hàng chip. Nhét vào lưới tiết là ép "CLB bóng rổ 16:00–17:30" mang một số
+          tiết vô nghĩa với người đọc. */}
+      <section className="glass rounded-[20px] p-4">
+        <div className="mb-2 font-display text-[15px] font-bold text-navy">{t('clubTitle')}</div>
+        {clbTheoNgay.size === 0 ? (
+          <p className="text-[12.5px] font-semibold text-grey-mid">{t('noClubs')}</p>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {DAYS.filter((d) => clbTheoNgay.has(d)).map((d) => (
+              <div key={d} className="flex flex-wrap items-center gap-2">
+                <span className="w-9 shrink-0 text-[12px] font-extrabold text-navy">{dayLabel(d)}</span>
+                {clbTheoNgay.get(d)!.map((c) => (
+                  <span
+                    key={c.id}
+                    className="inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-navy/30 bg-navy/[0.06] py-1 pl-2.5 pr-1.5 text-[12px] font-bold text-navy"
+                  >
+                    {c.subject}
+                    <span className="text-[11px] font-bold tabular-nums text-grey-mid">
+                      {gio(c.start_time)}–{gio(c.end_time)}
+                    </span>
+                    {c.room && (
+                      <span className="inline-flex items-center gap-0.5 text-[10.5px] font-semibold text-grey-mid">
+                        <MapPin size={10} strokeWidth={2.5} />
+                        {c.room}
+                      </span>
+                    )}
+                    {canManage && (
+                      <form action={deleteSlot} className="contents">
+                        <input type="hidden" name="class_id" value={myClass.id} />
+                        <input type="hidden" name="id" value={c.id} />
+                        <ConfirmButton
+                          message={t('confirmDeleteClub', {name: c.subject ?? '', day: dayLabel(d)})}
+                          label={t('delete')}
+                          className="grid h-6 w-6 cursor-pointer place-items-center rounded-full text-status-bad"
+                        >
+                          ✕
+                        </ConfirmButton>
+                      </form>
+                    )}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+        {canManage && (
+          <form action={luuCLB} className="mt-3 flex flex-wrap items-end gap-2 border-t border-navy/[0.08] pt-3">
+            <input type="hidden" name="class_id" value={myClass.id} />
+            <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
+              {t('clubDay')}
+              <select name="day_of_week" className={`${cellInput} h-11 w-20`} defaultValue={7}>
+                {DAYS.map((d) => (
+                  <option key={d} value={d}>
+                    {dayLabel(d)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex min-w-[160px] flex-1 flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
+              {t('clubName')}
+              <input name="name" required maxLength={80} className={`${cellInput} h-11`} />
+            </label>
+            <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
+              {t('clubFrom')}
+              <input type="time" name="start_time" required className={`${cellInput} h-11 w-28`} />
+            </label>
+            <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
+              {t('clubTo')}
+              <input type="time" name="end_time" required className={`${cellInput} h-11 w-28`} />
+            </label>
+            <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
+              {t('room')}
+              <input name="room" maxLength={40} className={`${cellInput} h-11 w-24`} />
+            </label>
+            <SubmitButton className="btn-gold h-11 cursor-pointer rounded-[10px] px-4 text-sm font-extrabold">
+              {t('addClub')}
+            </SubmitButton>
+          </form>
+        )}
+      </section>
 
       {/* KHUNG NHẬP Ở CUỐI TRANG ĐÃ BỎ (09/08/2026).
           Nó bắt người xếp lịch khai lại bằng lời cái toạ độ mà mắt vừa nhìn thấy trên lưới —

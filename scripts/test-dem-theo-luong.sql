@@ -85,13 +85,13 @@ begin
   -- "năm có 10000 giờ học, 1 tick ngày = 3 giờ, thì mỗi lần tick là 3h/10000 giờ".
   insert into wigs (class_id, student_id, scope, kind, status, set_by, measure_by, area,
                     period, period_label, title, baseline, target_value, unit, start_date, end_date)
-  values (v_lop, v_em, 'student', 'personal', 'approved', 'student', 'tick', 'physical',
+  values (v_lop, v_em, 'student', 'personal', 'approved', 'student', 'tick', 'physical_wellbeing',
           'year', 'TEST-0110B', 'thử 1 tick = 3 giờ', 0, 10000, 'giờ', v_thu2 - 7, v_thu2 + 300)
   returning id into v_wig2;
   -- 0121: việc treo dưới CAM KẾT. Em đã có một cam kết ở khối trên; đây là cái thứ hai — vừa
   -- đúng trần 2, và cũng là cách phép kiểm này chạm luôn vào cái trần ấy.
   insert into commitments (wig_id, class_id, student_id, week_start, title, area)
-  values (v_wig2, v_lop, v_em, v_thu2, 'KIỂM · cam kết thứ hai', 'physical') returning id into v_ck2;
+  values (v_wig2, v_lop, v_em, v_thu2, 'KIỂM · cam kết thứ hai', 'physical_wellbeing') returning id into v_ck2;
   insert into lead_measures (commitment_id, title, target_value, unit, active_weekdays, unit_per_tick, nhap_luong)
   values (v_ck2, 'học bài', 9, 'giờ', array[1,3,5], 3, false) returning id into v_viec2;
   insert into lead_progress (lead_measure_id, student_id, logged_by, logged_date, value)

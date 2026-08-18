@@ -46,7 +46,7 @@ begin
   -- Mục tiêu đo NGOÀI app — đúng loại mà ô số đo sinh ra để phục vụ.
   insert into wigs (class_id, student_id, scope, kind, status, set_by, measure_by, area,
                     period, period_label, title, baseline, target_value, unit, start_date, end_date)
-  values (v_lop, v_em, 'student', 'personal', 'approved', 'student', 'manual', 'physical',
+  values (v_lop, v_em, 'student', 'personal', 'approved', 'student', 'manual', 'physical_wellbeing',
           'year', 'W99-2026', 'thử số đo tự nhập', 30, 34, 'kg',
           vn_today() - 30, vn_today() + 300)
   returning id into v_wig;

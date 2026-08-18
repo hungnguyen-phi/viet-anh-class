@@ -69,7 +69,7 @@ for (const w of daCoNam ?? []) {
 }
 const conCho = (c) => {
   const b = banLinhVuc.get(c.id);
-  return !b || (!b.has('knowledge') && !b.has('skills'));
+  return !b || (!b.has('knowledge') && !b.has('leadership_skills'));
 };
 const lop = (dsLop ?? []).find(conCho) ?? (dsLop ?? [])[0];
 if (!lop) {
@@ -126,7 +126,7 @@ const gieo = async (area, title, measure_by) => {
 let idManual, idTick;
 try {
   idManual = await gieo('knowledge', tenManual, 'manual');
-  idTick = await gieo('skills', tenTick, 'tick');
+  idTick = await gieo('leadership_skills', tenTick, 'tick');
 } catch (e) {
   console.log('SAI  không gieo được dữ liệu thử —', e.message);
   await don();

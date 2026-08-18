@@ -9,7 +9,7 @@ import {SCHOOL_LEVELS, gradeNumbersFor, type SchoolLevel} from '@/lib/levels';
 import {taoMotWig} from '@/lib/wig-tao';
 import type {Database} from '@/lib/database.types';
 
-type Area = Database['public']['Enums']['wig_area'];
+type Area = Database['public']['Enums']['wig_domain'];
 
 // Quản lý giáo viên ở cấp CƠ SỞ, dành cho Hiệu trưởng (Admin làm việc này ở /admin).
 //

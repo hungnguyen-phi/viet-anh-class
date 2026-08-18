@@ -127,7 +127,7 @@ try {
       .from('wigs')
       .insert({
         scope: 'student', kind: 'academic', period: 'year', period_label: 'TEST-0108',
-        student_id: em.id, class_id: enr.class_id, area: 'physical',
+        student_id: em.id, class_id: enr.class_id, area: 'physical_wellbeing',
         title: 'ZZ_TEST chiều cao', baseline: 140, target_value: 150, unit: 'cm',
         start_date: '2026-08-01', end_date: '2027-05-31', status: 'approved',
         set_by: 'student', measure_by: 'manual', source_wig_id: null,

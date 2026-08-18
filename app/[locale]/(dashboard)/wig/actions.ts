@@ -10,7 +10,7 @@ import {AREAS} from '@/lib/areas';
 import type {Database} from '@/lib/database.types';
 import {kieuDonVi} from '@/lib/don-vi';
 
-type Area = Database['public']['Enums']['wig_area'];
+type Area = Database['public']['Enums']['wig_domain'];
 
 // Hai bộ đọc FormData mỏng, luật nằm ở lib/wig-tao.ts (phòng họp cũng dùng, tên trường khác).
 function parseWeekdays(formData: FormData): number[] {

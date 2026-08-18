@@ -133,7 +133,7 @@ export function ViecTuan({
         <button
           type="button"
           onClick={() => setMo('them')}
-          className="flex min-h-[92px] cursor-pointer flex-col items-center justify-center gap-1 rounded-[14px] border-[1.5px] border-dashed border-navy/25 bg-transparent p-3 text-[12.5px] font-extrabold text-navy/60 transition-all hover:border-navy/50 hover:bg-navy/[0.03] hover:text-navy"
+          className="flex min-h-[92px] cursor-pointer flex-col items-center justify-center gap-1 rounded-[14px] border-[1.5px] border-dashed border-navy/25 bg-transparent p-3 text-[12.5px] font-extrabold text-grey-mid transition-all hover:border-navy/50 hover:bg-navy/[0.03] hover:text-navy"
         >
           <Plus size={16} strokeWidth={2.5} />
           {t('addWork')}

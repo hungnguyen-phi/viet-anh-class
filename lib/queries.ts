@@ -293,7 +293,7 @@ export async function getClassContext(
 // ════════════════════════════════════════════════════════════════════════════
 //
 // Bốn trang của phụ huynh đều phải trả lời "đang xem con nào", và trước đây mỗi trang tự trả lời
-// theo một luật riêng: /report và /homework sắp theo TÊN, còn getMyClass() sắp theo student_id
+// theo một luật riêng: /report sắp theo TÊN, còn getMyClass() sắp theo student_id
 // (tức là theo UUID — một thứ tự không có nghĩa gì với con người). Nên /timetable mở ra một đứa,
 // ba trang kia mở ra đứa khác, và không màn hình nào nói ra là vừa đổi người. Bố mẹ đọc điểm
 // danh của đứa này rồi tưởng là của đứa kia.
