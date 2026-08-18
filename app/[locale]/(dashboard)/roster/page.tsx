@@ -296,9 +296,7 @@ export default async function RosterPage({
             href={`/gallery?class=${myClass.id}`}
             className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy"
           >
-            <Images size={14} strokeWidth={2.2} />
-            Hình ảnh
-          </Link>
+            <Images size={14} strokeWidth={2.2} />{t('images')}</Link>
           {canManage && <ClassCoverUpload classId={myClass.id} />}
           {/* Quản trị/BGH thấy bộ chọn KỂ CẢ khi chỉ có một lớp: nó là chỗ duy nhất trên màn hình
             nói rõ mình đang đứng ở lớp nào. Giáo viên chỉ có lớp mình thì giấu đi cho gọn. */}
@@ -336,24 +334,16 @@ export default async function RosterPage({
             {t('name')}
           </span>
           {xemChiTiet && (
-            <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
-              Mã HS
-            </span>
+            <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">{t('colCode')}</span>
           )}
           <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
             {t('email')}
           </span>
           {xemChiTiet && (
             <>
-              <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
-                Ngày sinh
-              </span>
-              <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
-                SĐT phụ huynh
-              </span>
-              <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
-                Ghi chú
-              </span>
+              <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">{t('colDob')}</span>
+              <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">{t('colParentPhone')}</span>
+              <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">{t('colNote')}</span>
             </>
           )}
           <span />

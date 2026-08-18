@@ -69,8 +69,16 @@ export async function updateSession(
   const prefix = locale === routing.defaultLocale ? '' : `/${locale}`;
   // publicOrigin(request), KHÔNG request.url: sau Coolify/Cloudflare, request.url là địa chỉ
   // nội bộ container (http://0.0.0.0:8080) — xem lib/public-origin.ts.
-  const redirectTo = (p: string) =>
-    NextResponse.redirect(new URL(`${prefix}${p}`, publicOrigin(request)));
+  //
+  // MANG THEO COOKIE VỪA REFRESH (audit 18/08/2026): getClaims() ở trên có thể làm mới token và
+  // ghi Set-Cookie vào `response`. Một `NextResponse.redirect()` trần là response MỚI, không cầm
+  // các cookie ấy — nên người vừa được refresh mà gặp redirect (mở /login khi đã đăng nhập, hay
+  // bị đẩy /unauthorized) sẽ mất phiên vừa làm mới. Chép cookie sang.
+  const redirectTo = (p: string) => {
+    const res = NextResponse.redirect(new URL(`${prefix}${p}`, publicOrigin(request)));
+    response.cookies.getAll().forEach((c) => res.cookies.set(c));
+    return res;
+  };
 
   if (!userId) {
     return isPublic ? response : redirectTo('/login');

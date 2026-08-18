@@ -573,7 +573,7 @@ export default async function TimetablePage({
                 className="btn-gold h-11 cursor-pointer rounded-[10px] px-4 text-sm font-extrabold"
                 wrapClass="contents"
               >
-                Thêm bộ môn cho lớp
+                {t('addSubjects')}
               </SubmitButton>
             </form>
           </div>

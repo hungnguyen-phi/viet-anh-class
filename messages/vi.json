@@ -201,7 +201,12 @@
     "approve": "Duyệt",
     "reject": "Từ chối",
     "approveFor": "Duyệt cho {name} vào lớp này",
-    "rejectFor": "Từ chối đề nghị của {name}"
+    "rejectFor": "Từ chối đề nghị của {name}",
+    "colCode": "Mã HS",
+    "colDob": "Ngày sinh",
+    "colParentPhone": "SĐT phụ huynh",
+    "colNote": "Ghi chú",
+    "images": "Hình ảnh"
   },
   "studentWig": {
     "setupTitle": "Thiết lập WIG cá nhân cho em",
@@ -932,7 +937,8 @@
     "periodGap": "Nghỉ (phút)",
     "applyDays": "Áp dụng thêm cho",
     "today": "Hôm nay",
-    "confirmRemoveOverride": "Gỡ thay đổi này? Tiết trở lại bình thường ở ngày đó."
+    "confirmRemoveOverride": "Gỡ thay đổi này? Tiết trở lại bình thường ở ngày đó.",
+    "addSubjects": "Thêm bộ môn cho lớp"
   },
   "subjects": {
     "title": "Môn học và phân công",

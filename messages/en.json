@@ -201,7 +201,12 @@
     "approve": "Approve",
     "reject": "Reject",
     "approveFor": "Approve {name} into this class",
-    "rejectFor": "Reject the request for {name}"
+    "rejectFor": "Reject the request for {name}",
+    "colCode": "Student ID",
+    "colDob": "Date of birth",
+    "colParentPhone": "Parent phone",
+    "colNote": "Note",
+    "images": "Photos"
   },
   "studentWig": {
     "setupTitle": "Set up personal WIGs",
@@ -932,7 +937,8 @@
     "periodGap": "Break (min)",
     "applyDays": "Also apply to",
     "today": "Today",
-    "confirmRemoveOverride": "Remove this change? The period returns to normal on that day."
+    "confirmRemoveOverride": "Remove this change? The period returns to normal on that day.",
+    "addSubjects": "Add subjects to class"
   },
   "subjects": {
     "title": "Subjects & teaching assignments",
