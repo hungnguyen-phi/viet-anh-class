@@ -134,7 +134,11 @@ export async function deleteOverride(formData: FormData) {
 // Tên CLB ghi vào cột `subject` dạng chữ: CLB không phải MÔN nên không có chỗ trong danh mục
 // subjects — quyết định E của 0069 ("chỉ ghi subject_id") là nói về tiết chính khoá.
 // ============================================================
-export async function luuCLB(formData: FormData) {
+// TRẢ STATE, KHÔNG CHUYỂN TRANG (18/08/2026 — chủ dự án gõ giờ kết thúc sớm hơn giờ bắt đầu và
+// chỉ thấy "màn hình load rồi thôi"): form này nằm CUỐI trang, còn toast flash thì hiện ở ĐẦU
+// trang — câu báo đúng mà đặt sai chỗ thì với người dùng nó không tồn tại. Trả state để lỗi
+// hiện ngay dưới nút vừa bấm, cùng lối với luuOTiet ở trên.
+export async function luuCLB(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
   await requireRole(['teacher', 'admin', 'principal']);
   const class_id = String(formData.get('class_id') ?? '');
   const day_of_week = Number(formData.get('day_of_week') ?? 0);
@@ -142,10 +146,11 @@ export async function luuCLB(formData: FormData) {
   const start_time = String(formData.get('start_time') ?? '').trim();
   const end_time = String(formData.get('end_time') ?? '').trim();
   const room = String(formData.get('room') ?? '').trim() || null;
-  if (!class_id || day_of_week < 2 || day_of_week > 8) flash(class_id, 'Thiếu thông tin ngày');
-  if (!name) flash(class_id, 'Hãy ghi tên CLB');
-  if (!start_time || !end_time) flash(class_id, 'Hãy chọn giờ bắt đầu và kết thúc');
-  if (end_time <= start_time) flash(class_id, 'Giờ kết thúc phải sau giờ bắt đầu');
+  if (!class_id || day_of_week < 2 || day_of_week > 8)
+    return {ok: false, error: 'Thiếu thông tin ngày'};
+  if (!name) return {ok: false, error: 'Hãy ghi tên CLB'};
+  if (!start_time || !end_time) return {ok: false, error: 'Hãy chọn giờ bắt đầu và kết thúc'};
+  if (end_time <= start_time) return {ok: false, error: 'Giờ kết thúc phải sau giờ bắt đầu'};
 
   const supabase = await createClient();
   // Chỗ đứng trong dải 13–18: lấy số trống nhỏ nhất của ngày đó. Unique (lớp, thứ, tiết) vẫn
@@ -158,7 +163,7 @@ export async function luuCLB(formData: FormData) {
     .gte('period_no', 13);
   const dung = new Set((daCo ?? []).map((r) => r.period_no));
   const cho = [13, 14, 15, 16, 17, 18].find((p) => !dung.has(p));
-  if (!cho) flash(class_id, 'Ngày này đã đủ 6 CLB');
+  if (!cho) return {ok: false, error: 'Ngày này đã đủ 6 CLB'};
 
   const {error} = await supabase.from('timetable_slots').insert({
     class_id,
@@ -170,8 +175,9 @@ export async function luuCLB(formData: FormData) {
     end_time,
     room,
   });
+  if (error) return {ok: false, error: friendlyError(error)};
   revalidatePath('/[locale]/timetable', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : 'Đã thêm CLB');
+  return {ok: true, message: 'Đã thêm CLB'};
 }
 
 export async function deleteSlot(formData: FormData) {

@@ -78,7 +78,7 @@ if (coForm) {
     dat('input[name="name"]', 'KIỂM yoga');
     dat('input[name="start_time"]', '06:20');
     dat('input[name="end_time"]', '09:20');
-    f.querySelector('button[type="submit"], button:not([type])')?.click() ?? f.requestSubmit();
+    f.requestSubmit();
     return 'đã bấm';
   })()`);
   await new Promise((r) => setTimeout(r, 9000));

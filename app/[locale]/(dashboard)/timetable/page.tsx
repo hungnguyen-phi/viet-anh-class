@@ -10,7 +10,8 @@ import {ClassPicker} from '@/components/shell/ClassPicker';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {TietProvider, NutTiet} from '@/components/timetable/OTiet';
 import {OverrideForm} from './OverrideForm';
-import {deleteSlot, deleteOverride, seedSubjects, luuCLB} from './actions';
+import {deleteSlot, deleteOverride, seedSubjects} from './actions';
+import {FormThemClb} from '@/components/timetable/FormThemClb';
 import {Flash} from '@/components/ui/Flash';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 
@@ -485,38 +486,19 @@ export default async function TimetablePage({
           </div>
         )}
         {canManage && (
-          <form action={luuCLB} className="mt-3 flex flex-wrap items-end gap-2 border-t border-navy/[0.08] pt-3">
-            <input type="hidden" name="class_id" value={myClass.id} />
-            <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
-              {t('clubDay')}
-              <select name="day_of_week" className={`${cellInput} h-11 w-20`} defaultValue={7}>
-                {DAYS.map((d) => (
-                  <option key={d} value={d}>
-                    {dayLabel(d)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex min-w-[160px] flex-1 flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
-              {t('clubName')}
-              <input name="name" required maxLength={80} className={`${cellInput} h-11`} />
-            </label>
-            <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
-              {t('clubFrom')}
-              <input type="time" name="start_time" required className={`${cellInput} h-11 w-28`} />
-            </label>
-            <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
-              {t('clubTo')}
-              <input type="time" name="end_time" required className={`${cellInput} h-11 w-28`} />
-            </label>
-            <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
-              {t('room')}
-              <input name="room" maxLength={40} className={`${cellInput} h-11 w-24`} />
-            </label>
-            <SubmitButton className="btn-gold h-11 cursor-pointer rounded-[10px] px-4 text-sm font-extrabold">
-              {t('addClub')}
-            </SubmitButton>
-          </form>
+          <FormThemClb
+            classId={myClass.id}
+            days={DAYS.map((d) => ({value: d, label: dayLabel(d)}))}
+            nhan={{
+              day: t('clubDay'),
+              name: t('clubName'),
+              from: t('clubFrom'),
+              to: t('clubTo'),
+              room: t('room'),
+              add: t('addClub'),
+            }}
+            oNhap={cellInput}
+          />
         )}
       </section>
 
