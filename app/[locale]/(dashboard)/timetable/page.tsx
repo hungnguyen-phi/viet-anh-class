@@ -12,6 +12,7 @@ import {TietProvider, NutTiet} from '@/components/timetable/OTiet';
 import {OverrideForm} from './OverrideForm';
 import {deleteSlot, deleteOverride, seedSubjects} from './actions';
 import {FormThemClb} from '@/components/timetable/FormThemClb';
+import {GioTietForm, type GioTiet} from '@/components/timetable/GioTietForm';
 import {Flash} from '@/components/ui/Flash';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 
@@ -114,7 +115,7 @@ export default async function TimetablePage({
   const weekDates = DAYS.map(dateOf);
   const rangeLabel = `${weekDates[0].slice(5)} → ${weekDates[weekDates.length - 1].slice(5)}`;
 
-  const [{data: slotData}, {data: overData}, {data: monData}] = await Promise.all([
+  const [{data: slotData}, {data: overData}, {data: monData}, {data: gioData}] = await Promise.all([
     supabase
       .from('timetable_slots')
       // Nhặt luôn tên môn từ danh mục trong CÙNG một truy vấn — hỏi riêng bảng subjects là thêm
@@ -137,6 +138,12 @@ export default async function TimetablePage({
           .eq('class_id', myClass.id)
           .eq('is_active', true)
       : Promise.resolve({data: null}),
+    // Khung giờ tiết (0149): "Tiết 3" nói được là mấy giờ — ai đọc lưới cũng cần.
+    supabase
+      .from('class_period_times')
+      .select('period_no, start_time, end_time')
+      .eq('class_id', myClass.id)
+      .order('period_no'),
   ]);
   const slots = (slotData ?? []) as unknown as Slot[];
   // Môn đã ngừng dùng (is_active = false) vẫn còn trong chương trình lớp nhưng KHÔNG được chọn
@@ -153,6 +160,11 @@ export default async function TimetablePage({
   const overByKey = new Map(overrides.map((o) => [`${o.slot_id}|${o.date}`, o]));
 
   const dayLabel = (d: number) => (d === 8 ? t('sun') : d === 7 ? t('sat') : `${t('dayShort')}${d}`);
+  // Khung giờ theo tiết — Postgres trả 'HH:MM:SS', màn hình chỉ cần HH:MM.
+  const hhmm = (x: string) => String(x).slice(0, 5);
+  const gioTiet: GioTiet = Object.fromEntries(
+    (gioData ?? []).map((g) => [g.period_no, {tu: hhmm(g.start_time), den: hhmm(g.end_time)}]),
+  );
   const cellInput =
     'w-full rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy';
 
@@ -195,6 +207,8 @@ export default async function TimetablePage({
     luu: t('save'),
     huy: t('cancel'),
     loai: (['regular', 'practice', 'exam'] as const).map((k) => ({value: k, label: t(`kind_${k}`)})),
+    apDung: t('applyDays'),
+    cacThu: DAYS.map((d) => ({value: d, label: dayLabel(d)})),
   };
   const monChon = monLop.map((m) => ({id: m.id, name: m.name}));
   // Toạ độ của ô, gói sẵn cho hộp thoại: bấm ô nào thì thứ/tiết của ô đó đi theo.
@@ -275,6 +289,26 @@ export default async function TimetablePage({
           ))}
         </span>
         <span className="ml-auto flex flex-wrap items-center gap-2.5">
+          {canManage && (
+            <GioTietForm
+              classId={myClass.id}
+              gio={gioTiet}
+              soTiet={PERIODS.length}
+              nhan={{
+                moNut: t('periodTimes'),
+                tieuDe: t('periodTimesTitle'),
+                tiet: t('period'),
+                tu: t('clubFrom'),
+                den: t('clubTo'),
+                tuDien: t('autofill'),
+                batDau1: t('firstStart'),
+                doDai: t('periodLen'),
+                nghi: t('periodGap'),
+                luu: t('save'),
+                huy: t('cancel'),
+              }}
+            />
+          )}
           {(['regular', 'practice', 'exam', 'club'] as const).map((k) => (
             <span key={k} className="inline-flex items-center gap-1.5 text-[11px] font-bold text-grey-mid">
               <span className={`h-2.5 w-2.5 rounded-full ${KIND_STYLE[k].dot}`} />
@@ -305,8 +339,15 @@ export default async function TimetablePage({
               {t('period')}
             </div>
             {DAYS.map((d, i) => (
-              <div key={d} className="flex-1 px-2 py-2 text-center">
-                <div className="text-[12px] font-extrabold text-navy">{dayLabel(d)}</div>
+              <div key={d} className={`flex-1 rounded-t-[10px] px-2 py-2 text-center ${weekDates[i] === today ? 'bg-gold/[0.14]' : ''}`}>
+                <div className="text-[12px] font-extrabold text-navy">
+                  {dayLabel(d)}
+                  {weekDates[i] === today && (
+                    <span className="ml-1 rounded-full bg-gold px-1.5 py-px align-middle text-[8.5px] font-black uppercase text-navy">
+                      {t('today')}
+                    </span>
+                  )}
+                </div>
                 <div
                   className={`text-[10.5px] font-bold ${
                     weekDates[i] === today ? 'text-gold-text' : 'text-grey-mid'
@@ -319,15 +360,22 @@ export default async function TimetablePage({
           </div>
           {PERIODS.map((p) => (
             <div key={p} className="flex border-t border-navy/[0.08]">
-              <div className="sticky left-0 z-10 grid w-14 shrink-0 place-items-center bg-white text-[13px] font-bold text-grey-mid">
-                {p}
+              <div className="sticky left-0 z-10 flex w-14 shrink-0 flex-col items-center justify-center bg-white leading-tight">
+                <span className="text-[13px] font-bold text-grey-mid">{p}</span>
+                {gioTiet[p] && (
+                  <span className="text-[9px] font-bold tabular-nums text-grey-mid/80">
+                    {gioTiet[p].tu}
+                    <br />
+                    {gioTiet[p].den}
+                  </span>
+                )}
               </div>
               {DAYS.map((d, i) => {
                 const s = byKey.get(`${d}-${p}`);
                 const ov = s ? overByKey.get(`${s.id}|${weekDates[i]}`) : undefined;
                 const style = KIND_STYLE[s?.kind ?? 'regular'] ?? KIND_STYLE.regular;
                 return (
-                  <div key={d} className="min-w-0 flex-1 p-1.5">
+                  <div key={d} className={`min-w-0 flex-1 p-1.5 ${weekDates[i] === today ? 'bg-gold/[0.07]' : ''}`}>
                     {s ? (
                       <div
                         className={`relative rounded-[10px] border-[1.5px] px-2 py-1.5 ${style.box} ${

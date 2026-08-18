@@ -42,6 +42,21 @@ export async function luuOTiet(_prev: LuuOState, formData: FormData): Promise<Lu
   if (!class_id || !day_of_week || !period_no)
     return {ok: false, error: 'Thiếu thông tin ô thời khoá biểu'};
   if (!UUID.test(subject_id)) return {ok: false, error: 'Hãy chọn môn cho ô này'};
+
+  // ÁP CHO NHIỀU THỨ MỘT LẦN (18/08/2026 — "trình quản lý chuyên nghiệp"): môn học chính khoá
+  // thường lặp 2–3 buổi/tuần, mà bản cũ bắt mở hộp thoại từng ô khai lại y hệt. Các checkbox
+  // "áp thêm cho thứ…" gửi lên đây; ô gốc luôn nằm trong danh sách. Kiểm lại dải 2..8 vì
+  // checkbox nằm trong trình duyệt.
+  const cacThu = [
+    ...new Set([
+      day_of_week,
+      ...formData
+        .getAll('ap_thu')
+        .map((d) => Number(String(d)))
+        .filter((n) => Number.isInteger(n) && n >= 2 && n <= 8),
+    ]),
+  ];
+
   const supabase = await createClient();
   const {error} = await supabase
     .from('timetable_slots')
@@ -49,12 +64,71 @@ export async function luuOTiet(_prev: LuuOState, formData: FormData): Promise<Lu
     // hai nguồn sự thật mà 0069 vừa dẹp. onConflict giữ nguyên (class, thứ, tiết) — cột môn
     // không nằm trong khoá nên đổi môn của một ô vẫn là SỬA ô đó, không đẻ ô mới.
     .upsert(
-      {class_id, day_of_week, period_no, subject_id, room, teacher_name, kind},
+      cacThu.map((thu) => ({
+        class_id,
+        day_of_week: thu,
+        period_no,
+        subject_id,
+        room,
+        teacher_name,
+        kind,
+      })),
       {onConflict: 'class_id,day_of_week,period_no'},
     );
   if (error) return {ok: false, error: friendlyError(error)};
   revalidatePath('/[locale]/timetable', 'page');
-  return {ok: true, message: 'Đã lưu ô thời khoá biểu'};
+  return {
+    ok: true,
+    message: cacThu.length > 1 ? `Đã lưu tiết này cho ${cacThu.length} ngày` : 'Đã lưu ô thời khoá biểu',
+  };
+}
+
+// ============================================================
+// KHUNG GIỜ TIẾT (0149): "Tiết 3" phải nói được là mấy giờ.
+// Form gửi 12 cặp tu_N / den_N; cặp bỏ trống = tiết đó không khai (xoá dòng nếu có).
+// ============================================================
+export async function luuGioTiet(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
+  const me = await requireRole(['teacher', 'admin', 'principal']);
+  const class_id = String(formData.get('class_id') ?? '');
+  if (!class_id) return {ok: false, error: 'Thiếu thông tin lớp'};
+
+  const ghi: {class_id: string; period_no: number; start_time: string; end_time: string; updated_by: string}[] = [];
+  const xoa: number[] = [];
+  for (let p = 1; p <= 12; p++) {
+    const tu = String(formData.get(`tu_${p}`) ?? '').trim();
+    const den = String(formData.get(`den_${p}`) ?? '').trim();
+    if (!tu && !den) {
+      xoa.push(p);
+      continue;
+    }
+    if (!tu || !den) return {ok: false, error: `Tiết ${p}: điền cả giờ bắt đầu và kết thúc, hoặc bỏ trống cả hai.`};
+    if (den <= tu) return {ok: false, error: `Tiết ${p}: giờ kết thúc phải sau giờ bắt đầu.`};
+    ghi.push({class_id, period_no: p, start_time: tu, end_time: den, updated_by: me.id});
+  }
+  // Tiết sau không được BẮT ĐẦU trước khi tiết trước KẾT THÚC — khung giờ chồng nhau là lưới
+  // nói dối hai kiểu cùng lúc.
+  for (let i = 1; i < ghi.length; i++) {
+    if (ghi[i].start_time < ghi[i - 1].end_time)
+      return {ok: false, error: `Tiết ${ghi[i].period_no} bắt đầu trước khi tiết ${ghi[i - 1].period_no} kết thúc.`};
+  }
+
+  const supabase = await createClient();
+  if (ghi.length > 0) {
+    const {error} = await supabase
+      .from('class_period_times')
+      .upsert(ghi, {onConflict: 'class_id,period_no'});
+    if (error) return {ok: false, error: friendlyError(error)};
+  }
+  if (xoa.length > 0) {
+    const {error} = await supabase
+      .from('class_period_times')
+      .delete()
+      .eq('class_id', class_id)
+      .in('period_no', xoa);
+    if (error) return {ok: false, error: friendlyError(error)};
+  }
+  revalidatePath('/[locale]/timetable', 'page');
+  return {ok: true, message: 'Đã lưu khung giờ tiết học'};
 }
 
 // Gieo cả bộ môn của cơ sở vào chương trình lớp (class_subjects), để ô chọn môn thôi rỗng.

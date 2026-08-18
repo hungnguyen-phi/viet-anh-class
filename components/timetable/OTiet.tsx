@@ -42,6 +42,9 @@ export type NhanTiet = {
   luu: string;
   huy: string;
   loai: {value: string; label: string}[];
+  /** "Áp dụng thêm cho" + danh sách thứ (2..8, nhãn T2..CN) — lưu một lần cho nhiều ngày. */
+  apDung: string;
+  cacThu: {value: number; label: string}[];
 };
 
 const Ctx = createContext<((o: ODangSua) => void) | null>(null);
@@ -165,6 +168,30 @@ function HopTiet({
             ))}
           </select>
         </Field>
+
+        {/* ÁP CHO NHIỀU THỨ MỘT LẦN (18/08/2026): môn chính khoá lặp 2–3 buổi/tuần — tick thêm
+            các thứ ở đây là một lần Lưu ghi cả dãy CÙNG TIẾT này. Ô gốc không cần tick, nó luôn
+            được lưu. Chỉ hiện khi THÊM MỚI: đường sửa mà áp hàng loạt thì một cú ghi đè nhầm
+            lan ra cả tuần. */}
+        {!o.slot && (
+          <fieldset className="rounded-[12px] border-[1.5px] border-navy/10 p-2.5">
+            <legend className="px-1 text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid">
+              {nhan.apDung}
+            </legend>
+            <div className="flex flex-wrap gap-1.5">
+              {nhan.cacThu
+                .filter((d) => d.value !== o.day)
+                .map((d) => (
+                  <label key={d.value} className="cursor-pointer">
+                    <input type="checkbox" name="ap_thu" value={d.value} className="peer sr-only" />
+                    <span className="grid h-9 w-11 select-none place-items-center rounded-[10px] border-[1.5px] border-navy/15 bg-white text-[11.5px] font-extrabold text-grey-mid transition-all hover:border-navy peer-checked:border-transparent peer-checked:bg-gold peer-checked:text-navy peer-focus-visible:ring-2 peer-focus-visible:ring-navy/40">
+                      {d.label}
+                    </span>
+                  </label>
+                ))}
+            </div>
+          </fieldset>
+        )}
 
         {state.error && (
           <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12.5px] font-bold text-status-bad">

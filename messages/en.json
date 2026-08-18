@@ -922,7 +922,15 @@
     "addClub": "Add club",
     "confirmDeleteClub": "Delete club {name} ({day})? It disappears from every week.",
     "clubDay": "Day",
-    "noClubs": "No clubs this week yet."
+    "noClubs": "No clubs this week yet.",
+    "periodTimes": "Period times",
+    "periodTimesTitle": "Class period times",
+    "autofill": "Auto-fill",
+    "firstStart": "Period 1 starts",
+    "periodLen": "Length (min)",
+    "periodGap": "Break (min)",
+    "applyDays": "Also apply to",
+    "today": "Today"
   },
   "subjects": {
     "title": "Subjects & teaching assignments",

@@ -620,6 +620,36 @@ export type Database = {
         }
         Relationships: []
       }
+      class_period_times: {
+        Row: {
+          id: string
+          class_id: string
+          period_no: number
+          start_time: string
+          end_time: string
+          updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          class_id: string
+          period_no: number
+          start_time: string
+          end_time: string
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          class_id?: string
+          period_no?: number
+          start_time?: string
+          end_time?: string
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       classes: {
         Row: {
           campus_id: string

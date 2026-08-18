@@ -922,7 +922,15 @@
     "addClub": "Thêm CLB",
     "confirmDeleteClub": "Xoá CLB {name} ({day})? CLB này biến mất ở mọi tuần.",
     "clubDay": "Thứ",
-    "noClubs": "Chưa có CLB nào trong tuần."
+    "noClubs": "Chưa có CLB nào trong tuần.",
+    "periodTimes": "Khung giờ tiết",
+    "periodTimesTitle": "Khung giờ tiết học",
+    "autofill": "Tự điền",
+    "firstStart": "Tiết 1 bắt đầu",
+    "periodLen": "Độ dài (phút)",
+    "periodGap": "Nghỉ (phút)",
+    "applyDays": "Áp dụng thêm cho",
+    "today": "Hôm nay"
   },
   "subjects": {
     "title": "Môn học và phân công",
