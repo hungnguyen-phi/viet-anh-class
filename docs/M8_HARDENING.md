@@ -81,3 +81,23 @@ review hạ tầng.
   Nếu muốn sạch: `revoke truncate, references, trigger on all tables in schema public from anon, authenticated;`
 - `can_manage_class_cover(text)` (thêm ở `0037`) vẫn để `anon` gọi được do grant mặc định của PostgreSQL;
   trả `false` cho mọi phiên chưa đăng nhập nên vô hại.
+
+## Chống giả IP cho cổng check-in (audit 18/08/2026)
+
+Cổng IP check-in (`ip_allowed`) đọc IP từ `cf-connecting-ip`. Nếu cổng origin (IP VPS) còn
+truy cập được TRỰC TIẾP — không qua Cloudflare — kẻ tấn công tự đặt header `cf-connecting-ip:
+<một IP trong dải trường>` rồi gọi thẳng, giả được "đang ở trường" và ghi điểm danh khống.
+
+Hiện tại lỗ này CHƯA khai thác được vì trường chưa bật dải IP nào (cổng coi mọi nơi là "trong
+trường"). Trước khi BẬT cổng IP thật, phải bịt origin bằng MỘT trong ba cách:
+
+1. **Bí mật dùng chung (đã hỗ trợ trong mã, dễ nhất):**
+   - Đặt env `CF_PROXY_SECRET=<chuỗi ngẫu nhiên dài>` cho container.
+   - Ở Cloudflare → Rules → Transform Rules → Modify Request Header: thêm
+     `x-cf-verify: <đúng chuỗi trên>` cho mọi request tới domain.
+   - `lib/ip.ts` chỉ tin `cf-connecting-ip` khi header `x-cf-verify` khớp; gọi thẳng origin
+     (không có header) sẽ không giả được IP.
+2. **Cloudflare Authenticated Origin Pulls (mTLS):** origin chỉ nhận TLS từ Cloudflare.
+3. **Firewall VPS:** chỉ mở 443 cho dải IP Cloudflare (https://www.cloudflare.com/ips).
+
+Khuyến nghị làm CẢ (1) và (3) khi go-live cổng IP.

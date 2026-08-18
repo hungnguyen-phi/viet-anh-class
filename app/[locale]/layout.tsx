@@ -1,4 +1,6 @@
 import type {Metadata} from 'next';
+import {Suspense} from 'react';
+import {TopProgress} from '@/components/shell/TopProgress';
 import {NextIntlClientProvider, hasLocale} from 'next-intl';
 import {getMessages, setRequestLocale} from 'next-intl/server';
 import {notFound} from 'next/navigation';
@@ -18,7 +20,6 @@ const DESCRIPTION = 'App lãnh đạo lớp học theo khung 4DX — Trường V
 const NAMESPACE_CHO_CLIENT = [
   'admin',
   'attendance',
-  'buddy',
   'campusReport',
   'common',
   'gallery',
@@ -33,7 +34,6 @@ const NAMESPACE_CHO_CLIENT = [
   'roles',
   'roster',
   'student',
-  'studentWig',
   'subjects',
   'wig',
 ] as const;
@@ -113,7 +113,12 @@ export default async function LocaleLayout({
         {/* Đặt ở lớp ngoài cùng vì nó che MỌI ô số của app, kể cả ô nằm trong server component
             — chỗ không gắn được onWheel. Xem ghi chú trong chính file ấy. */}
         <KhoaLanChuotTrenSo />
-        <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider messages={messages}>
+          <Suspense fallback={null}>
+            <TopProgress />
+          </Suspense>
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );

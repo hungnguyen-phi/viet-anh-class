@@ -622,7 +622,10 @@ export async function StudentScoreboard({
   // Luôn là TUẦN HIỆN TẠI, không theo tuần đang xem: biên bản PDR là việc của tuần này, còn thanh
   // tuần ở cột trái chỉ điều khiển khu cam kết/tick.
   const nhanTuanPdr = isoWeekLabel(vnNoon(thisMonday));
-  const [capRes, pdrRes, pdrCoachRes, lichCoachRes] = await Promise.all([
+  // GỘP MỘT ĐỢT (tối ưu tốc độ 18/08/2026): PDR (4 câu) + metrics độc lập nhau và đều chỉ cần
+  // studentId/monday có sẵn từ trước — chạy song song một vòng thay vì hai vòng nối tiếp. Trên
+  // VPS mất ~5% gói, mỗi vòng bớt đi là bớt một lần rút thăm với cái đuôi ~1 giây.
+  const [capRes, pdrRes, pdrCoachRes, lichCoachRes, soRowsRes] = await Promise.all([
     supabase
       .from('buddy_pairs')
       .select('id, student_id, buddy_id')
@@ -650,6 +653,11 @@ export async function StudentScoreboard({
       .eq('type', 'coach')
       .eq('is_active', true)
       .maybeSingle(),
+    supabase
+      .from('metrics_tuan_v')
+      .select('week_start, tong_lead, lead_xong, tong_ck, ck_thang, ck_thua')
+      .eq('student_id', studentId)
+      .lte('week_start', monday),
   ]);
   const capBuddy = capRes.data ?? [];
   const idBuddy = capBuddy.map((p) => (p.student_id === studentId ? p.buddy_id : p.student_id));
@@ -721,13 +729,9 @@ export async function StudentScoreboard({
     .map((m) => ({id: m.id, area: m.area, title: m.title, unit: m.unit}));
   const tenMucTieu = new Map(mucTieuCuaEm.map((m) => [m.id, m.title]));
 
-  // ── METRICS (0147 — PRD v3 6.3): lead đạt/tổng + cam kết thắng/thua, tuần đang xem và luỹ kế
-  // từ đầu năm tới tuần ấy. Một câu hỏi, lọc tại chỗ — mỗi em mỗi tuần chỉ một dòng.
-  const {data: soRows} = await supabase
-    .from('metrics_tuan_v')
-    .select('week_start, tong_lead, lead_xong, tong_ck, ck_thang, ck_thua')
-    .eq('student_id', studentId)
-    .lte('week_start', monday);
+  // ── METRICS (0147 — PRD v3 6.3): lead đạt/tổng + cam kết thắng/thua, tuần đang xem và luỹ kế.
+  // Dữ liệu đã lấy CÙNG ĐỢT với PDR ở trên; ở đây chỉ gom tại chỗ, không thêm vòng mạng.
+  const soRows = soRowsRes.data;
   const soTuan = gopChiSo((soRows ?? []).filter((r) => r.week_start === monday));
   const soLuyKe = gopChiSo(soRows ?? []);
   const soPips = (soRows ?? [])
