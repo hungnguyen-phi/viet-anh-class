@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {createClient} from '@supabase/supabase-js';
 
-const [email, baseArg] = process.argv.slice(2);
+const [email, baseArg, tuGio='06:20', denGio='09:20'] = process.argv.slice(2);
 const BASE = baseArg ?? 'https://class.vietanh.org';
 const LOP = 'ddefb0a7-eeaa-40e6-9e16-0fd4c65fc8bf';
 const U = new URL(BASE);
@@ -76,13 +76,13 @@ if (coForm) {
       const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
       setter.call(el, val); el.dispatchEvent(new Event('input', {bubbles: true})); };
     dat('input[name="name"]', 'KIỂM yoga');
-    dat('input[name="start_time"]', '06:20');
-    dat('input[name="end_time"]', '09:20');
+    dat('input[name="start_time"]', '${tuGio}');
+    dat('input[name="end_time"]', '${denGio}');
     f.requestSubmit();
     return 'đã bấm';
   })()`);
   await new Promise((r) => setTimeout(r, 9000));
-  const flash = await js(`(document.body.innerText.match(/[^\\n]*(Đã thêm CLB|lỗi|Lỗi|không có quyền|quyền)[^\\n]*/) ?? ['(không thấy câu flash)'])[0]`);
+  const flash = await js(`document.body.innerText.includes('Giờ kết thúc phải sau giờ bắt đầu') ? 'CÓ câu lỗi tại form' : (document.body.innerText.includes('Đã thêm CLB') ? 'Đã thêm CLB' : 'KHÔNG thấy câu báo')`);
   console.log('URL sau bấm:', await js('location.href'));
   console.log('Câu flash  :', flash);
   console.log('Chip yoga  :', await js(`document.body.innerText.includes('KIỂM yoga')`));
