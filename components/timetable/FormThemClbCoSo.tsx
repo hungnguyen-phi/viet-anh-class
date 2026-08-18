@@ -3,39 +3,34 @@
 import {useActionState, useEffect, useRef} from 'react';
 import {AlertCircle, CheckCircle2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {luuCLB, type LuuOState} from '@/app/[locale]/(dashboard)/timetable/actions';
+import {luuCLBCoSo, type LuuOState} from '@/app/[locale]/(dashboard)/timetable/actions';
 
-// FORM THÊM CLB — lỗi hiện NGAY DƯỚI NÚT, không phải toast đầu trang.
-//
-// Vì sao tách thành client component (18/08/2026): chủ dự án gõ giờ kết thúc sớm hơn giờ bắt
-// đầu, bấm Thêm CLB, và chỉ thấy "load xong không có gì" — câu báo nằm ở toast đầu trang, ngoài
-// tầm mắt của người đang đứng cuối trang. useActionState giữ nguyên chữ đã gõ khi lỗi; lưu
-// thành công thì xoá trắng form cho lượt nhập tiếp.
-
-export function FormThemClb({
-  classId,
+// Form thêm CLB cho cơ sở — báo lỗi TẠI CHỖ (cùng lối FormThemClb cũ). Chỉ hiện với Admin/BGH.
+export function FormThemClbCoSo({
+  campusId,
   days,
   nhan,
-  oNhap,
 }: {
-  classId: string;
+  campusId: string;
   days: {value: number; label: string}[];
   nhan: {day: string; name: string; from: string; to: string; room: string; add: string};
-  oNhap: string;
 }) {
-  const [state, formAction] = useActionState<LuuOState, FormData>(luuCLB, {ok: false});
+  const [state, formAction] = useActionState<LuuOState, FormData>(luuCLBCoSo, {ok: false});
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state.ok) formRef.current?.reset();
   }, [state]);
 
+  const o =
+    'w-full rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy';
+
   return (
     <form ref={formRef} action={formAction} className="mt-3 flex flex-col gap-2 border-t border-navy/[0.08] pt-3">
       <div className="flex flex-wrap items-end gap-2">
-        <input type="hidden" name="class_id" value={classId} />
+        <input type="hidden" name="campus_id" value={campusId} />
         <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
           {nhan.day}
-          <select name="day_of_week" className={`${oNhap} h-11 w-20`} defaultValue={7}>
+          <select name="weekday" className={`${o} h-11 w-20`} defaultValue={7}>
             {days.map((d) => (
               <option key={d.value} value={d.value}>
                 {d.label}
@@ -45,19 +40,19 @@ export function FormThemClb({
         </label>
         <label className="flex min-w-[160px] flex-1 flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
           {nhan.name}
-          <input name="name" required maxLength={80} className={`${oNhap} h-11`} />
+          <input name="name" required maxLength={120} className={`${o} h-11`} />
         </label>
         <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
           {nhan.from}
-          <input type="time" name="start_time" required className={`${oNhap} h-11 w-28`} />
+          <input type="time" name="start_time" required className={`${o} h-11 w-28`} />
         </label>
         <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
           {nhan.to}
-          <input type="time" name="end_time" required className={`${oNhap} h-11 w-28`} />
+          <input type="time" name="end_time" required className={`${o} h-11 w-28`} />
         </label>
         <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
           {nhan.room}
-          <input name="room" maxLength={40} className={`${oNhap} h-11 w-24`} />
+          <input name="room" maxLength={40} className={`${o} h-11 w-24`} />
         </label>
         <SubmitButton className="btn-gold h-11 cursor-pointer rounded-[10px] px-4 text-sm font-extrabold">
           {nhan.add}

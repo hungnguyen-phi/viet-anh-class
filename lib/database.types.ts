@@ -226,6 +226,48 @@ export type Database = {
           },
         ]
       }
+      campus_clubs: {
+        Row: {
+          id: string
+          campus_id: string
+          weekday: number
+          start_time: string
+          end_time: string
+          name: string
+          room: string | null
+          note: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          campus_id: string
+          weekday: number
+          start_time: string
+          end_time: string
+          name: string
+          room?: string | null
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          campus_id?: string
+          weekday?: number
+          start_time?: string
+          end_time?: string
+          name?: string
+          room?: string | null
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       campuses: {
         Row: {
           an_han_phut: number

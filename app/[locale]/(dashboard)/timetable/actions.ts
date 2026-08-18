@@ -3,7 +3,7 @@
 import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
-import {requireRole} from '@/lib/auth';
+import {requireRole, getCurrentProfile} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 
 function flash(classId: string, msg: string): never {
@@ -246,50 +246,42 @@ export async function deleteOverride(formData: FormData) {
 // Tên CLB ghi vào cột `subject` dạng chữ: CLB không phải MÔN nên không có chỗ trong danh mục
 // subjects — quyết định E của 0069 ("chỉ ghi subject_id") là nói về tiết chính khoá.
 // ============================================================
-// TRẢ STATE, KHÔNG CHUYỂN TRANG (18/08/2026 — chủ dự án gõ giờ kết thúc sớm hơn giờ bắt đầu và
-// chỉ thấy "màn hình load rồi thôi"): form này nằm CUỐI trang, còn toast flash thì hiện ở ĐẦU
-// trang — câu báo đúng mà đặt sai chỗ thì với người dùng nó không tồn tại. Trả state để lỗi
-// hiện ngay dưới nút vừa bấm, cùng lối với luuOTiet ở trên.
-export async function luuCLB(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
-  await requireRole(['teacher', 'admin', 'principal']);
-  const class_id = String(formData.get('class_id') ?? '');
-  const day_of_week = Number(formData.get('day_of_week') ?? 0);
+// TKB CLB THEO CƠ SỞ (0152, chủ dự án 18/08/2026): CLB là LIÊN LỚP nên KHÔNG treo theo lớp nữa —
+// một lịch dùng chung của cơ sở, BGH/Admin điều phối, cả cơ sở xem. RLS cc_manage là chốt thật
+// (Admin / BGH cơ sở mình); ở đây trả state để lỗi hiện ngay dưới nút (form nằm cuối trang).
+export async function luuCLBCoSo(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
+  await requireRole(['admin', 'principal']);
+  const campus_id = String(formData.get('campus_id') ?? '');
+  const weekday = Number(formData.get('weekday') ?? 0);
   const name = String(formData.get('name') ?? '').trim();
   const start_time = String(formData.get('start_time') ?? '').trim();
   const end_time = String(formData.get('end_time') ?? '').trim();
   const room = String(formData.get('room') ?? '').trim() || null;
-  if (!class_id || day_of_week < 2 || day_of_week > 8)
-    return {ok: false, error: 'Thiếu thông tin ngày'};
+  const note = String(formData.get('note') ?? '').trim() || null;
+  if (!campus_id || weekday < 2 || weekday > 8) return {ok: false, error: 'Thiếu thông tin ngày'};
   if (!name) return {ok: false, error: 'Hãy ghi tên CLB'};
+  if (name.length > 120) return {ok: false, error: 'Tên CLB tối đa 120 ký tự'};
   if (!start_time || !end_time) return {ok: false, error: 'Hãy chọn giờ bắt đầu và kết thúc'};
   if (end_time <= start_time) return {ok: false, error: 'Giờ kết thúc phải sau giờ bắt đầu'};
 
+  const me = await getCurrentProfile();
   const supabase = await createClient();
-  // Chỗ đứng trong dải 13–18: lấy số trống nhỏ nhất của ngày đó. Unique (lớp, thứ, tiết) vẫn
-  // là trọng tài cuối — hai người cùng bấm thì một người nhận lỗi trùng chứ không đè nhau.
-  const {data: daCo} = await supabase
-    .from('timetable_slots')
-    .select('period_no')
-    .eq('class_id', class_id)
-    .eq('day_of_week', day_of_week)
-    .gte('period_no', 13);
-  const dung = new Set((daCo ?? []).map((r) => r.period_no));
-  const cho = [13, 14, 15, 16, 17, 18].find((p) => !dung.has(p));
-  if (!cho) return {ok: false, error: 'Ngày này đã đủ 6 CLB'};
-
-  const {error} = await supabase.from('timetable_slots').insert({
-    class_id,
-    day_of_week,
-    period_no: cho,
-    subject: name,
-    kind: 'club',
-    start_time,
-    end_time,
-    room,
-  });
+  const {error} = await supabase
+    .from('campus_clubs')
+    .insert({campus_id, weekday, name, start_time, end_time, room, note, created_by: me?.id ?? null});
   if (error) return {ok: false, error: friendlyError(error)};
   revalidatePath('/[locale]/timetable', 'page');
   return {ok: true, message: 'Đã thêm CLB'};
+}
+
+export async function xoaCLBCoSo(formData: FormData) {
+  await requireRole(['admin', 'principal']);
+  const id = String(formData.get('id') ?? '');
+  const supabase = await createClient();
+  const {error} = await supabase.from('campus_clubs').delete().eq('id', id);
+  revalidatePath('/[locale]/timetable', 'page');
+  const g = tachLoi(error ? friendlyError(error) : 'Đã xoá CLB');
+  redirect(`/timetable?${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
 }
 
 export async function deleteSlot(formData: FormData) {

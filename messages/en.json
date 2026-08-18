@@ -936,7 +936,8 @@
     "applyDays": "Also apply to",
     "today": "Today",
     "confirmRemoveOverride": "Remove this change? The period returns to normal on that day.",
-    "addSubjects": "Add subjects to class"
+    "addSubjects": "Add subjects to class",
+    "clubCampusHint": "Campus-wide schedule — everyone views, admin/principal manage"
   },
   "subjects": {
     "title": "Subjects & teaching assignments",

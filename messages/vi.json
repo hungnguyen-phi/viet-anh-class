@@ -936,7 +936,8 @@
     "applyDays": "Áp dụng thêm cho",
     "today": "Hôm nay",
     "confirmRemoveOverride": "Gỡ thay đổi này? Tiết trở lại bình thường ở ngày đó.",
-    "addSubjects": "Thêm bộ môn cho lớp"
+    "addSubjects": "Thêm bộ môn cho lớp",
+    "clubCampusHint": "Lịch chung của cơ sở — ai cũng xem, ban giám hiệu/quản trị điều phối"
   },
   "subjects": {
     "title": "Môn học và phân công",

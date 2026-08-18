@@ -11,7 +11,7 @@ import {SubmitButton} from '@/components/ui/SubmitButton';
 import {TietProvider, NutTiet} from '@/components/timetable/OTiet';
 import {OverrideForm} from './OverrideForm';
 import {deleteSlot, deleteOverride, seedSubjects} from './actions';
-import {FormThemClb} from '@/components/timetable/FormThemClb';
+import {KhuCLBCoSo} from '@/components/timetable/KhuCLBCoSo';
 import {GioTietForm, type GioTiet} from '@/components/timetable/GioTietForm';
 import {Flash} from '@/components/ui/Flash';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
@@ -54,7 +54,6 @@ const KIND_STYLE: Record<string, {box: string; dot: string}> = {
   exam: {box: 'border-gold/60 bg-gold/[0.18]', dot: 'bg-gold-deep'},
   practice: {box: 'border-success/40 bg-success/[0.12]', dot: 'bg-success'},
   regular: {box: 'border-navy/12 bg-navy/[0.05]', dot: 'bg-navy/40'},
-  club: {box: 'border-navy/30 bg-navy/[0.08]', dot: 'bg-navy'},
 };
 
 export default async function TimetablePage({
@@ -94,6 +93,8 @@ export default async function TimetablePage({
   // Hiệu trưởng cũng quản lý được TKB của cơ sở mình (xem migration 0057).
   const canManage =
     profile.role === 'teacher' || profile.role === 'admin' || profile.role === 'principal';
+  // CLB do BGH/Admin điều phối (liên lớp) — GVCN không quản. RLS cc_manage là chốt thật.
+  const quanClb = profile.role === 'admin' || profile.role === 'principal';
 
   // ===== Tuần đang xem =====
   // TKB là mẫu tuần lặp, nhưng huỷ/dời/dạy thay là chuyện của NGÀY cụ thể → phải có ngữ cảnh tuần.
@@ -175,16 +176,7 @@ export default async function TimetablePage({
   // cắt cụt. Cột short_name sinh ra chính vì lý do đó (xem comment trong migration 0069).
   const tenMonNgan = (s: Slot) => s.subjects?.short_name ?? s.subject ?? '—';
 
-  // CLB tách khỏi lưới tiết: chúng đứng ở dải period_no 13–18 (migration 0144) và đi theo giờ.
-  const clbTheoNgay = new Map<number, Slot[]>();
-  for (const s of slots.filter((x) => x.kind === 'club')) {
-    const ds = clbTheoNgay.get(s.day_of_week) ?? [];
-    ds.push(s);
-    clbTheoNgay.set(s.day_of_week, ds);
-  }
-  for (const ds of clbTheoNgay.values())
-    ds.sort((a, b) => (a.start_time ?? '').localeCompare(b.start_time ?? ''));
-  const gio = (x: string | null) => (x ?? '').slice(0, 5);
+// (CLB tách sang bảng theo cơ sở — xem KhuCLBCoSo. Lưới chính khoá không còn kind='club'.)
 
   const slotOptions = slots
     .slice()
@@ -309,7 +301,7 @@ export default async function TimetablePage({
               }}
             />
           )}
-          {(['regular', 'practice', 'exam', 'club'] as const).map((k) => (
+          {(['regular', 'practice', 'exam'] as const).map((k) => (
             <span key={k} className="inline-flex items-center gap-1.5 text-[11px] font-bold text-grey-mid">
               <span className={`h-2.5 w-2.5 rounded-full ${KIND_STYLE[k].dot}`} />
               {t(`kind_${k}`)}
@@ -487,68 +479,9 @@ export default async function TimetablePage({
       </div>
       </TietProvider>
 
-      {/* CLB (PRD v3 #14): chạy theo GIỜ chứ không theo tiết — một dải riêng dưới lưới, mỗi
-          ngày một hàng chip. Nhét vào lưới tiết là ép "CLB bóng rổ 16:00–17:30" mang một số
-          tiết vô nghĩa với người đọc. */}
-      <section className="glass rounded-[20px] p-4">
-        <div className="mb-2 font-display text-[15px] font-bold text-navy">{t('clubTitle')}</div>
-        {clbTheoNgay.size === 0 ? (
-          <p className="text-[12.5px] font-semibold text-grey-mid">{t('noClubs')}</p>
-        ) : (
-          <div className="flex flex-col gap-1.5">
-            {DAYS.filter((d) => clbTheoNgay.has(d)).map((d) => (
-              <div key={d} className="flex flex-wrap items-center gap-2">
-                <span className="w-9 shrink-0 text-[12px] font-extrabold text-navy">{dayLabel(d)}</span>
-                {clbTheoNgay.get(d)!.map((c) => (
-                  <span
-                    key={c.id}
-                    className="inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-navy/30 bg-navy/[0.06] py-1 pl-2.5 pr-1.5 text-[12px] font-bold text-navy"
-                  >
-                    {c.subject}
-                    <span className="text-[11px] font-bold tabular-nums text-grey-mid">
-                      {gio(c.start_time)}–{gio(c.end_time)}
-                    </span>
-                    {c.room && (
-                      <span className="inline-flex items-center gap-0.5 text-[10.5px] font-semibold text-grey-mid">
-                        <MapPin size={10} strokeWidth={2.5} />
-                        {c.room}
-                      </span>
-                    )}
-                    {canManage && (
-                      <form action={deleteSlot} className="contents">
-                        <input type="hidden" name="class_id" value={myClass.id} />
-                        <input type="hidden" name="id" value={c.id} />
-                        <ConfirmButton
-                          message={t('confirmDeleteClub', {name: c.subject ?? '', day: dayLabel(d)})}
-                          label={t('delete')}
-                          className="grid h-6 w-6 cursor-pointer place-items-center rounded-full text-status-bad"
-                        >
-                          ✕
-                        </ConfirmButton>
-                      </form>
-                    )}
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-        {canManage && (
-          <FormThemClb
-            classId={myClass.id}
-            days={DAYS.map((d) => ({value: d, label: dayLabel(d)}))}
-            nhan={{
-              day: t('clubDay'),
-              name: t('clubName'),
-              from: t('clubFrom'),
-              to: t('clubTo'),
-              room: t('room'),
-              add: t('addClub'),
-            }}
-            oNhap={cellInput}
-          />
-        )}
-      </section>
+      {/* TKB CLB THEO CƠ SỞ (0152): CLB liên lớp nên là một lịch DÙNG CHUNG của cơ sở đặt song
+          song dưới lưới chính khoá — cả cơ sở xem, chỉ Admin/BGH cơ sở này quản. */}
+      <KhuCLBCoSo campusId={myClass.campus_id} canManage={quanClb} />
 
       {/* KHUNG NHẬP Ở CUỐI TRANG ĐÃ BỎ (09/08/2026).
           Nó bắt người xếp lịch khai lại bằng lời cái toạ độ mà mắt vừa nhìn thấy trên lưới —
