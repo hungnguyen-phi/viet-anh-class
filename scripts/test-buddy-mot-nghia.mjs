@@ -1,9 +1,10 @@
-// MỘT CHỮ BUDDY, MỘT NGHĨA — con sư tử AI, không phải bạn cùng lớp.
+// MỘT CHỮ BUDDY, MỘT NGHĨA — nay là BẠN HỌC PDR; con AI mang tên "Sư Tử".
 //
-// Vì sao có file này: app từng mang HAI khái niệm cùng tên "Buddy" trên cùng một trang, và người
-// dùng đọc "Bạn đồng hành: Mạnh Hùng Lê Quý" rồi hỏi lại vì sao Buddy không phải con sư tử. Chủ
-// dự án chốt bỏ nghĩa bạn-cùng-lớp (12/08/2026). Bài này canh cho nó đừng lặng lẽ quay lại:
-// grep mã nguồn thì chỉ chứng minh mã sạch, nên bài này DỰNG THẬT trang của một em, bằng cookie
+// Lịch sử đổi nghĩa hai lần: app từng mang HAI khái niệm cùng tên "Buddy" và người dùng nhầm
+// (12/08/2026 chốt bỏ nghĩa bạn-cùng-lớp). Rồi PRD v3 (17/08) đưa buddy-bạn-học trở lại làm
+// trung tâm họp PDR, nên 18/08 chốt ngược: chữ Buddy thuộc về BẠN HỌC, con sư tử AI đổi tên
+// "Sư Tử". Bài này canh cho hai tên đừng lẫn lại: nhãn cũ của con AI ("Buddy nhắn", "Nói với
+// Buddy", "Bạn đồng hành") không được xuất hiện nữa. DỰNG THẬT trang của một em, bằng cookie
 // của cả GVCN lẫn chính em, rồi soi HTML đã render.
 //
 //   node scripts/test-buddy-mot-nghia.mjs [BASE]     mặc định http://localhost:3000
@@ -73,12 +74,12 @@ for (const [vai, email, duong] of [
   // Bỏ <script> trước khi soi CHỮ: gói chuỗi i18n của next-intl nằm trong đó, nên tìm thẳng vào
   // HTML thô là gặp chữ chưa hề hiện lên màn hình — đúng cái bẫy đã báo xanh giả hôm 12/08.
   const hienRa = html.replace(/<script[\s\S]*?<\/script>/g, '');
-  // Huy hiệu "Buddy của em" (một pill đứng riêng, không bấm được) ĐÃ GỠ 18/08/2026 khi làm lại
-  // giao diện. Nghĩa "Buddy = con sư tử" nay do ICON đầu sư tử mang, đặt ngay ở tiêu đề khung ghi
-  // chú Buddy dưới biên bản — nên chỉ còn canh cái icon có mặt (khi trang có ít nhất một ghi chú).
-  const coGhiChu = hienRa.includes('Buddy nhắn');
-  if (coGhiChu) dat(/stroke-dasharray="3 3\.2"/.test(html), `[${vai}] khung ghi chú Buddy có icon đầu sư tử`);
+  // Ghi chú của con AI nay mang tên "Sư Tử nhắn", kèm icon đầu sư tử ở tiêu đề khung
+  // (khi trang có ít nhất một ghi chú thì icon phải có mặt).
+  const coGhiChu = hienRa.includes('Sư Tử nhắn');
+  if (coGhiChu) dat(/stroke-dasharray="3 3\.2"/.test(html), `[${vai}] khung ghi chú Sư Tử có icon đầu sư tử`);
   dat(!hienRa.includes('Bạn đồng hành'), `[${vai}] KHÔNG còn nhãn "Bạn đồng hành"`);
+  dat(!hienRa.includes('Buddy nhắn') && !hienRa.includes('Nói với Buddy'), `[${vai}] con AI không còn mang tên Buddy (nay là Sư Tử)`);
   dat(!html.includes('name="buddy_id"'), `[${vai}] KHÔNG còn ô chọn bạn cùng lớp trong biên bản`);
 }
 

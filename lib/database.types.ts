@@ -226,55 +226,6 @@ export type Database = {
           },
         ]
       }
-      buddy_pairs: {
-        Row: {
-          buddy_id: string
-          class_id: string
-          created_at: string
-          id: string
-          student_id: string
-          week_start: string
-        }
-        Insert: {
-          buddy_id: string
-          class_id: string
-          created_at?: string
-          id?: string
-          student_id: string
-          week_start: string
-        }
-        Update: {
-          buddy_id?: string
-          class_id?: string
-          created_at?: string
-          id?: string
-          student_id?: string
-          week_start?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "buddy_pairs_buddy_id_fkey"
-            columns: ["buddy_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "buddy_pairs_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "buddy_pairs_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       campuses: {
         Row: {
           an_han_phut: number
@@ -540,6 +491,135 @@ export type Database = {
           },
         ]
       }
+      buddy_pairs: {
+        Row: {
+          id: string
+          class_id: string
+          student_id: string
+          buddy_id: string
+          created_by: string
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          class_id: string
+          student_id: string
+          buddy_id: string
+          created_by: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          class_id?: string
+          student_id?: string
+          buddy_id?: string
+          created_by?: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      pdr_schedules: {
+        Row: {
+          id: string
+          class_id: string
+          student_id: string | null
+          buddy_pair_id: string | null
+          type: string
+          weekday: number | null
+          time_slot: string | null
+          monthly_day: number | null
+          created_by: string
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          class_id: string
+          student_id?: string | null
+          buddy_pair_id?: string | null
+          type: string
+          weekday?: number | null
+          time_slot?: string | null
+          monthly_day?: number | null
+          created_by: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          class_id?: string
+          student_id?: string | null
+          buddy_pair_id?: string | null
+          type?: string
+          weekday?: number | null
+          time_slot?: string | null
+          monthly_day?: number | null
+          created_by?: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      pdr_meetings: {
+        Row: {
+          id: string
+          class_id: string
+          student_id: string
+          type: string
+          counterpart_id: string
+          second_buddy_id: string | null
+          week_label: string
+          q1_plan: string | null
+          q2_result: string | null
+          q3_obstacle: string | null
+          q4_overcome: string | null
+          q5_better_way: string | null
+          q6_commitment: string | null
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          class_id: string
+          student_id: string
+          type: string
+          counterpart_id: string
+          second_buddy_id?: string | null
+          week_label: string
+          q1_plan?: string | null
+          q2_result?: string | null
+          q3_obstacle?: string | null
+          q4_overcome?: string | null
+          q5_better_way?: string | null
+          q6_commitment?: string | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          class_id?: string
+          student_id?: string
+          type?: string
+          counterpart_id?: string
+          second_buddy_id?: string | null
+          week_label?: string
+          q1_plan?: string | null
+          q2_result?: string | null
+          q3_obstacle?: string | null
+          q4_overcome?: string | null
+          q5_better_way?: string | null
+          q6_commitment?: string | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       classes: {
         Row: {
           campus_id: string
@@ -609,6 +689,7 @@ export type Database = {
           area: Database["public"]["Enums"]["wig_domain"]
           class_id: string
           created_at: string
+          pdr_meeting_id: string | null
           created_by: string | null
           id: string
           set_by: string | null
@@ -627,6 +708,7 @@ export type Database = {
           area: Database["public"]["Enums"]["wig_domain"]
           class_id: string
           created_at?: string
+          pdr_meeting_id?: string | null
           created_by?: string | null
           id?: string
           set_by?: string | null
@@ -645,6 +727,7 @@ export type Database = {
           area?: Database["public"]["Enums"]["wig_domain"]
           class_id?: string
           created_at?: string
+          pdr_meeting_id?: string | null
           created_by?: string | null
           id?: string
           set_by?: string | null

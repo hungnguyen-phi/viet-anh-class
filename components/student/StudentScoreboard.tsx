@@ -21,6 +21,7 @@ import {StudentMeetings, type StudentMeeting} from '@/components/student/Student
 
 import {MyRequests, type MyRequest} from '@/components/student/MyRequests';
 import {BuddyAuto} from '@/components/student/BuddyAuto';
+import {HopPdr} from '@/components/student/HopPdr';
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {MucTieuCuaCon, type MucTieuCuaEm, type SoDoCuaTuan} from '@/components/student/MucTieuCuaCon';
 import {NghePhongHop} from '@/components/wig/NghePhongHop';
@@ -613,6 +614,51 @@ export async function StudentScoreboard({
   const [areaMeta, locale] = await Promise.all([getAreaMeta(), getLocale()]);
   const nhanTheoArea = Object.fromEntries(AREAS.map((a) => [a, areaLabel(areaMeta[a], locale)]));
 
+  // ── HỌP PDR VỚI BUDDY (0146 — PRD v3 6.2.7) ────────────────────────────────────────────────
+  // Luôn là TUẦN HIỆN TẠI, không theo tuần đang xem: biên bản PDR là việc của tuần này, còn thanh
+  // tuần ở cột trái chỉ điều khiển khu cam kết/tick.
+  const nhanTuanPdr = isoWeekLabel(vnNoon(thisMonday));
+  const [capRes, pdrRes] = await Promise.all([
+    supabase
+      .from('buddy_pairs')
+      .select('id, student_id, buddy_id')
+      .eq('is_active', true)
+      .or(`student_id.eq.${studentId},buddy_id.eq.${studentId}`)
+      .order('created_at'),
+    supabase
+      .from('pdr_meetings')
+      .select('id, week_label, q1_plan, q2_result, q3_obstacle, q4_overcome, q5_better_way, q6_commitment, acknowledged_at')
+      .eq('student_id', studentId)
+      .eq('type', 'buddy')
+      .eq('week_label', nhanTuanPdr)
+      .maybeSingle(),
+  ]);
+  const capBuddy = capRes.data ?? [];
+  const idBuddy = capBuddy.map((p) => (p.student_id === studentId ? p.buddy_id : p.student_id));
+  let tenBuddy: string[] = [];
+  let lichBuddy: string | null = null;
+  if (idBuddy.length > 0) {
+    const [tenRes, lichRes] = await Promise.all([
+      supabase.from('profiles').select('id, full_name, email').in('id', idBuddy),
+      supabase
+        .from('pdr_schedules')
+        .select('weekday, time_slot')
+        .in('buddy_pair_id', capBuddy.map((p) => p.id))
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    const tenCua = new Map((tenRes.data ?? []).map((p) => [p.id, tenHienThi(p.full_name, p.email)]));
+    tenBuddy = idBuddy.map((id) => tenCua.get(id) ?? '—');
+    if (lichRes.data?.weekday)
+      lichBuddy = `${lichRes.data.weekday === 8 ? 'CN' : `T${lichRes.data.weekday}`}${
+        lichRes.data.time_slot ? ` · ${String(lichRes.data.time_slot).slice(0, 5)}` : ''
+      }`;
+  }
+  const wigDaDuyet = mucTieuCuaEm
+    .filter((m) => m.status === 'approved')
+    .map((m) => ({id: m.id, title: m.title}));
+
   // SỐ ĐO TUẦN NÀY, tra theo id mục tiêu. Định dạng giờ ghi Ở ĐÂY chứ không ở component: khối kia
   // là client component, để nó tự gọi toLocaleString là mời sai lệch máy chủ/trình duyệt in ra hai
   // chuỗi khác nhau rồi React kêu hydrate lệch.
@@ -715,7 +761,7 @@ export async function StudentScoreboard({
             gon
             anDanhSach
             weekStart={weekDays[0]}
-            weekLabel={nhanTuanNay}
+            weekLabel={nhanTuanPdr}
             daCo={ckTuan}
             tongDaCo={ckTuan.length}
             dayShort={dayShort}
@@ -897,7 +943,18 @@ export async function StudentScoreboard({
                 )}
               </div>
             )}
-            {/* PRD §7 "ghi chú Buddy" — Buddy là LLM. KHÔNG có nút: mở trang là tự sinh, server
+            {/* HỌP PDR VỚI BUDDY — 6 câu + Ghi nhận (PRD v3 6.2.7). Đứng trên biên bản lớp cũ:
+                đây là việc MỖI TUẦN của chính em, còn các khối dưới là thứ để đọc. */}
+            <HopPdr
+              laChinhEm={canTick}
+              tenBuddy={tenBuddy}
+              lich={lichBuddy}
+              bienBan={pdrRes.data ?? null}
+              wigDaDuyet={wigDaDuyet}
+              weekLabel={nhanTuanPdr}
+            />
+            {/* PRD §7 "ghi chú Sư Tử" — Sư Tử là LLM (đổi tên từ Buddy 18/08/2026: chữ Buddy nay
+                thuộc về bạn học PDR). KHÔNG có nút: mở trang là tự sinh, server
                 chặn tối đa 1 lượt/ngày và chỉ gọi LLM khi có tick mới (0043). */}
             {canTick && (
               <BuddyAuto

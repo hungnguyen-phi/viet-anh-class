@@ -14,6 +14,7 @@ import {EnrollForm} from './EnrollForm';
 import {SuaHocSinh} from './SuaHocSinh';
 import {removeStudent, cancelStudentInvite} from './actions';
 import {IncomingTransfers, type DeNghiDen} from './IncomingTransfers';
+import {KhuBuddyPdr} from '@/components/roster/KhuBuddyPdr';
 import {TransferControl, type LopDich} from './TransferControl';
 import {Flash} from '@/components/ui/Flash';
 
@@ -506,6 +507,14 @@ export default async function RosterPage({
       {/* Bảng cảm xúc 7 ngày ĐÃ DỜI sang trang Điểm danh: check-in cảm xúc CHÍNH LÀ điểm danh
           (student_checkin ghi cả mood_checkins lẫn attendance_records), nên đặt cạnh nhau mới
           đọc được cùng lúc. */}
+
+      {/* BUDDY & LỊCH PDR (PRD v3, 0146) — chỉ người quản lớp; học sinh xem trên màn của mình. */}
+      {canManage && (
+        <KhuBuddyPdr
+          classId={myClass.id}
+          hocSinh={candidates.map((c) => ({id: c.id, name: c.name}))}
+        />
+      )}
     </div>
   );
 }

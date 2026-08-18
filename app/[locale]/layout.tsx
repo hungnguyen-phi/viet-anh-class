@@ -18,6 +18,7 @@ const DESCRIPTION = 'App lãnh đạo lớp học theo khung 4DX — Trường V
 const NAMESPACE_CHO_CLIENT = [
   'admin',
   'attendance',
+  'buddy',
   'campusReport',
   'common',
   'gallery',
@@ -28,6 +29,7 @@ const NAMESPACE_CHO_CLIENT = [
   'meeting',
   'menu',
   'nav',
+  'pdr',
   'roles',
   'roster',
   'student',

@@ -1,0 +1,166 @@
+'use server';
+
+import {revalidatePath} from 'next/cache';
+import {createClient} from '@/lib/supabase/server';
+import {getCurrentProfile} from '@/lib/auth';
+import {friendlyError} from '@/lib/errors';
+import {isoWeekLabel, todayInVN, vnNoon, nextWeekRangeVN} from '@/lib/dates';
+
+// ════════════════════════════════════════════════════════════════════════════
+// HỌP PDR (Plan-Do-Review) — PRD v3 mục 6.2.7
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Mỗi tuần em họp với buddy (1-1 hoặc 1-1-1, GVCN ghép cặp ở /roster) và LẦN LƯỢT trả lời
+// 6 câu hỏi. Mỗi dòng pdr_meetings là PHẦN TRẢ LỜI CỦA MỘT EM — buổi 1-1-1 có ba dòng cùng
+// tuần. Câu 6 ("Tuần này bạn cam kết điều gì?") sinh bản ghi cam kết của TUẦN TỚI, bắt buộc
+// gắn vào một WIG ĐÃ DUYỆT của chính em — cam kết không phục vụ mục tiêu nào là "lạc mục tiêu".
+//
+// RLS (0146) là chốt thật: em chỉ ghi dòng của mình, chỉ tới khi Ghi nhận; biên bản chỉ người
+// tham gia + giáo viên thấy. Mã ở đây lo câu báo lỗi nói tiếng người và lo ráp buddy đúng.
+
+export type PdrState = {ok: boolean; error?: string; fieldError?: string; message?: string};
+
+const CAU = ['q1_plan', 'q2_result', 'q3_obstacle', 'q4_overcome', 'q5_better_way', 'q6_commitment'] as const;
+
+export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrState> {
+  const me = await getCurrentProfile();
+  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
+  if (me.role !== 'student') return {ok: false, error: 'Biên bản PDR do chính em ghi.'};
+
+  const traLoi = {} as {[K in (typeof CAU)[number]]: string | null};
+  for (const c of CAU) {
+    const v = String(formData.get(c) ?? '').trim();
+    if (v.length > 600) return {ok: false, fieldError: c, error: 'Mỗi câu tối đa 600 ký tự.'};
+    traLoi[c] = v || null;
+  }
+
+  const supabase = await createClient();
+  const {data: ghiDanh} = await supabase
+    .from('enrollments')
+    .select('class_id')
+    .eq('student_id', me.id)
+    .eq('is_active', true)
+    .maybeSingle();
+  if (!ghiDanh?.class_id) return {ok: false, error: 'Em chưa được xếp lớp.'};
+
+  // BUDDY LẤY TỪ CSDL, không tin form: người ngồi họp với em là do GVCN ghép, không phải do một
+  // ô hidden khai. Thứ tự ổn định theo ngày ghép để counterpart/second không nhảy chỗ mỗi lần lưu.
+  const {data: cap} = await supabase
+    .from('buddy_pairs')
+    .select('student_id, buddy_id, created_at')
+    .eq('is_active', true)
+    .or(`student_id.eq.${me.id},buddy_id.eq.${me.id}`)
+    .order('created_at');
+  const banHoc = (cap ?? []).map((p) => (p.student_id === me.id ? p.buddy_id : p.student_id));
+  if (banHoc.length === 0)
+    return {ok: false, error: 'Em chưa có buddy — giáo viên ghép cặp xong là họp được.'};
+
+  const weekLabel = isoWeekLabel(vnNoon(todayInVN()));
+  const {data: daCo} = await supabase
+    .from('pdr_meetings')
+    .select('id, acknowledged_at')
+    .eq('student_id', me.id)
+    .eq('type', 'buddy')
+    .eq('week_label', weekLabel)
+    .maybeSingle();
+  if (daCo?.acknowledged_at)
+    return {ok: false, error: 'Buổi họp tuần này đã Ghi nhận rồi — biên bản đã đóng.'};
+
+  let meetingId = daCo?.id ?? null;
+  if (meetingId) {
+    const {error} = await supabase.from('pdr_meetings').update(traLoi).eq('id', meetingId);
+    if (error) return {ok: false, error: friendlyError(error)};
+  } else {
+    const {data, error} = await supabase
+      .from('pdr_meetings')
+      .insert({
+        class_id: ghiDanh.class_id,
+        student_id: me.id,
+        type: 'buddy',
+        counterpart_id: banHoc[0],
+        second_buddy_id: banHoc[1] ?? null,
+        week_label: weekLabel,
+        ...traLoi,
+      })
+      .select('id')
+      .maybeSingle();
+    if (error) return {ok: false, error: friendlyError(error)};
+    if (!data) return {ok: false, error: 'Không lưu được biên bản (không có quyền).'};
+    meetingId = data.id;
+  }
+
+  // ── CÂU 6 → CAM KẾT TUẦN TỚI ──────────────────────────────────────────────────────────────
+  // Chỉ sinh MỘT lần cho mỗi buổi (soi pdr_meeting_id); em sửa câu 6 sau đó thì sửa lời văn ở
+  // thẻ cam kết như mọi cam kết khác, không đẻ bản thứ hai.
+  const wigGui = String(formData.get('wig_id') ?? '').trim();
+  if (traLoi.q6_commitment) {
+    if (!wigGui)
+      return {
+        ok: false,
+        fieldError: 'wig_id',
+        error: 'Cam kết phải gắn vào một WIG đã duyệt của em — chọn WIG nhé.',
+      };
+    const {data: daSinh} = await supabase
+      .from('commitments')
+      .select('id')
+      .eq('pdr_meeting_id', meetingId)
+      .maybeSingle();
+    if (!daSinh) {
+      // WIG phải là CỦA EM và ĐÃ DUYỆT (PRD v3: "1 trong các WIG đã duyệt của học sinh").
+      const {data: wig} = await supabase
+        .from('wigs')
+        .select('id')
+        .eq('id', wigGui)
+        .eq('student_id', me.id)
+        .eq('scope', 'student')
+        .eq('status', 'approved')
+        .maybeSingle();
+      if (!wig)
+        return {ok: false, fieldError: 'wig_id', error: 'WIG này chưa được duyệt hoặc không phải của em.'};
+      const {error} = await supabase.from('commitments').insert({
+        wig_id: wig.id,
+        class_id: ghiDanh.class_id,
+        student_id: me.id,
+        week_start: nextWeekRangeVN().start,
+        title: traLoi.q6_commitment.slice(0, 160),
+        area: 'knowledge', // trigger đè bằng lĩnh vực của WIG — giá trị qua cửa, không phải lựa chọn
+        pdr_meeting_id: meetingId,
+      });
+      if (error) {
+        if (/hai cam k|tối đa 2|qua_hai/i.test(error.message))
+          return {
+            ok: false,
+            error: 'Tuần tới đã đủ 2 cam kết — cam kết trong câu 6 không sinh thêm được. Biên bản vẫn đã lưu.',
+          };
+        return {ok: false, error: friendlyError(error)};
+      }
+    }
+  }
+
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  return {ok: true, message: 'Đã lưu biên bản PDR.'};
+}
+
+// Nút "Ghi nhận" — xác nhận buổi họp ĐÃ DIỄN RA (PRD v3: chưa Ghi nhận thì không tính KPI).
+// Người bấm là người tham gia (RLS pdr_student_update / pdr_staff_all quyết ai bấm được);
+// bấm xong biên bản đóng — USING của policy không cho em sửa nữa.
+export async function ghiNhanPdr(_prev: PdrState, formData: FormData): Promise<PdrState> {
+  const me = await getCurrentProfile();
+  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
+  const id = String(formData.get('meeting_id') ?? '');
+  if (!id) return {ok: false, error: 'Thiếu buổi họp.'};
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('pdr_meetings')
+    .update({acknowledged_at: new Date().toISOString(), acknowledged_by: me.id})
+    .eq('id', id)
+    .is('acknowledged_at', null)
+    .select('id')
+    .maybeSingle();
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data) return {ok: false, error: 'Buổi họp đã Ghi nhận rồi, hoặc em không tham gia buổi này.'};
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  return {ok: true, message: 'Đã ghi nhận buổi họp.'};
+}

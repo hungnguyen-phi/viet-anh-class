@@ -3,7 +3,7 @@
 import {useState} from 'react';
 import {ngayVN} from '@/lib/dates';
 import {useTranslations} from 'next-intl';
-import {Check, CheckCircle2, Pencil, Plus} from 'lucide-react';
+import {Check, CheckCircle2, CornerDownRight, Pencil, Plus} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {btnGhost, btnGold} from '@/components/ui/Field';
 import {FormMucTieu, type WigLop} from '@/components/student/FormMucTieu';
@@ -266,7 +266,7 @@ function TheMucTieu({
               nhận góp vào mục tiêu năm của lớp (source_wig_id, 0100/0138). Một chip, không phải một câu. */}
           {tenLopNguon && (
             <span className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded-full bg-gold/[0.16] px-2 py-0.5 text-[11px] font-extrabold text-gold-text">
-              <span aria-hidden>↳</span>
+              <CornerDownRight size={11} strokeWidth={2.5} className="shrink-0" aria-hidden />
               <span className="truncate">{tenLopNguon}</span>
             </span>
           )}
