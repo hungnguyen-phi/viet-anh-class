@@ -120,31 +120,17 @@ dau('việc để tick nằm trong thẻ mục tiêu — không còn khối "Vi�
   // em bằng "bạn", nên bản cũ báo MẤT NÚT trong khi nút vẫn ở đó. Điều canh ở đây là có/không có
   // khối và nút, không phải app gọi em bằng gì.
   const goiVi = JSON.parse(readFileSync('messages/vi.json', 'utf8'));
-  // 16/08/2026: một danh sách thẻ, một nút "Thêm mục tiêu" (goal.addGoal) — không còn tiêu đề
-  // "Mục tiêu riêng của bạn" cũng không còn nút riêng cho loại riêng.
+  // 18/08/2026 (PRD v3 4.2): BỐN Ô CỐ ĐỊNH theo 4 domain — thay cho một nút "Thêm mục tiêu"
+  // chung. Ô có WIG là thẻ; ô trống là chỗ đặt (với chính em) hoặc "Chưa đặt" (người xem khác).
+  // Nên điều canh nay là: cả BỐN nhãn domain phải có mặt trên màn, và tiêu đề "Mục tiêu riêng"
+  // của thời hai-khối không quay lại.
   const nhanTieuDeRieng = 'Mục tiêu riêng'; // khoá goal.titlePersonal đã xoá — canh chữ cũ không quay lại
-  const nhanNutRieng = goiVi.goal?.addGoal;
-  if (!nhanNutRieng) throw new Error('thiếu khoá goal.addGoal');
   const coTieuDe = body.includes(nhanTieuDeRieng);
-  const coNut = body.includes(nhanNutRieng);
-  // CHƯA CÓ MỤC TIÊU HỌC TẬP thì cũng KHÔNG bày nút "thêm mục tiêu riêng": hai nút cạnh nhau cùng
-  // mở một form đặt mục tiêu đọc ra là một nút bị nhân đôi. Chữ "thêm" chỉ có nghĩa khi đã có một
-  // cái rồi. Chủ dự án chỉ ra 13/08/2026 (lần thứ hai của cùng một khối này).
-  const {count: soHocTap} = await admin
-    .from('wigs')
-    .select('id', {count: 'exact', head: true})
-    .eq('student_id', em?.id ?? '')
-    .eq('scope', 'student')
-    .eq('kind', 'academic');
-
-  if ((count ?? 0) === 0) {
-    dau(
-      `còn loại chưa đặt (học tập: ${soHocTap ?? 0}) → một nút "Thêm mục tiêu", KHÔNG dựng khối rỗng`,
-      !coTieuDe && coNut,
-      coTieuDe ? 'vẫn còn tiêu đề "Mục tiêu riêng" cho một khối rỗng' : coNut ? 'đúng: chỉ có nút' : 'MẤT LUÔN nút thêm',
-    );
-  } else {
-    dau('đủ hai mục tiêu → không còn nút thêm, không tiêu đề riêng', !coTieuDe && !coNut, coNut ? 'còn nút' : 'đúng');
+  dau('không còn tiêu đề "Mục tiêu riêng" của thời hai khối', !coTieuDe);
+  {
+    const {data: nhanRows} = await admin.from('area_config').select('label_vi');
+    const thieu = (nhanRows ?? []).map((r) => r.label_vi).filter((nhan) => !body.includes(nhan));
+    dau('đủ 4 ô domain trên màn của em (kể cả ô chưa đặt)', thieu.length === 0, thieu.join(', ') || 'đủ');
   }
 }
 
