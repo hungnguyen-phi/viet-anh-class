@@ -233,6 +233,16 @@ export async function createClass(_prev: ClassState, formData: FormData): Promis
     if (!g || g.campus_id !== campus_id)
       return {ok: false, fieldError: 'grade_id', error: 'Khối không thuộc cơ sở đã chọn.', values};
     grade = g.name;
+    // PRD v3 Giai đoạn 1 = KHỐI 1–9 (changelog #9). Chỉ chặn TẠO MỚI: các lớp 10–12 đang chạy
+    // (Marketing, 11A1…) giữ nguyên — khoá hồi tố là giết dữ liệu thật đang dùng (18/08/2026).
+    const soKhoi = Number((grade.match(/\d+/) ?? [])[0]);
+    if (Number.isFinite(soKhoi) && (soKhoi < 1 || soKhoi > 9))
+      return {
+        ok: false,
+        fieldError: 'grade_id',
+        error: 'Giai đoạn 1 chỉ mở khối 1–9 (PRD v3). Khối 10–12 mở ở giai đoạn sau.',
+        values,
+      };
   }
   const {error} = await supabase.from('classes').insert({
     name,

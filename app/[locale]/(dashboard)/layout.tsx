@@ -1,5 +1,6 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {requireProfile, getUserId} from '@/lib/auth';
+import {PARENT_PORTAL} from '@/lib/flags';
 import {createClient} from '@/lib/supabase/server';
 import {AppNav} from '@/components/shell/AppNav';
 import {IntroGuide} from '@/components/shell/IntroGuide';
@@ -78,6 +79,18 @@ export default async function DashboardLayout({
     unreadPromise,
     msgPromise,
   ]);
+
+  // PRD v3 #10: Giai đoạn 1 CHƯA có phiên bản phụ huynh. Tài khoản phụ huynh còn lại (schema
+  // giữ nguyên) thấy một lời hẹn thay vì báo cáo — bật lại bằng PARENT_PORTAL=true, không sửa mã.
+  if (profile.role === 'parent' && !PARENT_PORTAL) {
+    return (
+      <div className="grid min-h-screen place-items-center px-6">
+        <p className="glass max-w-[420px] rounded-[20px] p-6 text-center text-[14px] font-semibold leading-relaxed text-navy">
+          {tc('parentPaused')}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">

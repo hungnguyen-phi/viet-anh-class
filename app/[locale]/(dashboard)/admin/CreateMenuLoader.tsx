@@ -9,6 +9,7 @@ import {ClassForm} from './ClassForm';
 import {CreateMenu} from './CreateMenu';
 import {InviteEmailsField} from './InviteEmailsField';
 import {ParentFormLoader} from './ParentFormLoader';
+import {PARENT_PORTAL} from '@/lib/flags';
 
 const INVITE_ROLES = ['teacher', 'principal', 'admin', 'student'] as const;
 
@@ -146,7 +147,7 @@ export async function CreateMenuLoader({revision}: {revision: string}) {
         </form>
       }
       parentForm={
-        <Suspense
+        PARENT_PORTAL ? <Suspense
           fallback={
             <div className="py-4 text-center text-[12.5px] font-semibold text-grey-mid">
               {tcommon('loading')}
@@ -154,7 +155,7 @@ export async function CreateMenuLoader({revision}: {revision: string}) {
           }
         >
           <ParentFormLoader />
-        </Suspense>
+        </Suspense> : null
       }
     />
   );

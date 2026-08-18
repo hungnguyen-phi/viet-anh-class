@@ -26,7 +26,8 @@
     "today": "Today",
     "skipToContent": "Skip to content",
     "viewingOthersClass": "{name}'s class — you are viewing as an administrator",
-    "viewingClassNoOwner": "Class has no homeroom teacher — you are viewing as an administrator"
+    "viewingClassNoOwner": "Class has no homeroom teacher — you are viewing as an administrator",
+    "parentPaused": "The parent portal opens in a later phase of Viet Anh Class. The school will let you know when it is ready."
   },
   "roles": {
     "admin": "Administrator",

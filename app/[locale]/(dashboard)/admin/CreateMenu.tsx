@@ -24,7 +24,7 @@ export function CreateMenu({
   classForm: ReactNode;
   inviteForm: ReactNode;
   assignForm: ReactNode;
-  parentForm: ReactNode;
+  parentForm: ReactNode | null;
   /**
    * Dấu vân tay của dữ liệu phía máy chủ (số cơ sở, số lớp, số người, câu thông báo hiện tại).
    *
@@ -52,7 +52,10 @@ export function CreateMenu({
     {key: 'class', label: t('createClass'), icon: <GraduationCap size={15} strokeWidth={2.2} />, body: classForm},
     {key: 'invite', label: t('inviteUser'), icon: <UserPlus size={15} strokeWidth={2.2} />, body: inviteForm},
     {key: 'assign', label: t('assignGvcn'), icon: <Users size={15} strokeWidth={2.2} />, body: assignForm},
-    {key: 'parent', label: t('inviteParent'), icon: <UserPlus size={15} strokeWidth={2.2} />, body: parentForm},
+    // PRD v3 #10: Giai đoạn 1 chưa có phụ huynh — cờ PARENT_PORTAL tắt thì tab này biến mất.
+    ...(parentForm
+      ? [{key: 'parent' as Key, label: t('inviteParent'), icon: <UserPlus size={15} strokeWidth={2.2} />, body: parentForm}]
+      : []),
   ];
   const current = items.find((i) => i.key === open);
 

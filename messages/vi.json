@@ -26,7 +26,8 @@
     "today": "Hôm nay",
     "skipToContent": "Bỏ qua menu, xuống nội dung",
     "viewingOthersClass": "Lớp của {name} — bạn đang xem với quyền quản trị",
-    "viewingClassNoOwner": "Lớp chưa có chủ nhiệm — bạn đang xem với quyền quản trị"
+    "viewingClassNoOwner": "Lớp chưa có chủ nhiệm — bạn đang xem với quyền quản trị",
+    "parentPaused": "Cổng phụ huynh sẽ mở ở giai đoạn sau của Việt Anh Class. Nhà trường sẽ báo khi sẵn sàng."
   },
   "roles": {
     "admin": "Quản trị viên",
