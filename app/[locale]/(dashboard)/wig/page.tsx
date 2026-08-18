@@ -23,6 +23,7 @@ import {
   shiftWeeks,
 } from '@/lib/dates';
 import {WeekNav} from '@/components/wig/WeekNav';
+import {DaiChiSo, gopChiSo} from '@/components/wig/DaiChiSo';
 import {TaoWigMenu} from '@/components/wig/TaoWigMenu';
 import {ViecTuan, type ViecItem} from '@/components/wig/ViecTuan';
 import {SuaCamKetLop} from '@/components/wig/SuaCamKetLop';
@@ -539,6 +540,19 @@ export default async function WigPage({
         end={wk.end}
         classParam={classParam}
       />
+
+      {/* METRICS CẤP LỚP (0147 — PRD v3 6.3): gộp mọi dòng của lớp (cả lớp lẫn từng em) cho tuần
+          đang xem + luỹ kế từ đầu năm. Một câu hỏi, lọc tại chỗ. */}
+      {await (async () => {
+        const {data: soRows} = await supabase
+          .from('metrics_tuan_v')
+          .select('week_start, tong_lead, lead_xong, tong_ck, ck_thang, ck_thua')
+          .eq('class_id', myClass.id)
+          .lte('week_start', monday);
+        const tuan = gopChiSo((soRows ?? []).filter((r) => r.week_start === monday));
+        const luyKe = gopChiSo(soRows ?? []);
+        return <DaiChiSo tuan={tuan} luyKe={luyKe} />;
+      })()}
 
       {/* 2/3 — 1/3: bên trái là việc của tuần này (thứ phải làm), bên phải là lớp đang đi tới đâu
           (thứ phải biết). Chủ dự án chốt đúng tỉ lệ này. */}

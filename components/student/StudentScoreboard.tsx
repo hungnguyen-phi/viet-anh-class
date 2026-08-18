@@ -26,6 +26,7 @@ import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox'
 import {MucTieuCuaCon, type MucTieuCuaEm, type SoDoCuaTuan} from '@/components/student/MucTieuCuaCon';
 import {NghePhongHop} from '@/components/wig/NghePhongHop';
 import {CamKetCuaEm} from '@/components/wig/CamKetCuaEm';
+import {DaiChiSo, gopChiSo} from '@/components/wig/DaiChiSo';
 import {NutDuyetCamKet} from '@/components/wig/NutXoaCamKet';
 import {SuaCamKet} from '@/components/wig/SuaCamKet';
 import {FlashToast} from '@/components/ui/FlashToast';
@@ -700,10 +701,23 @@ export async function StudentScoreboard({
   const mucTieuChon = mucTieuCuaEm.map((m) => ({id: m.id, area: m.area, title: m.title, unit: m.unit}));
   const tenMucTieu = new Map(mucTieuCuaEm.map((m) => [m.id, m.title]));
 
+  // ── METRICS (0147 — PRD v3 6.3): lead đạt/tổng + cam kết thắng/thua, tuần đang xem và luỹ kế
+  // từ đầu năm tới tuần ấy. Một câu hỏi, lọc tại chỗ — mỗi em mỗi tuần chỉ một dòng.
+  const {data: soRows} = await supabase
+    .from('metrics_tuan_v')
+    .select('week_start, tong_lead, lead_xong, tong_ck, ck_thang, ck_thua')
+    .eq('student_id', studentId)
+    .lte('week_start', monday);
+  const soTuan = gopChiSo((soRows ?? []).filter((r) => r.week_start === monday));
+  const soLuyKe = gopChiSo(soRows ?? []);
+
   const khuTuan = (
     <section className="glass rounded-[20px] p-[18px]">
-      <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
         <h2 className="font-display text-[17px] font-bold text-navy">{t('thisWeekTitle')}</h2>
+        <div className="ml-auto">
+          <DaiChiSo tuan={soTuan} luyKe={soLuyKe} />
+        </div>
       </div>
       {ckTuan.length === 0 && !canTick && (
         <p className="text-[12.5px] italic text-grey-mid">{t('noCommitmentThisWeek')}</p>

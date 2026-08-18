@@ -1356,5 +1356,12 @@
     "dayOfMonth": "day {d} monthly",
     "student": "Student",
     "dayLabel": "Day of month"
+  },
+  "metrics": {
+    "leadWeek": "Leads: {x}/{y} met",
+    "winWeek": "Commitments: {x}/{y} won",
+    "cum": "Season",
+    "cumLead": "leads {p}%",
+    "cumWin": "wins {p}%"
   }
 }

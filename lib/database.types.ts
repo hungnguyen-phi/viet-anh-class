@@ -2640,6 +2640,19 @@ export type Database = {
           },
         ]
       }
+      metrics_tuan_v: {
+        Row: {
+          class_id: string | null
+          student_id: string | null
+          week_start: string | null
+          tong_lead: number | null
+          lead_xong: number | null
+          tong_ck: number | null
+          ck_thang: number | null
+          ck_thua: number | null
+        }
+        Relationships: []
+      }
       wig_progress_v: {
         Row: {
           achieved_at: string | null

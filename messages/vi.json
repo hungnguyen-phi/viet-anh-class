@@ -1356,5 +1356,12 @@
     "dayOfMonth": "ngày {d} hằng tháng",
     "student": "Học sinh",
     "dayLabel": "Ngày trong tháng"
+  },
+  "metrics": {
+    "leadWeek": "Lead: {x}/{y} đạt",
+    "winWeek": "Cam kết: thắng {x}/{y}",
+    "cum": "Luỹ kế",
+    "cumLead": "lead {p}%",
+    "cumWin": "thắng {p}%"
   }
 }
