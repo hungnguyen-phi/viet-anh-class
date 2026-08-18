@@ -166,7 +166,13 @@
       "good": "Good",
       "ok": "OK",
       "low": "Low",
-      "bad": "Very low"
+      "bad": "Very low",
+      "happy": "Happy",
+      "okay": "Okay",
+      "sad": "Sad",
+      "tired": "Tired",
+      "worried": "Worried",
+      "angry": "Angry"
     },
     "coverUpload": "Class cover",
     "coverUploading": "Uploading...",
@@ -546,7 +552,8 @@
     "noCommitmentYet": "no commitment this week",
     "doneCol": "Done",
     "commitNoWork": "Committed \"{title}\" — no work yet.",
-    "colWorkOnly": "Work"
+    "colWorkOnly": "Work",
+    "waitBgh": "Awaiting principal approval"
   },
   "meeting": {
     "title": "Class meeting",
@@ -612,7 +619,9 @@
     "thisWeekWork": "What will you do this week",
     "classPromised": "Class commitments for {week}",
     "addCommitment": "Add commitment",
-    "commitmentOne": "Commitment"
+    "commitmentOne": "Commitment",
+    "gvcnLabel": "Homeroom teacher",
+    "coachDay": "day {d} monthly"
   },
   "report": {
     "title": "Parent report",
@@ -709,14 +718,26 @@
       "good": "Happy",
       "ok": "Okay",
       "low": "A bit sad",
-      "bad": "Keep trying"
+      "bad": "Keep trying",
+      "happy": "Happy",
+      "okay": "Okay",
+      "sad": "Sad",
+      "tired": "Tired",
+      "worried": "Worried",
+      "angry": "Angry"
     },
     "moodMsg": {
       "great": "You're doing great — keep shining!",
       "good": "You're on the right track, a little more!",
       "ok": "Nice! A few more stars and you'll be amazing.",
       "low": "Don't worry, let's do better together this week!",
-      "bad": "It's okay! Every little star helps you move up."
+      "bad": "It's okay! Every little star helps you move up.",
+      "happy": "Keep that joy going all day!",
+      "okay": "Doing fine! A few more stars and it will be great.",
+      "sad": "It is okay to feel sad — tell your teacher if you want.",
+      "tired": "Tired? Take a breath — start with the smallest task.",
+      "worried": "Do not worry — let us untangle it one step at a time!",
+      "angry": "Take a deep breath first — then let us talk."
     },
     "wigYear": "My goal for the year",
     "noWig": "Your homeroom teacher hasn't set personal WIGs yet.",
@@ -835,7 +856,10 @@
     "wigIdleTick": "This class has no goal for the week, so students have nothing to tick.",
     "noWigYet": "This class has no year goal yet — not started, not losing.",
     "attNotYet": "not taken",
-    "wigSelfSet": "Self-set"
+    "wigSelfSet": "Self-set",
+    "wigQueue": "Class WIGs awaiting approval",
+    "wigQueueEmpty": "No class WIG is awaiting approval.",
+    "approve": "Approve"
   },
   "scoreboard": {
     "title": "Competition by domain",
@@ -1340,7 +1364,11 @@
     "save": "Save minutes",
     "ackBtn": "Acknowledge meeting",
     "expand": "View minutes",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "titleCoach": "PDR with your teacher",
+    "coachDay": "day {d} monthly",
+    "q2Win": "Win",
+    "q2Lose": "Loss"
   },
   "buddy": {
     "title": "Buddies & PDR schedule",
@@ -1363,6 +1391,7 @@
     "winWeek": "Commitments: {x}/{y} won",
     "cum": "Season",
     "cumLead": "leads {p}%",
-    "cumWin": "wins {p}%"
+    "cumWin": "wins {p}%",
+    "pipsLabel": "Weekly commitment win/loss strip"
   }
 }

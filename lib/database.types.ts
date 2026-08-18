@@ -3204,7 +3204,7 @@ export type Database = {
       conduct_rating: "tot" | "kha" | "trung_binh" | "yeu"
       homework_kind: "assignment" | "reminder" | "exam"
       meal_slot: "breakfast" | "lunch" | "snack" | "dinner"
-      mood_level: "great" | "good" | "ok" | "low" | "bad"
+      mood_level: "great" | "good" | "ok" | "low" | "bad" | "happy" | "okay" | "sad" | "tired" | "worried" | "angry"
       school_level: "mam_non" | "tieu_hoc" | "thcs" | "thpt"
       score_category: "knowledge" | "leadership_skills" | "character" | "physical_wellbeing"
       score_kind: "mieng" | "15p" | "1tiet" | "giua_ky" | "cuoi_ky"

@@ -13,15 +13,25 @@ export type MoodKey = Database['public']['Enums']['mood_level'];
 
 // Mặt cảm xúc — màu = tín hiệu trạng thái (PRD §6.1). Vẽ bằng SVG path (không emoji).
 const FACE = 'M12 2a10 10 0 1 0 0 20 10 10 0 1 0 0-20';
+// 6 CẢM XÚC CỦA PRD V3 (9.2) + 5 mức thang cũ. Bộ CHỌN chỉ đưa ra 6 loại mới; 5 khoá cũ giữ
+// lại để lịch sử check-in trước 18/08/2026 vẫn hiện đúng mặt — dịch "low" thành "mệt" là bịa
+// lại cảm xúc trẻ đã bấm.
 const MOODS: {key: MoodKey; bg: string; fg: string; paths: string[]}[] = [
+  {key: 'happy', bg: '#1e8a5a', fg: '#ffffff', paths: ['M8 14s1.5 2 4 2 4-2 4-2', 'M9 9h.01', 'M15 9h.01']},
+  {key: 'okay', bg: '#f9dd0e', fg: '#26275d', paths: ['M8 15h8', 'M9 9h.01', 'M15 9h.01']},
+  {key: 'sad', bg: '#6b7bb8', fg: '#ffffff', paths: ['M16 16s-1.5-2-4-2-4 2-4 2', 'M9 9h.01', 'M15 9h.01']},
+  {key: 'tired', bg: '#8d8d99', fg: '#ffffff', paths: ['M8 15h8', 'M8 9.5h2', 'M14 9.5h2']},
+  {key: 'worried', bg: '#e08a00', fg: '#ffffff', paths: ['M16 16s-1.5-2-4-2-4 2-4 2', 'M8 7.5c.8-.8 2-.8 2.6 0', 'M13.4 7.5c.8-.8 2-.8 2.6 0', 'M9 10h.01', 'M15 10h.01']},
+  {key: 'angry', bg: '#e0483a', fg: '#ffffff', paths: ['M16 16s-1.5-2-4-2-4 2-4 2', 'M7.5 8 10 9', 'm14 9 2.5-1', 'M9 10h.01', 'M15 10h.01']},
+  // ── thang 5 mức cũ, chỉ để đọc lịch sử ──
   {key: 'great', bg: '#1e8a5a', fg: '#ffffff', paths: ['M18 13a6 6 0 0 1-6 5 6 6 0 0 1-6-5h12Z', 'M9 9h.01', 'M15 9h.01']},
   {key: 'good', bg: '#7bb662', fg: '#12351f', paths: ['M8 14s1.5 2 4 2 4-2 4-2', 'M9 9h.01', 'M15 9h.01']},
   {key: 'ok', bg: '#f9dd0e', fg: '#26275d', paths: ['M8 15h8', 'M9 9h.01', 'M15 9h.01']},
   {key: 'low', bg: '#e08a00', fg: '#ffffff', paths: ['M16 16s-1.5-2-4-2-4 2-4 2', 'M9 9h.01', 'M15 9h.01']},
   {key: 'bad', bg: '#e0483a', fg: '#ffffff', paths: ['M16 16s-1.5-2-4-2-4 2-4 2', 'M7.5 8 10 9', 'm14 9 2.5-1', 'M9 10h.01', 'M15 10h.01']},
 ];
-// Thứ tự hiển thị trái→phải: rất buồn (đỏ) → tuyệt vời (xanh).
-const DISPLAY: MoodKey[] = ['bad', 'low', 'ok', 'good', 'great'];
+// Thứ tự Ô CHỌN trái→phải: khó chịu (đỏ) → vui (xanh) — đúng nhịp bộ cũ.
+const DISPLAY: MoodKey[] = ['angry', 'worried', 'tired', 'sad', 'okay', 'happy'];
 
 function Face({paths, size}: {paths: string[]; size: number}) {
   return (

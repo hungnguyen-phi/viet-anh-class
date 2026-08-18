@@ -166,7 +166,13 @@
       "good": "Vui",
       "ok": "Bình thường",
       "low": "Buồn",
-      "bad": "Rất buồn"
+      "bad": "Rất buồn",
+      "happy": "Vui",
+      "okay": "Bình thường",
+      "sad": "Buồn",
+      "tired": "Mệt",
+      "worried": "Lo lắng",
+      "angry": "Tức giận"
     },
     "coverUpload": "Ảnh bìa lớp",
     "coverUploading": "Đang tải...",
@@ -546,7 +552,8 @@
     "noCommitmentYet": "chưa hứa gì tuần này",
     "doneCol": "Đã làm",
     "commitNoWork": "Đã hứa \"{title}\" — chưa đặt việc.",
-    "colWorkOnly": "Việc"
+    "colWorkOnly": "Việc",
+    "waitBgh": "Chờ BGH duyệt"
   },
   "meeting": {
     "title": "Họp lớp",
@@ -612,7 +619,9 @@
     "thisWeekWork": "Tuần này em làm gì",
     "classPromised": "Tuần {week} lớp đã hứa",
     "addCommitment": "Thêm cam kết",
-    "commitmentOne": "Cam kết"
+    "commitmentOne": "Cam kết",
+    "gvcnLabel": "Giáo viên chủ nhiệm",
+    "coachDay": "ngày {d} hằng tháng"
   },
   "report": {
     "title": "Báo cáo phụ huynh",
@@ -709,14 +718,26 @@
       "good": "Vui",
       "ok": "Bình thường",
       "low": "Hơi buồn",
-      "bad": "Cần cố gắng"
+      "bad": "Cần cố gắng",
+      "happy": "Vui",
+      "okay": "Bình thường",
+      "sad": "Buồn",
+      "tired": "Mệt",
+      "worried": "Lo lắng",
+      "angry": "Tức giận"
     },
     "moodMsg": {
       "great": "Bạn đang làm rất tốt, tiếp tục toả sáng nhé!",
       "good": "Bạn đang đi đúng hướng, cố thêm chút nữa nào!",
       "ok": "Ổn rồi đó! Thêm vài ngôi sao nữa là tuyệt luôn.",
       "low": "Đừng lo nhé, tuần này mình cùng cố gắng hơn!",
-      "bad": "Không sao đâu! Mỗi ngôi sao nhỏ đều giúp bạn tiến lên."
+      "bad": "Không sao đâu! Mỗi ngôi sao nhỏ đều giúp bạn tiến lên.",
+      "happy": "Giữ niềm vui này cho cả ngày nhé!",
+      "okay": "Ổn rồi đó! Thêm vài ngôi sao nữa là tuyệt luôn.",
+      "sad": "Buồn một chút cũng không sao — kể với giáo viên nếu em muốn nhé.",
+      "tired": "Mệt thì nghỉ một nhịp — làm việc nhỏ nhất trước thôi.",
+      "worried": "Đừng lo nhé, mình cùng gỡ từng việc một!",
+      "angry": "Hít thở sâu một nhịp đã — rồi mình nói chuyện tiếp nhé."
     },
     "wigYear": "Mục tiêu năm của em",
     "noWig": "GVCN chưa thiết lập WIG cá nhân.",
@@ -835,7 +856,10 @@
     "wigIdleTick": "Lớp chưa đặt mục tiêu tuần này nên các em không có việc gì để tick.",
     "noWigYet": "Lớp chưa đặt mục tiêu năm nào — chưa vào cuộc, không phải đang thua.",
     "attNotYet": "chưa mở",
-    "wigSelfSet": "Em tự đặt"
+    "wigSelfSet": "Em tự đặt",
+    "wigQueue": "WIG lớp chờ duyệt",
+    "wigQueueEmpty": "Không có WIG lớp nào chờ duyệt.",
+    "approve": "Duyệt"
   },
   "scoreboard": {
     "title": "Thi đua theo lĩnh vực",
@@ -1340,7 +1364,11 @@
     "save": "Lưu biên bản",
     "ackBtn": "Ghi nhận buổi họp",
     "expand": "Xem biên bản",
-    "collapse": "Thu gọn"
+    "collapse": "Thu gọn",
+    "titleCoach": "Họp PDR với giáo viên",
+    "coachDay": "ngày {d} hằng tháng",
+    "q2Win": "Thắng",
+    "q2Lose": "Thua"
   },
   "buddy": {
     "title": "Buddy & lịch PDR",
@@ -1363,6 +1391,7 @@
     "winWeek": "Cam kết: thắng {x}/{y}",
     "cum": "Luỹ kế",
     "cumLead": "lead {p}%",
-    "cumWin": "thắng {p}%"
+    "cumWin": "thắng {p}%",
+    "pipsLabel": "Dãy thắng/thua cam kết các tuần"
   }
 }

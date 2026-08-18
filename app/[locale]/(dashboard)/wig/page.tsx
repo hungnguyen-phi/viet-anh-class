@@ -57,6 +57,7 @@ import {duyetCamKet} from '@/app/[locale]/(dashboard)/wig/actions';
 type Wig = {
   id: string;
   title: string | null; // 0051 — nullable cho các WIG tạo trước khi có cột này
+  status: string | null; // 0148 — WIG lớp GVCN tạo vào 'sent', chờ BGH duyệt
   baseline: number | null; // 0051 — mốc X trong "Từ X lên Y"
   area: string;
   period: string;
@@ -154,7 +155,7 @@ export default async function WigPage({
       supabase
         .from('wigs')
         .select(
-          'id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date, measure_by, ty_le_can, so_dich_can, tong_dich, lead_measures(id, wig_id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick, nhap_luong)',
+          'id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date, status, measure_by, ty_le_can, so_dich_can, tong_dich, lead_measures(id, wig_id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick, nhap_luong)',
         )
         .eq('class_id', myClass.id)
         .eq('scope', 'class'),
@@ -378,6 +379,7 @@ export default async function WigPage({
         actual: 0,
         pct: 0,
         status: null,
+        duyet: null,
         area: null,
         measureBy: 'tick',
         cuon: null,
@@ -398,6 +400,7 @@ export default async function WigPage({
       actual: Number(p?.actual ?? 0),
       pct: Number(p?.pct ?? 0),
       status: p?.status ?? null,
+      duyet: w.status ?? null,
       area: w.area ?? null,
       // Thiếu dòng tiến độ thì coi như 'tick': mặc định của cột trong CSDL là 'tick', và đoán
       // nhầm sang 'manual' sẽ giấu mất vạch của một đích máy đếm được thật.
@@ -551,7 +554,16 @@ export default async function WigPage({
           .lte('week_start', monday);
         const tuan = gopChiSo((soRows ?? []).filter((r) => r.week_start === monday));
         const luyKe = gopChiSo(soRows ?? []);
-        return <DaiChiSo tuan={tuan} luyKe={luyKe} />;
+        const theoTuan = new Map<string, {thang: number; thua: number}>();
+        for (const r of soRows ?? []) {
+          const k = r.week_start ?? '';
+          const o = theoTuan.get(k) ?? {thang: 0, thua: 0};
+          o.thang += r.ck_thang ?? 0;
+          o.thua += r.ck_thua ?? 0;
+          theoTuan.set(k, o);
+        }
+        const pips = [...theoTuan.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([, v]) => v);
+        return <DaiChiSo tuan={tuan} luyKe={luyKe} pips={pips} />;
       })()}
 
       {/* 2/3 — 1/3: bên trái là việc của tuần này (thứ phải làm), bên phải là lớp đang đi tới đâu

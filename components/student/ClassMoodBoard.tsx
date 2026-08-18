@@ -5,13 +5,20 @@ import {createClient} from '@/lib/supabase/server';
 // RLS mc_staff_read cho GVCN của lớp đọc mood của HS lớp mình.
 
 const MOODS: Record<string, {emoji: string; color: string}> = {
+  happy: {emoji: '😄', color: '#1e8a5a'},
+  okay: {emoji: '😐', color: '#9aa0b8'},
+  sad: {emoji: '😢', color: '#6b7bb8'},
+  tired: {emoji: '😪', color: '#8d8d99'},
+  worried: {emoji: '😟', color: '#e08a00'},
+  angry: {emoji: '😠', color: '#c0392b'},
+  // thang 5 mức cũ — chỉ để đọc lịch sử trước 18/08/2026
   great: {emoji: '😄', color: '#1e8a5a'},
   good: {emoji: '🙂', color: '#7cb342'},
   ok: {emoji: '😐', color: '#9aa0b8'},
   low: {emoji: '😟', color: '#e3b400'},
   bad: {emoji: '😢', color: '#c0392b'},
 };
-const CONCERN = new Set(['low', 'bad']);
+const CONCERN = new Set(['low', 'bad', 'sad', 'tired', 'worried', 'angry']);
 
 function lastDays(today: string, n: number): string[] {
   const base = new Date(today + 'T00:00:00Z');
@@ -83,11 +90,14 @@ export async function ClassMoodBoard({
     <section className="glass rounded-[20px] p-[18px]">
       <h2 className="mb-1 font-display text-[15px] font-bold text-navy">{t('moodTitle')}</h2>
       <div className="mb-3 flex flex-wrap items-center gap-3 text-[11px] font-bold text-grey-mid">
-        {Object.entries(MOODS).map(([k, v]) => (
+        {(['happy', 'okay', 'sad', 'tired', 'worried', 'angry'] as const).map((k) => {
+          const v = MOODS[k];
+          return (
           <span key={k} className="inline-flex items-center gap-1">
             {v.emoji} <span>{t(`mood.${k}`)}</span>
           </span>
-        ))}
+          );
+        })}
       </div>
       <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
         <div className="flex min-w-[560px] items-center gap-2 bg-navy/[0.02] px-[14px] py-2">

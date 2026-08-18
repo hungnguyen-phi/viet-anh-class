@@ -178,6 +178,32 @@ export async function assignHomeroom(formData: FormData) {
 //
 // Đường ghi dùng chung taoMotWig() với mục tiêu lớp: hai chỗ tạo WIG mà hai bộ luật là đúng cái
 // bệnh "hai nguồn sự thật" mà repo này đã dọn vài lần.
+// BGH duyệt WIG cấp lớp (0148 — quyết định 18/08 cho câu hỏi mở #6 của PRD v3):
+// GVCN tạo thì vào 'sent'; chỉ BGH/Admin đưa sang 'approved' — trigger wig_lop_qua_tay_bgh
+// chặn đường tự duyệt của GVCN ở CSDL, đây chỉ là cái nút bấm.
+export async function duyetWigLop(formData: FormData) {
+  const me = await requireRole(['principal', 'admin']);
+  const wig_id = String(formData.get('wig_id') ?? '');
+  if (!wig_id) redirect(`/campus?flash_err=${encodeURIComponent('Thiếu mục tiêu cần duyệt.')}`);
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('wigs')
+    .update({status: 'approved', approved_by: me.id, approved_at: new Date().toISOString()})
+    .eq('id', wig_id)
+    .eq('scope', 'class')
+    .eq('status', 'sent')
+    .select('id')
+    .maybeSingle();
+  revalidatePath('/[locale]/campus', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  const msg = error
+    ? `flash_err=${encodeURIComponent(friendlyError(error))}`
+    : data
+      ? `flash=${encodeURIComponent('Đã duyệt WIG của lớp')}`
+      : `flash_err=${encodeURIComponent('Mục tiêu này không còn chờ duyệt.')}`;
+  redirect(`/campus?${msg}`);
+}
+
 export async function taoWigTruong(formData: FormData) {
   const profile = await myCampus();
   const soNguyen = (ten: string): number | null => {

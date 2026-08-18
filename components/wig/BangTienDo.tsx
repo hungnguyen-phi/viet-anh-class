@@ -40,6 +40,8 @@ export type DongTienDo = {
   actual: number;
   pct: number;
   status: string | null;
+  /** 0148 — trạng thái DUYỆT của chính mục tiêu ('sent' = GVCN tạo, chờ BGH). */
+  duyet?: string | null;
   // Lĩnh vực hiện tại — chỉ form sửa của cấp NĂM dùng (tháng/tuần thừa hưởng từ cha).
   area: string | null;
   // ĐO BẰNG GÌ. 'manual' = con số nằm ngoài app (điểm trung bình, kết quả thi): app không đếm
@@ -163,6 +165,11 @@ export function BangTienDo({
                   >
                     {d.title}
                   </span>
+                  {d.duyet === 'sent' && (
+                    <span className="shrink-0 rounded-full bg-gold/25 px-2 py-0.5 text-[10px] font-extrabold text-gold-text">
+                      {t('waitBgh')}
+                    </span>
+                  )}
                   <span
                     className={`shrink-0 text-[12.5px] font-extrabold tabular-nums ${
                       d.id ? 'text-navy' : 'text-grey-soft'

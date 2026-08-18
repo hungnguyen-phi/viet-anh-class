@@ -8,6 +8,9 @@ import {GradeManager} from '@/app/[locale]/(dashboard)/admin/GradeManager';
 import {ClassForm} from '@/app/[locale]/(dashboard)/admin/ClassForm';
 import {ClassManager} from '@/app/[locale]/(dashboard)/admin/ClassManager';
 import {SchoolRollup, type RollupRow} from './SchoolRollup';
+import {SubmitButton} from '@/components/ui/SubmitButton';
+import {btnGold} from '@/components/ui/Field';
+import {duyetWigLop} from './actions';
 import {WigRollup, type WigRollupRow} from './WigRollup';
 import {MucTieuTruong, type WigTruongRow} from './MucTieuTruong';
 import {getAreaMeta} from '@/lib/area-config';
@@ -224,6 +227,41 @@ export default async function CampusPage({
       <h1 className="font-display text-[22px] font-bold text-navy">{t('title')}</h1>
 
       <Flash />
+
+      {/* WIG LỚP CHỜ DUYỆT (0148 — PRD v3): GVCN tạo là vào 'sent', BGH gật ở đây. Khối chỉ
+          hiện khi có việc — hàng đợi rỗng không đáng một khung chiếm chỗ. */}
+      {await (async () => {
+        const {data: cho} = await supabase
+          .from('wigs')
+          .select('id, title, target_value, unit, area, classes(name)')
+          .eq('scope', 'class')
+          .eq('status', 'sent')
+          .order('created_at');
+        const ds = (cho ?? []) as unknown as {
+          id: string; title: string | null; target_value: number; unit: string; area: string;
+          classes: {name: string} | null;
+        }[];
+        if (ds.length === 0) return null;
+        return (
+          <div className="flex flex-col gap-2 rounded-[14px] border-[1.5px] border-gold/50 bg-gold/[0.08] p-3">
+            <p className="text-[12px] font-extrabold text-navy">{t('wigQueue')}</p>
+            {ds.map((w) => (
+              <form key={w.id} action={duyetWigLop} className="flex flex-wrap items-center gap-2">
+                <input type="hidden" name="wig_id" value={w.id} />
+                <span className="min-w-[80px] text-[12.5px] font-extrabold text-navy">
+                  {w.classes?.name ?? '—'}
+                </span>
+                <span className="min-w-0 flex-1 text-[12.5px] font-semibold text-grey-mid">
+                  {w.title} · {w.target_value} {w.unit}
+                </span>
+                <SubmitButton className={btnGold} wrapClass="contents">
+                  {t('approve')}
+                </SubmitButton>
+              </form>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* PHÂN BIỆT "CHƯA ĐƯỢC GÁN CƠ SỞ" VỚI "CƠ SỞ CHƯA CÓ LỚP".
           Hiệu trưởng chưa được gán cơ sở thì khối truy vấn ở trên bị bỏ qua hoàn toàn (xem điều

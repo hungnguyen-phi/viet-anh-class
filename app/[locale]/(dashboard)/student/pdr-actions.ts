@@ -4,7 +4,7 @@ import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
 import {getCurrentProfile} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
-import {isoWeekLabel, todayInVN, vnNoon, nextWeekRangeVN} from '@/lib/dates';
+import {isoWeekLabel, todayInVN, vnNoon, mondayOf, nextWeekRangeVN} from '@/lib/dates';
 
 // ════════════════════════════════════════════════════════════════════════════
 // HỌP PDR (Plan-Do-Review) — PRD v3 mục 6.2.7
@@ -34,33 +34,50 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
     traLoi[c] = v || null;
   }
 
+  // BUDDY hằng tuần hay COACH (1-1 với GVCN, hằng tháng) — hai nhánh của cùng một biên bản 6 câu.
+  const loai = String(formData.get('type') ?? 'buddy');
+  if (loai !== 'buddy' && loai !== 'coach')
+    return {ok: false, error: 'Không rõ đây là buổi họp loại nào.'};
+
   const supabase = await createClient();
   const {data: ghiDanh} = await supabase
     .from('enrollments')
-    .select('class_id')
+    .select('class_id, classes(homeroom_teacher_id)')
     .eq('student_id', me.id)
     .eq('is_active', true)
+    .limit(1)
     .maybeSingle();
   if (!ghiDanh?.class_id) return {ok: false, error: 'Em chưa được xếp lớp.'};
 
-  // BUDDY LẤY TỪ CSDL, không tin form: người ngồi họp với em là do GVCN ghép, không phải do một
-  // ô hidden khai. Thứ tự ổn định theo ngày ghép để counterpart/second không nhảy chỗ mỗi lần lưu.
-  const {data: cap} = await supabase
-    .from('buddy_pairs')
-    .select('student_id, buddy_id, created_at')
-    .eq('is_active', true)
-    .or(`student_id.eq.${me.id},buddy_id.eq.${me.id}`)
-    .order('created_at');
-  const banHoc = (cap ?? []).map((p) => (p.student_id === me.id ? p.buddy_id : p.student_id));
-  if (banHoc.length === 0)
-    return {ok: false, error: 'Em chưa có buddy — giáo viên ghép cặp xong là họp được.'};
+  // NGƯỜI NGỒI HỌP LẤY TỪ CSDL, không tin form: buddy do GVCN ghép, coach là chính GVCN.
+  // Thứ tự ổn định theo ngày ghép để counterpart/second không nhảy chỗ mỗi lần lưu.
+  let counterpart: string | null = null;
+  let secondBuddy: string | null = null;
+  if (loai === 'buddy') {
+    const {data: cap} = await supabase
+      .from('buddy_pairs')
+      .select('student_id, buddy_id, created_at')
+      .eq('is_active', true)
+      .or(`student_id.eq.${me.id},buddy_id.eq.${me.id}`)
+      .order('created_at');
+    const banHoc = (cap ?? []).map((p) => (p.student_id === me.id ? p.buddy_id : p.student_id));
+    if (banHoc.length === 0)
+      return {ok: false, error: 'Em chưa có buddy — giáo viên ghép cặp xong là họp được.'};
+    counterpart = banHoc[0];
+    secondBuddy = banHoc[1] ?? null;
+  } else {
+    const gvcn = (ghiDanh as unknown as {classes: {homeroom_teacher_id: string | null} | null}).classes
+      ?.homeroom_teacher_id;
+    if (!gvcn) return {ok: false, error: 'Lớp em chưa có giáo viên chủ nhiệm.'};
+    counterpart = gvcn;
+  }
 
   const weekLabel = isoWeekLabel(vnNoon(todayInVN()));
   const {data: daCo} = await supabase
     .from('pdr_meetings')
     .select('id, acknowledged_at')
     .eq('student_id', me.id)
-    .eq('type', 'buddy')
+    .eq('type', loai)
     .eq('week_label', weekLabel)
     .maybeSingle();
   if (daCo?.acknowledged_at)
@@ -76,9 +93,9 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
       .insert({
         class_id: ghiDanh.class_id,
         student_id: me.id,
-        type: 'buddy',
-        counterpart_id: banHoc[0],
-        second_buddy_id: banHoc[1] ?? null,
+        type: loai,
+        counterpart_id: counterpart,
+        second_buddy_id: secondBuddy,
         week_label: weekLabel,
         ...traLoi,
       })
@@ -87,6 +104,42 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
     if (error) return {ok: false, error: friendlyError(error)};
     if (!data) return {ok: false, error: 'Không lưu được biên bản (không có quyền).'};
     meetingId = data.id;
+  }
+
+  // ── CÂU 2 → CHỐT THẮNG/THUA CHO CAM KẾT TUẦN TRƯỚC (PRD v3 6.2.7) ────────────────────────
+  // Tuỳ chọn: em bấm Thắng hoặc Thua thì chốt; không bấm thì để phòng họp lớp chấm như cũ.
+  // Chốt cho cam kết tuần trước CHƯA có kết quả: ưu tiên cái sinh từ PDR tuần trước; nếu chỉ
+  // có một cái chưa chấm thì là nó; còn mơ hồ (2 cái, không cái nào từ PDR) thì KHÔNG đoán.
+  let canhBao = '';
+  const chot = String(formData.get('q2_verdict') ?? '').trim();
+  if (chot === 'win' || chot === 'lose') {
+    const tuanTruoc = mondayOf(todayInVN());
+    const d = new Date(`${tuanTruoc}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - 7);
+    const monTruoc = d.toISOString().slice(0, 10);
+    const {data: ckTruoc} = await supabase
+      .from('commitments')
+      .select('id, pdr_meeting_id, verdict')
+      .eq('student_id', me.id)
+      .eq('week_start', monTruoc)
+      .is('verdict', null);
+    const ds = ckTruoc ?? [];
+    const muctieu = ds.find((c) => c.pdr_meeting_id) ?? (ds.length === 1 ? ds[0] : null);
+    if (muctieu) {
+      const {data: goiY} = await supabase.rpc('cam_ket_goi_y', {p_commitment: muctieu.id});
+      const {error} = await supabase
+        .from('commitments')
+        .update({
+          verdict: chot,
+          verdict_goi_y: (goiY as string | null) === 'win' || goiY === 'lose' ? goiY : null,
+          verdict_by: me.id,
+          verdict_at: new Date().toISOString(),
+        })
+        .eq('id', muctieu.id);
+      if (error) canhBao = ' Kết quả Thắng/Thua chưa ghi được (tuần trước có thể đã chốt trong họp lớp).';
+    } else if (ds.length > 1) {
+      canhBao = ' Tuần trước có hai cam kết chưa chấm — giáo viên sẽ chấm trong họp lớp.';
+    }
   }
 
   // ── CÂU 6 → CAM KẾT TUẦN TỚI ──────────────────────────────────────────────────────────────
@@ -139,7 +192,7 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
 
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
-  return {ok: true, message: 'Đã lưu biên bản PDR.'};
+  return {ok: true, message: 'Đã lưu biên bản PDR.' + canhBao};
 }
 
 // Nút "Ghi nhận" — xác nhận buổi họp ĐÃ DIỄN RA (PRD v3: chưa Ghi nhận thì không tính KPI).

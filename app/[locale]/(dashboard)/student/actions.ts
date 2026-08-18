@@ -1323,24 +1323,21 @@ export async function datCamKetTuan(
       .select('id, unit')
       .eq('id', wigGui)
       .eq('period', 'year')
+      // PRD v3: cam kết chỉ treo dưới WIG ĐÃ DUYỆT — trigger cam_ket_hop_le (0148) là chốt
+      // thật, lọc ở đây để ô chọn với câu báo cùng nói một luật.
+      .eq('status', 'approved')
       .neq('measure_by', 'cuon')
       .or(`and(scope.eq.class,class_id.eq.${ghiDanh.class_id}),and(scope.eq.student,student_id.eq.${me.id})`)
       .maybeSingle();
     if (!chon?.id)
-      return {ok: false, fieldError: 'wig_id', error: 'Mục tiêu em chọn không thuộc lớp mình.'};
+      return {ok: false, fieldError: 'wig_id', error: 'Mục tiêu em chọn chưa được duyệt hoặc không thuộc lớp mình.'};
     wigId = chon.id;
     donVi = chon.unit ?? '';
   } else {
-    const {data: cuaEm} = await supabase
-      .from('wigs')
-      .select('id, unit')
-      .eq('student_id', me.id)
-      .eq('scope', 'student')
-      .eq('period', 'year')
-      .eq('kind', 'academic')
-      .maybeSingle();
-    wigId = cuaEm?.id ?? null;
-    donVi = cuaEm?.unit ?? '';
+    // Đường-rơi-về "mục tiêu học tập duy nhất" đã chết từ 18/08/2026: mỗi em nay có TỚI 4 WIG
+    // (một mỗi domain, khoá wigs_em_domain_uidx) — maybeSingle() trên nhiều dòng là ăn lỗi ngay.
+    // Không đoán hộ: bắt chọn.
+    return {ok: false, fieldError: 'wig_id', error: 'Em chọn mục tiêu mà cam kết này phục vụ nhé.'};
   }
 
   if (!wigId)

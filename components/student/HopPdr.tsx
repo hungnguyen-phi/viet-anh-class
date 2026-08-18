@@ -40,15 +40,18 @@ export function HopPdr({
   bienBan,
   wigDaDuyet,
   weekLabel,
+  loai = 'buddy',
 }: {
   laChinhEm: boolean;
-  /** Tên các buddy GVCN đã ghép (1 hoặc 2 người); rỗng = chưa ghép. */
+  /** buddy: tên các buddy GVCN đã ghép (rỗng = chưa ghép); coach: tên GVCN. */
   tenBuddy: string[];
-  /** 'T5 · 15:30' — lịch cố định hằng tuần GVCN cài; null = chưa cài. */
+  /** buddy: 'T5 · 15:30'; coach: 'ngày N hằng tháng'; null = chưa cài lịch. */
   lich: string | null;
   bienBan: PdrMeeting | null;
   wigDaDuyet: WigDaDuyet[];
   weekLabel: string;
+  /** Cùng một biên bản 6 câu cho cả hai nhịp PDR của v3 (buddy tuần / GVCN tháng). */
+  loai?: 'buddy' | 'coach';
 }) {
   const t = useTranslations('pdr');
   const [luuState, luuAction] = useActionState<PdrState, FormData>(luuPdr, {ok: false});
@@ -65,7 +68,7 @@ export function HopPdr({
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <h2 className="inline-flex items-center gap-1.5 font-display text-[15px] font-bold text-navy">
           <Users size={15} strokeWidth={2.2} className="text-gold-deep" />
-          {t('title')}
+          {t(loai === 'coach' ? 'titleCoach' : 'title')}
         </h2>
         <span className="text-[11.5px] font-bold text-grey-mid">{weekLabel}</span>
         {daKy && (
@@ -76,7 +79,7 @@ export function HopPdr({
         )}
       </div>
 
-      {tenBuddy.length === 0 ? (
+      {tenBuddy.length === 0 && loai === 'buddy' ? (
         <p className="text-[12.5px] font-semibold italic text-grey-mid">{t('noBuddy')}</p>
       ) : (
         <p className="text-[12.5px] font-semibold text-grey-mid">
@@ -112,6 +115,7 @@ export function HopPdr({
       {/* CHƯA KÝ + là chính em (và đã có buddy) → form 6 câu. */}
       {!daKy && laChinhEm && tenBuddy.length > 0 && (
         <form action={luuAction} className="flex flex-col gap-2">
+          <input type="hidden" name="type" value={loai} />
           {luuState.error && (
             <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
               <AlertCircle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
@@ -136,6 +140,25 @@ export function HopPdr({
                 defaultValue={bienBan?.[c] ?? ''}
                 className={`${khungChu} ${luuState.fieldError === c ? '!border-status-bad' : ''}`}
               />
+              {/* Câu 2 chốt luôn Thắng/Thua cho cam kết tuần trước (PRD v3) — tuỳ chọn;
+                  không bấm thì phòng họp lớp chấm như cũ. */}
+              {c === 'q2_result' && (
+                <span className="flex items-center gap-2">
+                  {(['win', 'lose'] as const).map((v) => (
+                    <label
+                      key={v}
+                      className={`inline-flex min-h-[28px] cursor-pointer items-center gap-1.5 rounded-full border-[1.5px] px-2.5 text-[11.5px] font-extrabold ${
+                        v === 'win'
+                          ? 'border-success/40 text-success-dark'
+                          : 'border-status-bad/40 text-status-bad'
+                      }`}
+                    >
+                      <input type="radio" name="q2_verdict" value={v} className="accent-current" />
+                      {t(v === 'win' ? 'q2Win' : 'q2Lose')}
+                    </label>
+                  ))}
+                </span>
+              )}
             </label>
           ))}
           {/* Câu 6 phải chỉ vào một WIG đã duyệt của em — cam kết không mục tiêu là lạc hướng. */}

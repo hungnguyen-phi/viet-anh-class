@@ -367,6 +367,9 @@ export async function StudentScoreboard({
           .eq('class_id', classId)
           .eq('scope', 'class')
           .eq('period', 'year')
+          // Chỉ WIG lớp ĐÃ DUYỆT mới là chỗ để em gắn vào (PRD v3 / 0148 — WIG lớp GVCN tạo
+          // nay chờ BGH duyệt trước).
+          .eq('status', 'approved')
           // Mục tiêu CUỘN không hiện ở đây: nó đếm ngược từ chính mục tiêu của em, nên chọn nó
           // làm "trận đánh mình đang góp vào" là một vòng tròn. Và chủ dự án đã chốt em không
           // nhìn thấy loại này (0116).
@@ -619,7 +622,7 @@ export async function StudentScoreboard({
   // Luôn là TUẦN HIỆN TẠI, không theo tuần đang xem: biên bản PDR là việc của tuần này, còn thanh
   // tuần ở cột trái chỉ điều khiển khu cam kết/tick.
   const nhanTuanPdr = isoWeekLabel(vnNoon(thisMonday));
-  const [capRes, pdrRes] = await Promise.all([
+  const [capRes, pdrRes, pdrCoachRes, lichCoachRes] = await Promise.all([
     supabase
       .from('buddy_pairs')
       .select('id, student_id, buddy_id')
@@ -632,6 +635,20 @@ export async function StudentScoreboard({
       .eq('student_id', studentId)
       .eq('type', 'buddy')
       .eq('week_label', nhanTuanPdr)
+      .maybeSingle(),
+    supabase
+      .from('pdr_meetings')
+      .select('id, week_label, q1_plan, q2_result, q3_obstacle, q4_overcome, q5_better_way, q6_commitment, acknowledged_at')
+      .eq('student_id', studentId)
+      .eq('type', 'coach')
+      .eq('week_label', nhanTuanPdr)
+      .maybeSingle(),
+    supabase
+      .from('pdr_schedules')
+      .select('monthly_day')
+      .eq('student_id', studentId)
+      .eq('type', 'coach')
+      .eq('is_active', true)
       .maybeSingle(),
   ]);
   const capBuddy = capRes.data ?? [];
@@ -698,7 +715,10 @@ export async function StudentScoreboard({
   );
   const nhanTuanNay = isoWeekLabel(vnNoon(monday));
   const dayShort = t.raw('dayShort') as string[];
-  const mucTieuChon = mucTieuCuaEm.map((m) => ({id: m.id, area: m.area, title: m.title, unit: m.unit}));
+  // Chỉ WIG đã duyệt vào ô chọn của cam kết (PRD v3; trigger 0148 là chốt thật).
+  const mucTieuChon = mucTieuCuaEm
+    .filter((m) => m.status === 'approved')
+    .map((m) => ({id: m.id, area: m.area, title: m.title, unit: m.unit}));
   const tenMucTieu = new Map(mucTieuCuaEm.map((m) => [m.id, m.title]));
 
   // ── METRICS (0147 — PRD v3 6.3): lead đạt/tổng + cam kết thắng/thua, tuần đang xem và luỹ kế
@@ -710,13 +730,17 @@ export async function StudentScoreboard({
     .lte('week_start', monday);
   const soTuan = gopChiSo((soRows ?? []).filter((r) => r.week_start === monday));
   const soLuyKe = gopChiSo(soRows ?? []);
+  const soPips = (soRows ?? [])
+    .slice()
+    .sort((a, b) => (a.week_start ?? '').localeCompare(b.week_start ?? ''))
+    .map((r) => ({thang: r.ck_thang ?? 0, thua: r.ck_thua ?? 0}));
 
   const khuTuan = (
     <section className="glass rounded-[20px] p-[18px]">
       <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
         <h2 className="font-display text-[17px] font-bold text-navy">{t('thisWeekTitle')}</h2>
         <div className="ml-auto">
-          <DaiChiSo tuan={soTuan} luyKe={soLuyKe} />
+          <DaiChiSo tuan={soTuan} luyKe={soLuyKe} pips={soPips} />
         </div>
       </div>
       {ckTuan.length === 0 && !canTick && (
@@ -967,6 +991,20 @@ export async function StudentScoreboard({
               wigDaDuyet={wigDaDuyet}
               weekLabel={nhanTuanPdr}
             />
+            {/* PDR 1-1 VỚI GIÁO VIÊN — chỉ hiện khi GVCN đã cài lịch (PRD v3: mỗi tháng một
+                lần). Tên riêng không cần: đối tác luôn là GVCN, và RLS hồ sơ không mở tên
+                giáo viên cho em qua đường này. */}
+            {lichCoachRes.data && (
+              <HopPdr
+                loai="coach"
+                laChinhEm={canTick}
+                tenBuddy={[tm('gvcnLabel')]}
+                lich={tm('coachDay', {d: lichCoachRes.data.monthly_day ?? 0})}
+                bienBan={pdrCoachRes.data ?? null}
+                wigDaDuyet={wigDaDuyet}
+                weekLabel={nhanTuanPdr}
+              />
+            )}
             {/* PRD §7 "ghi chú Sư Tử" — Sư Tử là LLM (đổi tên từ Buddy 18/08/2026: chữ Buddy nay
                 thuộc về bạn học PDR). KHÔNG có nút: mở trang là tự sinh, server
                 chặn tối đa 1 lượt/ngày và chỉ gọi LLM khi có tick mới (0043). */}

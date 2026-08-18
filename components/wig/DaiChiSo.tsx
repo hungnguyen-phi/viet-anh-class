@@ -32,7 +32,16 @@ export function gopChiSo(rows: {[K in keyof ChiSo]?: number | null}[]): ChiSo {
 
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a * 100) / b) : null);
 
-export async function DaiChiSo({tuan, luyKe}: {tuan: ChiSo; luyKe: ChiSo}) {
+export async function DaiChiSo({
+  tuan,
+  luyKe,
+  pips,
+}: {
+  tuan: ChiSo;
+  luyKe: ChiSo;
+  /** Dãy pip thắng/thua theo TUẦN, cũ → mới (v3 6.1.1) — mỗi cam kết đã chấm một ô. */
+  pips?: {thang: number; thua: number}[];
+}) {
   const t = await getTranslations('metrics');
   // Chưa có gì để đếm thì đừng bày một dải số 0 — im lặng tốt hơn một hàng "0/0".
   if (tuan.tong_lead === 0 && tuan.tong_ck === 0 && luyKe.tong_ck === 0 && luyKe.tong_lead === 0)
@@ -45,8 +54,29 @@ export async function DaiChiSo({tuan, luyKe}: {tuan: ChiSo; luyKe: ChiSo}) {
   const pThangLk = pct(luyKe.ck_thang, chamLk);
 
   const chip = 'inline-flex items-center gap-1 rounded-full bg-navy/[0.05] px-2.5 py-1 text-[11.5px] font-bold text-navy';
+  // Dãy pip: bung mỗi tuần thành các ô ✓/✗, giữ 12 ô mới nhất — đủ đọc nhịp một học kỳ ngắn.
+  const oPip = (pips ?? [])
+    .flatMap((w) => [
+      ...Array.from({length: w.thang}, () => 'win' as const),
+      ...Array.from({length: w.thua}, () => 'lose' as const),
+    ])
+    .slice(-12);
   return (
     <div className="flex flex-wrap items-center gap-1.5">
+      {oPip.length > 0 && (
+        <span className="inline-flex items-center gap-[3px]" aria-label={t('pipsLabel')}>
+          {oPip.map((v, i) => (
+            <span
+              key={i}
+              className={`grid h-[14px] w-[14px] place-items-center rounded-[4px] text-[9px] font-black text-white ${
+                v === 'win' ? 'bg-success' : 'bg-status-bad'
+              }`}
+            >
+              {v === 'win' ? '✓' : '✗'}
+            </span>
+          ))}
+        </span>
+      )}
       {tuan.tong_lead > 0 && (
         <span className={chip}>
           {t('leadWeek', {x: tuan.lead_xong, y: tuan.tong_lead})}
