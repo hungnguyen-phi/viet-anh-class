@@ -1,8 +1,10 @@
-import {getTranslations} from 'next-intl/server';
+import {getLocale, getTranslations} from 'next-intl/server';
 import {headers} from 'next/headers';
 import {createClient} from '@/lib/supabase/server';
 import type {Profile} from '@/lib/auth';
 import {clientIp} from '@/lib/ip';
+import {getAreaMeta} from '@/lib/area-config';
+import {AREAS, areaLabel} from '@/lib/areas';
 import {
   todayInVN,
   isoWeekLabel,
@@ -338,7 +340,7 @@ export async function StudentScoreboard({
     supabase
       .from('wigs')
       .select(
-        'id, kind, status, set_by, measure_by, title, baseline, target_value, unit, area, start_date, end_date, created_at, achieved_at, source_wig_id',
+        'id, kind, status, set_by, measure_by, title, baseline, target_value, unit, area, start_date, end_date, created_at, achieved_at, source_wig_id, reject_note',
       )
       .eq('student_id', studentId)
       .eq('scope', 'student')
@@ -607,6 +609,10 @@ export async function StudentScoreboard({
   // Mục tiêu của em + trận đánh của lớp để chọn — cho khối MucTieuCuaCon.
   const mucTieuCuaEm = (mucTieuRes.data ?? []) as unknown as MucTieuCuaEm[];
 
+  // Nhãn 4 domain (area_config, đúng ngôn ngữ) cho bốn ô mục tiêu — PRD v3 4.2.
+  const [areaMeta, locale] = await Promise.all([getAreaMeta(), getLocale()]);
+  const nhanTheoArea = Object.fromEntries(AREAS.map((a) => [a, areaLabel(areaMeta[a], locale)]));
+
   // SỐ ĐO TUẦN NÀY, tra theo id mục tiêu. Định dạng giờ ghi Ở ĐÂY chứ không ở component: khối kia
   // là client component, để nó tự gọi toLocaleString là mời sai lệch máy chủ/trình duyệt in ra hai
   // chuỗi khác nhau rồi React kêu hydrate lệch.
@@ -778,6 +784,7 @@ export async function StudentScoreboard({
             soDoTheoWig={soDoTheoWig}
             tuanChuaChot={tickOpen}
             pctTheoWig={pctTheoWig}
+            nhanTheoArea={nhanTheoArea}
           />
         ) : (
           <p className="text-sm italic text-grey-mid">{t('noLeads')}</p>

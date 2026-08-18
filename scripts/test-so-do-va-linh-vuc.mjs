@@ -187,33 +187,27 @@ try {
   dau('mục tiêu đếm bằng tick KHÔNG có ô nhập số', !dom.includes('name="gia_tri"'));
   await admin.from('wigs').update({measure_by: 'manual'}).eq('id', wigId);
 
-  // ── B. Lĩnh vực: không còn đường nào để em tự khai ──
-  // Kiểm bằng chính mã nguồn của `luuMucTieuCuaEm`: gọi được server action ấy từ script thì phải
-  // dựng lại cả lối mã hoá hai-tham-số của useActionState, mà lối ấy đã thử và không truyền được
-  // FormData (xem đầu scripts/test-moc-thang-cua-em.mjs). Ở đây kiểm cái kiểm được: ba mệnh đề
-  // của luật phải còn nguyên trong mã, và ô chọn trên form không còn lựa chọn "để trống".
+  // ── B. Domain: là Ô của thẻ, không phải câu hỏi — và máy chủ kiểm lại ──
+  // (Đổi 18/08/2026 theo PRD v3 4.2: mỗi em 4 WIG, mỗi domain một. Bản 13/08 lấy domain từ WIG
+  // lớp em chọn; nay em bấm vào ô domain nào thì form mở cho đúng domain ấy, còn dây nối lên WIG
+  // lớp cùng domain do máy chủ TỰ TÌM — em không được tự nối, cũng không phải trả lời thêm câu.)
   const src = readFileSync('app/[locale]/(dashboard)/student/actions.ts', 'utf8');
   dau(
-    'máy chủ BẮT BUỘC chọn mục tiêu lớp',
-    /if \(!source_wig_id\)[\s\S]{0,200}fieldError: 'source_wig_id'/.test(src),
+    'máy chủ kiểm domain theo danh sách 4 giá trị, không tin ô hidden',
+    /formData\.get\('area'\)/.test(src) && /AREAS as readonly string\[\]\)\.includes\(areaRaw\)/.test(src),
   );
-  // HỎI HAI MỆNH ĐỀ RIÊNG, đừng ép chúng đứng gần nhau. Bản cũ đòi 'select(area)' và 'const area
-  // = chaLop.area' cách nhau tối đa 320 ký tự; giữa hai dòng ấy nay có thêm một nhánh kiểm lỗi,
-  // thế là đỏ — trong khi luật vẫn còn nguyên. Khoảng cách giữa hai dòng mã không phải là luật.
   dau(
-    'lĩnh vực lấy từ mục tiêu lớp trong CSDL, không tin ô trên form',
-    /\.select\('area'\)/.test(src) &&
-      /const area[^=]*= chaLop\.area/.test(src) &&
-      !/formData\.get\('area'\)/.test(src),
+    'dây nối lên WIG lớp cùng domain do máy chủ tự tìm',
+    /eq\('area', area\)/.test(src) && /soi = chaLop\?\.id \?\? null/.test(src),
   );
   dau(
     'mục tiêu riêng chỉ MƯỢN lĩnh vực, không mang liên kết',
-    /const soi = kind === 'academic' \? source_wig_id : null/.test(src),
+    /let soi: string \| null = null;[\s\S]{0,80}if \(kind === 'academic'\)/.test(src),
   );
   const form = readFileSync('components/student/FormMucTieu.tsx', 'utf8');
   dau(
-    'form không còn ô chọn lĩnh vực, và không còn lựa chọn để trống',
-    !/name="area"/.test(form) && !/noBattle/.test(form) && /pickBattle/.test(form),
+    'form mang domain trong ô hidden + chip chỉ-đọc, không còn ô chọn trận đánh',
+    /name="area"/.test(form) && !/name="source_wig_id"/.test(form) && !/pickBattle/.test(form),
   );
 } finally {
   if (wigId) {

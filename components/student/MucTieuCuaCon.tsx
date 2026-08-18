@@ -10,7 +10,9 @@ import {FormMucTieu, type WigLop} from '@/components/student/FormMucTieu';
 import {OSoDo} from '@/components/student/OSoDo';
 import {XinSuaMucTieu} from '@/components/student/XinSuaMucTieu';
 import {DonutRing} from '@/components/charts/DonutRing';
-import {duyetMucTieu, danhDauDaDat} from '@/app/[locale]/(dashboard)/student/actions';
+import {Popup} from '@/components/ui/Popup';
+import {AREAS} from '@/lib/areas';
+import {duyetMucTieu, traLaiMucTieu, danhDauDaDat} from '@/app/[locale]/(dashboard)/student/actions';
 
 // ════════════════════════════════════════════════════════════════════════════
 // MỤC TIÊU CỦA CON — một thẻ nhỏ đọc trong ba giây, form nằm sau một cú bấm
@@ -53,6 +55,7 @@ export type MucTieuCuaEm = {
   created_at: string;
   achieved_at: string | null;
   source_wig_id: string | null;
+  reject_note?: string | null;
 };
 
 export type {WigLop};
@@ -85,6 +88,7 @@ export function MucTieuCuaCon({
   soDoTheoWig,
   tuanChuaChot,
   pctTheoWig,
+  nhanTheoArea,
 }: {
   studentId: string;
   classId: string;
@@ -97,18 +101,19 @@ export function MucTieuCuaCon({
   tuanChuaChot: boolean;
   /** % tiến độ (wig_progress_v) theo id mục tiêu; thiếu = chưa có số. */
   pctTheoWig: Record<string, number>;
+  /** Nhãn hiển thị của 4 domain (từ area_config, đúng ngôn ngữ đang xem). */
+  nhanTheoArea: Record<string, string>;
 }) {
   const t = useTranslations('goal');
   const [bao, setBao] = useState('');
-  const [moForm, setMoForm] = useState<null | 'academic' | 'personal'>(null);
-  const hocTap = mucTieu.find((m) => m.kind === 'academic') ?? null;
-  const rieng = mucTieu.find((m) => m.kind === 'personal') ?? null;
+  // BỐN Ô, MỖI DOMAIN MỘT (PRD v3 4.2 — thay luật "học tập + riêng" của 0100). moForm giữ
+  // domain của ô em vừa bấm; ô trống chính là lời nhắc "em còn thiếu WIG domain nào".
+  const [moForm, setMoForm] = useState<null | string>(null);
+  const theoArea = new Map(mucTieu.map((m) => [m.area, m]));
   // CÔ KHÔNG ĐẶT HỘ, KHÔNG SỬA, KHÔNG XOÁ (16/08/2026 — chủ dự án: "giáo viên chỉ có nút duyệt thôi, mọi
-  // thứ khác đều chỉ xem"). Mọi động tác ghi ở đây là của chính em; cô còn đúng nút Duyệt.
+  // thứ khác đều chỉ xem"). Mọi động tác ghi ở đây là của chính em; cô còn Duyệt / Trả lại.
   const canGhi = laChinhEm;
-  // Còn loại nào chưa có thì mới có gì để thêm; học tập trước, riêng sau (§6.2 bước ④).
-  const loaiThem: null | 'academic' | 'personal' = !hocTap ? 'academic' : !rieng ? 'personal' : null;
-  const danhSach = [hocTap, rieng].filter(Boolean) as MucTieuCuaEm[];
+  const dangSuaMt = moForm ? theoArea.get(moForm) ?? null : null;
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -119,51 +124,63 @@ export function MucTieuCuaCon({
         </p>
       )}
 
-      {/* HAI THẺ CẠNH NHAU trên màn rộng: mỗi em tối đa hai mục tiêu năm, xếp ngang là hết một hàng —
-          không còn hai thẻ dài chồng lên nhau với vòng % lơ lửng bên phải (17/08/2026). */}
+      {/* 2×2 trên màn rộng: bốn ô, THỨ TỰ CỐ ĐỊNH theo AREAS — ô nào của domain nấy, kể cả khi
+          trống. Ô trống với chính em là nút đặt; với người xem khác là lời "chưa đặt" — cô nhìn
+          một phát biết em còn thiếu domain nào (PRD v3 4.2). */}
       <div className="grid gap-3 sm:grid-cols-2">
-      {danhSach.map((mt) => (
-        <TheMucTieu
-          key={mt.id}
-          mt={mt}
-          studentId={studentId}
-          laChinhEm={laChinhEm}
-          canManage={canManage}
-          soDo={soDoTheoWig[mt.id]}
-          tuanChuaChot={tuanChuaChot}
-          pct={pctTheoWig[mt.id]}
-          wigLop={wigLop}
-          classId={classId}
-          onSua={() => setMoForm(mt.kind === 'personal' ? 'personal' : 'academic')}
-        />
-      ))}
-      {/* Ô "thêm" đứng như một thẻ trống cạnh thẻ thật — chỗ nó sẽ xuất hiện. */}
-      {canGhi && loaiThem && (
-        <button
-          type="button"
-          onClick={() => setMoForm(loaiThem)}
-          className="flex min-h-[112px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[16px] border-[1.5px] border-dashed border-navy/20 bg-white/40 p-4 text-navy transition-colors hover:border-navy hover:bg-white/70"
-        >
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-gold text-navy">
-            <Plus size={18} strokeWidth={2.8} />
-          </span>
-          <span className="text-[13px] font-extrabold">{t('addGoal')}</span>
-          {namHoc && <span className="text-[11px] font-semibold text-grey-mid">{namHoc}</span>}
-        </button>
-      )}
+      {AREAS.map((a) => {
+        const mt = theoArea.get(a);
+        const nhan = nhanTheoArea[a] ?? a;
+        if (mt)
+          return (
+            <TheMucTieu
+              key={a}
+              mt={mt}
+              nhanLinhVuc={nhan}
+              studentId={studentId}
+              laChinhEm={laChinhEm}
+              canManage={canManage}
+              soDo={soDoTheoWig[mt.id]}
+              tuanChuaChot={tuanChuaChot}
+              pct={pctTheoWig[mt.id]}
+              wigLop={wigLop}
+              classId={classId}
+              onSua={() => setMoForm(a)}
+            />
+          );
+        return canGhi ? (
+          <button
+            key={a}
+            type="button"
+            onClick={() => setMoForm(a)}
+            className="flex min-h-[112px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[16px] border-[1.5px] border-dashed border-navy/20 bg-white/40 p-4 text-navy transition-colors hover:border-navy hover:bg-white/70"
+          >
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-gold text-navy">
+              <Plus size={18} strokeWidth={2.8} />
+            </span>
+            <span className="text-[13px] font-extrabold">{nhan}</span>
+            {namHoc && <span className="text-[11px] font-semibold text-grey-mid">{namHoc}</span>}
+          </button>
+        ) : (
+          <div
+            key={a}
+            className="flex min-h-[112px] flex-col items-center justify-center gap-1 rounded-[16px] border-[1.5px] border-dashed border-navy/12 bg-white/30 p-4"
+          >
+            <span className="text-[13px] font-extrabold text-grey-mid">{nhan}</span>
+            <span className="text-[11.5px] font-semibold italic text-grey-mid">{t('notSet')}</span>
+          </div>
+        );
+      })}
       </div>
-
-      {danhSach.length === 0 && !canGhi && (
-        <p className="text-[12.5px] italic text-grey-mid">{t('none')}</p>
-      )}
 
       {moForm && (
         <FormMucTieu
           studentId={studentId}
           classId={classId}
-          kind={moForm}
+          area={moForm}
+          nhanLinhVuc={nhanTheoArea[moForm] ?? moForm}
           wigLop={wigLop}
-          dangSua={moForm === 'personal' ? rieng : hocTap}
+          dangSua={dangSuaMt}
           laChinhEm={laChinhEm}
           onClose={() => setMoForm(null)}
           onDone={setBao}
@@ -177,6 +194,7 @@ export function MucTieuCuaCon({
 // cửa sổ 24 giờ, đường duyệt, đích ghi-nhận-ngoài, nút xoá — mọi luật ở đây đều tinh tế.
 function TheMucTieu({
   mt,
+  nhanLinhVuc,
   studentId,
   laChinhEm,
   canManage,
@@ -188,6 +206,7 @@ function TheMucTieu({
   onSua,
 }: {
   mt: MucTieuCuaEm;
+  nhanLinhVuc: string;
   wigLop: WigLop[];
   classId: string;
   studentId: string;
@@ -220,10 +239,18 @@ function TheMucTieu({
         )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="rounded-full bg-navy/[0.07] px-2 py-0.5 text-[10.5px] font-extrabold text-grey-mid">
+              {nhanLinhVuc}
+            </span>
             <span className="font-display text-[16px] font-bold leading-tight text-navy">{mt.title}</span>
             {mt.status === 'sent' && (
               <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text">
                 {t('waiting')}
+              </span>
+            )}
+            {mt.status === 'rejected' && (
+              <span className="rounded-full bg-status-bad/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-status-bad">
+                {t('returned')}
               </span>
             )}
             {mt.set_by === 'teacher' && (
@@ -281,6 +308,14 @@ function TheMucTieu({
         </form>
       )}
 
+      {/* NHẬN XÉT TRẢ LẠI — hiện ngay trên thẻ để em biết sửa gì; gửi lại thì máy chủ xoá. */}
+      {mt.status === 'rejected' && mt.reject_note && (
+        <p className="rounded-[10px] bg-status-bad/[0.07] px-2.5 py-2 text-[12px] font-semibold leading-relaxed text-navy">
+          <span className="font-extrabold text-status-bad">{t('teacherNote')}: </span>
+          {mt.reject_note}
+        </p>
+      )}
+
       <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-navy/[0.06] pt-2.5">
         {canManage && mt.status === 'sent' && (
           <form action={duyetMucTieu}>
@@ -290,6 +325,9 @@ function TheMucTieu({
               {t('approve')}
             </SubmitButton>
           </form>
+        )}
+        {canManage && mt.status === 'sent' && (
+          <NutTraLai wigId={mt.id} studentId={studentId} title={mt.title} />
         )}
         {/* CHƯA DUYỆT → nút Sửa nhỏ (Xoá nằm trong form sửa, không đứng lộ ở đây).
             ĐÃ DUYỆT → ĐÓNG BĂNG: chỉ còn "Xin sửa" — sửa hay xoá đều qua cô (chủ dự án 16/08/2026:
@@ -305,5 +343,51 @@ function TheMucTieu({
         )}
       </div>
     </div>
+  );
+}
+
+// Nút "Trả lại" của cô — mở hộp thoại đòi MỘT CÂU nhận xét rồi mới gửi (wig_reject_note_ck
+// chặn trả lại tay không ở CSDL; textarea required chỉ là lớp báo sớm).
+function NutTraLai({wigId, studentId, title}: {wigId: string; studentId: string; title: string}) {
+  const t = useTranslations('goal');
+  const [mo, setMo] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setMo(true)}
+        className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 text-[12px] font-extrabold text-status-bad underline"
+      >
+        {t('returnBtn')}
+      </button>
+      {mo && (
+        <Popup title={t('returnTitle')} onClose={() => setMo(false)} width="max-w-[460px]">
+          <form action={traLaiMucTieu} className="flex flex-col gap-3">
+            <input type="hidden" name="wig_id" value={wigId} />
+            <input type="hidden" name="student_id" value={studentId} />
+            <p className="text-[13px] font-bold text-navy">{title}</p>
+            <textarea
+              name="note"
+              required
+              maxLength={300}
+              rows={3}
+              className="w-full rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2.5 text-[13px] font-semibold text-navy outline-none focus:border-navy"
+            />
+            <div className="flex items-center gap-3">
+              <SubmitButton className={btnGold} wrapClass="contents">
+                {t('returnSend')}
+              </SubmitButton>
+              <button
+                type="button"
+                onClick={() => setMo(false)}
+                className="inline-flex min-h-[24px] cursor-pointer items-center py-1 text-[12px] font-extrabold text-grey-mid underline"
+              >
+                {t('cancel')}
+              </button>
+            </div>
+          </form>
+        </Popup>
+      )}
+    </>
   );
 }

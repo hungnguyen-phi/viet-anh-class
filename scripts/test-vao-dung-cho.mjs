@@ -57,7 +57,8 @@ check(
 );
 {
   // Bốn trang của phụ huynh phải dùng chung hàm ấy, không trang nào tự dựng lại.
-  const trang = ['homework', 'timetable'];
+  // báo bài đã gỡ 18/08/2026 theo PRD v3 — danh sách chỉ còn TKB.
+  const trang = ['timetable'];
   const tuDung = trang.filter((t) => {
     const s = readFileSync(`app/[locale]/(dashboard)/${t}/page.tsx`, 'utf8');
     return !/getChildren\(/.test(s);

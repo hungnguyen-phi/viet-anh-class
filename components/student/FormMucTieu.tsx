@@ -1,14 +1,15 @@
 'use client';
 
 import {useActionState, useEffect, useState} from 'react';
-import {useTranslations} from 'next-intl';
+import {useLocale, useTranslations} from 'next-intl';
 import {AlertCircle, Trash2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Popup} from '@/components/ui/Popup';
-import {Field, ctlWithBorder, selectCls, btnGold} from '@/components/ui/Field';
+import {Field, ctlWithBorder, btnGold} from '@/components/ui/Field';
 import {ONgayVN, ngayVN} from '@/components/ui/ONgayVN';
 import {luuMucTieuCuaEm, xoaMucTieuCuaEm, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
 import {kieuDonVi, coTrongDanhSach, DON_VI} from '@/lib/don-vi';
+import {AREA_FALLBACK, areaLabel, type Area} from '@/lib/areas';
 import {ChonCuon} from '@/components/ui/ChonCuon';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -44,7 +45,8 @@ export function FormMucTieu({
   classId,
   kind = 'academic',
   tenEm,
-  wigLop,
+  area,
+  nhanLinhVuc,
   dangSua,
   laChinhEm,
   onClose,
@@ -64,6 +66,10 @@ export function FormMucTieu({
   kind?: 'academic' | 'personal';
   /** Tên em — chỉ dùng khi cô đặt hộ, để tiêu đề hộp thoại nói rõ đang gõ cho AI. */
   tenEm?: string;
+  /** Domain của Ô mà em vừa bấm (PRD v3: 4 ô, mỗi domain một) — form không hỏi lại. */
+  area: string;
+  /** Nhãn domain (từ area_config). Không truyền thì lấy nhãn mặc định theo ngôn ngữ. */
+  nhanLinhVuc?: string;
   wigLop: WigLop[];
   dangSua: DangSua;
   laChinhEm: boolean;
@@ -71,12 +77,10 @@ export function FormMucTieu({
   onDone?: (message: string) => void;
 }) {
   const t = useTranslations('goal');
+  const locale = useLocale();
+  const nhanDomain =
+    nhanLinhVuc ?? areaLabel(AREA_FALLBACK[area as Area] ?? AREA_FALLBACK.knowledge, locale);
   const [state, formAction] = useActionState<MucTieuState, FormData>(luuMucTieuCuaEm, {ok: false});
-
-  // MỤC TIÊU LỚP mà việc này góp sức vào — nay BẮT BUỘC với cả hai loại, và là nguồn duy nhất của
-  // lĩnh vực. Mục tiêu riêng đang sửa thì không có `source_wig_id` để mở lại (CSDL bắt nó null),
-  // nên rơi về rỗng và em chọn lại — một cú bấm, đổi lấy việc bốn vòng lĩnh vực đọc đúng.
-  const [nguon, setNguon] = useState(dangSua?.source_wig_id ?? '');
 
   // Các ô rời rạc rất khó ráp lại thành một ý, nhất là với học sinh. Giữ giá trị ở đây để ghép
   // chúng thành MỘT CÂU HOÀN CHỈNH ngay dưới nút Gửi.
@@ -126,6 +130,8 @@ export function FormMucTieu({
         <input type="hidden" name="student_id" value={studentId} />
         <input type="hidden" name="class_id" value={classId} />
         <input type="hidden" name="kind" value={kind} />
+        {/* Domain đến từ Ô em bấm ở màn ngoài — máy chủ kiểm lại danh sách 4 giá trị. */}
+        <input type="hidden" name="area" value={area} />
 
         {state.error && !state.fieldError && (
           <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
@@ -150,37 +156,15 @@ export function FormMucTieu({
                 className={ctlWithBorder(state.fieldError === 'title')}
               />
             </Field>
-            {/* HỎI CẢ VỚI MỤC TIÊU RIÊNG, và không còn lựa chọn "để trống".
-                Lĩnh vực lấy từ đúng mục tiêu lớp em chọn ở đây — không hỏi em một câu riêng về
-                lĩnh vực nữa (chủ dự án chốt 13/08/2026: cô đã khai đủ bốn lĩnh vực rồi). Với mục
-                tiêu RIÊNG, máy chủ chỉ mượn lĩnh vực và bỏ liên kết đi: wig_source_ck bắt
-                source_wig_id phải null với kind='personal'. */}
-            <Field label={t('joinBattle')} htmlFor="mt-source" error={err('source_wig_id')}>
-              <select
-                id="mt-source"
-                name="source_wig_id"
-                value={nguon}
-                onChange={(e) => setNguon(e.target.value)}
-                className={selectCls}
-              >
-                <option value="">{t('pickBattle')}</option>
-                {wigLop.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.title}
-                  </option>
-                ))}
-              </select>
+            {/* DOMAIN KHÔNG PHẢI CÂU HỎI (PRD v3): em bấm vào ô của domain nào ở màn ngoài thì
+                form mở cho đúng domain ấy — đây chỉ nói lại cho chắc em đang đặt WIG gì. Dây nối
+                lên mục tiêu lớp cùng domain do máy chủ tự tìm, không hỏi. */}
+            <Field label={t('domain')}>
+              <span className="inline-flex h-11 items-center rounded-[10px] bg-gold/[0.16] px-3 text-[13px] font-extrabold text-gold-text">
+                {nhanDomain}
+              </span>
             </Field>
           </div>
-
-          {/* Lớp chưa có mục tiêu nào thì em không có gì để gắn vào. Nói thẳng ra và chỉ sang
-              người làm được việc ấy — im lặng để em bấm Gửi rồi nhận một câu lỗi thì tệ hơn. */}
-          {wigLop.length === 0 && (
-            <p className="mt-2 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
-              {t('noClassWig')}
-            </p>
-          )}
-
         </div>
 
         {/* ② "Từ X đến Y trước ngày nào" — công thức của canon, nằm gọn một hàng. */}

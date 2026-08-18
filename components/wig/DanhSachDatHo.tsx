@@ -147,6 +147,7 @@ export function DanhSachDatHo({
         <FormMucTieu
           studentId={dangMo.id}
           classId={classId}
+          area={dangMo.mucTieu?.area ?? 'knowledge'}
           tenEm={dangMo.ten}
           wigLop={wigLop}
           dangSua={dangMo.mucTieu}

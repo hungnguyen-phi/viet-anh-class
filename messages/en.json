@@ -1315,6 +1315,13 @@
     "confirmDeleteCommitmentLop": "Delete this class commitment? Its works and ticks go with it.",
     "contributors": "{n} students contribute",
     "noContributor": "No student contributes to this goal yet.",
-    "notLinked": "Not linked to a class goal / not set"
+    "notLinked": "Not linked to a class goal / not set",
+    "domain": "Domain",
+    "returned": "Returned",
+    "teacherNote": "Teacher's note",
+    "returnBtn": "Return",
+    "returnTitle": "Return with a note",
+    "returnSend": "Send back",
+    "notSet": "Not set"
   }
 }

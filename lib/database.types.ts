@@ -2375,6 +2375,9 @@ export type Database = {
       wigs: {
         Row: {
           achieved_at: string | null
+          reject_note: string | null
+          approved_by: string | null
+          approved_at: string | null
           achieved_by: string | null
           area: Database["public"]["Enums"]["wig_domain"]
           baseline: number | null
@@ -2404,6 +2407,9 @@ export type Database = {
         }
         Insert: {
           achieved_at?: string | null
+          reject_note?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
           achieved_by?: string | null
           area: Database["public"]["Enums"]["wig_domain"]
           baseline?: number | null
@@ -2433,6 +2439,9 @@ export type Database = {
         }
         Update: {
           achieved_at?: string | null
+          reject_note?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
           achieved_by?: string | null
           area?: Database["public"]["Enums"]["wig_domain"]
           baseline?: number | null

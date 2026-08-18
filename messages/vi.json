@@ -1315,6 +1315,13 @@
     "confirmDeleteCommitmentLop": "Xoá cam kết này của lớp? Việc và lượt tick dưới nó mất theo.",
     "contributors": "{n} học sinh góp vào",
     "noContributor": "Chưa học sinh nào góp vào mục tiêu này.",
-    "notLinked": "Chưa gắn vào mục tiêu lớp / chưa đặt"
+    "notLinked": "Chưa gắn vào mục tiêu lớp / chưa đặt",
+    "domain": "Lĩnh vực",
+    "returned": "Trả lại",
+    "teacherNote": "Giáo viên nhắn",
+    "returnBtn": "Trả lại",
+    "returnTitle": "Trả lại kèm nhận xét",
+    "returnSend": "Gửi lại cho em",
+    "notSet": "Chưa đặt"
   }
 }

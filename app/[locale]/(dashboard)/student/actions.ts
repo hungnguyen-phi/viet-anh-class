@@ -9,6 +9,7 @@ import {getCurrentProfile, requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
 import {kieuDonVi} from '@/lib/don-vi';
+import {AREAS} from '@/lib/areas';
 // MỘT nguồn duy nhất cho phép chia nhịp — cùng hàm mà mục tiêu LỚP đang dùng (lib/wig-tao gọi nó
 // trong sinhNhip). Chép một bản riêng cho học sinh là dựng đúng cái bệnh "hai đường tính cho một
 // khái niệm" mà repo này đã dính nhiều lần.
@@ -779,51 +780,45 @@ export async function luuMucTieuCuaEm(
   const supabase = await createClient();
   const nam = schoolYearRangeVN();
 
-  // ── LĨNH VỰC KHÔNG CÒN LÀ CÂU HỎI ────────────────────────────────────────────────────────
+  // ── DOMAIN LÀ Ô CỦA THẺ, KHÔNG PHẢI CÂU HỎI TRONG FORM ──────────────────────────────────
   //
-  // Mọi mục tiêu của em nay phải chỉ ra nó góp vào mục tiêu nào của lớp, và lĩnh vực lấy từ đúng
-  // mục tiêu ấy. Chủ dự án chốt 13/08/2026: "không cho con tự chọn nữa, vì các wig cô tạo đã có đủ
-  // 4 loại rồi" — cô đã khai đủ bốn lĩnh vực thì em luôn có chỗ để gắn vào, và hỏi thêm một câu
-  // lĩnh vực chỉ mở đường cho em trả lời khác cha mình.
+  // PRD v3 4.2: mỗi em ĐÚNG 4 WIG, mỗi domain một. Màn của em bày 4 ô — em bấm vào ô còn trống
+  // của domain nào thì form mở ra cho đúng domain ấy, nên form không hỏi lại "lĩnh vực nào".
+  // (Bản 13/08 lấy domain từ WIG lớp em chọn; bỏ vì nó làm em KHÔNG đặt được WIG của một domain
+  // mà lớp chưa khai — trong khi luật v3 đòi em đủ 4 bất kể lớp.)
   //
-  // Bản trước để trống là lặng lẽ xếp vào Kiến thức, nên "chạy bộ mỗi sáng" nằm ở cột Kiến thức
-  // trên bảng họp mà chính em không có cách nào sửa. Nay không có đường nào để trống nữa.
-  //
-  // LẤY TỪ CSDL, không tin ô trên form: đây là cột quyết định mục tiêu của em nằm ở nhánh nào của
-  // cây, và cũng là chỗ khoá wigs_em_uidx dựa vào.
-  if (!source_wig_id)
-    return {
-      ok: false,
-      fieldError: 'source_wig_id',
-      error: 'Em chọn mục tiêu của lớp mà việc này góp sức vào nhé.',
-    };
-  const {data: chaLop} = await supabase
-    .from('wigs')
-    .select('area')
-    .eq('id', source_wig_id)
-    .eq('class_id', class_id)
-    .eq('scope', 'class')
-    // Ô chọn đã lọc rồi, nhưng ô chọn nằm trong trình duyệt. Chặn lại ở đây mới là chặn thật.
-    .neq('measure_by', 'cuon')
-    .maybeSingle();
-  if (!chaLop)
-    return {
-      ok: false,
-      fieldError: 'source_wig_id',
-      error: 'Mục tiêu của lớp này không còn nữa — chọn lại.',
-    };
-  const area: Database['public']['Enums']['wig_domain'] = chaLop.area;
+  // Vẫn kiểm lại giá trị: ô hidden nằm trong trình duyệt, sửa được.
+  const areaRaw = String(formData.get('area') ?? '');
+  if (!(AREAS as readonly string[]).includes(areaRaw))
+    return {ok: false, fieldError: 'area', error: 'Không rõ mục tiêu này thuộc lĩnh vực nào.'};
+  const area = areaRaw as Database['public']['Enums']['wig_domain'];
 
-  // MỤC TIÊU RIÊNG CHỈ MƯỢN LĨNH VỰC, KHÔNG MANG LIÊN KẾT. `wig_source_ck` (0100) bắt
-  // source_wig_id phải null với kind='personal' — mục tiêu riêng không góp vào trận nào của lớp,
-  // nó chỉ được xếp vào cùng một lĩnh vực để bốn vòng tròn trên màn của em đọc đúng.
-  const soi = kind === 'academic' ? source_wig_id : null;
+  // DÂY NỐI LÊN LỚP nay TỰ TÌM: WIG lớp cùng domain (nếu lớp đã khai) — em không phải trả lời
+  // thêm một câu mà đáp án chỉ có một. Lớp chưa khai domain này thì mục tiêu đứng một mình,
+  // dây nối bổ sung sau khi lớp khai (mục tiêu riêng vẫn không mang liên kết — wig_source_ck).
+  void source_wig_id;
+  let soi: string | null = null;
+  if (kind === 'academic') {
+    const {data: chaLop} = await supabase
+      .from('wigs')
+      .select('id')
+      .eq('class_id', class_id)
+      .eq('scope', 'class')
+      .eq('area', area)
+      .eq('period', 'year')
+      .neq('measure_by', 'cuon')
+      .limit(1)
+      .maybeSingle();
+    soi = chaLop?.id ?? null;
+  }
 
   const ban = {
     class_id,
     student_id,
     scope: 'student' as const,
     kind,
+    // Gửi lại là một lượt duyệt mới — nhận xét trả lại của lượt trước không còn đúng nữa.
+    reject_note: null,
     // Em gõ thì gửi cô duyệt; cô gõ thì duyệt luôn — cô chính là người duyệt.
     status: laChinhEm ? 'sent' : 'approved',
     set_by: laChinhEm ? 'student' : 'teacher',
@@ -841,15 +836,15 @@ export async function luuMucTieuCuaEm(
     source_wig_id: soi,
   };
 
-  // Mỗi em MỘT mục tiêu mỗi loại mỗi năm (khoá wigs_em_uidx ở 0100). Đã có thì SỬA, không đẻ cái
-  // thứ hai — hai mục tiêu cùng loại là hai vạch tiến độ cho một chuyện, và không màn hình nào
-  // nói được cái nào mới là thật.
+  // Mỗi em MỘT mục tiêu mỗi DOMAIN mỗi năm (khoá wigs_em_domain_uidx, 0145 — PRD v3 4.2).
+  // Đã có thì SỬA, không đẻ cái thứ hai — hai mục tiêu cùng domain là hai vạch tiến độ cho một
+  // chuyện, và không màn hình nào nói được cái nào mới là thật.
   const {data: daCo} = await supabase
     .from('wigs')
-    .select('id, status, created_at')
+    .select('id, status, created_at, kind')
     .eq('student_id', student_id)
     .eq('scope', 'student')
-    .eq('kind', kind)
+    .eq('area', area)
     .eq('period_label', nam.label)
     .maybeSingle();
 
@@ -899,9 +894,12 @@ export async function duyetMucTieu(formData: FormData) {
   const wig_id = String(formData.get('wig_id') ?? '');
   const student_id = String(formData.get('student_id') ?? '');
   const supabase = await createClient();
+  const me = await getCurrentProfile();
   const {data, error} = await supabase
     .from('wigs')
-    .update({status: 'approved'})
+    // Vết duyệt (0145): ai duyệt, lúc nào — PRD v3 4.2 đòi WIG "được GVCN thông qua" là một
+    // sự kiện có thật, không phải một cột status đổi không dấu tay.
+    .update({status: 'approved', approved_by: me?.id ?? null, approved_at: new Date().toISOString(), reject_note: null})
     .eq('id', wig_id)
     .eq('scope', 'student')
     .select('id')
@@ -911,6 +909,32 @@ export async function duyetMucTieu(formData: FormData) {
   revalidatePath('/[locale]/wig/chi-tiet', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   veTrangEm(student_id, 'Đã duyệt mục tiêu của em');
+}
+
+// Cô TRẢ LẠI mục tiêu kèm nhận xét (PRD v3 4.2: rejected kèm nhận xét để em sửa và gửi lại).
+// Nhận xét là bắt buộc — wig_reject_note_ck (0145) chặn ở CSDL, đây chỉ báo câu dễ hiểu.
+export async function traLaiMucTieu(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const wig_id = String(formData.get('wig_id') ?? '');
+  const student_id = String(formData.get('student_id') ?? '');
+  const note = String(formData.get('note') ?? '').trim();
+  if (!note) veTrangEm(student_id, loi('Trả lại thì ghi cho em một câu vì sao nhé.'));
+  if (note.length > 300) veTrangEm(student_id, loi('Nhận xét tối đa 300 ký tự.'));
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('wigs')
+    .update({status: 'rejected', reject_note: note})
+    .eq('id', wig_id)
+    .eq('scope', 'student')
+    // Chỉ trả lại cái đang CHỜ — mục tiêu đã duyệt muốn mở lại thì đi đường "Xin sửa" của em.
+    .eq('status', 'sent')
+    .select('id')
+    .maybeSingle();
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data) veTrangEm(student_id, loi('Mục tiêu này không còn chờ duyệt.'));
+  revalidatePath('/[locale]/wig/chi-tiet', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  veTrangEm(student_id, 'Đã trả lại kèm nhận xét cho em');
 }
 
 // Xoá mục tiêu của em.
