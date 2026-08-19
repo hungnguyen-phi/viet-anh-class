@@ -161,7 +161,10 @@ export function MucTieuCuaCon({
             key={a}
             type="button"
             onClick={() => setMoForm(a)}
-            style={{borderColor: `${mau.hex}55`, background: mau.soft}}
+            style={{
+              borderColor: `color-mix(in srgb, ${mau.hex} 30%, white)`,
+              background: `color-mix(in srgb, ${mau.hex} 9%, white)`,
+            }}
             className="flex min-h-[112px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[16px] border-[1.5px] border-dashed p-4 text-navy transition-colors hover:bg-white/70"
           >
             <span
@@ -176,7 +179,10 @@ export function MucTieuCuaCon({
         ) : (
           <div
             key={a}
-            style={{borderColor: `${mau.hex}40`, background: mau.soft}}
+            style={{
+              borderColor: `color-mix(in srgb, ${mau.hex} 24%, white)`,
+              background: `color-mix(in srgb, ${mau.hex} 7%, white)`,
+            }}
             className="flex min-h-[112px] flex-col items-center justify-center gap-1 rounded-[16px] border-[1.5px] border-dashed p-4"
           >
             <span className="text-[13px] font-extrabold text-navy">{nhan}</span>
@@ -237,12 +243,16 @@ function TheMucTieu({
   const tenLopNguon = mt.source_wig_id ? (wigLop.find((w) => w.id === mt.source_wig_id)?.title ?? null) : null;
 
   return (
-    // Ô MÀU THEO LĨNH VỰC (19/08/2026): viền + nền nhạt lấy đúng cặp hex/soft của area_config,
-    // vòng % nhuộm cùng màu — bốn ô nhận ra nhau bằng màu trước khi kịp đọc chữ.
+    // Ô MÀU THEO LĨNH VỰC (19/08/2026), tông PASTEL (góp ý cùng ngày: "màu pastel cho đẹp"):
+    // pha màu lĩnh vực VỚI TRẮNG bằng color-mix — pastel thật, sáng và sạch; alpha phủ lên nền
+    // xám của trang cho ra màu đục, không phải pastel. Vòng % giữ nguyên hex đậm để còn đọc được.
     // `relative` để nút bút "Xin sửa" treo được ở góc trên phải.
     <div
-      style={{borderColor: `${mau.hex}55`, background: mau.soft}}
-      className="relative flex flex-col gap-3 rounded-[16px] border-[1.5px] bg-white p-4"
+      style={{
+        borderColor: `color-mix(in srgb, ${mau.hex} 30%, white)`,
+        background: `color-mix(in srgb, ${mau.hex} 9%, white)`,
+      }}
+      className="relative flex flex-col gap-3 rounded-[16px] border-[1.5px] p-4"
     >
       <div className="flex items-start gap-3.5">
         {/* VÒNG % ĐỨNG ĐẦU THẺ, bên trái — đọc "bao nhiêu phần trăm rồi" trước, rồi mới đọc tên. Đích
@@ -261,7 +271,7 @@ function TheMucTieu({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span
-              style={{background: `${mau.hex}22`}}
+              style={{background: `color-mix(in srgb, ${mau.hex} 16%, white)`}}
               className="rounded-full px-2 py-0.5 text-[10.5px] font-extrabold text-navy"
             >
               {nhanLinhVuc}

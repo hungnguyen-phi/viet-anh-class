@@ -1332,7 +1332,7 @@
     "deleteCommitmentLong": "Xoá cam kết",
     "askEdit": "Xin sửa hoặc xoá",
     "askEditWhat": "Em muốn sửa hay xoá gì ở \"{title}\"?",
-    "askEditPlaceholder": "vd: Vì mỗi tuần em chỉ làm được 5 bài thôi ạ…",
+    "askEditPlaceholder": "vd: Vì {n} {unit} là hơi nhiều với em ạ…",
     "reqEdit": "Xin sửa",
     "reqDelete": "Xin xoá",
     "newTargetLabel": "Đích mới (đang là {n} {unit}) — bỏ trống nếu giữ nguyên",

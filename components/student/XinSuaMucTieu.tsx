@@ -110,7 +110,9 @@ export function XinSuaMucTieu({
                 rows={2}
                 required
                 maxLength={300}
-                placeholder={t('askEditPlaceholder')}
+                // Ví dụ ăn theo ĐÍCH THẬT của mục tiêu (19/08/2026: "1000 lead" mà ví dụ nói
+                // "5 bài" là lạc đề) — câu mẫu nhắc đúng con số và đơn vị em đang nhìn.
+                placeholder={t('askEditPlaceholder', {n: targetValue, unit})}
                 className={`${oChu} resize-y`}
               />
             </label>

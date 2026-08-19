@@ -1332,7 +1332,7 @@
     "deleteCommitmentLong": "Delete commitment",
     "askEdit": "Request a change or removal",
     "askEditWhat": "What do you want to change or remove in \"{title}\"?",
-    "askEditPlaceholder": "e.g. Because I can only do 5 a week…",
+    "askEditPlaceholder": "e.g. Because {n} {unit} is a bit much for me…",
     "reqEdit": "Change it",
     "reqDelete": "Remove it",
     "newTargetLabel": "New target (currently {n} {unit}) — leave blank to keep",
