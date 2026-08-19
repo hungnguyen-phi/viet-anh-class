@@ -13,6 +13,9 @@ import {
   vnNoon,
   mondayOf,
   isValidDayVN,
+  shiftWeeks,
+  khoangTuan,
+  cachTuan,
 } from '@/lib/dates';
 import {kieuDonVi} from '@/lib/don-vi';
 import {MoodCheckin, MoodGate, type MoodKey} from '@/components/student/MoodCheckin';
@@ -622,6 +625,16 @@ export async function StudentScoreboard({
   // Luôn là TUẦN HIỆN TẠI, không theo tuần đang xem: biên bản PDR là việc của tuần này, còn thanh
   // tuần ở cột trái chỉ điều khiển khu cam kết/tick.
   const nhanTuanPdr = isoWeekLabel(vnNoon(thisMonday));
+  // Trục tuần của KHU HỌP phải tự đọc được (19/08/2026 — "w32 rồi đến w33 rồi đến w31… không có
+  // 1 cái gì rõ ràng cả"): tuần sau cho câu nhịp PDR, và tên quan hệ cho biên bản lớp cũ.
+  const tuanSauPdr = isoWeekLabel(vnNoon(shiftWeeks(thisMonday, 1)));
+  const tenQuanHeTuan = (lb: string) => {
+    const n = cachTuan(lb, nhanTuanPdr);
+    if (n === null || n < 0) return null;
+    if (n === 0) return t('weekThis');
+    if (n === 1) return t('weekLast');
+    return t('weeksAgo', {n});
+  };
   // GỘP MỘT ĐỢT (tối ưu tốc độ 18/08/2026): PDR (4 câu) + metrics độc lập nhau và đều chỉ cần
   // studentId/monday có sẵn từ trước — chạy song song một vòng thay vì hai vòng nối tiếp. Trên
   // VPS mất ~5% gói, mỗi vòng bớt đi là bớt một lần rút thăm với cái đuôi ~1 giây.
@@ -967,8 +980,17 @@ export async function StudentScoreboard({
                   <span className="text-[11px] font-extrabold uppercase tracking-wide text-gold-text">
                     {t('classMinutes')}
                   </span>
-                  <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10.5px] font-extrabold text-navy">
+                  {/* Biên bản mới nhất thường là của TUẦN TRƯỚC (lớp họp cuối tuần) — phải nói
+                      thẳng điều đó, không thì nó đứng cạnh khối PDR "tuần này" và hai nhãn tuần
+                      vênh nhau đọc như lỗi (19/08/2026). */}
+                  {tenQuanHeTuan(hopLop.week_label) && (
+                    <span className="text-[11px] font-extrabold text-navy">
+                      {tenQuanHeTuan(hopLop.week_label)}
+                    </span>
+                  )}
+                  <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10.5px] font-extrabold tabular-nums text-navy">
                     {hopLop.week_label}
+                    {khoangTuan(hopLop.week_label) && ` · ${khoangTuan(hopLop.week_label)}`}
                   </span>
                 </div>
                 {hopLop.results && (
@@ -994,6 +1016,8 @@ export async function StudentScoreboard({
               bienBan={pdrRes.data ?? null}
               wigDaDuyet={wigDaDuyet}
               weekLabel={nhanTuanPdr}
+              khoangNgay={khoangTuan(nhanTuanPdr)}
+              tuanSau={tuanSauPdr}
             />
             {/* PDR 1-1 VỚI GIÁO VIÊN — chỉ hiện khi GVCN đã cài lịch (PRD v3: mỗi tháng một
                 lần). Tên riêng không cần: đối tác luôn là GVCN, và RLS hồ sơ không mở tên
@@ -1007,6 +1031,8 @@ export async function StudentScoreboard({
                 bienBan={pdrCoachRes.data ?? null}
                 wigDaDuyet={wigDaDuyet}
                 weekLabel={nhanTuanPdr}
+                khoangNgay={khoangTuan(nhanTuanPdr)}
+                tuanSau={tuanSauPdr}
               />
             )}
             {/* PRD §7 "ghi chú Sư Tử" — Sư Tử là LLM (đổi tên từ Buddy 18/08/2026: chữ Buddy nay
@@ -1023,6 +1049,7 @@ export async function StudentScoreboard({
               meetings={meetings}
               canManage={canManage}
               canChat={canTick}
+              tuanNay={nhanTuanPdr}
             />
           </section>
       </div>

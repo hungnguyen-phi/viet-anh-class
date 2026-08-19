@@ -150,6 +150,41 @@ export function weekFromMonday(monday: string): {start: string; end: string; lab
   return {start: days[0], end: days[6], label: isoWeekLabel(vnNoon(days[0]))};
 }
 
+// Nhãn tuần ISO 'W34-2026' → hai đầu mốc của chính tuần ấy ('YYYY-MM-DD', Thứ Hai → Chủ Nhật).
+//
+// Phép NGƯỢC của isoWeekLabel. Màn học sinh từng bày trần các nhãn "W32-2026, W34-2026" và chủ
+// dự án đọc không ra tuần nào là tuần nào (19/08/2026: "không có 1 cái gì rõ ràng cả") — số
+// tuần ISO là dạng CSDL cất giữ, không phải dạng cho một em lớp 6 đọc. Nhãn sai dạng → null,
+// nơi gọi tự bỏ phần khoảng ngày thay vì in ra chữ hỏng.
+export function tuanTuNhan(label: string): {start: string; end: string} | null {
+  const m = /^W(\d{2})-(\d{4})$/.exec(label);
+  if (!m) return null;
+  const tuan = Number(m[1]);
+  if (tuan < 1 || tuan > 53) return null;
+  // Luật ISO 8601: tuần 01 là tuần chứa ngày 04/01. Lùi 04/01 về Thứ Hai rồi nhảy (tuần−1)×7.
+  const d = new Date(Date.UTC(Number(m[2]), 0, 4));
+  d.setUTCDate(d.getUTCDate() - (d.getUTCDay() || 7) + 1 + (tuan - 1) * 7);
+  const start = d.toISOString().slice(0, 10);
+  d.setUTCDate(d.getUTCDate() + 6);
+  return {start, end: d.toISOString().slice(0, 10)};
+}
+
+// 'W34-2026' → '17/08–23/08' (rỗng nếu nhãn hỏng). Ngày/tháng đủ để định vị; năm đã nằm trong nhãn.
+export function khoangTuan(label: string): string {
+  const r = tuanTuNhan(label);
+  const ddmm = (s: string) => `${s.slice(8, 10)}/${s.slice(5, 7)}`;
+  return r ? `${ddmm(r.start)}–${ddmm(r.end)}` : '';
+}
+
+// Nhãn `label` cách nhãn `tuanNay` bao nhiêu tuần về QUÁ KHỨ (0 = cùng tuần, 1 = tuần trước,
+// âm = tương lai). Null khi một trong hai nhãn hỏng — nơi gọi đừng đoán.
+export function cachTuan(label: string, tuanNay: string): number | null {
+  const a = tuanTuNhan(label);
+  const b = tuanTuNhan(tuanNay);
+  if (!a || !b) return null;
+  return Math.round((Date.parse(b.start) - Date.parse(a.start)) / (7 * 86_400_000));
+}
+
 // N nhãn tuần gần nhất (mới → cũ) cho ô CHỌN tuần, thay ô nhập text tự do.
 export function recentWeekLabels(count = 6, date: Date = new Date()): string[] {
   return Array.from({length: count}, (_, i) =>

@@ -40,6 +40,8 @@ export function HopPdr({
   bienBan,
   wigDaDuyet,
   weekLabel,
+  khoangNgay = null,
+  tuanSau = null,
   loai = 'buddy',
 }: {
   laChinhEm: boolean;
@@ -50,6 +52,10 @@ export function HopPdr({
   bienBan: PdrMeeting | null;
   wigDaDuyet: WigDaDuyet[];
   weekLabel: string;
+  /** Khoảng ngày của tuần đang họp ('18/08–24/08') — "W34-2026" trần là mã máy, em không đọc ra. */
+  khoangNgay?: string | null;
+  /** Nhãn tuần SAU ('W35-2026') — để nói rõ cam kết ở câu 6 là chốt cho tuần nào. */
+  tuanSau?: string | null;
   /** Cùng một biên bản 6 câu cho cả hai nhịp PDR của v3 (buddy tuần / GVCN tháng). */
   loai?: 'buddy' | 'coach';
 }) {
@@ -70,7 +76,13 @@ export function HopPdr({
           <Users size={15} strokeWidth={2.2} className="text-gold-deep" />
           {t(loai === 'coach' ? 'titleCoach' : 'title')}
         </h2>
-        <span className="text-[11.5px] font-bold text-grey-mid">{weekLabel}</span>
+        {/* "Tuần này" đứng trước, mã tuần + khoảng ngày theo sau — khối này LUÔN là tuần hiện
+            tại, và phải tự nói ra điều đó thay vì bắt em giải mã "W34-2026" (19/08/2026). */}
+        <span className="font-display text-[13px] font-bold text-navy">{t('thisWeek')}</span>
+        <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-extrabold tabular-nums text-grey-mid">
+          {weekLabel}
+          {khoangNgay && ` · ${khoangNgay}`}
+        </span>
         {daKy && (
           <span className="inline-flex items-center gap-1 rounded-full bg-success/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
             <CheckCircle2 size={11} strokeWidth={2.5} />
@@ -85,6 +97,16 @@ export function HopPdr({
         <p className="text-[12.5px] font-semibold text-grey-mid">
           <span className="font-extrabold text-navy">{tenBuddy.join(' · ')}</span>
           {lich && <> · {lich}</>}
+        </p>
+      )}
+
+      {/* NHỊP CỦA BUỔI HỌP, nói một lần cho rõ: nhìn lại tuần VỪA QUA, chốt cam kết cho tuần
+          SAU. Trước đây em phải tự suy từ 6 câu hỏi — "họp PDR tuần này hay tuần sau, cho tuần
+          nào?" là câu chủ dự án hỏi nguyên văn (19/08/2026). Chỉ hiện khi biên bản còn mở:
+          đã ký rồi thì dòng dạy nhịp chỉ còn là tiếng ồn. */}
+      {!daKy && (loai === 'coach' || tenBuddy.length > 0) && (
+        <p className="rounded-[10px] bg-navy/[0.04] px-2.5 py-1.5 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
+          {tuanSau ? t('nhip', {tuanSau}) : t('nhipKhongTuan')}
         </p>
       )}
 

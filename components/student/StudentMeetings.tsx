@@ -1,6 +1,7 @@
 import {getTranslations} from 'next-intl/server';
 import {MessagesSquare, Target} from 'lucide-react';
 import {SuTu} from '@/components/ui/SuTu';
+import {khoangTuan, cachTuan} from '@/lib/dates';
 import {BuddyChat, type BuddyMessage} from './BuddyChat';
 
 // Số lượt học sinh được nói mỗi buổi họp — phải khớp BUDDY_CHAT_MAX_USER_TURNS ở server action.
@@ -36,13 +37,38 @@ export async function StudentMeetings({
   meetings,
   canManage,
   canChat,
+  tuanNay,
 }: {
   meetings: StudentMeeting[];
   canManage: boolean;
   // true = chính em học sinh đó đang xem → được chat khi GVCN mở.
   canChat: boolean;
+  /** Nhãn tuần hiện tại ('W34-2026') — mốc để gọi tên từng thẻ là "Tuần này/Tuần trước/N tuần trước". */
+  tuanNay: string;
 }) {
   const t = await getTranslations('student');
+
+  // XẾP THEO TUẦN, KHÔNG THEO created_at (19/08/2026). Bản cũ xếp theo lúc TẠO DÒNG, mà dòng
+  // W31 có thể sinh sau dòng W33 (tick bù, Sư Tử nhắn muộn) — màn hình ra "W32, W33, W31" và
+  // chủ dự án gọi đúng tên: "lộn xộn giữa các tuần, không có 1 cái gì rõ ràng cả". Trục thời
+  // gian của khu này là TUẦN; created_at chỉ còn phân thắng bại khi hai dòng cùng tuần.
+  const soTuan = (lb: string) => {
+    const m = /^W(\d{2})-(\d{4})$/.exec(lb);
+    return m ? Number(m[2]) * 100 + Number(m[1]) : 0;
+  };
+  meetings = [...meetings].sort(
+    (a, b) => soTuan(b.week_label) - soTuan(a.week_label) || b.created_at.localeCompare(a.created_at),
+  );
+
+  // "W32-2026" trần là mã máy. Mỗi thẻ mang thêm: tên quan hệ (Tuần này / Tuần trước / N tuần
+  // trước) + khoảng ngày — em đọc phát biết ngay thẻ nói về quãng nào.
+  const tenQuanHe = (lb: string) => {
+    const n = cachTuan(lb, tuanNay);
+    if (n === null || n < 0) return null;
+    if (n === 0) return t('weekThis');
+    if (n === 1) return t('weekLast');
+    return t('weeksAgo', {n});
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -80,7 +106,13 @@ export async function StudentMeetings({
             <div key={m.id} className="glass rounded-[16px] p-4">
               <div className="flex flex-wrap items-center gap-2 text-navy">
                 <MessagesSquare size={14} strokeWidth={2.5} className="text-gold-deep" />
-                <span className="font-display text-[14px] font-bold">{m.week_label}</span>
+                {tenQuanHe(m.week_label) && (
+                  <span className="font-display text-[14px] font-bold">{tenQuanHe(m.week_label)}</span>
+                )}
+                <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-extrabold tabular-nums text-grey-mid">
+                  {m.week_label}
+                  {khoangTuan(m.week_label) && ` · ${khoangTuan(m.week_label)}`}
+                </span>
               </div>
               {m.results && (
                 <div className="mt-3 text-[13px] font-semibold text-navy">
