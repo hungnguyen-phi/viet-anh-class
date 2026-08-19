@@ -430,11 +430,22 @@ export async function StudentScoreboard({
     chot_at: string | null;
     mo_luc: string | null;
   };
-  // Biên bản gần nhất của LỚP có nội dung thật — bỏ qua những tuần chỉ có dòng trống.
+  // Biên bản của LỚP có nội dung thật, và CHỈ khi còn nóng: tuần này hoặc tuần trước.
+  //
+  // Lý do khối này tồn tại là "lời hứa chung phải sống suốt tuần" (13/08) — mà lời hứa của
+  // biên bản W32 là hứa CHO W33; sang W34 nó đã hết hạn từ lâu. Bản cũ ghim "biên bản gần nhất
+  // có nội dung" bất kể bao xa, nên lớp nghỉ họp hai tuần là màn em ghim một lời hứa ôi thiu —
+  // chủ dự án hỏi thẳng (19/08/2026): "tại sao phải đưa 2 tuần trước vào". Quá tuần trước thì
+  // thôi ghim; ai cần đọc lại thì vào phòng họp lớp.
+  const nhanTuanHomNay = isoWeekLabel(vnNoon(todayInVN()));
   const hopLop =
-    ((hopLopRes.data ?? []) as HopLopRow[]).find(
-      (r) => (r.results ?? '').trim() || (r.commitments ?? '').trim(),
-    ) ?? null;
+    ((hopLopRes.data ?? []) as HopLopRow[]).find((r) => {
+      const cach = cachTuan(r.week_label, nhanTuanHomNay);
+      return (
+        cach !== null && cach >= 0 && cach <= 1 &&
+        ((r.results ?? '').trim() || (r.commitments ?? '').trim())
+      );
+    }) ?? null;
 
   // PHÒNG HỌP ĐANG MỞ (0130) — cô vừa bấm "Bắt đầu họp". Hiện lời mời NGAY TRÊN BẢNG THÀNH TÍCH,
   // không bắt em tự nghĩ ra đường vào /student/hop: chủ dự án chốt "tất cả màn hình của các em
