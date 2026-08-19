@@ -10,7 +10,6 @@ import {Link} from '@/i18n/navigation';
 import {
   isValidDayVN,
   gioiHanChonKy,
-  isoWeekLabel,
   mondayOf,
   monthOptions,
   schoolYearOptions,
@@ -20,7 +19,6 @@ import {
   vnNoon,
   weekFromMonday,
   weekOptions,
-  shiftWeeks,
 } from '@/lib/dates';
 import {WeekNav} from '@/components/wig/WeekNav';
 import {DaiChiSo, gopChiSo} from '@/components/wig/DaiChiSo';
@@ -136,15 +134,12 @@ export default async function WigPage({
   const laTuanNay = monday === thisMonday;
   // Chỉ đính ?week= khi ĐANG XEM tuần khác — ở tuần hiện tại thì URL sạch.
   const weekQ = laTuanNay ? '' : monday;
-  // Tuần vừa kết thúc: đây là tuần buổi họp sẽ tổng kết.
-  const tuanTruoc = shiftWeeks(thisMonday, -1);
-  const nhanTuanTruoc = isoWeekLabel(vnNoon(tuanTruoc));
 
   const [
     {data: wigsData},
     {data: progData},
     {data: enrolled},
-    {data: hopRoi},
+    ,
     {data: soDoData},
     {data: tuanNayDaHop},
     {data: cuonData},
@@ -177,14 +172,8 @@ export default async function WigPage({
       // Ma trận (em × việc) của tuần đang xem — chỉ để đếm "mấy em chưa tick lần nào". Đó là con
       // số DUY NHẤT trên màn này đòi hành động ngay, nên đáng một lượt hỏi; phần chi tiết ai quên
       // hôm nào thì nằm ở /wig/chi-tiet.
-      // Tuần vừa xong đã họp chưa — quyết định câu chữ trên nút mở phòng họp.
-      supabase
-        .from('wig_meetings')
-        .select('id')
-        .eq('class_id', myClass.id)
-        .is('student_id', null)
-        .eq('week_start', tuanTruoc)
-        .maybeSingle(),
+      // (Câu "tuần vừa xong đã họp chưa" thôi hỏi 19/08/2026 — nút mở phòng họp lớp đã gỡ.)
+      Promise.resolve({data: null}),
       // SỐ ĐO CỦA TUẦN ĐANG XEM — con số thật của mục tiêu đo lại (kg, điểm, cm).
       //
       // Chủ dự án chốt 14/08/2026: loại này không nhập hằng ngày; cô (hoặc em) điền lại con số
@@ -694,25 +683,9 @@ export default async function WigPage({
       {/* CÁC EM TUẦN NÀY — cùng cây với màn của em, cô chỉ có nút Duyệt (components/wig/BangCacEm). */}
       <BangCacEm classId={myClass.id} monday={monday} weekQ={weekQ} classParam={classParam} />
 
-      {/* MỘT NÚT. Nhịp họp là việc quan trọng nhất của tuần trong 4DX, và trước đây nó là một khối
-          dài chôn giữa trang cùng năm khối khác. Nay đứng riêng, không lẫn vào đâu được. */}
-      <Link
-        href={{pathname: '/wig/hop', query: q()}}
-        className="flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-[20px] bg-[linear-gradient(180deg,#2f3170,#26275d)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_10px_28px_-6px_rgba(38,39,93,0.5)] ring-1 ring-white/10 transition-transform hover:-translate-y-px"
-      >
-        <span className="min-w-0">
-          <span className="block font-display text-[17px] font-bold text-white">
-            {hopRoi ? t('meetingDone', {week: nhanTuanTruoc}) : t('meetingTime')}
-          </span>
-          <span className="mt-0.5 block text-[12.5px] font-semibold leading-relaxed text-white/70">
-            {t('meetingWhat', {truoc: nhanTuanTruoc, sau: isoWeekLabel(vnNoon(thisMonday))})}
-          </span>
-        </span>
-        <span className="btn-gold ml-auto inline-flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[12px] px-4 font-display text-[13.5px] font-black">
-          {hopRoi ? t('meetingReopen') : t('meetingOpen')}
-          <ArrowRight size={15} strokeWidth={2.8} />
-        </span>
-      </Link>
+      {/* NÚT VÀO PHÒNG HỌP LỚP ĐÃ GỠ 19/08/2026 — chủ dự án: "bây giờ ko còn họp lớp nữa đâu,
+          chỉ còn họp với buddy thôi". Nhịp giải trình tuần nay là PDR buddy (em ký là tuần của
+          em khoá — 0154); /wig/hop chuyển hướng về đây, dữ liệu biên bản cũ giữ nguyên. */}
     </div>
   );
 }

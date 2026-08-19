@@ -89,6 +89,7 @@ export function MucTieuCuaCon({
   tuanChuaChot,
   pctTheoWig,
   nhanTheoArea,
+  mauTheoArea,
 }: {
   studentId: string;
   classId: string;
@@ -103,6 +104,8 @@ export function MucTieuCuaCon({
   pctTheoWig: Record<string, number>;
   /** Nhãn hiển thị của 4 domain (từ area_config, đúng ngôn ngữ đang xem). */
   nhanTheoArea: Record<string, string>;
+  /** Màu của 4 domain (area_config): hex cho viền/vòng %, soft (rgba nhạt) cho nền ô. */
+  mauTheoArea: Record<string, {hex: string; soft: string}>;
 }) {
   const t = useTranslations('goal');
   const [bao, setBao] = useState('');
@@ -131,12 +134,14 @@ export function MucTieuCuaCon({
       {AREAS.map((a) => {
         const mt = theoArea.get(a);
         const nhan = nhanTheoArea[a] ?? a;
+        const mau = mauTheoArea[a] ?? {hex: '#26275d', soft: 'rgba(38,39,93,0.06)'};
         if (mt)
           return (
             <TheMucTieu
               key={a}
               mt={mt}
               nhanLinhVuc={nhan}
+              mau={mau}
               studentId={studentId}
               laChinhEm={laChinhEm}
               canManage={canManage}
@@ -148,14 +153,21 @@ export function MucTieuCuaCon({
               onSua={() => setMoForm(a)}
             />
           );
+        // Ô TRỐNG CŨNG MANG MÀU LĨNH VỰC — "4 ô màu" nghĩa là bốn ô nhận ra nhau bằng màu
+        // ngay cả khi chưa có mục tiêu, không phải bốn ô trắng giống hệt. Viền/nền lấy đúng
+        // cặp hex/soft của area_config; chữ vẫn navy/grey-mid cho đủ tương phản.
         return canGhi ? (
           <button
             key={a}
             type="button"
             onClick={() => setMoForm(a)}
-            className="flex min-h-[112px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[16px] border-[1.5px] border-dashed border-navy/20 bg-white/40 p-4 text-navy transition-colors hover:border-navy hover:bg-white/70"
+            style={{borderColor: `${mau.hex}55`, background: mau.soft}}
+            className="flex min-h-[112px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[16px] border-[1.5px] border-dashed p-4 text-navy transition-colors hover:bg-white/70"
           >
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-gold text-navy">
+            <span
+              style={{background: mau.hex}}
+              className="grid h-9 w-9 place-items-center rounded-full text-white"
+            >
               <Plus size={18} strokeWidth={2.8} />
             </span>
             <span className="text-[13px] font-extrabold">{nhan}</span>
@@ -164,9 +176,10 @@ export function MucTieuCuaCon({
         ) : (
           <div
             key={a}
-            className="flex min-h-[112px] flex-col items-center justify-center gap-1 rounded-[16px] border-[1.5px] border-dashed border-navy/12 bg-white/30 p-4"
+            style={{borderColor: `${mau.hex}40`, background: mau.soft}}
+            className="flex min-h-[112px] flex-col items-center justify-center gap-1 rounded-[16px] border-[1.5px] border-dashed p-4"
           >
-            <span className="text-[13px] font-extrabold text-grey-mid">{nhan}</span>
+            <span className="text-[13px] font-extrabold text-navy">{nhan}</span>
             <span className="text-[11.5px] font-semibold italic text-grey-mid">{t('notSet')}</span>
           </div>
         );
@@ -195,6 +208,7 @@ export function MucTieuCuaCon({
 function TheMucTieu({
   mt,
   nhanLinhVuc,
+  mau,
   studentId,
   laChinhEm,
   canManage,
@@ -207,6 +221,7 @@ function TheMucTieu({
 }: {
   mt: MucTieuCuaEm;
   nhanLinhVuc: string;
+  mau: {hex: string; soft: string};
   wigLop: WigLop[];
   classId: string;
   studentId: string;
@@ -222,7 +237,13 @@ function TheMucTieu({
   const tenLopNguon = mt.source_wig_id ? (wigLop.find((w) => w.id === mt.source_wig_id)?.title ?? null) : null;
 
   return (
-    <div className="glass flex flex-col gap-3 rounded-[16px] p-4">
+    // Ô MÀU THEO LĨNH VỰC (19/08/2026): viền + nền nhạt lấy đúng cặp hex/soft của area_config,
+    // vòng % nhuộm cùng màu — bốn ô nhận ra nhau bằng màu trước khi kịp đọc chữ.
+    // `relative` để nút bút "Xin sửa" treo được ở góc trên phải.
+    <div
+      style={{borderColor: `${mau.hex}55`, background: mau.soft}}
+      className="relative flex flex-col gap-3 rounded-[16px] border-[1.5px] bg-white p-4"
+    >
       <div className="flex items-start gap-3.5">
         {/* VÒNG % ĐỨNG ĐẦU THẺ, bên trái — đọc "bao nhiêu phần trăm rồi" trước, rồi mới đọc tên. Đích
             ghi nhận ngoài (điểm, kg) không vẽ % (0101): thay bằng huy hiệu Đạt / Chưa. */}
@@ -235,11 +256,14 @@ function TheMucTieu({
             {mt.achieved_at ? t('achieved') : t('notYet')}
           </span>
         ) : (
-          <DonutRing pct={pct ?? 0} color="var(--color-gold-mid)" size={60} />
+          <DonutRing pct={pct ?? 0} color={mau.hex} size={60} />
         )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="rounded-full bg-navy/[0.07] px-2 py-0.5 text-[10.5px] font-extrabold text-grey-mid">
+            <span
+              style={{background: `${mau.hex}22`}}
+              className="rounded-full px-2 py-0.5 text-[10.5px] font-extrabold text-navy"
+            >
               {nhanLinhVuc}
             </span>
             <span className="font-display text-[16px] font-bold leading-tight text-navy">{mt.title}</span>
@@ -316,7 +340,13 @@ function TheMucTieu({
         </p>
       )}
 
-      <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-navy/[0.06] pt-2.5">
+      {/* Hàng nút chỉ dựng khi CÓ nút — thẻ đã duyệt của chính em không còn gì ở đây (bút xin
+          sửa đã dời lên góc), để lại một vạch ngăn trần là rác thị giác. */}
+      <div
+        className={`mt-auto flex flex-wrap items-center gap-2 border-t border-navy/[0.06] pt-2.5 ${
+          (canManage && mt.status === 'sent') || (laChinhEm && mt.status !== 'approved') ? '' : 'hidden'
+        }`}
+      >
         {canManage && mt.status === 'sent' && (
           <form action={duyetMucTieu}>
             <input type="hidden" name="wig_id" value={mt.id} />
@@ -330,18 +360,27 @@ function TheMucTieu({
           <NutTraLai wigId={mt.id} studentId={studentId} title={mt.title} />
         )}
         {/* CHƯA DUYỆT → nút Sửa nhỏ (Xoá nằm trong form sửa, không đứng lộ ở đây).
-            ĐÃ DUYỆT → ĐÓNG BĂNG: chỉ còn "Xin sửa" — sửa hay xoá đều qua cô (chủ dự án 16/08/2026:
-            "duyệt là cả năm không đụng vào nữa"). */}
+            ĐÃ DUYỆT → ĐÓNG BĂNG: sửa hay xoá đều XIN qua thầy cô — nhưng lời xin nay là CÁI BÚT
+            Ở GÓC THẺ, không còn chiếm một dòng chữ (chủ dự án 19/08/2026: "bỏ chữ xin sửa, chỉ
+            còn 1 cái bút nhỏ ở góc"). Nút ấy render ở góc trên phải, xem cuối thẻ. */}
         {laChinhEm && mt.status !== 'approved' && (
           <button type="button" onClick={onSua} className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 text-[12px] font-extrabold text-navy underline">
             <Pencil size={12} strokeWidth={2.5} />
             {t('edit')}
           </button>
         )}
-        {laChinhEm && mt.status === 'approved' && (
-          <XinSuaMucTieu studentId={studentId} classId={classId} wigId={mt.id} title={mt.title} />
-        )}
       </div>
+
+      {laChinhEm && mt.status === 'approved' && (
+        <XinSuaMucTieu
+          studentId={studentId}
+          classId={classId}
+          wigId={mt.id}
+          title={mt.title}
+          unit={mt.unit}
+          targetValue={mt.target_value}
+        />
+      )}
     </div>
   );
 }

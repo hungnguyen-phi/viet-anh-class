@@ -283,7 +283,28 @@ export async function createEditRequest(formData: FormData) {
   const class_id = String(formData.get('class_id') ?? '');
   const kind = String(formData.get('kind') ?? 'other');
   const ref_id = String(formData.get('ref_id') ?? '') || null;
-  const message = String(formData.get('message') ?? '').trim();
+  let message = String(formData.get('message') ?? '').trim();
+  // FORM CÓ CẤU TRÚC của XinSuaMucTieu (19/08/2026 — "phải đủ thông tin thì gv mới duyệt được"):
+  // ghép các ô Sửa/Xoá thành MỘT câu đọc được, đi vào đúng cột message cũ — hộp yêu cầu của
+  // thầy cô không phải đổi hình dạng, chỉ nhận được câu đầy đủ hơn.
+  const yeuCau = String(formData.get('yeu_cau') ?? '');
+  if (yeuCau === 'sua' || yeuCau === 'xoa') {
+    const lyDo = String(formData.get('ly_do') ?? '').trim();
+    const dichMoi = String(formData.get('dich_moi') ?? '').trim();
+    const tenMoi = String(formData.get('ten_moi') ?? '').trim();
+    message = (
+      yeuCau === 'xoa'
+        ? `XIN XOÁ · lý do: ${lyDo}`
+        : [
+            'XIN SỬA',
+            dichMoi && `đích mới: ${dichMoi}`,
+            tenMoi && `tên mới: “${tenMoi}”`,
+            `lý do: ${lyDo}`,
+          ]
+            .filter(Boolean)
+            .join(' · ')
+    ).slice(0, 400);
+  }
   // YÊU CẦU-SỬA PHẢI ĐỨNG TÊN CHÍNH MÌNH (audit 18/08/2026): policy er_requester_insert chỉ đòi
   // requester_id=auth.uid() + cùng lớp, KHÔNG đòi student_id=auth.uid(). Học sinh A gửi form với
   // student_id của bạn B → cô duyệt là gỡ tick / đổi tên việc của B. Ép student_id = chính em.

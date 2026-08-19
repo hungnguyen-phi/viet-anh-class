@@ -35,10 +35,9 @@ export default async function MeetingPage({
   const profile = await requireRole(['teacher', 'admin', 'principal']);
 
   if (profile.role !== 'principal') {
-    const q = new URLSearchParams();
-    if (classParam) q.set('class', classParam);
-    if (hopParam) q.set('hop', hopParam);
-    redirect(`/wig/hop${q.size > 0 ? `?${q.toString()}` : ''}`);
+    // Phòng họp lớp đã gỡ 19/08/2026 ("chỉ còn họp với buddy") — GVCN/Admin về thẳng trang WIG.
+    // Trang /meeting còn lại làm KHO ĐỌC biên bản cũ cho BGH: "ẩn UI, giữ dữ liệu" cần một cửa đọc.
+    redirect('/wig');
   }
 
   const t = await getTranslations('meeting');

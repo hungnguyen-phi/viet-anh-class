@@ -15,7 +15,6 @@ import {
   isValidDayVN,
   shiftWeeks,
   khoangTuan,
-  cachTuan,
 } from '@/lib/dates';
 import {kieuDonVi} from '@/lib/don-vi';
 import {MoodCheckin, MoodGate, type MoodKey} from '@/components/student/MoodCheckin';
@@ -27,15 +26,12 @@ import {BuddyAuto} from '@/components/student/BuddyAuto';
 import {HopPdr} from '@/components/student/HopPdr';
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {MucTieuCuaCon, type MucTieuCuaEm, type SoDoCuaTuan} from '@/components/student/MucTieuCuaCon';
-import {NghePhongHop} from '@/components/wig/NghePhongHop';
 import {CamKetCuaEm} from '@/components/wig/CamKetCuaEm';
 import {DaiChiSo, gopChiSo} from '@/components/wig/DaiChiSo';
 import {NutDuyetCamKet} from '@/components/wig/NutXoaCamKet';
 import {SuaCamKet} from '@/components/wig/SuaCamKet';
 import {FlashToast} from '@/components/ui/FlashToast';
 import {ChonTuanCuaEm} from '@/components/student/ChonTuanCuaEm';
-import {ArrowRight, Users} from 'lucide-react';
-import {Link} from '@/i18n/navigation';
 import {tenHienThi} from '@/lib/ten-hien-thi';
 
 // Màu/icon/nhãn môn lấy từ area_config (fallback = --color-subj-* cũ ⇒ parity).
@@ -286,7 +282,7 @@ export async function StudentScoreboard({
   // MỐC THÁNG ĐÃ BỎ (0121): `wig_chi_con_nam_ck` cấm period='month', nên truy vấn mốc tháng ở đây
   // không bao giờ trả về dòng nào — một vòng đi–về tới CSDL trên MỌI lần em mở trang, đổi lấy một
   // dòng chữ không bao giờ hiện. Cả chuỗi mocThang* gỡ theo, ở cả MucTieuCuaCon.
-  const [cuaSoRes, ipRes, mangRes, daHopRes, leadRes, mucTieuRes, soDoRes, wigLopRes, , hopLopRes, ckTuanRes] =
+  const [cuaSoRes, ipRes, mangRes, daHopRes, leadRes, mucTieuRes, soDoRes, wigLopRes, , , ckTuanRes] =
     await Promise.all([
     // CỬA SỔ CHECK-IN của cơ sở em đang học. Lấy một lần, dùng cho cả buổi sáng lẫn buổi chiều.
     // Null khi em chưa có lớp (chưa biết cơ sở) → giao diện giữ nguyên hành vi cũ, không khoá gì.
@@ -380,19 +376,9 @@ export async function StudentScoreboard({
       : Promise.resolve({data: null}),
     // (Sổ của con — student_reflections — thôi đọc ở đây 16/08/2026: khối đã bỏ khỏi màn.)
     Promise.resolve({data: null}),
-    // BIÊN BẢN HỌP CỦA CẢ LỚP (student_id null). Trước 13/08/2026 em chỉ thấy dòng riêng của
-    // mình, nên buổi họp xong là chiêm nghiệm và LỜI HỨA của cả lớp biến mất khỏi màn hình em —
-    // trong khi đó chính là thứ 4DX bảo cả nhóm phải nhìn thấy suốt tuần. RLS đã cho học sinh
-    // đọc dòng của lớp (rls_select_wig_meetings).
-    classId
-      ? supabase
-          .from('wig_meetings')
-          .select('week_label, week_start, results, commitments, chot_at, mo_luc')
-          .eq('class_id', classId)
-          .is('student_id', null)
-          .order('week_start', {ascending: false})
-          .limit(3)
-      : Promise.resolve({data: null}),
+    // (Biên bản họp của LỚP — thôi đọc 19/08/2026: không còn họp lớp, chỉ còn họp PDR buddy.
+    // Dữ liệu wig_meetings dòng lớp vẫn nằm nguyên trong CSDL, chỉ thôi bày.)
+    Promise.resolve({data: null}),
     // CAM KẾT TUẦN NÀY CỦA EM — trục nối mục tiêu năm với việc để tick (0121/0138). Mỗi cam kết
     // treo vào một mục tiêu (của lớp hoặc của chính em); thẻ mục tiêu năm bày cam kết + việc của nó.
     supabase
@@ -422,39 +408,14 @@ export async function StudentScoreboard({
       }
     : null;
 
-  type HopLopRow = {
-    week_label: string;
-    week_start: string;
-    results: string | null;
-    commitments: string | null;
-    chot_at: string | null;
-    mo_luc: string | null;
-  };
-  // Biên bản của LỚP có nội dung thật, và CHỈ khi còn nóng: tuần này hoặc tuần trước.
-  //
-  // Lý do khối này tồn tại là "lời hứa chung phải sống suốt tuần" (13/08) — mà lời hứa của
-  // biên bản W32 là hứa CHO W33; sang W34 nó đã hết hạn từ lâu. Bản cũ ghim "biên bản gần nhất
-  // có nội dung" bất kể bao xa, nên lớp nghỉ họp hai tuần là màn em ghim một lời hứa ôi thiu —
-  // chủ dự án hỏi thẳng (19/08/2026): "tại sao phải đưa 2 tuần trước vào". Quá tuần trước thì
-  // thôi ghim; ai cần đọc lại thì vào phòng họp lớp.
-  const nhanTuanHomNay = isoWeekLabel(vnNoon(todayInVN()));
-  const hopLop =
-    ((hopLopRes.data ?? []) as HopLopRow[]).find((r) => {
-      const cach = cachTuan(r.week_label, nhanTuanHomNay);
-      return (
-        cach !== null && cach >= 0 && cach <= 1 &&
-        ((r.results ?? '').trim() || (r.commitments ?? '').trim())
-      );
-    }) ?? null;
-
-  // PHÒNG HỌP ĐANG MỞ (0130) — cô vừa bấm "Bắt đầu họp". Hiện lời mời NGAY TRÊN BẢNG THÀNH TÍCH,
-  // không bắt em tự nghĩ ra đường vào /student/hop: chủ dự án chốt "tất cả màn hình của các em
-  // đều hiện phòng họp".
-  const phongDangMo =
-    ((hopLopRes.data ?? []) as HopLopRow[]).find((r) => r.mo_luc && !r.chot_at) ?? null;
+  // (Khối "Biên bản họp của lớp" + lời mời "phòng họp đang mở" ĐÃ GỠ 19/08/2026 — chủ dự án:
+  // "bây giờ ko còn họp lớp nữa đâu, chỉ còn họp với buddy thôi". Dữ liệu biên bản cũ giữ
+  // nguyên trong wig_meetings; các dòng CÁ NHÂN của em vẫn hiện trong StudentMeetings dưới kia.)
 
   const mustCheckin = mangRes.data === true && ipRes.data === true;
-  const tickOpen = !daHopRes.data;
+  // Tuần bị chốt bởi một buổi họp lớp CŨ (trước 19/08/2026) — giữ để các tuần ấy vẫn khoá đúng.
+  // Cờ tickOpen thật tính SAU khi có biên bản PDR (xem 0154: không còn họp lớp, ký PDR là khoá).
+  const tuanDaChotCu = Boolean(daHopRes.data);
 
   const meetings: StudentMeeting[] = (
     (meetingRows ?? []) as unknown as {
@@ -631,21 +592,19 @@ export async function StudentScoreboard({
   // Nhãn 4 domain (area_config, đúng ngôn ngữ) cho bốn ô mục tiêu — PRD v3 4.2.
   const [areaMeta, locale] = await Promise.all([getAreaMeta(), getLocale()]);
   const nhanTheoArea = Object.fromEntries(AREAS.map((a) => [a, areaLabel(areaMeta[a], locale)]));
+  // Màu của 4 lĩnh vực (area_config) — chủ dự án 19/08/2026: "sửa 4 cái này thành 4 ô màu đi".
+  // hex cho viền/vòng %, soft (rgba 14%) cho nền — cặp màu đã cân sẵn của hệ.
+  const mauTheoArea = Object.fromEntries(
+    AREAS.map((a) => [a, {hex: areaMeta[a].hex, soft: areaMeta[a].soft}]),
+  );
 
   // ── HỌP PDR VỚI BUDDY (0146 — PRD v3 6.2.7) ────────────────────────────────────────────────
   // Luôn là TUẦN HIỆN TẠI, không theo tuần đang xem: biên bản PDR là việc của tuần này, còn thanh
   // tuần ở cột trái chỉ điều khiển khu cam kết/tick.
   const nhanTuanPdr = isoWeekLabel(vnNoon(thisMonday));
   // Trục tuần của KHU HỌP phải tự đọc được (19/08/2026 — "w32 rồi đến w33 rồi đến w31… không có
-  // 1 cái gì rõ ràng cả"): tuần sau cho câu nhịp PDR, và tên quan hệ cho biên bản lớp cũ.
+  // 1 cái gì rõ ràng cả"): tuần sau cho câu nhịp PDR ("cam kết chốt cho tuần {tuanSau}").
   const tuanSauPdr = isoWeekLabel(vnNoon(shiftWeeks(thisMonday, 1)));
-  const tenQuanHeTuan = (lb: string) => {
-    const n = cachTuan(lb, nhanTuanPdr);
-    if (n === null || n < 0) return null;
-    if (n === 0) return t('weekThis');
-    if (n === 1) return t('weekLast');
-    return t('weeksAgo', {n});
-  };
   // GỘP MỘT ĐỢT (tối ưu tốc độ 18/08/2026): PDR (4 câu) + metrics độc lập nhau và đều chỉ cần
   // studentId/monday có sẵn từ trước — chạy song song một vòng thay vì hai vòng nối tiếp. Trên
   // VPS mất ~5% gói, mỗi vòng bớt đi là bớt một lần rút thăm với cái đuôi ~1 giây.
@@ -684,6 +643,13 @@ export async function StudentScoreboard({
       .lte('week_start', monday),
   ]);
   const capBuddy = capRes.data ?? [];
+  // ── KHOÁ TICK THEO CHỮ KÝ PDR (0154 — không còn họp lớp, 19/08/2026) ─────────────────────
+  // Tuần đang xem chỉ mở khi: (a) đúng là TUẦN HIỆN TẠI (RLS vốn chỉ cho tick trong tuần —
+  // tuần cũ mà bày nút bấm được rồi CSDL từ chối là đánh lừa em); (b) không bị chốt bởi một
+  // buổi họp lớp cũ; (c) em CHƯA Ghi nhận biên bản PDR tuần này — ký là chữ ký, ký xong mà số
+  // còn sửa được thì chữ ký vô nghĩa. RLS 0154 là chốt thật; cờ này chỉ để màn nói đúng sự thật.
+  const tickOpen =
+    monday === thisMonday && !tuanDaChotCu && !pdrRes.data?.acknowledged_at;
   const idBuddy = capBuddy.map((p) => (p.student_id === studentId ? p.buddy_id : p.student_id));
   let tenBuddy: string[] = [];
   let lichBuddy: string | null = null;
@@ -745,7 +711,6 @@ export async function StudentScoreboard({
   const pctTheoWig: Record<string, number> = Object.fromEntries(
     yearRows.map((w) => [w.wig_id, Number(w.pct ?? 0)]),
   );
-  const nhanTuanNay = isoWeekLabel(vnNoon(monday));
   const dayShort = t.raw('dayShort') as string[];
   // Chỉ WIG đã duyệt vào ô chọn của cam kết (PRD v3; trigger 0148 là chốt thật).
   const mucTieuChon = mucTieuCuaEm
@@ -897,6 +862,7 @@ export async function StudentScoreboard({
             tuanChuaChot={tickOpen}
             pctTheoWig={pctTheoWig}
             nhanTheoArea={nhanTheoArea}
+            mauTheoArea={mauTheoArea}
           />
         ) : (
           <p className="text-sm italic text-grey-mid">{t('noLeads')}</p>
@@ -932,94 +898,13 @@ export async function StudentScoreboard({
               hằng tuần nằm ở việc để tick. Để lại thì nó vĩnh viễn hiện "Chưa thiết lập WIG"
               và giục em đi làm một thứ CSDL đã cấm. Xem docs/MO_HINH_WIG.md §1. */}
 
-          {/* NGHE PHÒNG HỌP MỞ RA. Đặt NGOÀI điều kiện `phongDangMo` — thứ nó canh chính là lúc
-              phòng CHƯA mở chuyển thành ĐÃ mở, nên gắn nó vào bên trong lời mời là chỉ nghe sau
-              khi đã nghe thấy. Trả về null, không vẽ gì. */}
-          {canTick && classId && <NghePhongHop classId={classId} />}
-
-          {/* LỚP ĐANG HỌP — LỜI MỜI ĐẶT NGAY TRÊN BẢNG THÀNH TÍCH (0130).
-              Chủ dự án: "khi giáo viên ấn họp, tất cả màn hình của các em đều hiện phòng họp".
-              Nút "Vào phòng họp" cũ vẫn ở dưới, nhưng nó nằm lẫn giữa các khối và chỉ ai biết
-              đường mới bấm — một buổi họp đang diễn ra thì phải tự nói ra, không đợi em đi tìm. */}
-          {canTick && phongDangMo && (
-            <Link
-              // Trỏ THẲNG vào tuần đang họp, không để trang tự đoán: hai bên đoán khác nhau một
-              // lần là em ngồi trong phòng của tuần khác với cả lớp.
-              href={{pathname: '/student/hop', query: {hop: phongDangMo.week_start}}}
-              className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[20px] border-[1.5px] border-gold-deep/30 bg-gold/[0.14] p-4 transition-transform hover:-translate-y-px"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[12px] bg-gold/40 text-gold-text">
-                <Users size={17} strokeWidth={2.5} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-display text-[15px] font-bold text-navy">
-                  {tm('roomInvite')}
-                </span>
-                <span className="mt-0.5 block text-[12px] font-semibold leading-relaxed text-grey-mid">
-                  {tm('roomInviteHint', {week: phongDangMo.week_label})}
-                </span>
-              </span>
-              <span className="btn-gold inline-flex h-10 shrink-0 items-center gap-1.5 rounded-[12px] px-4 font-display text-[13px] font-black">
-                {tm('roomJoin')}
-                <ArrowRight size={14} strokeWidth={2.8} />
-              </span>
-            </Link>
-          )}
-
+          {/* PHÒNG HỌP LỚP ĐÃ GỠ TOÀN BỘ 19/08/2026 (lời mời realtime, nút "Vào phòng họp",
+              khối biên bản lớp): "bây giờ ko còn họp lớp nữa đâu, chỉ còn họp với buddy thôi".
+              Nhịp giải trình duy nhất của em là PDR ngay dưới đây. */}
           <section className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-display text-[17px] font-bold text-navy">{t('meetings')}</h2>
-              {/* ĐƯỜNG VÀO PHÒNG HỌP — chỉ cho chính em, và chỉ từ đây. Biên bản là thứ của buổi
-                  họp; không mở thêm cửa nào khác vào nó. */}
-              {canTick && (
-                <Link
-                  href="/student/hop"
-                  className="ml-auto inline-flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy"
-                >
-                  {t('enterMeetingRoom')}
-                  <ArrowRight size={12} strokeWidth={2.5} />
-                </Link>
-              )}
-            </div>
+            <h2 className="font-display text-[17px] font-bold text-navy">{t('meetings')}</h2>
 
-            {/* BIÊN BẢN CỦA CẢ LỚP. Họp xong thì chiêm nghiệm và lời hứa chung phải có chỗ đứng
-                trên màn của từng em suốt tuần — nếu không thì câu cả lớp vừa hứa với nhau chỉ
-                sống được đúng buổi họp. */}
-            {hopLop && (
-              <div className="rounded-[16px] border-[1.5px] border-gold-deep/25 bg-gold/[0.10] p-3.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wide text-gold-text">
-                    {t('classMinutes')}
-                  </span>
-                  {/* Biên bản mới nhất thường là của TUẦN TRƯỚC (lớp họp cuối tuần) — phải nói
-                      thẳng điều đó, không thì nó đứng cạnh khối PDR "tuần này" và hai nhãn tuần
-                      vênh nhau đọc như lỗi (19/08/2026). */}
-                  {tenQuanHeTuan(hopLop.week_label) && (
-                    <span className="text-[11px] font-extrabold text-navy">
-                      {tenQuanHeTuan(hopLop.week_label)}
-                    </span>
-                  )}
-                  <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10.5px] font-extrabold tabular-nums text-navy">
-                    {hopLop.week_label}
-                    {khoangTuan(hopLop.week_label) && ` · ${khoangTuan(hopLop.week_label)}`}
-                  </span>
-                </div>
-                {hopLop.results && (
-                  <p className="mt-1.5 text-[13px] font-semibold leading-relaxed text-navy">
-                    <b className="text-grey-mid">{t('reflection')}: </b>
-                    <span className="whitespace-pre-line">{hopLop.results}</span>
-                  </p>
-                )}
-                {hopLop.commitments && (
-                  <p className="mt-1 text-[13px] font-semibold leading-relaxed text-navy">
-                    <b className="text-grey-mid">{t('classPromise')}: </b>
-                    <span className="whitespace-pre-line">{hopLop.commitments}</span>
-                  </p>
-                )}
-              </div>
-            )}
-            {/* HỌP PDR VỚI BUDDY — 6 câu + Ghi nhận (PRD v3 6.2.7). Đứng trên biên bản lớp cũ:
-                đây là việc MỖI TUẦN của chính em, còn các khối dưới là thứ để đọc. */}
+            {/* HỌP PDR VỚI BUDDY — 6 câu + Ghi nhận (PRD v3 6.2.7). */}
             <HopPdr
               laChinhEm={canTick}
               tenBuddy={tenBuddy}

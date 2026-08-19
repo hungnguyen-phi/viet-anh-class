@@ -110,7 +110,8 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
   }
 
   // ── CÂU 2 → CHỐT THẮNG/THUA CHO CAM KẾT TUẦN TRƯỚC (PRD v3 6.2.7) ────────────────────────
-  // Tuỳ chọn: em bấm Thắng hoặc Thua thì chốt; không bấm thì để phòng họp lớp chấm như cũ.
+  // Từ 19/08/2026 đây là ĐƯỜNG CHẤM DUY NHẤT (không còn họp lớp): em tự chấm; không bấm thì
+  // cam kết để trống thắng/thua.
   // Chốt cho cam kết tuần trước CHƯA có kết quả: ưu tiên cái sinh từ PDR tuần trước; nếu chỉ
   // có một cái chưa chấm thì là nó; còn mơ hồ (2 cái, không cái nào từ PDR) thì KHÔNG đoán.
   let canhBao = '';
@@ -150,9 +151,9 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
           verdict_at: new Date().toISOString(),
         })
         .eq('id', muctieu.id);
-      if (error) canhBao = ' Kết quả Thắng/Thua chưa ghi được (tuần trước có thể đã chốt trong họp lớp).';
+      if (error) canhBao = ' Kết quả Thắng/Thua chưa ghi được (cam kết tuần trước có thể đã chốt rồi).';
     } else if (ds.length > 1) {
-      canhBao = ' Tuần trước có hai cam kết chưa chấm — giáo viên sẽ chấm trong họp lớp.';
+      canhBao = ' Tuần trước có hai cam kết chưa chấm — không rõ Thắng/Thua này thuộc cam kết nào nên chưa ghi.';
     }
   }
 
