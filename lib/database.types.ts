@@ -3210,6 +3210,10 @@ export type Database = {
         }
         Returns: string
       }
+      tao_buddy_nhom: {
+        Args: { p_class: string; p_members: string[] }
+        Returns: undefined
+      }
       subject_fits_class: {
         Args: { p_class: string; p_subject: string }
         Returns: boolean

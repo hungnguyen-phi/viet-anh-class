@@ -5,6 +5,10 @@ import {getTranslations} from 'next-intl/server';
 // ════════════════════════════════════════════════════════════════════════════
 //
 // Lead hoàn thành / tổng (+%) và cam kết thắng/thua (+% thắng), tuần đang xem + luỹ kế.
+// CHỮ TRÊN MÀN không dùng từ trong ngành: "lead"→"Việc" (đúng nhãn workTag của màn học sinh),
+// "Luỹ kế"→"Từ đầu tới giờ" — chủ dự án 19/08/2026: học sinh lẫn giáo viên đều không hiểu
+// "luỹ kế lead". CHỈ bản VI: bản EN chủ dự án chốt giữ nguyên thuật ngữ 4DX theo PRD v3
+// (Leads/Commitments/Cumulative). Tên biến/khoá SQL giữ nguyên lead/luyKe cho khớp PRD và 0147.
 // Dùng ở cả màn của em lẫn trang /wig của giáo viên — MỘT cách đếm, một cách hiện
 // (nguồn: metrics_tuan_v, 0147). Emerald chỉ dành cho THẮNG, đúng luật màu chức năng.
 

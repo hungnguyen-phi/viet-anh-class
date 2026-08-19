@@ -416,7 +416,13 @@ export function LeadTicker({
             // Chỉ khoá ĐÚNG ô đang bay — hai ngày khác nhau là hai dòng khác nhau, chạm song song
             // được. Khoá cả dải chính là lỗi làm rơi cú chạm thứ hai (xem `oDangGhi`).
             const dangBay = oDangGhi.has(`${l.id}|${d}`);
-            const disabled = !canTick || !tickOpen || future || dangBay;
+            // KHOÁ ≠ ĐANG BAY. Ô đang bay vẫn phải VẼ như trạng thái cuối (tick là sáng hẳn
+            // ngay, bỏ tick là trắng ngay) — chủ dự án 19/08/2026: "tick 1 phát là phải ăn
+            // ngay, backend chạy sau cũng được". Lớp mờ 45% chỉ dành cho ô KHOÁ THẬT (tuần đã
+            // chốt / ngày chưa tới); phủ nó lên ô đang bay là biến 300 ms mạng thành cảm giác
+            // "bấm chưa ăn". `disabled` vẫn gồm dangBay để cú chạm đúp cùng một ô không đá nhau.
+            const khoa = !canTick || !tickOpen || future;
+            const disabled = khoa || dangBay;
 
             // ── Ô ĐIỀN SỐ (0110) ──
             // Nhãn thứ nằm TRÊN ô, không thay chỗ ô: em phải thấy cả "thứ mấy" lẫn "bao nhiêu"
@@ -442,8 +448,8 @@ export function LeadTicker({
                     aria-pressed={ticked}
                     className={`relative grid h-11 w-11 place-items-center rounded-[12px] border-[1.5px] text-[11.5px] font-extrabold transition-all ${
                       ticked
-                        ? `border-transparent bg-gold text-navy shadow-[var(--shadow-gold)]${disabled ? ' opacity-45' : ''}`
-                        : disabled
+                        ? `border-transparent bg-gold text-navy shadow-[var(--shadow-gold)]${khoa ? ' opacity-45' : ''}`
+                        : khoa
                           ? 'border-navy/10 bg-navy/[0.03] text-grey-mid'
                           : 'border-navy/15 bg-white text-grey-mid'
                     } ${isToday && !ticked ? 'border-navy ring-2 ring-navy/15' : ''} ${
@@ -505,8 +511,8 @@ export function LeadTicker({
                 // trên nền vàng vẫn rõ, và đó là dấu duy nhất cho biết tuần đã khoá.
                 className={`relative grid h-11 w-11 place-items-center rounded-[12px] border-[1.5px] text-[11.5px] font-extrabold transition-all ${
                   ticked
-                    ? `border-transparent bg-gold text-navy shadow-[var(--shadow-gold)]${disabled ? ' opacity-45' : ''}`
-                    : disabled
+                    ? `border-transparent bg-gold text-navy shadow-[var(--shadow-gold)]${khoa ? ' opacity-45' : ''}`
+                    : khoa
                       ? 'border-navy/10 bg-navy/[0.03] text-grey-mid'
                       : // grey-mid (#575c7d, 6.50:1) chứ không navy/60 (3.96:1 — trượt AA).
                         // Đây là ô NGÀY THƯỜNG, chưa bấm, không khoá gì cả — tôi tưởng con số

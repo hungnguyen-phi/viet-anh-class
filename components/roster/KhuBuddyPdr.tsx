@@ -1,17 +1,19 @@
 import {getTranslations} from 'next-intl/server';
-import {Users, CalendarClock} from 'lucide-react';
+import {Users, CalendarClock, Shuffle} from 'lucide-react';
 import {createClient} from '@/lib/supabase/server';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
-import {taoBuddyPair, goBuddyPair, luuLichBuddy, luuLichCoach} from '@/app/[locale]/(dashboard)/roster/buddy-actions';
+import {taoBuddyNhom, goBuddyNhom, chiaNhomNgauNhien, luuLichBuddy, luuLichCoach} from '@/app/[locale]/(dashboard)/roster/buddy-actions';
 
 // ════════════════════════════════════════════════════════════════════════════
-// BUDDY & LỊCH PDR — khu của GVCN trên /roster (PRD v3, migration 0146)
+// BUDDY & LỊCH PDR — khu của GVCN trên /roster (PRD v3, migration 0146 + 0153)
 // ════════════════════════════════════════════════════════════════════════════
 //
-// GVCN ghép cặp buddy (tối đa 2/em — trigger chặn), cài lịch họp buddy hằng tuần cho từng cặp,
-// và lịch PDR 1-1 với giáo viên (một ngày cố định 1–28 hằng tháng cho từng em). Học sinh chỉ
-// XEM các thứ này trên màn của mình — đăng ký/đổi cặp là nói với GVCN, đúng luật PRD.
+// GVCN ghép NHÓM buddy 2 hoặc 3 em (chốt 19/08/2026 — lớp lẻ thì một nhóm 3), cài lịch họp
+// buddy hằng tuần cho từng nhóm, và lịch PDR 1-1 với giáo viên (một ngày cố định 1–28 hằng
+// tháng cho từng em). Học sinh chỉ XEM các thứ này trên màn của mình — đăng ký/đổi nhóm là
+// nói với GVCN, đúng luật PRD. Dưới CSDL một nhóm 3 là 3 cặp đôi một (0153); màn này gộp
+// ngược cặp → nhóm để cô chỉ thấy và thao tác trên NHÓM.
 
 const THU = [2, 3, 4, 5, 6, 7, 8];
 
@@ -48,6 +50,29 @@ export async function KhuBuddyPdr({
   const oNho =
     'h-9 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2 text-[12px] font-bold text-navy outline-none focus:border-navy';
 
+  // ── GỘP CẶP → NHÓM (union-find tí hon) ────────────────────────────────────────────────────
+  // Nhóm 3 nằm dưới CSDL là 3 cặp đôi một; đây là phép gộp ngược để mỗi nhóm hiện MỘT dòng.
+  const goc = new Map<string, string>();
+  const tim = (x: string): string => {
+    const p = goc.get(x) ?? x;
+    if (p === x) return x;
+    const r = tim(p);
+    goc.set(x, r);
+    return r;
+  };
+  for (const c of cap) goc.set(tim(c.student_id), tim(c.buddy_id));
+  const nhom = new Map<string, {emIds: string[]; pairIds: string[]}>();
+  for (const c of cap) {
+    const r = tim(c.student_id);
+    let g = nhom.get(r);
+    if (!g) {
+      g = {emIds: [], pairIds: []};
+      nhom.set(r, g);
+    }
+    for (const id of [c.student_id, c.buddy_id]) if (!g.emIds.includes(id)) g.emIds.push(id);
+    g.pairIds.push(c.id);
+  }
+
   return (
     <section className="glass rounded-[20px] p-[18px]">
       <h2 className="mb-1 inline-flex items-center gap-1.5 font-display text-[16px] font-bold text-navy">
@@ -55,19 +80,24 @@ export async function KhuBuddyPdr({
         {t('title')}
       </h2>
 
-      {/* Các cặp hiện có + lịch tuần của từng cặp */}
+      {/* Các nhóm hiện có + lịch tuần của từng nhóm */}
       <div className="mt-2 flex flex-col gap-2">
-        {cap.length === 0 && <p className="text-[12.5px] italic text-grey-mid">{t('noPairs')}</p>}
-        {cap.map((c) => {
-          const l = lichCua.get(c.id);
+        {nhom.size === 0 && <p className="text-[12.5px] italic text-grey-mid">{t('noPairs')}</p>}
+        {[...nhom.values()].map((g) => {
+          // Lịch của nhóm nằm trên MỌI cặp (luuLichBuddy ghi đủ); đọc thì cặp nào có là đủ.
+          const l = g.pairIds.map((id) => lichCua.get(id)).find(Boolean);
+          const tenNhom = g.emIds.map((id) => ten.get(id) ?? '—').join(' ↔ ');
           return (
-            <div key={c.id} className="flex flex-wrap items-center gap-2 rounded-[12px] bg-navy/[0.035] p-2.5">
-              <span className="min-w-0 text-[13px] font-extrabold text-navy">
-                {ten.get(c.student_id) ?? '—'} ↔ {ten.get(c.buddy_id) ?? '—'}
-              </span>
+            <div key={g.pairIds[0]} className="flex flex-wrap items-center gap-2 rounded-[12px] bg-navy/[0.035] p-2.5">
+              <span className="min-w-0 text-[13px] font-extrabold text-navy">{tenNhom}</span>
+              {g.emIds.length === 3 && (
+                <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-extrabold text-grey-mid">
+                  {t('groupOf3')}
+                </span>
+              )}
               <form action={luuLichBuddy} className="ml-auto flex items-center gap-1.5">
                 <input type="hidden" name="class_id" value={classId} />
-                <input type="hidden" name="pair_id" value={c.id} />
+                <input type="hidden" name="pair_ids" value={g.pairIds.join(',')} />
                 <select name="weekday" defaultValue={l?.weekday ?? 6} className={`${oNho} cursor-pointer`} aria-label={t('weekday')}>
                   {THU.map((d) => (
                     <option key={d} value={d}>
@@ -86,11 +116,11 @@ export async function KhuBuddyPdr({
                   {t('saveSchedule')}
                 </SubmitButton>
               </form>
-              <form action={goBuddyPair}>
+              <form action={goBuddyNhom}>
                 <input type="hidden" name="class_id" value={classId} />
-                <input type="hidden" name="id" value={c.id} />
+                <input type="hidden" name="pair_ids" value={g.pairIds.join(',')} />
                 <ConfirmButton
-                  message={t('confirmUnpair', {a: ten.get(c.student_id) ?? '', b: ten.get(c.buddy_id) ?? ''})}
+                  message={t('confirmUnpair', {names: tenNhom})}
                   label={t('unpair')}
                   className="grid h-9 w-9 cursor-pointer place-items-center rounded-[9px] text-status-bad"
                 >
@@ -102,8 +132,8 @@ export async function KhuBuddyPdr({
         })}
       </div>
 
-      {/* Ghép cặp mới */}
-      <form action={taoBuddyPair} className="mt-3 flex flex-wrap items-center gap-2 border-t border-navy/[0.08] pt-3">
+      {/* Tạo nhóm mới — 2 em, em thứ ba tuỳ chọn (lớp lẻ thì một nhóm 3) */}
+      <form action={taoBuddyNhom} className="mt-3 flex flex-wrap items-center gap-2 border-t border-navy/[0.08] pt-3">
         <input type="hidden" name="class_id" value={classId} />
         <select name="em_a" defaultValue="" required className={`${oNho} min-w-[150px] cursor-pointer`} aria-label={t('studentA')}>
           <option value="" disabled>
@@ -126,10 +156,40 @@ export async function KhuBuddyPdr({
             </option>
           ))}
         </select>
+        <span className="text-[13px] font-extrabold text-grey-mid">↔</span>
+        <select name="em_c" defaultValue="" className={`${oNho} min-w-[150px] cursor-pointer`} aria-label={t('studentC')}>
+          <option value="">{t('studentC')}</option>
+          {hocSinh.map((h) => (
+            <option key={h.id} value={h.id}>
+              {h.name}
+            </option>
+          ))}
+        </select>
         <SubmitButton className="btn-gold h-9 cursor-pointer rounded-[9px] px-3.5 text-[12.5px] font-extrabold" wrapClass="contents">
           {t('pair')}
         </SubmitButton>
       </form>
+
+      {/* Chia ngẫu nhiên phần còn trống — chỉ hiện khi còn ít nhất 2 em chưa có nhóm.
+          Không đụng nhóm đã ghép tay: cô ghép tay vài nhóm đặc biệt trước, random phần còn lại. */}
+      {(() => {
+        const daCoNhom = new Set([...nhom.values()].flatMap((g) => g.emIds));
+        const conTrong = hocSinh.filter((h) => !daCoNhom.has(h.id));
+        if (conTrong.length < 2) return null;
+        return (
+          <form action={chiaNhomNgauNhien} className="mt-2">
+            <input type="hidden" name="class_id" value={classId} />
+            <ConfirmButton
+              message={t('confirmRandom', {n: conTrong.length})}
+              label={t('randomize', {n: conTrong.length})}
+              className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-3 text-[12.5px] font-extrabold text-navy hover:border-navy"
+            >
+              <Shuffle size={13} strokeWidth={2.5} />
+              {t('randomize', {n: conTrong.length})}
+            </ConfirmButton>
+          </form>
+        );
+      })()}
 
       {/* Lịch PDR 1-1 với giáo viên — mỗi em một ngày cố định hằng tháng */}
       <div className="mt-4 border-t border-navy/[0.08] pt-3">

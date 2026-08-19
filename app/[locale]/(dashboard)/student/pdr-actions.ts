@@ -59,7 +59,10 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
       .select('student_id, buddy_id, created_at')
       .eq('is_active', true)
       .or(`student_id.eq.${me.id},buddy_id.eq.${me.id}`)
-      .order('created_at');
+      // Nhóm 3 sinh cả 3 cặp trong MỘT giao dịch (0153) → created_at bằng nhau; thêm khoá phụ
+      // để counterpart/second không đổi chỗ giữa hai lần đọc.
+      .order('created_at')
+      .order('id');
     const banHoc = (cap ?? []).map((p) => (p.student_id === me.id ? p.buddy_id : p.student_id));
     if (banHoc.length === 0)
       return {ok: false, error: 'Em chưa có buddy — giáo viên ghép cặp xong là họp được.'};
