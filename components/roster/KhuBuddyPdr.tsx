@@ -98,7 +98,17 @@ export async function KhuBuddyPdr({
               <form action={luuLichBuddy} className="ml-auto flex items-center gap-1.5">
                 <input type="hidden" name="class_id" value={classId} />
                 <input type="hidden" name="pair_ids" value={g.pairIds.join(',')} />
-                <select name="weekday" defaultValue={l?.weekday ?? 6} className={`${oNho} cursor-pointer`} aria-label={t('weekday')}>
+                {/* CHƯA CÓ LỊCH THÌ Ô PHẢI TỰ TỐ CÁO (audit 19/08/2026): mặc định "T6" làm nhóm
+                    chưa đặt lịch nhìn y hệt nhóm đã lưu lịch T6 — sau một cú "Chia ngẫu nhiên"
+                    ra chục nhóm thì chục hàng đều mang "T6" giả. Chưa lưu → option rỗng "— chưa
+                    đặt lịch —"; bấm Lưu khi chưa chọn thì server đã có câu "Chọn thứ trong tuần." */}
+                <select
+                  name="weekday"
+                  defaultValue={l?.weekday ?? ''}
+                  className={`${oNho} cursor-pointer`}
+                  aria-label={t('weekday')}
+                >
+                  {!l && <option value="">{t('noScheduleYet')}</option>}
                   {THU.map((d) => (
                     <option key={d} value={d}>
                       {nhanThu(d)}
@@ -122,7 +132,7 @@ export async function KhuBuddyPdr({
                 <ConfirmButton
                   message={t('confirmUnpair', {names: tenNhom})}
                   label={t('unpair')}
-                  className="grid h-9 w-9 cursor-pointer place-items-center rounded-[9px] text-status-bad"
+                  className="grid h-9 w-9 cursor-pointer place-items-center rounded-[9px] text-status-bad transition-colors hover:bg-status-bad/10"
                 >
                   ✕
                 </ConfirmButton>
@@ -145,7 +155,7 @@ export async function KhuBuddyPdr({
             </option>
           ))}
         </select>
-        <span className="text-[13px] font-extrabold text-grey-mid">↔</span>
+        <span aria-hidden className="text-[13px] font-extrabold text-grey-mid">↔</span>
         <select name="em_b" defaultValue="" required className={`${oNho} min-w-[150px] cursor-pointer`} aria-label={t('studentB')}>
           <option value="" disabled>
             {t('studentB')}
@@ -156,7 +166,7 @@ export async function KhuBuddyPdr({
             </option>
           ))}
         </select>
-        <span className="text-[13px] font-extrabold text-grey-mid">↔</span>
+        <span aria-hidden className="text-[13px] font-extrabold text-grey-mid">↔</span>
         <select name="em_c" defaultValue="" className={`${oNho} min-w-[150px] cursor-pointer`} aria-label={t('studentC')}>
           <option value="">{t('studentC')}</option>
           {hocSinh.map((h) => (

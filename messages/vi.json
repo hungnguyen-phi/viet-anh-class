@@ -1374,6 +1374,7 @@
   "buddy": {
     "title": "Buddy & lịch PDR",
     "noPairs": "Chưa có nhóm nào.",
+    "noScheduleYet": "— chưa đặt lịch —",
     "weekday": "Thứ",
     "time": "Giờ",
     "saveSchedule": "Lưu lịch",

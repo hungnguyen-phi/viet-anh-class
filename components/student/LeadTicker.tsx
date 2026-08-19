@@ -475,7 +475,7 @@ export function LeadTicker({
                       placeholder={l.unit ?? ''}
                       aria-label={`${l.title} — ${dayShort[isoDow(d) - 1]} ${d.slice(5)} — ${t('luongOLabel')}`}
                       aria-busy={dangBay}
-                      className={`h-8 w-11 rounded-[9px] border-[1.5px] text-center text-[11.5px] font-extrabold tabular-nums transition-all ${
+                      className={`h-8 w-11 rounded-[9px] border-[1.5px] text-center text-[11.5px] font-extrabold tabular-nums transition-all placeholder:text-grey-mid ${
                         ticked ? 'border-navy/20 bg-white text-navy' : 'border-navy/10 bg-navy/[0.03] text-grey-mid'
                       } ${disabled || !ticked ? 'cursor-default opacity-60' : ''} ${
                         dangBay ? 'text-transparent' : ''

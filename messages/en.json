@@ -1374,6 +1374,7 @@
   "buddy": {
     "title": "Buddies & PDR schedule",
     "noPairs": "No groups yet.",
+    "noScheduleYet": "— no schedule yet —",
     "weekday": "Day",
     "time": "Time",
     "saveSchedule": "Save",
