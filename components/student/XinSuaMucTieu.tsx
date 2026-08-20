@@ -6,7 +6,7 @@ import {PencilLine} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {btnGold} from '@/components/ui/Field';
 import {Popup} from '@/components/ui/Popup';
-import {createEditRequest} from '@/app/[locale]/(dashboard)/student/actions';
+import {createEditRequest, withdrawEditRequest} from '@/app/[locale]/(dashboard)/student/actions';
 
 // XIN THẦY CÔ SỬA / XOÁ MỤC TIÊU NĂM ĐÃ DUYỆT.
 //
@@ -25,6 +25,7 @@ export function XinSuaMucTieu({
   title,
   unit,
   targetValue,
+  yeuCauCho,
 }: {
   studentId: string;
   classId: string;
@@ -32,6 +33,9 @@ export function XinSuaMucTieu({
   title: string;
   unit: string;
   targetValue: number;
+  /** Yêu cầu sửa/xoá của chính em CÒN CHỜ DUYỆT trên mục tiêu này — có thì bút mở ra đường
+      "Thôi xin…" (rút lại, withdrawEditRequest) thay vì form gửi lần hai (20/08/2026). */
+  yeuCauCho: {id: string; loai: 'sua' | 'xoa'} | null;
 }) {
   const t = useTranslations('goal');
   const [mo, setMo] = useState(false);
@@ -52,6 +56,29 @@ export function XinSuaMucTieu({
       </button>
       {mo && (
         <Popup title={t('askEditWhat', {title})} onClose={() => setMo(false)} width="max-w-[480px]">
+          {yeuCauCho ? (
+            // ĐÃ CÓ YÊU CẦU CHỜ DUYỆT → không bày form gửi lần hai (unique index 0035 sẽ nuốt
+            // im, em lại tưởng gửi được). Lối duy nhất: THÔI XIN — rút lại rồi muốn thì xin mới.
+            <div className="flex flex-col gap-3">
+              <p className="text-[13px] font-semibold leading-relaxed text-navy">
+                {t(yeuCauCho.loai === 'xoa' ? 'reqPendingNoteDelete' : 'reqPendingNoteEdit')}
+              </p>
+              <form action={withdrawEditRequest} className="flex flex-wrap items-center gap-3">
+                <input type="hidden" name="student_id" value={studentId} />
+                <input type="hidden" name="request_id" value={yeuCauCho.id} />
+                <SubmitButton className={btnGold} wrapClass="contents">
+                  {t(yeuCauCho.loai === 'xoa' ? 'reqWithdrawDelete' : 'reqWithdrawEdit')}
+                </SubmitButton>
+                <button
+                  type="button"
+                  onClick={() => setMo(false)}
+                  className="inline-flex min-h-[24px] cursor-pointer items-center text-[12px] font-extrabold text-grey-mid underline"
+                >
+                  {t('cancel')}
+                </button>
+              </form>
+            </div>
+          ) : (
           <form action={createEditRequest} className="flex flex-col gap-3">
             <input type="hidden" name="student_id" value={studentId} />
             <input type="hidden" name="class_id" value={classId} />
@@ -130,6 +157,7 @@ export function XinSuaMucTieu({
               </button>
             </div>
           </form>
+          )}
         </Popup>
       )}
     </>

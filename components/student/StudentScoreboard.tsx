@@ -584,6 +584,16 @@ export async function StudentScoreboard({
   const myRequests: MyRequest[] = (
     (myRequestRows ?? []) as {id: string; kind: string; ref_id: string | null; message: string | null}[]
   ).map((r) => ({...r, leadTitle: r.ref_id ? leadTitleById.get(r.ref_id) ?? null : null}));
+  // HUY HIỆU "CHỜ DUYỆT" TRÊN THẺ MỤC TIÊU (20/08/2026 — chủ dự án: bấm Xin xoá xong thẻ im
+  // lặng, em tưởng lỗi; mở lại bút thì thành xin lần hai). Map wig → yêu cầu pending của CHÍNH
+  // em: kind 'other' + ref_id do XinSuaMucTieu gửi thì ref_id là id mục tiêu — các ref_id loại
+  // khác (việc, cam kết) không trùng id wig nên tra theo mt.id tự lọc sạch. Loại sửa/xoá đọc từ
+  // tiền tố câu đã ghép ở createEditRequest.
+  const xinSuaTheoWig: Record<string, {id: string; loai: 'sua' | 'xoa'}> = {};
+  for (const r of myRequests) {
+    if (r.kind === 'other' && r.ref_id && !(r.ref_id in xinSuaTheoWig))
+      xinSuaTheoWig[r.ref_id] = {id: r.id, loai: r.message?.startsWith('XIN XOÁ') ? 'xoa' : 'sua'};
+  }
   const displayName = tenHienThi(student.full_name, student.email);
 
   // Mục tiêu của em + trận đánh của lớp để chọn — cho khối MucTieuCuaCon.
@@ -863,6 +873,7 @@ export async function StudentScoreboard({
             pctTheoWig={pctTheoWig}
             nhanTheoArea={nhanTheoArea}
             mauTheoArea={mauTheoArea}
+            xinSuaTheoWig={xinSuaTheoWig}
           />
         ) : (
           <p className="text-sm italic text-grey-mid">{t('noLeads')}</p>

@@ -90,6 +90,7 @@ export function MucTieuCuaCon({
   pctTheoWig,
   nhanTheoArea,
   mauTheoArea,
+  xinSuaTheoWig,
 }: {
   studentId: string;
   classId: string;
@@ -106,6 +107,8 @@ export function MucTieuCuaCon({
   nhanTheoArea: Record<string, string>;
   /** Màu của 4 domain (area_config): hex cho viền/vòng %, soft (rgba nhạt) cho nền ô. */
   mauTheoArea: Record<string, {hex: string; soft: string}>;
+  /** Yêu cầu sửa/xoá CÒN CHỜ DUYỆT của chính em, theo id mục tiêu (rỗng với người xem khác). */
+  xinSuaTheoWig: Record<string, {id: string; loai: 'sua' | 'xoa'}>;
 }) {
   const t = useTranslations('goal');
   const [bao, setBao] = useState('');
@@ -150,6 +153,7 @@ export function MucTieuCuaCon({
               pct={pctTheoWig[mt.id]}
               wigLop={wigLop}
               classId={classId}
+              yeuCauCho={xinSuaTheoWig[mt.id] ?? null}
               onSua={() => setMoForm(a)}
             />
           );
@@ -223,6 +227,7 @@ function TheMucTieu({
   pct,
   wigLop,
   classId,
+  yeuCauCho,
   onSua,
 }: {
   mt: MucTieuCuaEm;
@@ -236,6 +241,8 @@ function TheMucTieu({
   soDo: SoDoCuaTuan | undefined;
   tuanChuaChot: boolean;
   pct: number | undefined;
+  /** Yêu cầu sửa/xoá của chính em còn chờ duyệt trên mục tiêu này (null = không có). */
+  yeuCauCho: {id: string; loai: 'sua' | 'xoa'} | null;
   onSua: () => void;
 }) {
   const t = useTranslations('goal');
@@ -285,6 +292,19 @@ function TheMucTieu({
             {mt.status === 'rejected' && (
               <span className="rounded-full bg-status-bad/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-status-bad">
                 {t('returned')}
+              </span>
+            )}
+            {/* EM ĐÃ XIN SỬA/XOÁ, ĐANG CHỜ (20/08/2026): thiếu chip này thì bấm "Xin xoá" xong
+                thẻ im lặng như chưa có gì — em tưởng lỗi và xin lại lần nữa. */}
+            {yeuCauCho && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${
+                  yeuCauCho.loai === 'xoa'
+                    ? 'bg-status-bad/[0.12] text-status-bad'
+                    : 'bg-gold/25 text-gold-text'
+                }`}
+              >
+                {t(yeuCauCho.loai === 'xoa' ? 'reqPendingDelete' : 'reqPendingEdit')}
               </span>
             )}
             {mt.set_by === 'teacher' && (
@@ -389,6 +409,7 @@ function TheMucTieu({
           title={mt.title}
           unit={mt.unit}
           targetValue={mt.target_value}
+          yeuCauCho={yeuCauCho}
         />
       )}
     </div>
