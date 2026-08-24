@@ -8,6 +8,17 @@
 # Bật: git config core.hooksPath .githooks
 # Thật sự cần đẩy vào main: git push --no-verify origin main
 
+# CỬA CHO CHỦ DỰ ÁN. Người đẩy main hằng ngày không thể mỗi lần gõ --no-verify: gõ mãi thành
+# quen tay, mà quen tay thì cái hook này mất luôn tác dụng với người nó SINH RA để nhắc. Mở một
+# công tắc trên máy, bật một lần:
+#
+#     git config va.day-main duoc
+#
+# Máy của người chỉ sửa ý nhỏ thì KHÔNG bật — hàng rào vẫn còn nguyên ở đó.
+if [ "$(git config --get va.day-main)" = "duoc" ]; then
+  exit 0
+fi
+
 while read -r _local_ref _local_sha remote_ref _remote_sha; do
   case "$remote_ref" in
     refs/heads/main)

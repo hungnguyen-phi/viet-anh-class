@@ -102,7 +102,9 @@ git push -u origin sua-nho/<việc-đang-làm>
 gh pr create --fill                         # rồi nhờ chủ dự án merge
 ```
 
-- **Không `git push origin main`** trừ khi chủ dự án bảo. Máy đã cài hook chặn (mục 8).
+- **Không `git push origin main`** trừ khi chủ dự án bảo. Máy đã cài hook chặn (mục 8) — và
+  **đừng gỡ nó**: đừng gợi ý `--no-verify`, đừng bật `git config va.day-main duoc`. Công tắc ấy
+  là của chủ dự án, người đẩy main hằng ngày.
 - Không `--force`, không `git reset --hard` trên nhánh đã đẩy, không sửa lịch sử của `main`.
 - Commit message viết **vì sao**, không phải *cái gì*: diff đã nói cái gì rồi.
 
