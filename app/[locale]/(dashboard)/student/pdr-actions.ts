@@ -4,7 +4,7 @@ import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
 import {getCurrentProfile} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
-import {isoWeekLabel, todayInVN, vnNoon, mondayOf, nextWeekRangeVN} from '@/lib/dates';
+import {isoWeekLabel, todayInVN, vnNoon, mondayOf, shiftWeeks} from '@/lib/dates';
 
 // ════════════════════════════════════════════════════════════════════════════
 // HỌP PDR (Plan-Do-Review) — PRD v3 mục 6.2.7
@@ -75,7 +75,25 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
     counterpart = gvcn;
   }
 
-  const weekLabel = isoWeekLabel(vnNoon(todayInVN()));
+  // ── TUẦN CỦA BIÊN BẢN ĐI THEO THANH TUẦN (24/08/2026) ────────────────────────────────────
+  //
+  // Trước đây tuần luôn suy từ NGÀY HÔM NAY, nên buổi họp sáng thứ Hai — buổi nhìn lại tuần vừa
+  // xong — không có chỗ nào để ghi: form mở ra là của tuần mới. Nay màn gửi lên thứ Hai của tuần
+  // biên bản, và ở đây kiểm lại (ô hidden nằm trong trình duyệt, sửa được):
+  //
+  //   · phải đúng là một thứ Hai;
+  //   · KHÔNG ghi cho tuần chưa tới — chưa sống thì chưa có gì để nhìn lại;
+  //   · chỉ tuần này và tuần trước. Xa hơn thì câu 6 sinh cam kết cho một tuần đã đi qua.
+  const thisMonday = mondayOf(todayInVN());
+  const tuanGui = String(formData.get('week_start') ?? '').trim();
+  const tuanBienBan = /^\d{4}-\d{2}-\d{2}$/.test(tuanGui) ? tuanGui : thisMonday;
+  if (mondayOf(tuanBienBan) !== tuanBienBan)
+    return {ok: false, error: 'Tuần của biên bản không hợp lệ.'};
+  if (tuanBienBan > thisMonday)
+    return {ok: false, error: 'Tuần này chưa tới — chưa có gì để nhìn lại. Mở lại tuần hiện tại nhé.'};
+  if (tuanBienBan < shiftWeeks(thisMonday, -1))
+    return {ok: false, error: 'Biên bản chỉ ghi được ở tuần này và tuần trước.'};
+  const weekLabel = isoWeekLabel(vnNoon(tuanBienBan));
   const {data: daCo} = await supabase
     .from('pdr_meetings')
     .select('id, acknowledged_at')
@@ -117,10 +135,10 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
   let canhBao = '';
   const chot = String(formData.get('q2_verdict') ?? '').trim();
   if (chot === 'win' || chot === 'lose') {
-    const tuanTruoc = mondayOf(todayInVN());
-    const d = new Date(`${tuanTruoc}T00:00:00Z`);
-    d.setUTCDate(d.getUTCDate() - 7);
-    const monTruoc = d.toISOString().slice(0, 10);
+    // Chấm cam kết CỦA CHÍNH TUẦN BIÊN BẢN. Trước 24/08/2026 chỗ này suy từ hôm nay ("tuần
+    // trước của hôm nay") — trùng kết quả khi họp đầu tuần, nhưng sai hẳn khi em mở biên bản của
+    // một tuần khác: chấm Thắng/Thua của tuần A rồi ghi vào cam kết của tuần B.
+    const monTruoc = tuanBienBan;
     const {data: ckTruoc} = await supabase
       .from('commitments')
       .select('id, pdr_meeting_id, verdict, pdr_meetings(type)')
@@ -189,7 +207,7 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
         wig_id: wig.id,
         class_id: ghiDanh.class_id,
         student_id: me.id,
-        week_start: nextWeekRangeVN().start,
+        week_start: shiftWeeks(tuanBienBan, 1),
         title: traLoi.q6_commitment.slice(0, 160),
         area: 'knowledge', // trigger đè bằng lĩnh vực của WIG — giá trị qua cửa, không phải lựa chọn
         pdr_meeting_id: meetingId,

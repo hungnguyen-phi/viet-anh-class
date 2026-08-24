@@ -609,12 +609,25 @@ export async function StudentScoreboard({
   );
 
   // ── HỌP PDR VỚI BUDDY (0146 — PRD v3 6.2.7) ────────────────────────────────────────────────
-  // Luôn là TUẦN HIỆN TẠI, không theo tuần đang xem: biên bản PDR là việc của tuần này, còn thanh
-  // tuần ở cột trái chỉ điều khiển khu cam kết/tick.
-  const nhanTuanPdr = isoWeekLabel(vnNoon(thisMonday));
+  //
+  // ĐI THEO THANH TUẦN (24/08/2026). Bản 19/08 ghim khối họp vào TUẦN HIỆN TẠI, và điều đó tự tố
+  // cáo ngay trên màn: sáng thứ Hai 24/08 lùi về W34 thì khu cam kết đổi sang 17/08 còn khu họp
+  // vẫn đứng ở W35 — hai nửa màn hình nói hai tuần khác nhau, và buổi họp đầu tuần (nhìn lại tuần
+  // vừa xong) không có chỗ nào để ghi. Chủ dự án: "theo form theo tuần, tuần nào form đó là được".
+  //
+  // Nhịp của một biên bản nay đọc được thành một câu, không phụ thuộc họp ngày nào trong tuần:
+  //
+  //     biên bản tuần X  →  câu 2 chấm Thắng/Thua cam kết tuần X  →  câu 6 chốt cam kết tuần X+1
+  //
+  // Họp sáng thứ Hai 24/08 thì mở biên bản W34: chấm tuần vừa xong, hứa cho tuần đang bắt đầu.
+  const nhanTuanPdr = isoWeekLabel(vnNoon(monday));
   // Trục tuần của KHU HỌP phải tự đọc được (19/08/2026 — "w32 rồi đến w33 rồi đến w31… không có
-  // 1 cái gì rõ ràng cả"): tuần sau cho câu nhịp PDR ("cam kết chốt cho tuần {tuanSau}").
-  const tuanSauPdr = isoWeekLabel(vnNoon(shiftWeeks(thisMonday, 1)));
+  // 1 cái gì rõ ràng cả"): tuần kế tiếp TUẦN BIÊN BẢN, để câu nhịp nói đúng cam kết chốt cho tuần nào.
+  const tuanSauPdr = isoWeekLabel(vnNoon(shiftWeeks(monday, 1)));
+  // Ghi được ở tuần này và tuần trước. Xa hơn thì câu 6 sẽ sinh cam kết cho một tuần đã đi qua —
+  // cùng lằn ranh "chỉ ghim khi còn nóng" của biên bản lớp, và máy chủ chặn lại đúng ở đây.
+  const tuanNayLabel = isoWeekLabel(vnNoon(thisMonday));
+  const moGhiPdr = monday === thisMonday || monday === shiftWeeks(thisMonday, -1);
   // GỘP MỘT ĐỢT (tối ưu tốc độ 18/08/2026): PDR (4 câu) + metrics độc lập nhau và đều chỉ cần
   // studentId/monday có sẵn từ trước — chạy song song một vòng thay vì hai vòng nối tiếp. Trên
   // VPS mất ~5% gói, mỗi vòng bớt đi là bớt một lần rút thăm với cái đuôi ~1 giây.
@@ -923,6 +936,9 @@ export async function StudentScoreboard({
               bienBan={pdrRes.data ?? null}
               wigDaDuyet={wigDaDuyet}
               weekLabel={nhanTuanPdr}
+              weekStart={monday}
+              laTuanNay={monday === thisMonday}
+              moGhi={moGhiPdr}
               khoangNgay={khoangTuan(nhanTuanPdr)}
               tuanSau={tuanSauPdr}
             />
@@ -938,6 +954,9 @@ export async function StudentScoreboard({
                 bienBan={pdrCoachRes.data ?? null}
                 wigDaDuyet={wigDaDuyet}
                 weekLabel={nhanTuanPdr}
+                weekStart={monday}
+                laTuanNay={monday === thisMonday}
+                moGhi={moGhiPdr}
                 khoangNgay={khoangTuan(nhanTuanPdr)}
                 tuanSau={tuanSauPdr}
               />
@@ -956,7 +975,7 @@ export async function StudentScoreboard({
               meetings={meetings}
               canManage={canManage}
               canChat={canTick}
-              tuanNay={nhanTuanPdr}
+              tuanNay={tuanNayLabel}
             />
           </section>
       </div>

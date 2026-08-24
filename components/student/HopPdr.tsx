@@ -40,6 +40,9 @@ export function HopPdr({
   bienBan,
   wigDaDuyet,
   weekLabel,
+  weekStart,
+  laTuanNay = true,
+  moGhi = true,
   khoangNgay = null,
   tuanSau = null,
   loai = 'buddy',
@@ -52,6 +55,17 @@ export function HopPdr({
   bienBan: PdrMeeting | null;
   wigDaDuyet: WigDaDuyet[];
   weekLabel: string;
+  /**
+   * Thứ Hai của tuần biên bản (chuỗi 'YYYY-MM-DD'). Khối này ĐI THEO THANH TUẦN — tuần nào biên
+   * bản đó (chủ dự án 24/08/2026: "theo form theo tuần, tuần nào form đó là được"). Trước đây nó
+   * ghim cứng vào tuần hiện tại, nên lùi về W34 thì cam kết đổi sang 17/08 mà khu họp vẫn đứng ở
+   * W35 — hai nửa màn hình nói hai tuần khác nhau.
+   */
+  weekStart: string;
+  /** Tuần đang mở có phải tuần hiện tại không — quyết định chữ trên chip ("Tuần này"/"Tuần đã qua"). */
+  laTuanNay?: boolean;
+  /** Tuần này còn ghi được không (tuần này + tuần trước). Tuần cũ hơn: chỉ đọc. */
+  moGhi?: boolean;
   /** Khoảng ngày của tuần đang họp ('18/08–24/08') — "W34-2026" trần là mã máy, em không đọc ra. */
   khoangNgay?: string | null;
   /** Nhãn tuần SAU ('W35-2026') — để nói rõ cam kết ở câu 6 là chốt cho tuần nào. */
@@ -76,9 +90,12 @@ export function HopPdr({
           <Users size={15} strokeWidth={2.2} className="text-gold-deep" />
           {t(loai === 'coach' ? 'titleCoach' : 'title')}
         </h2>
-        {/* "Tuần này" đứng trước, mã tuần + khoảng ngày theo sau — khối này LUÔN là tuần hiện
-            tại, và phải tự nói ra điều đó thay vì bắt em giải mã "W34-2026" (19/08/2026). */}
-        <span className="font-display text-[13px] font-bold text-navy">{t('thisWeek')}</span>
+        {/* Chữ tuần đứng trước, mã tuần + khoảng ngày theo sau — em không giải mã "W34-2026"
+            (19/08/2026). Từ 24/08/2026 khối đi theo thanh tuần, nên chữ này nói đúng tuần ĐANG
+            MỞ chứ không còn đóng cứng "Tuần này". */}
+        <span className="font-display text-[13px] font-bold text-navy">
+          {t(laTuanNay ? 'thisWeek' : 'tuanDaQua')}
+        </span>
         <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-extrabold tabular-nums text-grey-mid">
           {weekLabel}
           {khoangNgay && ` · ${khoangNgay}`}
@@ -104,7 +121,7 @@ export function HopPdr({
           SAU. Trước đây em phải tự suy từ 6 câu hỏi — "họp PDR tuần này hay tuần sau, cho tuần
           nào?" là câu chủ dự án hỏi nguyên văn (19/08/2026). Chỉ hiện khi biên bản còn mở:
           đã ký rồi thì dòng dạy nhịp chỉ còn là tiếng ồn. */}
-      {!daKy && (loai === 'coach' || tenBuddy.length > 0) && (
+      {!daKy && moGhi && (loai === 'coach' || tenBuddy.length > 0) && (
         <p className="rounded-[10px] bg-navy/[0.04] px-2.5 py-1.5 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
           {tuanSau ? t('nhip', {tuanSau}) : t('nhipKhongTuan')}
         </p>
@@ -134,10 +151,21 @@ export function HopPdr({
         </div>
       )}
 
+      {/* TUẦN CŨ HƠN TUẦN TRƯỚC: chỉ đọc. Câu 6 sinh cam kết cho tuần KẾ TIẾP tuần biên bản —
+          mở biên bản tháng trước rồi hứa cho một tuần đã đi qua là lời hứa không ai giữ được, và
+          máy chủ cũng chặn. Nói thẳng ra thay vì bày một cái form gửi lên là báo lỗi. */}
+      {!daKy && laChinhEm && tenBuddy.length > 0 && !moGhi && (
+        <p className="rounded-[10px] bg-navy/[0.04] px-2.5 py-1.5 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
+          {t('chiTuanNong')}
+        </p>
+      )}
+
       {/* CHƯA KÝ + là chính em (và đã có buddy) → form 6 câu. */}
-      {!daKy && laChinhEm && tenBuddy.length > 0 && (
+      {!daKy && laChinhEm && tenBuddy.length > 0 && moGhi && (
         <form action={luuAction} className="flex flex-col gap-2">
           <input type="hidden" name="type" value={loai} />
+          {/* Tuần của biên bản đi theo thanh tuần; máy chủ kiểm lại (ô hidden sửa được). */}
+          <input type="hidden" name="week_start" value={weekStart} />
           {luuState.error && (
             <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
               <AlertCircle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
