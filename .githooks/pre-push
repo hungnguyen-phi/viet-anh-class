@@ -1,0 +1,29 @@
+#!/bin/sh
+# CHẶN ĐẨY THẲNG VÀO main.
+#
+# main = production: CI build image rồi Coolify kéo về, cả trường thấy bản mới trong ~6 phút và
+# không có nút hoàn tác. Cái hook này không phải để phòng kẻ xấu — nó phòng đúng một phút lơ đãng
+# gõ nhầm nhánh. GitHub không khoá được nhánh (repo private trên gói Free), nên hàng rào nằm ở đây.
+#
+# Bật: git config core.hooksPath .githooks
+# Thật sự cần đẩy vào main: git push --no-verify origin main
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main)
+      echo ""
+      echo "  ✋ Dừng: đây là main, tức là ĐẨY LÊN LÀ CẢ TRƯỜNG THẤY."
+      echo ""
+      echo "  Làm thế này thay vì:"
+      echo "     git checkout -b sua-nho/viec-dang-lam"
+      echo "     git push -u origin sua-nho/viec-dang-lam"
+      echo "     gh pr create --fill"
+      echo ""
+      echo "  Chủ dự án merge PR là bản mới tự lên."
+      echo "  (Được phép và biết mình đang làm gì: thêm --no-verify)"
+      echo ""
+      exit 1
+      ;;
+  esac
+done
+exit 0
