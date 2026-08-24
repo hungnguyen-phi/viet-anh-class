@@ -28,8 +28,22 @@ git config core.hooksPath .githooks             # bật hàng rào chặn đẩy
 cp .env.example .env.local
 ```
 
-Mở `.env.local` bằng Notepad, điền các khoá Supabase — **xin trực tiếp chủ dự án**
-(alex@truongvietanh.com), đừng lấy từ chỗ khác và đừng gửi lại cho ai.
+Mở `.env.local` bằng Notepad và **chỉ điền đúng hai dòng** (xin chủ dự án, alex@truongvietanh.com):
+
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
+Hai giá trị này vốn đã công khai — chúng nằm sẵn trong mã JavaScript của bản chạy thật, ai mở app
+bằng trình duyệt cũng đọc được. Thứ giữ dữ liệu an toàn là luật quyền ở cơ sở dữ liệu, không phải
+việc giấu hai dòng này.
+
+**Các dòng còn lại trong `.env.local` cứ để nguyên, đừng xin.** `SUPABASE_SERVICE_ROLE_KEY` bỏ qua
+toàn bộ luật quyền — cầm nó là đọc và sửa được dữ liệu của cả trường; `DATABASE_URL` thì ghi thẳng
+vào cơ sở dữ liệu. Không có chúng, đúng ba chỗ trong app sẽ báo lỗi **ở máy anh** (check-in cảm xúc,
+ghi chú Sư Tử, một nhánh của yêu cầu sửa) — phần còn lại chạy bình thường, và đổi lại là một cú gõ
+nhầm không thể chạm tới dữ liệu thật.
 
 Xong, chạy thử app ở máy mình:
 
@@ -82,12 +96,11 @@ Việc của anh là nói **đúng chỗ và đúng ý**.
 > Sửa file StudentScoreboard.tsx dòng 780. → Không cần biết tên file. Cứ tả **màn hình nào, chữ nào**;
 > Claude tự tìm.
 
-Sau khi Claude nói đã xong, luôn hỏi thêm một câu:
+Sau khi Claude nói đã xong: **tự mở `localhost` và nhìn tận mắt.** "Đã sửa xong" không phải bằng
+chứng — luật của dự án là nhìn thấy rồi mới tin.
 
-> Chụp màn hình chỗ vừa sửa cho tôi xem.
-
-Claude chụp được bằng phiên đăng nhập thật. **Nhìn ảnh rồi mới tin** — đây là luật của dự án, không
-phải khách sáo.
+(Máy anh không có khoá quản trị nên Claude không tự chụp màn hộ được. Cứ tự bấm vào màn hình đó,
+đúng như một giáo viên hay học sinh sẽ bấm.)
 
 ## 4. Ba thứ đừng tự làm
 
@@ -102,6 +115,8 @@ phải khách sáo.
 | Gặp gì | Làm gì |
 |---|---|
 | Chạy `npm run dev` báo lỗi | Dán nguyên câu lỗi cho Claude, bảo "sửa giúp tôi" |
+| Đăng nhập ở `localhost` xong bị văng sang class.vietanh.org | Nhờ chủ dự án thêm `http://localhost:3000/**` vào Supabase → Authentication → Redirect URLs |
+| Check-in cảm xúc / ghi chú Sư Tử báo lỗi ở máy | Bình thường — máy anh cố tình không có khoá quản trị. Trên bản thật vẫn chạy |
 | Sửa hỏng, muốn quay lại từ đầu | `git checkout main` rồi tạo nhánh mới — nhánh cũ bỏ đó, không sao |
 | Không biết mình đang ở nhánh nào | `git status` — dòng đầu ghi tên nhánh |
 | Đã merge nhưng app chưa đổi | Chờ ~6 phút, rồi mở https://class.vietanh.org/api/health xem `commit` đã là bản mới chưa |

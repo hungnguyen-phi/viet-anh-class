@@ -116,10 +116,20 @@ curl -s https://class.vietanh.org/api/health   # {"commit":"<đúng SHA vừa me
 
 ```bash
 npm install
-cp .env.example .env.local     # xin key Supabase từ chủ dự án, KHÔNG lấy từ chỗ khác
+cp .env.example .env.local            # xin key từ chủ dự án, KHÔNG lấy từ chỗ khác
 git config core.hooksPath .githooks   # bật hook chặn push thẳng vào main
 npm run dev
 ```
+
+**Máy của người chỉ sửa ý nhỏ chỉ có hai khoá `NEXT_PUBLIC_*`** (vốn đã công khai trong bundle
+production). Không có `SUPABASE_SERVICE_ROLE_KEY` và `DATABASE_URL` — nên ở máy đó:
+
+- `checkinMood`, ghi chú Sư Tử, một nhánh `updateEditRequest` sẽ lỗi (ba chỗ duy nhất dùng
+  `createAdminClient`). Đây là **bình thường**, không phải lỗi cần sửa.
+- Mọi `scripts/*.mjs` tạo magic link (`chup-trang.mjs`, `test-*.mjs`) và `npm run sql` **không chạy
+  được**. Đừng bảo người dùng "xin thêm khoá" để chạy chúng — thay vào đó, bảo họ tự mở trình duyệt
+  và nhìn màn hình đó.
+
 
 ## 9. Việc phải hỏi trước khi làm
 
