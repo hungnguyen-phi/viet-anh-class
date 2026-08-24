@@ -55,15 +55,23 @@ export function SuaCamKet({
     if (state.ok) setMo(false);
   }, [state]);
 
-  if (status === 'approved') {
-    return viec.length > 0 ? <EditRequestButton studentId={studentId} classId={classId} leads={viec} /> : null;
+  // ĐÃ DUYỆT + ĐÃ CÓ VIỆC → muốn đổi thì xin cô (đường cũ, giữ nguyên).
+  //
+  // ĐÃ DUYỆT + KHÔNG CÓ VIỆC → trước 24/08/2026 khối này trả về null: không nút Sửa, không nút
+  // xin, không gì cả. Cam kết đứng đó với chữ "Giáo viên đã duyệt" và một câu "Chưa có việc để
+  // tick" — vĩnh viễn. Chủ dự án gặp đúng ngõ ấy: "giáo viên đã duyệt rồi thì tick ở đâu, chỗ
+  // nào?". Câu trả lời đúng là: em thêm việc, và thêm việc thì cam kết tự về chờ cô duyệt lại
+  // (trigger 0141) — nên đây KHÔNG phải cửa sau để lách bước duyệt.
+  const chiThemViec = status === 'approved';
+  if (chiThemViec && viec.length > 0) {
+    return <EditRequestButton studentId={studentId} classId={classId} leads={viec} />;
   }
 
   if (!mo) {
     return (
       <button type="button" onClick={() => setMo(true)} className={`${btnGhost} h-8 px-2.5 text-[11.5px]`}>
         <Pencil size={12} strokeWidth={2.5} />
-        {t('edit')}
+        {chiThemViec ? t('addFirstWork') : t('edit')}
       </button>
     );
   }
@@ -74,9 +82,18 @@ export function SuaCamKet({
       <input type="hidden" name="commitment_id" value={commitmentId} />
       <input type="hidden" name="student_id" value={studentId} />
       <div className="flex flex-col gap-2.5">
-        <Field label={tm('commitmentOne')} htmlFor={`sck-${commitmentId}`} error={state.fieldError === 'title' ? state.error : null}>
-          <input id={`sck-${commitmentId}`} name="title" defaultValue={title} maxLength={160} className={ctlWithBorder(state.fieldError === 'title')} />
-        </Field>
+        {chiThemViec ? (
+          <>
+            {/* Lời hứa đã được gật thì không sửa lời ở đây (muốn đổi lời thì "Xin sửa"). Gửi lại
+                đúng câu cũ để máy chủ không phải đoán, và nói trước cái giá của việc thêm việc. */}
+            <input type="hidden" name="title" value={title} />
+            <p className="text-[11.5px] font-semibold leading-relaxed text-grey-mid">{t('reapproveNote')}</p>
+          </>
+        ) : (
+          <Field label={tm('commitmentOne')} htmlFor={`sck-${commitmentId}`} error={state.fieldError === 'title' ? state.error : null}>
+            <input id={`sck-${commitmentId}`} name="title" defaultValue={title} maxLength={160} className={ctlWithBorder(state.fieldError === 'title')} />
+          </Field>
+        )}
         {viec.map((v) => (
           <div key={v.id} className="grid grid-cols-[1fr_92px] items-end gap-2">
             <input type="hidden" name="viec_id" value={v.id} />
@@ -172,8 +189,9 @@ export function SuaCamKet({
         </div>
       </div>
     </form>
-    {/* XOÁ — chữ nhỏ ở cuối khung, mỗi cái một form riêng (không lồng form). */}
-    <div className="mt-1.5 flex flex-wrap items-center justify-end gap-x-3 gap-y-1 px-1">
+    {/* XOÁ — chữ nhỏ ở cuối khung, mỗi cái một form riêng (không lồng form). Cam kết đã duyệt
+        không bày đường xoá: gật rồi thì đổi phải qua cô. */}
+    <div className={`mt-1.5 flex flex-wrap items-center justify-end gap-x-3 gap-y-1 px-1 ${chiThemViec ? 'hidden' : ''}`}>
       {viec.map((v) => (
         <form key={v.id} action={xoaViecCuaEm}>
           <input type="hidden" name="lead_id" value={v.id} />

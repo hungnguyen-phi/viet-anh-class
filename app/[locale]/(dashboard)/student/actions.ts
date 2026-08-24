@@ -952,6 +952,49 @@ export async function duyetMucTieu(formData: FormData) {
   veTrangEm(student_id, 'Đã duyệt mục tiêu của em');
 }
 
+// ── DUYỆT MÀ KHÔNG NHẢY TRANG (24/08/2026) ───────────────────────────────────────────────────
+//
+// Hai bản trả-về-state cho useActionState, dùng bởi components/wig/NutDuyet. Khác bản cũ ở đúng
+// một điều: KHÔNG redirect. Bản cũ kết bằng `veTrangEm` — bấm Duyệt ở bảng /wig là bị ném sang
+// trang của em, mất chỗ đang đứng; và mỗi lượt gật là dựng lại một trang nặng cho một câu UPDATE.
+export type DuyetState = {ok: boolean; error?: string};
+
+export async function duyetMucTieuTraVe(_prev: DuyetState, formData: FormData): Promise<DuyetState> {
+  // requireRole đã trả về hồ sơ — bản cũ gọi thêm getCurrentProfile(), tức hai lượt hỏi CSDL cho
+  // cùng một câu trả lời. Trên đường truyền mất gói thì mỗi lượt là một lần rút thăm.
+  const me = await requireRole(['teacher', 'admin']);
+  const wig_id = String(formData.get('wig_id') ?? '').trim();
+  if (!wig_id) return {ok: false, error: 'Thiếu mục tiêu cần duyệt.'};
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('wigs')
+    // Vết duyệt (0145): ai duyệt, lúc nào — PRD v3 4.2 đòi WIG "được GVCN thông qua" là một sự
+    // kiện có thật, không phải một cột status đổi không dấu tay.
+    .update({status: 'approved', approved_by: me.id, approved_at: new Date().toISOString(), reject_note: null})
+    .eq('id', wig_id)
+    .eq('scope', 'student')
+    .select('id')
+    .maybeSingle();
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data) return {ok: false, error: 'Mục tiêu này không còn nữa.'};
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig/chi-tiet', 'page');
+  return {ok: true};
+}
+
+export async function duyetCamKetCuaEmTraVe(_prev: DuyetState, formData: FormData): Promise<DuyetState> {
+  await requireRole(['teacher', 'admin']);
+  const id = String(formData.get('commitment_id') ?? '').trim();
+  if (!id) return {ok: false, error: 'Thiếu cam kết cần duyệt.'};
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('commitments').update({status: 'approved'}).eq('id', id).select('id');
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data || data.length === 0) return {ok: false, error: 'Không duyệt được cam kết này.'};
+  revalidatePath('/[locale]/wig', 'page');
+  return {ok: true};
+}
+
 // Cô TRẢ LẠI mục tiêu kèm nhận xét (PRD v3 4.2: rejected kèm nhận xét để em sửa và gửi lại).
 // Nhận xét là bắt buộc — wig_reject_note_ck (0145) chặn ở CSDL, đây chỉ báo câu dễ hiểu.
 export async function traLaiMucTieu(formData: FormData) {

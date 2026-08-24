@@ -1,12 +1,13 @@
 import {getTranslations} from 'next-intl/server';
-import {Check} from 'lucide-react';
+import {CheckCircle2} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {tenHienThi} from '@/lib/ten-hien-thi';
 import {kieuDonVi} from '@/lib/don-vi';
 import {weekFromMonday} from '@/lib/dates';
-import {duyetMucTieu} from '@/app/[locale]/(dashboard)/student/actions';
-import {duyetCamKet} from '@/app/[locale]/(dashboard)/wig/actions';
+import {duyetMucTieuTraVe} from '@/app/[locale]/(dashboard)/student/actions';
+import {duyetCamKetTraVe} from '@/app/[locale]/(dashboard)/wig/actions';
+import {NutDuyet} from '@/components/wig/NutDuyet';
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
 // CÁC EM TUẦN NÀY — cùng một cây với màn của em, nhìn từ phía cô.
@@ -76,7 +77,6 @@ export async function BangCacEm({
     .map((e) => ({id: e.student_id, ten: tenHienThi(e.profiles?.full_name, e.profiles?.email)}))
     .sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
 
-  const nutDuyet = 'inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-2.5 py-0.5 text-[10.5px] font-extrabold text-gold-text transition-all hover:bg-gold/30';
   const th = 'px-3 py-2 text-left text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid';
 
   return (
@@ -132,20 +132,30 @@ export async function BangCacEm({
                             <li key={m.id} className="flex flex-wrap items-center gap-1.5 text-[12.5px] font-semibold text-navy">
                               <span className="min-w-0">{m.title}</span>
                               <span className="text-grey-mid">· {m.target_value} {m.unit}</span>
+                              {/* ĐÃ GẬT THÌ PHẢI CÒN DẤU (24/08/2026). Sau khi cô bấm Duyệt, hàng này
+                                  được dựng lại từ máy chủ — bản cũ không vẽ gì cho 'approved', nên cái
+                                  nút chỉ biến mất và cô không biết vừa xảy ra chuyện gì. Dấu tích đứng
+                                  NGAY SAU con số, trước dòng "góp vào" (dòng ấy chiếm cả bề ngang, để
+                                  dấu tích sau nó thì nó rơi xuống hàng dưới trông như một vết bẩn). */}
+                              {m.status === 'approved' && (
+                                <CheckCircle2
+                                  size={11}
+                                  strokeWidth={2.5}
+                                  aria-label={tg('approved')}
+                                  className="shrink-0 text-success-dark"
+                                />
+                              )}
                               {m.source_wig_id && tenLop.get(m.source_wig_id) && (
                                 <span className="basis-full text-[11px] font-semibold text-grey-mid">
                                   {t('contributesTo', {title: tenLop.get(m.source_wig_id) ?? ''})}
                                 </span>
                               )}
                               {m.status === 'sent' && (
-                                <form action={duyetMucTieu} className="contents">
-                                  <input type="hidden" name="wig_id" value={m.id} />
-                                  <input type="hidden" name="student_id" value={e.id} />
-                                  <button type="submit" className={nutDuyet}>
-                                    <Check size={11} strokeWidth={3} />
-                                    {tg('approveShort')}
-                                  </button>
-                                </form>
+                                <NutDuyet
+                                  hanhDong={duyetMucTieuTraVe}
+                                  o={{wig_id: m.id, student_id: e.id}}
+                                  label={`${tg('approveShort')}: ${m.title} — ${e.ten}`}
+                                />
                               )}
                             </li>
                           ))}
@@ -161,15 +171,16 @@ export async function BangCacEm({
                             <li key={c.id} className="flex flex-wrap items-center gap-1.5 text-[12.5px] font-semibold text-navy">
                               <span className="min-w-0">{c.title}</span>
                               {c.status === 'sent' ? (
-                                <form action={duyetCamKet} className="contents">
-                                  {classParam && <input type="hidden" name="class_id" value={classParam} />}
-                                  <input type="hidden" name="week" value={weekQ} />
-                                  <input type="hidden" name="commitment_id" value={c.id} />
-                                  <button type="submit" className={nutDuyet}>
-                                    <Check size={11} strokeWidth={3} />
-                                    {tg('approveShort')}
-                                  </button>
-                                </form>
+                                <NutDuyet
+                                  hanhDong={duyetCamKetTraVe}
+                                  o={{commitment_id: c.id, week: weekQ, class_id: classParam}}
+                                  label={`${tg('approveShort')}: ${c.title} — ${e.ten}`}
+                                />
+                              ) : c.status === 'approved' && !c.verdict ? (
+                                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
+                                  <CheckCircle2 size={11} strokeWidth={2.5} />
+                                  {tg('approvedShort')}
+                                </span>
                               ) : c.verdict ? (
                                 <span className={`rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${c.verdict === 'win' ? 'bg-success/15 text-success-dark' : 'bg-status-bad/[0.12] text-status-bad'}`}>
                                   {c.verdict === 'win' ? 'V' : 'X'}

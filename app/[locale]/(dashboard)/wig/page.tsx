@@ -31,7 +31,8 @@ import {BangCacEm} from '@/components/wig/BangCacEm';
 import {AREAS, areaLabel, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
 import {Flash} from '@/components/ui/Flash';
-import {duyetCamKet} from '@/app/[locale]/(dashboard)/wig/actions';
+import {duyetCamKetTraVe} from '@/app/[locale]/(dashboard)/wig/actions';
+import {NutDuyet} from '@/components/wig/NutDuyet';
 
 // ════════════════════════════════════════════════════════════════════════════
 // /wig — MÀN HÌNH LÀM VIỆC HẰNG TUẦN CỦA GIÁO VIÊN CHỦ NHIỆM
@@ -107,6 +108,7 @@ export default async function WigPage({
   setRequestLocale(locale);
   const profile = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('wig');
+  const tGoal = await getTranslations('goal');
   const supabase = await createClient();
   const [{myClass, classes: accessible}, areaMetaFromCache] = await Promise.all([
     getClassContext(supabase, profile, classParam),
@@ -598,18 +600,18 @@ export default async function WigPage({
                         duyệt đứng ngay cạnh chữ, để cô gật tại chỗ chứ không phải đi tìm một màn
                         khác. Không có nút TỪ CHỐI: lời hứa của một đứa trẻ thì không ai bác bỏ —
                         thấy chưa ổn thì nói với em rồi để em sửa, sửa xong nó tự chờ duyệt lại. */}
+                    {/* Cùng lý do như bảng các em: gật rồi thì để lại dấu, đừng chỉ biến mất. */}
+                    {c.status === 'approved' && !c.verdict && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
+                        {tGoal('approvedShort')}
+                      </span>
+                    )}
                     {c.status === 'sent' && (
-                      <form action={duyetCamKet} className="contents">
-                        {classParam && <input type="hidden" name="class_id" value={classParam} />}
-                        <input type="hidden" name="week" value={weekQ} />
-                        <input type="hidden" name="commitment_id" value={c.id} />
-                        <button
-                          type="submit"
-                          className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-2.5 py-0.5 text-[10.5px] font-extrabold text-gold-text transition-all hover:bg-gold/30"
-                        >
-                          {t('commitmentPending')}
-                        </button>
-                      </form>
+                      <NutDuyet
+                        hanhDong={duyetCamKetTraVe}
+                        o={{commitment_id: c.id, week: weekQ, class_id: classParam}}
+                        label={`${t('commitmentPending')}: ${c.title}`}
+                      />
                     )}
                     {/* V/X đã chấm. Chưa chấm thì KHÔNG hiện gì — một dấu xám "chưa" chỉ làm
                         người đọc tưởng là thua. */}

@@ -378,6 +378,41 @@ export async function duyetCamKet(formData: FormData) {
   );
 }
 
+// ── DUYỆT MÀ KHÔNG NHẢY TRANG (24/08/2026) ───────────────────────────────────────────────────
+//
+// Chủ dự án: "khi ấn, nó cứ đứng im như không nhận". Đúng, và cả hai nửa đều góp phần:
+//
+//   · MÀN: nút Duyệt là <button type=submit> trần trong một server component — không có trạng
+//     thái pending, không khoá nút, không spinner. Cô bấm xong màn hình y nguyên; cô bấm lại.
+//   · MÁY CHỦ: `duyetCamKet` kết bằng redirect về /wig?flash=… — tức DỰNG LẠI CẢ TRANG /wig cho
+//     một lượt UPDATE một dòng. Trang ấy là trang nặng nhất của app, trên VPS mất ~5% gói TCP thì
+//     đó là vài giây trắng, mất luôn chỗ cuộn.
+//
+// Bản này trả về STATE cho useActionState: một câu UPDATE, không redirect, không dựng lại trang
+// đang mở. Màn tự đổi chip sang "Đã duyệt" ngay tại dòng đó (components/wig/NutDuyet).
+// Vẫn revalidate các trang KHÁC (màn của em) để chúng không hiện trạng thái cũ.
+export type DuyetState = {ok: boolean; error?: string};
+
+export async function duyetCamKetTraVe(_prev: DuyetState, formData: FormData): Promise<DuyetState> {
+  await requireRole(['teacher', 'admin']);
+  const id = String(formData.get('commitment_id') ?? '').trim();
+  if (!id) return {ok: false, error: 'Thiếu cam kết cần duyệt.'};
+  const supabase = await createClient();
+  // .select() để phân biệt "RLS chặn" với "đã duyệt": thiếu nó thì cam kết của lớp khác vẫn báo
+  // thành công, và cô đi tìm một cái gật chưa từng xảy ra.
+  const {data, error} = await supabase
+    .from('commitments')
+    .update({status: 'approved'})
+    .eq('id', id)
+    .select('id');
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data || data.length === 0)
+    return {ok: false, error: 'Không duyệt được cam kết này (không có quyền hoặc đã bị xoá).'};
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  return {ok: true};
+}
+
 // ── CÔ SỬA / XOÁ CAM KẾT VÀ VIỆC CỦA LỚP (16/08/2026) ─────────────────────────────────────────
 // Chủ dự án: "ko thấy xóa sửa cam kết tuần/lead measure của gvcn nữa". Cam kết lớp: RLS
 // rls_cam_ket_gvcn; việc lớp: rls_sua/xoa_viec_cua_lop (0142) — cả hai khoá khi tuần đã chốt.
