@@ -822,8 +822,15 @@ export async function luuMucTieuCuaEm(
   const area = areaRaw as Database['public']['Enums']['wig_domain'];
 
   // DÂY NỐI LÊN LỚP nay TỰ TÌM: WIG lớp cùng domain (nếu lớp đã khai) — em không phải trả lời
-  // thêm một câu mà đáp án chỉ có một. Lớp chưa khai domain này thì mục tiêu đứng một mình,
-  // dây nối bổ sung sau khi lớp khai (mục tiêu riêng vẫn không mang liên kết — wig_source_ck).
+  // thêm một câu mà đáp án chỉ có một. Lớp chưa khai domain này thì mục tiêu đứng một mình, và
+  // trigger `trg_noi_muc_tieu_len_lop` (0155) nối lại đúng lúc lớp khai — trước 0155 lời hứa "nối
+  // bổ sung" viết ở đây KHÔNG có ai thực hiện, mục tiêu của em mồ côi vĩnh viễn mà không màn nào
+  // báo. (Mục tiêu riêng vẫn không mang liên kết — wig_source_ck.)
+  //
+  // NĂM HỌC PHẢI KHỚP. Câu này vốn chỉ lọc period='year' rồi `.limit(1)` KHÔNG có order by. Năm
+  // học đầu tiên mỗi lớp chỉ có một WIG lớp mỗi lĩnh vực nên không lộ; từ năm thứ hai trở đi
+  // (wigs_lop_ky_uidx khoá theo cả period_label — hai năm là hai dòng hợp lệ) Postgres được
+  // quyền trả về dòng của NĂM NGOÁI, và tiến độ năm nay chảy vào bảng năm ngoái, im lặng.
   void source_wig_id;
   let soi: string | null = null;
   if (kind === 'academic') {
@@ -834,6 +841,7 @@ export async function luuMucTieuCuaEm(
       .eq('scope', 'class')
       .eq('area', area)
       .eq('period', 'year')
+      .eq('period_label', nam.label)
       .neq('measure_by', 'cuon')
       .limit(1)
       .maybeSingle();
