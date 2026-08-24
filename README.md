@@ -75,7 +75,7 @@ Mục tiêu NĂM của lớp            "Cả lớp làm đủ 1200 bài tập v
 
 ```bash
 npm install
-cp .env.example .env.local      # rồi điền URL + key Supabase
+cp .env.example .env.local      # rồi điền URL + key Supabase (xem docs/viet-anh-class-claude.md)
 npm run dev                     # http://localhost:3000
 ```
 
@@ -103,7 +103,7 @@ Chi tiết đặt biến nào ở đâu (build-arg vs runtime): [`docs/DEPLOY.md
 
 ### Database
 
-Schema, RLS, hàm và RPC nằm trong `supabase/migrations/0001…0154_*.sql` — đánh số tăng dần, chạy bằng Supabase CLI hoặc dán vào SQL Editor. Edge functions: `invite-parent`, `attendance-reminders`.
+Schema, RLS, hàm và RPC nằm trong `supabase/migrations/0001…0155_*.sql` — đánh số tăng dần, chạy bằng Supabase CLI hoặc dán vào SQL Editor. Edge functions: `invite-parent`, `attendance-reminders`.
 
 > Trước khi `create or replace` một hàm, **đọc bản đang chạy trên DB** (`pg_proc`) rồi mới sửa: file trong repo và hàm thật đã từng lệch nhau.
 
@@ -140,7 +140,7 @@ app/[locale]/
 components/                 shell (nav, hướng dẫn, chọn lớp), attendance, student, wig, report, charts
 lib/                        supabase (client/server/middleware), auth.ts (RBAC), buddy.ts (LLM)
 messages/                   vi.json · en.json — mọi chuỗi phải có cả hai
-supabase/migrations/        0001…0154 — schema + RLS + RPC
+supabase/migrations/        0001…0155 — schema + RLS + RPC
 supabase/functions/         invite-parent · attendance-reminders
 scripts/                    bộ kiểm tự động + công cụ đo, chụp màn
 docs/                       runbook vận hành, bảo mật, quyền, mô hình WIG
