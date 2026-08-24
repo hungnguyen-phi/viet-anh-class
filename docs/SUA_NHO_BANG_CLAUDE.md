@@ -27,18 +27,23 @@ npm install                                     # tự bật luôn hàng rào ch
 cp .env.example .env.local
 ```
 
-Mở `.env.local` bằng Notepad và **chỉ điền đúng hai dòng** (xin chủ dự án, alex@truongvietanh.com):
+Mở `.env.local` bằng Notepad, xoá hết và dán **đúng hai dòng này** vào:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+NEXT_PUBLIC_SUPABASE_URL=https://eagsageokobtidpmxucx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhZ3NhZ2Vva29idGlkcG14dWN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NzE3MzksImV4cCI6MjEwMDI0NzczOX0.f3SK8spUmwg9Kma5zVHQ09eNNaHlIgb6aBSeqmhweQo
 ```
 
-Hai giá trị này vốn đã công khai — chúng nằm sẵn trong mã JavaScript của bản chạy thật, ai mở app
-bằng trình duyệt cũng đọc được. Thứ giữ dữ liệu an toàn là luật quyền ở cơ sở dữ liệu, không phải
-việc giấu hai dòng này.
+Chép sẵn ở đây được vì hai giá trị này **vốn đã công khai**: chúng nằm trong mã JavaScript của bản
+chạy thật, ai mở app bằng trình duyệt rồi bấm F12 cũng đọc được đúng hai dòng ấy. Khoá `anon` chỉ
+nói "tôi là khách chưa đăng nhập"; thứ quyết định ai thấy gì là luật quyền (RLS) ở cơ sở dữ liệu,
+cộng với việc phải đăng nhập bằng email của trường.
 
-**Các dòng còn lại trong `.env.local` cứ để nguyên, đừng xin.** `SUPABASE_SERVICE_ROLE_KEY` bỏ qua
+> **Chỉ hai dòng này thôi.** Không bao giờ chép `SUPABASE_SERVICE_ROLE_KEY` hay `DATABASE_URL` vào
+> bất cứ file nào trong repo, vào chat, hay vào tài liệu — hai khoá đó bỏ qua toàn bộ luật quyền và
+> mở thẳng dữ liệu của cả trường.
+
+**Các dòng còn lại trong `.env.local` cứ để trống, đừng xin.** `SUPABASE_SERVICE_ROLE_KEY` bỏ qua
 toàn bộ luật quyền — cầm nó là đọc và sửa được dữ liệu của cả trường; `DATABASE_URL` thì ghi thẳng
 vào cơ sở dữ liệu. Không có chúng, đúng ba chỗ trong app sẽ báo lỗi **ở máy anh** (check-in cảm xúc,
 ghi chú Sư Tử, một nhánh của yêu cầu sửa) — phần còn lại chạy bình thường, và đổi lại là một cú gõ
