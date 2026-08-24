@@ -23,8 +23,7 @@ Rồi mở Terminal (Windows: Git Bash) và gõ từng dòng:
 gh auth login                                   # đăng nhập GitHub, chọn HTTPS
 git clone https://github.com/hungnguyen-phi/viet-anh-class.git
 cd viet-anh-class
-npm install
-git config core.hooksPath .githooks             # bật hàng rào chặn đẩy nhầm
+npm install                                     # tự bật luôn hàng rào chặn đẩy nhầm
 cp .env.example .env.local
 ```
 
@@ -72,8 +71,8 @@ gh pr create --fill                             #    rồi mở PR
 
 Chủ dự án xem và bấm merge — bản mới tự lên production sau khoảng 6 phút.
 
-> Nếu lỡ gõ `git push origin main`, máy sẽ **chặn lại** và nhắc đúng câu lệnh nên dùng. Đó là hàng
-> rào ở bước `git config core.hooksPath .githooks` phía trên.
+> Nếu lỡ gõ `git push origin main`, máy sẽ **chặn lại** và nhắc đúng câu lệnh nên dùng. Hàng rào ấy
+> tự bật lúc `npm install`, không phải nhớ gì thêm.
 
 ## 3. Nói với Claude thế nào
 

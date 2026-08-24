@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "sql": "node scripts/run-sql.mjs"
+    "sql": "node scripts/run-sql.mjs",
+    "prepare": "git config core.hooksPath .githooks || exit 0"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

@@ -117,9 +117,8 @@ curl -s https://class.vietanh.org/api/health   # {"commit":"<đúng SHA vừa me
 ## 8. Cài máy (làm một lần)
 
 ```bash
-npm install
+npm install                           # `prepare` tự trỏ core.hooksPath sang .githooks
 cp .env.example .env.local            # xin key từ chủ dự án, KHÔNG lấy từ chỗ khác
-git config core.hooksPath .githooks   # bật hook chặn push thẳng vào main
 npm run dev
 ```
 
