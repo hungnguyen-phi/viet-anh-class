@@ -1099,6 +1099,48 @@ export async function suaCamKetTuan(_prev: CamKetState, formData: FormData): Pro
     const {error: e2} = await supabase.from('lead_measures').update({title: vTitle, target_value: vTarget}).eq('id', vId);
     if (e2) return {ok: false, error: friendlyError(e2)};
   }
+  // ── THÊM MỘT VIỆC VÀO CAM KẾT ĐÃ CÓ (24/08/2026) ─────────────────────────────────────────
+  //
+  // Cam kết được phép gửi mà chưa có việc ("em chưa nghĩ ra thì thêm sau") — nhưng tới hôm nay
+  // KHÔNG có đường nào để thêm sau thật: khung Sửa chỉ sửa được những việc đã có. Cam kết trống
+  // là cam kết không bao giờ tick được, và cả tuần trôi qua không ai thấy vì sao. Nay khung Sửa
+  // nhận thêm MỘT việc mới, dùng đúng bộ ô của lúc tạo (tên · thứ · cách đong đếm).
+  const themTitle = String(formData.get('viec_title') ?? '').trim();
+  if (themTitle) {
+    const {data: ckWig} = await supabase
+      .from('commitments')
+      .select('wig_id, wigs(unit)')
+      .eq('id', id)
+      .maybeSingle();
+    const donVi = (ckWig as unknown as {wigs: {unit: string | null} | null} | null)?.wigs?.unit ?? '';
+    const thu = formData
+      .getAll('viec_days')
+      .map((d) => Number(String(d)))
+      .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
+      .sort((a, b) => a - b);
+    const kieu = kieuDonVi(donVi);
+    const nhapLuong = kieu === 'luong' && String(formData.get('viec_nhap_luong') ?? '') === '1';
+    const unitPerTick =
+      kieu === 'luong' && !nhapLuong ? Number(String(formData.get('viec_upt') ?? '').trim() || '1') : 1;
+    const viecTarget = nhapLuong ? Number(String(formData.get('viec_luong') ?? '').trim()) : thu.length * unitPerTick;
+    if (thu.length === 0)
+      return {ok: false, fieldError: 'viec_days', error: 'Em chọn ít nhất một thứ trong tuần cho việc ấy nhé.'};
+    if (kieu === 'luong' && !nhapLuong && (!Number.isFinite(unitPerTick) || unitPerTick <= 0))
+      return {ok: false, fieldError: 'viec_upt', error: `Mỗi lần em làm được bao nhiêu ${donVi}?`};
+    if (nhapLuong && (!Number.isFinite(viecTarget) || viecTarget <= 0))
+      return {ok: false, fieldError: 'viec_luong', error: `Tuần này em mong đạt bao nhiêu ${donVi}?`};
+    const {error: e3} = await supabase.from('lead_measures').insert({
+      commitment_id: id,
+      title: themTitle,
+      target_value: viecTarget,
+      unit: kieu === 'do' ? null : donVi || null,
+      active_weekdays: thu,
+      unit_per_tick: unitPerTick,
+      nhap_luong: nhapLuong,
+    });
+    if (e3) return {ok: false, error: friendlyError(e3)};
+  }
+
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
@@ -1387,6 +1429,46 @@ export async function datCamKetTuan(
       error: 'Em đặt mục tiêu năm trước đã — cam kết mỗi tuần là một bước đi tới mục tiêu ấy.',
     };
 
+  // ── ĐỌC VÀ KIỂM VIỆC TRƯỚC KHI TẠO CAM KẾT (24/08/2026) ───────────────────────────────────
+  //
+  // Bản cũ tạo cam kết xong mới kiểm mấy ô của việc, nên một ô số bỏ trống để lại HAI hậu quả mà
+  // em không gỡ được: cam kết đã nằm trong CSDL nhưng KHÔNG có việc nào để tick, và bấm lại là đẻ
+  // cam kết thứ hai — trần 2 cam kết mỗi tuần cháy hết vì hai lời hứa trống. Gặp thật ở lớp
+  // Marketing 24/08: cả hai cam kết của một em đều 0 việc, tuần trôi qua không tick được gì.
+  //
+  // Kiểm ở đây là kiểm thuần (không đụng CSDL) nên hỏng thì KHÔNG có gì được ghi, em sửa ô rồi
+  // gửi lại là xong — không còn câu "Cam kết ĐÃ gửi rồi" đứng cạnh một cái form còn nguyên chữ.
+  const viecTitle = String(formData.get('viec_title') ?? '').trim();
+  const thu = formData
+    .getAll('viec_days')
+    .map((d) => Number(String(d)))
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
+    .sort((a, b) => a - b);
+  // ĐO BẰNG GÌ (0110 — luật đã có ở mục tiêu năm, nay đặt lại đúng chỗ là VIỆC TUẦN; chủ dự án
+  // 16/08/2026: "lead measures phải có sự đong đếm ở đó, hoặc dữ liệu có thể điền được như điểm số,
+  // bài học... không chỉ mỗi tick, trước đó đã làm đúng rồi bạn lại ẩn đi").
+  //   'luot' (buổi, ngày)          → một chạm mỗi ngày; chỉ tiêu = số thứ được bật.
+  //   'luong' (bài, giờ, trang)    → HAI cách: mỗi lần CỐ ĐỊNH n (một chạm, đáng n) — hoặc "mỗi lần
+  //                                  một khác" (ô điền số mỗi ngày, chỉ tiêu tuần em tự khai).
+  //   'do' (điểm, kg)              → không có việc tick; con số ghi ở ô số đo của mục tiêu.
+  const kieu = kieuDonVi(donVi);
+  const nhapLuong = kieu === 'luong' && String(formData.get('viec_nhap_luong') ?? '') === '1';
+  const uptRaw = String(formData.get('viec_upt') ?? '').trim();
+  const luongRaw = String(formData.get('viec_luong') ?? '').trim();
+  const unitPerTick = kieu === 'luong' && !nhapLuong ? Number(uptRaw || '1') : 1;
+  // Chỉ tiêu = SỐ THỨ ĐƯỢC BẬT, không hỏi thành một ô riêng (0103): mỗi ngày một lượt tick, nên
+  // hai con số ấy không thể lệch nhau — hỏi cả hai là mời người dùng tự mâu thuẫn với mình.
+  const viecTarget = nhapLuong ? Number(luongRaw) : thu.length * unitPerTick;
+
+  if (viecTitle) {
+    if (thu.length === 0)
+      return {ok: false, fieldError: 'viec_days', error: 'Em chọn ít nhất một thứ trong tuần cho việc ấy nhé.'};
+    if (kieu === 'luong' && !nhapLuong && (!Number.isFinite(unitPerTick) || unitPerTick <= 0))
+      return {ok: false, fieldError: 'viec_upt', error: `Mỗi lần em làm được bao nhiêu ${donVi}?`};
+    if (nhapLuong && (!Number.isFinite(viecTarget) || viecTarget <= 0))
+      return {ok: false, fieldError: 'viec_luong', error: `Tuần này em mong đạt bao nhiêu ${donVi}?`};
+  }
+
   const {data: daTao, error} = await supabase
     .from('commitments')
     .insert({
@@ -1418,42 +1500,9 @@ export async function datCamKetTuan(
   // trống trơn, và tới buổi họp thì không có gì để nói ngoài trí nhớ. Bắt em quay lại một màn khác
   // để thêm việc là chỗ người ta bỏ dở — nhất là trẻ con, nhất là trên điện thoại.
   //
-  // Nên gộp vào một bước, và để TUỲ CHỌN: em chưa nghĩ ra việc thì cam kết vẫn gửi được, thêm sau.
-  //
-  // Chỉ tiêu = SỐ THỨ ĐƯỢC BẬT, không hỏi thành một ô riêng (0103): mỗi ngày một lượt tick, nên
-  // hai con số ấy không thể lệch nhau — hỏi cả hai là mời người dùng tự mâu thuẫn với mình.
-  const viecTitle = String(formData.get('viec_title') ?? '').trim();
-  const thu = formData
-    .getAll('viec_days')
-    .map((d) => Number(String(d)))
-    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
-    .sort((a, b) => a - b);
-
-  // ĐO BẰNG GÌ (0110 — luật đã có ở mục tiêu năm, nay đặt lại đúng chỗ là VIỆC TUẦN; chủ dự án
-  // 16/08/2026: "lead measures phải có sự đong đếm ở đó, hoặc dữ liệu có thể điền được như điểm số,
-  // bài học... không chỉ mỗi tick, trước đó đã làm đúng rồi bạn lại ẩn đi").
-  //   'luot' (buổi, ngày)          → một chạm mỗi ngày; chỉ tiêu = số thứ được bật.
-  //   'luong' (bài, giờ, trang)    → HAI cách: mỗi lần CỐ ĐỊNH n (một chạm, đáng n) — hoặc "mỗi lần
-  //                                  một khác" (ô điền số mỗi ngày, chỉ tiêu tuần em tự khai).
-  //   'do' (điểm, kg)              → không có việc tick; con số ghi ở ô số đo của mục tiêu.
-  const kieu = kieuDonVi(donVi);
-  const nhapLuong = kieu === 'luong' && String(formData.get('viec_nhap_luong') ?? '') === '1';
-  const uptRaw = String(formData.get('viec_upt') ?? '').trim();
-  const luongRaw = String(formData.get('viec_luong') ?? '').trim();
-  const unitPerTick = kieu === 'luong' && !nhapLuong ? Number(uptRaw || '1') : 1;
-  const viecTarget = nhapLuong ? Number(luongRaw) : thu.length * unitPerTick;
-
+  // Nên gộp vào một bước, và để TUỲ CHỌN: em chưa nghĩ ra việc thì cam kết vẫn gửi được, thêm sau
+  // bằng nút Sửa của thẻ cam kết.
   if (viecTitle && daTao?.id) {
-    if (thu.length === 0)
-      return {
-        ok: false,
-        fieldError: 'viec_days',
-        error: 'Em chọn ít nhất một thứ trong tuần cho việc ấy nhé. Cam kết ĐÃ gửi rồi.',
-      };
-    if (kieu === 'luong' && !nhapLuong && (!Number.isFinite(unitPerTick) || unitPerTick <= 0))
-      return {ok: false, fieldError: 'viec_upt', error: `Mỗi lần em làm được bao nhiêu ${donVi}? Cam kết ĐÃ gửi rồi.`};
-    if (nhapLuong && (!Number.isFinite(viecTarget) || viecTarget <= 0))
-      return {ok: false, fieldError: 'viec_luong', error: `Tuần này em mong đạt bao nhiêu ${donVi}? Cam kết ĐÃ gửi rồi.`};
     const {error: eViec} = await supabase.from('lead_measures').insert({
       commitment_id: daTao.id,
       title: viecTitle,

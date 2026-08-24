@@ -6,6 +6,7 @@ import {AlertCircle, Pencil} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {Field, ctlWithBorder, btnGold, btnGhost} from '@/components/ui/Field';
+import {kieuDonVi} from '@/lib/don-vi';
 import {suaCamKetTuan, xoaCamKetTuan, xoaViecCuaEm, type CamKetState} from '@/app/[locale]/(dashboard)/student/actions';
 import {EditRequestButton} from '@/components/student/EditRequestButton';
 
@@ -24,6 +25,8 @@ export function SuaCamKet({
   title,
   status,
   viec,
+  donVi = '',
+  dayShort,
 }: {
   commitmentId: string;
   studentId: string;
@@ -31,10 +34,22 @@ export function SuaCamKet({
   title: string;
   status: string;
   viec: {id: string; title: string; target: number; unit: string | null}[];
+  /** Đơn vị của mục tiêu mà cam kết phục vụ ('bài', 'lead'…) — quyết định cách hỏi đong đếm. */
+  donVi?: string;
+  /** Nhãn T2…CN theo ngôn ngữ (màn cha đã có sẵn, không đọc lại ở client). */
+  dayShort?: string[];
 }) {
   const t = useTranslations('goal');
   const tm = useTranslations('meeting');
   const [mo, setMo] = useState(false);
+  // VIỆC MỚI (24/08/2026) — cam kết được phép gửi khi chưa nghĩ ra việc, nhưng trước nay "thêm
+  // sau" không có đường nào đi: khung này chỉ sửa được việc đã có, nên cam kết trống là cam kết
+  // không bao giờ tick được. Bộ ô ở đây giống hệt lúc tạo, để em không phải học lần thứ hai.
+  const [tenViec, setTenViec] = useState('');
+  const [thu, setThu] = useState<number[]>([]);
+  const [moiLanKhac, setMoiLanKhac] = useState(false);
+  const kieu = kieuDonVi(donVi);
+  const nhan = dayShort ?? ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
   const [state, formAction] = useActionState<CamKetState, FormData>(suaCamKetTuan, {ok: false});
   useEffect(() => {
     if (state.ok) setMo(false);
@@ -73,6 +88,74 @@ export function SuaCamKet({
             </Field>
           </div>
         ))}
+        {/* THÊM MỘT VIỆC — cùng bộ ô với lúc tạo cam kết. Để trống tên thì không thêm gì. */}
+        <div className="rounded-[12px] bg-navy/[0.04] p-2.5">
+          <Field
+            label={viec.length === 0 ? tm('thisWeekWork') : t('addWork')}
+            htmlFor={`nv-${commitmentId}`}
+            error={state.fieldError === 'viec_days' ? state.error : null}
+          >
+            <input
+              id={`nv-${commitmentId}`}
+              name="viec_title"
+              maxLength={120}
+              value={tenViec}
+              onChange={(e) => setTenViec(e.target.value)}
+              placeholder={tm('workPlaceholder')}
+              className={ctlWithBorder(false)}
+            />
+          </Field>
+          {tenViec && (
+            <>
+              {kieu === 'luong' && donVi && (
+                <div className="mt-2">
+                  <label className="flex cursor-pointer items-center gap-2 text-[12px] font-bold text-navy">
+                    <input
+                      type="checkbox"
+                      checked={moiLanKhac}
+                      onChange={(e) => setMoiLanKhac(e.target.checked)}
+                      className="h-4 w-4 cursor-pointer accent-[var(--color-gold)]"
+                    />
+                    {t('eachTimeVaries')}
+                  </label>
+                  <input type="hidden" name="viec_nhap_luong" value={moiLanKhac ? '1' : ''} />
+                  <div className="mt-2">
+                    {moiLanKhac ? (
+                      <Field label={t('weekAmount', {unit: donVi})} htmlFor={`nl-${commitmentId}`} error={state.fieldError === 'viec_luong' ? state.error : null}>
+                        <input id={`nl-${commitmentId}`} name="viec_luong" type="number" step="any" min="0.01" inputMode="decimal" className={ctlWithBorder(state.fieldError === 'viec_luong')} />
+                      </Field>
+                    ) : (
+                      <Field label={t('perTick', {unit: donVi})} htmlFor={`nu-${commitmentId}`} error={state.fieldError === 'viec_upt' ? state.error : null}>
+                        <input id={`nu-${commitmentId}`} name="viec_upt" type="number" step="any" min="0.01" inputMode="decimal" defaultValue="1" className={ctlWithBorder(state.fieldError === 'viec_upt')} />
+                      </Field>
+                    )}
+                  </div>
+                </div>
+              )}
+              {thu.map((d) => (
+                <input key={d} type="hidden" name="viec_days" value={d} />
+              ))}
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setThu((cu) => (cu.includes(d) ? cu.filter((x) => x !== d) : [...cu, d].sort((a, b) => a - b)))}
+                    aria-pressed={thu.includes(d)}
+                    aria-label={nhan[d - 1]}
+                    className={`grid h-11 w-11 cursor-pointer place-items-center rounded-[9px] border-[1.5px] text-[11.5px] font-extrabold transition-all ${
+                      thu.includes(d)
+                        ? 'border-transparent bg-gold text-navy'
+                        : 'border-navy/15 bg-white text-grey-mid hover:border-navy'
+                    }`}
+                  >
+                    {nhan[d - 1]}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
         {state.error && !state.fieldError && (
           <p className="inline-flex items-start gap-1.5 text-[12px] font-bold text-status-bad">
             <AlertCircle size={13} strokeWidth={2.5} className="mt-px shrink-0" />

@@ -1314,6 +1314,7 @@
     "yearPart": "Year",
     "readingAskClass": "The class number this week",
     "weekAmount": "How many {unit} do you aim for this week?",
+    "addWork": "Add another task",
     "eachTimeVaries": "Varies each time — you enter the number each day",
     "perTick": "How many {unit} per time?",
     "perTickSum": "{n} times × {moi} = {tuan} {unit} this week.",

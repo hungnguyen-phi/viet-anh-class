@@ -383,7 +383,9 @@ export async function StudentScoreboard({
     // treo vào một mục tiêu (của lớp hoặc của chính em); thẻ mục tiêu năm bày cam kết + việc của nó.
     supabase
       .from('commitments')
-      .select('id, title, status, wig_id, verdict')
+      // Đơn vị của MỤC TIÊU mà cam kết phục vụ: khung Sửa cần nó để hỏi đúng cách đong đếm khi em
+      // thêm một việc mới (24/08/2026) — cam kết trống trước nay không có đường thêm việc.
+      .select('id, title, status, wig_id, verdict, wigs(unit)')
       .eq('student_id', studentId)
       .eq('week_start', weekDays[0])
       .order('created_at'),
@@ -787,6 +789,8 @@ export async function StudentScoreboard({
                     classId={classId}
                     title={c.title}
                     status={c.status}
+                    donVi={(c as unknown as {wigs?: {unit: string | null} | null}).wigs?.unit ?? ''}
+                    dayShort={dayShort}
                     viec={viec.map((l) => ({id: l.id, title: l.title, target: l.target, unit: l.unit}))}
                   />
                 )}

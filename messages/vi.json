@@ -1314,6 +1314,7 @@
     "yearPart": "Năm",
     "readingAskClass": "Số của lớp tuần này",
     "weekAmount": "Tuần này em mong muốn đạt bao nhiêu {unit}?",
+    "addWork": "Thêm một việc nữa",
     "eachTimeVaries": "Mỗi lần một khác — em tự điền số mỗi ngày",
     "perTick": "Mỗi lần em làm được bao nhiêu {unit}?",
     "perTickSum": "{n} lần × {moi} = {tuan} {unit} tuần này.",
