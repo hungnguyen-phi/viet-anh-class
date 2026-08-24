@@ -2,6 +2,7 @@
   "name": "viet-anh-class",
   "version": "0.1.0",
   "private": true,
+  "description": "4DX execution app for Viet Anh School classrooms — students, homeroom teachers, school leaders and parents. Yearly WIGs, weekly commitments, daily ticks, attendance, class scoreboards.",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
