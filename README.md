@@ -150,6 +150,8 @@ docs/                       runbook vận hành, bảo mật, quyền, mô hình
 
 | File | Nội dung |
 |---|---|
+| [`docs/viet-anh-class-claude.md`](docs/viet-anh-class-claude.md) | **Sửa ý nhỏ bằng Claude** — cho người không phải lập trình viên: cài gì, gõ gì, đừng làm gì |
+| [`CLAUDE.md`](CLAUDE.md) | Luật của dự án — thứ Claude đọc đầu mỗi phiên |
 | [`PRODUCT.md`](PRODUCT.md) | Người dùng, tính cách sản phẩm, nguyên tắc thiết kế |
 | [`docs/MO_HINH_WIG.md`](docs/MO_HINH_WIG.md) | Mô hình WIG — năm, tuần, lead measure |
 | [`docs/ROLE_MATRIX.md`](docs/ROLE_MATRIX.md) | Vai trò nào thấy gì, làm được gì |

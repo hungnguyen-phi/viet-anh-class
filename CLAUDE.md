@@ -36,6 +36,8 @@ nhất, nhãn tiếng Việt dài hơn tiếng Anh 20–30%, thử bề rộng b
 | Dữ liệu học sinh, LLM | `docs/DATA_GOVERNANCE.md` |
 | Hạ tầng, biến môi trường | `docs/DEPLOY.md` |
 
+Người dùng đang sửa ý nhỏ mà chưa quen quy trình: chỉ họ đọc `docs/viet-anh-class-claude.md`.
+
 ## 3. Bản đồ: màn hình → file
 
 ```
