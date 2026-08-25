@@ -1,5 +1,6 @@
 import type {Metadata} from 'next';
 import {Suspense} from 'react';
+import Script from 'next/script';
 import {TopProgress} from '@/components/shell/TopProgress';
 import {NextIntlClientProvider, hasLocale} from 'next-intl';
 import {getMessages, setRequestLocale} from 'next-intl/server';
@@ -109,6 +110,14 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale}>
+      <head>
+        {/* PHÁT HIỆN NHÚNG TRONG HUB TRƯỚC KHI VẼ TRANG (xem globals.css để biết vì sao phải
+            chạy trước paint, không phải sau bằng React effect). beforeInteractive nhúng thẳng
+            vào <head> của HTML gửi về, chạy trước cả hydrate. */}
+        <Script id="hub-embed-detect" strategy="beforeInteractive">
+          {`try{if(window.self!==window.top)document.documentElement.setAttribute('data-hub-embed','1')}catch(e){document.documentElement.setAttribute('data-hub-embed','1')}`}
+        </Script>
+      </head>
       <body className="min-h-screen font-body text-ink antialiased">
         {/* Đặt ở lớp ngoài cùng vì nó che MỌI ô số của app, kể cả ô nằm trong server component
             — chỗ không gắn được onWheel. Xem ghi chú trong chính file ấy. */}

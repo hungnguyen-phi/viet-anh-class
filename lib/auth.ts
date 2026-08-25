@@ -2,6 +2,7 @@ import {cache} from 'react';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {nho} from '@/lib/dem-ram';
+import {isRevoked} from '@/lib/hub/revocation';
 import type {Database} from '@/lib/database.types';
 
 export type Role = Database['public']['Enums']['user_role'];
@@ -55,6 +56,10 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const {data} = await supabase.auth.getClaims();
   const userId = data?.claims?.sub;
   if (!userId) return null;
+  // ĐĂNG XUẤT NGƯỢC TỪ HUB (lib/hub/revocation.ts): kiểm TRƯỚC khi đọc đệm 60 giây, không sau —
+  // nếu không, một người vừa bị thu hồi vẫn đọc trúng bản `profiles` cũ còn nằm trong đệm.
+  // Coi như chưa đăng nhập: requireProfile() bên dưới tự đẩy về /login, đúng luồng bình thường.
+  if (isRevoked(userId)) return null;
   return nho(`profile:${userId}`, 60_000, async () => {
     const {data: profile} = await supabase
       .from('profiles')

@@ -33,6 +33,11 @@ File repo đã tạo sẵn: `Dockerfile`, `.dockerignore`, `.github/workflows/de
 | `PORT` | runtime | Coolify (`8080`) | khớp `EXPOSE 8080` / healthcheck |
 | `OPENROUTER_API_KEY` | **bí mật, runtime** | **Coolify → Environment variables** | Buddy 4DX = LLM. Server-only, **KHÔNG** build-arg, **KHÔNG** `NEXT_PUBLIC_*`. Thiếu → nút "Hỏi Buddy" báo chưa bật, app vẫn chạy |
 | `OPENROUTER_MODEL` | runtime, tuỳ chọn | Coolify | Đổi model không cần build lại. Mặc định `deepseek/deepseek-chat` |
+| `NEXT_PUBLIC_HUB_ORIGIN` | public, **build-time** | GitHub **Variable** → build-arg | Địa chỉ Hub (`https://hub.truongvietanh.com`) — targetOrigin của postMessage lúc bắt tay nhúng + tham số `frame-ancestors` trong CSP (xem `next.config.ts`). Thiếu biến này → app KHÔNG nhúng được vào Hub (CSP rơi về `'none'`), phần còn lại của app vẫn chạy bình thường |
+| `HUB_APP_ID` | **bí mật, runtime** | **Coolify → Environment variables** | Mã app đã đăng ký với Hub (= `client_id` OIDC = header `x-embed-app`). Thiếu → mọi nhánh Hub (SSO/webhook) tự im lặng bỏ qua |
+| `HUB_CLIENT_SECRET` | **bí mật, runtime** | **Coolify → Environment variables** | Chuỗi dùng chung cho cả webhook lẫn đăng nhập Hub — quyết định của phía Hub, không phải 2 khoá khác nhau. Hub đổi chuỗi lúc nào cũng được: đổi ở đây rồi khởi động lại container, KHÔNG build lại |
+| `HUB_ISSUER_URL` | runtime | Coolify | issuer OIDC của Hub, dùng tải `.well-known/openid-configuration` |
+| `HUB_WEBHOOK_URL` | runtime | Coolify | Cửa nhận sự kiện của Hub (`lib/hub/webhook.ts`) |
 
 > Nên set **cả 3 biến Supabase** trong Coolify runtime (URL + anon + service_role) cho chắc, dù 2 biến
 > `NEXT_PUBLIC_*` đã bake lúc build — phòng khi có chỗ đọc `process.env` động phía server.
@@ -47,6 +52,7 @@ File repo đã tạo sẵn: `Dockerfile`, `.dockerignore`, `.github/workflows/de
 | Secret | `NEXT_PUBLIC_SUPABASE_URL` | `https://<ref>.supabase.co` (project VAC production) |
 | Secret | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key của project đó |
 | Variable | `DEPLOY_ON` | `true` khi đã dựng xong Coolify (chưa có thì để trống → chỉ build+push) |
+| Variable | `NEXT_PUBLIC_HUB_ORIGIN` | `https://hub.truongvietanh.com` — chỉ đặt SAU KHI Hub đã đăng ký xong app này (mục 11 bản đấu nối) |
 | Secret | `DEPLOY_HOOK_URL` | URL Coolify, vd `https://coolify.<domain>` |
 | Secret | `DEPLOY_TOKEN` | API token Coolify |
 | Secret | `DEPLOY_APP_ID` | UUID app trên Coolify |
@@ -62,8 +68,9 @@ File repo đã tạo sẵn: `Dockerfile`, `.dockerignore`, `.github/workflows/de
 1. **+ New Resource → Docker Image** (KHÔNG phải "from Git" — để CI build, VPS chỉ pull).
 2. Image: `ghcr.io/<owner>/viet-anh-class:latest`. GHCR để Private → thêm **Registry Credential**
    (Personal Access Token quyền `read:packages`).
-3. **Environment variables** (mục §1): `SUPABASE_SERVICE_ROLE_KEY`, `PORT=8080`, và 2 biến
-   `NEXT_PUBLIC_SUPABASE_*`.
+3. **Environment variables** (mục §1): `SUPABASE_SERVICE_ROLE_KEY`, `PORT=8080`, 2 biến
+   `NEXT_PUBLIC_SUPABASE_*`, và (sau khi Hub đăng ký xong app này) `HUB_APP_ID`, `HUB_CLIENT_SECRET`,
+   `HUB_ISSUER_URL`, `HUB_WEBHOOK_URL`.
 4. **Port**: app nghe `8080` (đã `EXPOSE`).
 5. **Domain**: gắn `https://<your-domain>` (có `https://` để proxy sinh middleware đúng).
 6. **Healthcheck**: Dockerfile đã có (`/api/health`, `start-period=40s`) — đủ cho app boot.

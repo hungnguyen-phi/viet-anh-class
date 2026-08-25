@@ -1101,6 +1101,109 @@ export type Database = {
           },
         ]
       }
+      hub_event_outbox: {
+        Row: {
+          attempts: number
+          created_at: string
+          event_type: string
+          id: string
+          last_error: string | null
+          payload: Json
+          sent_at: string | null
+          source_id: string
+          source_table: string
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          event_type: string
+          id?: string
+          last_error?: string | null
+          payload: Json
+          sent_at?: string | null
+          source_id: string
+          source_table: string
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          event_type?: string
+          id?: string
+          last_error?: string | null
+          payload?: Json
+          sent_at?: string | null
+          source_id?: string
+          source_table?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      hub_identities: {
+        Row: {
+          created_at: string
+          email_at_link: string
+          id: string
+          issuer: string
+          profile_id: string
+          sub: string
+        }
+        Insert: {
+          created_at?: string
+          email_at_link: string
+          id?: string
+          issuer: string
+          profile_id: string
+          sub: string
+        }
+        Update: {
+          created_at?: string
+          email_at_link?: string
+          id?: string
+          issuer?: string
+          profile_id?: string
+          sub?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hub_identities_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hub_revoked_sessions: {
+        Row: {
+          id: string
+          profile_id: string
+          reason: string
+          revoked_at: string
+        }
+        Insert: {
+          id?: string
+          profile_id: string
+          reason?: string
+          revoked_at?: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string
+          reason?: string
+          revoked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hub_revoked_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_measures: {
         Row: {
           active_weekdays: number[]

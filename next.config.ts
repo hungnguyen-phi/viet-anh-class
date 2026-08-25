@@ -112,6 +112,32 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // ---- NHÚNG VÀO HUB (school Super App hub.truongvietanh.com, mục 3 bản đấu nối) ----
+      //
+      // TƯỞNG BAN ĐẦU LÀ SAI, SỬA LẠI SAU KHI ĐO (25/08/2026): bản đầu định LOẠI /login khỏi diện
+      // được nhúng — tưởng "màn đăng nhập của app không bao giờ nên bị nhúng". Nhưng đọc lại đúng
+      // luồng ở mục 3.2: Hub nhúng một URL TRẦN, và với người CHƯA có phiên, đường dẫn đó tự
+      // redirect vào ĐÚNG /login — HubEmbedGate.tsx (mount trên trang /login) mới là nơi bắt tay
+      // lấy danh tính. Loại /login khỏi diện nhúng nghĩa là trình duyệt chặn hẳn không vẽ trang đó
+      // trong khung Hub — bắt tay không bao giờ chạy được, tính năng nhúng coi như chết ngay từ
+      // bước đầu. Vẫn AN TOÀN vì `frame-ancestors` chỉ cho phép ĐÚNG origin của Hub, không phải
+      // "ai cũng nhúng được" — /login vẫn không nhúng được bởi trang nào khác ngoài Hub.
+      //
+      // Nên: áp CSP enforced cho TẤT CẢ đường dẫn (trừ /api — không phải HTML, không cần khai).
+      // `X-Frame-Options: DENY` ở block trên vẫn giữ nguyên, không gỡ: trình duyệt hiện đại (mọi
+      // trình duyệt trường dùng) ưu tiên CSP `frame-ancestors` hơn `X-Frame-Options` khi cả hai
+      // cùng có mặt — đây là hành vi chuẩn hoá (CSP2 cố ý "obsolete" X-Frame-Options cho việc
+      // này), không phải suy đoán. Chưa cấu hình NEXT_PUBLIC_HUB_ORIGIN thì rơi về 'none' — không
+      // đổi hành vi hiện tại một chút nào cho tới khi biến này thật sự được đặt.
+      {
+        source: '/:path((?!api).*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: `frame-ancestors ${process.env.NEXT_PUBLIC_HUB_ORIGIN || "'none'"}`,
+          },
+        ],
+      },
       // ---- Cache tài nguyên tĩnh ----
       // Next phục vụ file trong public/ với `Cache-Control: public, max-age=0` (vì file có thể
       // đổi giữa các bản build). Hệ quả: mỗi lần mở lại trang login là 54 request kiểm tra lại

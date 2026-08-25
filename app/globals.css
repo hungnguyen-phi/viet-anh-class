@@ -459,6 +459,26 @@ textarea,
   top: 1rem;
 }
 
+/* ── NHÚNG VÀO HUB (school Super App hub.truongvietanh.com) ──────────────────────────────────
+   `data-hub-embed` được app/[locale]/layout.tsx đặt lên <html> bằng MỘT script chạy trước khi vẽ
+   trang (next/script strategy="beforeInteractive") — window.self !== window.top là dấu hiệu app
+   đang nằm trong khung của Hub. Bắt buộc dùng CSS thuần + đặt cờ TRƯỚC khi vẽ, không phải React
+   effect sau khi vẽ: nếu không, một học sinh mở app qua Hub sẽ thấy màn hình đăng nhập/thanh nav
+   RIÊNG của app loé lên một nhịp trước khi bị ẩn — đúng thứ luật của Hub cấm (mục 3.3 bản đấu nối:
+   "Không tự vẽ header… Không hiện màn hình đăng nhập của riêng app").
+   Đây là ẨN KHI NHÚNG, không phải đổi màn hình gốc — người vào app trực tiếp (không qua Hub)
+   không thấy gì khác (luật ① CLAUDE.md: không đổi bố cục trang đăng nhập). */
+html[data-hub-embed='1'] [data-appnav],
+html[data-hub-embed='1'] [data-login-content] {
+  display: none;
+}
+[data-hub-loading] {
+  display: none;
+}
+html[data-hub-embed='1'] [data-hub-loading] {
+  display: flex;
+}
+
 /* ============================================================
    Điều khiển form — sửa 2026-07-27 (audit giao diện)
    ============================================================ */

@@ -22,14 +22,20 @@ COPY . .
 #    NEXT_PUBLIC_GIT_SHA: mã commit build ra ảnh này, /api/health trả về để biết production
 #    ĐANG chạy bản nào. Cần vì job build và job deploy tách rời — deploy hỏng mà build thành
 #    công thì ảnh mới nằm trên GHCR còn production vẫn chạy bản cũ, nhìn ngoài không phân biệt được.
+#    NEXT_PUBLIC_HUB_ORIGIN: địa chỉ Hub (https://hub.truongvietanh.com) — cần lộ ra trình duyệt
+#    vì đây là targetOrigin của postMessage lúc bắt tay nhúng (components/hub/HubEmbedGate.tsx)
+#    và tham số frame-ancestors trong CSP (next.config.ts). Không phải bí mật — địa chỉ Hub vốn
+#    công khai, giống NEXT_PUBLIC_SUPABASE_URL.
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ARG NEXT_PUBLIC_GOOGLE_SSO_ENABLED
 ARG NEXT_PUBLIC_GIT_SHA
+ARG NEXT_PUBLIC_HUB_ORIGIN
 ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL} \
     NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY} \
     NEXT_PUBLIC_GOOGLE_SSO_ENABLED=${NEXT_PUBLIC_GOOGLE_SSO_ENABLED} \
     NEXT_PUBLIC_GIT_SHA=${NEXT_PUBLIC_GIT_SHA} \
+    NEXT_PUBLIC_HUB_ORIGIN=${NEXT_PUBLIC_HUB_ORIGIN} \
     NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build

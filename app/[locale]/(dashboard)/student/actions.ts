@@ -15,6 +15,7 @@ import {AREAS} from '@/lib/areas';
 // khái niệm" mà repo này đã dính nhiều lần.
 import {buddyNote, buddyChat, type BuddyContext, type BuddyLead} from '@/lib/buddy';
 import {weekRangeVN, nextWeekRangeVN, todayInVN, schoolYearRangeVN, isValidDayVN, mondayOf} from '@/lib/dates';
+import {sendHubEvent, buildAttendanceEvent} from '@/lib/hub/webhook';
 import type {Database} from '@/lib/database.types';
 
 type Mood = Database['public']['Enums']['mood_level'];
@@ -62,6 +63,28 @@ export async function checkinMood(mood: Mood, buoi: 'sang' | 'chieu' = 'sang'): 
   // Ngoài cửa sổ: KHÔNG ghi gì cả. Trả về để giao diện nói rõ giờ nào mới bấm được, thay vì báo
   // "lỗi" cho một việc hoàn toàn bình thường là em bấm sớm quá hoặc muộn quá.
   if (data === 'closed') return {ok: false, closed: true};
+
+  // BÁO VỀ HUB — KHÔNG CHẶN PHẢN HỒI CỦA EM (mục 4 bản đấu nối: "mọi app cắm vào Hub đều phải đổ
+  // dữ liệu về"). Đây là đường DUY NHẤT ghi attendance_records (student_checkin ở trên), nên gắn
+  // thẳng ở đây — không cần hàng đợi như tick lead measure (xem migration 0157).
+  //
+  // Đọc lại dòng vừa ghi thay vì tự đoán id: student_checkin() có thể UPDATE một dòng đã có
+  // (bấm buổi chiều sau khi đã bấm buổi sáng), và chỉ CSDL mới biết chắc id/status cuối cùng là gì.
+  // .catch() nuốt lỗi CÓ CHỦ Ý: một lượt báo Hub hỏng không được phép làm hỏng buổi điểm danh thật
+  // của em — xem lib/hub/webhook.ts để biết Hub tự lo phần thử lại/không thử lại theo mã trả về.
+  void (async () => {
+    try {
+      const {data: att} = await admin
+        .from('attendance_records')
+        .select('id, student_id, class_id, date, status')
+        .eq('student_id', profile.id)
+        .eq('date', todayInVN())
+        .maybeSingle();
+      if (att) await sendHubEvent(buildAttendanceEvent(att));
+    } catch (e) {
+      console.error('[hub] checkinMood webhook', e instanceof Error ? e.message : e);
+    }
+  })();
 
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');

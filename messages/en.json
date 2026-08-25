@@ -55,7 +55,11 @@
     "sendShort": "Send",
     "sentShort": "Link sent, please check your email.",
     "again": "Other email",
-    "guide": "View guide"
+    "guide": "View guide",
+    "hubConnecting": "Entering your classroom…",
+    "hubError": "Couldn't sign you in right now. Please try again, or tell the school.",
+    "hubRetry": "Try again",
+    "hubNoAccount": "No Viet Anh Class account matches this account yet. Tell the school to have it added."
   },
   "unauthorized": {
     "title": "Account not yet authorized",

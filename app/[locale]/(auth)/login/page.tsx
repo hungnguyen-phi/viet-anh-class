@@ -4,6 +4,7 @@ import {LocaleSwitcher} from '@/components/shell/LocaleSwitcher';
 import {LoginForm} from '@/components/auth/LoginForm';
 import {StudentCrowd} from '@/components/auth/StudentCrowd';
 import {SkyDecor} from '@/components/auth/SkyDecor';
+import {HubEmbedGate} from '@/components/hub/HubEmbedGate';
 
 export default async function LoginPage({
   params,
@@ -42,19 +43,26 @@ export default async function LoginPage({
         }}
       />
 
-      {/* Nền trời: mây trôi + chim bay (sau đám đông) */}
-      <SkyDecor />
+      {/* NHÚNG VÀO HUB: che toàn bộ màn đăng nhập của app này bằng CSS thuần (ẩn/hiện qua cờ
+          data-hub-embed đặt TRƯỚC khi vẽ trang — xem globals.css), rồi tự bắt tay + đăng nhập
+          qua tài khoản Hub. Người vào trực tiếp không thấy component này render ra gì (trả về
+          null) — màn hình y hệt trước đây. */}
+      <HubEmbedGate />
 
-      {/* Nền: đám đông học sinh đi lại */}
-      <StudentCrowd />
+      <div data-login-content className="contents">
+        {/* Nền trời: mây trôi + chim bay (sau đám đông) */}
+        <SkyDecor />
 
-      {/* Đổi ngôn ngữ */}
-      <div className="absolute right-4 top-4 z-20">
-        <LocaleSwitcher />
-      </div>
+        {/* Nền: đám đông học sinh đi lại */}
+        <StudentCrowd />
 
-      {/* Nội dung */}
-      <div className="relative z-10 flex flex-col items-center px-5 pb-4 pt-[6.5vh] sm:pb-24 sm:pt-[9vh]">
+        {/* Đổi ngôn ngữ */}
+        <div className="absolute right-4 top-4 z-20">
+          <LocaleSwitcher />
+        </div>
+
+        {/* Nội dung */}
+        <div className="relative z-10 flex flex-col items-center px-5 pb-4 pt-[6.5vh] sm:pb-24 sm:pt-[9vh]">
         {/* Nhãn trường — chỉ logo, đã bỏ chữ */}
         <div className="inline-flex items-center rounded-full border border-navy/15 bg-white/55 p-1.5 backdrop-blur-sm">
           <span className="grid h-[52px] w-[52px] place-items-center overflow-hidden rounded-full bg-white">
@@ -104,6 +112,7 @@ export default async function LoginPage({
         {/* Thẻ đăng nhập */}
         <div className="mt-7 w-full max-w-[376px] sm:mt-9">
           <LoginForm />
+        </div>
         </div>
       </div>
     </main>

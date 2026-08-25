@@ -3,6 +3,8 @@ import {cookies} from 'next/headers';
 import type {Database} from '@/lib/database.types';
 import {giuKetNoiSupabase} from '@/lib/giu-ket-noi';
 import {fetchKemDuPhong} from '@/lib/gui-kem-du-phong';
+import {batDauHubDispatcher} from '@/lib/hub/dispatcher';
+import {batDauHubRevocationWatcher} from '@/lib/hub/revocation';
 
 // Client cho Server Components / Route Handlers / Server Actions (đọc session từ cookie).
 // Dùng getAll/setAll (KHÔNG dùng get/set/remove — sẽ làm hỏng session ở production).
@@ -11,6 +13,10 @@ export async function createClient() {
   // chỉ là một phép so boolean. Đặt ở đây vì đây là cửa duy nhất mọi truy vấn phía máy chủ đi
   // qua; xem lib/giu-ket-noi.ts để biết vì sao không dùng instrumentation.ts.
   await giuKetNoiSupabase();
+  // Cùng lý do, cùng chỗ: bộ gửi nền cho hàng đợi sự kiện Hub + kênh nghe đăng xuất ngược từ Hub.
+  // Cả hai tự thoát sớm (im lặng) nếu biến môi trường Hub chưa được cấu hình ở môi trường này.
+  batDauHubDispatcher();
+  batDauHubRevocationWatcher();
 
   const cookieStore = await cookies();
 

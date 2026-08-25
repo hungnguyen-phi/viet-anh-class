@@ -52,6 +52,7 @@ jobs:
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
             NEXT_PUBLIC_GOOGLE_SSO_ENABLED=${{ vars.NEXT_PUBLIC_GOOGLE_SSO_ENABLED }}
             NEXT_PUBLIC_GIT_SHA=${{ github.sha }}
+            NEXT_PUBLIC_HUB_ORIGIN=${{ vars.NEXT_PUBLIC_HUB_ORIGIN }}
 
   deploy:
     needs: build-and-push

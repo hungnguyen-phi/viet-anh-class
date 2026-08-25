@@ -51,7 +51,10 @@ Màn WIG của giáo viên   app/[locale]/(dashboard)/wig/      + components/wig
 Quản trị / cơ sở        app/[locale]/(dashboard)/admin · campus · subjects
 Quyền theo route        middleware.ts + lib/supabase/middleware.ts + lib/auth.ts
 Chuỗi hiển thị          messages/vi.json · messages/en.json
-CSDL                    supabase/migrations/0001…0155_*.sql
+CSDL                    supabase/migrations/0001…0158_*.sql
+Nối vào Hub trường      lib/hub/ + app/api/hub/ + components/hub/HubEmbedGate.tsx
+  · nhúng + đăng nhập     next.config.ts (CSP) + app/[locale]/(auth)/login/page.tsx
+  · gửi dữ liệu về        lib/hub/webhook.ts (điểm danh: student/actions.ts · tick: migration 0157 + lib/hub/dispatcher.ts)
 ```
 
 ## 4. Dữ liệu: đây là production, có dữ liệu trẻ em thật

@@ -55,7 +55,11 @@
     "sendShort": "Gửi",
     "sentShort": "Đã gửi liên kết, kiểm tra email nhé.",
     "again": "Email khác",
-    "guide": "Xem hướng dẫn"
+    "guide": "Xem hướng dẫn",
+    "hubConnecting": "Đang vào lớp học…",
+    "hubError": "Không vào được lúc này. Thầy cô hoặc em thử lại, hoặc báo cho nhà trường.",
+    "hubRetry": "Thử lại",
+    "hubNoAccount": "Chưa tìm thấy tài khoản Việt Anh Class khớp với tài khoản này. Báo cho nhà trường để được thêm."
   },
   "unauthorized": {
     "title": "Tài khoản chưa được cấp quyền",

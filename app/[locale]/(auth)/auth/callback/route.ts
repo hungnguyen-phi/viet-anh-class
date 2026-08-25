@@ -3,6 +3,7 @@ import type {EmailOtpType} from '@supabase/supabase-js';
 import {createClient} from '@/lib/supabase/server';
 import {homeRouteForRole} from '@/lib/auth';
 import {publicOrigin} from '@/lib/public-origin';
+import {safeNextPath} from '@/lib/hub/safe-next';
 
 // Đổi code OAuth / verify magic-link OTP → đặt session → đẩy về trang theo vai trò.
 //
@@ -16,9 +17,9 @@ export async function GET(request: Request) {
   const tokenHash = searchParams.get('token_hash');
   const type = searchParams.get('type') as EmailOtpType | null;
   // Chỉ nhận đường dẫn nội bộ bắt đầu bằng đúng MỘT dấu "/" (chặn open-redirect:
-  // "//evil.com", "/\evil.com", "https://evil.com", "@evil.com"... đều bị loại).
-  const nextParam = searchParams.get('next');
-  const next = nextParam && /^\/(?![/\\])/.test(nextParam) ? nextParam : null;
+  // "//evil.com", "/\evil.com", "https://evil.com", "@evil.com"... đều bị loại). Luật này dùng
+  // chung với app/api/hub/doi-ma/route.ts — xem lib/hub/safe-next.ts.
+  const next = safeNextPath(searchParams.get('next'));
 
   const supabase = await createClient();
   // exchangeCodeForSession / verifyOtp ĐÃ trả về user trong data — lấy id ngay từ đó thay vì
