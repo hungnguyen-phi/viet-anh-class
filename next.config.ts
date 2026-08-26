@@ -112,7 +112,7 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      // ---- NHÚNG VÀO HUB (school Super App hub.truongvietanh.com, mục 3 bản đấu nối) ----
+      // ---- NHÚNG VÀO HUB (school Super App, mục 3 bản đấu nối; đổi tên miền os.truongvietanh.com 26/08/2026) ----
       //
       // TƯỞNG BAN ĐẦU LÀ SAI, SỬA LẠI SAU KHI ĐO (25/08/2026): bản đầu định LOẠI /login khỏi diện
       // được nhúng — tưởng "màn đăng nhập của app không bao giờ nên bị nhúng". Nhưng đọc lại đúng
