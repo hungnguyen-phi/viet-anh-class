@@ -171,6 +171,9 @@ function ViecForm({
   // CẢNH BÁO LỆCH NHỊP, SỐNG THEO TỪNG PHÍM (§6.1 bước 4). Trước đây câu này chỉ có ở phòng họp —
   // tức là hiện ra ở chỗ cô KHÔNG gõ mục tiêu của việc, và im ở chỗ cô gõ. Cùng một hàm với
   // PhongHop (lib/wig-nhip) nên hai màn không bao giờ nói hai con số khác nhau.
+  // Ô chữ phải do state giữ: React dọn trắng form sau MỖI lần gửi, kể cả khi máy chủ trả lỗi —
+  // để ô không kiểm soát thì gõ xong, nhận một câu lỗi, và thấy chữ mình vừa gõ biến mất.
+  const [oTitle, setOTitle] = useState('');
   const [oTarget, setOTarget] = useState('');
   const [oUpt, setOUpt] = useState('1');
   // CHỖ THỨ BA của cùng một lỗi trong một ngày: step="1" chặn "6,7 điểm" và trình duyệt từ chối
@@ -208,6 +211,8 @@ function ViecForm({
         <input
           id="viec-title"
           name="title"
+          value={oTitle}
+          onChange={(e) => setOTitle(e.target.value)}
           aria-invalid={state.fieldError === 'title'}
           className={ctlWithBorder(state.fieldError === 'title')}
         />

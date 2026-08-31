@@ -25,8 +25,13 @@ export function DatCamKetLop({
   const tg = useTranslations('goal');
   const [state, formAction] = useActionState<CamKetLopState, FormData>(datCamKetLop, {ok: false});
   const [mo, setMo] = useState(daCo === 0);
+  // Ô chữ phải do state giữ: React dọn trắng form sau MỖI lần gửi, kể cả khi máy chủ trả lỗi —
+  // để ô không kiểm soát thì gõ xong, nhận một câu lỗi, và thấy chữ mình vừa gõ biến mất.
+  const [oTitle, setOTitle] = useState('');
   useEffect(() => {
-    if (state.ok) setMo(false);
+    // Dọn tay khi lưu xong: khối này chỉ bị ẩn chứ không gỡ khỏi cây, nên state sống tiếp —
+    // không dọn thì lần mở sau còn nguyên câu cam kết của tuần trước.
+    if (state.ok) { setMo(false); setOTitle(''); }
   }, [state.ok]);
   if (daCo >= 2 || namHienCo.length === 0) return null;
   if (!mo)
@@ -55,7 +60,7 @@ export function DatCamKetLop({
           </Field>
         )}
         <Field label={daCo === 0 ? t('commitmentOne') : t('commitmentNo', {n: daCo + 1})} htmlFor="dckl-title" error={state.fieldError === 'title' ? state.error : null}>
-          <input id="dckl-title" name="title" maxLength={160} placeholder={t('commitmentPlaceholder')} className={ctlWithBorder(state.fieldError === 'title')} />
+          <input id="dckl-title" name="title" maxLength={160} value={oTitle} onChange={(e) => setOTitle(e.target.value)} placeholder={t('commitmentPlaceholder')} className={ctlWithBorder(state.fieldError === 'title')} />
         </Field>
       </div>
       {state.error && !state.fieldError && (

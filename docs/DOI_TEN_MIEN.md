@@ -6,8 +6,15 @@ Phần trong repo (code, tài liệu, bộ kiểm) đã sửa xong ở nhánh
 `sua-nho/doi-ten-mien-class-truongvietanh`. Trang này là phần **bấm tay bên ngoài repo** — làm
 đúng thứ tự dưới đây, vì sai thứ tự thì có một khoảng vài phút cả trường không đăng nhập được.
 
-Nguyên tắc: **miền cũ không chết, nó chuyển hướng 308 sang miền mới**. Ai còn bookmark cũ, còn
-magic link gửi hôm trước, còn link dán trong Zalo nhóm phụ huynh — vẫn vào được.
+**ĐÃ LÀM XONG 31/08/2026.** Giữ trang này làm bản ghi chép, và làm mẫu cho lần đổi sau.
+
+Nguyên tắc: **miền cũ bị cắt hẳn, KHÔNG chuyển hướng**. Bản đầu định dựng rule 308 ở Cloudflare
+cho link cũ vẫn vào được; chủ dự án chọn cắt thẳng cho gọn (xem bước 6). Hệ quả đã biết và đã
+chấp nhận: bookmark cũ, magic link đã gửi, địa chỉ in trong sổ tay vận hành, link dán trong nhóm
+Zalo phụ huynh — **chết hết**, phải chủ động báo địa chỉ mới cho 700 người.
+
+Điều KHÔNG được làm: để hai miền cùng sống mà không có chuyển hướng. Đó không phải "trạng thái
+trung gian an toàn", đó là **vòng lặp đăng nhập** — xem bước 6.
 
 ---
 
@@ -21,7 +28,7 @@ Tên miền của app xuất hiện ở **năm** nơi độc lập nhau; đổi 
 | `NEXT_PUBLIC_SITE_URL` / `lib/site.ts` (nội tuyến lúc build) | Redirect sau đăng nhập văng về miền cũ |
 | Supabase → Auth → URL Configuration | Bấm magic link / Google SSO xong bị đá về miền cũ hoặc báo lỗi redirect |
 | Hub (`os.truongvietanh.com`) → phiếu đăng ký app | Nhúng vào Hub hiện khung trắng, đăng nhập qua Hub báo `invalid_grant` |
-| Cloudflare (bản ghi + rule 308 cho miền cũ) | Link cũ chết |
+| Cloudflare (bản ghi DNS) | Trang không mở được / link cũ vẫn sống nửa vời |
 
 ---
 
@@ -77,25 +84,51 @@ curl -s https://class.truongvietanh.com/api/health    # {"commit":"<SHA vừa me
 ```
 
 **Phải đợi bước này xong mới sang bước 6.** `NEXT_PUBLIC_SITE_URL` nội tuyến lúc build: chừng nào
-image mới chưa chạy, app vẫn tự coi mình là `class.vietanh.org` — bật 308 sớm là mọi redirect nội
-bộ chạy vòng tròn giữa hai miền.
+image mới chưa chạy, app vẫn tự coi mình là `class.vietanh.org` — cắt miền cũ sớm là cắt đúng
+miền đang phục vụ người dùng.
 
-### 6. Cloudflare — bật chuyển hướng 308 cho miền cũ
+### 6. Cắt hẳn miền cũ
+
+**Bước này bắt buộc, không được bỏ dở ở trạng thái "để hai miền cùng chạy".**
+
+1. Coolify → application → **Domains**: xoá vế `,https://class.vietanh.org`, chỉ còn
+   `https://class.truongvietanh.com` → Save → **Restart**.
+2. Cloudflare → zone `vietanh.org` → DNS: **xoá bản ghi `class`**. Để lại thì người vào link cũ
+   gặp lỗi 503 khó hiểu của proxy; xoá đi thì trình duyệt báo thẳng "không tìm thấy địa chỉ".
+3. Báo địa chỉ mới cho toàn trường. Sổ tay vận hành in ra giấy đang ghi địa chỉ cũ
+   (`scripts/tao-so-tay-van-hanh.mjs`) — in lại hoặc dán đè.
+
+**VÌ SAO KHÔNG ĐƯỢC ĐỂ HAI MIỀN CÙNG SỐNG.** Nghe thì có vẻ "an toàn hơn, ai vào đâu cũng được".
+Thực tế là vòng lặp đăng nhập, đọc thẳng trong `app/[locale]/(auth)/auth/callback/route.ts:15,55`:
+
+1. Ai bấm magic link / đăng nhập Google **bắt đầu từ miền cũ** → callback chạy trên host cũ, đặt
+   cookie phiên **cho miền cũ**;
+2. dòng cuối redirect về `${origin}`, mà `publicOrigin()` không còn nhận miền cũ → đá sang miền mới;
+3. sang miền mới thì **không có cookie** → middleware đá về `/login`;
+4. đăng nhập lại → quay về bước 1.
+
+Trang vẫn mở được, không có thông báo lỗi nào — nên kiểu hỏng này rất dễ tưởng là "mạng chậm".
+
+Vậy chỉ có hai trạng thái đúng: **cắt hẳn** (mục này), hoặc **chuyển hướng 308** (mục dưới).
+Không có ở giữa.
+
+<details>
+<summary>Phương án đã cân nhắc rồi bỏ: rule 308 giữ link cũ sống</summary>
 
 Zone `vietanh.org` → **Rules → Redirect Rules → Create rule**:
 
-- Tên: `class cũ → class.truongvietanh.com`
 - Khi: `Hostname equals class.vietanh.org`
 - Thì: **Dynamic redirect**
   - Expression: `concat("https://class.truongvietanh.com", http.request.uri.path)`
   - **Preserve query string: ON** ← bắt buộc. Magic link mang token trong query
     (`?token_hash=…`); mất query là link đăng nhập chết.
-  - Status: **308** (giữ nguyên method, không cache vĩnh viễn như 301)
+  - Status: **308** (không phải 301 — 301 bị trình duyệt nhớ vĩnh viễn, sau muốn gỡ cũng không gỡ
+    được khỏi máy người dùng). **Dynamic**, không phải Static — Static mất đường dẫn.
 
-Rule này chạy ở biên Cloudflare, **trước** khi request tới app — nên không request nào còn tới app
-với `Host: class.vietanh.org`, không có chuyện cookie đặt trên miền này rồi lại nhảy sang miền kia.
+Đổi lại: mọi link cũ vẫn sống. Chủ dự án cân nhắc và chọn cắt hẳn cho gọn (31/08/2026). Ghi lại
+đây để lần đổi tên miền sau khỏi phải nghĩ lại từ đầu.
 
-Bật xong thì gỡ `https://class.vietanh.org` khỏi ô Domains của Coolify (bước 2) cho gọn.
+</details>
 
 ### 7. Báo Hub cập nhật phiếu đăng ký app
 
@@ -108,13 +141,13 @@ URL nhúng mới:     https://class.truongvietanh.com/vi
 redirectUris:      https://class.truongvietanh.com/**
 ```
 
-Chưa đổi bên Hub thì: khung nhúng vẫn hiện được (nhờ 308), nhưng bắt tay đăng nhập có thể bị Hub
-từ chối vì origin không khớp phiếu đăng ký. `HUB_APP_ID` **không** đổi.
+Chưa đổi bên Hub là **Hub hỏng hẳn**: phiếu đăng ký còn trỏ miền cũ, mà miền cũ đã chết ở bước 6
+— khung nhúng trắng. `HUB_APP_ID` **không** đổi.
 
 ### 8. Kiểm lại — nhìn tận mắt, không suy đoán
 
 - [ ] `https://class.truongvietanh.com/api/health` trả đúng SHA vừa merge
-- [ ] Mở `https://class.vietanh.org/vi/login` → nhảy sang miền mới, còn nguyên đường dẫn
+- [ ] Mở `https://class.vietanh.org` → **không mở được** (đúng như thiết kế, đã cắt ở bước 6)
 - [ ] Đăng nhập thật bằng `test1.hs@student.truongvietanh.com` (lớp **Test**, đừng đụng lớp thật)
       → vào thẳng màn của em, không văng ra `/login` lần nữa
 - [ ] Đăng nhập bằng Google với một tài khoản `@truongvietanh.com`
@@ -124,20 +157,18 @@ từ chối vì origin không khớp phiếu đăng ký. `HUB_APP_ID` **không**
       chính việc đổi miền lần này đã dập rủi ro đó)
 - [ ] `node scripts/test-mobile.mjs` rồi **nhìn ảnh**
 
-### Sau 24 giờ
+### Dọn nốt
 
-- Xoá `https://class.vietanh.org/**` khỏi Supabase Redirect URLs (và khỏi
-  `supabase/config.toml`) — mọi magic link cũ đã hết hạn.
-- **Giữ rule 308 vĩnh viễn.** Nó gần như không tốn gì, mà link cũ thì nằm rải rác trong sổ tay
-  vận hành in ra giấy, tin nhắn Zalo, email gửi phụ huynh.
+- Xoá `https://class.vietanh.org/**` khỏi Supabase Redirect URLs. Không gấp: nó chỉ cho phép quay
+  về một miền đã chết, để lại vô hại. `supabase/config.toml` trong repo đã bỏ dòng này.
 
 ---
 
 ## Nếu phải quay lại miền cũ
 
-Còn nguyên đường lui trong vòng vài phút, miễn là chưa qua "sau 24 giờ":
+Đường lui vẫn còn, mất thêm vài phút so với lúc còn rule 308:
 
-1. Tắt rule 308 ở bước 6.
+1. Dựng lại bản ghi DNS `class` ở zone `vietanh.org` và gắn lại miền đó vào Coolify (bước 6).
 2. Supabase Site URL đặt lại `https://class.vietanh.org`.
 3. Đặt biến build `NEXT_PUBLIC_SITE_URL=https://class.vietanh.org` trong GitHub → Variables rồi
    chạy lại workflow deploy — **không cần revert code**, biến môi trường thắng giá trị mặc định

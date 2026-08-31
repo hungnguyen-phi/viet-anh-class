@@ -1,6 +1,6 @@
 'use client';
 
-import {useActionState, useEffect, useRef} from 'react';
+import {useActionState, useEffect, useRef, useState} from 'react';
 import {AlertCircle, CheckCircle2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {luuCLBCoSo, type LuuOState} from '@/app/[locale]/(dashboard)/timetable/actions';
@@ -17,8 +17,16 @@ export function FormThemClbCoSo({
 }) {
   const [state, formAction] = useActionState<LuuOState, FormData>(luuCLBCoSo, {ok: false});
   const formRef = useRef<HTMLFormElement>(null);
+  // Bốn ô này phải do state giữ: React dọn trắng form sau MỖI lần gửi, kể cả khi máy chủ trả lỗi
+  // — để ô không kiểm soát thì gõ đủ tên, giờ vào, giờ ra, phòng; nhận một câu lỗi ở MỘT ô; và
+  // mất sạch cả bốn. Dọn tay khi lưu xong (form ở lại để thêm ô tiếp), thay cho form.reset() cũ:
+  // reset() không đụng được tới ô đã có state.
+  const [ten, setTen] = useState('');
+  const [tu, setTu] = useState('');
+  const [den, setDen] = useState('');
+  const [phong, setPhong] = useState('');
   useEffect(() => {
-    if (state.ok) formRef.current?.reset();
+    if (state.ok) { formRef.current?.reset(); setTen(''); setTu(''); setDen(''); setPhong(''); }
   }, [state]);
 
   const o =
@@ -40,19 +48,19 @@ export function FormThemClbCoSo({
         </label>
         <label className="flex min-w-[160px] flex-1 flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
           {nhan.name}
-          <input name="name" required maxLength={120} className={`${o} h-11`} />
+          <input name="name" required maxLength={120} value={ten} onChange={(e) => setTen(e.target.value)} className={`${o} h-11`} />
         </label>
         <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
           {nhan.from}
-          <input type="time" name="start_time" required className={`${o} h-11 w-28`} />
+          <input type="time" name="start_time" required value={tu} onChange={(e) => setTu(e.target.value)} className={`${o} h-11 w-28`} />
         </label>
         <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
           {nhan.to}
-          <input type="time" name="end_time" required className={`${o} h-11 w-28`} />
+          <input type="time" name="end_time" required value={den} onChange={(e) => setDen(e.target.value)} className={`${o} h-11 w-28`} />
         </label>
         <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase text-grey-mid">
           {nhan.room}
-          <input name="room" maxLength={40} className={`${o} h-11 w-24`} />
+          <input name="room" maxLength={40} value={phong} onChange={(e) => setPhong(e.target.value)} className={`${o} h-11 w-24`} />
         </label>
         <SubmitButton className="btn-gold h-11 cursor-pointer rounded-[10px] px-4 text-sm font-extrabold">
           {nhan.add}

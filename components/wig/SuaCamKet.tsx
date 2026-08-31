@@ -48,6 +48,9 @@ export function SuaCamKet({
   const [tenViec, setTenViec] = useState('');
   const [thu, setThu] = useState<number[]>([]);
   const [moiLanKhac, setMoiLanKhac] = useState(false);
+  // Ô chữ phải do state giữ: React dọn trắng form sau MỖI lần gửi, kể cả khi máy chủ trả lỗi —
+  // để ô không kiểm soát thì gõ xong, nhận một câu lỗi, và thấy chữ mình vừa gõ biến mất.
+  const [oLuong, setOLuong] = useState('');
   const kieu = kieuDonVi(donVi);
   const nhan = dayShort ?? ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
   const [state, formAction] = useActionState<CamKetState, FormData>(suaCamKetTuan, {ok: false});
@@ -139,7 +142,7 @@ export function SuaCamKet({
                   <div className="mt-2">
                     {moiLanKhac ? (
                       <Field label={t('weekAmount', {unit: donVi})} htmlFor={`nl-${commitmentId}`} error={state.fieldError === 'viec_luong' ? state.error : null}>
-                        <input id={`nl-${commitmentId}`} name="viec_luong" type="number" step="any" min="0.01" inputMode="decimal" className={ctlWithBorder(state.fieldError === 'viec_luong')} />
+                        <input id={`nl-${commitmentId}`} name="viec_luong" type="number" step="any" min="0.01" inputMode="decimal" value={oLuong} onChange={(e) => setOLuong(e.target.value)} className={ctlWithBorder(state.fieldError === 'viec_luong')} />
                       </Field>
                     ) : (
                       <Field label={t('perTick', {unit: donVi})} htmlFor={`nu-${commitmentId}`} error={state.fieldError === 'viec_upt' ? state.error : null}>

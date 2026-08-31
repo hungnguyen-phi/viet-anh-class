@@ -69,8 +69,11 @@ export function CamKetCuaEm({
   // không thì thôi — để như này giống như bắt buộc điền cam kết 2". Chưa có cam kết nào thì mở sẵn
   // (đó là việc phải làm), có rồi thì gấp; gửi xong tự gấp lại.
   const [moForm, setMoForm] = useState(daCo.length === 0);
+  // Ô chữ phải do state giữ: React dọn trắng form sau MỖI lần gửi, kể cả khi máy chủ trả lỗi —
+  // để ô không kiểm soát thì gõ xong, nhận một câu lỗi, và thấy chữ mình vừa gõ biến mất.
+  const [oTitle, setOTitle] = useState('');
   useEffect(() => {
-    if (state.ok) setMoForm(false);
+    if (state.ok) { setMoForm(false); setOTitle(''); }
   }, [state.ok]);
   const doiThu = (d: number) =>
     setThu((p) => (p.includes(d) ? p.filter((x) => x !== d) : [...p, d].sort((a, b) => a - b)));
@@ -173,6 +176,8 @@ export function CamKetCuaEm({
               id="ck-em-title"
               name="title"
               maxLength={160}
+              value={oTitle}
+              onChange={(e) => setOTitle(e.target.value)}
               placeholder={t('commitmentPlaceholder')}
               className={ctlWithBorder(state.fieldError === 'title')}
             />
