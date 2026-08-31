@@ -143,6 +143,18 @@ export function TaoWigMenu({
   // Form mục tiêu của HỌC SINH dùng step="any" từ lâu; chỗ này là chỗ còn sót.
   const [donVi, setDonVi] = useState('');
   const soLe = kieuDonVi(donVi) === 'do';
+  // HAI Ô SỐ CŨNG PHẢI DO STATE GIỮ — cùng một lý do với Tên/Lĩnh vực/Đơn vị ở dưới, và đây là
+  // chỗ bị sót của lần chữa trước. Hai đường đều đã dựng lại được trên bản chạy thật:
+  //
+  //   ① Bấm Lưu, máy chủ trả BẤT KỲ lỗi nào ("Hãy chọn lĩnh vực.") → React dọn form → hai ô này
+  //      trắng, trong khi Tên và Đơn vị vẫn còn. Sửa nốt lỗi kia rồi bấm Lưu lần hai là nhận
+  //      "Mục tiêu phải là số lớn hơn 0" — một câu nói về ô mà cô KHÔNG hề đụng vào.
+  //   ② Đổi cách đo sang "mục tiêu cuộn" rồi đổi ngược lại: khối ba ô bị gỡ khỏi cây rồi dựng
+  //      lại, số đã gõ mất theo, còn Đơn vị (có state) thì ở lại.
+  //
+  // Cả hai lần, thứ CÒN LẠI trên màn chính là thứ làm người ta tin là mình chưa mất gì.
+  const [oBaseline, setOBaseline] = useState('');
+  const [oTarget, setOTarget] = useState('');
   // ── MỤC TIÊU CUỘN ───────────────────────────────────────────────────────────────────────
   // Dạng của cả 13 mục tiêu lớp thật ở Gò Vấp: "86% học sinh của lớp có 6/8 môn tính điểm đạt
   // 6.5 trở lên". Cho tới hôm nay form không diễn tả nổi câu ấy — cô đành gõ nó vào ô Tên rồi
@@ -418,6 +430,8 @@ export function TaoWigMenu({
                   min="0"
                   inputMode={soLe ? 'decimal' : 'numeric'}
                   placeholder="0"
+                  value={oBaseline}
+                  onChange={(e) => setOBaseline(e.target.value)}
                   aria-invalid={state.fieldError === 'baseline'}
                   className={ctlWithBorder(state.fieldError === 'baseline')}
                 />
@@ -430,6 +444,8 @@ export function TaoWigMenu({
                   step={soLe ? 'any' : '1'}
                   min={soLe ? '0.01' : '1'}
                   inputMode={soLe ? 'decimal' : 'numeric'}
+                  value={oTarget}
+                  onChange={(e) => setOTarget(e.target.value)}
                   aria-invalid={state.fieldError === 'target_value'}
                   className={ctlWithBorder(state.fieldError === 'target_value')}
                 />
