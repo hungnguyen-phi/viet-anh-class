@@ -576,6 +576,7 @@ export type Database = {
           created_by: string
           is_active: boolean
           created_at: string
+          nhac_khi: string
         }
         Insert: {
           id?: string
@@ -589,6 +590,7 @@ export type Database = {
           created_by: string
           is_active?: boolean
           created_at?: string
+          nhac_khi?: string
         }
         Update: {
           id?: string
@@ -602,7 +604,20 @@ export type Database = {
           created_by?: string
           is_active?: boolean
           created_at?: string
+          nhac_khi?: string
         }
+        Relationships: []
+      }
+      pdr_nhac_da_gui: {
+        Row: { user_id: string; ngay: string; loai: string; gui_luc: string }
+        Insert: { user_id: string; ngay: string; loai: string; gui_luc?: string }
+        Update: { user_id?: string; ngay?: string; loai?: string; gui_luc?: string }
+        Relationships: []
+      }
+      pdr_nhac_lan_chay: {
+        Row: { mot_dong: boolean; chay_luc: string }
+        Insert: { mot_dong?: boolean; chay_luc?: string }
+        Update: { mot_dong?: boolean; chay_luc?: string }
         Relationships: []
       }
       pdr_meetings: {
@@ -2882,6 +2897,7 @@ export type Database = {
         Returns: undefined
       }
       auth_campus: { Args: never; Returns: string }
+      sinh_nhac_pdr: { Args: never; Returns: number }
       auth_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]

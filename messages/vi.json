@@ -668,7 +668,7 @@
     "moodSend": "Gửi",
     "moodPickFirst": "Chọn một mặt trước nhé",
     "moodRequired": "Check-in để bắt đầu — đây cũng là điểm danh hôm nay.",
-    "weekThis": "tuần này",
+    "weekThis": "Tuần này",
     "planTitle": "Kế hoạch tuần sau ({week})",
     "planAdd": "Thêm việc",
     "planRemove": "Xoá dòng",
@@ -813,7 +813,6 @@
     "moodClosedAt": "Ngoài giờ check-in. Sáng nhận {sang1}–{sang2}, chiều {chieu1}–{chieu2}.",
     "enterMeetingRoom": "Vào phòng họp lớp",
     "classMinutes": "Biên bản họp của lớp",
-    "weekThis": "Tuần này",
     "weekLast": "Tuần trước",
     "weeksAgo": "{n} tuần trước",
     "classPromise": "Cả lớp hứa",
@@ -1411,7 +1410,12 @@
     "coachTitle": "PDR 1-1 với giáo viên (hằng tháng)",
     "dayOfMonth": "ngày {d} hằng tháng",
     "student": "Học sinh",
-    "dayLabel": "Ngày trong tháng"
+    "dayLabel": "Ngày trong tháng",
+    "remindLabel": "Nhắc",
+    "remindMorning": "Nhắc sáng hôm họp",
+    "remindEveBefore": "Nhắc tối hôm trước",
+    "remindHourBefore": "Nhắc trước 1 tiếng",
+    "remindNone": "Không nhắc"
   },
   "metrics": {
     "leadWeek": "Việc: {x}/{y} đạt",
