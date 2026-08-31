@@ -18,8 +18,12 @@ project_id = "eagsageokobtidpmxucx"
 # site_url thật để Supabase Auth redirect về sau khi đăng nhập. File này chỉ áp dụng khi bạn
 # `supabase config push` — nếu bật/sửa qua Dashboard (khuyên dùng, xem docs/google-sso-setup.md)
 # thì phải SỬA TRỰC TIẾP trên Dashboard, sửa ở đây không tự động lên cloud.
-site_url = "https://class.vietanh.org"
+site_url = "https://class.truongvietanh.com"
 additional_redirect_urls = [
+  "https://class.truongvietanh.com/**",
+  # Tên miền cũ (đổi sang class.truongvietanh.com ngày 31/08/2026). GIỮ LẠI: các magic link đã
+  # gửi đi trước hôm đổi vẫn mang redirect_to=class.vietanh.org — Supabase đối chiếu danh sách
+  # này, xoá dòng dưới là những link đó chết. Gỡ được sau khi mọi link cũ hết hạn (24 giờ).
   "https://class.vietanh.org/**",
   "http://localhost:6868/**",
   "http://localhost:3001/**",

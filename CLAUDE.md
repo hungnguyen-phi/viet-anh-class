@@ -3,7 +3,7 @@
 File này là thứ Claude đọc đầu mỗi phiên. Nó không phải tài liệu giới thiệu; nó là **những điều
 làm sai thì hỏng thật** — hỏng ở đây nghĩa là 700 học sinh và giáo viên đang dùng app thấy hỏng.
 
-App đang **chạy thật** tại https://class.vietanh.org. Đẩy lên `main` là **deploy thẳng production**,
+App đang **chạy thật** tại https://class.truongvietanh.com. Đẩy lên `main` là **deploy thẳng production**,
 không có bước duyệt, không có staging. Đọc kỹ mục "Git" trước khi commit bất cứ thứ gì.
 
 ---
@@ -116,7 +116,7 @@ gh pr create --fill                         # rồi nhờ chủ dự án merge
 Sau khi merge vào `main`, chờ deploy xong rồi mới kết luận:
 
 ```bash
-curl -s https://class.vietanh.org/api/health   # {"commit":"<đúng SHA vừa merge>"}
+curl -s https://class.truongvietanh.com/api/health   # {"commit":"<đúng SHA vừa merge>"}
 ```
 
 ## 8. Cài máy (làm một lần)

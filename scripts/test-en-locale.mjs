@@ -16,7 +16,7 @@
 // Cũng vì trang được stream (thẻ <main> lúc đầu chỉ chứa khung chờ, nội dung thật tới sau trong
 // payload), phải dò TOÀN BỘ HTML chứ không cắt theo <main>.
 //
-//   node scripts/test-en-locale.mjs [https://class.vietanh.org]
+//   node scripts/test-en-locale.mjs [https://class.truongvietanh.com]
 import {readFileSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
 

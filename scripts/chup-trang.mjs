@@ -16,7 +16,7 @@ if (!email || !duong || !tep) {
 }
 const RONG = Number(rongArg ?? 1366);
 const CAO = Number(caoArg ?? 900);
-const BASE = baseArg ?? 'https://class.vietanh.org';
+const BASE = baseArg ?? 'https://class.truongvietanh.com';
 const U = new URL(BASE);
 const env = {};
 for (const l of readFileSync('.env.local', 'utf8').split('\n')) {

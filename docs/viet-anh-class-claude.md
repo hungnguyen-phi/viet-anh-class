@@ -3,7 +3,7 @@
 Dành cho người **không phải lập trình viên** muốn tự đổi những thứ nhỏ trong app — chữ trên nút,
 nhãn một ô, thứ tự vài mục — mà không phải chờ ai.
 
-App đang chạy thật ở https://class.vietanh.org. Có 700 học sinh và giáo viên đang dùng. Bản hướng
+App đang chạy thật ở https://class.truongvietanh.com. Có 700 học sinh và giáo viên đang dùng. Bản hướng
 dẫn này dựng sẵn hàng rào để một cú gõ nhầm không lên tới họ.
 
 ---
@@ -119,10 +119,10 @@ chứng — luật của dự án là nhìn thấy rồi mới tin.
 | Gặp gì | Làm gì |
 |---|---|
 | Chạy `npm run dev` báo lỗi | Dán nguyên câu lỗi cho Claude, bảo "sửa giúp tôi" |
-| Đăng nhập ở `localhost` xong bị văng sang class.vietanh.org | Nhờ chủ dự án thêm `http://localhost:3000/**` vào Supabase → Authentication → Redirect URLs |
+| Đăng nhập ở `localhost` xong bị văng sang class.truongvietanh.com | Nhờ chủ dự án thêm `http://localhost:3000/**` vào Supabase → Authentication → Redirect URLs |
 | Check-in cảm xúc / ghi chú Sư Tử báo lỗi ở máy | Bình thường — máy anh cố tình không có khoá quản trị. Trên bản thật vẫn chạy |
 | Sửa hỏng, muốn quay lại từ đầu | `git checkout main` rồi tạo nhánh mới — nhánh cũ bỏ đó, không sao |
 | Không biết mình đang ở nhánh nào | `git status` — dòng đầu ghi tên nhánh |
-| Đã merge nhưng app chưa đổi | Chờ ~6 phút, rồi mở https://class.vietanh.org/api/health xem `commit` đã là bản mới chưa |
+| Đã merge nhưng app chưa đổi | Chờ ~6 phút, rồi mở https://class.truongvietanh.com/api/health xem `commit` đã là bản mới chưa |
 
 Còn lại: hỏi chủ dự án. Không có câu hỏi nào là thừa so với một bản deploy hỏng giữa giờ học.

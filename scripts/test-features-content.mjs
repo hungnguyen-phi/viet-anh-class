@@ -4,7 +4,7 @@
 // 200 mà rỗng, hoặc hiện màn của vai khác, thì vẫn 200. Ở đây kiểm nội dung: vai này PHẢI thấy
 // gì, và TUYỆT ĐỐI không được thấy gì.
 //
-//   node scripts/test-features-content.mjs [https://class.vietanh.org]
+//   node scripts/test-features-content.mjs [https://class.truongvietanh.com]
 import {readFileSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
 

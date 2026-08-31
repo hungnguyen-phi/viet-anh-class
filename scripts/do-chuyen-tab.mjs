@@ -1,6 +1,6 @@
 // ĐO CẢM GIÁC CHUYỂN TAB — bằng trình duyệt thật, phiên GVCN thật.
 //
-//   node scripts/do-chuyen-tab.mjs [https://class.vietanh.org] [giây chờ trước khi bấm=8]
+//   node scripts/do-chuyen-tab.mjs [https://class.truongvietanh.com] [giây chờ trước khi bấm=8]
 //
 // Mở /wig, đợi N giây (để lớp nạp trước — NapTruoc — kịp chạy hoặc không), rồi bấm lần lượt các
 // tab trên thanh menu và đo từ lúc bấm tới lúc <h1> của trang mới hiện ra. Đây là con số người
@@ -11,7 +11,7 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {createClient} from '@supabase/supabase-js';
 
-const BASE = process.argv[2] ?? 'https://class.vietanh.org';
+const BASE = process.argv[2] ?? 'https://class.truongvietanh.com';
 const CHO = Number(process.argv[3] ?? 8);
 const U = new URL(BASE);
 const env = {};

@@ -1,6 +1,21 @@
 # Coolify đang gửi chìa khoá quản trị sang app
 
-> **CHỦ DỰ ÁN ĐÃ QUYẾT ĐỊNH (2026-07-31): GIỮ NGUYÊN, KHÔNG ĐỔI TÊN MIỀN.**
+> **ĐÃ HẾT (2026-08-31): APP CHUYỂN SANG `class.truongvietanh.com`.**
+>
+> Rủi ro dưới đây sinh ra từ việc app và Coolify **cùng họ `vietanh.org`**. App đã dọn sang
+> `class.truongvietanh.com`, Coolify vẫn ở `vietanh.org` — hai bên không còn cùng họ, nên trình
+> duyệt KHÔNG gửi cookie `auth=` của Coolify sang app nữa. Giữ trang này để biết chuyện đã xảy ra
+> và để kiểm lại sau khi đổi (mục "Kiểm lại" ở dưới, xem `docs/DOI_TEN_MIEN.md`).
+>
+> Còn phải để mắt một chỗ MỚI: đừng bao giờ đặt cookie ở gốc `truongvietanh.com`. Cookie ở gốc sẽ
+> tự động chảy sang `class.truongvietanh.com` (và ngược lại là không) — đúng cái bẫy này, chỉ đổi
+> họ. Hub ở `os.truongvietanh.com` phải đặt cookie khoá cứng theo host (`__Host-`), không phải
+> `domain=.truongvietanh.com`.
+>
+> ---
+>
+> **Quyết định cũ (2026-07-31): GIỮ NGUYÊN, KHÔNG ĐỔI TÊN MIỀN.** — đã bị thay bằng việc đổi
+> tên miền app ở trên.
 >
 > Không phải việc treo. Đừng tự sửa. Ghi lại đây để người đọc sau biết chuyện này đã được cân
 > nhắc và bỏ qua có chủ đích, và để nếu sau này đổi ý thì có sẵn các bước.
@@ -51,7 +66,7 @@ hoặc một tên miền riêng hẳn.
 2. Trong Coolify → Settings → Instance Domain: đổi sang tên miền mới, để nó cấp chứng chỉ TLS.
 3. Đăng nhập lại bằng tên miền mới.
 4. Xoá cookie cũ: mở `https://vietanh.org`, DevTools → Application → Cookies → xoá hết.
-5. Kiểm lại: mở `https://class.vietanh.org`, DevTools → Application → Cookies. Chỉ được còn cookie
+5. Kiểm lại: mở `https://class.truongvietanh.com`, DevTools → Application → Cookies. Chỉ được còn cookie
    của chính app (`sb-...-auth-token`, `NEXT_LOCALE`). Không còn dòng `auth=`.
 
 **Không đụng gì tới app** — không sửa code, không deploy lại.

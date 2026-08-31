@@ -8,7 +8,7 @@ import {Loader2} from 'lucide-react';
 //
 // Component này chỉ LÀM VIỆC khi app đang chạy trong khung của Hub (cờ `data-hub-embed` do script
 // beforeInteractive ở app/[locale]/layout.tsx đặt TRƯỚC khi trang này vẽ — xem globals.css). Người
-// vào app trực tiếp (gõ thẳng class.vietanh.org) không chạy qua đây một dòng nào — luật ① CLAUDE.md
+// vào app trực tiếp (gõ thẳng class.truongvietanh.com) không chạy qua đây một dòng nào — luật ① CLAUDE.md
 // "không đổi bố cục trang đăng nhập" áp dụng nguyên vẹn cho họ.
 //
 // Đặt trên TRANG LOGIN (không phải trong layout dashboard): mọi lượt vào app CHƯA có phiên đều bị

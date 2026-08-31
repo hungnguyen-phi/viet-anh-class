@@ -1,6 +1,6 @@
 # Thử app Việt Anh Class — hướng dẫn cho team Marketing
 
-Lớp **Marketing** (năm học 2026–2027) đã tạo sẵn trên https://class.vietanh.org. Mỗi người trong
+Lớp **Marketing** (năm học 2026–2027) đã tạo sẵn trên https://class.truongvietanh.com. Mỗi người trong
 team là một *học sinh* của lớp; **duong@truongvietanh.com** là *giáo viên chủ nhiệm*. Đăng nhập
 bằng Google với đúng email công ty là vào thẳng đúng vai — không cần mật khẩu.
 

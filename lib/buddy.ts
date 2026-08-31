@@ -65,7 +65,7 @@ async function call(
         Authorization: `Bearer ${key}`,
         'Content-Type': 'application/json',
         // OpenRouter dùng 2 header này để gán usage cho app — không chứa PII.
-        'HTTP-Referer': 'https://class.vietanh.org',
+        'HTTP-Referer': 'https://class.truongvietanh.com',
         'X-Title': 'Viet Anh Class',
       },
       body: JSON.stringify({
