@@ -668,7 +668,7 @@
     "moodSend": "Send",
     "moodPickFirst": "Pick a face first",
     "moodRequired": "Check in to continue — this also marks today's attendance.",
-    "weekThis": "this week",
+    "weekThis": "This week",
     "planTitle": "Next week's plan ({week})",
     "planAdd": "Add item",
     "planRemove": "Remove row",
@@ -813,7 +813,6 @@
     "moodClosedAt": "Check-in is closed. Morning {sang1}–{sang2}, afternoon {chieu1}–{chieu2}.",
     "enterMeetingRoom": "Open the class meeting room",
     "classMinutes": "Class meeting minutes",
-    "weekThis": "This week",
     "weekLast": "Last week",
     "weeksAgo": "{n} weeks ago",
     "classPromise": "The class promises",
@@ -1411,7 +1410,12 @@
     "coachTitle": "1-on-1 PDR with the teacher (monthly)",
     "dayOfMonth": "day {d} monthly",
     "student": "Student",
-    "dayLabel": "Day of month"
+    "dayLabel": "Day of month",
+    "remindLabel": "Remind",
+    "remindMorning": "Morning of the meeting",
+    "remindEveBefore": "Evening before",
+    "remindHourBefore": "1 hour before",
+    "remindNone": "No reminder"
   },
   "metrics": {
     "leadWeek": "Leads: {x}/{y} met",

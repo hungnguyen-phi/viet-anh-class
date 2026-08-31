@@ -37,7 +37,7 @@ export async function KhuBuddyPdr({
       .order('created_at'),
     supabase
       .from('pdr_schedules')
-      .select('id, type, buddy_pair_id, student_id, weekday, time_slot, monthly_day')
+      .select('id, type, buddy_pair_id, student_id, weekday, time_slot, monthly_day, nhac_khi')
       .eq('class_id', classId)
       .eq('is_active', true),
   ]);
@@ -122,6 +122,19 @@ export async function KhuBuddyPdr({
                   className={`${oNho} w-24`}
                   aria-label={t('time')}
                 />
+                {/* NHẮC KHI NÀO — người cài lịch tự chọn (0159). Không cắm cứng vì lớp họp
+                    giờ ra chơi và lớp họp buổi tối cần hai mốc khác hẳn nhau. */}
+                <select
+                  name="nhac_khi"
+                  defaultValue={l?.nhac_khi ?? 'sang_hom_do'}
+                  className={`${oNho} cursor-pointer`}
+                  aria-label={t('remindLabel')}
+                >
+                  <option value="sang_hom_do">{t('remindMorning')}</option>
+                  <option value="toi_hom_truoc">{t('remindEveBefore')}</option>
+                  <option value="mot_gio_truoc">{t('remindHourBefore')}</option>
+                  <option value="khong">{t('remindNone')}</option>
+                </select>
                 <SubmitButton className={`${oNho} cursor-pointer font-extrabold hover:border-navy`} wrapClass="contents">
                   {t('saveSchedule')}
                 </SubmitButton>
@@ -237,6 +250,13 @@ export async function KhuBuddyPdr({
                 {d}
               </option>
             ))}
+          </select>
+          {/* Lịch coach không có giờ nên KHÔNG bày "trước 1 tiếng": một lựa chọn mà máy chủ
+              phải tự diễn giải lại thành thứ khác là một lời hứa hão với người bấm. */}
+          <select name="nhac_khi" defaultValue="sang_hom_do" className={`${oNho} cursor-pointer`} aria-label={t('remindLabel')}>
+            <option value="sang_hom_do">{t('remindMorning')}</option>
+            <option value="toi_hom_truoc">{t('remindEveBefore')}</option>
+            <option value="khong">{t('remindNone')}</option>
           </select>
           <SubmitButton className={`${oNho} cursor-pointer font-extrabold hover:border-navy`} wrapClass="contents">
             {t('saveSchedule')}

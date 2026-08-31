@@ -121,6 +121,14 @@ export async function goBuddyNhom(formData: FormData) {
   flash(class_id, error ? loi(friendlyError(error)) : 'Đã gỡ nhóm buddy (lịch sử họp giữ nguyên)');
 }
 
+// Chỉ nhận đúng bốn giá trị CSDL cho phép (CHECK ở 0159). Giá trị lạ → 'sang_hom_do' thay vì
+// để CSDL ném lỗi ràng buộc: người dùng không gõ ô này bằng tay, giá trị lạ nghĩa là form bị
+// nghịch — và câu trả lời đúng cho chuyện đó là mặc định an toàn, không phải một màn lỗi.
+function docNhac(formData: FormData): string {
+  const v = String(formData.get('nhac_khi') ?? '');
+  return ['khong', 'toi_hom_truoc', 'sang_hom_do', 'mot_gio_truoc'].includes(v) ? v : 'sang_hom_do';
+}
+
 export async function luuLichBuddy(formData: FormData) {
   const me = await requireRole(['teacher', 'admin', 'principal']);
   const class_id = String(formData.get('class_id') ?? '');
@@ -131,6 +139,7 @@ export async function luuLichBuddy(formData: FormData) {
   const pairIds = tachIds(String(formData.get('pair_ids') ?? ''));
   const weekday = Number(formData.get('weekday') ?? 0);
   const time_slot = String(formData.get('time_slot') ?? '').trim() || null;
+  const nhac_khi = docNhac(formData);
   if (pairIds.length === 0 || weekday < 2 || weekday > 8) flash(class_id, loi('Chọn thứ trong tuần.'));
 
   const supabase = await createClient();
@@ -145,13 +154,14 @@ export async function luuLichBuddy(formData: FormData) {
     pairIds.map((pid) => {
       const idCu = coRoi.get(pid);
       return idCu
-        ? supabase.from('pdr_schedules').update({weekday, time_slot}).eq('id', idCu)
+        ? supabase.from('pdr_schedules').update({weekday, time_slot, nhac_khi}).eq('id', idCu)
         : supabase.from('pdr_schedules').insert({
             class_id,
             buddy_pair_id: pid,
             type: 'buddy',
             weekday,
             time_slot,
+            nhac_khi,
             created_by: me.id,
           });
     }),
@@ -166,6 +176,7 @@ export async function luuLichCoach(formData: FormData) {
   const class_id = String(formData.get('class_id') ?? '');
   const student_id = String(formData.get('student_id') ?? '');
   const monthly_day = Number(formData.get('monthly_day') ?? 0);
+  const nhac_khi = docNhac(formData);
   // 1–28 để lịch không tự trượt ở tháng thiếu ngày (CHECK ở 0146 cũng chặn).
   if (!student_id || monthly_day < 1 || monthly_day > 28)
     flash(class_id, loi('Chọn học sinh và một ngày từ 1 đến 28.'));
@@ -179,12 +190,13 @@ export async function luuLichCoach(formData: FormData) {
     .eq('is_active', true)
     .maybeSingle();
   const {error} = daCo
-    ? await supabase.from('pdr_schedules').update({monthly_day}).eq('id', daCo.id)
+    ? await supabase.from('pdr_schedules').update({monthly_day, nhac_khi}).eq('id', daCo.id)
     : await supabase.from('pdr_schedules').insert({
         class_id,
         student_id,
         type: 'coach',
         monthly_day,
+        nhac_khi,
         created_by: me.id,
       });
   revalidatePath('/[locale]/roster', 'page');

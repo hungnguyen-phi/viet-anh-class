@@ -15,6 +15,23 @@ export default async function NotificationsPage({params}: {params: Promise<{loca
   const t = await getTranslations('notif');
   const supabase = await createClient();
 
+  // SINH NHẮC HỌP PDR TRƯỚC KHI ĐỌC DANH SÁCH (0159).
+  //
+  // Đây là chuông TRONG app: người ta chỉ thấy thông báo khi mở app, nên sinh nó ngay lúc mở
+  // trang này là đủ sớm. Hàm tự chặn chạy dày (10 phút một lần, bảng pdr_nhac_lan_chay) và tự
+  // chống nhắc trùng, nên gọi mỗi lần mở trang không sinh ra tin thừa.
+  //
+  // KHÔNG đặt ở layout: layout chạy trên MỌI trang sau đăng nhập, mà mỗi lần gọi là một vòng
+  // mạng tới Supabase — đường truyền VPS↔Supabase của trường vốn đã là chỗ đau. Chỉ trang này
+  // mới cần.
+  //
+  // Nuốt lỗi có chủ ý: hỏng việc nhắc thì trang thông báo vẫn phải mở được. Nếu project đã bật
+  // pg_cron (xem cuối 0159) thì cron đã làm phần này rồi, lời gọi ở đây chỉ là lưới đỡ.
+  await supabase.rpc('sinh_nhac_pdr').then(
+    () => undefined,
+    () => undefined,
+  );
+
   const {data} = await supabase
     .from('notifications')
     .select('id, title, body, link, read, created_at')
