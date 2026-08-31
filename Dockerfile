@@ -26,16 +26,21 @@ COPY . .
 #    vì đây là targetOrigin của postMessage lúc bắt tay nhúng (components/hub/HubEmbedGate.tsx)
 #    và tham số frame-ancestors trong CSP (next.config.ts). Không phải bí mật — địa chỉ Hub vốn
 #    công khai, giống NEXT_PUBLIC_SUPABASE_URL.
+#    NEXT_PUBLIC_SITE_URL: tên miền công khai của app (https://class.truongvietanh.com). Có mặc
+#    định trong lib/site.ts nên KHÔNG bắt buộc; để sẵn ở đây để lần đổi tên miền sau — hoặc lúc
+#    phải lùi gấp về tên miền cũ — chỉ cần đổi một GitHub Variable rồi build lại, không sửa code.
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ARG NEXT_PUBLIC_GOOGLE_SSO_ENABLED
 ARG NEXT_PUBLIC_GIT_SHA
 ARG NEXT_PUBLIC_HUB_ORIGIN
+ARG NEXT_PUBLIC_SITE_URL
 ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL} \
     NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY} \
     NEXT_PUBLIC_GOOGLE_SSO_ENABLED=${NEXT_PUBLIC_GOOGLE_SSO_ENABLED} \
     NEXT_PUBLIC_GIT_SHA=${NEXT_PUBLIC_GIT_SHA} \
     NEXT_PUBLIC_HUB_ORIGIN=${NEXT_PUBLIC_HUB_ORIGIN} \
+    NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
     NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build

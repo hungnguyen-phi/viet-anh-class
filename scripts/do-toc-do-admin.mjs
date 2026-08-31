@@ -5,7 +5,7 @@
 //   · xong  — đọc hết thân. Chênh với TTFB chính là phần được truyền dần (Suspense).
 //   · /api/health — không chạm cơ sở dữ liệu, nên là mốc nền của riêng đường truyền.
 //
-//   node scripts/do-toc-do-admin.mjs [BASE]     mặc định https://class.vietanh.org
+//   node scripts/do-toc-do-admin.mjs [BASE]     mặc định https://class.truongvietanh.com
 //
 // Số đo tham chiếu (production, 2026-08-05, TRƯỚC khi tách trang thành ba mảnh):
 //   /api/health                143 ms
@@ -16,7 +16,7 @@
 import {readFileSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
 
-const BASE = process.argv[2] ?? 'https://class.vietanh.org';
+const BASE = process.argv[2] ?? 'https://class.truongvietanh.com';
 const env = {};
 for (const l of readFileSync('.env.local', 'utf8').split('\n')) {
   const m = l.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)\s*$/);

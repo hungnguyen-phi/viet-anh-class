@@ -55,17 +55,17 @@ Tài liệu này là các bước **cắm** cuối cùng — chỉ cần làm 1 
 ## Bước 3 — Khai báo Redirect URLs (nơi được phép quay về sau đăng nhập)
 
 Dashboard → **Authentication → URL Configuration**:
-- **Site URL**: `https://class.vietanh.org` (domain production thật của app).
+- **Site URL**: `https://class.truongvietanh.com` (domain production thật của app).
 - **Redirect URLs** → thêm (mỗi dòng một URL, có `/**` để khớp mọi path):
   ```
-  https://class.vietanh.org/**
+  https://class.truongvietanh.com/**
   http://localhost:6868/**
   http://localhost:3001/**
   http://localhost:3000/**
   https://viet-anh-class.vercel.app/**
   ```
   ⚠️ Đây là nguyên nhân trực tiếp của lỗi "đăng nhập Google báo lỗi" đã gặp khi thử nghiệm: Site URL
-  trên Dashboard đang là `localhost`, không khớp domain thật `class.vietanh.org` → Supabase từ chối
+  trên Dashboard đang là `localhost`, không khớp domain thật `class.truongvietanh.com` → Supabase từ chối
   redirect. Phải sửa TRÊN DASHBOARD (không phải chỉ sửa file `supabase/config.toml` trong repo — file
   đó chỉ lên cloud nếu bạn chạy `supabase config push`).
 
@@ -92,7 +92,7 @@ tránh người dùng bấm vào lúc chưa cấu hình xong, gặp màn lỗi c
 
 ## Bước 6 — Kiểm thử end-to-end
 
-1. Mở app (`http://localhost:6868` hoặc `https://class.vietanh.org`) → bấm **Đăng nhập với Google**.
+1. Mở app (`http://localhost:6868` hoặc `https://class.truongvietanh.com`) → bấm **Đăng nhập với Google**.
 2. Đăng nhập bằng email `@truongvietanh.com` → phải vào được, hồ sơ tạo với role `pending`
    (admin nâng quyền sau ở `/admin`), hoặc `@student.truongvietanh.com` → role `student`.
 3. Thử email Gmail cá nhân bất kỳ → phải **bị từ chối** (nếu đã bật hook Bước 4).

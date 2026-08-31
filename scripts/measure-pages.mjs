@@ -8,7 +8,7 @@
 // Chạy nhiều lượt rồi lấy TRUNG VỊ, vì đường truyền dao động mạnh — trung bình bị một lượt xấu
 // kéo lệch, trung vị thì không.
 //
-//   node scripts/measure-pages.mjs [https://class.vietanh.org] [số-lượt]
+//   node scripts/measure-pages.mjs [https://class.truongvietanh.com] [số-lượt]
 import {readFileSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
 

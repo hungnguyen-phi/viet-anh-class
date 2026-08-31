@@ -7,7 +7,7 @@ import path from 'node:path';
 import {createClient} from '@supabase/supabase-js';
 
 const [email, baseArg, tuGio='06:20', denGio='09:20'] = process.argv.slice(2);
-const BASE = baseArg ?? 'https://class.vietanh.org';
+const BASE = baseArg ?? 'https://class.truongvietanh.com';
 const LOP = 'ddefb0a7-eeaa-40e6-9e16-0fd4c65fc8bf';
 const U = new URL(BASE);
 const env = {};

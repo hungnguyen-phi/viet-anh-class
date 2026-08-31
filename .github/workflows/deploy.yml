@@ -53,6 +53,7 @@ jobs:
             NEXT_PUBLIC_GOOGLE_SSO_ENABLED=${{ vars.NEXT_PUBLIC_GOOGLE_SSO_ENABLED }}
             NEXT_PUBLIC_GIT_SHA=${{ github.sha }}
             NEXT_PUBLIC_HUB_ORIGIN=${{ vars.NEXT_PUBLIC_HUB_ORIGIN }}
+            NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}
 
   deploy:
     needs: build-and-push

@@ -59,7 +59,7 @@ const KEEP = argv.includes('--keep-server'); // để server sống sau khi đo 
 //
 // Vì sao mặc định là '/en': ở DEV (turbopack), đường dẫn KHÔNG có tiền tố (tiếng Việt — locale
 // mặc định, localePrefix 'as-needed') bị next-intl trả 307 về chính nó → vòng lặp, không render
-// nổi trang nào. Đây là lỗi CHỈ có ở dev: bản chạy thật https://class.vietanh.org/login trả 200.
+// nổi trang nào. Đây là lỗi CHỈ có ở dev: bản chạy thật https://class.truongvietanh.com/login trả 200.
 // Đường dẫn có tiền tố '/en' thì dev render bình thường, và SỐ TRUY VẤN không phụ thuộc ngôn ngữ
 // (locale chỉ đổi chuỗi hiển thị), nên đo bằng '/en' cho ra đúng con số cần biết.
 // Đặt --prefix '' để đo đường dẫn tiếng Việt (dùng khi đo trên bản build thật).

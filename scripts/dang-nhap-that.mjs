@@ -1,6 +1,6 @@
 // SINH ĐƯỜNG ĐĂNG NHẬP THẬT cho một tài khoản — để lái trình duyệt vào app như người dùng.
 //
-//   node scripts/dang-nhap-that.mjs <email> [https://class.vietanh.org]
+//   node scripts/dang-nhap-that.mjs <email> [https://class.truongvietanh.com]
 //
 // Vì sao KHÔNG dùng `action_link` mà generateLink trả về: đường ấy đi qua endpoint /auth/v1/verify
 // của Supabase, và Supabase trả session ở FRAGMENT (#access_token=…). Fragment không bao giờ được
@@ -14,7 +14,7 @@ import {readFileSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
 
 const email = process.argv[2];
-const base = process.argv[3] ?? 'https://class.vietanh.org';
+const base = process.argv[3] ?? 'https://class.truongvietanh.com';
 if (!email) {
   console.error('Thiếu email. Ví dụ: node scripts/dang-nhap-that.mjs tunhien01@truongvietanh.com');
   process.exit(1);

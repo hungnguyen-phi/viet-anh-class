@@ -7,7 +7,7 @@
 -- và mỗi lần chạy đều ép lại đúng trạng thái mong muốn (kể cả khi ai đó lỡ sửa tay).
 --
 -- Mật khẩu chung cho cả 9 tài khoản: demo1234
--- Đăng nhập: mở https://class.vietanh.org/login → bấm đúng nút ở khối "Demo".
+-- Đăng nhập: mở https://class.truongvietanh.com/login → bấm đúng nút ở khối "Demo".
 --
 -- CUỐI FILE có một câu SELECT in ra bảng tự kiểm. Đọc bảng đó: mọi cột phải là OK.
 -- ============================================================================

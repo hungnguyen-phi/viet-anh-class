@@ -23,7 +23,7 @@
 // Nên mỗi trang giờ được chụp lại thành PNG (chụp hết chiều dài trang, không chỉ khung nhìn). Số
 // đo dùng để KHOANH VÙNG — mở ảnh nào trước; ảnh dùng để kết luận.
 //
-//   node scripts/test-mobile.mjs [https://class.vietanh.org] [360,390,430] [thư-mục-ảnh]
+//   node scripts/test-mobile.mjs [https://class.truongvietanh.com] [360,390,430] [thư-mục-ảnh]
 import {readFileSync, writeFileSync, existsSync, rmSync, mkdtempSync, mkdirSync} from 'node:fs';
 import {spawn, spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';

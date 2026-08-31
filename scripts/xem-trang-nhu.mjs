@@ -1,13 +1,13 @@
 // XEM MỘT TRANG BẰNG PHIÊN THẬT của một tài khoản, in ra CHỮ (đã bóc thẻ) — để đối chiếu nhanh
 // "cô/em đang thấy gì" mà không phải lái trình duyệt.
 //
-//   node scripts/xem-trang-nhu.mjs <email> </duong/dan?query> [https://class.vietanh.org]
+//   node scripts/xem-trang-nhu.mjs <email> </duong/dan?query> [https://class.truongvietanh.com]
 //
 // Chỉ đọc; không tạo tài khoản (chặn generateLink với email chưa có hồ sơ).
 import {readFileSync, writeFileSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
 
-const [email, duong, base = 'https://class.vietanh.org'] = process.argv.slice(2);
+const [email, duong, base = 'https://class.truongvietanh.com'] = process.argv.slice(2);
 if (!email || !duong) {
   console.error('Dùng: node scripts/xem-trang-nhu.mjs <email> </vi/wig/hop?hop=2026-08-03> [base]');
   process.exit(1);

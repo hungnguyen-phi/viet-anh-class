@@ -123,7 +123,7 @@ LỜI NHẮN GỬI CHO MỌI NGƯỜI (hệ thống KHÔNG tự gửi email — 
 ────────────────────────────────────────────────────────────────────────
 Chào thầy/cô,
 
-Buổi thử app 4DX của trường: mời thầy/cô vào https://class.vietanh.org
+Buổi thử app 4DX của trường: mời thầy/cô vào https://class.truongvietanh.com
 và bấm "Đăng nhập với Google", dùng ĐÚNG email trường của mình.
 
 Vào lần đầu, hệ thống sẽ tự đưa thầy/cô vào đúng lớp. Xin làm giúp 2 việc:

@@ -124,7 +124,7 @@ Quy tắc của dự án: **`tsc` sạch và `next build` xanh không phải b�
 Push lên `main` → GitHub Actions build image → đẩy lên GHCR → Coolify pull và chạy. Sau khi push, chờ `/api/health` trả đúng commit SHA rồi mới đo hay kết luận:
 
 ```bash
-curl -s https://class.vietanh.org/api/health
+curl -s https://class.truongvietanh.com/api/health
 # {"status":"ok","commit":"..."}
 ```
 
@@ -156,6 +156,7 @@ docs/                       runbook vận hành, bảo mật, quyền, mô hình
 | [`docs/MO_HINH_WIG.md`](docs/MO_HINH_WIG.md) | Mô hình WIG — năm, tuần, lead measure |
 | [`docs/ROLE_MATRIX.md`](docs/ROLE_MATRIX.md) | Vai trò nào thấy gì, làm được gì |
 | [`docs/DATA_GOVERNANCE.md`](docs/DATA_GOVERNANCE.md) | Dữ liệu trẻ em: giữ gì, gửi đi đâu |
+| [`docs/DOI_TEN_MIEN.md`](docs/DOI_TEN_MIEN.md) | Đổi tên miền app — thứ tự bấm ở Cloudflare/Coolify/Supabase/Hub, đường lui |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md) · [`docs/SETUP_AUTH.md`](docs/SETUP_AUTH.md) · [`docs/SETUP_EMAIL.md`](docs/SETUP_EMAIL.md) | Runbook hạ tầng |
 | [`docs/M8_HARDENING.md`](docs/M8_HARDENING.md) | Rà soát bảo mật và những chỗ đã vá |
 | [`docs/NAV_IA.md`](docs/NAV_IA.md) · [`docs/PILOT_SUCCESS_METRICS.md`](docs/PILOT_SUCCESS_METRICS.md) | Điều hướng · thước đo giai đoạn thí điểm |

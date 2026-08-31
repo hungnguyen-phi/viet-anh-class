@@ -11,7 +11,7 @@ import {SITE_URL} from '@/lib/site';
 //
 // VÌ SAO CŨNG KHÔNG DÙNG THẲNG SITE_URL:
 // SITE_URL là domain production. Cắm cứng nó thì máy dev chạy localhost hễ bị đá về /login là
-// văng thẳng sang class.vietanh.org — mất phiên, không debug được.
+// văng thẳng sang class.truongvietanh.com — mất phiên, không debug được.
 //
 // VÌ SAO PHẢI CÓ DANH SÁCH CHO PHÉP:
 // Header Host / X-Forwarded-Host do CLIENT gửi lên, có thể giả. Tin nó vô điều kiện là mở
