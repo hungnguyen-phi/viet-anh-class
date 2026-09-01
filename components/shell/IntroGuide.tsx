@@ -56,10 +56,10 @@ function buildSteps(role: Role, locale: string): Step[] {
     title: vi ? 'Lớp mình làm việc thế nào?' : 'How your class works',
     bullets: vi
       ? [
-          'Mục tiêu (WIG) — điều quan trọng nhất lớp muốn đạt trong năm, ở 4 mảng: Kiến thức, Kỹ năng lãnh đạo, Phẩm chất, Sức khoẻ thể chất.',
+          'Mục tiêu — điều quan trọng nhất lớp muốn đạt trong năm, ở 4 mảng: Kiến thức, Kỹ năng lãnh đạo, Phẩm chất, Sức khoẻ thể chất.',
           'Việc làm đều — việc nhỏ bạn làm hằng ngày để đi tới mục tiêu, ví dụ làm bài tập mỗi tối. Làm xong thì tick vào ô của ngày hôm đó.',
           'Bảng tiến độ — vòng tròn phần trăm cho biết bạn đang đi đúng nhịp, giữa nhịp hay chậm so với kế hoạch.',
-          'Họp lớp — mỗi tuần cả lớp nhìn lại số của tuần vừa rồi, rút ra điều gì, rồi hứa với nhau việc tuần tới.',
+          'Họp với bạn — mỗi tuần em ngồi với bạn cùng nhóm nhìn lại tuần vừa rồi, rút ra điều gì, rồi hứa việc tuần tới.',
         ]
       : [
           'Goals (WIGs) — the most important things your class wants to reach this year, in 4 domains: Knowledge, Leadership skills, Character, Physical Well-being.',
@@ -74,9 +74,9 @@ function buildSteps(role: Role, locale: string): Step[] {
       title: vi ? 'Bạn là Giáo viên chủ nhiệm' : "You're a Homeroom Teacher",
       bullets: vi
         ? [
-            'Trang lớp: bảng điểm, thứ hạng thi đua, donut WIG 4 lĩnh vực.',
+            'Trang lớp: bảng điểm, thứ hạng thi đua, vòng tròn mục tiêu 4 lĩnh vực.',
             'Điểm danh: chọn nhanh cả lớp rồi chỉnh vài em, lưu realtime.',
-            'WIG 3 bước: ① Tạo mục tiêu năm → ② Mục tiêu tuần → ③ Thêm việc để các em tick. Tiến độ do chính các em tick mà thành, giáo viên không cộng tay.',
+            'Mục tiêu 3 bước: ① Tạo mục tiêu năm → ② Cam kết tuần → ③ Thêm việc để các em tick. Tiến độ do chính các em tick mà thành, giáo viên không cộng tay.',
             'Danh sách: bật "Trưởng điểm danh" cho 1 học sinh điểm danh thay (chỉ hôm nay).',
           ]
         : [
@@ -106,7 +106,7 @@ function buildSteps(role: Role, locale: string): Step[] {
       title: vi ? 'Bạn là Phụ huynh' : "You're a Parent",
       bullets: vi
         ? [
-            'Vào Báo cáo: chỉ xem dữ liệu con mình — điểm danh + tiến độ WIG theo tuần.',
+            'Vào Báo cáo: chỉ xem dữ liệu con mình — điểm danh + tiến độ mục tiêu theo tuần.',
             'Chọn tuần để xem kết quả từng lĩnh vực và chiêm nghiệm của con.',
             'Bạn không xem được dữ liệu của học sinh khác.',
           ]
