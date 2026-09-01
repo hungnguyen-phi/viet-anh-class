@@ -123,10 +123,17 @@ export function FormMucTieu3Buoc({
   const [y, setY] = useState(dangSua?.y_so != null ? String(dangSua.y_so) : '');
   const [yChu, setYChu] = useState(dangSua?.y_chu ?? '');
   const [donViId, setDonViId] = useState<string>(dangSua?.don_vi_id ?? '');
-  const [batDau, setBatDau] = useState(dangSua?.bat_dau ?? '');
+  // Không còn ô chọn ngày bắt đầu — giữ giá trị cũ khi sửa, còn tạo mới thì để trống (máy chủ
+  // lấy hôm nay). Không có setter vì màn của em không đổi ngày bắt đầu nữa.
+  const [batDau] = useState(dangSua?.bat_dau ?? '');
   const [ketThuc, setKetThuc] = useState(dangSua?.ket_thuc ?? '');
   // Bước mẫu chỉ mở khi có mẫu lớp cùng vai (chọn mẫu → prefill).
   const [moMau, setMoMau] = useState(false);
+  // KIỂU NÂNG CAO GIẤU BỚT (chủ dự án 02/09: form phải đơn giản cho học sinh).
+  // Mặc định mọi mục tiêu là "tăng lên" (từ X đến Y) — kiểu phần lớn các em cần. Ba kiểu còn lại
+  // (giữ mức / giảm bớt / không đo bằng số) nằm sau một dòng "Kiểu mục tiêu khác", mở ra mới thấy.
+  // Nếu đang SỬA một mục tiêu vốn thuộc kiểu khác thì mở sẵn để em thấy đúng cái mình đã đặt.
+  const [moKhac, setMoKhac] = useState((nguoc?.che_do ?? 'len') !== 'len');
 
   // Lưu xong thì ĐÓNG — không để form còn nguyên chữ đứng cạnh thẻ "đã gửi".
   useEffect(() => {
@@ -176,7 +183,9 @@ export function FormMucTieu3Buoc({
   }
 
   const mauCuaLop = mauList.filter((m) => m.linh_vuc === linhVuc || !linhVuc);
-  const suG: string[] = [...AREAS, 'khac'];
+  // CHỈ 4 LĨNH VỰC trên màn của em (chủ dự án 02/09) — không có "Khác". "Khác" chỉ dành cho lớp
+  // ngoài khung 4 domain (Marketing/CLB), đặt ở màn của thầy cô, không bày cho học sinh.
+  const suG: string[] = [...AREAS];
 
   const tieuDe = dangSua
     ? t('formTitleSua')
@@ -299,13 +308,25 @@ export function FormMucTieu3Buoc({
             </div>
           )}
 
-          {/* Hướng: lên / giữ / bớt / bằng lời. */}
-          <div className="mb-2.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-            <OChon chon={cheDo === 'len'} onClick={() => setCheDo('len')} nhan={t('chieuTang')} kiem="mt-chieu-tang" />
-            <OChon chon={cheDo === 'giu'} onClick={() => setCheDo('giu')} nhan={t('giuMucNam')} kiem="mt-chieu-giu" />
-            <OChon chon={cheDo === 'bot'} onClick={() => setCheDo('bot')} nhan={t('chieuGiam')} kiem="mt-chieu-giam" />
-            <OChon chon={cheDo === 'chu'} onClick={() => setCheDo('chu')} nhan={t('khongSo')} />
-          </div>
+          {/* Hướng: mặc định "tăng lên" (giấu). Ba kiểu còn lại nằm sau "Kiểu mục tiêu khác" để
+              form của em gọn — phần lớn mục tiêu là tăng lên nên em thường không phải chọn gì. */}
+          {moKhac ? (
+            <div className="mb-2.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+              <OChon chon={cheDo === 'len'} onClick={() => setCheDo('len')} nhan={t('chieuTang')} kiem="mt-chieu-tang" />
+              <OChon chon={cheDo === 'giu'} onClick={() => setCheDo('giu')} nhan={t('giuMucNam')} kiem="mt-chieu-giu" />
+              <OChon chon={cheDo === 'bot'} onClick={() => setCheDo('bot')} nhan={t('chieuGiam')} kiem="mt-chieu-giam" />
+              <OChon chon={cheDo === 'chu'} onClick={() => setCheDo('chu')} nhan={t('khongSo')} />
+            </div>
+          ) : (
+            <button
+              type="button"
+              data-kiem="mt-mo-khac"
+              onClick={() => setMoKhac(true)}
+              className="mb-2.5 inline-flex min-h-[24px] items-center py-1 text-[12px] font-bold text-grey-mid underline hover:text-navy"
+            >
+              {t('kieuKhac')}
+            </button>
+          )}
 
           {/* Bớt theo kỳ nào. */}
           {cheDo === 'bot' && (
@@ -388,17 +409,15 @@ export function FormMucTieu3Buoc({
             </label>
           )}
 
-          <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            <Field label={t('tuNgay')} error={err('bat_dau')}>
-              <ONgayVN name="_bat_dau_ui" nhan={t('tuNgay')} value={batDau} loi={state.fieldError === 'bat_dau'} onChange={setBatDau} />
-            </Field>
+          {/* CHỈ MỘT NGÀY: "trước ngày" (hạn). Ô "bắt đầu từ" đã bỏ (chủ dự án 02/09) — máy chủ tự
+              lấy hôm nay khi để trống (luuMucTieu), nên em không phải nghĩ về ngày bắt đầu. */}
+          <div className="mt-2.5">
             <Field label={t('truocNgay')} error={err('ket_thuc')}>
               <span data-kiem="mt-han" className="block">
                 <ONgayVN
                   name="_ket_thuc_ui"
                   nhan={t('truocNgay')}
                   value={ketThuc}
-                  min={batDau || undefined}
                   loi={state.fieldError === 'ket_thuc'}
                   onChange={setKetThuc}
                 />

@@ -1638,7 +1638,8 @@
     "duyet": "Approve",
     "traLaiNut": "Return",
     "kyThang": "month",
-    "kyTuan": "week"
+    "kyTuan": "week",
+    "kieuKhac": "Other goal type"
   },
   "viec": {
     "chipLop": "Class",
