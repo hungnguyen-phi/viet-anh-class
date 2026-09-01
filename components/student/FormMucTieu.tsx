@@ -2,11 +2,12 @@
 
 import {useActionState, useEffect, useMemo, useState} from 'react';
 import {useLocale, useTranslations} from 'next-intl';
-import {AlertCircle, Trash2} from 'lucide-react';
+import {AlertCircle, Trash2, Lightbulb, Info, Check} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder} from '@/components/ui/Field';
 import {ONgayVN, ngayVN} from '@/components/ui/ONgayVN';
+import {schoolYearRangeVN} from '@/lib/dates';
 import {ChonCuon} from '@/components/ui/ChonCuon';
 import {AREAS} from '@/lib/areas';
 import {luuMucTieu, xoaMucTieu, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
@@ -87,6 +88,7 @@ export function FormMucTieu3Buoc({
   donViList,
   monList = [],
   mauList = [],
+  mucTieuLop = [],
   dangSua = null,
   onClose,
   onDone,
@@ -103,6 +105,8 @@ export function FormMucTieu3Buoc({
   donViList: DonViChon[];
   monList?: MonChon[];
   mauList?: MauMucTieu[];
+  /** Mục tiêu của lớp để em chọn "Hỗ trợ cho" (chỉ dùng khi TẠO MỚI; sửa thì quản ở thẻ). */
+  mucTieuLop?: MucTieuLopChon[];
   dangSua?: DangSuaMt;
   onClose: () => void;
   onDone?: (message: string) => void;
@@ -127,6 +131,12 @@ export function FormMucTieu3Buoc({
   // lấy hôm nay). Không có setter vì màn của em không đổi ngày bắt đầu nữa.
   const [batDau] = useState(dangSua?.bat_dau ?? '');
   const [ketThuc, setKetThuc] = useState(dangSua?.ket_thuc ?? '');
+  const [moTa, setMoTa] = useState(dangSua?.mo_ta ?? '');
+  // "Hỗ trợ cho" — chỉ khi tạo mới (sửa dây thì làm ở thẻ). Lọc theo lĩnh vực để gọn.
+  const [hoTroCho, setHoTroCho] = useState('');
+  // SMART tooltip + bảng chấm chất lượng mở/đóng.
+  const [moSmart, setMoSmart] = useState(false);
+  const [moChatLuong, setMoChatLuong] = useState(false);
   // Bước mẫu chỉ mở khi có mẫu lớp cùng vai (chọn mẫu → prefill).
   const [moMau, setMoMau] = useState(false);
   // KIỂU NÂNG CAO GIẤU BỚT (chủ dự án 02/09: form phải đơn giản cho học sinh).
@@ -147,6 +157,36 @@ export function FormMucTieu3Buoc({
   const dich = suyDich(cheDo, botKy);
   const nguonSo = cheDo === 'len' || cheDo === 'giu' ? (kieuSo === 'dem' ? 'thuoc' : 'ghi_tay') : 'ghi_tay';
   const nhanDv = donViList.find((d) => d.id === donViId)?.ma ?? '';
+
+  // ── CHẤM CHẤT LƯỢNG MỤC TIÊU (SMART) ─────────────────────────────────────────────────────
+  // Mỗi tiêu chí một điểm; điểm % = số đạt / tổng. Đây vừa là điểm, vừa là HƯỚNG DẪN: em nhìn ô
+  // nào chưa xanh thì biết cần sửa gì. Chuẩn dựa trên SMART, hợp với dữ liệu form thu được.
+  const coSo = cheDo !== 'chu';
+  const tieuChi = useMemo(() => {
+    const tenLen = ten.trim().length;
+    const yNum = Number(y);
+    const xNum = Number(x);
+    const list = [
+      {key: 'clCuThe', dat: tenLen >= 10 && tenLen <= 120},
+      {
+        key: 'clDoDuoc',
+        dat: coSo ? Boolean(y.trim()) && Boolean(donViId) : yChu.trim().length >= 10,
+      },
+      {
+        key: 'clVuaSuc',
+        // Đích cao hơn hiện tại (đúng hướng), và không xa gấp hơn 20 lần — chống "0 → 1 triệu".
+        dat: !coSo || cheDo !== 'len' || chuaDoX
+          ? Boolean(y.trim())
+          : Number.isFinite(yNum) && Number.isFinite(xNum) && yNum > xNum && yNum <= (xNum || 1) * 20,
+      },
+      {key: 'clLienKet', dat: Boolean(hoTroCho) || Boolean(dangSua)},
+      {key: 'clCoHan', dat: Boolean(ketThuc)},
+      {key: 'clCoMoTa', dat: moTa.trim().length >= 20},
+    ];
+    return list;
+  }, [ten, y, x, donViId, yChu, hoTroCho, ketThuc, moTa, coSo, cheDo, chuaDoX, dangSua]);
+  const soDat = tieuChi.filter((c) => c.dat).length;
+  const phanTram = Math.round((soDat / tieuChi.length) * 100);
 
   // Câu ráp SỐNG — ghép từ chính những ô em vừa gõ (§F4 cauChot*).
   const cauRap = useMemo(() => {
@@ -213,6 +253,8 @@ export function FormMucTieu3Buoc({
         <input type="hidden" name="don_vi_id" value={cheDo === 'chu' ? '' : donViId} />
         <input type="hidden" name="bat_dau" value={batDau} />
         <input type="hidden" name="ket_thuc" value={ketThuc} />
+        <input type="hidden" name="mo_ta" value={moTa} />
+        {!dangSua && <input type="hidden" name="ho_tro_cho" value={hoTroCho} />}
 
         {state.error && !state.fieldError && (
           <p
@@ -255,33 +297,56 @@ export function FormMucTieu3Buoc({
           </div>
         )}
 
-        {/* ① EM MUỐN TIẾN BỘ Ở VIỆC GÌ */}
-        <div data-kiem="mt-buoc-1" className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-          <p className="mb-2 text-[13px] font-extrabold text-navy">{t('buoc1')}</p>
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            <Field label={t('ten')} htmlFor="mt-ten" error={err('ten')}>
-              <input
-                id="mt-ten"
-                data-kiem="mt-ten"
-                value={ten}
-                onChange={(e) => setTen(e.target.value)}
-                placeholder={t('tenPh')}
-                maxLength={200}
-                className={ctlWithBorder(state.fieldError === 'ten')}
-              />
-            </Field>
-            <Field label={t('linhVuc')} htmlFor="mt-linh-vuc">
-              <ChonCuon
-                id="mt-linh-vuc"
-                name="_linh_vuc_ui"
-                value={linhVuc}
-                onChange={setLinhVuc}
-                danhSach={suG.map((a) => ({ma: a, nhan: nhanTheoArea[a] ?? (a === 'khac' ? t('linhVucKhac') : a)}))}
-                chuaChon={t('linhVuc')}
-              />
-              <span data-kiem="mt-linh-vuc" className="hidden" />
-            </Field>
-            {monList.length > 0 && (
+        {/* ─── CHẤM CHẤT LƯỢNG (SMART) ─── thanh ▮▮▯▯▯ + %; bấm mở bảng gợi ý. */}
+        <div className="rounded-[12px] border-[1.5px] border-navy/10 p-2.5">
+          <button
+            type="button"
+            data-kiem="mt-chat-luong"
+            onClick={() => setMoChatLuong((v) => !v)}
+            className="flex w-full items-center gap-2.5"
+          >
+            <span className="flex gap-0.5">
+              {tieuChi.map((c, i) => (
+                <span
+                  key={i}
+                  className={`h-2 w-4 rounded-full ${c.dat ? 'bg-success' : 'bg-navy/15'}`}
+                />
+              ))}
+            </span>
+            <span className="text-[12.5px] font-extrabold text-navy">
+              {t('chatLuong')} · {phanTram}%
+            </span>
+            <Info size={13} strokeWidth={2.5} className="ml-auto text-grey-mid" />
+          </button>
+          {moChatLuong && (
+            <div className="mt-2 flex flex-col gap-1.5 border-t border-navy/10 pt-2">
+              <p className="text-[11.5px] font-semibold text-grey-mid">{t('chatLuongMo')}</p>
+              {tieuChi.map((c) => (
+                <div key={c.key} className="flex items-start gap-1.5 text-[12px] font-semibold">
+                  <span
+                    className={`mt-px grid h-4 w-4 shrink-0 place-items-center rounded-full ${
+                      c.dat ? 'bg-success text-white' : 'border-[1.5px] border-navy/25 text-transparent'
+                    }`}
+                  >
+                    <Check size={10} strokeWidth={3} />
+                  </span>
+                  <span className={c.dat ? 'text-grey-mid line-through' : 'text-navy'}>{t(c.key)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* NHÓM — 4 chip (chỉ 4 lĩnh vực, không "Khác"). */}
+        <div>
+          <p className="mb-1.5 text-[12px] font-bold text-grey-mid">{t('linhVuc')}</p>
+          <div data-kiem="mt-buoc-1" className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            {suG.map((a) => (
+              <OChon key={a} chon={linhVuc === a} onClick={() => setLinhVuc(a)} nhan={nhanTheoArea[a] ?? a} kiem="mt-linh-vuc" />
+            ))}
+          </div>
+          {monList.length > 0 && (
+            <div className="mt-2">
               <Field label={t('mon')} htmlFor="mt-mon">
                 <ChonCuon
                   id="mt-mon"
@@ -292,146 +357,218 @@ export function FormMucTieu3Buoc({
                   chuaChon={t('monChon')}
                 />
               </Field>
+            </div>
+          )}
+        </div>
+
+        {/* NHẬP MỤC TIÊU — kèm đèn gợi ý SMART. */}
+        <div>
+          <div className="mb-1 flex items-center gap-1.5">
+            <label htmlFor="mt-ten" className="text-[12px] font-bold text-grey-mid">
+              {t('nhapMucTieu')}
+            </label>
+            <button
+              type="button"
+              data-kiem="mt-smart"
+              onClick={() => setMoSmart((v) => !v)}
+              aria-label={t('smartTitle')}
+              className="text-gold-deep hover:text-navy"
+            >
+              <Lightbulb size={15} strokeWidth={2.5} />
+            </button>
+          </div>
+          {moSmart && (
+            <div className="mb-2 rounded-[10px] bg-gold/[0.12] p-2.5 text-[11.5px] font-semibold leading-relaxed text-navy">
+              <p className="mb-1 font-extrabold">{t('smartTitle')}</p>
+              <ul className="ml-3.5 list-disc space-y-0.5">
+                <li>{t('smartS')}</li>
+                <li>{t('smartM')}</li>
+                <li>{t('smartA')}</li>
+                <li>{t('smartR')}</li>
+                <li>{t('smartT')}</li>
+              </ul>
+              <p className="mt-1.5">{t('smartCongThuc')}</p>
+              <p className="mt-1 italic text-grey-mid">{t('smartVd')}</p>
+            </div>
+          )}
+          <input
+            id="mt-ten"
+            data-kiem="mt-ten"
+            value={ten}
+            onChange={(e) => setTen(e.target.value)}
+            placeholder={t('tenPh')}
+            maxLength={200}
+            className={ctlWithBorder(state.fieldError === 'ten')}
+          />
+          {err('ten') && <p className="mt-1 text-[12px] font-bold text-status-bad">{err('ten')}</p>}
+        </div>
+
+        {/* MÔ TẢ */}
+        <Field label={t('moTa')} htmlFor="mt-mo-ta">
+          <textarea
+            id="mt-mo-ta"
+            data-kiem="mt-mo-ta"
+            value={moTa}
+            onChange={(e) => setMoTa(e.target.value)}
+            placeholder={t('moTaPh')}
+            rows={2}
+            maxLength={1000}
+            className={ctlWithBorder(false)}
+          />
+        </Field>
+
+        {/* HỖ TRỢ CHO — nối mục tiêu của em vào mục tiêu của lớp (chỉ khi tạo mới). */}
+        {!dangSua && mucTieuLop.length > 0 && (
+          <Field label={t('hoTroCho')} htmlFor="mt-ho-tro">
+            <ChonCuon
+              id="mt-ho-tro"
+              name="_ho_tro_ui"
+              value={hoTroCho}
+              onChange={setHoTroCho}
+              danhSach={mucTieuLop.map((m) => ({ma: m.id, nhan: m.ten}))}
+              chuaChon={t('hoTroChon')}
+            />
+            <span data-kiem="mt-ho-tro" className="hidden" />
+            <p className="mt-1 text-[11px] font-semibold text-grey-mid">{t('hoTroGiaiThich')}</p>
+          </Field>
+        )}
+
+        {/* SỐ — nhãn chuẩn: Đơn vị / Giá trị ban đầu / Giá trị mục tiêu. */}
+        {cheDo === 'chu' ? (
+          <Field label={t('yChu')} htmlFor="mt-y" error={err('y_chu')}>
+            <textarea
+              id="mt-y"
+              data-kiem="mt-y"
+              value={yChu}
+              onChange={(e) => setYChu(e.target.value)}
+              rows={2}
+              maxLength={300}
+              className={ctlWithBorder(state.fieldError === 'y_chu')}
+            />
+          </Field>
+        ) : (
+          <div data-kiem="mt-buoc-2" className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+            <Field label={t('donViSao')} htmlFor="mt-don-vi" error={err('don_vi_id')}>
+              <ChonCuon
+                id="mt-don-vi"
+                name="_don_vi_ui"
+                value={donViId}
+                onChange={setDonViId}
+                danhSach={donViList.map((d) => ({ma: d.id, nhan: d.ma}))}
+                chuaChon={t('donViChon')}
+                loi={state.fieldError === 'don_vi_id'}
+              />
+              <span data-kiem="mt-don-vi" className="hidden" />
+            </Field>
+            {cheDo === 'len' && (
+              <Field label={t('giaTriBanDau')} htmlFor="mt-x" error={err('x_so')}>
+                <input
+                  id="mt-x"
+                  data-kiem="mt-x"
+                  type="number"
+                  step="any"
+                  min="0"
+                  inputMode="decimal"
+                  value={x}
+                  disabled={chuaDoX}
+                  onChange={(e) => setX(e.target.value)}
+                  placeholder={chuaDoX ? '—' : '0'}
+                  className={ctlWithBorder(state.fieldError === 'x_so')}
+                />
+                <label className="mt-1 flex cursor-pointer items-center gap-1.5 text-[11.5px] font-semibold text-grey-mid">
+                  <input
+                    type="checkbox"
+                    data-kiem="mt-chua-do-x"
+                    checked={chuaDoX}
+                    onChange={(e) => setChuaDoX(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-navy/30"
+                  />
+                  {t('chuaBietX')}
+                </label>
+              </Field>
             )}
+            <Field label={t('giaTriMucTieu')} htmlFor="mt-y" error={err('y_so')}>
+              <input
+                id="mt-y"
+                data-kiem="mt-y"
+                type="number"
+                step="any"
+                min="0.01"
+                inputMode="decimal"
+                value={y}
+                onChange={(e) => setY(e.target.value)}
+                className={ctlWithBorder(state.fieldError === 'y_so')}
+              />
+            </Field>
+          </div>
+        )}
+
+        {/* NGÀY ĐẾN HẠN + preset nhanh. */}
+        <div>
+          <Field label={t('ngayDenHan')} error={err('ket_thuc')}>
+            <span data-kiem="mt-han" className="block max-w-[220px]">
+              <ONgayVN
+                name="_ket_thuc_ui"
+                nhan={t('ngayDenHan')}
+                value={ketThuc}
+                loi={state.fieldError === 'ket_thuc'}
+                onChange={setKetThuc}
+              />
+            </span>
+          </Field>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setKetThuc(schoolYearRangeVN().end)}
+              className="rounded-full border-[1.5px] border-navy/15 bg-white px-2.5 py-1 text-[11.5px] font-bold text-navy hover:border-navy"
+            >
+              {t('presetNamNay')}
+            </button>
           </div>
         </div>
 
-        {/* ② TỪ ĐÂU TỚI ĐÂU, TRƯỚC NGÀY NÀO */}
-        <div data-kiem="mt-buoc-2" className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-          <p className="mb-2 text-[13px] font-extrabold text-navy">{t('buoc2')}</p>
-
-          {/* Cách đo: ĐẾM (máy cộng từ việc) hay ĐO (em ghi tay). */}
-          {cheDo !== 'chu' && cheDo !== 'bot' && (
-            <div data-kiem="mt-kieu-dich" className="mb-2.5 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-              <OChon chon={kieuSo === 'dem'} onClick={() => setKieuSo('dem')} nhan={t('kieuDem')} />
-              <OChon chon={kieuSo === 'do'} onClick={() => setKieuSo('do')} nhan={t('kieuDo')} />
-            </div>
-          )}
-
-          {/* Hướng: mặc định "tăng lên" (giấu). Ba kiểu còn lại nằm sau "Kiểu mục tiêu khác" để
-              form của em gọn — phần lớn mục tiêu là tăng lên nên em thường không phải chọn gì. */}
-          {moKhac ? (
-            <div className="mb-2.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+        {/* CÁCH KHÁC — đếm/đo + kiểu mục tiêu (giữ/giảm/không-số). */}
+        {moKhac ? (
+          <div className="flex flex-col gap-2 rounded-[12px] bg-navy/[0.03] p-2.5">
+            {cheDo !== 'bot' && (
+              <>
+                <p className="text-[11.5px] font-bold text-grey-mid">{t('cachTinhSo')}</p>
+                <div data-kiem="mt-kieu-dich" className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                  <OChon chon={kieuSo === 'do'} onClick={() => setKieuSo('do')} nhan={t('kieuDo')} />
+                  <OChon chon={kieuSo === 'dem'} onClick={() => setKieuSo('dem')} nhan={t('kieuDem')} />
+                </div>
+              </>
+            )}
+            <p className="mt-1 text-[11.5px] font-bold text-grey-mid">{t('kieuMucTieu')}</p>
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
               <OChon chon={cheDo === 'len'} onClick={() => setCheDo('len')} nhan={t('chieuTang')} kiem="mt-chieu-tang" />
               <OChon chon={cheDo === 'giu'} onClick={() => setCheDo('giu')} nhan={t('giuMucNam')} kiem="mt-chieu-giu" />
               <OChon chon={cheDo === 'bot'} onClick={() => setCheDo('bot')} nhan={t('chieuGiam')} kiem="mt-chieu-giam" />
               <OChon chon={cheDo === 'chu'} onClick={() => setCheDo('chu')} nhan={t('khongSo')} />
             </div>
-          ) : (
-            <button
-              type="button"
-              data-kiem="mt-mo-khac"
-              onClick={() => setMoKhac(true)}
-              className="mb-2.5 inline-flex min-h-[24px] items-center py-1 text-[12px] font-bold text-grey-mid underline hover:text-navy"
-            >
-              {t('kieuKhac')}
-            </button>
-          )}
-
-          {/* Bớt theo kỳ nào. */}
-          {cheDo === 'bot' && (
-            <div className="mb-2.5 grid grid-cols-1 gap-1.5 sm:grid-cols-3">
-              <OChon chon={botKy === 'tuan'} onClick={() => setBotKy('tuan')} nhan={t('giamTuan', {y: y || '…'})} />
-              <OChon chon={botKy === 'thang'} onClick={() => setBotKy('thang')} nhan={t('giamThang', {y: y || '…'})} />
-              <OChon chon={botKy === 'nam'} onClick={() => setBotKy('nam')} nhan={t('giamNam', {y: y || '…'})} />
-            </div>
-          )}
-
-          {cheDo === 'chu' ? (
-            <Field label={t('yChu')} htmlFor="mt-y" error={err('y_chu')}>
-              <textarea
-                id="mt-y"
-                data-kiem="mt-y"
-                value={yChu}
-                onChange={(e) => setYChu(e.target.value)}
-                rows={2}
-                maxLength={300}
-                className={ctlWithBorder(state.fieldError === 'y_chu')}
-              />
-            </Field>
-          ) : (
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-              {cheDo === 'len' && (
-                <Field label={t('tu')} htmlFor="mt-x" error={err('x_so')}>
-                  <input
-                    id="mt-x"
-                    data-kiem="mt-x"
-                    type="number"
-                    step="any"
-                    min="0"
-                    inputMode="decimal"
-                    value={x}
-                    disabled={chuaDoX}
-                    onChange={(e) => setX(e.target.value)}
-                    placeholder="0"
-                    className={ctlWithBorder(state.fieldError === 'x_so')}
-                  />
-                </Field>
-              )}
-              <Field label={t('den')} htmlFor="mt-y" error={err('y_so')}>
-                <input
-                  id="mt-y"
-                  data-kiem="mt-y"
-                  type="number"
-                  step="any"
-                  min="0.01"
-                  inputMode="decimal"
-                  value={y}
-                  onChange={(e) => setY(e.target.value)}
-                  className={ctlWithBorder(state.fieldError === 'y_so')}
-                />
-              </Field>
-              <Field label={t('donVi')} htmlFor="mt-don-vi" error={err('don_vi_id')}>
-                <ChonCuon
-                  id="mt-don-vi"
-                  name="_don_vi_ui"
-                  value={donViId}
-                  onChange={setDonViId}
-                  danhSach={donViList.map((d) => ({ma: d.id, nhan: d.ma}))}
-                  chuaChon={t('donViChon')}
-                  loi={state.fieldError === 'don_vi_id'}
-                />
-                <span data-kiem="mt-don-vi" className="hidden" />
-              </Field>
-            </div>
-          )}
-
-          {cheDo === 'len' && (
-            <label className="mt-2 flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold text-navy">
-              <input
-                type="checkbox"
-                data-kiem="mt-chua-do-x"
-                checked={chuaDoX}
-                onChange={(e) => setChuaDoX(e.target.checked)}
-                className="h-4 w-4 rounded border-navy/30"
-              />
-              {t('chuaBietX')}
-            </label>
-          )}
-
-          {/* CHỈ MỘT NGÀY: "trước ngày" (hạn). Ô "bắt đầu từ" đã bỏ (chủ dự án 02/09) — máy chủ tự
-              lấy hôm nay khi để trống (luuMucTieu), nên em không phải nghĩ về ngày bắt đầu. */}
-          <div className="mt-2.5">
-            <Field label={t('truocNgay')} error={err('ket_thuc')}>
-              <span data-kiem="mt-han" className="block">
-                <ONgayVN
-                  name="_ket_thuc_ui"
-                  nhan={t('truocNgay')}
-                  value={ketThuc}
-                  loi={state.fieldError === 'ket_thuc'}
-                  onChange={setKetThuc}
-                />
-              </span>
-            </Field>
+            {cheDo === 'bot' && (
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
+                <OChon chon={botKy === 'tuan'} onClick={() => setBotKy('tuan')} nhan={t('giamTuan', {y: y || '…'})} />
+                <OChon chon={botKy === 'thang'} onClick={() => setBotKy('thang')} nhan={t('giamThang', {y: y || '…'})} />
+                <OChon chon={botKy === 'nam'} onClick={() => setBotKy('nam')} nhan={t('giamNam', {y: y || '…'})} />
+              </div>
+            )}
+            {cheDo === 'len' && kieuSo === 'dem' && (
+              <p className="rounded-[10px] bg-navy/[0.05] px-2.5 py-2 text-[12px] font-semibold text-grey-mid">
+                {t('phepTinhDem')}
+              </p>
+            )}
           </div>
-
-          {/* Phép tính nhỏ nhắc em nhịp cần đạt. */}
-          {cheDo === 'len' && kieuSo === 'dem' && (
-            <p className="mt-2 rounded-[10px] bg-navy/[0.05] px-2.5 py-2 text-[12px] font-semibold text-grey-mid">
-              {t('phepTinhDem')}
-            </p>
-          )}
-        </div>
+        ) : (
+          <button
+            type="button"
+            data-kiem="mt-mo-khac"
+            onClick={() => setMoKhac(true)}
+            className="inline-flex min-h-[24px] items-center py-1 text-[12px] font-bold text-grey-mid underline hover:text-navy"
+          >
+            {t('cachKhac')}
+          </button>
+        )}
 
         {/* ③ ĐỌC LẠI CÂU MỤC TIÊU — ráp từ chính chữ em gõ. */}
         <div data-kiem="mt-buoc-3">

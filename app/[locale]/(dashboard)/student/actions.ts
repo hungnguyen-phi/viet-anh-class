@@ -98,6 +98,10 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   const y_so = soHoac('y_so');
   const x_chu = String(formData.get('x_chu') ?? '').trim() || null;
   const y_chu = String(formData.get('y_chu') ?? '').trim() || null;
+  // Mô tả tự do (form SMART, 0170) — khuyến khích, không bắt buộc.
+  const mo_ta = String(formData.get('mo_ta') ?? '').trim() || null;
+  // "Hỗ trợ cho": id một mục tiêu của LỚP mà mục tiêu này góp hướng vào (dây `noi` vai chi_huong).
+  const ho_tro_cho = String(formData.get('ho_tro_cho') ?? '').trim() || null;
 
   const ket_thuc = String(formData.get('ket_thuc') ?? '').trim();
   const bat_dau = String(formData.get('bat_dau') ?? '').trim();
@@ -141,11 +145,13 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
     chua_do_x,
     ket_thuc,
     nguon_so,
+    mo_ta,
     ly_do_tra_lai: null,
   };
   // "Lưu nháp" giữ ở nháp; mặc định gửi thầy cô duyệt.
   const trang_thai = String(formData.get('action') ?? 'gui') === 'nhap' ? 'nhap' : 'gui';
 
+  let mtId = muc_tieu_id;
   if (muc_tieu_id) {
     // Sửa: KHÔNG đụng class_id/campus_id/student_id/cap (trigger chặn đổi lớp). Sửa nội dung tự
     // đưa mục tiêu về 'gui' qua trigger; ta vẫn nói rõ trang_thai đích để nhánh "lưu nháp" đúng.
@@ -176,6 +182,27 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
       .maybeSingle();
     if (error) return {ok: false, error: friendlyError(error)};
     if (!data) return {ok: false, error: 'Không lưu được — em không có quyền với lớp này.'};
+    mtId = data.id;
+  }
+
+  // DÂY "HỖ TRỢ CHO" — mục tiêu của em góp hướng vào một mục tiêu của LỚP (vai chi_huong).
+  // Đồng bộ theo lựa chọn hiện tại: gỡ dây chi_huong cũ của mục tiêu này rồi nối lại nếu có chọn.
+  // Không chặn luồng chính nếu lỗi (RLS/mục tiêu lớp không hợp lệ) — mục tiêu đã lưu là chính,
+  // dây chỉ là liên kết phụ; nuốt lỗi có chủ ý và để em/thầy cô nối lại ở thẻ nếu cần.
+  if (mtId) {
+    await supabase
+      .from('noi')
+      .delete()
+      .eq('con_loai', 'muc_tieu')
+      .eq('con_id', mtId)
+      .eq('vai', 'chi_huong');
+    if (ho_tro_cho) {
+      await supabase.from('noi').insert({
+        cha_id: ho_tro_cho,
+        con_muc_tieu_id: mtId, // con_loai/con_id là cột generated — tự suy từ đây
+        vai: 'chi_huong',
+      });
+    }
   }
 
   revalidatePath('/[locale]/student', 'page');

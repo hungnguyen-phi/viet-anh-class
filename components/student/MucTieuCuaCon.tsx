@@ -177,6 +177,7 @@ export function MucTieuCuaCon({
           donViList={donViList}
           monList={monList}
           mauList={mauList}
+          mucTieuLop={mucTieuLop}
           dangSua={dangSua}
           onClose={() => setMoForm(null)}
           onDone={setBao}

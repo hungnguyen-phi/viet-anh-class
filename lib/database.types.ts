@@ -1632,6 +1632,7 @@ export type Database = {
           ly_do_dong: string | null
           ly_do_tra_lai: string | null
           mau_id: string | null
+          mo_ta: string | null
           nam_hoc: string
           nguoi_nhap_ho: string | null
           nguon_he_thong: string | null
@@ -1675,6 +1676,7 @@ export type Database = {
           ly_do_dong?: string | null
           ly_do_tra_lai?: string | null
           mau_id?: string | null
+          mo_ta?: string | null
           nam_hoc?: string
           nguoi_nhap_ho?: string | null
           nguon_he_thong?: string | null
@@ -1718,6 +1720,7 @@ export type Database = {
           ly_do_dong?: string | null
           ly_do_tra_lai?: string | null
           mau_id?: string | null
+          mo_ta?: string | null
           nam_hoc?: string
           nguoi_nhap_ho?: string | null
           nguon_he_thong?: string | null
@@ -3696,6 +3699,7 @@ export type Database = {
           ly_do_dong: string | null
           ly_do_tra_lai: string | null
           mau_id: string | null
+          mo_ta: string | null
           mau_so: number | null
           nam_hoc: string | null
           ngay_nguon: string | null
