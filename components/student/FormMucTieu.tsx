@@ -198,10 +198,11 @@ export function FormMucTieu3Buoc({
     if (!ten.trim()) return null;
     if (loaiMoc !== 'do_luong') return null; // hành động/kế hoạch có ghi chú riêng
     if (!y.trim() || !nhanDv || !ketThuc) return null;
+    const ngay = ngayVN(ketThuc);
     if (suy.chieu === 'giu') return t('cauChotGiu', {ten, dau: '≥', y, dv: nhanDv});
-    if (chuaDoX) return t('cauChotChuaX', {ten, y, dv: nhanDv});
+    if (chuaDoX) return t('cauChotChuaX', {ten, y, dv: nhanDv, ngay});
     if (!x.trim()) return null;
-    return t('cauChot', {ten, x, chieu: suy.chieu === 'giam' ? t('chieuGiam') : t('chieuTang'), y, dv: nhanDv});
+    return t('cauChot', {ten, x, chieu: suy.chieu === 'giam' ? t('chieuGiam') : t('chieuTang'), y, dv: nhanDv, ngay});
   }, [ten, loaiMoc, suy.chieu, chuaDoX, x, y, nhanDv, ketThuc, t]);
 
   function chonMau(m: MauMucTieu) {
