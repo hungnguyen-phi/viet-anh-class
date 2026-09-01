@@ -5,7 +5,7 @@ import {useLocale, useTranslations} from 'next-intl';
 import {AlertCircle, Trash2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Popup} from '@/components/ui/Popup';
-import {Field, ctlWithBorder} from '@/components/ui/Field';
+import {Field, ctlWithBorder, inputInline, BORDER_ERR} from '@/components/ui/Field';
 import {ONgayVN, ngayVN} from '@/components/ui/ONgayVN';
 import {ChonCuon} from '@/components/ui/ChonCuon';
 import {AREAS} from '@/lib/areas';
@@ -255,104 +255,76 @@ export function FormMucTieu3Buoc({
           </div>
         )}
 
-        {/* ① EM MUỐN TIẾN BỘ Ở VIỆC GÌ */}
-        <div data-kiem="mt-buoc-1" className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-          <p className="mb-2 text-[13px] font-extrabold text-navy">{t('buoc1')}</p>
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            <Field label={t('ten')} htmlFor="mt-ten" error={err('ten')}>
-              <input
-                id="mt-ten"
-                data-kiem="mt-ten"
-                value={ten}
-                onChange={(e) => setTen(e.target.value)}
-                placeholder={t('tenPh')}
-                maxLength={200}
-                className={ctlWithBorder(state.fieldError === 'ten')}
-              />
-            </Field>
-            <Field label={t('linhVuc')} htmlFor="mt-linh-vuc">
-              <ChonCuon
-                id="mt-linh-vuc"
-                name="_linh_vuc_ui"
-                value={linhVuc}
-                onChange={setLinhVuc}
-                danhSach={suG.map((a) => ({ma: a, nhan: nhanTheoArea[a] ?? (a === 'khac' ? t('linhVucKhac') : a)}))}
-                chuaChon={t('linhVuc')}
-              />
-              <span data-kiem="mt-linh-vuc" className="hidden" />
-            </Field>
-            {monList.length > 0 && (
-              <Field label={t('mon')} htmlFor="mt-mon">
-                <ChonCuon
-                  id="mt-mon"
-                  name="_mon_ui"
-                  value={monId}
-                  onChange={setMonId}
-                  danhSach={monList.map((m) => ({ma: m.id, nhan: m.ten}))}
-                  chuaChon={t('monChon')}
-                />
-              </Field>
-            )}
+        {/* ─────────────────────────────────────────────────────────────────────────────────
+            FORM ĐIỀN-VÀO-CÂU (viết lại 02/09: bản trước bắt em hiểu "đếm/đo", "từ-đến", "đơn vị"
+            như mô hình dữ liệu — người lớn cũng thấy khó. Nay em nói MỘT CÂU tự nhiên: chọn nhóm,
+            "em muốn …", rồi "bây giờ được [x], muốn tới [y] [đơn vị], trước [ngày]". Mọi lựa chọn
+            kỹ thuật (đếm tự động hay tự ghi, giữ/giảm/không-số) DỒN HẾT vào "Cách khác", mặc định
+            là kiểu phần lớn các em cần: tăng lên và tự ghi số.
+            ───────────────────────────────────────────────────────────────────────────────── */}
+
+        {/* NHÓM — 4 chip, chọn một (chỉ 4 lĩnh vực, không "Khác"). */}
+        <div data-kiem="mt-buoc-1">
+          <p className="mb-1.5 text-[12px] font-bold text-grey-mid">{t('linhVuc')}</p>
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            {suG.map((a) => (
+              <OChon key={a} chon={linhVuc === a} onClick={() => setLinhVuc(a)} nhan={nhanTheoArea[a] ?? a} kiem="mt-linh-vuc" />
+            ))}
           </div>
         </div>
 
-        {/* ② TỪ ĐÂU TỚI ĐÂU, TRƯỚC NGÀY NÀO */}
-        <div data-kiem="mt-buoc-2" className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-          <p className="mb-2 text-[13px] font-extrabold text-navy">{t('buoc2')}</p>
+        {/* EM MUỐN GÌ */}
+        <Field label={t('buoc1')} htmlFor="mt-ten" error={err('ten')}>
+          <input
+            id="mt-ten"
+            data-kiem="mt-ten"
+            value={ten}
+            onChange={(e) => setTen(e.target.value)}
+            placeholder={t('tenPh')}
+            maxLength={200}
+            className={ctlWithBorder(state.fieldError === 'ten')}
+          />
+        </Field>
+        {monList.length > 0 && (
+          <Field label={t('mon')} htmlFor="mt-mon">
+            <ChonCuon
+              id="mt-mon"
+              name="_mon_ui"
+              value={monId}
+              onChange={setMonId}
+              danhSach={monList.map((m) => ({ma: m.id, nhan: m.ten}))}
+              chuaChon={t('monChon')}
+            />
+          </Field>
+        )}
 
-          {/* Cách đo: ĐẾM (máy cộng từ việc) hay ĐO (em ghi tay). */}
-          {cheDo !== 'chu' && cheDo !== 'bot' && (
-            <div data-kiem="mt-kieu-dich" className="mb-2.5 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-              <OChon chon={kieuSo === 'dem'} onClick={() => setKieuSo('dem')} nhan={t('kieuDem')} />
-              <OChon chon={kieuSo === 'do'} onClick={() => setKieuSo('do')} nhan={t('kieuDo')} />
-            </div>
-          )}
-
-          {/* Hướng: mặc định "tăng lên" (giấu). Ba kiểu còn lại nằm sau "Kiểu mục tiêu khác" để
-              form của em gọn — phần lớn mục tiêu là tăng lên nên em thường không phải chọn gì. */}
-          {moKhac ? (
-            <div className="mb-2.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-              <OChon chon={cheDo === 'len'} onClick={() => setCheDo('len')} nhan={t('chieuTang')} kiem="mt-chieu-tang" />
-              <OChon chon={cheDo === 'giu'} onClick={() => setCheDo('giu')} nhan={t('giuMucNam')} kiem="mt-chieu-giu" />
-              <OChon chon={cheDo === 'bot'} onClick={() => setCheDo('bot')} nhan={t('chieuGiam')} kiem="mt-chieu-giam" />
-              <OChon chon={cheDo === 'chu'} onClick={() => setCheDo('chu')} nhan={t('khongSo')} />
-            </div>
-          ) : (
-            <button
-              type="button"
-              data-kiem="mt-mo-khac"
-              onClick={() => setMoKhac(true)}
-              className="mb-2.5 inline-flex min-h-[24px] items-center py-1 text-[12px] font-bold text-grey-mid underline hover:text-navy"
-            >
-              {t('kieuKhac')}
-            </button>
-          )}
-
-          {/* Bớt theo kỳ nào. */}
-          {cheDo === 'bot' && (
-            <div className="mb-2.5 grid grid-cols-1 gap-1.5 sm:grid-cols-3">
-              <OChon chon={botKy === 'tuan'} onClick={() => setBotKy('tuan')} nhan={t('giamTuan', {y: y || '…'})} />
-              <OChon chon={botKy === 'thang'} onClick={() => setBotKy('thang')} nhan={t('giamThang', {y: y || '…'})} />
-              <OChon chon={botKy === 'nam'} onClick={() => setBotKy('nam')} nhan={t('giamNam', {y: y || '…'})} />
-            </div>
-          )}
-
-          {cheDo === 'chu' ? (
-            <Field label={t('yChu')} htmlFor="mt-y" error={err('y_chu')}>
-              <textarea
-                id="mt-y"
-                data-kiem="mt-y"
-                value={yChu}
-                onChange={(e) => setYChu(e.target.value)}
-                rows={2}
-                maxLength={300}
-                className={ctlWithBorder(state.fieldError === 'y_chu')}
-              />
-            </Field>
-          ) : (
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-              {cheDo === 'len' && (
-                <Field label={t('tu')} htmlFor="mt-x" error={err('x_so')}>
+        {/* CÂU SỐ — đọc như một câu. Không-số thì là một ô lời; còn lại là "bây giờ/muốn tới/đơn vị". */}
+        {cheDo === 'chu' ? (
+          <Field label={t('yChu')} htmlFor="mt-y" error={err('y_chu')}>
+            <textarea
+              id="mt-y"
+              data-kiem="mt-y"
+              value={yChu}
+              onChange={(e) => setYChu(e.target.value)}
+              rows={2}
+              maxLength={300}
+              className={ctlWithBorder(state.fieldError === 'y_chu')}
+            />
+          </Field>
+        ) : (
+          <div data-kiem="mt-buoc-2" className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
+            {/* Giảm bớt theo kỳ — chỉ hiện khi đã chọn ở "Cách khác". */}
+            {cheDo === 'bot' && (
+              <div className="mb-2.5 grid grid-cols-1 gap-1.5 sm:grid-cols-3">
+                <OChon chon={botKy === 'tuan'} onClick={() => setBotKy('tuan')} nhan={t('giamTuan', {y: y || '…'})} />
+                <OChon chon={botKy === 'thang'} onClick={() => setBotKy('thang')} nhan={t('giamThang', {y: y || '…'})} />
+                <OChon chon={botKy === 'nam'} onClick={() => setBotKy('nam')} nhan={t('giamNam', {y: y || '…'})} />
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-2 text-[13.5px] font-bold text-navy">
+              {cheDo === 'len' && !chuaDoX && (
+                <>
+                  <span>{t('napBayGio')}</span>
                   <input
                     id="mt-x"
                     data-kiem="mt-x"
@@ -361,27 +333,28 @@ export function FormMucTieu3Buoc({
                     min="0"
                     inputMode="decimal"
                     value={x}
-                    disabled={chuaDoX}
                     onChange={(e) => setX(e.target.value)}
                     placeholder="0"
-                    className={ctlWithBorder(state.fieldError === 'x_so')}
+                    aria-label={t('tu')}
+                    className={`${inputInline} w-24 ${state.fieldError === 'x_so' ? BORDER_ERR : ''}`}
                   />
-                </Field>
+                  <span>,</span>
+                </>
               )}
-              <Field label={t('den')} htmlFor="mt-y" error={err('y_so')}>
-                <input
-                  id="mt-y"
-                  data-kiem="mt-y"
-                  type="number"
-                  step="any"
-                  min="0.01"
-                  inputMode="decimal"
-                  value={y}
-                  onChange={(e) => setY(e.target.value)}
-                  className={ctlWithBorder(state.fieldError === 'y_so')}
-                />
-              </Field>
-              <Field label={t('donVi')} htmlFor="mt-don-vi" error={err('don_vi_id')}>
+              <span>{cheDo === 'giu' ? t('napGiu') : t('napMuonToi')}</span>
+              <input
+                id="mt-y"
+                data-kiem="mt-y"
+                type="number"
+                step="any"
+                min="0.01"
+                inputMode="decimal"
+                value={y}
+                onChange={(e) => setY(e.target.value)}
+                aria-label={t('den')}
+                className={`${inputInline} w-24 ${state.fieldError === 'y_so' ? BORDER_ERR : ''}`}
+              />
+              <span className="min-w-[120px]">
                 <ChonCuon
                   id="mt-don-vi"
                   name="_don_vi_ui"
@@ -392,46 +365,78 @@ export function FormMucTieu3Buoc({
                   loi={state.fieldError === 'don_vi_id'}
                 />
                 <span data-kiem="mt-don-vi" className="hidden" />
-              </Field>
-            </div>
-          )}
-
-          {cheDo === 'len' && (
-            <label className="mt-2 flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold text-navy">
-              <input
-                type="checkbox"
-                data-kiem="mt-chua-do-x"
-                checked={chuaDoX}
-                onChange={(e) => setChuaDoX(e.target.checked)}
-                className="h-4 w-4 rounded border-navy/30"
-              />
-              {t('chuaBietX')}
-            </label>
-          )}
-
-          {/* CHỈ MỘT NGÀY: "trước ngày" (hạn). Ô "bắt đầu từ" đã bỏ (chủ dự án 02/09) — máy chủ tự
-              lấy hôm nay khi để trống (luuMucTieu), nên em không phải nghĩ về ngày bắt đầu. */}
-          <div className="mt-2.5">
-            <Field label={t('truocNgay')} error={err('ket_thuc')}>
-              <span data-kiem="mt-han" className="block">
-                <ONgayVN
-                  name="_ket_thuc_ui"
-                  nhan={t('truocNgay')}
-                  value={ketThuc}
-                  loi={state.fieldError === 'ket_thuc'}
-                  onChange={setKetThuc}
-                />
               </span>
-            </Field>
+            </div>
+            {(err('x_so') || err('y_so') || err('don_vi_id')) && (
+              <p className="mt-1.5 text-[12px] font-bold text-status-bad">
+                {err('x_so') || err('y_so') || err('don_vi_id')}
+              </p>
+            )}
+            {cheDo === 'len' && (
+              <label className="mt-2 flex cursor-pointer items-center gap-2 text-[12px] font-semibold text-grey-mid">
+                <input
+                  type="checkbox"
+                  data-kiem="mt-chua-do-x"
+                  checked={chuaDoX}
+                  onChange={(e) => setChuaDoX(e.target.checked)}
+                  className="h-4 w-4 rounded border-navy/30"
+                />
+                {t('chuaBietX')}
+              </label>
+            )}
           </div>
+        )}
 
-          {/* Phép tính nhỏ nhắc em nhịp cần đạt. */}
-          {cheDo === 'len' && kieuSo === 'dem' && (
-            <p className="mt-2 rounded-[10px] bg-navy/[0.05] px-2.5 py-2 text-[12px] font-semibold text-grey-mid">
-              {t('phepTinhDem')}
-            </p>
-          )}
-        </div>
+        {/* NGÀY — chỉ "trước ngày"; máy chủ tự lấy hôm nay làm ngày bắt đầu. */}
+        <Field label={t('truocNgay')} error={err('ket_thuc')}>
+          <span data-kiem="mt-han" className="block max-w-[220px]">
+            <ONgayVN
+              name="_ket_thuc_ui"
+              nhan={t('truocNgay')}
+              value={ketThuc}
+              loi={state.fieldError === 'ket_thuc'}
+              onChange={setKetThuc}
+            />
+          </span>
+        </Field>
+
+        {/* Nhắc nhịp — chỉ khi em chọn "máy tự cộng" ở Cách khác. */}
+        {cheDo === 'len' && kieuSo === 'dem' && (
+          <p className="rounded-[10px] bg-navy/[0.05] px-2.5 py-2 text-[12px] font-semibold text-grey-mid">
+            {t('phepTinhDem')}
+          </p>
+        )}
+
+        {/* CÁCH KHÁC — dồn hết lựa chọn kỹ thuật: cách tính số + kiểu mục tiêu. */}
+        {moKhac ? (
+          <div className="flex flex-col gap-2 rounded-[12px] bg-navy/[0.03] p-2.5">
+            {cheDo !== 'bot' && (
+              <>
+                <p className="text-[11.5px] font-bold text-grey-mid">{t('cachTinhSo')}</p>
+                <div data-kiem="mt-kieu-dich" className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                  <OChon chon={kieuSo === 'do'} onClick={() => setKieuSo('do')} nhan={t('kieuDo')} />
+                  <OChon chon={kieuSo === 'dem'} onClick={() => setKieuSo('dem')} nhan={t('kieuDem')} />
+                </div>
+              </>
+            )}
+            <p className="mt-1 text-[11.5px] font-bold text-grey-mid">{t('kieuMucTieu')}</p>
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+              <OChon chon={cheDo === 'len'} onClick={() => setCheDo('len')} nhan={t('chieuTang')} kiem="mt-chieu-tang" />
+              <OChon chon={cheDo === 'giu'} onClick={() => setCheDo('giu')} nhan={t('giuMucNam')} kiem="mt-chieu-giu" />
+              <OChon chon={cheDo === 'bot'} onClick={() => setCheDo('bot')} nhan={t('chieuGiam')} kiem="mt-chieu-giam" />
+              <OChon chon={cheDo === 'chu'} onClick={() => setCheDo('chu')} nhan={t('khongSo')} />
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            data-kiem="mt-mo-khac"
+            onClick={() => setMoKhac(true)}
+            className="inline-flex min-h-[24px] items-center py-1 text-[12px] font-bold text-grey-mid underline hover:text-navy"
+          >
+            {t('cachKhac')}
+          </button>
+        )}
 
         {/* ③ ĐỌC LẠI CÂU MỤC TIÊU — ráp từ chính chữ em gõ. */}
         <div data-kiem="mt-buoc-3">

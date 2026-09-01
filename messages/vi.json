@@ -1557,10 +1557,10 @@
     "mauChon": "Dùng mẫu này",
     "mauKhoa": "Chữ lấy từ mẫu — em chỉ điền số.",
     "mauSuaChu": "Sửa chữ",
-    "buoc1": "① Em muốn giỏi hơn ở điều gì?",
+    "buoc1": "Em muốn giỏi hơn ở điều gì?",
     "buoc1Lop": "① Lớp muốn đạt điều gì?",
     "buoc2": "② Bây giờ em ở đâu, muốn tới đâu?",
-    "buoc3": "③ Đọc lại xem đúng ý em chưa",
+    "buoc3": "Đọc lại xem đúng ý em chưa",
     "ten": "Em muốn",
     "tenLop": "Lớp sẽ",
     "tenPh": "vd: đọc sách, nâng điểm Toán, chạy bền hơn",
@@ -1639,7 +1639,13 @@
     "traLaiNut": "Trả lại",
     "kyThang": "tháng",
     "kyTuan": "tuần",
-    "kieuKhac": "Kiểu mục tiêu khác"
+    "kieuKhac": "Kiểu mục tiêu khác",
+    "napBayGio": "Bây giờ em được",
+    "napMuonToi": "muốn tới",
+    "napGiu": "Em muốn giữ ít nhất",
+    "cachKhac": "Cách khác",
+    "cachTinhSo": "Số của em tính thế nào?",
+    "kieuMucTieu": "Kiểu mục tiêu"
   },
   "viec": {
     "chipLop": "Của lớp",

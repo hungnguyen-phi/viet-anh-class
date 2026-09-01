@@ -1557,10 +1557,10 @@
     "mauChon": "Use this template",
     "mauKhoa": "Text comes from the template — just fill in the numbers.",
     "mauSuaChu": "Edit text",
-    "buoc1": "① What do you want to get better at?",
+    "buoc1": "What do you want to get better at?",
     "buoc1Lop": "① What will the class achieve?",
     "buoc2": "② From where to where, by when?",
-    "buoc3": "③ Read your WIG back",
+    "buoc3": "Read your WIG back",
     "ten": "I want to",
     "tenLop": "The class will",
     "tenPh": "e.g. raise my Maths score",
@@ -1639,7 +1639,13 @@
     "traLaiNut": "Return",
     "kyThang": "month",
     "kyTuan": "week",
-    "kieuKhac": "Other goal type"
+    "kieuKhac": "Other goal type",
+    "napBayGio": "Right now I have",
+    "napMuonToi": "want to reach",
+    "napGiu": "Keep at least",
+    "cachKhac": "Other options",
+    "cachTinhSo": "How is your number counted?",
+    "kieuMucTieu": "Goal type"
   },
   "viec": {
     "chipLop": "Class",
