@@ -103,6 +103,37 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   // "Hỗ trợ cho": id một mục tiêu của LỚP mà mục tiêu này góp hướng vào (dây `noi` vai chi_huong).
   const ho_tro_cho = String(formData.get('ho_tro_cho') ?? '').trim() || null;
 
+  // LOẠI CỘT MỐC (0172): do_luong (X→Y, như cũ) · hanh_dong (0→100% một việc) · ke_hoach (các
+  // bước cộng dồn 100%). Hai loại sau đo bằng % → ép về đích 0→100, đơn vị 'phan_tram', ghi tay
+  // (với ke_hoach thì trigger buoc tự ghi số đo, em không nhập tay).
+  const loaiMocRaw = String(formData.get('loai_moc') ?? 'do_luong');
+  const loai_moc = ['do_luong', 'hanh_dong', 'ke_hoach'].includes(loaiMocRaw) ? loaiMocRaw : 'do_luong';
+  const laPhanTram = loai_moc === 'hanh_dong' || loai_moc === 'ke_hoach';
+  // Các bước của cột mốc kế hoạch — gửi kèm dạng JSON [{tieu_de,phan_tram,bat_dau,ket_thuc,mo_ta}].
+  type BuocForm = {tieu_de: string; phan_tram: number; bat_dau?: string; ket_thuc?: string; mo_ta?: string};
+  let cacBuoc: BuocForm[] = [];
+  if (loai_moc === 'ke_hoach') {
+    try {
+      const arr = JSON.parse(String(formData.get('buoc_json') ?? '[]')) as BuocForm[];
+      cacBuoc = (Array.isArray(arr) ? arr : [])
+        .map((b) => ({
+          tieu_de: String(b.tieu_de ?? '').trim(),
+          phan_tram: Number(b.phan_tram) || 0,
+          bat_dau: b.bat_dau && isValidDayVN(String(b.bat_dau)) ? String(b.bat_dau) : undefined,
+          ket_thuc: b.ket_thuc && isValidDayVN(String(b.ket_thuc)) ? String(b.ket_thuc) : undefined,
+          mo_ta: String(b.mo_ta ?? '').trim() || undefined,
+        }))
+        .filter((b) => b.tieu_de);
+    } catch {
+      cacBuoc = [];
+    }
+    if (cacBuoc.length < 1)
+      return {ok: false, fieldError: 'buoc', error: 'Thêm ít nhất một bước cho kế hoạch.'};
+    const tong = cacBuoc.reduce((s, b) => s + b.phan_tram, 0);
+    if (Math.round(tong) !== 100)
+      return {ok: false, fieldError: 'buoc', error: `Phần trăm các bước phải cộng đủ 100% (đang ${Math.round(tong)}%).`};
+  }
+
   const ket_thuc = String(formData.get('ket_thuc') ?? '').trim();
   const bat_dau = String(formData.get('bat_dau') ?? '').trim();
   if (!isValidDayVN(ket_thuc))
@@ -110,39 +141,54 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   if (bat_dau && isValidDayVN(bat_dau) && bat_dau > ket_thuc)
     return {ok: false, fieldError: 'bat_dau', error: 'Ngày bắt đầu phải trước ngày đạt.'};
 
+  // Giá trị đo hiệu lực: hành động/kế hoạch ép về 0→100%; đo lường giữ như form.
+  const eff_kieu_dich = laPhanTram ? 'toi' : kieu_dich;
+  const eff_chieu = laPhanTram ? 'tang' : chieu;
+  const eff_x = laPhanTram ? 0 : x_so;
+  const eff_y = laPhanTram ? 100 : y_so;
+
   // Đích bằng lời (kieu='chu') cần y_chu; đích bằng số cần y_so. Đơn vị bắt buộc trừ chu/ti_le_dat.
-  if (kieu_dich === 'chu') {
-    if (!y_chu) return {ok: false, fieldError: 'y_chu', error: 'Em sẽ đạt được gì? Viết bằng lời.'};
-  } else {
-    if (y_so === null || y_so <= 0)
-      return {ok: false, fieldError: 'y_so', error: 'Đích phải là số lớn hơn 0.'};
-    if (!don_vi_id) return {ok: false, fieldError: 'don_vi_id', error: 'Chọn đơn vị (điểm, bài, lần…).'};
+  if (!laPhanTram) {
+    if (kieu_dich === 'chu') {
+      if (!y_chu) return {ok: false, fieldError: 'y_chu', error: 'Em sẽ đạt được gì? Viết bằng lời.'};
+    } else {
+      if (y_so === null || y_so <= 0)
+        return {ok: false, fieldError: 'y_so', error: 'Đích phải là số lớn hơn 0.'};
+      if (!don_vi_id) return {ok: false, fieldError: 'don_vi_id', error: 'Chọn đơn vị (điểm, bài, lần…).'};
+    }
   }
 
   // Số này lấy từ đâu — với mục tiêu của EM chỉ hai đường: ĐẾM (máy cộng từ việc được nối vào →
-  // 'thuoc') hoặc ĐO (em/thầy cô ghi tay → 'ghi_tay'). Các nguồn con/he_thong/thanh_phan là của
-  // mục tiêu lớp/trường (form khác). Suy từ kiểu đơn vị của mục tiêu đo nếu form không nói rõ.
+  // 'thuoc') hoặc ĐO (em/thầy cô ghi tay → 'ghi_tay'). Hành động/kế hoạch luôn ghi_tay.
   const nguonSoRaw = String(formData.get('nguon_so') ?? '').trim();
-  const nguon_so = nguonSoRaw === 'thuoc' || nguonSoRaw === 'ghi_tay' ? nguonSoRaw : 'ghi_tay';
-  // Đơn vị đo kiểu ĐẾM (buổi/bài) hợp với nguồn 'thuoc'; đo kiểu ĐO (điểm/kg) chỉ ghi tay được.
+  const nguon_so = laPhanTram ? 'ghi_tay' : nguonSoRaw === 'thuoc' || nguonSoRaw === 'ghi_tay' ? nguonSoRaw : 'ghi_tay';
   void kieuDonVi;
 
   const supabase = await createClient();
+
+  // Đơn vị '%' cho hành động/kế hoạch (tra một lần, không cắm cứng UUID).
+  let don_vi_pt: string | null = null;
+  if (laPhanTram) {
+    const {data: dv} = await supabase.from('don_vi').select('id').eq('ma', 'phan_tram').maybeSingle();
+    don_vi_pt = dv?.id ?? null;
+  }
+  const eff_don_vi = laPhanTram ? don_vi_pt : don_vi_id;
 
   // Nội dung chung (dùng cho cả insert lẫn update). trang_thai đặt riêng theo nhánh.
   const noiDung = {
     ten,
     linh_vuc,
     subject_id,
-    kieu_dich,
-    chieu,
-    ky,
-    don_vi_id: kieu_dich === 'chu' || kieu_dich === 'ti_le_dat' ? null : don_vi_id,
-    x_so: kieu_dich === 'chu' ? null : x_so,
-    y_so: kieu_dich === 'chu' ? null : y_so,
-    x_chu: kieu_dich === 'chu' ? x_chu : null,
-    y_chu: kieu_dich === 'chu' ? y_chu : null,
-    chua_do_x,
+    loai_moc,
+    kieu_dich: eff_kieu_dich,
+    chieu: eff_chieu,
+    ky: laPhanTram ? null : ky,
+    don_vi_id: eff_kieu_dich === 'chu' || eff_kieu_dich === 'ti_le_dat' ? null : eff_don_vi,
+    x_so: eff_kieu_dich === 'chu' ? null : eff_x,
+    y_so: eff_kieu_dich === 'chu' ? null : eff_y,
+    x_chu: eff_kieu_dich === 'chu' ? x_chu : null,
+    y_chu: eff_kieu_dich === 'chu' ? y_chu : null,
+    chua_do_x: laPhanTram ? false : chua_do_x,
     ket_thuc,
     nguon_so,
     mo_ta,
@@ -183,6 +229,31 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
     if (error) return {ok: false, error: friendlyError(error)};
     if (!data) return {ok: false, error: 'Không lưu được — em không có quyền với lớp này.'};
     mtId = data.id;
+  }
+
+  // CÁC BƯỚC của cột mốc kế hoạch — thay toàn bộ theo lần gửi này (giữ trạng thái "đã xong" của
+  // bước cũ nếu tiêu đề trùng, để em sửa kế hoạch không mất tiến độ). Trigger buoc tự cập nhật %.
+  if (mtId && loai_moc === 'ke_hoach') {
+    const {data: cu} = await supabase
+      .from('buoc')
+      .select('tieu_de, xong_at')
+      .eq('muc_tieu_id', mtId);
+    const xongCu = new Map((cu ?? []).map((b) => [b.tieu_de, b.xong_at]));
+    await supabase.from('buoc').delete().eq('muc_tieu_id', mtId);
+    if (cacBuoc.length > 0) {
+      await supabase.from('buoc').insert(
+        cacBuoc.map((b, i) => ({
+          muc_tieu_id: mtId as string,
+          thu_tu: i,
+          tieu_de: b.tieu_de,
+          phan_tram: b.phan_tram,
+          bat_dau: b.bat_dau ?? null,
+          ket_thuc: b.ket_thuc ?? null,
+          mo_ta: b.mo_ta ?? null,
+          xong_at: xongCu.get(b.tieu_de) ?? null,
+        })),
+      );
+    }
   }
 
   // DÂY "HỖ TRỢ CHO" — mục tiêu của em góp hướng vào một mục tiêu của LỚP (vai chi_huong).

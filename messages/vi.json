@@ -1671,7 +1671,20 @@
     "clCoMoTa": "Có mô tả giải thích cách làm (từ 20 ký tự)",
     "cachKhac": "Cách khác",
     "cachTinhSo": "Số của em tính thế nào?",
-    "kieuMucTieu": "Kiểu mục tiêu"
+    "kieuMucTieu": "Kiểu mục tiêu",
+    "loaiMocLabel": "Mục tiêu này đo thế nào?",
+    "mocDoLuong": "Đo lường",
+    "mocHanhDong": "Hành động",
+    "mocKeHoach": "Kế hoạch",
+    "mocDoLuongGt": "Một con số đi từ mức này tới mức kia (điểm 6 → 8).",
+    "mocHanhDongGt": "Làm xong một việc là đạt (nộp bài, hoàn thành sản phẩm).",
+    "mocKeHoachGt": "Làm theo các bước, mỗi bước một phần, cộng đủ 100%.",
+    "mocHanhDongNote": "Làm xong việc này là đạt 100% — không cần con số. Chọn ngày đến hạn ở dưới.",
+    "cacBuoc": "Các bước",
+    "buocTieuDePh": "vd: Chọn đề tài",
+    "buocPhanTram": "Phần trăm",
+    "buocXoa": "Xoá bước",
+    "themBuoc": "Thêm bước"
   },
   "viec": {
     "chipLop": "Của lớp",

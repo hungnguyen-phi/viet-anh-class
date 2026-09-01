@@ -23,7 +23,7 @@ import {MyRequests, type MyRequest} from '@/components/student/MyRequests';
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {tenHienThi} from '@/lib/ten-hien-thi';
 import {MucTieuCuaCon} from '@/components/student/MucTieuCuaCon';
-import type {DonViChon, MucTieuLopChon, MauMucTieu} from '@/components/student/FormMucTieu';
+import type {DonViChon, MucTieuLopChon, MauMucTieu, BuocChon} from '@/components/student/FormMucTieu';
 import {BangEmPA2, type ViecEm, type ViecTuan, type CamKetEm} from '@/components/student/BangEmPA2';
 import type {Database} from '@/lib/database.types';
 
@@ -222,6 +222,7 @@ export async function StudentScoreboard({
     mangRes,
     tenBuddyRes,
     lichBuddyRes,
+    buocRes,
     ...tuan12Res
   ] = await Promise.all([
     thuocIds.length > 0
@@ -278,8 +279,38 @@ export async function StudentScoreboard({
           .limit(1)
           .maybeSingle()
       : Promise.resolve({data: null}),
+    // Các bước của mục tiêu KẾ HOẠCH — để form sửa hiện lại bước cũ (không bắt em nhập lại).
+    (() => {
+      const keIds = mtRows.filter((m) => m.loai_moc === 'ke_hoach').map((m) => m.id).filter(Boolean) as string[];
+      return keIds.length > 0
+        ? supabase
+            .from('buoc')
+            .select('muc_tieu_id, tieu_de, phan_tram, bat_dau, ket_thuc, mo_ta')
+            .in('muc_tieu_id', keIds)
+            .order('thu_tu')
+        : Promise.resolve({data: null});
+    })(),
     ...thuocIds.map((id) => supabase.rpc('thuoc_12_tuan', {p_thuoc: id, p_chu_the: studentId, p_tuan_cuoi: monday})),
   ]);
+
+  // Gộp bước theo mục tiêu → truyền vào form sửa (khỏi bắt em nhập lại các bước).
+  const buocTheoMt: Record<string, BuocChon[]> = {};
+  for (const b of (buocRes.data ?? []) as {
+    muc_tieu_id: string;
+    tieu_de: string;
+    phan_tram: number;
+    bat_dau: string | null;
+    ket_thuc: string | null;
+    mo_ta: string | null;
+  }[]) {
+    (buocTheoMt[b.muc_tieu_id] ??= []).push({
+      tieu_de: b.tieu_de,
+      phan_tram: Number(b.phan_tram),
+      bat_dau: b.bat_dau,
+      ket_thuc: b.ket_thuc,
+      mo_ta: b.mo_ta,
+    });
+  }
 
   const mucTieuLop: MucTieuLopChon[] = ((mucTieuLopRes.data ?? []) as {
     id: string | null;
@@ -524,6 +555,7 @@ export async function StudentScoreboard({
             mauTheoArea={mauTheoArea}
             donViList={donViList}
             mucTieuLop={mucTieuLop}
+            buocTheoMt={buocTheoMt}
             mauList={mauList}
           />
         </section>

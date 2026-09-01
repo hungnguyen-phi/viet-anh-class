@@ -1514,6 +1514,12 @@ export type Database = {
           },
         ]
       }
+      buoc: {
+        Row: { id: string; muc_tieu_id: string; thu_tu: number; tieu_de: string; phan_tram: number; bat_dau: string | null; ket_thuc: string | null; mo_ta: string | null; xong_at: string | null; xong_boi: string | null; created_by: string | null; created_at: string }
+        Insert: { id?: string; muc_tieu_id: string; thu_tu?: number; tieu_de: string; phan_tram?: number; bat_dau?: string | null; ket_thuc?: string | null; mo_ta?: string | null; xong_at?: string | null; xong_boi?: string | null; created_by?: string | null; created_at?: string }
+        Update: { id?: string; muc_tieu_id?: string; thu_tu?: number; tieu_de?: string; phan_tram?: number; bat_dau?: string | null; ket_thuc?: string | null; mo_ta?: string | null; xong_at?: string | null; xong_boi?: string | null; created_by?: string | null; created_at?: string }
+        Relationships: []
+      }
       moc_muc_tieu: {
         Row: {
           created_at: string
@@ -1633,6 +1639,7 @@ export type Database = {
           ly_do_tra_lai: string | null
           mau_id: string | null
           mo_ta: string | null
+          loai_moc: string
           nam_hoc: string
           nguoi_nhap_ho: string | null
           nguon_he_thong: string | null
@@ -1677,6 +1684,7 @@ export type Database = {
           ly_do_tra_lai?: string | null
           mau_id?: string | null
           mo_ta?: string | null
+          loai_moc?: string
           nam_hoc?: string
           nguoi_nhap_ho?: string | null
           nguon_he_thong?: string | null
@@ -1721,6 +1729,7 @@ export type Database = {
           ly_do_tra_lai?: string | null
           mau_id?: string | null
           mo_ta?: string | null
+          loai_moc?: string
           nam_hoc?: string
           nguoi_nhap_ho?: string | null
           nguon_he_thong?: string | null
@@ -3700,6 +3709,7 @@ export type Database = {
           ly_do_tra_lai: string | null
           mau_id: string | null
           mo_ta: string | null
+          loai_moc: string
           mau_so: number | null
           nam_hoc: string | null
           ngay_nguon: string | null
