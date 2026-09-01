@@ -15,6 +15,7 @@ import {
   type MonChon,
   type MucTieuLopChon,
   type MauMucTieu,
+  type BuocChon,
 } from '@/components/student/FormMucTieu';
 import {
   datTapTrung,
@@ -59,6 +60,7 @@ export function MucTieuCuaCon({
   monList = [],
   mucTieuLop = [],
   mauList = [],
+  buocTheoMt = {},
   noiTheoMt = {},
 }: {
   studentId: string;
@@ -78,6 +80,8 @@ export function MucTieuCuaCon({
   mucTieuLop?: MucTieuLopChon[];
   /** Mẫu mục tiêu của lớp. */
   mauList?: MauMucTieu[];
+  /** Các bước của mỗi mục tiêu KẾ HOẠCH — để form sửa hiện lại bước cũ. */
+  buocTheoMt?: Record<string, BuocChon[]>;
   /** Dây nối theo id mục tiêu con. */
   noiTheoMt?: Record<string, NoiHienThi[]>;
 }) {
@@ -179,6 +183,7 @@ export function MucTieuCuaCon({
           mauList={mauList}
           mucTieuLop={mucTieuLop}
           dangSua={dangSua}
+          buocDangSua={dangSua ? (buocTheoMt[dangSua.id ?? ''] ?? []) : []}
           onClose={() => setMoForm(null)}
           onDone={setBao}
         />

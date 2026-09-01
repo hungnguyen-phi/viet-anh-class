@@ -5,7 +5,7 @@ import {useLocale, useTranslations} from 'next-intl';
 import {AlertCircle, Trash2, Lightbulb, Info, Check} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Popup} from '@/components/ui/Popup';
-import {Field, ctlWithBorder} from '@/components/ui/Field';
+import {Field, ctlWithBorder, inputInline} from '@/components/ui/Field';
 import {ONgayVN, ngayVN} from '@/components/ui/ONgayVN';
 import {schoolYearRangeVN} from '@/lib/dates';
 import {ChonCuon} from '@/components/ui/ChonCuon';
@@ -37,6 +37,8 @@ export type DonViChon = {id: string; ma: string; nhan?: string};
 export type MonChon = {id: string; ten: string};
 /** Mục tiêu lớp để em hướng tới — hiển thị/nối ở THẺ, không ở form (dây cần id mục tiêu sau khi tạo). */
 export type MucTieuLopChon = {id: string; ten: string; linh_vuc: string};
+/** Một bước của cột mốc kế hoạch (để prefill khi sửa). */
+export type BuocChon = {tieu_de: string; phan_tram: number | null; bat_dau: string | null; ket_thuc: string | null; mo_ta: string | null};
 /** Mẫu mục tiêu của lớp (`muc_tieu_mau`) — em chọn rồi chỉ điền số. */
 export type MauMucTieu = {
   id: string;
@@ -89,6 +91,7 @@ export function FormMucTieu3Buoc({
   monList = [],
   mauList = [],
   mucTieuLop = [],
+  buocDangSua = [],
   dangSua = null,
   onClose,
   onDone,
@@ -107,6 +110,8 @@ export function FormMucTieu3Buoc({
   mauList?: MauMucTieu[];
   /** Mục tiêu của lớp để em chọn "Hỗ trợ cho" (chỉ dùng khi TẠO MỚI; sửa thì quản ở thẻ). */
   mucTieuLop?: MucTieuLopChon[];
+  /** Các bước của cột mốc kế hoạch đang sửa (prefill khi sửa mục tiêu loại kế hoạch). */
+  buocDangSua?: BuocChon[];
   dangSua?: DangSuaMt;
   onClose: () => void;
   onDone?: (message: string) => void;
@@ -134,6 +139,20 @@ export function FormMucTieu3Buoc({
   const [moTa, setMoTa] = useState(dangSua?.mo_ta ?? '');
   // "Hỗ trợ cho" — chỉ khi tạo mới (sửa dây thì làm ở thẻ). Lọc theo lĩnh vực để gọn.
   const [hoTroCho, setHoTroCho] = useState('');
+  // LOẠI CỘT MỐC (0172): đo lường / hành động / kế hoạch.
+  const [loaiMoc, setLoaiMoc] = useState<string>(dangSua?.loai_moc ?? 'do_luong');
+  // Các bước của cột mốc kế hoạch (form dòng, cộng dồn 100%).
+  type BuocItem = {tieu_de: string; phan_tram: string; bat_dau: string; ket_thuc: string; mo_ta: string};
+  const buocRong = (): BuocItem => ({tieu_de: '', phan_tram: '', bat_dau: '', ket_thuc: '', mo_ta: ''});
+  const [buocList, setBuocList] = useState<BuocItem[]>(
+    (buocDangSua ?? []).map((b) => ({
+      tieu_de: b.tieu_de,
+      phan_tram: b.phan_tram != null ? String(b.phan_tram) : '',
+      bat_dau: b.bat_dau ?? '',
+      ket_thuc: b.ket_thuc ?? '',
+      mo_ta: b.mo_ta ?? '',
+    })),
+  );
   // SMART tooltip + bảng chấm chất lượng mở/đóng.
   const [moSmart, setMoSmart] = useState(false);
   const [moChatLuong, setMoChatLuong] = useState(false);
@@ -254,6 +273,24 @@ export function FormMucTieu3Buoc({
         <input type="hidden" name="bat_dau" value={batDau} />
         <input type="hidden" name="ket_thuc" value={ketThuc} />
         <input type="hidden" name="mo_ta" value={moTa} />
+        <input type="hidden" name="loai_moc" value={loaiMoc} />
+        {loaiMoc === 'ke_hoach' && (
+          <input
+            type="hidden"
+            name="buoc_json"
+            value={JSON.stringify(
+              buocList
+                .filter((b) => b.tieu_de.trim())
+                .map((b) => ({
+                  tieu_de: b.tieu_de.trim(),
+                  phan_tram: Number(b.phan_tram) || 0,
+                  bat_dau: b.bat_dau || undefined,
+                  ket_thuc: b.ket_thuc || undefined,
+                  mo_ta: b.mo_ta || undefined,
+                })),
+            )}
+          />
+        )}
         {!dangSua && <input type="hidden" name="ho_tro_cho" value={hoTroCho} />}
 
         {state.error && !state.fieldError && (
@@ -433,8 +470,95 @@ export function FormMucTieu3Buoc({
           </Field>
         )}
 
-        {/* SỐ — nhãn chuẩn: Đơn vị / Giá trị ban đầu / Giá trị mục tiêu. */}
-        {cheDo === 'chu' ? (
+        {/* LOẠI CỘT MỐC — ba khuôn theo hình dạng mục tiêu (0172). */}
+        <div>
+          <p className="mb-1.5 text-[12px] font-bold text-grey-mid">{t('loaiMocLabel')}</p>
+          <div data-kiem="mt-loai-moc" className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
+            <OChon chon={loaiMoc === 'do_luong'} onClick={() => setLoaiMoc('do_luong')} nhan={t('mocDoLuong')} kiem="mt-moc-do-luong" />
+            <OChon chon={loaiMoc === 'hanh_dong'} onClick={() => setLoaiMoc('hanh_dong')} nhan={t('mocHanhDong')} kiem="mt-moc-hanh-dong" />
+            <OChon chon={loaiMoc === 'ke_hoach'} onClick={() => setLoaiMoc('ke_hoach')} nhan={t('mocKeHoach')} kiem="mt-moc-ke-hoach" />
+          </div>
+          <p className="mt-1 text-[11px] font-semibold text-grey-mid">
+            {loaiMoc === 'do_luong' ? t('mocDoLuongGt') : loaiMoc === 'hanh_dong' ? t('mocHanhDongGt') : t('mocKeHoachGt')}
+          </p>
+        </div>
+
+        {/* HÀNH ĐỘNG: không có ô số — làm xong là 100%. */}
+        {loaiMoc === 'hanh_dong' && (
+          <p className="rounded-[10px] bg-navy/[0.05] px-2.5 py-2 text-[12px] font-semibold text-grey-mid">
+            {t('mocHanhDongNote')}
+          </p>
+        )}
+
+        {/* KẾ HOẠCH: các bước cộng dồn tới 100%. */}
+        {loaiMoc === 'ke_hoach' && (
+          <div data-kiem="mt-cac-buoc" className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[12px] font-bold text-grey-mid">{t('cacBuoc')}</p>
+              <span
+                className={`text-[12px] font-extrabold ${
+                  Math.round(buocList.reduce((s, b) => s + (Number(b.phan_tram) || 0), 0)) === 100
+                    ? 'text-success'
+                    : 'text-status-bad'
+                }`}
+              >
+                {Math.round(buocList.reduce((s, b) => s + (Number(b.phan_tram) || 0), 0))}%
+              </span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {buocList.map((b, i) => (
+                <div key={i} className="rounded-[10px] border-[1.5px] border-navy/10 p-2">
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      value={b.tieu_de}
+                      onChange={(e) =>
+                        setBuocList((l) => l.map((x, j) => (j === i ? {...x, tieu_de: e.target.value} : x)))
+                      }
+                      placeholder={t('buocTieuDePh')}
+                      maxLength={200}
+                      data-kiem="mt-buoc-ten"
+                      className={`${inputInline} flex-1`}
+                    />
+                    <input
+                      value={b.phan_tram}
+                      onChange={(e) =>
+                        setBuocList((l) => l.map((x, j) => (j === i ? {...x, phan_tram: e.target.value} : x)))
+                      }
+                      type="number"
+                      min="0"
+                      max="100"
+                      inputMode="numeric"
+                      placeholder="%"
+                      aria-label={t('buocPhanTram')}
+                      className={`${inputInline} w-16`}
+                    />
+                    <span className="text-[12px] font-bold text-grey-mid">%</span>
+                    <button
+                      type="button"
+                      onClick={() => setBuocList((l) => l.filter((_, j) => j !== i))}
+                      aria-label={t('buocXoa')}
+                      className="grid h-7 w-7 shrink-0 place-items-center rounded-[8px] text-status-bad hover:bg-status-bad/10"
+                    >
+                      <Trash2 size={13} strokeWidth={2.5} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              data-kiem="mt-them-buoc"
+              onClick={() => setBuocList((l) => [...l, buocRong()])}
+              className="mt-2 inline-flex min-h-[32px] items-center gap-1 rounded-[10px] border-[1.5px] border-dashed border-navy/25 px-3 text-[12px] font-extrabold text-navy hover:border-navy"
+            >
+              + {t('themBuoc')}
+            </button>
+            {err('buoc') && <p className="mt-1.5 text-[12px] font-bold text-status-bad">{err('buoc')}</p>}
+          </div>
+        )}
+
+        {/* SỐ — chỉ với cột mốc ĐO LƯỜNG. Nhãn chuẩn: Đơn vị / Giá trị ban đầu / Giá trị mục tiêu. */}
+        {loaiMoc !== 'do_luong' ? null : cheDo === 'chu' ? (
           <Field label={t('yChu')} htmlFor="mt-y" error={err('y_chu')}>
             <textarea
               id="mt-y"
@@ -527,18 +651,20 @@ export function FormMucTieu3Buoc({
           </div>
         </div>
 
-        {/* CÁCH KHÁC — luôn có nút BẬT/TẮT (chủ dự án 02/09: mở rồi phải đóng lại được). */}
-        <button
-          type="button"
-          data-kiem="mt-mo-khac"
-          onClick={() => setMoKhac((v) => !v)}
-          aria-expanded={moKhac}
-          className="inline-flex min-h-[24px] items-center gap-1 py-1 text-[12px] font-bold text-grey-mid underline hover:text-navy"
-        >
-          {t('cachKhac')}
-          <span aria-hidden>{moKhac ? '▴' : '▾'}</span>
-        </button>
-        {moKhac && (
+        {/* CÁCH KHÁC — chỉ với ĐO LƯỜNG (đếm/đo, giữ/giảm/không-số). Nút bật/tắt (mở rồi đóng lại được). */}
+        {loaiMoc === 'do_luong' && (
+          <button
+            type="button"
+            data-kiem="mt-mo-khac"
+            onClick={() => setMoKhac((v) => !v)}
+            aria-expanded={moKhac}
+            className="inline-flex min-h-[24px] items-center gap-1 py-1 text-[12px] font-bold text-grey-mid underline hover:text-navy"
+          >
+            {t('cachKhac')}
+            <span aria-hidden>{moKhac ? '▴' : '▾'}</span>
+          </button>
+        )}
+        {loaiMoc === 'do_luong' && moKhac && (
           <div className="flex flex-col gap-2 rounded-[12px] bg-navy/[0.03] p-2.5">
             {cheDo !== 'bot' && (
               <>

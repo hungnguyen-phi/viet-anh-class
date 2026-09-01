@@ -1671,7 +1671,20 @@
     "clCoMoTa": "Has a description (20+ characters)",
     "cachKhac": "Other options",
     "cachTinhSo": "How is your number counted?",
-    "kieuMucTieu": "Goal type"
+    "kieuMucTieu": "Goal type",
+    "loaiMocLabel": "How is this goal measured?",
+    "mocDoLuong": "Measurement",
+    "mocHanhDong": "Action",
+    "mocKeHoach": "Plan",
+    "mocDoLuongGt": "A number moving from one level to another (grade 6 → 8).",
+    "mocHanhDongGt": "Done when the task is finished (submit, complete a product).",
+    "mocKeHoachGt": "Steps, each a portion, adding up to 100%.",
+    "mocHanhDongNote": "Finishing this task means 100% — no number needed. Pick a due date below.",
+    "cacBuoc": "Steps",
+    "buocTieuDePh": "e.g. Pick a topic",
+    "buocPhanTram": "Percent",
+    "buocXoa": "Remove step",
+    "themBuoc": "Add step"
   },
   "viec": {
     "chipLop": "Class",
