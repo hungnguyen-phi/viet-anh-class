@@ -53,31 +53,17 @@ export type MauMucTieu = {
 };
 export type DangSuaMt = MucTieuV | null;
 
-// Kiểu vòng đời của mục tiêu, dịch từ các lựa chọn của em sang enum CSDL.
-type CheDo = 'len' | 'giu' | 'bot' | 'chu';
-type KieuSo = 'dem' | 'do';
-type BotKy = 'tuan' | 'thang' | 'nam';
-
-// Từ (che_do, kieu_so, bot_ky) → (kieu_dich, chieu, ky, nguon_so) đúng enum CSDL.
-function suyDich(che_do: CheDo, bot_ky: BotKy): {kieu_dich: string; chieu: string; ky: string} {
-  if (che_do === 'chu') return {kieu_dich: 'chu', chieu: 'tang', ky: ''};
-  if (che_do === 'giu') return {kieu_dich: 'giu', chieu: 'giu', ky: ''};
-  if (che_do === 'bot')
-    return bot_ky === 'nam'
-      ? {kieu_dich: 'tran_tich_luy', chieu: 'giam', ky: ''}
-      : {kieu_dich: 'toc_do_ky', chieu: 'giam', ky: bot_ky};
-  return {kieu_dich: 'toi', chieu: 'tang', ky: ''};
-}
-
-// Đọc ngược mục tiêu đang sửa (enum CSDL) → lựa chọn của form.
-function docNguoc(mt: MucTieuV): {che_do: CheDo; bot_ky: BotKy; kieu_so: KieuSo} {
-  const kd = mt.kieu_dich ?? 'toi';
-  if (kd === 'chu') return {che_do: 'chu', bot_ky: 'nam', kieu_so: 'do'};
-  if (kd === 'giu') return {che_do: 'giu', bot_ky: 'nam', kieu_so: mt.nguon_so === 'thuoc' ? 'dem' : 'do'};
-  if (kd === 'tran_tich_luy') return {che_do: 'bot', bot_ky: 'nam', kieu_so: 'do'};
-  if (kd === 'toc_do_ky')
-    return {che_do: 'bot', bot_ky: mt.ky === 'thang' ? 'thang' : 'tuan', kieu_so: 'do'};
-  return {che_do: 'len', bot_ky: 'nam', kieu_so: mt.nguon_so === 'thuoc' ? 'dem' : 'do'};
+// Suy CHIỀU của mục tiêu ĐO thẳng từ hai con số em gõ — không bắt em chọn tăng/giữ/giảm nữa (chủ
+// dự án 02/09: "tăng hay giảm hay giữ thì nhìn số đầu số cuối là ra"). Đích cao hơn = tăng, thấp
+// hơn = giảm, bằng nhau = giữ; chưa biết mức đầu thì mặc định tăng. Mọi tổ hợp hợp lệ với ràng
+// buộc mt_chieu_thuan_ck (toi: tăng cần x<y, giảm cần x>y; giữ dùng kieu_dich riêng nên không vướng).
+function suyTuSo(x: string, y: string, chuaX: boolean): {kieu_dich: string; chieu: string} {
+  const xn = Number(x);
+  const yn = Number(y);
+  if (chuaX || x.trim() === '' || !Number.isFinite(xn)) return {kieu_dich: 'toi', chieu: 'tang'};
+  if (Number.isFinite(yn) && yn < xn) return {kieu_dich: 'toi', chieu: 'giam'};
+  if (Number.isFinite(yn) && yn === xn) return {kieu_dich: 'giu', chieu: 'giu'};
+  return {kieu_dich: 'toi', chieu: 'tang'};
 }
 
 export function FormMucTieu3Buoc({
@@ -120,17 +106,12 @@ export function FormMucTieu3Buoc({
   const locale = useLocale();
   const [state, formAction] = useActionState<MucTieuState, FormData>(luuMucTieu, {ok: false});
 
-  const nguoc = dangSua ? docNguoc(dangSua) : null;
   const [ten, setTen] = useState(dangSua?.ten ?? '');
   const [linhVuc, setLinhVuc] = useState<string>(dangSua?.linh_vuc ?? areaPreset ?? AREAS[0]);
   const [monId, setMonId] = useState<string>(dangSua?.subject_id ?? '');
-  const [cheDo, setCheDo] = useState<CheDo>(nguoc?.che_do ?? 'len');
-  const [kieuSo, setKieuSo] = useState<KieuSo>(nguoc?.kieu_so ?? 'do');
-  const [botKy, setBotKy] = useState<BotKy>(nguoc?.bot_ky ?? 'tuan');
   const [chuaDoX, setChuaDoX] = useState(dangSua?.chua_do_x ?? false);
   const [x, setX] = useState(dangSua?.x_so != null ? String(dangSua.x_so) : '');
   const [y, setY] = useState(dangSua?.y_so != null ? String(dangSua.y_so) : '');
-  const [yChu, setYChu] = useState(dangSua?.y_chu ?? '');
   const [donViId, setDonViId] = useState<string>(dangSua?.don_vi_id ?? '');
   // Không còn ô chọn ngày bắt đầu — giữ giá trị cũ khi sửa, còn tạo mới thì để trống (máy chủ
   // lấy hôm nay). Không có setter vì màn của em không đổi ngày bắt đầu nữa.
@@ -168,14 +149,23 @@ export function FormMucTieu3Buoc({
   }, [state]);
 
   const err = (f: string) => (state.fieldError === f ? state.error : null);
-  const dich = suyDich(cheDo, botKy);
-  const nguonSo = cheDo === 'len' || cheDo === 'giu' ? (kieuSo === 'dem' ? 'thuoc' : 'ghi_tay') : 'ghi_tay';
+  // Chiều (tăng/giữ/giảm) suy thẳng từ hai số — mọi mục tiêu ĐO nay ghi tay (đếm là việc của khu
+  // "Việc em làm", không phải của mục tiêu). Nhãn chiều để em thấy app hiểu đúng ("nhìn 2s là hiểu").
+  const suy = suyTuSo(x, y, chuaDoX);
+  const suyNhan =
+    (x.trim() === '' && !chuaDoX) || y.trim() === ''
+      ? null
+      : suy.chieu === 'giam'
+        ? t('suyGiam')
+        : suy.chieu === 'giu'
+          ? t('suyGiu')
+          : t('suyTang');
   const nhanDv = donViList.find((d) => d.id === donViId)?.ma ?? '';
 
   // ── CHẤM CHẤT LƯỢNG MỤC TIÊU (SMART) ─────────────────────────────────────────────────────
   // Mỗi tiêu chí một điểm; điểm % = số đạt / tổng. Đây vừa là điểm, vừa là HƯỚNG DẪN: em nhìn ô
   // nào chưa xanh thì biết cần sửa gì. Chuẩn dựa trên SMART, hợp với dữ liệu form thu được.
-  const coSo = cheDo !== 'chu';
+  const laDo = loaiMoc === 'do_luong';
   const tieuChi = useMemo(() => {
     const tenLen = ten.trim().length;
     const yNum = Number(y);
@@ -184,13 +174,14 @@ export function FormMucTieu3Buoc({
       {key: 'clCuThe', dat: tenLen >= 10 && tenLen <= 120},
       {
         key: 'clDoDuoc',
-        dat: coSo ? Boolean(y.trim()) && Boolean(donViId) : yChu.trim().length >= 10,
+        // Hành động/kế hoạch đo bằng % nên luôn đo được; đo lường cần đích + đơn vị.
+        dat: laDo ? Boolean(y.trim()) && Boolean(donViId) : true,
       },
       {
         key: 'clVuaSuc',
         // Đích cao hơn hiện tại (đúng hướng), và không xa gấp hơn 20 lần — chống "0 → 1 triệu".
-        dat: !coSo || cheDo !== 'len' || chuaDoX
-          ? Boolean(y.trim())
+        dat: !laDo || suy.chieu !== 'tang' || chuaDoX
+          ? Boolean(y.trim()) || !laDo
           : Number.isFinite(yNum) && Number.isFinite(xNum) && yNum > xNum && yNum <= (xNum || 1) * 20,
       },
       {key: 'clLienKet', dat: Boolean(hoTroCho) || Boolean(dangSua)},
@@ -198,39 +189,27 @@ export function FormMucTieu3Buoc({
       {key: 'clCoMoTa', dat: moTa.trim().length >= 20},
     ];
     return list;
-  }, [ten, y, x, donViId, yChu, hoTroCho, ketThuc, moTa, coSo, cheDo, chuaDoX, dangSua]);
+  }, [ten, y, x, donViId, hoTroCho, ketThuc, moTa, laDo, suy.chieu, chuaDoX, dangSua]);
   const soDat = tieuChi.filter((c) => c.dat).length;
   const phanTram = Math.round((soDat / tieuChi.length) * 100);
 
   // Câu ráp SỐNG — ghép từ chính những ô em vừa gõ (§F4 cauChot*).
   const cauRap = useMemo(() => {
     if (!ten.trim()) return null;
-    if (cheDo === 'chu') return yChu.trim() ? t('cauChotChu', {ten, chu: yChu}) : null;
+    if (loaiMoc !== 'do_luong') return null; // hành động/kế hoạch có ghi chú riêng
     if (!y.trim() || !nhanDv || !ketThuc) return null;
-    if (cheDo === 'giu') return t('cauChotGiu', {ten, dau: '≥', y, dv: nhanDv});
-    if (cheDo === 'bot') {
-      if (botKy === 'nam') return t('cauChotNam', {ten, y, dv: nhanDv});
-      return t('cauChotKy', {ten, ky: botKy === 'thang' ? t('kyThang') : t('kyTuan'), y, dv: nhanDv});
-    }
+    if (suy.chieu === 'giu') return t('cauChotGiu', {ten, dau: '≥', y, dv: nhanDv});
     if (chuaDoX) return t('cauChotChuaX', {ten, y, dv: nhanDv});
     if (!x.trim()) return null;
-    return t('cauChot', {ten, x, chieu: t('chieuTang'), y, dv: nhanDv});
-  }, [ten, cheDo, kieuSo, botKy, chuaDoX, x, y, yChu, nhanDv, ketThuc, t]);
+    return t('cauChot', {ten, x, chieu: suy.chieu === 'giam' ? t('chieuGiam') : t('chieuTang'), y, dv: nhanDv});
+  }, [ten, loaiMoc, suy.chieu, chuaDoX, x, y, nhanDv, ketThuc, t]);
 
   function chonMau(m: MauMucTieu) {
     setTen(m.ten);
     setLinhVuc(m.linh_vuc);
     setMonId(m.subject_id ?? '');
     setDonViId(m.don_vi_id ?? '');
-    const n = docNguoc({
-      ...(dangSua ?? ({} as MucTieuV)),
-      kieu_dich: m.kieu_dich,
-      chieu: m.chieu,
-      ky: m.kieu_dich === 'toc_do_ky' ? 'tuan' : null,
-      nguon_so: dangSua?.nguon_so ?? 'ghi_tay',
-    } as MucTieuV);
-    setCheDo(n.che_do);
-    setBotKy(n.bot_ky);
+    // Chiều suy từ x/y của mẫu — không cần map kieu_dich nữa.
     if (m.x_goi_y != null) setX(String(m.x_goi_y));
     if (m.y_goi_y != null) setY(String(m.y_goi_y));
     setMoMau(false);
@@ -256,15 +235,15 @@ export function FormMucTieu3Buoc({
         {/* Các giá trị suy ra — máy chủ kiểm lại, đây chỉ chuyển đúng enum. */}
         <input type="hidden" name="linh_vuc" value={linhVuc} />
         <input type="hidden" name="subject_id" value={monId} />
-        <input type="hidden" name="kieu_dich" value={dich.kieu_dich} />
-        <input type="hidden" name="chieu" value={dich.chieu} />
-        <input type="hidden" name="ky" value={dich.ky} />
-        <input type="hidden" name="nguon_so" value={nguonSo} />
-        <input type="hidden" name="chua_do_x" value={cheDo === 'len' && chuaDoX ? '1' : ''} />
-        <input type="hidden" name="x_so" value={cheDo === 'len' && !chuaDoX ? x : ''} />
-        <input type="hidden" name="y_so" value={cheDo === 'chu' ? '' : y} />
-        <input type="hidden" name="y_chu" value={cheDo === 'chu' ? yChu : ''} />
-        <input type="hidden" name="don_vi_id" value={cheDo === 'chu' ? '' : donViId} />
+        <input type="hidden" name="kieu_dich" value={suy.kieu_dich} />
+        <input type="hidden" name="chieu" value={suy.chieu} />
+        <input type="hidden" name="ky" value="" />
+        <input type="hidden" name="nguon_so" value="ghi_tay" />
+        <input type="hidden" name="chua_do_x" value={chuaDoX ? '1' : ''} />
+        <input type="hidden" name="x_so" value={chuaDoX ? '' : x} />
+        <input type="hidden" name="y_so" value={y} />
+        <input type="hidden" name="y_chu" value="" />
+        <input type="hidden" name="don_vi_id" value={donViId} />
         <input type="hidden" name="bat_dau" value={batDau} />
         <input type="hidden" name="ket_thuc" value={ketThuc} />
         <input type="hidden" name="mo_ta" value={moTa} />
@@ -552,30 +531,10 @@ export function FormMucTieu3Buoc({
           </div>
         )}
 
-        {/* ĐO LƯỜNG — ba CHIỀU của con số (tăng/giữ/giảm) hiện THẲNG ở đây, không giấu sau "Cách
-            khác" nữa: ba chiều này bao trùm mọi phép đo bằng con số. Kèm đo/đếm và ô số. */}
+        {/* ĐO LƯỜNG — chỉ hỏi đơn vị + hai con số. Tăng/giữ/giảm KHÔNG hỏi nữa: app tự suy từ mức
+            đầu và mức đích (chủ dự án 02/09). Đếm là việc của khu "Việc em làm", không của mục tiêu. */}
         {loaiMoc === 'do_luong' && (
           <div data-kiem="mt-buoc-2" className="flex flex-col gap-2.5">
-            <div>
-              <p className="mb-1.5 text-[12px] font-bold text-grey-mid">{t('chieuHoi')}</p>
-              <div className="grid grid-cols-3 gap-1.5">
-                <OChon chon={cheDo === 'len'} onClick={() => setCheDo('len')} nhan={t('chieuTang')} kiem="mt-chieu-tang" />
-                <OChon chon={cheDo === 'giu'} onClick={() => setCheDo('giu')} nhan={t('giuMucNam')} kiem="mt-chieu-giu" />
-                <OChon chon={cheDo === 'bot'} onClick={() => setCheDo('bot')} nhan={t('chieuGiam')} kiem="mt-chieu-giam" />
-              </div>
-            </div>
-
-            {/* đo (một mức đọc được) hay đếm (cộng dồn số lần) — không áp dụng cho "giảm bớt". */}
-            {cheDo !== 'bot' && (
-              <div>
-                <p className="mb-1.5 text-[12px] font-bold text-grey-mid">{t('cachTinhSo')}</p>
-                <div data-kiem="mt-kieu-dich" className="grid grid-cols-2 gap-1.5">
-                  <OChon chon={kieuSo === 'do'} onClick={() => setKieuSo('do')} nhan={t('kieuDo')} />
-                  <OChon chon={kieuSo === 'dem'} onClick={() => setKieuSo('dem')} nhan={t('kieuDem')} />
-                </div>
-              </div>
-            )}
-
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               <Field label={t('donViSao')} htmlFor="mt-don-vi" error={err('don_vi_id')}>
                 <ChonCuon
@@ -589,33 +548,31 @@ export function FormMucTieu3Buoc({
                 />
                 <span data-kiem="mt-don-vi" className="hidden" />
               </Field>
-              {cheDo === 'len' && (
-                <Field label={t('giaTriBanDau')} htmlFor="mt-x" error={err('x_so')}>
+              <Field label={t('giaTriBanDau')} htmlFor="mt-x" error={err('x_so')}>
+                <input
+                  id="mt-x"
+                  data-kiem="mt-x"
+                  type="number"
+                  step="any"
+                  min="0"
+                  inputMode="decimal"
+                  value={x}
+                  disabled={chuaDoX}
+                  onChange={(e) => setX(e.target.value)}
+                  placeholder={chuaDoX ? '—' : '0'}
+                  className={ctlWithBorder(state.fieldError === 'x_so')}
+                />
+                <label className="mt-1 flex cursor-pointer items-center gap-1.5 text-[11.5px] font-semibold text-grey-mid">
                   <input
-                    id="mt-x"
-                    data-kiem="mt-x"
-                    type="number"
-                    step="any"
-                    min="0"
-                    inputMode="decimal"
-                    value={x}
-                    disabled={chuaDoX}
-                    onChange={(e) => setX(e.target.value)}
-                    placeholder={chuaDoX ? '—' : '0'}
-                    className={ctlWithBorder(state.fieldError === 'x_so')}
+                    type="checkbox"
+                    data-kiem="mt-chua-do-x"
+                    checked={chuaDoX}
+                    onChange={(e) => setChuaDoX(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-navy/30"
                   />
-                  <label className="mt-1 flex cursor-pointer items-center gap-1.5 text-[11.5px] font-semibold text-grey-mid">
-                    <input
-                      type="checkbox"
-                      data-kiem="mt-chua-do-x"
-                      checked={chuaDoX}
-                      onChange={(e) => setChuaDoX(e.target.checked)}
-                      className="h-3.5 w-3.5 rounded border-navy/30"
-                    />
-                    {t('chuaBietX')}
-                  </label>
-                </Field>
-              )}
+                  {t('chuaBietX')}
+                </label>
+              </Field>
               <Field label={t('giaTriMucTieu')} htmlFor="mt-y" error={err('y_so')}>
                 <input
                   id="mt-y"
@@ -631,16 +588,10 @@ export function FormMucTieu3Buoc({
               </Field>
             </div>
 
-            {cheDo === 'bot' && (
-              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
-                <OChon chon={botKy === 'tuan'} onClick={() => setBotKy('tuan')} nhan={t('giamTuan', {y: y || '…'})} />
-                <OChon chon={botKy === 'thang'} onClick={() => setBotKy('thang')} nhan={t('giamThang', {y: y || '…'})} />
-                <OChon chon={botKy === 'nam'} onClick={() => setBotKy('nam')} nhan={t('giamNam', {y: y || '…'})} />
-              </div>
-            )}
-            {cheDo === 'len' && kieuSo === 'dem' && (
-              <p className="rounded-[10px] bg-navy/[0.05] px-2.5 py-2 text-[12px] font-semibold text-grey-mid">
-                {t('phepTinhDem')}
+            {/* App tự hiểu tăng/giữ/giảm từ hai số — cho em thấy để yên tâm. */}
+            {suyNhan && (
+              <p data-kiem="mt-suy-chieu" className="text-[12px] font-semibold text-grey-mid">
+                {suyNhan}
               </p>
             )}
           </div>
