@@ -23,7 +23,7 @@ import {MyRequests, type MyRequest} from '@/components/student/MyRequests';
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {tenHienThi} from '@/lib/ten-hien-thi';
 import {MucTieuCuaCon} from '@/components/student/MucTieuCuaCon';
-import type {DonViChon, MucTieuLopChon, MauMucTieu, BuocChon} from '@/components/student/FormMucTieu';
+import type {DonViChon, MucTieuLopChon, MauMucTieu, BuocThe} from '@/components/student/FormMucTieu';
 import {BangEmPA2, type ViecEm, type ViecTuan, type CamKetEm} from '@/components/student/BangEmPA2';
 import type {Database} from '@/lib/database.types';
 
@@ -285,7 +285,7 @@ export async function StudentScoreboard({
       return keIds.length > 0
         ? supabase
             .from('buoc')
-            .select('muc_tieu_id, tieu_de, phan_tram, bat_dau, ket_thuc, mo_ta')
+            .select('id, muc_tieu_id, tieu_de, phan_tram, bat_dau, ket_thuc, mo_ta, xong_at')
             .in('muc_tieu_id', keIds)
             .order('thu_tu')
         : Promise.resolve({data: null});
@@ -293,22 +293,26 @@ export async function StudentScoreboard({
     ...thuocIds.map((id) => supabase.rpc('thuoc_12_tuan', {p_thuoc: id, p_chu_the: studentId, p_tuan_cuoi: monday})),
   ]);
 
-  // Gộp bước theo mục tiêu → truyền vào form sửa (khỏi bắt em nhập lại các bước).
-  const buocTheoMt: Record<string, BuocChon[]> = {};
+  // Gộp bước theo mục tiêu → vừa cho form sửa (khỏi nhập lại), vừa cho checklist trên thẻ (tick).
+  const buocTheoMt: Record<string, BuocThe[]> = {};
   for (const b of (buocRes.data ?? []) as {
+    id: string;
     muc_tieu_id: string;
     tieu_de: string;
     phan_tram: number;
     bat_dau: string | null;
     ket_thuc: string | null;
     mo_ta: string | null;
+    xong_at: string | null;
   }[]) {
     (buocTheoMt[b.muc_tieu_id] ??= []).push({
+      id: b.id,
       tieu_de: b.tieu_de,
       phan_tram: Number(b.phan_tram),
       bat_dau: b.bat_dau,
       ket_thuc: b.ket_thuc,
       mo_ta: b.mo_ta,
+      xong: b.xong_at != null,
     });
   }
 

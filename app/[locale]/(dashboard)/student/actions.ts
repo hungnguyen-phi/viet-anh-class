@@ -453,6 +453,49 @@ export async function ghiSoDo(_prev: MucTieuState, formData: FormData): Promise<
   return {ok: true, message: 'Đã ghi số.'};
 }
 
+// ── CỘT MỐC KẾ HOẠCH: đánh dấu MỘT BƯỚC xong/chưa xong ──────────────────────────────────────
+// Chỉ đổi buoc.xong_at; trigger buoc_sau_ghi (0172) tự tính lại % rồi ghi vào so_do. RLS buoc_ghi
+// bảo đảm chỉ chủ mục tiêu (em) ghi được. Không nhận số tay cho loại này — % là do bước quyết.
+export async function datBuocXong(formData: FormData) {
+  const me = await getCurrentProfile();
+  if (!me) return;
+  const buoc_id = String(formData.get('buoc_id') ?? '');
+  if (!buoc_id) return;
+  const xong = String(formData.get('xong') ?? '') === '1';
+  const supabase = await createClient();
+  await supabase
+    .from('buoc')
+    .update({xong_at: xong ? new Date().toISOString() : null, xong_boi: xong ? me.id : null})
+    .eq('id', buoc_id);
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+}
+
+// ── CỘT MỐC HÀNH ĐỘNG: một nút "đã đạt" (0→100%) thay vì gõ số ───────────────────────────────
+// Ghi một dòng so_do hôm nay = 100 (đạt) hoặc 0 (bỏ đạt). Cùng đường của ghiSoDo (nguon='tay',
+// student_id = chủ mục tiêu) nên qua đúng trigger/RLS. so_hien_tai đọc dòng mới nhất.
+export async function datHanhDong(formData: FormData) {
+  const me = await getCurrentProfile();
+  if (!me) return;
+  const muc_tieu_id = String(formData.get('muc_tieu_id') ?? '');
+  if (!muc_tieu_id) return;
+  const dat = String(formData.get('dat') ?? '') === '1';
+  const supabase = await createClient();
+  const {data: mt} = await supabase.from('muc_tieu').select('student_id').eq('id', muc_tieu_id).maybeSingle();
+  await supabase.from('so_do').insert({
+    muc_tieu_id,
+    ngay: todayInVN(),
+    gia_tri: dat ? 100 : 0,
+    nguon: 'tay',
+    nguoi_ghi: me.id,
+    student_id: mt?.student_id ?? null,
+  });
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+}
+
 // ════════════════════════════════════════════════════════════════════════════════════════════
 // 2. VIỆC EM LÀM (thuoc) + LƯỢT GHI (luot)
 //

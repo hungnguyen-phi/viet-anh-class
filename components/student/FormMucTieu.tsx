@@ -2,7 +2,7 @@
 
 import {useActionState, useEffect, useMemo, useState} from 'react';
 import {useLocale, useTranslations} from 'next-intl';
-import {AlertCircle, Trash2, Lightbulb, Info, Check} from 'lucide-react';
+import {AlertCircle, Trash2, Lightbulb, Info, Check, ArrowUp, ArrowDown, ArrowRight} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder, inputInline} from '@/components/ui/Field';
@@ -39,6 +39,8 @@ export type MonChon = {id: string; ten: string};
 export type MucTieuLopChon = {id: string; ten: string; linh_vuc: string};
 /** Một bước của cột mốc kế hoạch (để prefill khi sửa). */
 export type BuocChon = {tieu_de: string; phan_tram: number | null; bat_dau: string | null; ket_thuc: string | null; mo_ta: string | null};
+/** Bước kèm id + trạng thái xong — cho checklist tick trên thẻ mục tiêu (bao trùm BuocChon). */
+export type BuocThe = BuocChon & {id: string; phan_tram: number; xong: boolean};
 /** Mẫu mục tiêu của lớp (`muc_tieu_mau`) — em chọn rồi chỉ điền số. */
 export type MauMucTieu = {
   id: string;
@@ -406,6 +408,7 @@ export function FormMucTieu3Buoc({
           <input
             id="mt-ten"
             data-kiem="mt-ten"
+            name="ten"
             value={ten}
             onChange={(e) => setTen(e.target.value)}
             placeholder={t('tenPh')}
@@ -591,7 +594,17 @@ export function FormMucTieu3Buoc({
 
             {/* App tự hiểu tăng/giữ/giảm từ hai số — cho em thấy để yên tâm. */}
             {suyNhan && (
-              <p data-kiem="mt-suy-chieu" className="text-[12px] font-semibold text-grey-mid">
+              <p
+                data-kiem="mt-suy-chieu"
+                className="inline-flex items-center gap-1.5 self-start rounded-full bg-navy/[0.05] px-2.5 py-1 text-[12px] font-semibold text-navy"
+              >
+                {suy.chieu === 'giam' ? (
+                  <ArrowDown size={14} strokeWidth={2.8} className="shrink-0 text-gold-deep" />
+                ) : suy.chieu === 'giu' ? (
+                  <ArrowRight size={14} strokeWidth={2.8} className="shrink-0 text-gold-deep" />
+                ) : (
+                  <ArrowUp size={14} strokeWidth={2.8} className="shrink-0 text-gold-deep" />
+                )}
                 {suyNhan}
               </p>
             )}
