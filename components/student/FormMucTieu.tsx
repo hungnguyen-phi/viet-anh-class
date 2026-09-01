@@ -676,11 +676,12 @@ export function FormMucTieu3Buoc({
               </>
             )}
             <p className="mt-1 text-[11.5px] font-bold text-grey-mid">{t('kieuMucTieu')}</p>
-            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            {/* "Không đo bằng số" đã thành cột mốc HÀNH ĐỘNG — bỏ khỏi đây để khỏi hai đường một việc.
+                Còn lại là ba CHIỀU của một con số (lên/giữ/giảm), thứ ba cột mốc không phủ. */}
+            <div className="grid grid-cols-3 gap-1.5">
               <OChon chon={cheDo === 'len'} onClick={() => setCheDo('len')} nhan={t('chieuTang')} kiem="mt-chieu-tang" />
               <OChon chon={cheDo === 'giu'} onClick={() => setCheDo('giu')} nhan={t('giuMucNam')} kiem="mt-chieu-giu" />
               <OChon chon={cheDo === 'bot'} onClick={() => setCheDo('bot')} nhan={t('chieuGiam')} kiem="mt-chieu-giam" />
-              <OChon chon={cheDo === 'chu'} onClick={() => setCheDo('chu')} nhan={t('khongSo')} />
             </div>
             {cheDo === 'bot' && (
               <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
