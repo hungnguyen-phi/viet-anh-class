@@ -28,7 +28,9 @@ export function ChonTuanCuaEm({
   start: string;
   end: string;
 }) {
-  const t = useTranslations('wig');
+  // Namespace 'wig' đã gỡ khỏi client (PA2 §A) — nhãn thanh tuần chuyển sang 'tuan' (F1),
+  // cùng chỗ với các chuỗi tuần học/nghỉ/thi. Khoá weekPrev/weekNow/… giữ nguyên tên.
+  const t = useTranslations('tuan');
   const router = useRouter();
   const [dangTai, batDau] = useTransition();
   const di = (m: string) =>

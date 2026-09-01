@@ -1,342 +1,499 @@
 'use client';
 
-import {useActionState, useEffect, useState} from 'react';
+import {useActionState, useEffect, useMemo, useState} from 'react';
 import {useLocale, useTranslations} from 'next-intl';
 import {AlertCircle, Trash2} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Popup} from '@/components/ui/Popup';
-import {Field, ctlWithBorder, btnGold} from '@/components/ui/Field';
+import {Field, ctlWithBorder} from '@/components/ui/Field';
 import {ONgayVN, ngayVN} from '@/components/ui/ONgayVN';
-import {luuMucTieuCuaEm, xoaMucTieuCuaEm, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
-import {kieuDonVi, coTrongDanhSach, DON_VI} from '@/lib/don-vi';
-import {AREA_FALLBACK, areaLabel, type Area} from '@/lib/areas';
 import {ChonCuon} from '@/components/ui/ChonCuon';
+import {AREAS} from '@/lib/areas';
+import {luuMucTieu, xoaMucTieu, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
+import type {Database} from '@/lib/database.types';
 
-// ════════════════════════════════════════════════════════════════════════════
-// FORM ĐẶT MỤC TIÊU — ba câu hỏi, nằm trong một hộp thoại
-// ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════════════════════
+// FORM ĐẶT MỤC TIÊU — BA BƯỚC, nằm trong một hộp thoại (PA2, 40-MAN-HINH §B ③ + §F4)
+// ════════════════════════════════════════════════════════════════════════════════════════════
 //
-// Tách khỏi MucTieuCuaCon vì nay có HAI chỗ mở đúng cái form này: màn của em, và bức tường WIG bên
-// trang giáo viên (cô chọn tên em rồi đặt hộ). Một bản dùng chung để hai đường ghi không bao giờ
-// lệch luật nhau — đây là chỗ quyết định `set_by`, và `set_by` là thước đo của cả chương trình.
+// Mô hình cũ (wigs/lead_measures) đã DROP. Form này ghi vào `muc_tieu` (cap='em') qua action
+// `luuMucTieu`. Ba bước theo cách một em lớp 5 nghĩ về mục tiêu:
+//   ① Em muốn tiến bộ ở việc gì?           → tên + lĩnh vực (+ môn nếu có)
+//   ② Từ đâu tới đâu, trước ngày nào?       → cách đo (đếm/đo), hướng (lên/giữ/bớt), X→Y, đơn vị, hạn
+//   ③ Đọc lại câu mục tiêu                   → câu ráp SỐNG từ chính chữ em gõ, rồi Gửi
 //
-// VÌ SAO LÀ HỘP THOẠI chứ không phải khối mở sẵn giữa trang: form chỉ dùng vài lần một năm, còn
-// màn của em thì mở mỗi ngày. Để nó nằm sẵn giữa trang nghĩa là mỗi ngày em phải cuộn qua một form
-// trống dài nửa màn hình mới tới việc hôm nay. Chủ dự án chốt 12/08/2026: "cho cái form thành cái
-// popup là được rồi".
+// Vì sao là HỘP THOẠI: form chỉ dùng vài lần một năm, còn màn của em mở mỗi ngày — để nó nằm sẵn
+// giữa trang thì mỗi ngày em phải cuộn qua một form trống mới tới việc hôm nay (chủ dự án 12/08).
+//
+// Mọi ô CONTROLLED (value+onChange) và KHÔNG mất chữ khi máy chủ trả lỗi (bài học useActionState
+// 31/08): React dọn trắng ô không kiểm soát sau mỗi lần gửi. Câu lỗi trỏ đúng ô qua state.fieldError.
 
-export type DangSua = {
+type MucTieuV = Database['public']['Views']['muc_tieu_v']['Row'];
+
+/** Đơn vị chọn từ bảng `don_vi` (H-17: em không tự thêm, thiếu thì nhờ thầy cô). */
+export type DonViChon = {id: string; ma: string; nhan?: string};
+/** Môn học để gắn (không bắt buộc). */
+export type MonChon = {id: string; ten: string};
+/** Mục tiêu lớp để em hướng tới — hiển thị/nối ở THẺ, không ở form (dây cần id mục tiêu sau khi tạo). */
+export type MucTieuLopChon = {id: string; ten: string; linh_vuc: string};
+/** Mẫu mục tiêu của lớp (`muc_tieu_mau`) — em chọn rồi chỉ điền số. */
+export type MauMucTieu = {
   id: string;
-  title: string;
-  baseline: number | null;
-  target_value: number;
-  unit: string;
-  start_date?: string;
-  end_date: string;
-  area: string;
-  source_wig_id: string | null;
-} | null;
+  ten: string;
+  linh_vuc: string;
+  subject_id: string | null;
+  don_vi_id: string | null;
+  kieu_dich: string;
+  chieu: string;
+  x_goi_y: number | null;
+  y_goi_y: number | null;
+};
+export type DangSuaMt = MucTieuV | null;
 
-export type WigLop = {id: string; area: string; title: string};
+// Kiểu vòng đời của mục tiêu, dịch từ các lựa chọn của em sang enum CSDL.
+type CheDo = 'len' | 'giu' | 'bot' | 'chu';
+type KieuSo = 'dem' | 'do';
+type BotKy = 'tuan' | 'thang' | 'nam';
 
+// Từ (che_do, kieu_so, bot_ky) → (kieu_dich, chieu, ky, nguon_so) đúng enum CSDL.
+function suyDich(che_do: CheDo, bot_ky: BotKy): {kieu_dich: string; chieu: string; ky: string} {
+  if (che_do === 'chu') return {kieu_dich: 'chu', chieu: 'tang', ky: ''};
+  if (che_do === 'giu') return {kieu_dich: 'giu', chieu: 'giu', ky: ''};
+  if (che_do === 'bot')
+    return bot_ky === 'nam'
+      ? {kieu_dich: 'tran_tich_luy', chieu: 'giam', ky: ''}
+      : {kieu_dich: 'toc_do_ky', chieu: 'giam', ky: bot_ky};
+  return {kieu_dich: 'toi', chieu: 'tang', ky: ''};
+}
 
-export function FormMucTieu({
+// Đọc ngược mục tiêu đang sửa (enum CSDL) → lựa chọn của form.
+function docNguoc(mt: MucTieuV): {che_do: CheDo; bot_ky: BotKy; kieu_so: KieuSo} {
+  const kd = mt.kieu_dich ?? 'toi';
+  if (kd === 'chu') return {che_do: 'chu', bot_ky: 'nam', kieu_so: 'do'};
+  if (kd === 'giu') return {che_do: 'giu', bot_ky: 'nam', kieu_so: mt.nguon_so === 'thuoc' ? 'dem' : 'do'};
+  if (kd === 'tran_tich_luy') return {che_do: 'bot', bot_ky: 'nam', kieu_so: 'do'};
+  if (kd === 'toc_do_ky')
+    return {che_do: 'bot', bot_ky: mt.ky === 'thang' ? 'thang' : 'tuan', kieu_so: 'do'};
+  return {che_do: 'len', bot_ky: 'nam', kieu_so: mt.nguon_so === 'thuoc' ? 'dem' : 'do'};
+}
+
+export function FormMucTieu3Buoc({
   studentId,
   classId,
-  kind = 'academic',
-  tenEm,
-  area,
-  nhanLinhVuc,
-  dangSua,
   laChinhEm,
+  tenEm,
+  areaPreset,
+  nhanTheoArea,
+  donViList,
+  monList = [],
+  mauList = [],
+  dangSua = null,
   onClose,
   onDone,
 }: {
   studentId: string;
   classId: string;
-  /**
-   * HỌC TẬP hay RIÊNG CỦA CON. Trước đây đóng cứng 'academic' ngay trong ô hidden, nên đường tạo
-   * mục tiêu riêng — máy chủ nhận được, CSDL cho phép (wigs_em_uidx: 1 academic + 1 personal) —
-   * không có một cái nút nào để đi tới.
-   *
-   * Mục tiêu RIÊNG không nối vào WIG lớp: wig_source_ck (0100) bắt source_wig_id phải null. Nên
-   * bước ① không hỏi "góp vào trận nào của lớp" nữa — hỏi một câu mà mọi câu trả lời đều bị CSDL
-   * từ chối là mời người dùng gõ vào một cái bẫy.
-   */
-  kind?: 'academic' | 'personal';
-  /** Tên em — chỉ dùng khi cô đặt hộ, để tiêu đề hộp thoại nói rõ đang gõ cho AI. */
-  tenEm?: string;
-  /** Domain của Ô mà em vừa bấm (PRD v3: 4 ô, mỗi domain một) — form không hỏi lại. */
-  area: string;
-  /** Nhãn domain (từ area_config). Không truyền thì lấy nhãn mặc định theo ngôn ngữ. */
-  nhanLinhVuc?: string;
-  wigLop: WigLop[];
-  dangSua: DangSua;
   laChinhEm: boolean;
+  /** Tên em — chỉ khi thầy cô gõ giúp, để tiêu đề nói rõ đang gõ cho ai. */
+  tenEm?: string;
+  /** Lĩnh vực của ô em vừa bấm ở màn ngoài (mặc định lĩnh vực đầu). */
+  areaPreset?: string;
+  /** Nhãn 4 lĩnh vực đã dịch (từ area_config). */
+  nhanTheoArea: Record<string, string>;
+  donViList: DonViChon[];
+  monList?: MonChon[];
+  mauList?: MauMucTieu[];
+  dangSua?: DangSuaMt;
   onClose: () => void;
   onDone?: (message: string) => void;
 }) {
-  const t = useTranslations('goal');
+  const t = useTranslations('mucTieu');
   const locale = useLocale();
-  const nhanDomain =
-    nhanLinhVuc ?? areaLabel(AREA_FALLBACK[area as Area] ?? AREA_FALLBACK.knowledge, locale);
-  const [state, formAction] = useActionState<MucTieuState, FormData>(luuMucTieuCuaEm, {ok: false});
+  const [state, formAction] = useActionState<MucTieuState, FormData>(luuMucTieu, {ok: false});
 
-  // Các ô rời rạc rất khó ráp lại thành một ý, nhất là với học sinh. Giữ giá trị ở đây để ghép
-  // chúng thành MỘT CÂU HOÀN CHỈNH ngay dưới nút Gửi.
-  const [g, setG] = useState({
-    title: dangSua?.title ?? '',
-    baseline: dangSua?.baseline != null ? String(dangSua.baseline) : '',
-    target: dangSua?.target_value != null ? String(dangSua.target_value) : '',
-    unit: dangSua?.unit ?? '',
-    start: dangSua?.start_date ?? '',
-    due: dangSua?.end_date ?? '',
-  });
-  const duCau = Boolean(g.title && g.target && g.unit && g.due);
+  const nguoc = dangSua ? docNguoc(dangSua) : null;
+  const [ten, setTen] = useState(dangSua?.ten ?? '');
+  const [linhVuc, setLinhVuc] = useState<string>(dangSua?.linh_vuc ?? areaPreset ?? AREAS[0]);
+  const [monId, setMonId] = useState<string>(dangSua?.subject_id ?? '');
+  const [cheDo, setCheDo] = useState<CheDo>(nguoc?.che_do ?? 'len');
+  const [kieuSo, setKieuSo] = useState<KieuSo>(nguoc?.kieu_so ?? 'do');
+  const [botKy, setBotKy] = useState<BotKy>(nguoc?.bot_ky ?? 'tuan');
+  const [chuaDoX, setChuaDoX] = useState(dangSua?.chua_do_x ?? false);
+  const [x, setX] = useState(dangSua?.x_so != null ? String(dangSua.x_so) : '');
+  const [y, setY] = useState(dangSua?.y_so != null ? String(dangSua.y_so) : '');
+  const [yChu, setYChu] = useState(dangSua?.y_chu ?? '');
+  const [donViId, setDonViId] = useState<string>(dangSua?.don_vi_id ?? '');
+  const [batDau, setBatDau] = useState(dangSua?.bat_dau ?? '');
+  const [ketThuc, setKetThuc] = useState(dangSua?.ket_thuc ?? '');
+  // Bước mẫu chỉ mở khi có mẫu lớp cùng vai (chọn mẫu → prefill).
+  const [moMau, setMoMau] = useState(false);
 
-  // Lưu xong thì ĐÓNG. Trước đây form cứ nằm mở sau khi gửi, nên màn hình có đồng thời một thẻ
-  // "đã gửi cô xem" và một form còn nguyên chữ — không đọc ra được cái nào là thật.
+  // Lưu xong thì ĐÓNG — không để form còn nguyên chữ đứng cạnh thẻ "đã gửi".
   useEffect(() => {
     if (!state.ok) return;
     onDone?.(state.message ?? '');
     onClose();
-    // Chỉ chạy khi kết quả từ máy chủ đổi; onClose/onDone là hàm mới mỗi lần render cha.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   const err = (f: string) => (state.fieldError === f ? state.error : null);
+  const dich = suyDich(cheDo, botKy);
+  const nguonSo = cheDo === 'len' || cheDo === 'giu' ? (kieuSo === 'dem' ? 'thuoc' : 'ghi_tay') : 'ghi_tay';
+  const nhanDv = donViList.find((d) => d.id === donViId)?.ma ?? '';
 
-  // KIỂU ĐƠN VỊ (0110) quyết định bước ③ trông ra sao. Máy chủ tự suy lại từ đơn vị nên đây chỉ
-  // là để bày đúng ô — không phải nguồn quyết định.
-  const kieu = kieuDonVi(g.unit);
-  // Mục tiêu cũ có thể mang đơn vị gõ tay không nằm trong danh sách — mở thẳng ô "Khác" cho nó,
-  // đừng lặng lẽ xoá mất chữ em đã khai.
-  const [khacDonVi, setKhacDonVi] = useState(
-    Boolean(dangSua?.unit) && !coTrongDanhSach(dangSua?.unit),
-  );
+  // Câu ráp SỐNG — ghép từ chính những ô em vừa gõ (§F4 cauChot*).
+  const cauRap = useMemo(() => {
+    if (!ten.trim()) return null;
+    if (cheDo === 'chu') return yChu.trim() ? t('cauChotChu', {ten, chu: yChu}) : null;
+    if (!y.trim() || !nhanDv || !ketThuc) return null;
+    if (cheDo === 'giu') return t('cauChotGiu', {ten, dau: '≥', y, dv: nhanDv});
+    if (cheDo === 'bot') {
+      if (botKy === 'nam') return t('cauChotNam', {ten, y, dv: nhanDv});
+      return t('cauChotKy', {ten, ky: botKy === 'thang' ? t('kyThang') : t('kyTuan'), y, dv: nhanDv});
+    }
+    if (chuaDoX) return t('cauChotChuaX', {ten, y, dv: nhanDv});
+    if (!x.trim()) return null;
+    return t('cauChot', {ten, x, chieu: t('chieuTang'), y, dv: nhanDv});
+  }, [ten, cheDo, kieuSo, botKy, chuaDoX, x, y, yChu, nhanDv, ketThuc, t]);
+
+  function chonMau(m: MauMucTieu) {
+    setTen(m.ten);
+    setLinhVuc(m.linh_vuc);
+    setMonId(m.subject_id ?? '');
+    setDonViId(m.don_vi_id ?? '');
+    const n = docNguoc({
+      ...(dangSua ?? ({} as MucTieuV)),
+      kieu_dich: m.kieu_dich,
+      chieu: m.chieu,
+      ky: m.kieu_dich === 'toc_do_ky' ? 'tuan' : null,
+      nguon_so: dangSua?.nguon_so ?? 'ghi_tay',
+    } as MucTieuV);
+    setCheDo(n.che_do);
+    setBotKy(n.bot_ky);
+    if (m.x_goi_y != null) setX(String(m.x_goi_y));
+    if (m.y_goi_y != null) setY(String(m.y_goi_y));
+    setMoMau(false);
+  }
+
+  const mauCuaLop = mauList.filter((m) => m.linh_vuc === linhVuc || !linhVuc);
+  const suG: string[] = [...AREAS, 'khac'];
+
+  const tieuDe = dangSua
+    ? t('formTitleSua')
+    : laChinhEm
+      ? t('formTitle')
+      : t('formTitleHo', {ten: tenEm ?? ''});
+
   return (
-    <Popup
-      title={
-        kind === 'personal'
-          ? t('formTitlePersonal')
-          : laChinhEm
-          ? t('formTitle')
-          : t('formTitleFor', {ten: tenEm ?? ''})
-      }
-      onClose={onClose}
-      width="max-w-[620px]"
-    >
+    <Popup title={tieuDe} onClose={onClose} width="max-w-[640px]">
       <form action={formAction} className="flex flex-col gap-3">
         <input type="hidden" name="student_id" value={studentId} />
         <input type="hidden" name="class_id" value={classId} />
-        <input type="hidden" name="kind" value={kind} />
-        {/* Domain đến từ Ô em bấm ở màn ngoài — máy chủ kiểm lại danh sách 4 giá trị. */}
-        <input type="hidden" name="area" value={area} />
+        {dangSua && <input type="hidden" name="muc_tieu_id" value={dangSua.id ?? ''} />}
+        {/* Các giá trị suy ra — máy chủ kiểm lại, đây chỉ chuyển đúng enum. */}
+        <input type="hidden" name="linh_vuc" value={linhVuc} />
+        <input type="hidden" name="subject_id" value={monId} />
+        <input type="hidden" name="kieu_dich" value={dich.kieu_dich} />
+        <input type="hidden" name="chieu" value={dich.chieu} />
+        <input type="hidden" name="ky" value={dich.ky} />
+        <input type="hidden" name="nguon_so" value={nguonSo} />
+        <input type="hidden" name="chua_do_x" value={cheDo === 'len' && chuaDoX ? '1' : ''} />
+        <input type="hidden" name="x_so" value={cheDo === 'len' && !chuaDoX ? x : ''} />
+        <input type="hidden" name="y_so" value={cheDo === 'chu' ? '' : y} />
+        <input type="hidden" name="y_chu" value={cheDo === 'chu' ? yChu : ''} />
+        <input type="hidden" name="don_vi_id" value={cheDo === 'chu' ? '' : donViId} />
+        <input type="hidden" name="bat_dau" value={batDau} />
+        <input type="hidden" name="ket_thuc" value={ketThuc} />
 
         {state.error && !state.fieldError && (
-          <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
+          <p
+            data-kiem="mt-loi"
+            className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad"
+          >
             <AlertCircle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
             {state.error}
           </p>
         )}
 
-        {/* ① Con muốn tiến bộ ở việc gì. */}
-        <div className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-          <p className="mb-2 text-[13px] font-extrabold text-navy">
-            {kind === 'personal' ? t('step1Personal') : t('step1')}
-          </p>
+        {/* Chọn từ mẫu của lớp — chữ lấy từ mẫu, em chỉ điền số. */}
+        {mauCuaLop.length > 0 && !dangSua && (
+          <div className="rounded-[12px] bg-gold/[0.10] p-2.5">
+            <button
+              type="button"
+              data-kiem="mt-chon-mau"
+              onClick={() => setMoMau((v) => !v)}
+              className="text-[12.5px] font-extrabold text-gold-text underline"
+            >
+              {t('themTuMau')}
+            </button>
+            {moMau && (
+              <div className="mt-2 flex flex-col gap-1.5">
+                {mauCuaLop.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    data-kiem="mt-mau"
+                    data-id={m.id}
+                    onClick={() => chonMau(m)}
+                    className="rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-left text-[12.5px] font-bold text-navy hover:border-navy"
+                  >
+                    {m.ten}
+                  </button>
+                ))}
+                <p className="text-[11px] font-semibold text-grey-mid">{t('mauKhoa')}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ① EM MUỐN TIẾN BỘ Ở VIỆC GÌ */}
+        <div data-kiem="mt-buoc-1" className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
+          <p className="mb-2 text-[13px] font-extrabold text-navy">{t('buoc1')}</p>
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            <Field label={t('what')} htmlFor="mt-title" error={err('title')}>
+            <Field label={t('ten')} htmlFor="mt-ten" error={err('ten')}>
               <input
-                id="mt-title"
-                name="title"
-                value={g.title}
-                onChange={(e) => setG((p) => ({...p, title: e.target.value}))}
-                placeholder={t('whatPlaceholder')}
-                className={ctlWithBorder(state.fieldError === 'title')}
+                id="mt-ten"
+                data-kiem="mt-ten"
+                value={ten}
+                onChange={(e) => setTen(e.target.value)}
+                placeholder={t('tenPh')}
+                maxLength={200}
+                className={ctlWithBorder(state.fieldError === 'ten')}
               />
             </Field>
-            {/* DOMAIN KHÔNG PHẢI CÂU HỎI (PRD v3): em bấm vào ô của domain nào ở màn ngoài thì
-                form mở cho đúng domain ấy — đây chỉ nói lại cho chắc em đang đặt WIG gì. Dây nối
-                lên mục tiêu lớp cùng domain do máy chủ tự tìm, không hỏi. */}
-            <Field label={t('domain')}>
-              <span className="inline-flex h-11 items-center rounded-[10px] bg-gold/[0.16] px-3 text-[13px] font-extrabold text-gold-text">
-                {nhanDomain}
+            <Field label={t('linhVuc')} htmlFor="mt-linh-vuc">
+              <ChonCuon
+                id="mt-linh-vuc"
+                name="_linh_vuc_ui"
+                value={linhVuc}
+                onChange={setLinhVuc}
+                danhSach={suG.map((a) => ({ma: a, nhan: nhanTheoArea[a] ?? (a === 'khac' ? t('linhVucKhac') : a)}))}
+                chuaChon={t('linhVuc')}
+              />
+              <span data-kiem="mt-linh-vuc" className="hidden" />
+            </Field>
+            {monList.length > 0 && (
+              <Field label={t('mon')} htmlFor="mt-mon">
+                <ChonCuon
+                  id="mt-mon"
+                  name="_mon_ui"
+                  value={monId}
+                  onChange={setMonId}
+                  danhSach={monList.map((m) => ({ma: m.id, nhan: m.ten}))}
+                  chuaChon={t('monChon')}
+                />
+              </Field>
+            )}
+          </div>
+        </div>
+
+        {/* ② TỪ ĐÂU TỚI ĐÂU, TRƯỚC NGÀY NÀO */}
+        <div data-kiem="mt-buoc-2" className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
+          <p className="mb-2 text-[13px] font-extrabold text-navy">{t('buoc2')}</p>
+
+          {/* Cách đo: ĐẾM (máy cộng từ việc) hay ĐO (em ghi tay). */}
+          {cheDo !== 'chu' && cheDo !== 'bot' && (
+            <div data-kiem="mt-kieu-dich" className="mb-2.5 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+              <OChon chon={kieuSo === 'dem'} onClick={() => setKieuSo('dem')} nhan={t('kieuDem')} />
+              <OChon chon={kieuSo === 'do'} onClick={() => setKieuSo('do')} nhan={t('kieuDo')} />
+            </div>
+          )}
+
+          {/* Hướng: lên / giữ / bớt / bằng lời. */}
+          <div className="mb-2.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            <OChon chon={cheDo === 'len'} onClick={() => setCheDo('len')} nhan={t('chieuTang')} kiem="mt-chieu-tang" />
+            <OChon chon={cheDo === 'giu'} onClick={() => setCheDo('giu')} nhan={t('giuMucNam')} kiem="mt-chieu-giu" />
+            <OChon chon={cheDo === 'bot'} onClick={() => setCheDo('bot')} nhan={t('chieuGiam')} kiem="mt-chieu-giam" />
+            <OChon chon={cheDo === 'chu'} onClick={() => setCheDo('chu')} nhan={t('khongSo')} />
+          </div>
+
+          {/* Bớt theo kỳ nào. */}
+          {cheDo === 'bot' && (
+            <div className="mb-2.5 grid grid-cols-1 gap-1.5 sm:grid-cols-3">
+              <OChon chon={botKy === 'tuan'} onClick={() => setBotKy('tuan')} nhan={t('giamTuan', {y: y || '…'})} />
+              <OChon chon={botKy === 'thang'} onClick={() => setBotKy('thang')} nhan={t('giamThang', {y: y || '…'})} />
+              <OChon chon={botKy === 'nam'} onClick={() => setBotKy('nam')} nhan={t('giamNam', {y: y || '…'})} />
+            </div>
+          )}
+
+          {cheDo === 'chu' ? (
+            <Field label={t('yChu')} htmlFor="mt-y" error={err('y_chu')}>
+              <textarea
+                id="mt-y"
+                data-kiem="mt-y"
+                value={yChu}
+                onChange={(e) => setYChu(e.target.value)}
+                rows={2}
+                maxLength={300}
+                className={ctlWithBorder(state.fieldError === 'y_chu')}
+              />
+            </Field>
+          ) : (
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+              {cheDo === 'len' && (
+                <Field label={t('tu')} htmlFor="mt-x" error={err('x_so')}>
+                  <input
+                    id="mt-x"
+                    data-kiem="mt-x"
+                    type="number"
+                    step="any"
+                    min="0"
+                    inputMode="decimal"
+                    value={x}
+                    disabled={chuaDoX}
+                    onChange={(e) => setX(e.target.value)}
+                    placeholder="0"
+                    className={ctlWithBorder(state.fieldError === 'x_so')}
+                  />
+                </Field>
+              )}
+              <Field label={t('den')} htmlFor="mt-y" error={err('y_so')}>
+                <input
+                  id="mt-y"
+                  data-kiem="mt-y"
+                  type="number"
+                  step="any"
+                  min="0.01"
+                  inputMode="decimal"
+                  value={y}
+                  onChange={(e) => setY(e.target.value)}
+                  className={ctlWithBorder(state.fieldError === 'y_so')}
+                />
+              </Field>
+              <Field label={t('donVi')} htmlFor="mt-don-vi" error={err('don_vi_id')}>
+                <ChonCuon
+                  id="mt-don-vi"
+                  name="_don_vi_ui"
+                  value={donViId}
+                  onChange={setDonViId}
+                  danhSach={donViList.map((d) => ({ma: d.id, nhan: d.ma}))}
+                  chuaChon={t('donViChon')}
+                  loi={state.fieldError === 'don_vi_id'}
+                />
+                <span data-kiem="mt-don-vi" className="hidden" />
+              </Field>
+            </div>
+          )}
+
+          {cheDo === 'len' && (
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold text-navy">
+              <input
+                type="checkbox"
+                data-kiem="mt-chua-do-x"
+                checked={chuaDoX}
+                onChange={(e) => setChuaDoX(e.target.checked)}
+                className="h-4 w-4 rounded border-navy/30"
+              />
+              {t('chuaBietX')}
+            </label>
+          )}
+
+          <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <Field label={t('tuNgay')} error={err('bat_dau')}>
+              <ONgayVN name="_bat_dau_ui" nhan={t('tuNgay')} value={batDau} loi={state.fieldError === 'bat_dau'} onChange={setBatDau} />
+            </Field>
+            <Field label={t('truocNgay')} error={err('ket_thuc')}>
+              <span data-kiem="mt-han" className="block">
+                <ONgayVN
+                  name="_ket_thuc_ui"
+                  nhan={t('truocNgay')}
+                  value={ketThuc}
+                  min={batDau || undefined}
+                  loi={state.fieldError === 'ket_thuc'}
+                  onChange={setKetThuc}
+                />
               </span>
             </Field>
           </div>
+
+          {/* Phép tính nhỏ nhắc em nhịp cần đạt. */}
+          {cheDo === 'len' && kieuSo === 'dem' && (
+            <p className="mt-2 rounded-[10px] bg-navy/[0.05] px-2.5 py-2 text-[12px] font-semibold text-grey-mid">
+              {t('phepTinhDem')}
+            </p>
+          )}
         </div>
 
-        {/* ② "Từ X đến Y trước ngày nào" — công thức của canon, nằm gọn một hàng. */}
-        <div className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
-          <p className="mb-2 text-[13px] font-extrabold text-navy">{t('step2')}</p>
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-            <Field label={t('now')} htmlFor="mt-baseline" error={err('baseline')}>
-              <input
-                id="mt-baseline"
-                name="baseline"
-                type="number"
-                step="any"
-                min="0"
-                inputMode="decimal"
-                value={g.baseline}
-                onChange={(e) => setG((p) => ({...p, baseline: e.target.value}))}
-                placeholder="0"
-                className={ctlWithBorder(state.fieldError === 'baseline')}
-              />
-            </Field>
-            <Field label={t('to')} htmlFor="mt-target" error={err('target_value')}>
-              <input
-                id="mt-target"
-                name="target_value"
-                type="number"
-                step="any"
-                min="0.01"
-                inputMode="decimal"
-                value={g.target}
-                onChange={(e) => setG((p) => ({...p, target: e.target.value}))}
-                className={ctlWithBorder(state.fieldError === 'target_value')}
-              />
-            </Field>
-            {/* ĐƠN VỊ CHỌN TỪ DANH SÁCH, không gõ tay.
-                Gõ tay thì app phải ĐOÁN kiểu từ chuỗi chữ — "tiet" không dấu, "Bài" hoa — và đoán
-                sai là hỏi sai câu hỏi tiếp theo. Tệ hơn: bỏ trống thì bước ③ không biết hỏi "mỗi
-                lần bao nhiêu GÌ" nên im lặng bỏ luôn câu hỏi ấy, em điền xong mới bị đẩy ngược về
-                đây. Chọn từ danh sách thì luật lộ ra ngay lúc chọn và không còn trạng thái trống.
-                Vẫn có "Khác…" — danh sách không phủ hết mọi môn, mọi trường. */}
-            <Field label={t('unit')} htmlFor="mt-unit" error={err('unit')}>
-              {khacDonVi ? (
-                <div className="flex gap-1.5">
-                  <input
-                    id="mt-unit"
-                    name="unit"
-                    value={g.unit}
-                    onChange={(e) => setG((p) => ({...p, unit: e.target.value}))}
-                    placeholder={t('unitPlaceholder')}
-                    className={ctlWithBorder(state.fieldError === 'unit')}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setKhacDonVi(false);
-                      setG((p) => ({...p, unit: ''}));
-                    }}
-                    className="shrink-0 rounded-[10px] border-[1.5px] border-navy/20 px-2 text-[12px] font-extrabold text-navy"
-                  >
-                    {t('unitBack')}
-                  </button>
-                </div>
-              ) : (
-                <ChonCuon
-                  id="mt-unit"
-                  name="unit"
-                  value={g.unit}
-                  onChange={(v) => {
-                    if (v === '__khac__') {
-                      setKhacDonVi(true);
-                      setG((p) => ({...p, unit: ''}));
-                    } else setG((p) => ({...p, unit: v}));
-                  }}
-                  danhSach={DON_VI.map((d) => ({ma: d.ma}))}
-                  chuaChon={t('unitPick')}
-                  loi={state.fieldError === 'unit'}
-                  cuoiDanhSach={{ma: '__khac__', nhan: t('unitOther')}}
-                />
-              )}
-            </Field>
-            {/* Không có htmlFor: đây là NHÓM ba ô, nhãn của nhóm đã gắn bằng role="group"
-                bên trong <ONgayVN>. Trỏ htmlFor vào một id không tồn tại thì bấm vào nhãn
-                không đưa được con trỏ đi đâu cả. */}
-            {/* Cả một hàng riêng: ba ô ngày/tháng/năm cộng hai dấu gạch không nhét vừa một cột
-                của lưới bốn cột — chữ trong ô bị cắt thành "Ng / Th / Nă". */}
-            {/* KHOẢNG NGÀY — từ ngày nào tới ngày nào (chủ dự án 16/08/2026: "phải chọn lịch từ ngày
-                tháng năm nào đến ngày tháng năm nào, chứ ko phải mỗi ngày cuối"). Máy chủ kẹp cả
-                hai đầu trong năm học. */}
-            <Field label={t('startOn')} error={err('start_on')} className="col-span-2 sm:col-span-3">
-              <ONgayVN
-                name="start_on"
-                nhan={t('startOn')}
-                value={g.start}
-                loi={state.fieldError === 'start_on'}
-                onChange={(iso) => setG((p) => ({...p, start: iso}))}
-              />
-            </Field>
-            <Field label={t('due')} error={err('due_on')} className="col-span-2 sm:col-span-3">
-              <ONgayVN
-                name="due_on"
-                nhan={t('due')}
-                value={g.due}
-                min={g.start || undefined}
-                loi={state.fieldError === 'due_on'}
-                onChange={(iso) => setG((p) => ({...p, due: iso}))}
-              />
-            </Field>
+        {/* ③ ĐỌC LẠI CÂU MỤC TIÊU — ráp từ chính chữ em gõ. */}
+        <div data-kiem="mt-buoc-3">
+          <p className="mb-1.5 text-[13px] font-extrabold text-navy">{t('buoc3')}</p>
+          <div
+            data-kiem="mt-cau-rap-lai"
+            className={`rounded-[14px] px-3.5 py-3 text-[13px] font-bold leading-relaxed ${
+              cauRap ? 'bg-gold/[0.14] text-navy' : 'bg-navy/[0.04] italic text-grey-mid'
+            }`}
+          >
+            {cauRap ?? t('cauChotTrong')}
           </div>
         </div>
 
-        {/* BƯỚC ③ "TUẦN NÀY CON LÀM GÌ" ĐÃ RỜI KHỎI ĐÂY (0121, dọn nốt 16/08/2026). Máy chủ đã
-            thôi đọc các ô ấy từ 0121 mà form vẫn bày ra: em điền một việc, bấm Gửi, và việc ấy
-            đi vào hư không. Việc tuần nay đặt ở CamKetCuaEm, treo dưới cam kết của từng tuần. */}
-        {kieu === 'do' && g.unit && (
-          <p className="rounded-[10px] bg-navy/[0.05] px-2.5 py-2 text-[12px] font-semibold text-grey-mid">
-            {t('unitMeasured', {unit: g.unit})}
-          </p>
-        )}
-
-        {/* CÂU MỤC TIÊU — ráp từ chính những ô em vừa gõ. */}
-        <div
-          className={`rounded-[14px] px-3.5 py-3 text-[13px] font-bold leading-relaxed ${
-            duCau ? 'bg-gold/[0.14] text-navy' : 'bg-navy/[0.04] italic text-grey-mid'
-          }`}
-        >
-          {duCau
-            ? t('preview', {
-                what: g.title,
-                from: g.baseline || '0',
-                to: g.target,
-                unit: g.unit,
-                due: ngayVN(g.due),
-              })
-            : t('previewEmpty')}
-        </div>
-
         <div className="flex flex-wrap items-center gap-3">
-          <SubmitButton className={btnGold} wrapClass="contents">
-            {laChinhEm ? t('send') : t('saveForStudent')}
+          {/* Lưu nháp giữ ở nháp; nút chính gửi thầy cô duyệt. */}
+          <button
+            type="submit"
+            name="action"
+            value="nhap"
+            className="inline-flex min-h-[24px] items-center py-1 text-[12px] font-extrabold text-navy underline"
+          >
+            {t('luuNhap')}
+          </button>
+          <SubmitButton
+            className="btn-gold rounded-[12px] px-4 py-2.5 text-[13px] font-extrabold"
+            name="action"
+            value="gui"
+            wrapClass="contents"
+          >
+            <span data-kiem="mt-gui">{laChinhEm ? t('gui') : t('luu')}</span>
           </SubmitButton>
           <button
             type="button"
             onClick={onClose}
-            // Vùng chạm ≥24px: chữ vẫn 12px như cũ, chỉ nới chỗ ngón tay đặt vào. Nút chữ trần
-            // cao đúng bằng dòng chữ (~16px) là dưới ngưỡng, mà đây là màn các em bấm trên điện
-            // thoại — hụt vài pixel là bấm ba lần mới trúng.
             className="inline-flex min-h-[24px] cursor-pointer items-center py-1 text-[12px] font-extrabold text-grey-mid underline"
           >
-            {t('cancel')}
+            {t('thoi')}
           </button>
         </div>
       </form>
-      {/* XOÁ — chữ nhỏ ở góc form sửa, không đứng lộ ngoài thẻ (chủ dự án 16/08/2026). Form riêng vì
-          không lồng form; máy chủ và RLS quyết có xoá được không. */}
+
+      {/* XOÁ — chỉ được khi mục tiêu chưa có số nào ghi dưới nó (RLS quyết). */}
       {dangSua && laChinhEm && (
         <form
-          action={xoaMucTieuCuaEm}
+          action={xoaMucTieu}
           className="mt-2 flex justify-end"
           onSubmit={(e) => {
-            if (!window.confirm(t('confirmDelete'))) e.preventDefault();
+            if (!window.confirm(t('xoaHoi'))) e.preventDefault();
           }}
         >
-          <input type="hidden" name="wig_id" value={dangSua.id} />
+          <input type="hidden" name="muc_tieu_id" value={dangSua.id ?? ''} />
           <input type="hidden" name="student_id" value={studentId} />
           <SubmitButton
             className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 text-[11.5px] font-extrabold text-status-bad underline"
             wrapClass="contents"
           >
             <Trash2 size={12} strokeWidth={2.5} />
-            {t('deleteGoal')}
+            {t('xoa')}
           </SubmitButton>
         </form>
       )}
     </Popup>
   );
 }
+
+// Một ô chọn kiểu "chip lớn" — dùng cho cách đo, hướng, kỳ. Thay <select> để bấm nhanh trên điện thoại.
+function OChon({chon, onClick, nhan, kiem}: {chon: boolean; onClick: () => void; nhan: string; kiem?: string}) {
+  return (
+    <button
+      type="button"
+      data-kiem={kiem}
+      onClick={onClick}
+      className={`min-h-[40px] rounded-[10px] border-[1.5px] px-2.5 py-2 text-[12.5px] font-bold transition-colors ${
+        chon ? 'border-navy bg-navy/[0.06] text-navy' : 'border-navy/15 bg-white text-grey-mid hover:border-navy/40'
+      }`}
+    >
+      {nhan}
+    </button>
+  );
+}
+
+// Giữ tên cũ cho các nơi còn import trong khi PR-4 viết lại màn cô.
+export {FormMucTieu3Buoc as FormMucTieu};

@@ -1,6 +1,6 @@
 import {getTranslations} from 'next-intl/server';
 import {Inbox} from 'lucide-react';
-import {resolveEditRequest} from '@/app/[locale]/(dashboard)/student/actions';
+import {resolveEditRequest} from '@/app/[locale]/(dashboard)/student/yeu-cau-actions';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 
 // next-intl NÉM LỖI khi key không tồn tại → map tường minh, mã lạ thì về "việc khác".

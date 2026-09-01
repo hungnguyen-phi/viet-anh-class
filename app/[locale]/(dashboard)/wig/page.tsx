@@ -1,5 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
-import {ArrowRight, Check} from 'lucide-react';
+import {ArrowLeft, ArrowRight, Check, X} from 'lucide-react';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
@@ -7,93 +7,67 @@ import {getClassContext} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {ClassOwnerNote} from '@/components/shell/ClassOwnerNote';
 import {Link} from '@/i18n/navigation';
-import {
-  isValidDayVN,
-  gioiHanChonKy,
-  mondayOf,
-  monthOptions,
-  schoolYearOptions,
-  todayInVN,
-  isoDowVN,
-  weekDaysVN,
-  vnNoon,
-  weekFromMonday,
-  weekOptions,
-} from '@/lib/dates';
-import {WeekNav} from '@/components/wig/WeekNav';
-import {DaiChiSo, gopChiSo} from '@/components/wig/DaiChiSo';
-import {TaoWigMenu} from '@/components/wig/TaoWigMenu';
-import {ViecTuan, type ViecItem} from '@/components/wig/ViecTuan';
-import {SuaCamKetLop} from '@/components/wig/SuaCamKetLop';
-import {DatCamKetLop} from '@/components/wig/DatCamKetLop';
-import {BangTienDo, type DongTienDo} from '@/components/wig/BangTienDo';
-import {BangCacEm} from '@/components/wig/BangCacEm';
+import {isValidDayVN, mondayOf, todayInVN, weekFromMonday, shiftWeeks, ngayVN} from '@/lib/dates';
 import {AREAS, areaLabel, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
 import {Flash} from '@/components/ui/Flash';
-import {duyetCamKetTraVe} from '@/app/[locale]/(dashboard)/wig/actions';
-import {NutDuyet} from '@/components/wig/NutDuyet';
+import {BangCacEm} from '@/components/wig/BangCacEm';
+import {
+  ghiSoMucTieuLop,
+  chamCamKetLop,
+  taoCamKetLop,
+  xoaCamKetLop,
+  duyetMucTieuEm,
+  traLaiMucTieuEm,
+  duyetThuoc,
+  traLaiThuoc,
+  duyetHaChiTieu,
+  taoMau,
+  xoaMau,
+} from '@/app/[locale]/(dashboard)/wig/lop-actions';
 
-// ════════════════════════════════════════════════════════════════════════════
-// /wig — MÀN HÌNH LÀM VIỆC HẰNG TUẦN CỦA GIÁO VIÊN CHỦ NHIỆM
-// ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════════════════════
+// /wig — MÀN CỦA GVCN, mô hình mục tiêu PA2 (40-MAN-HINH §C)
+// ════════════════════════════════════════════════════════════════════════════════════════════
 //
-// Dựng lại 2026-08-04. Bản cũ có đủ mọi thứ nhưng bày ra cùng một lúc: form tạo WIG năm, form tạo
-// WIG tuần lồng trong từng WIG năm, form thêm lead measure lồng trong từng WIG tuần, bảng tick,
-// khối họp, khối tạo WIG cá nhân cho cả lớp, và ba đoạn văn giải thích. Chủ dự án nói nguyên văn:
-// "tôi vào trang wig của giáo viên, sau đó tôi nhìn từ trên xuống 1 lượt thấy toàn là ô xếp dọc
-// nhau, toàn là chữ, tôi không biết mình nên làm gì luôn".
+// Bản cũ đọc wigs/wig_progress_v/wig_so_do/commitments/metrics_tuan_v — tất cả ĐÃ BỊ DROP. Viết
+// lại từ đầu: MỌI con số đi qua hàm lõi / view invoker, màn này KHÔNG tự cộng gì.
 //
-// Ba việc của một tuần được tách ra ba màn, mỗi màn trả lời đúng một câu hỏi:
+// Bảy khu, đúng thứ tự 40-C:
+//   ① Ba số tách  · thi_dua_lop()  — mục tiêu / việc / cam kết, KHÔNG gộp thành một điểm
+//   ② Mục tiêu lớp · muc_tieu_v (cap='lop') + ô "Ghi số hôm nay" cho mục tiêu đo tay
+//   ③ Việc của lớp · bang_lop_thuoc()  — "n/m bạn đủ", lẽ ra, trạng thái
+//   ④ Cam kết lớp · cam_ket_v (chu_the='lop') — cô chấm Thắng/Thua
+//   ⑤ Các em      · <BangCacEm> (bang_lop_em)  — chỉ đọc, dẫn sang bảng của em
+//   ⑥ Mẫu         · muc_tieu_mau (≤8)  — cô soạn để em chỉ điền số
+//   ⑦ Chờ duyệt   · mục tiêu em 'gui' + việc 'gui' + hạ chỉ tiêu 'cho_duyet'
 //
-//   /wig            "Tuần này lớp đang làm gì, tới đâu rồi?"   ← màn này
-//   /wig/chi-tiet   "Em nào chưa làm, quên hôm nào?"
-//   /wig/hop        "Tuần vừa rồi thế nào, tuần tới làm gì?"   ← tạo luôn mục tiêu tuần mới
-//
-// Việc TẠO mục tiêu rút về một nút duy nhất ở góc phải (TaoWigMenu), có ràng buộc chuỗi
-// năm → tháng → tuần. Không còn form nào nằm chờ sẵn trên trang.
+// Tạo mục tiêu/việc của lớp (form 3 bước, gửi BGH duyệt) dùng CHUNG component form với màn em —
+// khu ② chỉ có nút mở; component form là phần việc của PR-4 khác, không dựng lại ở đây.
 
-type Wig = {
+type MucTieuV = {
   id: string;
-  title: string | null; // 0051 — nullable cho các WIG tạo trước khi có cột này
-  status: string | null; // 0148 — WIG lớp GVCN tạo vào 'sent', chờ BGH duyệt
-  baseline: number | null; // 0051 — mốc X trong "Từ X lên Y"
-  area: string;
-  period: string;
-  period_label: string | null;
-  parent_wig_id: string | null;
-  target_value: number;
-  unit: string;
-  start_date: string;
-  end_date: string;
-  // 0116 — 'cuon' là mục tiêu ĐẾM NGƯỢC từ mục tiêu năm của từng bạn ("86% học sinh có 6/8 môn
-  // đạt 6.5"). Ba cột dưới chỉ có giá trị với loại ấy; `tong_dich` không tham gia phép tính.
-  measure_by: string;
-  ty_le_can: number | null;
-  so_dich_can: number | null;
-  tong_dich: number | null;
-};
-type Lead = {
-  id: string;
-  wig_id: string;
-  title: string;
-  target_value: number;
-  unit: string | null;
-  sub_category: string | null;
-  // 0073 — những thứ trong tuần mà việc này được tick (ISO 1=T2…7=CN).
-  active_weekdays: number[] | null;
-  // 0076 — một lượt tick đáng bao nhiêu ĐƠN VỊ CỦA WIG cha. Mặc định 1.
-  unit_per_tick: number | null;
-  nhap_luong: boolean | null;
-};
-type Prog = {
-  actual: number | null;
+  ten: string | null;
+  linh_vuc: Area | null;
+  trang_thai: string | null;
+  trang_thai_do: string | null;
+  nguon_so: string | null;
+  kieu_dich: string | null;
+  chieu: string | null;
+  chua_do_x: boolean | null;
+  ket_thuc: string | null;
+  ky: string | null;
+  x_so: number | null;
+  x_chu: string | null;
+  y_so: number | null;
+  y_chu: string | null;
+  ten_don_vi: string | null;
+  so: number | null;
+  le_ra: number | null;
   pct: number | null;
-  status: string | null;
-  // ĐÍCH ĐO BẰNG GÌ. 'manual' = con số sống ngoài app (điểm trung bình, kết quả thi) — app không
-  // đếm được nên KHÔNG ĐƯỢC vẽ vạch tiến độ cho nó (§5.0 MO_HINH_WIG). Chỉ có đạt hay chưa.
-  measure_by: string | null;
-  achieved_at: string | null;
+  dang_tap_trung: boolean | null;
+  ly_do_tra_lai: string | null;
+  student_id: string | null;
 };
 
 export default async function WigPage({
@@ -107,485 +81,235 @@ export default async function WigPage({
   const {class: classParam, week: weekParam} = await searchParams;
   setRequestLocale(locale);
   const profile = await requireRole(['teacher', 'admin']);
-  const t = await getTranslations('wig');
-  const tGoal = await getTranslations('goal');
+  const t = await getTranslations('lopMucTieu');
+  const tMt = await getTranslations('mucTieu');
+  const tViec = await getTranslations('viec');
+  const tCk = await getTranslations('camKet');
+  const tDuyet = await getTranslations('duyet');
+  const tTuan = await getTranslations('tuan');
   const supabase = await createClient();
-  const [{myClass, classes: accessible}, areaMetaFromCache] = await Promise.all([
+  const [{myClass, classes: accessible}, areaMeta] = await Promise.all([
     getClassContext(supabase, profile, classParam),
     getAreaMeta(),
   ]);
-  const areaMeta = areaMetaFromCache;
 
-  if (!myClass) {
-    return (
-      <KhongCoLop role={profile.role} />
-    );
-  }
+  if (!myClass) return <KhongCoLop role={profile.role} />;
 
   // ── TUẦN ĐANG XEM ─────────────────────────────────────────────────────────────────────────
-  // Cả trang bám vào MỘT tuần, hiện rõ ở thanh WeekNav với dải ngày thật. Trước khi có nó, một
-  // WIG đã đóng từ tuần trước và một WIG đang chạy trông giống hệt nhau — sự cố 7B1 (03/08/2026).
-  //
-  // isValidDayVN chặn chuỗi rác đến thẳng từ thanh địa chỉ trước khi mondayOf() dựng Date; Date
-  // hỏng làm toISOString() ném lỗi → trắng cả trang. mondayOf chuẩn hoá về Thứ Hai vì các RPC bên
-  // dưới KHÔNG tự ép — chúng lấy nguyên cửa sổ [ngày truyền vào, +6].
   const todayVN = todayInVN();
   const thisMonday = mondayOf(todayVN);
   const monday = isValidDayVN(weekParam) ? mondayOf(weekParam as string) : thisMonday;
   const wk = weekFromMonday(monday);
   const laTuanNay = monday === thisMonday;
-  // Chỉ đính ?week= khi ĐANG XEM tuần khác — ở tuần hiện tại thì URL sạch.
   const weekQ = laTuanNay ? '' : monday;
-
-  const [
-    {data: wigsData},
-    {data: progData},
-    {data: enrolled},
-    ,
-    {data: soDoData},
-    {data: tuanNayDaHop},
-    {data: cuonData},
-    {data: camKetData},
-  ] = await Promise.all([
-      // NHÚNG LUÔN lead_measures: PostgREST nhúng được theo khoá ngoại wig_id và RLS vẫn áp y như
-      // khi hỏi rời, nên bỏ hẳn một chặng chờ so với hỏi WIG xong mới hỏi việc.
-      supabase
-        .from('wigs')
-        .select(
-          'id, title, baseline, area, period, period_label, parent_wig_id, target_value, unit, start_date, end_date, status, measure_by, ty_le_can, so_dich_can, tong_dich, lead_measures(id, wig_id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick, nhap_luong)',
-        )
-        .eq('class_id', myClass.id)
-        .eq('scope', 'class'),
-      // Tiến độ: chỉ những mục tiêu thật sự được vẽ ra — năm, tháng, và tuần đang xem.
-      supabase
-        .from('wig_progress_v')
-        .select('wig_id, actual, pct, status, measure_by, achieved_at')
-        .eq('class_id', myClass.id)
-        .eq('scope', 'class')
-        .or(
-          `period.in.(year,month),and(period.eq.week,start_date.lte.${wk.end},end_date.gte.${wk.start})`,
-        ),
-      // Tên kèm luôn — khối "Danh sách học sinh" bên dưới cần đọc ra tên, không chỉ đếm sĩ số.
-      supabase
-        .from('enrollments')
-        .select('student_id, profiles!enrollments_student_id_fkey(full_name)')
-        .eq('class_id', myClass.id)
-        .eq('is_active', true),
-      // Ma trận (em × việc) của tuần đang xem — chỉ để đếm "mấy em chưa tick lần nào". Đó là con
-      // số DUY NHẤT trên màn này đòi hành động ngay, nên đáng một lượt hỏi; phần chi tiết ai quên
-      // hôm nào thì nằm ở /wig/chi-tiet.
-      // (Câu "tuần vừa xong đã họp chưa" thôi hỏi 19/08/2026 — nút mở phòng họp lớp đã gỡ.)
-      Promise.resolve({data: null}),
-      // SỐ ĐO CỦA TUẦN ĐANG XEM — con số thật của mục tiêu đo lại (kg, điểm, cm).
-      //
-      // Chủ dự án chốt 14/08/2026: loại này không nhập hằng ngày; cô (hoặc em) điền lại con số
-      // mỗi tuần, đúng nhịp buổi họp. Bảng wig_so_do đã có từ 0108 cho mục tiêu của em; nó khoá
-      // theo (mục tiêu, tuần) chứ không theo học sinh, nên dùng được cho mục tiêu LỚP y nguyên.
-      supabase.from('wig_so_do').select('wig_id, gia_tri, vai_tro, created_at').eq('week_start', monday),
-      // Tuần ĐANG XEM đã chốt chưa — chốt rồi thì ô số đo khoá lại (cùng luật RLS).
-      supabase.rpc('tuan_da_hop', {p_class: myClass.id, d: monday}),
-      // MỤC TIÊU CUỘN: "6/7 bạn đạt". Phần trăm thì wig_progress_v đã có (private.wig_actual trả
-      // thẳng tỉ lệ cho loại này), nhưng phân số thì không — mà "85,7%" một mình không nói cho cô
-      // biết còn phải kéo thêm mấy em nữa. Hỏi theo LỚP chứ không theo mảng id để câu này nằm
-      // được trong cùng lượt song song, không phải chờ câu hỏi mục tiêu xong mới đi hỏi tiếp.
-      supabase.rpc('cuon_so_lieu_lop', {p_class: myClass.id}),
-      // CAM KẾT CỦA TUẦN ĐANG XEM (0121) — thay cho "mục tiêu tuần" cũ. Tối đa 2, và mỗi cái là
-      // một lời hứa; việc để tick treo dưới nó.
-      supabase
-        .from('commitments')
-        .select(
-          'id, title, area, wig_id, verdict, status, set_by, lead_measures(id, title, target_value, unit, sub_category, active_weekdays, unit_per_tick, nhap_luong, lead_progress(logged_date, student_id))',
-        )
-        .eq('class_id', myClass.id)
-        .is('student_id', null)
-        .eq('week_start', monday)
-        .order('created_at'),
-    ]);
-
-  const cuonTheoWig = new Map(
-    ((cuonData ?? []) as {wig_id: string; tong: number; dat: number; ty_le: number}[]).map((c) => [
-      c.wig_id,
-      c,
-    ]),
-  );
-
-  const soDoTheoWig = new Map(
-    ((soDoData ?? []) as {wig_id: string; gia_tri: number; vai_tro: string; created_at: string}[]).map(
-      (r) => [r.wig_id, r],
-    ),
-  );
-
-  const studentCount = (enrolled ?? []).length;
-  const wigsKemLead = (wigsData ?? []) as unknown as (Wig & {lead_measures: Lead[] | null})[];
-  const wigs = wigsKemLead as Wig[];
-  const progByWig = new Map((progData ?? []).map((p) => [p.wig_id, p as unknown as Prog]));
-
-  // Một mục tiêu tuần thuộc về tuần đang xem khi khoảng ngày của nó GIAO với tuần đó.
-  // ĐÚNG luật của class_lead_board (0073), cố ý chép cho khớp: dùng chung một luật là cách duy
-  // nhất bảo đảm thứ GVCN thấy trùng khít thứ học sinh thấy — hai luật khác nhau là gốc sự cố 7B1.
-  // Cùng vị ngữ ấy áp cho mục tiêu THÁNG: tháng nào phủ tuần đang xem thì đó là tháng của tuần
-  // này. Một hàm, không phải hai bản chép tay — hai bản là hai cơ hội trôi khỏi nhau.
-  // (trongTuan đã gỡ: nó lọc mục tiêu theo tuần, mà mục tiêu tuần không còn tồn tại từ 0121.)
-
-  const yearWigs = wigs
-    .filter((w) => w.period === 'year')
-    .sort((a, b) => a.area.localeCompare(b.area));
-  const monthWigs = wigs.filter((w) => w.period === 'month');
-
-  // ── MẤY EM CHƯA TICK LẦN NÀO ──────────────────────────────────────────────────────────────
-  // Tuần chưa bắt đầu thì KHÔNG báo động: chưa tới ngày nào để tick, đỏ ở đây là báo động giả và
-  // làm nhờn cảnh báo thật của tuần đang chạy.
-  // (Cả khối đếm "em × việc chung" đã gỡ cùng dòng chữ nó nuôi: từ 16/08 việc chung do CÔ tick,
-  //  nên một bảng đếm xem em nào đã tick việc chung là đếm một việc không ai được làm.)
-  const tuanChuaToi = monday > todayVN;
-
-  // ── CẢNH BÁO ĐẶT SAI (0076/0078) ──────────────────────────────────────────────────────────
-  // Tính tại chỗ thay vì gọi RPC lead_measure_canh_bao: mọi dữ liệu cần đã nằm trong `wigs` vừa
-  // lấy về. Hàm SQL kia vẫn giữ — scripts/test-* dùng nó làm nguồn đối chiếu ĐỘC LẬP, hai bên
-  // lệch nhau là phép kiểm báo ngay.
-  //
-  // (Hàm bỏ dấu tiếng Việt đã gỡ: nó chỉ phục vụ cảnh báo lệch đơn vị, mà cảnh báo ấy bỏ 15/08.)
-
-  const canhBaoLead = (l: Lead, w: Wig) => {
-    const moiTick = Number(l.unit_per_tick ?? 1) || 1;
-    // LÀM TRÒN TRƯỚC KHI ceil. CSDL tính bằng numeric thập phân chính xác, JavaScript bằng số
-    // thực nhị phân — với hệ số 0.7 thì 21/0.7 ra 30.000000000000004 và Math.ceil biến nó thành
-    // 31 trong khi Postgres nói 30. Lệch một đơn vị ấy đủ để bật cảnh báo đỏ trên một mục tiêu
-    // đặt vừa khít, giục giáo viên hạ một con số đang đúng.
-    const soTickCan = Math.ceil(Number((Number(l.target_value) / moiTick).toFixed(9)));
-    // Số ngày THẬT SỰ tick được — đúng luật RLS dùng để chặn tick (lead_day_ok, 0073).
-    const thu = new Set(l.active_weekdays ?? [1, 2, 3, 4, 5, 6, 7]);
-    let soNgay = 0;
-    for (const d = new Date(`${w.start_date}T00:00:00Z`); ; d.setUTCDate(d.getUTCDate() + 1)) {
-      const iso = d.toISOString().slice(0, 10);
-      if (iso > w.end_date) break;
-      if (thu.has(d.getUTCDay() === 0 ? 7 : d.getUTCDay())) soNgay += 1;
-    }
-    // TRẦN LÀ TRẦN CỦA MỘT EM (0098). Mục tiêu nay là "mỗi em bao nhiêu", nên số em không dự
-    // phần vào phép tính nữa: một em nhiều nhất cũng chỉ tick được mỗi ngày một lượt, nên trần
-    // đúng bằng số ngày việc ấy áp dụng. Lớp 30 em hay 3 em thì mục tiêu 10 lượt trong một tuần
-    // có 5 ngày học đều là bất khả.
-    //
-    // Bản trước nhân với sĩ số vì hồi ấy cả lớp đổ chung vào một bộ đếm — nay giữ lại phép nhân
-    // ấy là bỏ sót đúng những mục tiêu không em nào đạt nổi ở lớp đông.
-    const soNguoi = studentCount > 0 ? studentCount : 1;
-    const tran = soNgay;
-    return {
-      soTickCan,
-      soNgay,
-      soNguoi,
-      tran,
-      // CẢNH BÁO LỆCH ĐƠN VỊ ĐÃ BỎ (15/08/2026). Nó canh chuyện thật — việc đo bằng "lần" mà mục
-      // tiêu đo bằng "bài" thì mỗi lượt tick vẫn cộng 1 "bài", tức cộng nhầm cái nọ vào cái kia —
-      // nhưng câu chữ dài bốn dòng và không nói được phải bấm vào đâu. Chủ dự án chốt bỏ.
-      //
-      // CSDL vẫn trả về `lech_don_vi` (lead_measure_canh_bao) cho ai muốn dựng lại sau; chỗ này
-      // chỉ thôi vẽ nó ra màn hình.
-      quaNhieu: soTickCan > tran,
-    };
-  };
-
-  // Việc của một CAM KẾT (0121). Nguồn là bảng việc chung của tuần (class_lead_board), vốn đã
-  // trả kèm commitment_id — không phải lôi lead_measures nhúng theo WIG như trước, vì việc nay
-  // treo dưới cam kết chứ không dưới mục tiêu.
-  const camKet = ((camKetData ?? []) as unknown as {
-    id: string;
-    title: string;
-    area: string;
-    wig_id: string;
-    verdict: string | null;
-    status: string;
-    set_by: string | null;
-    lead_measures: Lead[] | null;
-  }[]).map((c) => ({...c, verdict: c.verdict === 'win' || c.verdict === 'lose' ? c.verdict : null}));
-
-  const viecCuaCamKet = (ckId: string): ViecItem[] => {
-    const ck = camKet.find((c) => c.id === ckId);
-    // CẢNH BÁO "ĐÒI NHIỀU LƯỢT HƠN SỐ NGÀY TICK ĐƯỢC" — nối lại cho mô hình cam kết.
-    //
-    // Từ 0121 tới nay chỗ này đóng cứng `quaNhieu: false` kèm một dòng "chưa nối vào màn này".
-    // Nghĩa là suốt quãng ấy cảnh báo TẮT với mọi việc của mô hình mới: cô đặt "9999 lượt trong
-    // một tuần có 1 ngày" thì màn hình im lặng đồng ý. Đúng loại lỗi mà PRD gọi tên — chỉ tiêu
-    // không ai đạt nổi thì cả tuần chỉ dạy được một điều: mục tiêu là thứ để trượt.
-    //
-    // Dùng lại canhBaoLead của chính trang này, với KHOẢNG NGÀY LÀ TUẦN CỦA CAM KẾT (thứ Hai →
-    // Chủ nhật) và đơn vị của mục tiêu năm mà cam kết treo dưới. Cùng một phép với
-    // lead_measure_canh_bao trong CSDL, và scripts/test-moi-lan-tick.mjs đối chiếu hai bên.
-    const wCha = wigs.find((w) => w.id === ck?.wig_id);
-    const tuanCuaCamKet = {
-      ...(wCha ?? ({} as Wig)),
-      start_date: wk.start,
-      end_date: wk.end,
-    } as Wig;
-    return ((ck?.lead_measures ?? []) as Lead[]).map((l) => {
-      const cb = canhBaoLead(l, tuanCuaCamKet);
-      // NGÀY TRONG TUẦN mà việc này áp dụng, và ngày LỚP đã tick (dòng student_id rỗng) — để cô
-      // bấm ngay tại chỗ. Em không còn thấy việc chung nữa (16/08), nên nếu đây không có ô bấm
-      // thì con số của lớp đứng im mãi mãi.
-      const thuBat = new Set(l.active_weekdays ?? [1, 2, 3, 4, 5, 6, 7]);
-      const ngayTrongTuan = weekDaysVN(wk.start).filter((d) =>
-        thuBat.has(isoDowVN(d)),
-      );
-      const ngayDaTick = ((l as unknown as {lead_progress?: {logged_date: string; student_id: string | null}[]})
-        .lead_progress ?? [])
-        .filter((x) => x.student_id === null && ngayTrongTuan.includes(x.logged_date))
-        .map((x) => x.logged_date);
-      return {
-        ngayTrongTuan,
-        ngayDaTick,
-        id: l.id,
-        title: l.title,
-        target_value: Number(l.target_value),
-        unit: l.unit,
-        sub_category: l.sub_category,
-        active_weekdays: l.active_weekdays,
-        unit_per_tick: l.unit_per_tick,
-        nhap_luong: l.nhap_luong,
-        quaNhieu: cb.quaNhieu,
-        soTickCan: cb.soTickCan,
-        tran: cb.tran,
-        soNgay: cb.soNgay,
-        soNguoi: cb.soNguoi,
-      };
-    });
-  };
-
-  // (viecCuaWig đã gỡ: từ 0121 việc treo dưới CAM KẾT chứ không dưới mục tiêu.)
-
-  // ── CỘT PHẢI: NĂM → THÁNG → TUẦN ──────────────────────────────────────────────────────────
-  // Mỗi mục tiêu năm một nhóm ba dòng. Cấp nào chưa có thì vẫn chiếm một dòng ghi "chưa đặt" —
-  // ẩn đi thì cái thiếu trở nên vô hình, mà cái thiếu mới là việc cần làm tiếp.
-  const dongCua = (w: Wig | undefined, cap: DongTienDo['cap'], khiTrong: string): DongTienDo => {
-    if (!w) {
-      return {
-        id: null,
-        cap,
-        title: khiTrong,
-        periodLabel: null,
-        startDate: null,
-        endDate: null,
-        baseline: null,
-        target: 0,
-        unit: '',
-        actual: 0,
-        pct: 0,
-        status: null,
-        duyet: null,
-        area: null,
-        measureBy: 'tick',
-        cuon: null,
-        achievedAt: null,
-      };
-    }
-    const p = progByWig.get(w.id);
-    return {
-      id: w.id,
-      cap,
-      title: w.title ?? areaLabel(areaMeta[w.area as Area], locale),
-      periodLabel: w.period_label,
-      startDate: w.start_date,
-      endDate: w.end_date,
-      baseline: w.baseline == null ? null : Number(w.baseline),
-      target: Number(w.target_value),
-      unit: w.unit,
-      actual: Number(p?.actual ?? 0),
-      pct: Number(p?.pct ?? 0),
-      status: p?.status ?? null,
-      duyet: w.status ?? null,
-      area: w.area ?? null,
-      // Thiếu dòng tiến độ thì coi như 'tick': mặc định của cột trong CSDL là 'tick', và đoán
-      // nhầm sang 'manual' sẽ giấu mất vạch của một đích máy đếm được thật.
-      //
-      // 'cuon' đọc từ CHÍNH mục tiêu chứ không từ dòng tiến độ: wig_progress_v lọc theo kỳ, nên
-      // một mục tiêu cuộn thiếu dòng tiến độ sẽ rơi về 'tick' và hiện "0 / 86 %" — một câu sai
-      // trong khi con số thật đang nằm sẵn ở cuonTheoWig.
-      measureBy:
-        w.measure_by === 'cuon' ? 'cuon' : p?.measure_by === 'manual' ? 'manual' : 'tick',
-      cuon:
-        w.measure_by === 'cuon'
-          ? {
-              tong: Number(cuonTheoWig.get(w.id)?.tong ?? 0),
-              dat: Number(cuonTheoWig.get(w.id)?.dat ?? 0),
-              tyLe: Number(cuonTheoWig.get(w.id)?.ty_le ?? 0),
-              can: Number(w.ty_le_can ?? w.target_value),
-              soDichCan: Number(w.so_dich_can ?? 0),
-              tongDich: w.tong_dich == null ? null : Number(w.tong_dich),
-            }
-          : null,
-      achievedAt: p?.achieved_at ?? null,
-    };
-  };
-
-  // "CHƯA ĐẶT" KHÁC VỚI "ĐÃ ĐẶT NHƯNG CHO THÁNG KHÁC".
-  //
-  // Bảng này chỉ nhận mục tiêu tháng PHỦ LÊN tuần đang xem. Đúng luật — nhưng chủ dự án tạo mục
-  // tiêu cho tháng 9 trong lúc đang đứng ở tuần đầu tháng 8, và bảng báo thẳng "chưa đặt mục tiêu
-  // tháng". Cùng lúc đó tab "Tuần" ở nút Tạo lại MỞ, vì nó chỉ hỏi "lớp có mục tiêu tháng nào
-  // không" bất kể tháng nào. Hai câu hỏi khác nhau trên cùng một màn hình, và người đọc thấy đúng
-  // một điều: app vừa nói nó không có, vừa xử sự như nó có.
-  //
-  // Cách sửa KHÔNG phải là nới luật trongTuan — luật ấy đang giữ cho màn giáo viên và màn học
-  // sinh cắt ra cùng một kết quả (sự cố 7B1). Mà là nói cho đủ: có thì bảo có, kèm kỳ của nó.
-  // (kyGanNhat đã gỡ cùng mục tiêu tháng/tuần.)
-
-  const nhomTienDo = yearWigs.map((yw) => {
-    // (Mọi phép dò mục tiêu THÁNG và TUẦN đã gỡ: 0121 bỏ hẳn hai cấp ấy, `wig_chi_con_nam_ck`
-    //  cấm chúng tồn tại, nên chúng chỉ còn là một phép lọc trên một danh sách vĩnh viễn rỗng.)
-    const meta = areaMeta[yw.area as Area];
-    const dongNam = dongCua(yw, 'year', t('emptyYear'));
-    // Số đo tuần này của mục tiêu năm — chỉ mục tiêu đo lại mới dùng tới.
-    const sd = soDoTheoWig.get(yw.id);
-    return {
-      areaLabel: areaLabel(meta, locale),
-      areaHex: meta.hex,
-      areaSoft: meta.soft,
-      // ĐÍCH GHI-NHẬN-NGOÀI KHÔNG CÓ MỐC, VÀ ĐÓ LÀ ĐÚNG — đừng bảo cô là còn thiếu.
-      //
-      // Cân nặng, chiều cao, điểm trung bình không chia theo tháng/tuần được (lib/wig-tao.ts), nên
-      // hai dòng ấy vĩnh viễn trống. Để nguyên câu "chưa đặt mục tiêu tháng" thì cô đi tìm chỗ đặt
-      // một thứ app cố tình không cho đặt — mà nút Tạo cũng không mở tab nào cho nó. Nói thẳng là
-      // loại này theo dõi bằng con số thật, không bằng mốc.
-      // `measureBy` nằm ở dòng tiến độ chứ không ở bản ghi wigs, nên hỏi qua chính dòng vừa dựng.
-      soDo: sd ? {giaTri: Number(sd.gia_tri), vaiTro: sd.vai_tro, ghiLuc: sd.created_at} : null,
-      soDoMoKhoa: tuanNayDaHop !== true,
-      dong:
-        // MỘT DÒNG DUY NHẤT: mục tiêu chỉ còn cấp NĂM (0121).
-        //
-        // Hai dòng "Tháng — chưa đặt mục tiêu tháng" và "Tuần — chưa đặt mục tiêu tuần này" từng
-        // đứng ở đây để cái THIẾU không trở nên vô hình. Nay chúng không thiếu, chúng không tồn
-        // tại — mà một dòng "chưa đặt" cho thứ app cố tình không cho đặt thì chỉ khiến cô đi tìm
-        // một cái nút không có. Nhịp tuần nay nằm ở CAM KẾT, cột bên trái.
-        [dongNam]
-    };
-  });
-
-  // Kỳ chọn sẵn trong menu tạo: theo TUẦN ĐANG XEM chứ không theo hôm nay. Đứng ở tuần sau mà bấm
-  // tạo thì kỳ chọn sẵn phải là tuần sau — trước đây nó luôn nhảy về tuần hiện tại nên tạo xong
-  // lại ra một mục tiêu rơi vào tuần khác với tuần đang nhìn.
-  const neo = vnNoon(monday);
-  const namOptions = schoolYearOptions(2, neo);
-  const thangOptions = monthOptions(1, 4, neo);
-  const tuanOptions = weekOptions(2, 4, neo);
-  const kyMacDinh = {
-    year: namOptions[0]?.label ?? '',
-    month: thangOptions[1]?.label ?? thangOptions[0]?.label ?? '',
-    week: wk.label,
-  };
-  const areaOptions = AREAS.map((a) => ({value: a, label: areaLabel(areaMeta[a], locale)}));
-
   const q = (extra: Record<string, string> = {}) => ({
     ...(classParam ? {class: classParam} : {}),
     ...(weekQ ? {week: weekQ} : {}),
     ...extra,
   });
+  // Ô ẩn class + week gửi kèm mọi form, để action ở lại đúng lớp/tuần.
+  const ctx = (
+    <>
+      <input type="hidden" name="class_id" value={myClass.id} />
+      <input type="hidden" name="week" value={weekQ} />
+    </>
+  );
+
+  // ── ĐỌC DỮ LIỆU (song song) ───────────────────────────────────────────────────────────────
+  const [
+    {data: thiDua},
+    {data: mtRows},
+    {data: thuocRows},
+    {data: ckRows},
+    {data: mauRows},
+    {data: enrolled},
+    {data: mtCho},
+    {data: thuocCho},
+    {data: haCho},
+  ] = await Promise.all([
+    supabase.rpc('thi_dua_lop', {p_class: myClass.id}),
+    supabase
+      .from('muc_tieu_v')
+      .select(
+        'id, ten, linh_vuc, trang_thai, trang_thai_do, nguon_so, kieu_dich, chieu, chua_do_x, ket_thuc, ky, x_so, x_chu, y_so, y_chu, ten_don_vi, so, le_ra, pct, dang_tap_trung, ly_do_tra_lai, student_id',
+      )
+      .eq('class_id', myClass.id)
+      .eq('cap', 'lop')
+      .neq('trang_thai', 'dong'),
+    supabase.rpc('bang_lop_thuoc', {p_class: myClass.id, p_tuan: monday}),
+    supabase
+      .from('cam_ket_v')
+      .select(
+        'id, noi_dung, so_hua, so_dat, ket_qua, ten_don_vi, muc_tieu_id, tuan_bat_dau, tuan_ket_thuc, so_tuan, trang_thai',
+      )
+      .eq('class_id', myClass.id)
+      .eq('chu_the', 'lop'),
+    supabase
+      .from('muc_tieu_mau')
+      .select('id, ten, linh_vuc, chieu, x_goi_y, y_goi_y')
+      .eq('class_id', myClass.id)
+      .eq('is_active', true)
+      .limit(8),
+    supabase
+      .from('enrollments')
+      .select('student_id, profiles!enrollments_student_id_fkey(full_name)')
+      .eq('class_id', myClass.id)
+      .eq('is_active', true),
+    supabase
+      .from('muc_tieu_v')
+      .select('id, ten, linh_vuc, student_id, x_so, y_so, ten_don_vi, ket_thuc')
+      .eq('class_id', myClass.id)
+      .eq('cap', 'em')
+      .eq('trang_thai', 'gui'),
+    supabase
+      .from('thuoc')
+      .select('id, ten, student_id, chi_tieu_ky, chieu_dich')
+      .eq('class_id', myClass.id)
+      .eq('duyet', 'gui'),
+    supabase
+      .from('thuoc_lich_su')
+      .select('id, thuoc_id, chi_tieu_ky, la_ha, thuoc(ten, class_id, student_id, chi_tieu_ky)')
+      .eq('trang_thai', 'cho_duyet'),
+  ]);
+
+  // Tên các em (bảng chờ duyệt hiển thị "của {tên}").
+  const tenEm = new Map<string, string>();
+  for (const e of enrolled ?? []) {
+    const p = e.profiles as {full_name: string | null} | {full_name: string | null}[] | null;
+    const name = Array.isArray(p) ? p[0]?.full_name : p?.full_name;
+    if (e.student_id) tenEm.set(e.student_id, name ?? '');
+  }
+
+  const td = (thiDua ?? [])[0] as
+    | {diem_muc_tieu: number | null; diem_thuoc: number | null; diem_cam_ket: number | null}
+    | undefined;
+  const mucTieuLop = (mtRows ?? []) as unknown as MucTieuV[];
+  const thuoc = thuocRows ?? [];
+  // Cam kết của tuần đang xem: khoảng [tuan_bat_dau, tuan_ket_thuc] GIAO tuần đang xem.
+  const camKet = (ckRows ?? []).filter((c) => {
+    const bd = c.tuan_bat_dau ?? '';
+    const kt = c.tuan_ket_thuc ?? bd;
+    return bd <= wk.end && kt >= wk.start;
+  });
+  const mau = mauRows ?? [];
+  const haChoLop = (haCho ?? []).filter((r) => {
+    const th = r.thuoc as {class_id: string | null} | {class_id: string | null}[] | null;
+    const cid = Array.isArray(th) ? th[0]?.class_id : th?.class_id;
+    return cid === myClass.id;
+  });
+  const soCho = (mtCho ?? []).length + (thuocCho ?? []).length + haChoLop.length;
+
+  // ── Câu mô tả một mục tiêu (Từ x lên y đv · trước ngày) ────────────────────────────────────
+  const cauMucTieu = (m: MucTieuV): string => {
+    const dv = m.ten_don_vi ?? '';
+    const x = m.x_chu ?? (m.x_so == null ? '' : String(m.x_so));
+    const y = m.y_chu ?? (m.y_so == null ? '' : String(m.y_so));
+    const ngay = ngayVN(m.ket_thuc);
+    if (m.chua_do_x) return tMt('chuaBietDen', {y, dv, ngay});
+    if (m.kieu_dich === 'giu') {
+      const dau = m.chieu === 'giam' ? 'không quá' : m.chieu === 'tang' ? 'ít nhất' : '';
+      return tMt('giuMuc', {dau, y, dv});
+    }
+    if (m.kieu_dich === 'tran_tich_luy') return tMt('caNamKhongQua', {y, dv});
+    return m.chieu === 'giam'
+      ? tMt('tuDenGiam', {x, y, dv, ngay})
+      : tMt('tuDen', {x, y, dv, ngay});
+  };
+
+  // Nhãn trạng thái đã-đo (chỉ mục tiêu đã duyệt mới có nhịp thật để so).
+  const nhanTrangThai = (m: MucTieuV): {text: string; cls: string} | null => {
+    if (m.trang_thai === 'nhap') return {text: tMt('nhap'), cls: 'bg-navy/[0.06] text-grey-mid'};
+    if (m.trang_thai === 'gui') return {text: tMt('choBghDuyet'), cls: 'bg-gold/[0.18] text-gold-text'};
+    if (m.trang_thai === 'tra_lai') return {text: tMt('traLai'), cls: 'bg-status-bad/[0.12] text-status-bad'};
+    const d = m.trang_thai_do;
+    if (!d) return null;
+    const xanh = d === 'dat' || d === 'dang_thang' || d === 'dang_giu';
+    const do_ = d === 'can_co' || d === 'vuot' || d === 'truot';
+    const cls = xanh
+      ? 'bg-success/[0.12] text-success-dark'
+      : do_
+        ? 'bg-status-bad/[0.12] text-status-bad'
+        : 'bg-gold/[0.18] text-gold-text';
+    return {text: tMt(`tt_${d}`), cls};
+  };
+
+  const baSo = (label: string, val: number | null | undefined) => (
+    <div className="flex-1 rounded-[14px] border-[1.5px] border-navy/10 bg-white px-3 py-2.5">
+      <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid">{label}</div>
+      <div className="mt-0.5 font-display text-[22px] font-bold text-navy tabular-nums">
+        {val == null ? <span className="text-grey-mid">—</span> : `${Math.round(Number(val))}%`}
+      </div>
+    </div>
+  );
+
+  const thName = 'px-3 py-2 text-left text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid';
+  const numCell = 'px-3 py-2.5 text-right text-[13px] font-extrabold tabular-nums text-navy';
 
   return (
     <div className="flex flex-col gap-4">
+      {/* ── Đầu trang ─────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="mr-auto font-display text-[22px] font-bold text-navy">
           {t('title')} · {myClass.name}
         </h1>
-        {/* Quản trị/BGH thấy bộ chọn KỂ CẢ khi chỉ có một lớp: nó là chỗ duy nhất trên màn hình
-            nói rõ mình đang đứng ở lớp nào. Giáo viên chỉ có lớp mình thì giấu đi cho gọn. */}
         {(accessible.length > 1 || profile.role === 'admin' || profile.role === 'principal') && (
           <ClassPicker classes={accessible} current={myClass.id} />
         )}
         <ClassOwnerNote classId={myClass.id} viewerId={profile.id} viewerRole={profile.role} />
-        <TaoWigMenu
-          classId={myClass.id}
-          areas={areaOptions}
-          namOptions={namOptions}
-          thangOptions={thangOptions}
-          tuanOptions={tuanOptions}
-          // Danh sách cha xếp theo NGÀY BẮT ĐẦU, không theo thứ tự tạo: lớp tạo mục tiêu tháng 9
-          // trước rồi tháng 8 sau thì danh sách đọc thành 9, 8 — và cái đứng đầu lại là cái xa
-          // hôm nay nhất. Menu tự chọn cha phủ kỳ đang đứng (xem TaoWigMenu), thứ tự này chỉ để
-          // người đọc thấy đúng dòng thời gian.
-          // Mục tiêu cuộn KHÔNG có trong danh sách cha: nó không rải nhịp, nên một mốc tháng treo
-          // dưới nó sẽ đếm đúng y hệt cái ở cấp năm. Server cũng từ chối (chaHopLe) — nhưng từ
-          // chối sau khi người ta điền xong cả form là tới quá muộn.
-          wigNam={[...yearWigs]
-            .filter((w) => w.measure_by !== 'cuon')
-            .sort((a, b) => a.start_date.localeCompare(b.start_date))
-            .map((w) => ({
-              id: w.id,
-              title: w.title ?? areaLabel(areaMeta[w.area as Area], locale),
-              start_date: w.start_date,
-              end_date: w.end_date,
-            }))}
-          wigThang={[...monthWigs].sort((a, b) => a.start_date.localeCompare(b.start_date)).map((w) => ({
-            id: w.id,
-            title: `${w.title ?? t('month')} · ${w.period_label ?? ''}`,
-            start_date: w.start_date,
-            end_date: w.end_date,
-          }))}
-          gioiHan={gioiHanChonKy()}
-          kyMacDinh={kyMacDinh}
-        />
       </div>
 
       <Flash />
 
-      <WeekNav
-        monday={monday}
-        thisMonday={thisMonday}
-        label={wk.label}
-        start={wk.start}
-        end={wk.end}
-        classParam={classParam}
-      />
+      {/* ── Thanh tuần ────────────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          href={{pathname: '/wig', query: q({week: shiftWeeks(monday, -1)})}}
+          className="inline-flex items-center gap-1 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[12px] font-extrabold text-navy transition-all hover:border-navy"
+        >
+          <ArrowLeft size={13} strokeWidth={2.5} />
+          {tTuan('weekPrev')}
+        </Link>
+        <span className="rounded-[10px] bg-navy/[0.05] px-3 py-1.5 text-[12.5px] font-bold text-navy">
+          {wk.label} · {ngayVN(wk.start)} – {ngayVN(wk.end)}
+          {laTuanNay ? ` · ${tTuan('weekNow')}` : monday > thisMonday ? ` · ${tTuan('weekFuture')}` : ` · ${tTuan('weekPast')}`}
+        </span>
+        <Link
+          href={{pathname: '/wig', query: q({week: shiftWeeks(monday, 1)})}}
+          className="inline-flex items-center gap-1 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[12px] font-extrabold text-navy transition-all hover:border-navy"
+        >
+          {tTuan('weekNext')}
+          <ArrowRight size={13} strokeWidth={2.5} />
+        </Link>
+      </div>
 
-      {/* METRICS CẤP LỚP (0147 — PRD v3 6.3): gộp mọi dòng của lớp (cả lớp lẫn từng em) cho tuần
-          đang xem + luỹ kế từ đầu năm. Một câu hỏi, lọc tại chỗ. */}
-      {await (async () => {
-        const {data: soRows} = await supabase
-          .from('metrics_tuan_v')
-          .select('week_start, tong_lead, lead_xong, tong_ck, ck_thang, ck_thua')
-          .eq('class_id', myClass.id)
-          .lte('week_start', monday);
-        const tuan = gopChiSo((soRows ?? []).filter((r) => r.week_start === monday));
-        const luyKe = gopChiSo(soRows ?? []);
-        const theoTuan = new Map<string, {thang: number; thua: number}>();
-        for (const r of soRows ?? []) {
-          const k = r.week_start ?? '';
-          const o = theoTuan.get(k) ?? {thang: 0, thua: 0};
-          o.thang += r.ck_thang ?? 0;
-          o.thua += r.ck_thua ?? 0;
-          theoTuan.set(k, o);
-        }
-        const pips = [...theoTuan.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([, v]) => v);
-        return <DaiChiSo tuan={tuan} luyKe={luyKe} pips={pips} />;
-      })()}
+      {/* ── ① BA SỐ TÁCH (thi_dua_lop) ──────────────────────────────────────────────────────── */}
+      <section className="glass rounded-[20px] p-[18px]">
+        <div className="flex items-stretch gap-2.5">
+          {baSo(t('cotMucTieu'), td?.diem_muc_tieu)}
+          {baSo(t('cotViec'), td?.diem_thuoc)}
+          {baSo(t('cotCamKet'), td?.diem_cam_ket)}
+        </div>
+        <p className="mt-2 text-[11.5px] font-semibold text-grey-mid">{t('baSoHint')}</p>
+      </section>
 
-      {/* 2/3 — 1/3: bên trái là việc của tuần này (thứ phải làm), bên phải là lớp đang đi tới đâu
-          (thứ phải biết). Chủ dự án chốt đúng tỉ lệ này. */}
-      <div className="grid items-start gap-4 lg:grid-cols-[1.9fr_1fr]">
+      <div className="grid items-start gap-4 lg:grid-cols-[1.4fr_1fr]">
+        {/* ── ② MỤC TIÊU CỦA LỚP ────────────────────────────────────────────────────────────── */}
         <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-[15px] font-bold text-navy">{t('goalThisWeek')}</h2>
-            <Link
-              href={{pathname: '/wig/chi-tiet', query: q()}}
-              className="ml-auto inline-flex items-center gap-1 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[12px] font-extrabold text-navy transition-all hover:border-navy"
-            >
-              {t('detail')}
-              <ArrowRight size={13} strokeWidth={2.5} />
-            </Link>
-          </div>
-
-          {/* CAM KẾT CỦA TUẦN (0121) — thay cho "mục tiêu tuần" cũ.
-              Cam kết là một LỜI HỨA nên không có vạch tiến độ, không có "x / y đơn vị": con số
-              nằm ở các việc dẫn dắt bên dưới, và thắng/thua thì buổi họp chấm bằng V/X. Vạch
-              tiến độ vẫn còn, nhưng ở MỤC TIÊU NĂM — cột bên phải. */}
-          {camKet.length === 0 && yearWigs.length === 0 ? (
-            <div className="rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-5 text-center">
-              <p className="text-[13px] font-bold text-navy">{t('noCommitmentsThisWeek', {label: wk.label})}</p>
-              <p className="mx-auto mt-1 max-w-[420px] text-[11.5px] font-semibold leading-relaxed text-grey-mid">{t('noWeekWigsHow')}</p>
+          <h2 className="font-display text-[15px] font-bold text-navy">{t('khuMucTieu')}</h2>
+          {mucTieuLop.length === 0 ? (
+            <div className="rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-5 text-center text-[12.5px] font-semibold text-grey-mid">
+              {t('mucTieuTrong')}
             </div>
           ) : (
-            camKet.map((c) => {
-              const meta = areaMeta[c.area as Area];
+            mucTieuLop.map((m) => {
+              const meta = areaMeta[(m.linh_vuc ?? 'knowledge') as Area];
+              const nhan = nhanTrangThai(m);
+              const dv = m.ten_don_vi ?? '';
               return (
-                <div key={c.id} className="flex flex-col gap-2.5">
+                <div
+                  key={m.id}
+                  className="flex flex-col gap-2 rounded-[14px] border-[1.5px] border-navy/10 p-3.5"
+                >
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span
                       className="inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-extrabold"
@@ -593,101 +317,448 @@ export default async function WigPage({
                     >
                       {areaLabel(meta, locale)}
                     </span>
-                    <span className="min-w-0 flex-1 font-display text-[16px] font-bold text-navy">
-                      {c.title}
+                    <span className="min-w-0 flex-1 font-display text-[15px] font-bold text-navy">
+                      {m.ten ?? areaLabel(meta, locale)}
                     </span>
-                    {/* CHỜ DUYỆT — chỉ hiện với cam kết em tự đặt mà cô chưa gật (0129). Nút
-                        duyệt đứng ngay cạnh chữ, để cô gật tại chỗ chứ không phải đi tìm một màn
-                        khác. Không có nút TỪ CHỐI: lời hứa của một đứa trẻ thì không ai bác bỏ —
-                        thấy chưa ổn thì nói với em rồi để em sửa, sửa xong nó tự chờ duyệt lại. */}
-                    {/* Cùng lý do như bảng các em: gật rồi thì để lại dấu, đừng chỉ biến mất. */}
-                    {c.status === 'approved' && !c.verdict && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
-                        {tGoal('approvedShort')}
+                    {nhan && (
+                      <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${nhan.cls}`}>
+                        {nhan.text}
                       </span>
-                    )}
-                    {c.status === 'sent' && (
-                      <NutDuyet
-                        hanhDong={duyetCamKetTraVe}
-                        o={{commitment_id: c.id, week: weekQ, class_id: classParam}}
-                        label={`${t('commitmentPending')}: ${c.title}`}
-                      />
-                    )}
-                    {/* V/X đã chấm. Chưa chấm thì KHÔNG hiện gì — một dấu xám "chưa" chỉ làm
-                        người đọc tưởng là thua. */}
-                    {c.verdict && (
-                      <span
-                        className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${
-                          c.verdict === 'win'
-                            ? 'bg-success/15 text-success-dark'
-                            : 'bg-status-bad/[0.12] text-status-bad'
-                        }`}
-                      >
-                        {c.verdict === 'win' ? <Check size={11} strokeWidth={3} /> : null}
-                        {c.verdict === 'win' ? t('verdictWonTag') : t('verdictLostTag')}
-                      </span>
-                    )}
-                    {/* CÔ SỬA / XOÁ cam kết và việc của lớp khi tuần chưa chốt (16/08/2026). */}
-                    {tuanNayDaHop !== true && (
-                      <SuaCamKetLop
-                        commitmentId={c.id}
-                        title={c.title}
-                        viec={viecCuaCamKet(c.id).map((v) => ({id: v.id, title: v.title, target: Number(v.target_value), unit: v.unit}))}
-                        classParam={classParam}
-                        weekQ={weekQ}
-                      />
                     )}
                   </div>
-
-                  <h3 className="mt-1 font-display text-[13.5px] font-bold text-navy">
-                    {t('workToTick')}
-                  </h3>
-                  <ViecTuan
-                    homNay={todayVN}
-                    moKhoa={tuanNayDaHop !== true}
-                    commitmentId={c.id}
-                    wigUnit={''}
-                    wigArea={areaLabel(meta, locale)}
-                    viec={viecCuaCamKet(c.id)}
-                    dayShort={t.raw('dayShort') as string[]}
-                  />
+                  <p className="text-[12.5px] font-semibold text-grey-mid">{cauMucTieu(m)}</p>
+                  {m.trang_thai === 'tra_lai' && m.ly_do_tra_lai && (
+                    <p className="text-[11.5px] font-semibold text-status-bad">
+                      {tMt('lyDoTraLai', {note: m.ly_do_tra_lai})}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap items-baseline gap-x-3 text-[12.5px] font-bold text-navy">
+                    {m.so != null && <span>{tMt('dangO', {so: m.so, dv})}</span>}
+                    {m.le_ra != null && (
+                      <span className="text-grey-mid">{tMt('leRaHomNay', {so: m.le_ra, dv})}</span>
+                    )}
+                    {m.pct != null && <span className="tabular-nums text-grey-mid">{Math.round(Number(m.pct) * 100)}%</span>}
+                  </div>
+                  {/* Ghi số hôm nay — chỉ mục tiêu ĐO TAY đã duyệt (máy không đếm được). */}
+                  {m.nguon_so === 'ghi_tay' && m.trang_thai === 'duyet' && (
+                    <form action={ghiSoMucTieuLop} className="mt-1 flex flex-wrap items-end gap-2">
+                      {ctx}
+                      <input type="hidden" name="muc_tieu_id" value={m.id} />
+                      <label className="flex flex-col gap-0.5 text-[10.5px] font-bold text-grey-mid">
+                        {t('ghiSoNgay')}
+                        <input
+                          type="date"
+                          name="ngay"
+                          defaultValue={todayVN}
+                          max={todayVN}
+                          className="rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-0.5 text-[10.5px] font-bold text-grey-mid">
+                        {t('ghiSoHomNay')}
+                        <input
+                          type="number"
+                          name="gia_tri"
+                          step="any"
+                          min="0"
+                          inputMode="decimal"
+                          className="w-24 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
+                        />
+                      </label>
+                      <button
+                        type="submit"
+                        className="rounded-[8px] bg-navy px-3 py-1.5 text-[12px] font-extrabold text-white transition-all hover:bg-navy/90"
+                      >
+                        {t('ghiSoGhi')}
+                      </button>
+                    </form>
+                  )}
                 </div>
               );
             })
           )}
-          {/* ĐẶT CAM KẾT NGAY TẠI ĐÂY — không chờ buổi họp (chủ dự án 16/08/2026). Trần 2 do máy chặn. */}
-          {tuanNayDaHop !== true && (
-            <DatCamKetLop
-              classId={myClass.id}
-              weekStart={monday}
-              daCo={camKet.length}
-              namHienCo={yearWigs.filter((w) => w.measure_by !== 'cuon').map((w) => ({id: w.id, title: w.title ?? ''}))}
-            />
-          )}
-
-          {/* Dòng "n/m em đã tick trong tuần này" đã bỏ (16/08/2026).
-              Hai lý do, và lý do thứ hai mới là lý do thật: (1) chủ dự án muốn bớt chữ nhỏ;
-              (2) từ hôm nay VIỆC CHUNG DO CÔ TICK, em không còn tick nó nữa — nên câu "0/7 em đã
-              tick" vĩnh viễn đọc là 0/7 và tố cáo cả lớp về một việc không ai được làm. */}
-          {tuanChuaToi && (
-            <p className="border-t border-navy/[0.08] pt-3 text-[12px] font-semibold text-grey-mid">
-              {t('tickBoardNotStarted')}
-            </p>
-          )}
         </section>
 
+        {/* ── ③ VIỆC CỦA LỚP ────────────────────────────────────────────────────────────────── */}
         <section className="glass rounded-[20px] p-[18px]">
-          <h2 className="mb-3 font-display text-[15px] font-bold text-navy">{t('progressRail')}</h2>
-          <BangTienDo nhom={nhomTienDo} weekParam={weekQ} classParam={classParam} areaOptions={areaOptions} />
+          <h2 className="mb-3 font-display text-[15px] font-bold text-navy">{t('khuViec')}</h2>
+          {thuoc.length === 0 ? (
+            <p className="text-[12.5px] font-semibold text-grey-mid">{t('viecTrong')}</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {thuoc.map((v) => {
+                const xanh = v.trang_thai === 'dat' || v.trang_thai === 'dang_thang' || v.trang_thai === 'dang_giu';
+                const do_ = v.trang_thai === 'can_co' || v.trang_thai === 'vuot' || v.trang_thai === 'truot';
+                const chip = v.mien
+                  ? 'bg-navy/[0.06] text-grey-mid'
+                  : xanh
+                    ? 'bg-success/[0.12] text-success-dark'
+                    : do_
+                      ? 'bg-status-bad/[0.12] text-status-bad'
+                      : 'bg-gold/[0.18] text-gold-text';
+                return (
+                  <div
+                    key={v.thuoc_id}
+                    className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2"
+                  >
+                    <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">{v.ten}</span>
+                    <span className="text-[12px] font-extrabold tabular-nums text-navy">
+                      {t('cotViec') === '' ? null : null}
+                      {tViec('nEmDu', {n: v.so_em_dat, si: v.si_so})}
+                    </span>
+                    <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-extrabold ${chip}`}>
+                      {v.mien ? tViec('oNghi') : v.trang_thai === 'dat' || v.trang_thai === 'dang_thang' ? tViec('du') : tViec('chuaDu')}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       </div>
 
-      {/* CÁC EM TUẦN NÀY — cùng cây với màn của em, cô chỉ có nút Duyệt (components/wig/BangCacEm). */}
+      {/* ── ④ CAM KẾT CỦA LỚP ───────────────────────────────────────────────────────────────── */}
+      <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
+        <h2 className="font-display text-[15px] font-bold text-navy">{t('khuCamKet')}</h2>
+        {camKet.length === 0 ? (
+          <p className="text-[12.5px] font-semibold text-grey-mid">{t('camKetTrong')}</p>
+        ) : (
+          camKet.map((c) => (
+            <div key={c.id} className="flex flex-col gap-2 rounded-[14px] border-[1.5px] border-navy/10 p-3.5">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="min-w-0 flex-1 font-display text-[14.5px] font-bold text-navy">
+                  {c.noi_dung}
+                </span>
+                {c.so_hua != null && (
+                  <span className="text-[11.5px] font-bold text-grey-mid tabular-nums">
+                    {tCk('chipSo', {dat: c.so_dat ?? 0, hua: c.so_hua, dv: c.ten_don_vi ?? ''})}
+                  </span>
+                )}
+                {c.ket_qua === 'thang' && (
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
+                    <Check size={11} strokeWidth={3} />
+                    {tCk('thang')}
+                  </span>
+                )}
+                {c.ket_qua === 'thua' && (
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-status-bad/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-status-bad">
+                    {tCk('thua')}
+                  </span>
+                )}
+              </div>
+              {/* Cô chấm Thắng/Thua (RLS: chỉ GVCN/admin; nút văng lỗi nếu chấm sớm). */}
+              <div className="flex flex-wrap items-center gap-2">
+                <form action={chamCamKetLop} className="flex items-center gap-2">
+                  {ctx}
+                  <input type="hidden" name="cam_ket_id" value={c.id ?? undefined} />
+                  {c.so_hua != null && (
+                    <input
+                      type="number"
+                      name="so_dat"
+                      step="any"
+                      min="0"
+                      defaultValue={c.so_dat ?? undefined}
+                      placeholder={tCk('soDatHoi', {dv: c.ten_don_vi ?? ''})}
+                      className="w-28 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12px] text-navy"
+                    />
+                  )}
+                  <button
+                    type="submit"
+                    name="ket_qua"
+                    value="thang"
+                    className="inline-flex items-center gap-1 rounded-[8px] border-[1.5px] border-success/40 bg-success/[0.12] px-2.5 py-1 text-[12px] font-extrabold text-success-dark transition-all hover:bg-success/20"
+                  >
+                    <Check size={12} strokeWidth={3} />
+                    {tCk('thang')}
+                  </button>
+                  <button
+                    type="submit"
+                    name="ket_qua"
+                    value="thua"
+                    className="inline-flex items-center gap-1 rounded-[8px] border-[1.5px] border-status-bad/40 bg-status-bad/[0.08] px-2.5 py-1 text-[12px] font-extrabold text-status-bad transition-all hover:bg-status-bad/15"
+                  >
+                    <X size={12} strokeWidth={3} />
+                    {tCk('thua')}
+                  </button>
+                </form>
+                <form action={xoaCamKetLop}>
+                  {ctx}
+                  <input type="hidden" name="cam_ket_id" value={c.id ?? undefined} />
+                  <button type="submit" className="text-[11.5px] font-bold text-grey-mid hover:text-status-bad">
+                    {tCk('huy')}
+                  </button>
+                </form>
+              </div>
+            </div>
+          ))
+        )}
+        {/* Đặt cam kết của lớp cho tuần đang xem. */}
+        <details className="rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-3">
+          <summary className="cursor-pointer text-[12.5px] font-extrabold text-navy">
+            {t('themCamKet')}
+          </summary>
+          <form action={taoCamKetLop} className="mt-2 flex flex-col gap-2">
+            {ctx}
+            <input type="hidden" name="tuan_bat_dau" value={monday} />
+            <input
+              name="noi_dung"
+              maxLength={300}
+              placeholder={tCk('noiDungLop')}
+              className="rounded-[8px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[13px] text-navy"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="number"
+                name="so_hua"
+                step="any"
+                min="0"
+                placeholder={tCk('soHua')}
+                className="w-28 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
+              />
+              {mucTieuLop.length > 0 && (
+                <select
+                  name="muc_tieu_id"
+                  className="rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
+                >
+                  <option value="">{tCk('giupKhongCo')}</option>
+                  {mucTieuLop.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.ten ?? ''}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <button
+                type="submit"
+                className="rounded-[8px] bg-navy px-3 py-1.5 text-[12px] font-extrabold text-white transition-all hover:bg-navy/90"
+              >
+                {tCk('luu')}
+              </button>
+            </div>
+          </form>
+        </details>
+      </section>
+
+      {/* ── ⑤ CÁC EM TUẦN NÀY (component chung, tự đọc bang_lop_em) ─────────────────────────── */}
       <BangCacEm classId={myClass.id} monday={monday} weekQ={weekQ} classParam={classParam} />
 
-      {/* NÚT VÀO PHÒNG HỌP LỚP ĐÃ GỠ 19/08/2026 — chủ dự án: "bây giờ ko còn họp lớp nữa đâu,
-          chỉ còn họp với buddy thôi". Nhịp giải trình tuần nay là PDR buddy (em ký là tuần của
-          em khoá — 0154); /wig/hop chuyển hướng về đây, dữ liệu biên bản cũ giữ nguyên. */}
+      {/* ── ⑥ MẪU MỤC TIÊU cho các em ──────────────────────────────────────────────────────── */}
+      <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
+        <h2 className="font-display text-[15px] font-bold text-navy">{t('khuMau')}</h2>
+        {mau.length === 0 ? (
+          <p className="text-[12.5px] font-semibold text-grey-mid">{t('mauTrong')}</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {mau.map((mm) => {
+              const meta = areaMeta[(mm.linh_vuc ?? 'knowledge') as Area];
+              return (
+                <div
+                  key={mm.id}
+                  className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2"
+                >
+                  <span
+                    className="inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-extrabold"
+                    style={{background: meta.soft, color: meta.hex}}
+                  >
+                    {areaLabel(meta, locale)}
+                  </span>
+                  <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">{mm.ten}</span>
+                  {(mm.x_goi_y != null || mm.y_goi_y != null) && (
+                    <span className="text-[11.5px] font-semibold text-grey-mid tabular-nums">
+                      {mm.x_goi_y ?? '?'} → {mm.y_goi_y ?? '?'}
+                    </span>
+                  )}
+                  <form action={xoaMau}>
+                    {ctx}
+                    <input type="hidden" name="mau_id" value={mm.id} />
+                    <button type="submit" className="text-[11.5px] font-bold text-grey-mid hover:text-status-bad">
+                      {t('mauXoa')}
+                    </button>
+                  </form>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {mau.length < 8 && (
+          <details className="rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-3">
+            <summary className="cursor-pointer text-[12.5px] font-extrabold text-navy">{t('mauThem')}</summary>
+            <form action={taoMau} className="mt-2 flex flex-col gap-2">
+              {ctx}
+              <input
+                name="ten"
+                maxLength={120}
+                placeholder={t('mauTen')}
+                className="rounded-[8px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[13px] text-navy"
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  name="linh_vuc"
+                  defaultValue="knowledge"
+                  className="rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
+                >
+                  {AREAS.map((a) => (
+                    <option key={a} value={a}>
+                      {areaLabel(areaMeta[a], locale)}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  name="chieu"
+                  defaultValue="tang"
+                  className="rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
+                >
+                  <option value="tang">{tViec('chieuItNhat')}</option>
+                  <option value="giam">{tViec('chieuKhongQua')}</option>
+                </select>
+                <input
+                  type="number"
+                  name="x_goi_y"
+                  step="any"
+                  placeholder="x"
+                  className="w-16 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
+                />
+                <input
+                  type="number"
+                  name="y_goi_y"
+                  step="any"
+                  placeholder="y"
+                  className="w-16 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
+                />
+                <button
+                  type="submit"
+                  className="rounded-[8px] bg-navy px-3 py-1.5 text-[12px] font-extrabold text-white transition-all hover:bg-navy/90"
+                >
+                  {t('ghiSoGhi')}
+                </button>
+              </div>
+            </form>
+          </details>
+        )}
+      </section>
+
+      {/* ── ⑦ CHỜ DUYỆT ─────────────────────────────────────────────────────────────────────── */}
+      <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
+        <h2 className="font-display text-[15px] font-bold text-navy">
+          {soCho > 0 ? tDuyet('choDuyetN', {n: soCho}) : tDuyet('choDuyet')}
+        </h2>
+        <p className="text-[11.5px] font-semibold text-grey-mid">{tDuyet('luuY')}</p>
+        {soCho === 0 ? (
+          <p className="text-[12.5px] font-semibold text-grey-mid">{tDuyet('khongCo')}</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {(mtCho ?? []).map((m) => (
+              <div
+                key={m.id}
+                className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2"
+              >
+                <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10px] font-extrabold text-grey-mid">
+                  {tDuyet('loaiMucTieu')}
+                </span>
+                <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">
+                  {m.ten} <span className="font-semibold text-grey-mid">{tDuyet('cua', {ten: tenEm.get(m.student_id ?? '') ?? ''})}</span>
+                </span>
+                <form action={duyetMucTieuEm} className="contents">
+                  {ctx}
+                  <input type="hidden" name="muc_tieu_id" value={m.id ?? undefined} />
+                  <button
+                    type="submit"
+                    className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-2.5 py-0.5 text-[10.5px] font-extrabold text-gold-text transition-all hover:bg-gold/30"
+                  >
+                    {tDuyet('duyet')}
+                  </button>
+                </form>
+                <details className="relative">
+                  <summary className="cursor-pointer list-none rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2.5 py-0.5 text-[11px] font-extrabold text-navy hover:border-navy">
+                    {tDuyet('traLai')}
+                  </summary>
+                  <form action={traLaiMucTieuEm} className="mt-1 flex flex-col gap-1">
+                    {ctx}
+                    <input type="hidden" name="muc_tieu_id" value={m.id ?? undefined} />
+                    <textarea
+                      name="note"
+                      maxLength={300}
+                      placeholder={tDuyet('traLaiNhan')}
+                      className="w-full rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12px] text-navy"
+                    />
+                    <button type="submit" className="self-start rounded-[8px] bg-navy px-2.5 py-1 text-[11px] font-extrabold text-white">
+                      {tDuyet('traLaiGui')}
+                    </button>
+                  </form>
+                </details>
+              </div>
+            ))}
+            {(thuocCho ?? []).map((v) => (
+              <div
+                key={v.id}
+                className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2"
+              >
+                <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10px] font-extrabold text-grey-mid">
+                  {tDuyet('loaiViec')}
+                </span>
+                <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">
+                  {v.ten} <span className="font-semibold text-grey-mid">{tDuyet('cua', {ten: tenEm.get(v.student_id ?? '') ?? ''})}</span>
+                </span>
+                <form action={duyetThuoc} className="contents">
+                  {ctx}
+                  <input type="hidden" name="thuoc_id" value={v.id} />
+                  <button
+                    type="submit"
+                    className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-2.5 py-0.5 text-[10.5px] font-extrabold text-gold-text transition-all hover:bg-gold/30"
+                  >
+                    {tDuyet('duyet')}
+                  </button>
+                </form>
+                <details>
+                  <summary className="cursor-pointer list-none rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2.5 py-0.5 text-[11px] font-extrabold text-navy hover:border-navy">
+                    {tDuyet('traLai')}
+                  </summary>
+                  <form action={traLaiThuoc} className="mt-1 flex flex-col gap-1">
+                    {ctx}
+                    <input type="hidden" name="thuoc_id" value={v.id} />
+                    <textarea
+                      name="note"
+                      maxLength={300}
+                      placeholder={tDuyet('traLaiNhan')}
+                      className="w-full rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12px] text-navy"
+                    />
+                    <button type="submit" className="self-start rounded-[8px] bg-navy px-2.5 py-1 text-[11px] font-extrabold text-white">
+                      {tDuyet('traLaiGui')}
+                    </button>
+                  </form>
+                </details>
+              </div>
+            ))}
+            {haChoLop.map((r) => {
+              const th = r.thuoc as {ten: string | null; student_id: string | null} | {ten: string | null; student_id: string | null}[] | null;
+              const one = Array.isArray(th) ? th[0] : th;
+              return (
+                <div
+                  key={r.id}
+                  className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2"
+                >
+                  <span className="rounded-full bg-status-bad/[0.10] px-2 py-0.5 text-[10px] font-extrabold text-status-bad">
+                    {tDuyet('loaiHaChiTieu', {cu: one?.ten ?? '', moi: r.chi_tieu_ky ?? ''})}
+                  </span>
+                  <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">
+                    {one?.ten} <span className="font-semibold text-grey-mid">{tDuyet('cua', {ten: tenEm.get(one?.student_id ?? '') ?? ''})}</span>
+                  </span>
+                  <form action={duyetHaChiTieu} className="contents">
+                    {ctx}
+                    <input type="hidden" name="lich_su_id" value={r.id} />
+                    <button
+                      type="submit"
+                      className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-2.5 py-0.5 text-[10.5px] font-extrabold text-gold-text transition-all hover:bg-gold/30"
+                    >
+                      {tDuyet('duyet')}
+                    </button>
+                  </form>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -79,7 +79,7 @@ export async function AdminSections({phan}: {phan: 'nguoi' | 'truong' | 'khac'})
   // một cái nút chỉ dùng được sau khi làm một việc khác. Thẻ bấm vào mà không tới đâu thì lần sau
   // người ta thôi tin cả cái mục lục.
   const screens = [
-    {href: '/', label: tn('scoreboard'), desc: 'Trang lớp: bảng điểm, xếp hạng, donut WIG'},
+    {href: '/', label: tn('scoreboard'), desc: 'Trang lớp: bảng điểm, xếp hạng, donut mục tiêu'},
     {href: '/attendance', label: tn('attendance'), desc: 'Điểm danh hằng ngày (tick cả lớp rồi bấm Lưu)'},
     {href: '/roster', label: tn('roster'), desc: 'Danh sách lớp + gán trưởng điểm danh'},
     {href: '/wig', label: tn('wig'), desc: 'Mục tiêu tuần, việc để các em tick, phòng họp WIG'},
@@ -133,7 +133,7 @@ export async function AdminSections({phan}: {phan: 'nguoi' | 'truong' | 'khac'})
           campus_id: c.campus_id,
           homeroom_teacher_id: c.homeroom_teacher_id,
           // PostgREST trả về đếm nhúng dạng [{count: n}]; lớp rỗng vẫn có một phần tử count 0.
-          soWig: c.wigs?.[0]?.count ?? 0,
+          soWig: c.muc_tieu?.[0]?.count ?? 0,
           soHocSinh: c.enrollments?.[0]?.count ?? 0,
         }))}
         teachers={staffList}

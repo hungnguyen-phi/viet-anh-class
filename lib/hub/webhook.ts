@@ -3,12 +3,11 @@ import {createHmac} from 'node:crypto';
 
 // GỬI DỮ LIỆU VỀ HUB — MỘT CỬA, MỘT KỶ LUẬT: mỗi loại sự kiện có ĐÚNG một hàm dựng payload, nhận
 // đúng những trường nó cần (không nhận nguyên một hàng CSDL) — không thể lỡ tay gửi kèm một cột
-// thừa, đúng cách lib/buddy.ts đã làm với BuddyFact/BuddyContext (docs/DATA_GOVERNANCE.md §7).
+// thừa (docs/DATA_GOVERNANCE.md §7).
 //
 // TUYỆT ĐỐI KHÔNG GỬI (rổ Đỏ — xem bản đấu nối mục 2): không mood_checkins, không pdr_meetings,
-// không buddy_messages/wig_meetings.buddy_note, không student_reflections, không
-// parent_teacher_messages, không student_details. Nếu một ngày nào đó ai đó định thêm một hàm
-// buildXxxEvent() đọc từ một trong các bảng trên — ĐỪNG. Hỏi lại nhà trường trước.
+// không parent_teacher_messages, không student_details. Nếu một ngày nào đó ai đó định thêm một
+// hàm buildXxxEvent() đọc từ một trong các bảng trên — ĐỪNG. Hỏi lại nhà trường trước.
 
 export type HubEventType = 'diem_danh.danh_dau' | 'viec_dan_dat.tick';
 

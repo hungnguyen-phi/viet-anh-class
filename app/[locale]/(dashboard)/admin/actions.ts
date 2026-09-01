@@ -617,10 +617,10 @@ export async function deleteClass(formData: FormData) {
   const supabase = await createClient();
   const [{count: enr}, {count: wig}] = await Promise.all([
     supabase.from('enrollments').select('id', {count: 'exact', head: true}).eq('class_id', id),
-    supabase.from('wigs').select('id', {count: 'exact', head: true}).eq('class_id', id),
+    supabase.from('muc_tieu').select('id', {count: 'exact', head: true}).eq('class_id', id),
   ]);
   if ((enr ?? 0) > 0 || (wig ?? 0) > 0)
-    flash('Không thể xoá: lớp còn học sinh hoặc WIG. Hãy dùng Lưu trữ để giữ dữ liệu.');
+    flash('Không thể xoá: lớp còn học sinh hoặc mục tiêu. Hãy dùng Lưu trữ để giữ dữ liệu.');
   const {error} = await supabase.from('classes').delete().eq('id', id);
   if (!error) await supabase.rpc('log_audit', {p_action: 'delete_class', p_detail: {class: id}});
   quen();

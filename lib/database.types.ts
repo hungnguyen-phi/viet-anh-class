@@ -194,79 +194,324 @@ export type Database = {
           },
         ]
       }
-      buddy_messages: {
+      buddy_pairs: {
         Row: {
-          content: string
+          buddy_id: string
+          class_id: string
           created_at: string
+          created_by: string | null
           id: string
-          meeting_id: string
-          role: string
+          is_active: boolean
+          student_id: string
         }
         Insert: {
-          content: string
+          buddy_id: string
+          class_id: string
           created_at?: string
+          created_by?: string | null
           id?: string
-          meeting_id: string
-          role: string
+          is_active?: boolean
+          student_id: string
         }
         Update: {
-          content?: string
+          buddy_id?: string
+          class_id?: string
           created_at?: string
+          created_by?: string | null
           id?: string
-          meeting_id?: string
-          role?: string
+          is_active?: boolean
+          student_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "buddy_messages_meeting_id_fkey"
-            columns: ["meeting_id"]
+            foreignKeyName: "buddy_pairs_buddy_id_fkey"
+            columns: ["buddy_id"]
             isOneToOne: false
-            referencedRelation: "wig_meetings"
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buddy_pairs_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buddy_pairs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buddy_pairs_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cam_ket: {
+        Row: {
+          cham_at: string | null
+          cham_boi: string | null
+          chu_the: string
+          class_id: string
+          created_at: string
+          created_by: string | null
+          don_vi_id: string | null
+          goi_y: string | null
+          id: string
+          ket_qua: string | null
+          lac_muc_tieu: boolean | null
+          muc_tieu_id: string | null
+          nguoi_nhap_ho: string | null
+          nhom_id: string | null
+          noi_dung: string
+          pdr_meeting_id: string | null
+          so_dat: number | null
+          so_hua: number | null
+          so_tuan: number
+          student_id: string | null
+          thuoc_id: string | null
+          trang_thai: string
+          tuan_bat_dau: string
+          tuan_ket_thuc: string | null
+          updated_at: string
+          xong_at: string | null
+        }
+        Insert: {
+          cham_at?: string | null
+          cham_boi?: string | null
+          chu_the: string
+          class_id: string
+          created_at?: string
+          created_by?: string | null
+          don_vi_id?: string | null
+          goi_y?: string | null
+          id?: string
+          ket_qua?: string | null
+          lac_muc_tieu?: never
+          muc_tieu_id?: string | null
+          nguoi_nhap_ho?: string | null
+          nhom_id?: string | null
+          noi_dung: string
+          pdr_meeting_id?: string | null
+          so_dat?: number | null
+          so_hua?: number | null
+          so_tuan?: number
+          student_id?: string | null
+          thuoc_id?: string | null
+          trang_thai?: string
+          tuan_bat_dau: string
+          tuan_ket_thuc?: never
+          updated_at?: string
+          xong_at?: string | null
+        }
+        Update: {
+          cham_at?: string | null
+          cham_boi?: string | null
+          chu_the?: string
+          class_id?: string
+          created_at?: string
+          created_by?: string | null
+          don_vi_id?: string | null
+          goi_y?: string | null
+          id?: string
+          ket_qua?: string | null
+          lac_muc_tieu?: never
+          muc_tieu_id?: string | null
+          nguoi_nhap_ho?: string | null
+          nhom_id?: string | null
+          noi_dung?: string
+          pdr_meeting_id?: string | null
+          so_dat?: number | null
+          so_hua?: number | null
+          so_tuan?: number
+          student_id?: string | null
+          thuoc_id?: string | null
+          trang_thai?: string
+          tuan_bat_dau?: string
+          tuan_ket_thuc?: never
+          updated_at?: string
+          xong_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cam_ket_cham_boi_fkey"
+            columns: ["cham_boi"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cam_ket_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cam_ket_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cam_ket_don_vi_id_fkey"
+            columns: ["don_vi_id"]
+            isOneToOne: false
+            referencedRelation: "don_vi"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cam_ket_muc_tieu_id_fkey"
+            columns: ["muc_tieu_id"]
+            isOneToOne: false
+            referencedRelation: "muc_tieu"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cam_ket_nguoi_nhap_ho_fkey"
+            columns: ["nguoi_nhap_ho"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cam_ket_nhom_id_fkey"
+            columns: ["nhom_id"]
+            isOneToOne: false
+            referencedRelation: "nhom"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cam_ket_pdr_meeting_id_fkey"
+            columns: ["pdr_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "pdr_meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cam_ket_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cam_ket_thuoc_id_fkey"
+            columns: ["thuoc_id"]
+            isOneToOne: false
+            referencedRelation: "thuoc"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cam_ket_xac_nhan: {
+        Row: {
+          cam_ket_id: string
+          created_at: string
+          dong_y: boolean
+          id: string
+          nguoi_id: string
+          vai: string
+          y_kien: string | null
+        }
+        Insert: {
+          cam_ket_id: string
+          created_at?: string
+          dong_y?: boolean
+          id?: string
+          nguoi_id?: string
+          vai: string
+          y_kien?: string | null
+        }
+        Update: {
+          cam_ket_id?: string
+          created_at?: string
+          dong_y?: boolean
+          id?: string
+          nguoi_id?: string
+          vai?: string
+          y_kien?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cam_ket_xac_nhan_cam_ket_id_fkey"
+            columns: ["cam_ket_id"]
+            isOneToOne: false
+            referencedRelation: "cam_ket"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cam_ket_xac_nhan_nguoi_id_fkey"
+            columns: ["nguoi_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
       }
       campus_clubs: {
         Row: {
-          id: string
           campus_id: string
-          weekday: number
-          start_time: string
-          end_time: string
-          name: string
-          room: string | null
-          note: string | null
-          created_by: string | null
           created_at: string
+          created_by: string | null
+          end_time: string
+          id: string
+          name: string
+          note: string | null
+          room: string | null
+          start_time: string
           updated_at: string
+          weekday: number
         }
         Insert: {
-          id?: string
           campus_id: string
-          weekday: number
-          start_time: string
-          end_time: string
-          name: string
-          room?: string | null
-          note?: string | null
-          created_by?: string | null
           created_at?: string
+          created_by?: string | null
+          end_time: string
+          id?: string
+          name: string
+          note?: string | null
+          room?: string | null
+          start_time: string
           updated_at?: string
+          weekday: number
         }
         Update: {
-          id?: string
           campus_id?: string
-          weekday?: number
-          start_time?: string
-          end_time?: string
-          name?: string
-          room?: string | null
-          note?: string | null
-          created_by?: string | null
           created_at?: string
+          created_by?: string | null
+          end_time?: string
+          id?: string
+          name?: string
+          note?: string | null
+          room?: string | null
+          start_time?: string
           updated_at?: string
+          weekday?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campus_clubs_campus_id_fkey"
+            columns: ["campus_id"]
+            isOneToOne: false
+            referencedRelation: "campuses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campus_clubs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campuses: {
         Row: {
@@ -355,6 +600,51 @@ export type Database = {
           {
             foreignKeyName: "class_albums_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_period_times: {
+        Row: {
+          class_id: string
+          end_time: string
+          id: string
+          period_no: number
+          start_time: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          class_id: string
+          end_time: string
+          id?: string
+          period_no: number
+          start_time: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          class_id?: string
+          end_time?: string
+          id?: string
+          period_no?: number
+          start_time?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_period_times_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_period_times_updated_by_fkey"
+            columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -533,180 +823,6 @@ export type Database = {
           },
         ]
       }
-      buddy_pairs: {
-        Row: {
-          id: string
-          class_id: string
-          student_id: string
-          buddy_id: string
-          created_by: string
-          is_active: boolean
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          class_id: string
-          student_id: string
-          buddy_id: string
-          created_by: string
-          is_active?: boolean
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          class_id?: string
-          student_id?: string
-          buddy_id?: string
-          created_by?: string
-          is_active?: boolean
-          created_at?: string
-        }
-        Relationships: []
-      }
-      pdr_schedules: {
-        Row: {
-          id: string
-          class_id: string
-          student_id: string | null
-          buddy_pair_id: string | null
-          type: string
-          weekday: number | null
-          time_slot: string | null
-          monthly_day: number | null
-          created_by: string
-          is_active: boolean
-          created_at: string
-          nhac_khi: string
-        }
-        Insert: {
-          id?: string
-          class_id: string
-          student_id?: string | null
-          buddy_pair_id?: string | null
-          type: string
-          weekday?: number | null
-          time_slot?: string | null
-          monthly_day?: number | null
-          created_by: string
-          is_active?: boolean
-          created_at?: string
-          nhac_khi?: string
-        }
-        Update: {
-          id?: string
-          class_id?: string
-          student_id?: string | null
-          buddy_pair_id?: string | null
-          type?: string
-          weekday?: number | null
-          time_slot?: string | null
-          monthly_day?: number | null
-          created_by?: string
-          is_active?: boolean
-          created_at?: string
-          nhac_khi?: string
-        }
-        Relationships: []
-      }
-      pdr_nhac_da_gui: {
-        Row: { user_id: string; ngay: string; loai: string; gui_luc: string }
-        Insert: { user_id: string; ngay: string; loai: string; gui_luc?: string }
-        Update: { user_id?: string; ngay?: string; loai?: string; gui_luc?: string }
-        Relationships: []
-      }
-      pdr_nhac_lan_chay: {
-        Row: { mot_dong: boolean; chay_luc: string }
-        Insert: { mot_dong?: boolean; chay_luc?: string }
-        Update: { mot_dong?: boolean; chay_luc?: string }
-        Relationships: []
-      }
-      pdr_meetings: {
-        Row: {
-          id: string
-          class_id: string
-          student_id: string
-          type: string
-          counterpart_id: string
-          second_buddy_id: string | null
-          week_label: string
-          q1_plan: string | null
-          q2_result: string | null
-          q3_obstacle: string | null
-          q4_overcome: string | null
-          q5_better_way: string | null
-          q6_commitment: string | null
-          acknowledged_at: string | null
-          acknowledged_by: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          class_id: string
-          student_id: string
-          type: string
-          counterpart_id: string
-          second_buddy_id?: string | null
-          week_label: string
-          q1_plan?: string | null
-          q2_result?: string | null
-          q3_obstacle?: string | null
-          q4_overcome?: string | null
-          q5_better_way?: string | null
-          q6_commitment?: string | null
-          acknowledged_at?: string | null
-          acknowledged_by?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          class_id?: string
-          student_id?: string
-          type?: string
-          counterpart_id?: string
-          second_buddy_id?: string | null
-          week_label?: string
-          q1_plan?: string | null
-          q2_result?: string | null
-          q3_obstacle?: string | null
-          q4_overcome?: string | null
-          q5_better_way?: string | null
-          q6_commitment?: string | null
-          acknowledged_at?: string | null
-          acknowledged_by?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      class_period_times: {
-        Row: {
-          id: string
-          class_id: string
-          period_no: number
-          start_time: string
-          end_time: string
-          updated_by: string | null
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          class_id: string
-          period_no: number
-          start_time: string
-          end_time: string
-          updated_by?: string | null
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          class_id?: string
-          period_no?: number
-          start_time?: string
-          end_time?: string
-          updated_by?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       classes: {
         Row: {
           campus_id: string
@@ -718,8 +834,8 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          nhap_ho: boolean
           school_year: string
-          tick_lock_dow: number
         }
         Insert: {
           campus_id: string
@@ -731,8 +847,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          nhap_ho?: boolean
           school_year: string
-          tick_lock_dow?: number
         }
         Update: {
           campus_id?: string
@@ -744,8 +860,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          nhap_ho?: boolean
           school_year?: string
-          tick_lock_dow?: number
         }
         Relationships: [
           {
@@ -771,105 +887,40 @@ export type Database = {
           },
         ]
       }
-      commitments: {
+      don_vi: {
         Row: {
-          area: Database["public"]["Enums"]["wig_domain"]
-          class_id: string
           created_at: string
-          pdr_meeting_id: string | null
           created_by: string | null
           id: string
-          set_by: string | null
-          so_lan_sua: number
-          status: string
-          student_id: string | null
-          title: string
-          verdict: string | null
-          verdict_at: string | null
-          verdict_by: string | null
-          verdict_goi_y: string | null
-          week_start: string
-          wig_id: string
+          is_active: boolean
+          ma: string
+          nhan_en: string
+          nhan_vi: string
         }
         Insert: {
-          area: Database["public"]["Enums"]["wig_domain"]
-          class_id: string
           created_at?: string
-          pdr_meeting_id?: string | null
           created_by?: string | null
           id?: string
-          set_by?: string | null
-          so_lan_sua?: number
-          status?: string
-          student_id?: string | null
-          title: string
-          verdict?: string | null
-          verdict_at?: string | null
-          verdict_by?: string | null
-          verdict_goi_y?: string | null
-          week_start: string
-          wig_id: string
+          is_active?: boolean
+          ma: string
+          nhan_en: string
+          nhan_vi: string
         }
         Update: {
-          area?: Database["public"]["Enums"]["wig_domain"]
-          class_id?: string
           created_at?: string
-          pdr_meeting_id?: string | null
           created_by?: string | null
           id?: string
-          set_by?: string | null
-          so_lan_sua?: number
-          status?: string
-          student_id?: string | null
-          title?: string
-          verdict?: string | null
-          verdict_at?: string | null
-          verdict_by?: string | null
-          verdict_goi_y?: string | null
-          week_start?: string
-          wig_id?: string
+          is_active?: boolean
+          ma?: string
+          nhan_en?: string
+          nhan_vi?: string
         }
         Relationships: [
           {
-            foreignKeyName: "commitments_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "commitments_created_by_fkey"
+            foreignKeyName: "don_vi_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "commitments_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "commitments_verdict_by_fkey"
-            columns: ["verdict_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "commitments_wig_id_fkey"
-            columns: ["wig_id"]
-            isOneToOne: false
-            referencedRelation: "wig_progress_v"
-            referencedColumns: ["wig_id"]
-          },
-          {
-            foreignKeyName: "commitments_wig_id_fkey"
-            columns: ["wig_id"]
-            isOneToOne: false
-            referencedRelation: "wigs"
             referencedColumns: ["id"]
           },
         ]
@@ -887,6 +938,7 @@ export type Database = {
           resolved_by: string | null
           status: string
           student_id: string
+          tuan: string | null
         }
         Insert: {
           class_id: string
@@ -900,6 +952,7 @@ export type Database = {
           resolved_by?: string | null
           status?: string
           student_id: string
+          tuan?: string | null
         }
         Update: {
           class_id?: string
@@ -913,6 +966,7 @@ export type Database = {
           resolved_by?: string | null
           status?: string
           student_id?: string
+          tuan?: string | null
         }
         Relationships: [
           {
@@ -1219,118 +1273,192 @@ export type Database = {
           },
         ]
       }
-      lead_measures: {
+      lich_su_dich: {
         Row: {
-          active_weekdays: number[]
-          commitment_id: string
-          created_at: string
+          ai: string | null
           id: string
-          nhap_luong: boolean
-          sub_category: string | null
-          target_value: number
-          title: string
-          unit: string | null
-          unit_per_tick: number
-          wig_id: string | null
+          ket_thuc_cu: string | null
+          ket_thuc_moi: string | null
+          luc: string
+          muc_tieu_id: string
+          x_cu: number | null
+          x_moi: number | null
+          y_cu: number | null
+          y_moi: number | null
         }
         Insert: {
-          active_weekdays?: number[]
-          commitment_id: string
-          created_at?: string
+          ai?: string | null
           id?: string
-          nhap_luong?: boolean
-          sub_category?: string | null
-          target_value: number
-          title: string
-          unit?: string | null
-          unit_per_tick?: number
-          wig_id?: string | null
+          ket_thuc_cu?: string | null
+          ket_thuc_moi?: string | null
+          luc?: string
+          muc_tieu_id: string
+          x_cu?: number | null
+          x_moi?: number | null
+          y_cu?: number | null
+          y_moi?: number | null
         }
         Update: {
-          active_weekdays?: number[]
-          commitment_id?: string
-          created_at?: string
+          ai?: string | null
           id?: string
-          nhap_luong?: boolean
-          sub_category?: string | null
-          target_value?: number
-          title?: string
-          unit?: string | null
-          unit_per_tick?: number
-          wig_id?: string | null
+          ket_thuc_cu?: string | null
+          ket_thuc_moi?: string | null
+          luc?: string
+          muc_tieu_id?: string
+          x_cu?: number | null
+          x_moi?: number | null
+          y_cu?: number | null
+          y_moi?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "lead_measures_commitment_id_fkey"
-            columns: ["commitment_id"]
-            isOneToOne: false
-            referencedRelation: "commitments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_measures_wig_id_fkey"
-            columns: ["wig_id"]
-            isOneToOne: false
-            referencedRelation: "wig_progress_v"
-            referencedColumns: ["wig_id"]
-          },
-          {
-            foreignKeyName: "lead_measures_wig_id_fkey"
-            columns: ["wig_id"]
-            isOneToOne: false
-            referencedRelation: "wigs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lead_progress: {
-        Row: {
-          created_at: string
-          id: string
-          lead_measure_id: string
-          logged_by: string | null
-          logged_date: string
-          note: string | null
-          student_id: string | null
-          value: number
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          lead_measure_id: string
-          logged_by?: string | null
-          logged_date?: string
-          note?: string | null
-          student_id?: string | null
-          value?: number
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          lead_measure_id?: string
-          logged_by?: string | null
-          logged_date?: string
-          note?: string | null
-          student_id?: string | null
-          value?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lead_progress_lead_measure_id_fkey"
-            columns: ["lead_measure_id"]
-            isOneToOne: false
-            referencedRelation: "lead_measures"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_progress_logged_by_fkey"
-            columns: ["logged_by"]
+            foreignKeyName: "lich_su_dich_ai_fkey"
+            columns: ["ai"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lead_progress_student_id_fkey"
+            foreignKeyName: "lich_su_dich_muc_tieu_id_fkey"
+            columns: ["muc_tieu_id"]
+            isOneToOne: false
+            referencedRelation: "muc_tieu"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      luot: {
+        Row: {
+          chu_the_key: string | null
+          created_at: string
+          gia_tri: number
+          id: string
+          ngay: string
+          nguoi_ghi: string | null
+          nguoi_sua: string | null
+          nguon: string
+          nguon_ref: string | null
+          stt: number
+          student_id: string | null
+          sua_at: string | null
+          thuoc_id: string
+        }
+        Insert: {
+          chu_the_key?: never
+          created_at?: string
+          gia_tri: number
+          id?: string
+          ngay: string
+          nguoi_ghi?: string | null
+          nguoi_sua?: string | null
+          nguon?: string
+          nguon_ref?: string | null
+          stt?: number
+          student_id?: string | null
+          sua_at?: string | null
+          thuoc_id: string
+        }
+        Update: {
+          chu_the_key?: never
+          created_at?: string
+          gia_tri?: number
+          id?: string
+          ngay?: string
+          nguoi_ghi?: string | null
+          nguoi_sua?: string | null
+          nguon?: string
+          nguon_ref?: string | null
+          stt?: number
+          student_id?: string | null
+          sua_at?: string | null
+          thuoc_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "luot_nguoi_ghi_fkey"
+            columns: ["nguoi_ghi"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "luot_nguoi_sua_fkey"
+            columns: ["nguoi_sua"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "luot_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "luot_thuoc_id_fkey"
+            columns: ["thuoc_id"]
+            isOneToOne: false
+            referencedRelation: "thuoc"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      luot_mo_khoa: {
+        Row: {
+          class_id: string
+          edit_request_id: string | null
+          het_han: string
+          id: string
+          mo_at: string
+          mo_boi: string | null
+          student_id: string
+          week_start: string
+        }
+        Insert: {
+          class_id: string
+          edit_request_id?: string | null
+          het_han: string
+          id?: string
+          mo_at?: string
+          mo_boi?: string | null
+          student_id: string
+          week_start: string
+        }
+        Update: {
+          class_id?: string
+          edit_request_id?: string | null
+          het_han?: string
+          id?: string
+          mo_at?: string
+          mo_boi?: string | null
+          student_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "luot_mo_khoa_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "luot_mo_khoa_edit_request_id_fkey"
+            columns: ["edit_request_id"]
+            isOneToOne: false
+            referencedRelation: "edit_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "luot_mo_khoa_mo_boi_fkey"
+            columns: ["mo_boi"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "luot_mo_khoa_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1386,6 +1514,48 @@ export type Database = {
           },
         ]
       }
+      moc_muc_tieu: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          gia_tri: number
+          id: string
+          muc_tieu_id: string
+          ngay: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          gia_tri: number
+          id?: string
+          muc_tieu_id: string
+          ngay: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          gia_tri?: number
+          id?: string
+          muc_tieu_id?: string
+          ngay?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moc_muc_tieu_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moc_muc_tieu_muc_tieu_id_fkey"
+            columns: ["muc_tieu_id"]
+            isOneToOne: false
+            referencedRelation: "muc_tieu"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mood_checkins: {
         Row: {
           buoi: string
@@ -1428,6 +1598,451 @@ export type Database = {
           {
             foreignKeyName: "mood_checkins_student_id_fkey"
             columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      muc_tieu: {
+        Row: {
+          bat_dau: string
+          campus_id: string
+          cap: string
+          chieu: string
+          chu_the_key: string | null
+          chua_do_x: boolean
+          class_id: string | null
+          created_at: string
+          created_by: string | null
+          dang_tap_trung: boolean
+          don_vi_id: string | null
+          dong_at: string | null
+          dong_boi: string | null
+          duyet_at: string | null
+          duyet_boi: string | null
+          gop_con: string | null
+          gop_thanh_phan: string | null
+          id: string
+          ket_thuc: string
+          kieu_dich: string
+          ky: string | null
+          lay_tu: string | null
+          linh_vuc: Database["public"]["Enums"]["wig_domain"]
+          ly_do_dong: string | null
+          ly_do_tra_lai: string | null
+          mau_id: string | null
+          nam_hoc: string
+          nguoi_nhap_ho: string | null
+          nguon_he_thong: string | null
+          nguon_so: string
+          nguong_con: number | null
+          nhom_id: string | null
+          student_id: string | null
+          subject_id: string | null
+          ten: string
+          trang_thai: string
+          updated_at: string
+          x_chu: string | null
+          x_so: number | null
+          y_chu: string | null
+          y_so: number | null
+        }
+        Insert: {
+          bat_dau?: string
+          campus_id: string
+          cap: string
+          chieu?: string
+          chu_the_key?: never
+          chua_do_x?: boolean
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          dang_tap_trung?: boolean
+          don_vi_id?: string | null
+          dong_at?: string | null
+          dong_boi?: string | null
+          duyet_at?: string | null
+          duyet_boi?: string | null
+          gop_con?: string | null
+          gop_thanh_phan?: string | null
+          id?: string
+          ket_thuc: string
+          kieu_dich?: string
+          ky?: string | null
+          lay_tu?: string | null
+          linh_vuc?: Database["public"]["Enums"]["wig_domain"]
+          ly_do_dong?: string | null
+          ly_do_tra_lai?: string | null
+          mau_id?: string | null
+          nam_hoc?: string
+          nguoi_nhap_ho?: string | null
+          nguon_he_thong?: string | null
+          nguon_so?: string
+          nguong_con?: number | null
+          nhom_id?: string | null
+          student_id?: string | null
+          subject_id?: string | null
+          ten: string
+          trang_thai?: string
+          updated_at?: string
+          x_chu?: string | null
+          x_so?: number | null
+          y_chu?: string | null
+          y_so?: number | null
+        }
+        Update: {
+          bat_dau?: string
+          campus_id?: string
+          cap?: string
+          chieu?: string
+          chu_the_key?: never
+          chua_do_x?: boolean
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          dang_tap_trung?: boolean
+          don_vi_id?: string | null
+          dong_at?: string | null
+          dong_boi?: string | null
+          duyet_at?: string | null
+          duyet_boi?: string | null
+          gop_con?: string | null
+          gop_thanh_phan?: string | null
+          id?: string
+          ket_thuc?: string
+          kieu_dich?: string
+          ky?: string | null
+          lay_tu?: string | null
+          linh_vuc?: Database["public"]["Enums"]["wig_domain"]
+          ly_do_dong?: string | null
+          ly_do_tra_lai?: string | null
+          mau_id?: string | null
+          nam_hoc?: string
+          nguoi_nhap_ho?: string | null
+          nguon_he_thong?: string | null
+          nguon_so?: string
+          nguong_con?: number | null
+          nhom_id?: string | null
+          student_id?: string | null
+          subject_id?: string | null
+          ten?: string
+          trang_thai?: string
+          updated_at?: string
+          x_chu?: string | null
+          x_so?: number | null
+          y_chu?: string | null
+          y_so?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "muc_tieu_campus_id_fkey"
+            columns: ["campus_id"]
+            isOneToOne: false
+            referencedRelation: "campuses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "muc_tieu_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "muc_tieu_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "muc_tieu_don_vi_id_fkey"
+            columns: ["don_vi_id"]
+            isOneToOne: false
+            referencedRelation: "don_vi"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "muc_tieu_dong_boi_fkey"
+            columns: ["dong_boi"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "muc_tieu_duyet_boi_fkey"
+            columns: ["duyet_boi"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "muc_tieu_mau_id_fkey"
+            columns: ["mau_id"]
+            isOneToOne: false
+            referencedRelation: "muc_tieu_mau"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "muc_tieu_nguoi_nhap_ho_fkey"
+            columns: ["nguoi_nhap_ho"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "muc_tieu_nhom_id_fkey"
+            columns: ["nhom_id"]
+            isOneToOne: false
+            referencedRelation: "nhom"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "muc_tieu_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "muc_tieu_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      muc_tieu_mau: {
+        Row: {
+          chieu: string
+          class_id: string
+          created_at: string
+          created_by: string | null
+          don_vi_id: string | null
+          id: string
+          is_active: boolean
+          kieu_dich: string
+          linh_vuc: Database["public"]["Enums"]["wig_domain"]
+          subject_id: string | null
+          ten: string
+          x_goi_y: number | null
+          y_goi_y: number | null
+        }
+        Insert: {
+          chieu?: string
+          class_id: string
+          created_at?: string
+          created_by?: string | null
+          don_vi_id?: string | null
+          id?: string
+          is_active?: boolean
+          kieu_dich?: string
+          linh_vuc: Database["public"]["Enums"]["wig_domain"]
+          subject_id?: string | null
+          ten: string
+          x_goi_y?: number | null
+          y_goi_y?: number | null
+        }
+        Update: {
+          chieu?: string
+          class_id?: string
+          created_at?: string
+          created_by?: string | null
+          don_vi_id?: string | null
+          id?: string
+          is_active?: boolean
+          kieu_dich?: string
+          linh_vuc?: Database["public"]["Enums"]["wig_domain"]
+          subject_id?: string | null
+          ten?: string
+          x_goi_y?: number | null
+          y_goi_y?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "muc_tieu_mau_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "muc_tieu_mau_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "muc_tieu_mau_don_vi_id_fkey"
+            columns: ["don_vi_id"]
+            isOneToOne: false
+            referencedRelation: "don_vi"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "muc_tieu_mau_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nhom: {
+        Row: {
+          class_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          loai: string
+          ten: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          loai?: string
+          ten: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          loai?: string
+          ten?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nhom_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nhom_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nhom_thanh_vien: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          nhom_id: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nhom_id: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nhom_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nhom_thanh_vien_nhom_id_fkey"
+            columns: ["nhom_id"]
+            isOneToOne: false
+            referencedRelation: "nhom"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nhom_thanh_vien_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      noi: {
+        Row: {
+          cha_id: string
+          con_id: string | null
+          con_loai: string | null
+          con_muc_tieu_id: string | null
+          con_thuoc_id: string | null
+          created_at: string
+          created_by: string | null
+          ghi_chu: string | null
+          he_so: number
+          id: string
+          noi_tu_dong: boolean
+          vai: string
+        }
+        Insert: {
+          cha_id: string
+          con_id?: never
+          con_loai?: never
+          con_muc_tieu_id?: string | null
+          con_thuoc_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          ghi_chu?: string | null
+          he_so?: number
+          id?: string
+          noi_tu_dong?: boolean
+          vai: string
+        }
+        Update: {
+          cha_id?: string
+          con_id?: never
+          con_loai?: never
+          con_muc_tieu_id?: string | null
+          con_thuoc_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          ghi_chu?: string | null
+          he_so?: number
+          id?: string
+          noi_tu_dong?: boolean
+          vai?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "noi_cha_id_fkey"
+            columns: ["cha_id"]
+            isOneToOne: false
+            referencedRelation: "muc_tieu"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "noi_con_muc_tieu_id_fkey"
+            columns: ["con_muc_tieu_id"]
+            isOneToOne: false
+            referencedRelation: "muc_tieu"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "noi_con_thuoc_id_fkey"
+            columns: ["con_thuoc_id"]
+            isOneToOne: false
+            referencedRelation: "thuoc"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "noi_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1508,7 +2123,7 @@ export type Database = {
           {
             foreignKeyName: "parent_invitations_student_id_fkey"
             columns: ["student_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1670,6 +2285,272 @@ export type Database = {
           },
           {
             foreignKeyName: "parent_teacher_threads_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pdr_ke_lai: {
+        Row: {
+          cam_ket_id: string
+          created_at: string
+          ghi_chu: string | null
+          id: string
+          ket_qua: string | null
+          pdr_meeting_id: string
+          so_dat: number | null
+        }
+        Insert: {
+          cam_ket_id: string
+          created_at?: string
+          ghi_chu?: string | null
+          id?: string
+          ket_qua?: string | null
+          pdr_meeting_id: string
+          so_dat?: number | null
+        }
+        Update: {
+          cam_ket_id?: string
+          created_at?: string
+          ghi_chu?: string | null
+          id?: string
+          ket_qua?: string | null
+          pdr_meeting_id?: string
+          so_dat?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdr_ke_lai_cam_ket_id_fkey"
+            columns: ["cam_ket_id"]
+            isOneToOne: false
+            referencedRelation: "cam_ket"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdr_ke_lai_pdr_meeting_id_fkey"
+            columns: ["pdr_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "pdr_meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pdr_meetings: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          class_id: string
+          counterpart_id: string | null
+          created_at: string
+          id: string
+          nguoi_nhap_ho: string | null
+          q1_plan: string | null
+          q2_result: string | null
+          q3_obstacle: string | null
+          q4_overcome: string | null
+          q5_better_way: string | null
+          q6_commitment: string | null
+          second_buddy_id: string | null
+          student_id: string
+          type: string
+          week_label: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          class_id: string
+          counterpart_id?: string | null
+          created_at?: string
+          id?: string
+          nguoi_nhap_ho?: string | null
+          q1_plan?: string | null
+          q2_result?: string | null
+          q3_obstacle?: string | null
+          q4_overcome?: string | null
+          q5_better_way?: string | null
+          q6_commitment?: string | null
+          second_buddy_id?: string | null
+          student_id: string
+          type: string
+          week_label: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          class_id?: string
+          counterpart_id?: string | null
+          created_at?: string
+          id?: string
+          nguoi_nhap_ho?: string | null
+          q1_plan?: string | null
+          q2_result?: string | null
+          q3_obstacle?: string | null
+          q4_overcome?: string | null
+          q5_better_way?: string | null
+          q6_commitment?: string | null
+          second_buddy_id?: string | null
+          student_id?: string
+          type?: string
+          week_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdr_meetings_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdr_meetings_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdr_meetings_counterpart_id_fkey"
+            columns: ["counterpart_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdr_meetings_nguoi_nhap_ho_fkey"
+            columns: ["nguoi_nhap_ho"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdr_meetings_second_buddy_id_fkey"
+            columns: ["second_buddy_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdr_meetings_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pdr_nhac_da_gui: {
+        Row: {
+          gui_luc: string
+          loai: string
+          ngay: string
+          user_id: string
+        }
+        Insert: {
+          gui_luc?: string
+          loai: string
+          ngay: string
+          user_id: string
+        }
+        Update: {
+          gui_luc?: string
+          loai?: string
+          ngay?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdr_nhac_da_gui_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pdr_nhac_lan_chay: {
+        Row: {
+          chay_luc: string
+          mot_dong: boolean
+        }
+        Insert: {
+          chay_luc?: string
+          mot_dong?: boolean
+        }
+        Update: {
+          chay_luc?: string
+          mot_dong?: boolean
+        }
+        Relationships: []
+      }
+      pdr_schedules: {
+        Row: {
+          buddy_pair_id: string | null
+          class_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          monthly_day: number | null
+          nhac_khi: string
+          student_id: string | null
+          time_slot: string | null
+          type: string
+          weekday: number | null
+        }
+        Insert: {
+          buddy_pair_id?: string | null
+          class_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          monthly_day?: number | null
+          nhac_khi?: string
+          student_id?: string | null
+          time_slot?: string | null
+          type: string
+          weekday?: number | null
+        }
+        Update: {
+          buddy_pair_id?: string | null
+          class_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          monthly_day?: number | null
+          nhac_khi?: string
+          student_id?: string | null
+          time_slot?: string | null
+          type?: string
+          weekday?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdr_schedules_buddy_pair_id_fkey"
+            columns: ["buddy_pair_id"]
+            isOneToOne: false
+            referencedRelation: "buddy_pairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdr_schedules_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdr_schedules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdr_schedules_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1903,6 +2784,87 @@ export type Database = {
         }
         Relationships: []
       }
+      so_do: {
+        Row: {
+          created_at: string
+          gia_tri: number
+          id: string
+          muc_tieu_id: string
+          ngay: string
+          nguoi_ghi: string | null
+          nguoi_sua: string | null
+          nguon: string
+          nguon_ref: string | null
+          student_id: string | null
+          sua_at: string | null
+          thanh_phan_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          gia_tri: number
+          id?: string
+          muc_tieu_id: string
+          ngay: string
+          nguoi_ghi?: string | null
+          nguoi_sua?: string | null
+          nguon?: string
+          nguon_ref?: string | null
+          student_id?: string | null
+          sua_at?: string | null
+          thanh_phan_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          gia_tri?: number
+          id?: string
+          muc_tieu_id?: string
+          ngay?: string
+          nguoi_ghi?: string | null
+          nguoi_sua?: string | null
+          nguon?: string
+          nguon_ref?: string | null
+          student_id?: string | null
+          sua_at?: string | null
+          thanh_phan_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "so_do_muc_tieu_id_fkey"
+            columns: ["muc_tieu_id"]
+            isOneToOne: false
+            referencedRelation: "muc_tieu"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "so_do_nguoi_ghi_fkey"
+            columns: ["nguoi_ghi"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "so_do_nguoi_sua_fkey"
+            columns: ["nguoi_sua"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "so_do_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "so_do_thanh_phan_id_fkey"
+            columns: ["thanh_phan_id"]
+            isOneToOne: false
+            referencedRelation: "thanh_phan"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_details: {
         Row: {
           created_at: string
@@ -1950,51 +2912,6 @@ export type Database = {
           },
           {
             foreignKeyName: "student_details_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      student_reflections: {
-        Row: {
-          body: string
-          class_id: string
-          created_at: string
-          id: string
-          student_id: string
-          updated_at: string
-          week_start: string
-        }
-        Insert: {
-          body: string
-          class_id: string
-          created_at?: string
-          id?: string
-          student_id: string
-          updated_at?: string
-          week_start: string
-        }
-        Update: {
-          body?: string
-          class_id?: string
-          created_at?: string
-          id?: string
-          student_id?: string
-          updated_at?: string
-          week_start?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_reflections_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_reflections_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -2298,6 +3215,276 @@ export type Database = {
           },
         ]
       }
+      thanh_phan: {
+        Row: {
+          created_at: string
+          id: string
+          muc_tieu_id: string
+          nguong: number | null
+          ten: string
+          thu_tu: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          muc_tieu_id: string
+          nguong?: number | null
+          ten: string
+          thu_tu?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          muc_tieu_id?: string
+          nguong?: number | null
+          ten?: string
+          thu_tu?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thanh_phan_muc_tieu_id_fkey"
+            columns: ["muc_tieu_id"]
+            isOneToOne: false
+            referencedRelation: "muc_tieu"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thuoc: {
+        Row: {
+          cach_ghi: string
+          chi_tieu_ky: number
+          chieu_dich: string
+          cho_bu: boolean
+          chu_the: string
+          chu_the_key: string | null
+          class_id: string
+          created_at: string
+          created_by: string | null
+          da_tung_duyet: boolean
+          den_tuan: string | null
+          don_vi_id: string
+          duyet: string
+          duyet_at: string | null
+          duyet_boi: string | null
+          gop: string
+          id: string
+          ky_tuan: number
+          ly_do_tra_lai: string | null
+          moi_lan: number | null
+          ngay_ap_dung: number[]
+          nguoi_nhap_ho: string | null
+          nguon_he_thong: string | null
+          nguong_moi_lan: number | null
+          nhom_id: string | null
+          pham_vi: string
+          student_id: string | null
+          subject_id: string | null
+          ten: string
+          toi_da_ngay: number | null
+          trang_thai: string
+          tu_tuan: string
+          updated_at: string
+        }
+        Insert: {
+          cach_ghi?: string
+          chi_tieu_ky: number
+          chieu_dich?: string
+          cho_bu?: boolean
+          chu_the: string
+          chu_the_key?: never
+          class_id: string
+          created_at?: string
+          created_by?: string | null
+          da_tung_duyet?: boolean
+          den_tuan?: string | null
+          don_vi_id: string
+          duyet?: string
+          duyet_at?: string | null
+          duyet_boi?: string | null
+          gop?: string
+          id?: string
+          ky_tuan?: number
+          ly_do_tra_lai?: string | null
+          moi_lan?: number | null
+          ngay_ap_dung?: number[]
+          nguoi_nhap_ho?: string | null
+          nguon_he_thong?: string | null
+          nguong_moi_lan?: number | null
+          nhom_id?: string | null
+          pham_vi?: string
+          student_id?: string | null
+          subject_id?: string | null
+          ten: string
+          toi_da_ngay?: number | null
+          trang_thai?: string
+          tu_tuan: string
+          updated_at?: string
+        }
+        Update: {
+          cach_ghi?: string
+          chi_tieu_ky?: number
+          chieu_dich?: string
+          cho_bu?: boolean
+          chu_the?: string
+          chu_the_key?: never
+          class_id?: string
+          created_at?: string
+          created_by?: string | null
+          da_tung_duyet?: boolean
+          den_tuan?: string | null
+          don_vi_id?: string
+          duyet?: string
+          duyet_at?: string | null
+          duyet_boi?: string | null
+          gop?: string
+          id?: string
+          ky_tuan?: number
+          ly_do_tra_lai?: string | null
+          moi_lan?: number | null
+          ngay_ap_dung?: number[]
+          nguoi_nhap_ho?: string | null
+          nguon_he_thong?: string | null
+          nguong_moi_lan?: number | null
+          nhom_id?: string | null
+          pham_vi?: string
+          student_id?: string | null
+          subject_id?: string | null
+          ten?: string
+          toi_da_ngay?: number | null
+          trang_thai?: string
+          tu_tuan?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thuoc_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thuoc_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thuoc_don_vi_id_fkey"
+            columns: ["don_vi_id"]
+            isOneToOne: false
+            referencedRelation: "don_vi"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thuoc_duyet_boi_fkey"
+            columns: ["duyet_boi"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thuoc_nguoi_nhap_ho_fkey"
+            columns: ["nguoi_nhap_ho"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thuoc_nhom_id_fkey"
+            columns: ["nhom_id"]
+            isOneToOne: false
+            referencedRelation: "nhom"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thuoc_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thuoc_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thuoc_lich_su: {
+        Row: {
+          chi_tieu_ky: number | null
+          created_at: string
+          duyet_at: string | null
+          duyet_boi: string | null
+          id: string
+          la_ha: boolean
+          ly_do: string | null
+          moi_lan: number | null
+          ngay_ap_dung: number[] | null
+          nguoi_doi: string | null
+          thuoc_id: string
+          trang_thai: string
+          tu_tuan: string
+        }
+        Insert: {
+          chi_tieu_ky?: number | null
+          created_at?: string
+          duyet_at?: string | null
+          duyet_boi?: string | null
+          id?: string
+          la_ha?: boolean
+          ly_do?: string | null
+          moi_lan?: number | null
+          ngay_ap_dung?: number[] | null
+          nguoi_doi?: string | null
+          thuoc_id: string
+          trang_thai?: string
+          tu_tuan: string
+        }
+        Update: {
+          chi_tieu_ky?: number | null
+          created_at?: string
+          duyet_at?: string | null
+          duyet_boi?: string | null
+          id?: string
+          la_ha?: boolean
+          ly_do?: string | null
+          moi_lan?: number | null
+          ngay_ap_dung?: number[] | null
+          nguoi_doi?: string | null
+          thuoc_id?: string
+          trang_thai?: string
+          tu_tuan?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thuoc_lich_su_duyet_boi_fkey"
+            columns: ["duyet_boi"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thuoc_lich_su_nguoi_doi_fkey"
+            columns: ["nguoi_doi"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thuoc_lich_su_thuoc_id_fkey"
+            columns: ["thuoc_id"]
+            isOneToOne: false
+            referencedRelation: "thuoc"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       timetable_overrides: {
         Row: {
           created_at: string
@@ -2347,43 +3534,43 @@ export type Database = {
           class_id: string
           created_at: string
           day_of_week: number
+          end_time: string | null
           id: string
           kind: string
           period_no: number
           room: string | null
+          start_time: string | null
           subject: string | null
           subject_id: string | null
           teacher_name: string | null
-          start_time: string | null
-          end_time: string | null
         }
         Insert: {
           class_id: string
           created_at?: string
           day_of_week: number
+          end_time?: string | null
           id?: string
           kind?: string
           period_no: number
           room?: string | null
+          start_time?: string | null
           subject?: string | null
           subject_id?: string | null
           teacher_name?: string | null
-          start_time?: string | null
-          end_time?: string | null
         }
         Update: {
           class_id?: string
           created_at?: string
           day_of_week?: number
+          end_time?: string | null
           id?: string
           kind?: string
           period_no?: number
           room?: string | null
+          start_time?: string | null
           subject?: string | null
           subject_id?: string | null
           teacher_name?: string | null
-          start_time?: string | null
-          end_time?: string | null
         }
         Relationships: [
           {
@@ -2402,399 +3589,39 @@ export type Database = {
           },
         ]
       }
-      wig_meeting_notes: {
+      tuan_hoc: {
         Row: {
-          class_id: string
-          id: string
-          lead_measure_id: string
-          note: string | null
-          updated_at: string
-          updated_by: string | null
-          verdict: string | null
+          campus_id: string
+          created_at: string
+          created_by: string | null
+          loai: string
           week_start: string
         }
         Insert: {
-          class_id: string
-          id?: string
-          lead_measure_id: string
-          note?: string | null
-          updated_at?: string
-          updated_by?: string | null
-          verdict?: string | null
+          campus_id: string
+          created_at?: string
+          created_by?: string | null
+          loai?: string
           week_start: string
         }
         Update: {
-          class_id?: string
-          id?: string
-          lead_measure_id?: string
-          note?: string | null
-          updated_at?: string
-          updated_by?: string | null
-          verdict?: string | null
+          campus_id?: string
+          created_at?: string
+          created_by?: string | null
+          loai?: string
           week_start?: string
         }
         Relationships: [
           {
-            foreignKeyName: "wig_meeting_notes_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wig_meeting_notes_lead_measure_id_fkey"
-            columns: ["lead_measure_id"]
-            isOneToOne: false
-            referencedRelation: "lead_measures"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wig_meeting_notes_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      wig_meetings: {
-        Row: {
-          buddy_action: string | null
-          buddy_chat_open: boolean
-          buddy_focus_lead_id: string | null
-          buddy_id: string | null
-          buddy_note: string | null
-          buddy_note_at: string | null
-          buddy_note_model: string | null
-          buddy_tokens: number | null
-          cach_tot_hon: string | null
-          chot_at: string | null
-          chot_by: string | null
-          class_id: string
-          coach_id: string | null
-          commitments: string | null
-          created_at: string
-          hs_go_luc: string | null
-          id: string
-          kho_khan: string | null
-          mo_luc: string | null
-          next_actions: string | null
-          results: string | null
-          student_id: string | null
-          tham_gia_luc: string | null
-          vuot_qua: string | null
-          week_label: string
-          week_start: string | null
-        }
-        Insert: {
-          buddy_action?: string | null
-          buddy_chat_open?: boolean
-          buddy_focus_lead_id?: string | null
-          buddy_id?: string | null
-          buddy_note?: string | null
-          buddy_note_at?: string | null
-          buddy_note_model?: string | null
-          buddy_tokens?: number | null
-          cach_tot_hon?: string | null
-          chot_at?: string | null
-          chot_by?: string | null
-          class_id: string
-          coach_id?: string | null
-          commitments?: string | null
-          created_at?: string
-          hs_go_luc?: string | null
-          id?: string
-          kho_khan?: string | null
-          mo_luc?: string | null
-          next_actions?: string | null
-          results?: string | null
-          student_id?: string | null
-          tham_gia_luc?: string | null
-          vuot_qua?: string | null
-          week_label: string
-          week_start?: string | null
-        }
-        Update: {
-          buddy_action?: string | null
-          buddy_chat_open?: boolean
-          buddy_focus_lead_id?: string | null
-          buddy_id?: string | null
-          buddy_note?: string | null
-          buddy_note_at?: string | null
-          buddy_note_model?: string | null
-          buddy_tokens?: number | null
-          cach_tot_hon?: string | null
-          chot_at?: string | null
-          chot_by?: string | null
-          class_id?: string
-          coach_id?: string | null
-          commitments?: string | null
-          created_at?: string
-          hs_go_luc?: string | null
-          id?: string
-          kho_khan?: string | null
-          mo_luc?: string | null
-          next_actions?: string | null
-          results?: string | null
-          student_id?: string | null
-          tham_gia_luc?: string | null
-          vuot_qua?: string | null
-          week_label?: string
-          week_start?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wig_meetings_buddy_focus_lead_id_fkey"
-            columns: ["buddy_focus_lead_id"]
-            isOneToOne: false
-            referencedRelation: "lead_measures"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wig_meetings_buddy_id_fkey"
-            columns: ["buddy_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wig_meetings_chot_by_fkey"
-            columns: ["chot_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wig_meetings_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wig_meetings_coach_id_fkey"
-            columns: ["coach_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wig_meetings_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      wig_so_do: {
-        Row: {
-          created_at: string
-          ghi_chu: string | null
-          gia_tri: number
-          id: string
-          nguoi_nhap: string | null
-          updated_at: string
-          vai_tro: string
-          week_start: string
-          wig_id: string
-        }
-        Insert: {
-          created_at?: string
-          ghi_chu?: string | null
-          gia_tri: number
-          id?: string
-          nguoi_nhap?: string | null
-          updated_at?: string
-          vai_tro: string
-          week_start: string
-          wig_id: string
-        }
-        Update: {
-          created_at?: string
-          ghi_chu?: string | null
-          gia_tri?: number
-          id?: string
-          nguoi_nhap?: string | null
-          updated_at?: string
-          vai_tro?: string
-          week_start?: string
-          wig_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wig_so_do_nguoi_nhap_fkey"
-            columns: ["nguoi_nhap"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wig_so_do_wig_id_fkey"
-            columns: ["wig_id"]
-            isOneToOne: false
-            referencedRelation: "wig_progress_v"
-            referencedColumns: ["wig_id"]
-          },
-          {
-            foreignKeyName: "wig_so_do_wig_id_fkey"
-            columns: ["wig_id"]
-            isOneToOne: false
-            referencedRelation: "wigs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      wigs: {
-        Row: {
-          achieved_at: string | null
-          reject_note: string | null
-          approved_by: string | null
-          approved_at: string | null
-          achieved_by: string | null
-          area: Database["public"]["Enums"]["wig_domain"]
-          baseline: number | null
-          campus_id: string | null
-          class_id: string | null
-          created_at: string
-          end_date: string
-          id: string
-          kind: string | null
-          measure_by: string
-          note: string | null
-          parent_wig_id: string | null
-          period: Database["public"]["Enums"]["wig_period"]
-          period_label: string | null
-          scope: Database["public"]["Enums"]["wig_scope"]
-          set_by: string | null
-          so_dich_can: number | null
-          source_wig_id: string | null
-          start_date: string
-          status: string
-          student_id: string | null
-          target_value: number
-          title: string
-          tong_dich: number | null
-          ty_le_can: number | null
-          unit: string
-        }
-        Insert: {
-          achieved_at?: string | null
-          reject_note?: string | null
-          approved_by?: string | null
-          approved_at?: string | null
-          achieved_by?: string | null
-          area: Database["public"]["Enums"]["wig_domain"]
-          baseline?: number | null
-          campus_id?: string | null
-          class_id?: string | null
-          created_at?: string
-          end_date: string
-          id?: string
-          kind?: string | null
-          measure_by?: string
-          note?: string | null
-          parent_wig_id?: string | null
-          period: Database["public"]["Enums"]["wig_period"]
-          period_label?: string | null
-          scope: Database["public"]["Enums"]["wig_scope"]
-          set_by?: string | null
-          so_dich_can?: number | null
-          source_wig_id?: string | null
-          start_date: string
-          status?: string
-          student_id?: string | null
-          target_value: number
-          title: string
-          tong_dich?: number | null
-          ty_le_can?: number | null
-          unit: string
-        }
-        Update: {
-          achieved_at?: string | null
-          reject_note?: string | null
-          approved_by?: string | null
-          approved_at?: string | null
-          achieved_by?: string | null
-          area?: Database["public"]["Enums"]["wig_domain"]
-          baseline?: number | null
-          campus_id?: string | null
-          class_id?: string | null
-          created_at?: string
-          end_date?: string
-          id?: string
-          kind?: string | null
-          measure_by?: string
-          note?: string | null
-          parent_wig_id?: string | null
-          period?: Database["public"]["Enums"]["wig_period"]
-          period_label?: string | null
-          scope?: Database["public"]["Enums"]["wig_scope"]
-          set_by?: string | null
-          so_dich_can?: number | null
-          source_wig_id?: string | null
-          start_date?: string
-          status?: string
-          student_id?: string | null
-          target_value?: number
-          title?: string
-          tong_dich?: number | null
-          ty_le_can?: number | null
-          unit?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wigs_achieved_by_fkey"
-            columns: ["achieved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wigs_campus_id_fkey"
+            foreignKeyName: "tuan_hoc_campus_id_fkey"
             columns: ["campus_id"]
             isOneToOne: false
             referencedRelation: "campuses"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wigs_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wigs_parent_wig_id_fkey"
-            columns: ["parent_wig_id"]
-            isOneToOne: false
-            referencedRelation: "wig_progress_v"
-            referencedColumns: ["wig_id"]
-          },
-          {
-            foreignKeyName: "wigs_parent_wig_id_fkey"
-            columns: ["parent_wig_id"]
-            isOneToOne: false
-            referencedRelation: "wigs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wigs_source_wig_id_fkey"
-            columns: ["source_wig_id"]
-            isOneToOne: false
-            referencedRelation: "wig_progress_v"
-            referencedColumns: ["wig_id"]
-          },
-          {
-            foreignKeyName: "wigs_source_wig_id_fkey"
-            columns: ["source_wig_id"]
-            isOneToOne: false
-            referencedRelation: "wigs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wigs_student_id_fkey"
-            columns: ["student_id"]
+            foreignKeyName: "tuan_hoc_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2803,6 +3630,103 @@ export type Database = {
       }
     }
     Views: {
+      cam_ket_v: {
+        Row: {
+          cham_at: string | null
+          cham_boi: string | null
+          chu_the: string | null
+          class_id: string | null
+          created_at: string | null
+          created_by: string | null
+          don_vi_id: string | null
+          goi_y: string | null
+          goi_y_may: string | null
+          id: string | null
+          ket_qua: string | null
+          lac_muc_tieu: boolean | null
+          muc_tieu_id: string | null
+          nguoi_nhap_ho: string | null
+          nhom_id: string | null
+          noi_dung: string | null
+          pdr_meeting_id: string | null
+          so_dat: number | null
+          so_dat_goi_y: number | null
+          so_hua: number | null
+          so_tuan: number | null
+          student_id: string | null
+          ten_don_vi: string | null
+          thuoc_id: string | null
+          trang_thai: string | null
+          tuan_bat_dau: string | null
+          tuan_ket_thuc: string | null
+          updated_at: string | null
+          xong_at: string | null
+        }
+        Relationships: []
+      }
+      muc_tieu_v: {
+        Row: {
+          bat_dau: string | null
+          campus_id: string | null
+          cap: string | null
+          chieu: string | null
+          chu_the_key: string | null
+          chua_do_x: boolean | null
+          class_id: string | null
+          created_at: string | null
+          created_by: string | null
+          dang_tap_trung: boolean | null
+          dat: boolean | null
+          don_vi_id: string | null
+          dong_at: string | null
+          dong_boi: string | null
+          duyet_at: string | null
+          duyet_boi: string | null
+          gop_con: string | null
+          gop_thanh_phan: string | null
+          id: string | null
+          ket_thuc: string | null
+          kieu_dich: string | null
+          ky: string | null
+          ky_den: string | null
+          ky_tu: string | null
+          lay_tu: string | null
+          le_ra: number | null
+          linh_vuc: Database["public"]["Enums"]["wig_domain"] | null
+          ly_do_dong: string | null
+          ly_do_tra_lai: string | null
+          mau_id: string | null
+          mau_so: number | null
+          nam_hoc: string | null
+          ngay_nguon: string | null
+          nguoi_nhap_ho: string | null
+          nguon: string | null
+          nguon_he_thong: string | null
+          nguon_so: string | null
+          nguong_con: number | null
+          nhom_id: string | null
+          pct: number | null
+          so: number | null
+          so_ky_giu: number | null
+          so_ky_xet: number | null
+          so_nguon: number | null
+          student_id: string | null
+          subject_id: string | null
+          ten: string | null
+          ten_don_vi: string | null
+          trang_thai: string | null
+          trang_thai_do: string | null
+          tu_so: number | null
+          updated_at: string | null
+          x: number | null
+          x_chu: string | null
+          x_so: number | null
+          y: number | null
+          y_chu: string | null
+          y_so: number | null
+        }
+        Relationships: []
+      }
       subject_term_summary_v: {
         Row: {
           diem_trung_binh: number | null
@@ -2830,56 +3754,6 @@ export type Database = {
           },
         ]
       }
-      metrics_tuan_v: {
-        Row: {
-          class_id: string | null
-          student_id: string | null
-          week_start: string | null
-          tong_lead: number | null
-          lead_xong: number | null
-          tong_ck: number | null
-          ck_thang: number | null
-          ck_thua: number | null
-        }
-        Relationships: []
-      }
-      wig_progress_v: {
-        Row: {
-          achieved_at: string | null
-          actual: number | null
-          area: Database["public"]["Enums"]["wig_domain"] | null
-          class_id: string | null
-          end_date: string | null
-          expected_pct: number | null
-          measure_by: string | null
-          pct: number | null
-          period: Database["public"]["Enums"]["wig_period"] | null
-          period_label: string | null
-          scope: Database["public"]["Enums"]["wig_scope"] | null
-          start_date: string | null
-          status: string | null
-          student_id: string | null
-          target_value: number | null
-          unit: string | null
-          wig_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wigs_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wigs_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Functions: {
       admin_delete_user: { Args: { p_user: string }; Returns: undefined }
@@ -2892,17 +3766,50 @@ export type Database = {
       }
       album_class: { Args: { a: string }; Returns: string }
       app_today: { Args: never; Returns: string }
-      apply_class_transfer: {
-        Args: { p_student: string; p_to_class: string }
-        Returns: undefined
-      }
+      apply_class_transfer: { Args: { p_student: string; p_to_class: string }; Returns: undefined }
       auth_campus: { Args: never; Returns: string }
-      sinh_nhac_pdr: { Args: never; Returns: number }
-      auth_role: {
-        Args: never
-        Returns: Database["public"]["Enums"]["user_role"]
+      auth_role: { Args: never; Returns: Database["public"]["Enums"]["user_role"] }
+      bang_lop_em: {
+        Args: { p_class: string; p_tuan?: string }
+        Returns: {
+          ck_thang: number
+          ck_tong: number
+          ho_ten: string
+          mt_tong: number
+          pdr_da_ky: boolean
+          student_id: string
+          thuoc_dat: number
+          thuoc_tong: number
+        }[]
       }
-      cam_ket_goi_y: { Args: { p_commitment: string }; Returns: string }
+      bang_lop_thuoc: {
+        Args: { p_class: string; p_tuan?: string }
+        Returns: {
+          chu_the: string
+          gia_lop: number
+          le_ra: number
+          mien: boolean
+          si_so: number
+          so_em_dat: number
+          so_em_ghi: number
+          ten: string
+          thuoc_id: string
+          trang_thai: string
+        }[]
+      }
+      bang_ron: {
+        Args: { p_student?: string }
+        Returns: {
+          ck_giu: number
+          ck_tong: number
+          ti_le: number
+          trang_thai: string
+          viec_dung_nhip: number
+          viec_tong: number
+        }[]
+      }
+      cam_ket_da_ke_lai: { Args: { k: string }; Returns: boolean }
+      cam_ket_student: { Args: { k: string }; Returns: string }
       campus_ranks: {
         Args: never
         Returns: {
@@ -2932,15 +3839,9 @@ export type Database = {
       can_manage_class_photo: { Args: { p_name: string }; Returns: boolean }
       can_manage_student_email: { Args: { p_email: string }; Returns: boolean }
       can_read_class_photo: { Args: { p_name: string }; Returns: boolean }
-      can_read_subject_score: {
-        Args: { p_review: string; p_subject: string }
-        Returns: boolean
-      }
+      can_read_subject_score: { Args: { p_review: string; p_subject: string }; Returns: boolean }
       can_view_student: { Args: { s: string }; Returns: boolean }
-      can_write_subject_score: {
-        Args: { p_review: string; p_subject: string }
-        Returns: boolean
-      }
+      can_write_subject_score: { Args: { p_review: string; p_subject: string }; Returns: boolean }
       cancel_class_transfer: { Args: { p_request: string }; Returns: undefined }
       checkin_windows: {
         Args: { p_campus: string }
@@ -2950,33 +3851,6 @@ export type Database = {
           het_dung_gio: string
           het_muon: string
           mo_luc: string
-        }[]
-      }
-      child_class_progress: {
-        Args: { s: string }
-        Returns: {
-          area: Database["public"]["Enums"]["wig_domain"]
-          pct: number
-          status: string
-        }[]
-      }
-      child_week_report: {
-        Args: { s: string; wk: string }
-        Returns: {
-          area: Database["public"]["Enums"]["wig_domain"]
-          leads_done: number
-          leads_total: number
-          wig_actual: number
-          wig_target: number
-          wig_won: boolean
-        }[]
-      }
-      child_weeks: {
-        Args: { s: string }
-        Returns: {
-          week_end: string
-          week_label: string
-          week_start: string
         }[]
       }
       chua_check_in: {
@@ -3008,31 +3882,6 @@ export type Database = {
           score: number
         }[]
       }
-      class_lead_board: {
-        Args: { p_class: string; p_student?: string; p_week_start?: string }
-        Returns: {
-          active_weekdays: number[]
-          area: string
-          class_size: number
-          class_total: number
-          commitment_id: string
-          commitment_title: string
-          contributors: number
-          lead_measure_id: string
-          my_dates: string[]
-          my_total: number
-          my_values: Json
-          nhap_luong: boolean
-          students_done: number
-          target_value: number
-          title: string
-          unit: string
-          unit_per_tick: number
-          verdict: string
-          wig_id: string
-          wig_title: string
-        }[]
-      }
       class_ranks: {
         Args: { c: string }
         Returns: {
@@ -3047,67 +3896,52 @@ export type Database = {
           score: number
         }[]
       }
-      class_tick_matrix: {
-        Args: { p_class: string; p_week_start?: string }
+      co_so_tong_hop: {
+        Args: { p_tuan?: string }
         Returns: {
-          active_weekdays: number[]
-          area: string
-          lead_measure_id: string
-          lead_title: string
-          student_id: string
-          student_name: string
-          ticked_dates: string[]
-          wig_id: string
-          wig_title: string
-        }[]
-      }
-      cuon_dem: {
-        Args: { w: string }
-        Returns: {
-          dat: number
-          tong: number
-        }[]
-      }
-      cuon_so_lieu: {
-        Args: { p_wigs: string[] }
-        Returns: {
-          dat: number
-          tong: number
-          ty_le: number
-          wig_id: string
-        }[]
-      }
-      cuon_so_lieu_lop: {
-        Args: { p_class: string }
-        Returns: {
-          dat: number
-          tong: number
-          ty_le: number
-          wig_id: string
+          cho_duyet: number
+          ck_giu_pct: number
+          class_id: string
+          class_name: string
+          grade_name: string
+          grade_sort: number
+          gvcn_ten: string
+          mt_lop_can_co: number
+          mt_lop_dang_thang: number
+          mt_lop_duyet: number
+          mt_pct: number
+          pdr_ky_pct: number
+          si_so: number
+          thuoc_dat_pct: number
         }[]
       }
       current_school_year: { Args: never; Returns: string }
-      decide_class_transfer: {
-        Args: { p_approve: boolean; p_note?: string; p_request: string }
-        Returns: string
-      }
-      default_score_weight: {
-        Args: { k: Database["public"]["Enums"]["score_kind"] }
-        Returns: number
-      }
-      em_dat_du: {
-        Args: {
-          p_can: number
-          p_class: string
-          p_den: string
-          p_student: string
-          p_tu: string
-        }
-        Returns: boolean
-      }
-      enroll_student_by_email: {
-        Args: { p_class: string; p_email: string }
-        Returns: string
+      decide_class_transfer: { Args: { p_approve: boolean; p_note?: string; p_request: string }; Returns: string }
+      default_score_weight: { Args: { k: Database["public"]["Enums"]["score_kind"] }; Returns: number }
+      doc_duoc_cam_ket: { Args: { k: string }; Returns: boolean }
+      doc_duoc_chu_the: { Args: { p_campus: string; p_cap: string; p_class: string; p_nhom: string; p_student: string }; Returns: boolean }
+      doc_duoc_con: { Args: { p_id: string; p_loai: string }; Returns: boolean }
+      doc_duoc_muc_tieu: { Args: { m: string }; Returns: boolean }
+      doc_duoc_thuoc: { Args: { t: string }; Returns: boolean }
+      duyet_duoc_chu_the: { Args: { p_campus: string; p_cap: string; p_class: string; p_nhom: string; p_student: string }; Returns: boolean }
+      duyet_duoc_muc_tieu: { Args: { m: string }; Returns: boolean }
+      duyet_duoc_thuoc: { Args: { t: string }; Returns: boolean }
+      em_trong_nhom: { Args: { n: string; s: string }; Returns: boolean }
+      enroll_student_by_email: { Args: { p_class: string; p_email: string }; Returns: string }
+      ghi_duoc_cam_ket: { Args: { k: string }; Returns: boolean }
+      ghi_duoc_chu_the: { Args: { p_campus: string; p_cap: string; p_class: string; p_nhom: string; p_student: string }; Returns: boolean }
+      ghi_duoc_con: { Args: { p_id: string; p_loai: string }; Returns: boolean }
+      ghi_duoc_muc_tieu: { Args: { m: string }; Returns: boolean }
+      ghi_duoc_pdr_ke_lai: { Args: { m: string }; Returns: boolean }
+      ghi_duoc_thuoc: { Args: { t: string }; Returns: boolean }
+      ghi_ho_duoc_luot: { Args: { t: string }; Returns: boolean }
+      goi_y_cam_ket: {
+        Args: { p_cam_ket: string }
+        Returns: {
+          goi_y: string
+          so_dat_goi_y: number
+          thuoc_trang_thai: string
+        }[]
       }
       ham_lay_ngay_may_chu: {
         Args: never
@@ -3116,38 +3950,7 @@ export type Database = {
         }[]
       }
       homework_class: { Args: { p: string }; Returns: string }
-      hs_ghi_bien_ban:
-        | {
-            Args: {
-              p_cam_ket: string
-              p_class: string
-              p_ket_qua: string
-              p_week_label: string
-              p_week_start: string
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_cach_tot_hon?: string
-              p_cam_ket: string
-              p_class: string
-              p_ket_qua: string
-              p_kho_khan?: string
-              p_vuot_qua?: string
-              p_week_label: string
-              p_week_start: string
-            }
-            Returns: undefined
-          }
-      hs_tham_gia: {
-        Args: { p_class: string; p_week_label: string; p_week_start: string }
-        Returns: undefined
-      }
-      invite_student_to_class: {
-        Args: { p_class: string; p_email: string }
-        Returns: string
-      }
+      invite_student_to_class: { Args: { p_class: string; p_email: string }; Returns: string }
       ip_allowed: { Args: { p_ip: string }; Returns: boolean }
       is_attendance_leader: { Args: { c: string }; Returns: boolean }
       is_campus_class: { Args: { c: string }; Returns: boolean }
@@ -3155,56 +3958,47 @@ export type Database = {
       is_class_teacher: { Args: { c: string }; Returns: boolean }
       is_classmate_via_leader: { Args: { s: string }; Returns: boolean }
       is_enrolled: { Args: { c: string; s: string }; Returns: boolean }
+      is_my_buddy: { Args: { s: string }; Returns: boolean }
       is_my_campus: { Args: { c: string }; Returns: boolean }
       is_my_child: { Args: { s: string }; Returns: boolean }
       is_my_student: { Args: { s: string }; Returns: boolean }
       is_my_subject_student: { Args: { s: string }; Returns: boolean }
       is_parent_of_class: { Args: { c: string }; Returns: boolean }
+      is_pdr_participant: { Args: { m: string }; Returns: boolean }
       is_subject_teacher_of_class: { Args: { c: string }; Returns: boolean }
-      kieu_don_vi: { Args: { p_unit: string }; Returns: string }
-      lead_class: { Args: { lm: string }; Returns: string }
-      lead_day_ok: { Args: { d: string; lm: string }; Returns: boolean }
-      lead_measure_canh_bao: {
-        Args: { p_commitment: string }
+      la_gvbm_mon: { Args: { c: string; s: string }; Returns: boolean }
+      la_thanh_vien_nhom: { Args: { n: string }; Returns: boolean }
+      la_to_truong_diem_danh: { Args: { c: string }; Returns: boolean }
+      log_audit: { Args: { p_action: string; p_detail?: Json }; Returns: undefined }
+      lop_nhap_ho: { Args: { c: string }; Returns: boolean }
+      luot_bi_khoa: { Args: { p_ngay: string; p_student: string }; Returns: boolean }
+      mark_attendance: { Args: { p_class: string; p_status: Database["public"]["Enums"]["attendance_status"]; p_student: string }; Returns: undefined }
+      mark_attendance_on: { Args: { p_class: string; p_date: string; p_status: Database["public"]["Enums"]["attendance_status"]; p_student: string }; Returns: undefined }
+      metrics_tuan: {
+        Args: { p_class: string; p_den?: string; p_student?: string; p_tu: string }
         Returns: {
-          lead_measure_id: string
-          lech_don_vi: boolean
-          qua_nhieu: boolean
-          so_ngay_tick_duoc: number
-          so_nguoi_tick: number
-          so_tick_can: number
-          tran_luot_tick: number
+          ck_chua_cham: number
+          ck_thang: number
+          ck_thua: number
+          ck_tong: number
+          pdr_da_ky: boolean
+          student_id: string
+          thuoc_dat: number
+          thuoc_mien: number
+          thuoc_tong: number
+          week_start: string
         }[]
       }
-      log_audit: {
-        Args: { p_action: string; p_detail?: Json }
-        Returns: undefined
+      muc_tieu_class: { Args: { m: string }; Returns: string }
+      muc_tieu_lop_dem: {
+        Args: { p_muc_tieu: string }
+        Returns: {
+          si_so: number
+          so_dat: number
+          so_huong_vao: number
+        }[]
       }
-      lop_dat_du: {
-        Args: { p_can: number; p_class: string; p_den: string; p_tu: string }
-        Returns: boolean
-      }
-      mark_attendance: {
-        Args: {
-          p_class: string
-          p_status: Database["public"]["Enums"]["attendance_status"]
-          p_student: string
-        }
-        Returns: undefined
-      }
-      mark_attendance_on: {
-        Args: {
-          p_class: string
-          p_date: string
-          p_status: Database["public"]["Enums"]["attendance_status"]
-          p_student: string
-        }
-        Returns: undefined
-      }
-      mo_phong_hop: {
-        Args: { p_class: string; p_week_label: string; p_week_start: string }
-        Returns: undefined
-      }
+      muc_tieu_student: { Args: { m: string }; Returns: string }
       nguoi_duyet: {
         Args: never
         Returns: {
@@ -3212,28 +4006,11 @@ export type Database = {
           full_name: string
         }[]
       }
-      open_term_for_class: {
-        Args: { p_class: string; p_term: string }
-        Returns: number
-      }
-      pdr_bang: {
-        Args: { p_class: string; p_week?: string }
-        Returns: {
-          cam_ket_cho_duyet: number
-          cam_ket_dat: number
-          cam_ket_tong: number
-          cham_khac_may: number
-          so_lan_sua: number
-          student_id: string
-          student_name: string
-          viec_dat: number
-          viec_tong: number
-        }[]
-      }
-      phong_dang_mo: {
-        Args: { p_class: string; p_week_label: string }
-        Returns: boolean
-      }
+      nhom_class: { Args: { n: string }; Returns: string }
+      open_term_for_class: { Args: { p_class: string; p_term: string }; Returns: number }
+      pdr_chu_ky_hop_le: { Args: { p_by: string; p_class: string; p_counterpart: string; p_second: string; p_student: string; p_type: string }; Returns: boolean }
+      pdr_class: { Args: { m: string }; Returns: string }
+      pdr_da_ky: { Args: { d: string; p_student: string }; Returns: boolean }
       pt_can_read_thread: { Args: { t: string }; Returns: boolean }
       pt_can_write_thread: { Args: { t: string }; Returns: boolean }
       pt_class_message_health: {
@@ -3273,74 +4050,24 @@ export type Database = {
       pt_open_thread: { Args: { p_student: string }; Returns: string }
       pt_student_in_class: { Args: { c: string; s: string }; Returns: boolean }
       pt_unread_total: { Args: never; Returns: number }
-      request_class_transfer: {
-        Args: { p_note?: string; p_student: string; p_to_class: string }
-        Returns: string
-      }
+      request_class_transfer: { Args: { p_note?: string; p_student: string; p_to_class: string }; Returns: string }
       restrict_signup_by_email_domain: { Args: { event: Json }; Returns: Json }
       review_class: { Args: { r: string }; Returns: string }
       review_is_editable: { Args: { r: string }; Returns: boolean }
       review_visible_to_family: { Args: { r: string }; Returns: boolean }
-      school_wig_rollup: {
-        Args: { p_week_start?: string }
-        Returns: {
-          avg_pct: number
-          class_id: string
-          class_name: string
-          grade_name: string
-          grade_sort: number
-          muc_tieu_em: number
-          muc_tieu_em_tu_dat: number
-          student_count: number
-          teacher_name: string
-          tick_count: number
-          tick_students: number
-          wigs_total: number
-          wigs_won: number
-        }[]
-      }
       seed_class_subjects: { Args: { p_class: string }; Returns: number }
       seed_grades_for_campus: { Args: { p_campus: string }; Returns: number }
-      set_my_campus_levels: {
-        Args: { p_levels: Database["public"]["Enums"]["school_level"][] }
-        Returns: number
-      }
-      set_my_mood: {
-        Args: { p_mood: Database["public"]["Enums"]["mood_level"] }
-        Returns: undefined
-      }
-      so_do_moi_nhat: { Args: { w: string }; Returns: number }
+      set_my_campus_levels: { Args: { p_levels: Database["public"]["Enums"]["school_level"][] }; Returns: number }
+      set_my_mood: { Args: { p_mood: Database["public"]["Enums"]["mood_level"] }; Returns: undefined }
+      sinh_nhac_pdr: { Args: never; Returns: number }
+      sinh_nhac_pdr_luc: { Args: { p_luc: string }; Returns: number }
       staff_can_manage_class: { Args: { c: string }; Returns: boolean }
       staff_can_read_class: { Args: { c: string }; Returns: boolean }
-      standard_grade_numbers: {
-        Args: { p_level: Database["public"]["Enums"]["school_level"] }
-        Returns: number[]
-      }
-      standard_grade_numbers_multi: {
-        Args: { p_levels: Database["public"]["Enums"]["school_level"][] }
-        Returns: number[]
-      }
-      student_checkin: {
-        Args: {
-          p_buoi?: string
-          p_ip: string
-          p_mood: Database["public"]["Enums"]["mood_level"]
-          p_student: string
-        }
-        Returns: string
-      }
-      tao_buddy_nhom: {
-        Args: { p_class: string; p_members: string[] }
-        Returns: undefined
-      }
-      subject_fits_class: {
-        Args: { p_class: string; p_subject: string }
-        Returns: boolean
-      }
-      subject_fits_grade: {
-        Args: { p_class: string; p_subject: string }
-        Returns: boolean
-      }
+      standard_grade_numbers: { Args: { p_level: Database["public"]["Enums"]["school_level"] }; Returns: number[] }
+      standard_grade_numbers_multi: { Args: { p_levels: Database["public"]["Enums"]["school_level"][] }; Returns: number[] }
+      student_checkin: { Args: { p_buoi?: string; p_ip: string; p_mood: Database["public"]["Enums"]["mood_level"]; p_student: string }; Returns: string }
+      subject_fits_class: { Args: { p_class: string; p_subject: string }; Returns: boolean }
+      subject_fits_grade: { Args: { p_class: string; p_subject: string }; Returns: boolean }
       subject_roster: {
         Args: { p_class: string; p_term: string }
         Returns: {
@@ -3350,17 +4077,48 @@ export type Database = {
           student_id: string
         }[]
       }
-      ten_hien_thi: {
-        Args: { p_email: string; p_full_name: string }
-        Returns: string
-      }
+      tao_buddy_nhom: { Args: { p_class: string; p_members: string[] }; Returns: undefined }
+      ten_hien_thi: { Args: { p_email: string; p_full_name: string }; Returns: string }
       term_is_locked: { Args: { t: string }; Returns: boolean }
-      thu_hai_tu_nhan: { Args: { nhan: string }; Returns: string }
-      tick_open: { Args: { p_class: string }; Returns: boolean }
-      toi_dich: {
-        Args: { p_dich: number; p_so: number; p_xuat_phat: number }
-        Returns: boolean
+      thi_dua_lop: {
+        Args: { p_class: string }
+        Returns: {
+          diem_cam_ket: number
+          diem_muc_tieu: number
+          diem_thuoc: number
+        }[]
       }
+      thu_hai_tu_nhan: { Args: { nhan: string }; Returns: string }
+      thuoc_12_tuan: {
+        Args: { p_chu_the?: string; p_thuoc: string; p_tuan_cuoi?: string }
+        Returns: {
+          chi_tieu: number
+          dat: boolean
+          gia: number
+          ky_den: string
+          ky_tu: string
+          la_tuan_hoc: boolean
+          le_ra: number
+          trang_thai: string
+          tuan: string
+        }[]
+      }
+      thuoc_class: { Args: { t: string }; Returns: string }
+      thuoc_co_so: { Args: { p_campus: string }; Returns: boolean }
+      thuoc_lop_dem: {
+        Args: { p_thuoc: string; p_tuan?: string }
+        Returns: {
+          chi_tieu: number
+          gia_lop: number
+          le_ra: number
+          mien: boolean
+          si_so: number
+          so_em_dat: number
+          so_em_ghi: number
+        }[]
+      }
+      thuoc_nhan_luot: { Args: { p_student: string; t: string }; Returns: boolean }
+      toi_dich: { Args: { p_dich: number; p_so: number; p_xuat_phat: number }; Returns: boolean }
       transfer_target_classes: {
         Args: never
         Returns: {
@@ -3371,30 +4129,46 @@ export type Database = {
           school_year: string
         }[]
       }
+      trong_cua_so_ghi: { Args: { p_ngay: string }; Returns: boolean }
       truong_da_khai_mang: { Args: never; Returns: boolean }
-      tuan_da_chot: {
-        Args: { p_class: string; p_student: string; p_week: string }
-        Returns: boolean
+      ty_le_em_tu_dat: {
+        Args: { p_class: string }
+        Returns: {
+          so_muc_tieu: number
+          so_nhap_ho: number
+          so_tu_dat: number
+          ty_le: number
+        }[]
       }
-      tuan_da_hop: { Args: { d: string; p_class: string }; Returns: boolean }
-      ty_le_cuon: { Args: { w: string }; Returns: number }
-      unenroll_student: {
-        Args: { p_class: string; p_student: string }
-        Returns: undefined
+      unenroll_student: { Args: { p_class: string; p_student: string }; Returns: undefined }
+      viec_bang: {
+        Args: { p_student?: string }
+        Returns: {
+          cach_ghi: string
+          chi_tieu: number
+          chi_xem: boolean
+          chieu_dich: string
+          cho_bu: boolean
+          chu_the: string
+          dat: boolean
+          gia: number
+          ky_den: string
+          ky_tu: string
+          ky_tuan: number
+          le_ra: number
+          ngay_ap_dung: number[]
+          ten: string
+          ten_don_vi: string
+          thuoc_id: string
+          trang_thai: string
+        }[]
       }
       vn_today: { Args: never; Returns: string }
       vn_week_start: { Args: { d?: string }; Returns: string }
-      wig_class: { Args: { w: string }; Returns: string }
-      wig_dat: { Args: { w: string }; Returns: boolean }
-      wig_student: { Args: { w: string }; Returns: string }
+      xac_nhan_duoc_cam_ket: { Args: { k: string }; Returns: boolean }
     }
     Enums: {
-      assessment_term_kind:
-        | "giua_ky_1"
-        | "hoc_ky_1"
-        | "giua_ky_2"
-        | "hoc_ky_2"
-        | "ca_nam"
+      assessment_term_kind: "giua_ky_1" | "hoc_ky_1" | "giua_ky_2" | "hoc_ky_2" | "ca_nam"
       attendance_status: "present" | "absent" | "late" | "excused"
       conduct_rating: "tot" | "kha" | "trung_binh" | "yeu"
       homework_kind: "assignment" | "reminder" | "exam"
@@ -3403,16 +4177,8 @@ export type Database = {
       school_level: "mam_non" | "tieu_hoc" | "thcs" | "thpt"
       score_category: "knowledge" | "leadership_skills" | "character" | "physical_wellbeing"
       score_kind: "mieng" | "15p" | "1tiet" | "giua_ky" | "cuoi_ky"
-      user_role:
-        | "admin"
-        | "principal"
-        | "teacher"
-        | "student"
-        | "parent"
-        | "pending"
-      wig_domain: "knowledge" | "leadership_skills" | "character" | "physical_wellbeing"
-      wig_period: "year" | "month" | "week"
-      wig_scope: "class" | "student" | "school"
+      user_role: "admin" | "principal" | "teacher" | "student" | "parent" | "pending"
+      wig_domain: "knowledge" | "leadership_skills" | "character" | "physical_wellbeing" | "khac"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3537,35 +4303,21 @@ export type CompositeTypes<
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
+
 export const Constants = {
   public: {
     Enums: {
-      assessment_term_kind: [
-        "giua_ky_1",
-        "hoc_ky_1",
-        "giua_ky_2",
-        "hoc_ky_2",
-        "ca_nam",
-      ],
+      assessment_term_kind: ["giua_ky_1", "hoc_ky_1", "giua_ky_2", "hoc_ky_2", "ca_nam"],
       attendance_status: ["present", "absent", "late", "excused"],
       conduct_rating: ["tot", "kha", "trung_binh", "yeu"],
       homework_kind: ["assignment", "reminder", "exam"],
       meal_slot: ["breakfast", "lunch", "snack", "dinner"],
-      mood_level: ["great", "good", "ok", "low", "bad"],
+      mood_level: ["great", "good", "ok", "low", "bad", "happy", "okay", "sad", "tired", "worried", "angry"],
       school_level: ["mam_non", "tieu_hoc", "thcs", "thpt"],
-      score_category: ["knowledge", "skills", "english", "physical"],
+      score_category: ["knowledge", "leadership_skills", "character", "physical_wellbeing"],
       score_kind: ["mieng", "15p", "1tiet", "giua_ky", "cuoi_ky"],
-      user_role: [
-        "admin",
-        "principal",
-        "teacher",
-        "student",
-        "parent",
-        "pending",
-      ],
-      wig_area: ["knowledge", "skills", "english", "physical"],
-      wig_period: ["year", "month", "week"],
-      wig_scope: ["class", "student", "school"],
+      user_role: ["admin", "principal", "teacher", "student", "parent", "pending"],
+      wig_domain: ["knowledge", "leadership_skills", "character", "physical_wellbeing", "khac"],
     },
   },
 } as const

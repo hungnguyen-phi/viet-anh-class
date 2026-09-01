@@ -2,1594 +2,797 @@
 
 import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
-import {headers} from 'next/headers';
 import {createClient} from '@/lib/supabase/server';
-import {createAdminClient} from '@/lib/supabase/admin';
 import {getCurrentProfile, requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
-import {clientIp} from '@/lib/ip';
 import {kieuDonVi} from '@/lib/don-vi';
 import {AREAS} from '@/lib/areas';
-// MỘT nguồn duy nhất cho phép chia nhịp — cùng hàm mà mục tiêu LỚP đang dùng (lib/wig-tao gọi nó
-// trong sinhNhip). Chép một bản riêng cho học sinh là dựng đúng cái bệnh "hai đường tính cho một
-// khái niệm" mà repo này đã dính nhiều lần.
-import {buddyNote, buddyChat, type BuddyContext, type BuddyLead} from '@/lib/buddy';
-import {weekRangeVN, nextWeekRangeVN, todayInVN, schoolYearRangeVN, isValidDayVN, mondayOf} from '@/lib/dates';
-import {sendHubEvent, buildAttendanceEvent} from '@/lib/hub/webhook';
+import {weekRangeVN, nextWeekRangeVN, todayInVN, isValidDayVN, mondayOf} from '@/lib/dates';
 import type {Database} from '@/lib/database.types';
 
-type Mood = Database['public']['Enums']['mood_level'];
+// ════════════════════════════════════════════════════════════════════════════════════════════
+// TẦNG GHI CỦA MÀN EM — mô hình mục tiêu PA2 (muc_tieu / thuoc / luot / cam_ket / so_do / noi).
+//
+// Mô hình cũ (wigs/lead_measures/lead_progress/commitments/wig_meetings/wig_so_do/
+// student_reflections/buddy_messages) ĐÃ BỊ DROP. Tệp này viết lại từ đầu theo docs/PA2/:
+//   · 20-QUYEN — policy + trigger (đâu là luật thật; action chỉ lo câu báo tiếng người)
+//   · 40-MAN-HINH §G — bảng câu lỗi tầng action
+//   · 10-SCHEMA §4 — tên cột + CHECK (giá trị enum dạng chuỗi)
+//
+// QUY ƯỚC: form useActionState trả STATE (câu lỗi trỏ đúng ô, giữ nguyên chữ đã gõ); nút bấm
+// (duyệt/đóng/xoá/tick) redirect về trang em kèm flash. Sau mỗi lượt ghi, `.select()` để phân
+// biệt "RLS chặn, 0 dòng" với "đã ghi" — nếu không, tuần đã khoá vẫn báo thành công.
+//
+// checkinMood → student/mood-actions.ts; các action yêu-cầu-sửa → student/yeu-cau-actions.ts.
+// Ba action Sư Tử (refreshBuddyNote/toggleBuddyChat/sendBuddyMessage) đã gỡ hẳn theo [H-24].
+// ════════════════════════════════════════════════════════════════════════════════════════════
 
-// Check-in cảm xúc = điểm danh, có CỔNG IP (chỉ khi ở mạng trường).
-// Đường ghi duy nhất: server đọc IP thật từ header → gọi hàm student_checkin bằng service_role.
-// Học sinh KHÔNG thể tự gọi hàm này (đã revoke) nên không lách được cổng IP.
-// Về trang của MỘT em kèm thông báo. Trước đây câu này được chép tay sáu chỗ trong file; đợt
-// thêm đường báo hỏng (?flash_err=) là lần đầu phải sửa cả sáu, và sót một chỗ nghĩa là chỗ đó
-// vẫn báo thất bại bằng hộp xanh có dấu tích.
+type WigDomain = Database['public']['Enums']['wig_domain'];
+
+// Về trang của MỘT em kèm thông báo (xanh = thành công, đỏ = lỗi qua tachLoi/loi).
 function veTrangEm(studentId: string, msg: string): never {
   const g = tachLoi(msg);
   redirect(`/student/${studentId}?${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
 }
 
-export type CheckinResult = {
-  ok: boolean;
-  blocked?: boolean;
-  noClass?: boolean;
-  /** Bấm ngoài cửa sổ cho phép (trước 6h30, sau 8h00, hoặc ngoài khung chiều). */
-  closed?: boolean;
-  /** Bấm được nhưng đã quá giờ ân hạn → ghi MUỘN. */
-  late?: boolean;
-  error?: string;
-};
-
-export async function checkinMood(mood: Mood, buoi: 'sang' | 'chieu' = 'sang'): Promise<CheckinResult> {
-  // Xác thực phía server: phải là học sinh đang đăng nhập.
-  const profile = await getCurrentProfile();
-  if (!profile || profile.role !== 'student') return {ok: false, error: 'forbidden'};
-
-  const ip = clientIp(await headers());
-
-  // service_role: bỏ qua RLS + được phép gọi student_checkin (đã kiểm IP bên trong hàm).
-  const admin = createAdminClient();
-  const {data, error} = await admin.rpc('student_checkin', {
-    p_student: profile.id,
-    p_mood: mood,
-    p_ip: ip ?? '',
-    p_buoi: buoi,
-  });
-  if (error) return {ok: false, error: (friendlyError(error))};
-  if (data === 'blocked') return {ok: false, blocked: true};
-  if (data === 'no_class') return {ok: false, noClass: true};
-  // Ngoài cửa sổ: KHÔNG ghi gì cả. Trả về để giao diện nói rõ giờ nào mới bấm được, thay vì báo
-  // "lỗi" cho một việc hoàn toàn bình thường là em bấm sớm quá hoặc muộn quá.
-  if (data === 'closed') return {ok: false, closed: true};
-
-  // BÁO VỀ HUB — KHÔNG CHẶN PHẢN HỒI CỦA EM (mục 4 bản đấu nối: "mọi app cắm vào Hub đều phải đổ
-  // dữ liệu về"). Đây là đường DUY NHẤT ghi attendance_records (student_checkin ở trên), nên gắn
-  // thẳng ở đây — không cần hàng đợi như tick lead measure (xem migration 0157).
-  //
-  // Đọc lại dòng vừa ghi thay vì tự đoán id: student_checkin() có thể UPDATE một dòng đã có
-  // (bấm buổi chiều sau khi đã bấm buổi sáng), và chỉ CSDL mới biết chắc id/status cuối cùng là gì.
-  // .catch() nuốt lỗi CÓ CHỦ Ý: một lượt báo Hub hỏng không được phép làm hỏng buổi điểm danh thật
-  // của em — xem lib/hub/webhook.ts để biết Hub tự lo phần thử lại/không thử lại theo mã trả về.
-  void (async () => {
-    try {
-      const {data: att} = await admin
-        .from('attendance_records')
-        .select('id, student_id, class_id, date, status')
-        .eq('student_id', profile.id)
-        .eq('date', todayInVN())
-        .maybeSingle();
-      if (att) await sendHubEvent(buildAttendanceEvent(att));
-    } catch (e) {
-      console.error('[hub] checkinMood webhook', e instanceof Error ? e.message : e);
-    }
-  })();
-
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]/attendance', 'page');
-  return {ok: true, late: data === 'late'};
-}
-
-// State trả về cho useActionState → hiện lỗi/thành công INLINE (không redirect, giữ nguyên input).
-export type StudentMeetingState = {
-  ok: boolean;
-  message?: string; // báo thành công
-  error?: string; // lỗi chung (server/DB)
-  fieldError?: string; // tên field lỗi để tô đỏ + hiện dưới field
-  values?: {week_label: string; results: string; commitments: string; next_actions: string};
-};
-
-// initial state {ok:false} định nghĩa trong client form ('use server' chỉ export async function).
-
-// Lưu biên bản họp WIG cá nhân (Coach × Buddy) cho 1 học sinh (PRD §6.2 màn 6).
-// RLS wm_teacher_all / wm_admin_all quyết định ai được ghi; coach = người đang đăng nhập.
-export async function saveStudentMeeting(
-  _prev: StudentMeetingState,
-  formData: FormData,
-): Promise<StudentMeetingState> {
-  const me = await requireRole(['teacher', 'admin']);
-  const student_id = String(formData.get('student_id') ?? '');
-  const class_id = String(formData.get('class_id') ?? '');
-  const week_label = String(formData.get('week_label') ?? '').trim();
-  const results = String(formData.get('results') ?? '').trim();
-  const commitments = String(formData.get('commitments') ?? '').trim();
-  const next_actions = String(formData.get('next_actions') ?? '').trim();
-  // Giữ lại input để trả về khi có lỗi (không mất nội dung đã gõ).
-  const values = {week_label, results, commitments, next_actions};
-
-  if (!student_id || !class_id) return {ok: false, error: (friendlyError(null)), values};
-  if (!week_label) return {ok: false, fieldError: 'week_label', error: 'Hãy chọn tuần.', values};
-  if (!results && !commitments && !next_actions)
-    return {
-      ok: false,
-      fieldError: 'results',
-      error: 'Nhập ít nhất một nội dung: chiêm nghiệm, cam kết, hoặc việc cần làm.',
-      values,
-    };
-
-  const supabase = await createClient();
-
-  // Ô "kế hoạch tuần sau" từng SINH RA WIG tuần cho em ngay tại đây (applyNextWeekPlan). Bỏ cùng
-  // đợt 0100: mục tiêu của em nay là khoảng cách của chính em, đặt 2–3 lần một năm trong tiết đặt
-  // mục tiêu — không phải thứ đẻ ra mỗi tuần từ biên bản họp. Xem docs/MO_HINH_WIG.md §1 và §6.2.
-
-  // 1 biên bản / (học sinh, tuần): đã có thì SỬA (cho phép sửa lại), chưa có thì tạo.
-  const {data: existing} = await supabase
-    .from('wig_meetings')
-    .select('id')
-    .eq('student_id', student_id)
-    .eq('week_label', week_label)
-    .maybeSingle();
-
-  // GHI CẢ NGÀY, không chỉ nhãn.
-  //
-  // 0080 đã chốt week_start là khoá thật của một biên bản, và biên bản LỚP đã chuyển sang dùng nó.
-  // Biên bản CÁ NHÂN thì chưa: nó vẫn chỉ có week_label — một ô chữ. Nghĩa là cái bẫy cũ còn
-  // nguyên ở nhánh học sinh: sửa nhãn một chút là biên bản rơi khỏi mọi màn hình tra cứu, lặng lẽ.
-  // thu_hai_tu_nhan() là đường suy ngược DUY NHẤT trong dự án (0080) — không nơi nào tự cắt chuỗi
-  // lấy năm/tuần nữa, vì chỗ ấy có bẫy: cắt lệch một ký tự là ra năm 0026.
-  const {data: suyNgay} = await supabase.rpc('thu_hai_tu_nhan', {nhan: week_label});
-  const week_start = (suyNgay as string | null) ?? null;
-
-  const payload = {
-    class_id,
-    student_id,
-    week_label,
-    week_start,
-    // KHÔNG ghi buddy_id nữa (12/08/2026): Buddy là con sư tử AI, không phải bạn cùng lớp. Cột
-    // vẫn còn trong CSDL cho biên bản cũ đọc lại được — chỉ thôi ghi. Xem StudentMeetings.
-    results: results || null,
-    commitments: commitments || null,
-    // Vẫn ghi next_actions dạng chữ, sinh TỪ kế hoạch có cấu trúc — để báo cáo phụ huynh và
-    // mục Họp WIG của học sinh đọc được câu tự nhiên mà không phải sửa gì ở hai chỗ đó.
-    next_actions: next_actions || null,
-    coach_id: me.id,
-  };
-  // Idempotent/đồng thời: race 2 lần lưu 1 tuần → dính unique (HS,tuần) → tự chuyển update.
-  let error = null as {code?: string} | null;
-  if (existing) {
-    ({error} = await supabase.from('wig_meetings').update(payload).eq('id', existing.id));
-  } else {
-    const ins = await supabase.from('wig_meetings').insert(payload);
-    if (ins.error?.code === '23505') {
-      ({error} = await supabase
-        .from('wig_meetings')
-        .update(payload)
-        .eq('student_id', student_id)
-        .eq('week_label', week_label));
-    } else {
-      error = ins.error;
-    }
-  }
-
-  if (error) return {ok: false, error: (friendlyError(error)), values};
-
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]', 'page');
-  return {
-    ok: true,
-    message: existing ? 'Đã cập nhật biên bản họp cá nhân.' : 'Đã lưu biên bản họp cá nhân.',
-  };
-}
-
-// ============================================================
-// Quản lý WIG/lead/tick CÁ NHÂN + yêu cầu-sửa (audit: hết ngõ cụt, idempotent)
-// GVCN/Admin sửa trực tiếp; .select() bắt no-op do RLS (báo đúng, không "thành công" giả).
-// ============================================================
-function backToStudent(studentId: string, msg: string): never {
-  veTrangEm(studentId, msg);
-}
-
-export async function editStudentWig(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
-  const student_id = String(formData.get('student_id') ?? '');
-  const id = String(formData.get('wig_id') ?? '');
-  const target_value = Number(formData.get('target_value') ?? 0);
-  const unit = String(formData.get('unit') ?? '').trim();
-  const period_label = String(formData.get('period_label') ?? '').trim() || null;
-  if (!id || !Number.isFinite(target_value) || target_value <= 0 || !unit)
-    backToStudent(student_id, 'Thiếu mục tiêu/đơn vị hợp lệ.');
-  const supabase = await createClient();
-  const {data, error} = await supabase
-    .from('wigs')
-    .update({target_value, unit, period_label})
-    .eq('id', id)
-    .eq('scope', 'student')
-    .select('id');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]', 'page');
-  if (error) backToStudent(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) backToStudent(student_id, 'Không sửa được (không có quyền hoặc đã xoá).');
-  backToStudent(student_id, 'Đã cập nhật WIG cá nhân');
-}
-
-export async function deleteStudentWig(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
-  const student_id = String(formData.get('student_id') ?? '');
-  const id = String(formData.get('wig_id') ?? '');
-  if (!id) backToStudent(student_id, 'Thiếu WIG');
-  const supabase = await createClient();
-  await supabase.from('wigs').delete().eq('parent_wig_id', id); // con tuần (nếu là WIG năm)
-  const {error} = await supabase.from('wigs').delete().eq('id', id).eq('scope', 'student');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]', 'page');
-  backToStudent(student_id, error ? loi(friendlyError(error)) : 'Đã xoá WIG cá nhân');
-}
-
-export async function editStudentLead(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
-  const student_id = String(formData.get('student_id') ?? '');
-  const id = String(formData.get('lead_measure_id') ?? '');
-  const title = String(formData.get('title') ?? '').trim();
-  const target_value = Number(formData.get('target_value') ?? 0);
-  const unit = String(formData.get('unit') ?? '').trim() || null;
-  if (!id || !title || !Number.isFinite(target_value) || target_value <= 0)
-    backToStudent(student_id, 'Thiếu tên/mục tiêu hợp lệ.');
-  const supabase = await createClient();
-  const {data, error} = await supabase
-    .from('lead_measures')
-    .update({title, target_value, unit})
-    .eq('id', id)
-    .select('id');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]', 'page');
-  if (error) backToStudent(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) backToStudent(student_id, 'Không sửa được lead (không có quyền hoặc đã xoá).');
-  backToStudent(student_id, 'Đã cập nhật lead measure');
-}
-
-export async function deleteStudentLead(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
-  const student_id = String(formData.get('student_id') ?? '');
-  const id = String(formData.get('lead_measure_id') ?? '');
-  if (!id) backToStudent(student_id, 'Thiếu lead');
-  const supabase = await createClient();
-  const {error} = await supabase.from('lead_measures').delete().eq('id', id);
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]', 'page');
-  backToStudent(student_id, error ? loi(friendlyError(error)) : 'Đã xoá lead measure');
-}
-
-// Gỡ 1 lượt tick sai của học sinh (RLS lp_staff_manage cho GVCN/Admin lớp).
-export async function removeLeadEntry(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
-  const student_id = String(formData.get('student_id') ?? '');
-  const entry_id = String(formData.get('entry_id') ?? '');
-  if (!entry_id) backToStudent(student_id, 'Thiếu lượt tick');
-  const supabase = await createClient();
-  const {data, error} = await supabase.from('lead_progress').delete().eq('id', entry_id).select('id');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]', 'page');
-  if (error) backToStudent(student_id, loi(friendlyError(error)));
-  backToStudent(student_id, data && data.length ? 'Đã gỡ lượt tick' : 'Không gỡ được (không có quyền hoặc đã xoá).');
-}
-
-export async function deleteStudentMeeting(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
-  const student_id = String(formData.get('student_id') ?? '');
-  const id = String(formData.get('meeting_id') ?? '');
-  if (!id) backToStudent(student_id, 'Thiếu biên bản');
-  const supabase = await createClient();
-  const {error} = await supabase.from('wig_meetings').delete().eq('id', id);
-  revalidatePath('/[locale]/student/[id]', 'page');
-  backToStudent(student_id, error ? loi(friendlyError(error)) : 'Đã xoá biên bản');
-}
-
-// Học sinh (hoặc PH) gửi yêu cầu chỉnh sửa → GVCN duyệt. 23505 = đã có pending trùng.
-export async function createEditRequest(formData: FormData) {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect('/login');
-  let student_id = String(formData.get('student_id') ?? '');
-  const class_id = String(formData.get('class_id') ?? '');
-  const kind = String(formData.get('kind') ?? 'other');
-  const ref_id = String(formData.get('ref_id') ?? '') || null;
-  let message = String(formData.get('message') ?? '').trim();
-  // FORM CÓ CẤU TRÚC của XinSuaMucTieu (19/08/2026 — "phải đủ thông tin thì gv mới duyệt được"):
-  // ghép các ô Sửa/Xoá thành MỘT câu đọc được, đi vào đúng cột message cũ — hộp yêu cầu của
-  // thầy cô không phải đổi hình dạng, chỉ nhận được câu đầy đủ hơn.
-  const yeuCau = String(formData.get('yeu_cau') ?? '');
-  if (yeuCau === 'sua' || yeuCau === 'xoa') {
-    const lyDo = String(formData.get('ly_do') ?? '').trim();
-    const dichMoi = String(formData.get('dich_moi') ?? '').trim();
-    const tenMoi = String(formData.get('ten_moi') ?? '').trim();
-    message = (
-      yeuCau === 'xoa'
-        ? `XIN XOÁ · lý do: ${lyDo}`
-        : [
-            'XIN SỬA',
-            dichMoi && `đích mới: ${dichMoi}`,
-            tenMoi && `tên mới: “${tenMoi}”`,
-            `lý do: ${lyDo}`,
-          ]
-            .filter(Boolean)
-            .join(' · ')
-    ).slice(0, 400);
-  }
-  // YÊU CẦU-SỬA PHẢI ĐỨNG TÊN CHÍNH MÌNH (audit 18/08/2026): policy er_requester_insert chỉ đòi
-  // requester_id=auth.uid() + cùng lớp, KHÔNG đòi student_id=auth.uid(). Học sinh A gửi form với
-  // student_id của bạn B → cô duyệt là gỡ tick / đổi tên việc của B. Ép student_id = chính em.
-  if (profile.role === 'student') student_id = profile.id;
-  const back = (m: string): never => veTrangEm(student_id, m);
-  if (!student_id || !class_id) back('Thiếu thông tin yêu cầu');
-  const supabase = await createClient();
-  const {error} = await supabase.from('edit_requests').insert({
-    class_id,
-    student_id,
-    requester_id: profile.id,
-    kind,
-    ref_id,
-    message: message || null,
-  });
-  revalidatePath('/[locale]/student/[id]', 'page');
-  if (error && error.code !== '23505') back(loi(friendlyError(error)));
-  back('Đã gửi yêu cầu chỉnh sửa cho giáo viên');
-}
-
-// ============================================================
-// Buddy 4DX = LLM (DeepSeek qua OpenRouter) — PRD §7 cho học sinh "ghi chú Buddy" nhưng
-// wig_meetings chỉ cho GVCN ghi (wm_teacher_all). Cách giải: ghi chú do SERVER sinh rồi ghi
-// bằng service_role → học sinh KHÔNG tự bịa được nội dung Buddy, chỉ đọc.
-// Quyền riêng tư + hợp đồng "không gửi PII": xem lib/buddy.ts và migration 0042.
-// ============================================================
-type BuddyErrCode = 'forbidden' | 'no_class' | 'no_wig' | 'no_key' | 'no_data' | 'api' | 'empty' | 'save';
-export type BuddyAskResult = {ok: boolean; generated?: boolean; error?: BuddyErrCode};
-
-// Gom bối cảnh tuần này của 1 học sinh: các LEAD MEASURE (bề mặt hành động thật của app) +
-// số ngày còn lại + hôm nay đã check-in cảm xúc chưa. Dùng cho cả ghi chú hằng ngày và chat.
-// Truy vấn bằng client CỦA NGƯỜI GỌI → RLS tự giới hạn, không có đường đọc sang em khác.
-async function buddyContextFor(
+// Cơ sở của một lớp — mọi dòng muc_tieu đều cần campus_id, mà form của em chỉ cầm class_id.
+async function layCampus(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  studentId: string,
-  weekLabel: string,
-): Promise<{ctx: BuddyContext; leadIds: string[]} | null> {
-  // HAI CHỖ MỤC TIÊU CỦA EM TREO, PHẢI HỎI CẢ HAI (cùng luật với `weekIds` ở StudentScoreboard).
-  //
-  //   · period='week' — WIG tuần cá nhân đời cũ, trước 0100. Dữ liệu cũ còn nguyên.
-  //   · period='year' — mục tiêu của em từ 0100: sống cả học kỳ, không đẻ lại mỗi tuần.
-  //
-  // Bản cũ chỉ hỏi vế đầu, tức chỉ hỏi loại dữ liệu CSDL đã thôi sinh ra — nên Buddy trả
-  // `no_wig` cho MỌI em, và màn hình nói "Con chưa đặt mục tiêu nên Buddy chưa có gì để xem"
-  // ngay bên dưới khối mục tiêu em vừa đặt xong. App đổ lỗi cho em vì lỗi của chính nó.
-  const {data: emWigs} = await supabase
-    .from('wigs')
-    .select('id, period, period_label')
-    .eq('student_id', studentId)
-    .eq('scope', 'student')
-    .in('period', ['week', 'year']);
-  const wigIds = (emWigs ?? [])
-    .filter((w) => w.period === 'year' || w.period_label === weekLabel)
-    .map((w) => w.id);
-  if (wigIds.length === 0) return null;
-
-  const {data: leadRows} = await supabase
-    .from('lead_measures')
-    .select('id, title, target_value, unit, unit_per_tick, lead_progress(value, logged_date)')
-    .in('wig_id', wigIds);
-  if (!leadRows || leadRows.length === 0) return null;
-
-  const todayVN = todayInVN();
-  const {end} = weekRangeVN();
-  const dayMs = 86_400_000;
-
-  const leads: BuddyLead[] = leadRows.map((l) => {
-    const entries = (l.lead_progress ?? []) as {value: number | null; logged_date: string}[];
-    // Nhân hệ số (0076) — nếu không thì Buddy nhắn cho em một con số khác hẳn con số trên màn
-    // hình em đang nhìn. Với một trợ lý nói chuyện với trẻ con, sai số ấy còn tệ hơn ở bảng biểu:
-    // các em tin lời nhắn hơn tin bảng.
-    const moiTick = Number(l.unit_per_tick ?? 1) || 1;
-    return {
-      title: l.title,
-      target: Number(l.target_value ?? 0),
-      unit: l.unit,
-      actual: entries.reduce((s, e) => s + Number(e.value ?? 0) * moiTick, 0),
-      tickedToday: entries.some((e) => e.logged_date === todayVN),
-    };
-  });
-
-  const {data: mood} = await supabase
-    .from('mood_checkins')
-    .select('mood')
-    .eq('student_id', studentId)
-    .eq('date', todayVN)
-    .maybeSingle();
-
-  return {
-    ctx: {
-      leads,
-      daysLeft: Math.max(
-        0,
-        Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${todayVN}T00:00:00Z`)) / dayMs),
-      ),
-      moodMissing: !mood,
-    },
-    leadIds: leadRows.map((l) => l.id),
-  };
+  classId: string,
+): Promise<string | null> {
+  const {data} = await supabase.from('classes').select('campus_id').eq('id', classId).maybeSingle();
+  return data?.campus_id ?? null;
 }
 
-// Ghi chú hằng ngày. KHÔNG có nút bấm: client tự gọi 1 lần khi học sinh mở trang.
-// Chỉ gọi LLM khi (a) chưa có ghi chú tuần này, hoặc (b) ghi chú cũ hơn hôm nay VÀ có tick mới
-// kể từ lúc đó. Nghĩa là tối đa 1 lượt/ngày, và ngày nào không làm gì thì không tốn tiền.
-export async function refreshBuddyNote(): Promise<BuddyAskResult> {
-  const profile = await getCurrentProfile();
-  // CHỈ chính em học sinh đó — GVCN/PH không sinh ghi chú thay mặt em.
-  if (!profile || profile.role !== 'student') return {ok: false, error: 'forbidden'};
+// State chung cho các form useActionState của màn em.
+export type FormState = {ok: boolean; message?: string; error?: string; fieldError?: string};
+export type MucTieuState = FormState;
+export type ViecState = FormState;
+export type CamKetState = FormState;
+export type DuyetState = {ok: boolean; error?: string};
+export type LuotResult = {ok: boolean; error?: string};
 
-  const supabase = await createClient();
-  const {label: weekLabel} = weekRangeVN();
-
-  const {data: enr} = await supabase
-    .from('enrollments')
-    .select('class_id')
-    .eq('student_id', profile.id)
-    .eq('is_active', true)
-    .limit(1)
-    .maybeSingle();
-  if (!enr?.class_id) return {ok: false, error: 'no_class'};
-
-  const admin = createAdminClient();
-  const todayVN = todayInVN();
-
-  const {data: existing} = await admin
-    .from('wig_meetings')
-    .select('id, buddy_note, buddy_note_at')
-    .eq('student_id', profile.id)
-    .eq('week_label', weekLabel)
-    .maybeSingle();
-
-  if (existing?.buddy_note && existing.buddy_note_at) {
-    const lastVN = new Date(existing.buddy_note_at).toLocaleDateString('en-CA', {
-      timeZone: 'Asia/Ho_Chi_Minh',
-    });
-    // Đã nhắn hôm nay → thôi.
-    if (lastVN === todayVN) return {ok: true, generated: false};
-
-    // Chưa nhắn hôm nay nhưng cũng CHƯA CÓ GÌ MỚI kể từ lần nhắn trước → thôi.
-    // (Ghi chú y hệt thì gọi LLM chỉ để tốn tiền.)
-    const {data: newer} = await supabase
-      .from('lead_progress')
-      .select('id')
-      .eq('student_id', profile.id)
-      .gt('created_at', existing.buddy_note_at)
-      .limit(1);
-    if (!newer || newer.length === 0) return {ok: true, generated: false};
-  }
-
-  const built = await buddyContextFor(supabase, profile.id, weekLabel);
-  if (!built) return {ok: false, error: 'no_wig'};
-
-  const res = await buddyNote(built.ctx);
-  if ('error' in res) {
-    // detail có thể chứa lý do thật (hết hạn mức, model sai, key sai) → chỉ log server, không ra UI.
-    if (res.detail) console.error('[buddy] note', res.error, res.detail);
-    return {ok: false, error: res.error};
-  }
-
-  const patch = {
-    buddy_note: res.note,
-    buddy_note_model: res.model,
-    buddy_note_at: new Date().toISOString(),
-    buddy_action: res.action,
-    buddy_tokens: res.tokens,
-    // focusIndex đã được lib/buddy.ts kiểm nằm trong danh sách gửi đi → map ra id thật an toàn.
-    buddy_focus_lead_id: res.focusIndex === null ? null : built.leadIds[res.focusIndex],
-  };
-  // Không dùng upsert: unique index wig_meetings_student_week_uidx (0035) là index BỘ PHẬN
-  // (where student_id is not null) nên ON CONFLICT không suy ra được → select rồi update/insert.
-  const {error} = existing?.id
-    ? await admin.from('wig_meetings').update(patch).eq('id', existing.id)
-    : await admin
-        .from('wig_meetings')
-        // Kèm week_start: mọi màn hình tra biên bản theo NGÀY (0080), dòng thiếu ngày là dòng vô
-        // hình. Trigger 0140 cũng tự điền, đây là để mã nói đúng ý.
-        .insert({
-          class_id: enr.class_id,
-          student_id: profile.id,
-          week_label: weekLabel,
-          week_start: mondayOf(todayVN),
-          ...patch,
-        });
-  if (error) {
-    console.error('[buddy] save', error.message);
-    return {ok: false, error: 'save'};
-  }
-
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  return {ok: true, generated: true};
-}
-
-// GVCN/Admin mở hoặc đóng chat Buddy cho 1 buổi họp. Đây là công tắc giám sát: học sinh chỉ
-// chat được khi buổi họp đang diễn ra và có người lớn ngồi cạnh.
-export async function toggleBuddyChat(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
-  const student_id = String(formData.get('student_id') ?? '');
-  const meeting_id = String(formData.get('meeting_id') ?? '');
-  const open = String(formData.get('open') ?? '') === '1';
-  if (!meeting_id) backToStudent(student_id, 'Thiếu buổi họp');
-  const supabase = await createClient();
-  // RLS wm_teacher_all/wm_admin_all chốt quyền; .select() để phân biệt no-op do không có quyền.
-  const {data, error} = await supabase
-    .from('wig_meetings')
-    .update({buddy_chat_open: open})
-    .eq('id', meeting_id)
-    .select('id');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]/student', 'page');
-  if (error) backToStudent(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) backToStudent(student_id, 'Không đổi được (không có quyền hoặc đã xoá).');
-  backToStudent(student_id, open ? 'Đã mở Buddy cho buổi họp' : 'Đã đóng Buddy');
-}
-
-// Số lượt học sinh được nói trong MỘT buổi họp. Chặn chi phí và giữ hội thoại đúng mục đích
-// (đây là buổi họp WIG, không phải chỗ chat giải trí).
-const BUDDY_CHAT_MAX_USER_TURNS = 10;
-
-export type BuddyChatResult = {ok: boolean; error?: BuddyErrCode | 'closed' | 'too_long' | 'limit'};
-
-// Học sinh gửi 1 lượt cho Buddy TRONG buổi họp. Chỉ chạy khi GVCN đã mở (buddy_chat_open) —
-// RLS bm_student_insert là chốt cuối, kiểm ở đây chỉ để trả thông báo tử tế.
-export async function sendBuddyMessage(meetingId: string, content: string): Promise<BuddyChatResult> {
-  const profile = await getCurrentProfile();
-  if (!profile || profile.role !== 'student') return {ok: false, error: 'forbidden'};
-  const text = content.trim();
-  if (!text || text.length > 1000) return {ok: false, error: 'too_long'};
-
-  const supabase = await createClient();
-  // RLS wm_student_select chỉ trả buổi họp của chính em.
-  const {data: meeting} = await supabase
-    .from('wig_meetings')
-    .select('id, week_label, buddy_chat_open, student_id')
-    .eq('id', meetingId)
-    .maybeSingle();
-  if (!meeting || meeting.student_id !== profile.id) return {ok: false, error: 'forbidden'};
-  if (!meeting.buddy_chat_open) return {ok: false, error: 'closed'};
-
-  const {data: history} = await supabase
-    .from('buddy_messages')
-    .select('role, content')
-    .eq('meeting_id', meetingId)
-    .order('created_at', {ascending: true});
-  const turns = (history ?? []).filter((m) => m.role === 'user').length;
-  if (turns >= BUDDY_CHAT_MAX_USER_TURNS) return {ok: false, error: 'limit'};
-
-  // Ghi lượt của học sinh bằng client CỦA EM → RLS bm_student_insert kiểm lại chat có đang mở.
-  const {error: insErr} = await supabase
-    .from('buddy_messages')
-    .insert({meeting_id: meetingId, role: 'user', content: text});
-  if (insErr) return {ok: false, error: 'save'};
-
-  const built = await buddyContextFor(supabase, profile.id, meeting.week_label);
-  if (!built) return {ok: false, error: 'no_wig'};
-
-  const res = await buddyChat(built.ctx, [
-    ...((history ?? []) as {role: 'user' | 'assistant'; content: string}[]),
-    {role: 'user', content: text},
-  ]);
-  if ('error' in res) {
-    if (res.detail) console.error('[buddy] chat', res.error, res.detail);
-    return {ok: false, error: res.error};
-  }
-
-  // Lời của Buddy ghi bằng service_role → học sinh không giả được (RLS chỉ cho em ghi role='user').
-  const admin = createAdminClient();
-  const {error: aErr} = await admin
-    .from('buddy_messages')
-    .insert({meeting_id: meetingId, role: 'assistant', content: res.reply});
-  if (aErr) {
-    console.error('[buddy] chat save', aErr.message);
-    return {ok: false, error: 'save'};
-  }
-
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  return {ok: true};
-}
-
-// Học sinh/PH SỬA lời nhắn của yêu cầu MÌNH đã gửi, khi GVCN chưa xử lý.
-// RLS er_requester_update (0040) chốt: chỉ yêu cầu của mình + còn 'pending'; `.eq('status','pending')`
-// ở đây chỉ để phân biệt "GVCN vừa xử lý xong" → báo cho học sinh biết thay vì im lặng không đổi gì.
-export async function updateEditRequest(formData: FormData) {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect('/login');
-  const student_id = String(formData.get('student_id') ?? '');
-  const id = String(formData.get('request_id') ?? '');
-  const message = String(formData.get('message') ?? '').trim();
-  const back = (m: string): never => veTrangEm(student_id, m);
-  if (!id) back('Thiếu yêu cầu');
-  const supabase = await createClient();
-  const {data, error} = await supabase
-    .from('edit_requests')
-    .update({message: message || null})
-    .eq('id', id)
-    .eq('status', 'pending')
-    .select('id');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]/student', 'page');
-  if (error) back(loi(friendlyError(error)));
-  back(
-    data && data.length
-      ? 'Đã cập nhật yêu cầu'
-      : 'Không sửa được — giáo viên đã xử lý yêu cầu này rồi.',
-  );
-}
-
-// Học sinh/PH RÚT LẠI yêu cầu của mình khi GVCN chưa xử lý (RLS er_requester_delete, 0040).
-// Rút lại giải phóng luôn unique index pending (0035) → gửi lại yêu cầu mới được ngay.
-export async function withdrawEditRequest(formData: FormData) {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect('/login');
-  const student_id = String(formData.get('student_id') ?? '');
-  const id = String(formData.get('request_id') ?? '');
-  const back = (m: string): never => veTrangEm(student_id, m);
-  if (!id) back('Thiếu yêu cầu');
-  const supabase = await createClient();
-  const {data, error} = await supabase
-    .from('edit_requests')
-    .delete()
-    .eq('id', id)
-    .eq('status', 'pending')
-    .select('id');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]/student', 'page');
-  if (error) back(loi(friendlyError(error)));
-  back(
-    data && data.length
-      ? 'Đã rút lại yêu cầu'
-      : 'Không rút được — giáo viên đã xử lý yêu cầu này rồi.',
-  );
-}
-
-// GVCN/Admin duyệt/từ chối. IDEMPOTENT: chỉ đổi khi đang 'pending' → bấm 2 lần chỉ ăn 1.
-// apply=1 + kind='undo_tick' → duyệt & gỡ tick luôn.
-export async function resolveEditRequest(formData: FormData) {
-  const me = await requireRole(['teacher', 'admin']);
-  const student_id = String(formData.get('student_id') ?? '');
-  const id = String(formData.get('request_id') ?? '');
-  const decision = String(formData.get('decision') ?? '');
-  const apply = String(formData.get('apply') ?? '') === '1';
-  if (!id || (decision !== 'approved' && decision !== 'rejected'))
-    backToStudent(student_id, 'Thiếu thông tin duyệt');
-  const supabase = await createClient();
-  const {data, error} = await supabase
-    .from('edit_requests')
-    .update({status: decision, resolved_by: me.id, resolved_at: new Date().toISOString()})
-    .eq('id', id)
-    .eq('status', 'pending')
-    .select('id, kind, ref_id, student_id');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  if (error) backToStudent(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) backToStudent(student_id, 'Yêu cầu đã được xử lý trước đó.');
-  const r = data[0];
-  // rename_lead: `message` CHÍNH LÀ tên mới (0046) → duyệt là đổi tên luôn, GVCN không phải
-  // đọc rồi tự gõ lại. Lấy message từ chính hàng vừa duyệt để không tin dữ liệu từ form.
-  if (apply && decision === 'approved' && r.kind === 'rename_lead' && r.ref_id) {
-    const {data: req} = await supabase.from('edit_requests').select('message').eq('id', id).maybeSingle();
-    const newTitle = (req?.message ?? '').trim();
-    if (!newTitle) backToStudent(student_id, 'Đã duyệt, nhưng yêu cầu không ghi tên mới nên chưa đổi được.');
-    const {data: upd, error: upErr} = await supabase
-      .from('lead_measures')
-      .update({title: newTitle.slice(0, 200)})
-      .eq('id', r.ref_id)
-      .select('id');
-    if (upErr) backToStudent(student_id, loi(friendlyError(upErr)));
-    revalidatePath('/[locale]', 'page');
-    backToStudent(
-      student_id,
-      upd && upd.length ? 'Đã duyệt & đổi tên việc' : 'Đã duyệt, nhưng việc đó không còn tồn tại.',
-    );
-  }
-  if (apply && decision === 'approved' && r.kind === 'undo_tick' && r.ref_id) {
-    // Chỉ gỡ LƯỢT TICK GẦN NHẤT (không xoá cả lịch sử của lead measure) — khớp
-    // undo() tự-phục-vụ ở LeadTicker.tsx (luôn thao tác trên 1 lead_progress.id cụ thể).
-    const {data: target, error: findErr} = await supabase
-      .from('lead_progress')
-      .select('id')
-      .eq('lead_measure_id', r.ref_id)
-      .eq('student_id', r.student_id)
-      .order('created_at', {ascending: false})
-      .limit(1)
-      .maybeSingle();
-    if (findErr) backToStudent(student_id, loi(friendlyError(findErr)));
-    if (target) {
-      const {error: delErr} = await supabase.from('lead_progress').delete().eq('id', target.id);
-      if (delErr) backToStudent(student_id, loi(friendlyError(delErr)));
-    }
-    revalidatePath('/[locale]', 'page');
-    backToStudent(student_id, 'Đã duyệt & gỡ tick');
-  }
-  backToStudent(student_id, decision === 'approved' ? 'Đã duyệt yêu cầu' : 'Đã từ chối yêu cầu');
-}
-
-
-// ════════════════════════════════════════════════════════════════════════════
-// MỤC TIÊU CỦA EM — em đặt cùng cô, không phải máy chia số rồi giao xuống
-// ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════════════════════
+// 1. MỤC TIÊU CỦA EM (muc_tieu, cap='em')
 //
-// Đây là đường ghi THAY THẾ cho createStudentYearWigs / createClassStudentWigs đã xoá ở 0100.
-// Khác biệt không nằm ở mã, nằm ở ai cầm bút: trước đây app lấy mục tiêu lớp chia cho sĩ số rồi
-// ghi con số ấy vào bản ghi của từng em — thứ 4DX gọi đích danh là *dictate*. Kết quả đo được:
-// 0 bản ghi trên toàn hệ thống, vì "400 bài" không mô tả em nào cả.
-//
-// Nay em gõ khoảng cách của CHÍNH EM ("điểm Toán 5,8 → 7,0 trước 31/12"), kèm một việc em tự chọn
-// để đi tới đó. Nguyên văn Leader in Me: "Once a student sets a goal with his or her teacher."
-//
-// CÔ VẪN ĐẶT HỘ ĐƯỢC — chủ dự án chốt 11/08/2026 để triệt rủi ro "em không gõ thì màn trống".
-// Nhưng van an toàn ấy có thể nuốt cả thiết kế nếu cô gõ hộ hết, nên nó phải LỘ RA: cột `set_by`
-// ghi ai thật sự đặt, và BGH theo dõi tỷ lệ em tự đặt (mốc ≥ 70%). Xem docs/MO_HINH_WIG.md §4.
+// Em gõ khoảng cách của CHÍNH EM ("điểm Toán 5,8 → 7,0 trước 31/12"). Vòng duyệt
+// nhap → gui → duyet / tra_lai → dong nằm ở trang_thai; trigger mt_truoc_them/mt_truoc_sua
+// (20 §3.2) là luật thật (trần 4, tập trung 2, "thầy cô không sửa nội dung của em"). Action chỉ
+// đặt nội dung + trang_thai đích, để trigger kiểm và ký.
+// ════════════════════════════════════════════════════════════════════════════════════════════
 
-export type MucTieuState = {
-  ok: boolean;
-  message?: string;
-  error?: string;
-  fieldError?: string;
-};
-
-/**
- * CỬA SỔ MỘT NGÀY — em còn tự sửa/xoá mục tiêu của mình được không.
- *
- * 24 giờ đầu mục tiêu vẫn là ĐỀ NGHỊ (nhất là khi cô đặt hộ: nó vào thẳng `approved`, em không kịp
- * nói gì); qua đó nó thành CAM KẾT, muốn đổi thì xin cô. Người lớn không bị cửa sổ này chặn.
- *
- * Chốt thật nằm ở RLS (0102). Bản TypeScript này chỉ để câu báo lỗi nói đúng chuyện.
- *
- * KHÔNG `export` hằng số này: tệp đang ở trong 'use server', mà tệp 'use server' chỉ được export
- * hàm async — export một con số làm cả trang đổ 500 ngay lúc dựng. `tsc` và `next build` đều xanh
- * khi ấy; chỉ trang thật mới nói ra.
- */
-const CUA_SO_MS = 24 * 60 * 60 * 1000;
-
-function conTrongCuaSo(w: {status: string; created_at: string} | null | undefined): boolean {
-  if (!w) return true;
-  if (w.status === 'draft' || w.status === 'sent') return true;
-  return Date.now() - new Date(w.created_at).getTime() < CUA_SO_MS;
-}
-
-export async function luuMucTieuCuaEm(
-  _prev: MucTieuState,
-  formData: FormData,
-): Promise<MucTieuState> {
+export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promise<MucTieuState> {
   const me = await getCurrentProfile();
   if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
 
+  const muc_tieu_id = String(formData.get('muc_tieu_id') ?? '').trim();
   const student_id = String(formData.get('student_id') ?? '');
   const class_id = String(formData.get('class_id') ?? '');
-  const kind = String(formData.get('kind') ?? 'academic');
-  const title = String(formData.get('title') ?? '').trim();
-  const unit = String(formData.get('unit') ?? '').trim();
-  const baseline_raw = String(formData.get('baseline') ?? '').trim();
-  const target_raw = String(formData.get('target_value') ?? '').trim();
-  const han = String(formData.get('due_on') ?? '').trim();
-  const batDau = String(formData.get('start_on') ?? '').trim();
-  const source_wig_id = String(formData.get('source_wig_id') ?? '').trim();
-
-  // AI ĐANG GÕ. Chính em thì set_by='student'; cô hoặc quản trị gõ hộ thì 'teacher'. KHÔNG suy từ
-  // một ô trên form — người dùng gửi gì lên cũng được, mà cột này là thước đo của cả chương trình.
   const laChinhEm = me.id === student_id && me.role === 'student';
-  // ĐẶT HỘ CHỈ QUẢN TRỊ/BGH (audit 18/08/2026 + quyết định 16/08 "cô chỉ duyệt"): teacher bỏ khỏi
-  // đây — GVCN có nút Duyệt/Trả lại riêng, không gõ đè lời em. Trước đây teacher lọt vào nhánh
-  // này và mọi lượt lưu đè WIG em tự đặt đều văng 42501 ở trigger 0133.
-  const laNhanSu = me.role === 'admin' || me.role === 'principal';
-  if (!laChinhEm && !laNhanSu) return {ok: false, error: 'Không có quyền đặt mục tiêu cho em này.'};
+  const laNhanSu = me.role === 'teacher' || me.role === 'admin' || me.role === 'principal';
+  if (!laChinhEm && !laNhanSu) return {ok: false, error: 'Chỉ em mới ghi được phần này.'};
 
-  if (kind !== 'academic' && kind !== 'personal')
-    return {ok: false, error: 'Không rõ đây là mục tiêu học tập hay mục tiêu riêng.'};
-  if (!title)
-    return {ok: false, fieldError: 'title', error: 'Em muốn tiến bộ ở chuyện gì? Viết một câu.'};
-  if (title.length > 160) return {ok: false, fieldError: 'title', error: 'Tối đa 160 ký tự.'};
-  if (!han || !/^\d{4}-\d{2}-\d{2}$/.test(han))
-    return {ok: false, fieldError: 'due_on', error: 'Chọn ngày em muốn đạt được.'};
-  if (batDau && /^\d{4}-\d{2}-\d{2}$/.test(batDau) && batDau >= han)
-    return {ok: false, fieldError: 'start_on', error: 'Ngày bắt đầu phải trước ngày đạt.'};
+  const ten = String(formData.get('ten') ?? '').trim();
+  if (!ten) return {ok: false, fieldError: 'ten', error: 'Em muốn tiến bộ ở việc gì? Viết một câu.'};
+  if (ten.length > 200) return {ok: false, fieldError: 'ten', error: 'Tối đa 200 ký tự.'};
 
-  const target_value = Number(target_raw);
-  const baseline = baseline_raw === '' ? null : Number(baseline_raw);
-  if (!Number.isFinite(target_value) || target_value <= 0)
-    return {ok: false, fieldError: 'target_value', error: 'Đích phải là số lớn hơn 0.'};
-  if (baseline !== null && (!Number.isFinite(baseline) || baseline < 0))
-    return {ok: false, fieldError: 'baseline', error: 'Chỗ đang đứng phải là số từ 0 trở lên.'};
-  if (baseline !== null && baseline >= target_value)
-    return {
-      ok: false,
-      fieldError: 'baseline',
-      error: 'Chỗ đang đứng phải nhỏ hơn đích — nếu không thì không còn gì để tiến bộ.',
-    };
-  if (!unit) return {ok: false, fieldError: 'unit', error: 'Đơn vị là gì (điểm, bài, lần…)?'};
+  const linhVucRaw = String(formData.get('linh_vuc') ?? 'knowledge');
+  const linh_vuc = ([...AREAS, 'khac'] as string[]).includes(linhVucRaw)
+    ? (linhVucRaw as WigDomain)
+    : ('knowledge' as WigDomain);
 
-  // ĐO BẰNG GÌ — suy từ ĐƠN VỊ, ở máy chủ (0110).
-  //
-  //   'do'    (điểm, kg, cm) → cộng lại không có nghĩa → đích ghi nhận ngoài, 'manual': cô và trò
-  //           tự theo dõi, đạt thì tick một ô. App không có dữ liệu điểm môn, vẽ vạch là bịa (0101).
-  //   'luong' / 'luot' (bài, giờ, buổi) → máy đếm được từ tick → 'tick'. Việc để tick không đặt ở
-  //           đây nữa mà treo dưới cam kết của từng tuần (0121/0137); form này thôi đọc các ô
-  //           viec_* từ 0121 — phần đọc và kiểm chúng đã dọn 16/08/2026.
-  const kieu = kieuDonVi(unit);
-  const measure_by = kieu !== 'do' ? 'tick' : 'manual';
+  const kieu_dich = String(formData.get('kieu_dich') ?? 'toi'); // toi/tran_tich_luy/giu/toc_do_ky/ti_le_dat/chu
+  const chieu = String(formData.get('chieu') ?? 'tang'); // tang/giam/giu
+  const ky = String(formData.get('ky') ?? '').trim() || null; // tuan/hai_tuan/thang
+  const don_vi_id = String(formData.get('don_vi_id') ?? '').trim() || null;
+  const subject_id = String(formData.get('subject_id') ?? '').trim() || null;
+  const chua_do_x = String(formData.get('chua_do_x') ?? '') === '1';
+
+  const soHoac = (k: string): number | null => {
+    const raw = String(formData.get(k) ?? '').trim();
+    if (raw === '') return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  };
+  const x_so = soHoac('x_so');
+  const y_so = soHoac('y_so');
+  const x_chu = String(formData.get('x_chu') ?? '').trim() || null;
+  const y_chu = String(formData.get('y_chu') ?? '').trim() || null;
+
+  const ket_thuc = String(formData.get('ket_thuc') ?? '').trim();
+  const bat_dau = String(formData.get('bat_dau') ?? '').trim();
+  if (!isValidDayVN(ket_thuc))
+    return {ok: false, fieldError: 'ket_thuc', error: 'Chọn ngày em muốn đạt được.'};
+  if (bat_dau && isValidDayVN(bat_dau) && bat_dau > ket_thuc)
+    return {ok: false, fieldError: 'bat_dau', error: 'Ngày bắt đầu phải trước ngày đạt.'};
+
+  // Đích bằng lời (kieu='chu') cần y_chu; đích bằng số cần y_so. Đơn vị bắt buộc trừ chu/ti_le_dat.
+  if (kieu_dich === 'chu') {
+    if (!y_chu) return {ok: false, fieldError: 'y_chu', error: 'Em sẽ đạt được gì? Viết bằng lời.'};
+  } else {
+    if (y_so === null || y_so <= 0)
+      return {ok: false, fieldError: 'y_so', error: 'Đích phải là số lớn hơn 0.'};
+    if (!don_vi_id) return {ok: false, fieldError: 'don_vi_id', error: 'Chọn đơn vị (điểm, bài, lần…).'};
+  }
+
+  // Số này lấy từ đâu — với mục tiêu của EM chỉ hai đường: ĐẾM (máy cộng từ việc được nối vào →
+  // 'thuoc') hoặc ĐO (em/thầy cô ghi tay → 'ghi_tay'). Các nguồn con/he_thong/thanh_phan là của
+  // mục tiêu lớp/trường (form khác). Suy từ kiểu đơn vị của mục tiêu đo nếu form không nói rõ.
+  const nguonSoRaw = String(formData.get('nguon_so') ?? '').trim();
+  const nguon_so = nguonSoRaw === 'thuoc' || nguonSoRaw === 'ghi_tay' ? nguonSoRaw : 'ghi_tay';
+  // Đơn vị đo kiểu ĐẾM (buổi/bài) hợp với nguồn 'thuoc'; đo kiểu ĐO (điểm/kg) chỉ ghi tay được.
+  void kieuDonVi;
 
   const supabase = await createClient();
-  const nam = schoolYearRangeVN();
 
-  // ── DOMAIN LÀ Ô CỦA THẺ, KHÔNG PHẢI CÂU HỎI TRONG FORM ──────────────────────────────────
-  //
-  // PRD v3 4.2: mỗi em ĐÚNG 4 WIG, mỗi domain một. Màn của em bày 4 ô — em bấm vào ô còn trống
-  // của domain nào thì form mở ra cho đúng domain ấy, nên form không hỏi lại "lĩnh vực nào".
-  // (Bản 13/08 lấy domain từ WIG lớp em chọn; bỏ vì nó làm em KHÔNG đặt được WIG của một domain
-  // mà lớp chưa khai — trong khi luật v3 đòi em đủ 4 bất kể lớp.)
-  //
-  // Vẫn kiểm lại giá trị: ô hidden nằm trong trình duyệt, sửa được.
-  const areaRaw = String(formData.get('area') ?? '');
-  if (!(AREAS as readonly string[]).includes(areaRaw))
-    return {ok: false, fieldError: 'area', error: 'Không rõ mục tiêu này thuộc lĩnh vực nào.'};
-  const area = areaRaw as Database['public']['Enums']['wig_domain'];
-
-  // DÂY NỐI LÊN LỚP nay TỰ TÌM: WIG lớp cùng domain (nếu lớp đã khai) — em không phải trả lời
-  // thêm một câu mà đáp án chỉ có một. Lớp chưa khai domain này thì mục tiêu đứng một mình, và
-  // trigger `trg_noi_muc_tieu_len_lop` (0155) nối lại đúng lúc lớp khai — trước 0155 lời hứa "nối
-  // bổ sung" viết ở đây KHÔNG có ai thực hiện, mục tiêu của em mồ côi vĩnh viễn mà không màn nào
-  // báo. (Mục tiêu riêng vẫn không mang liên kết — wig_source_ck.)
-  //
-  // NĂM HỌC PHẢI KHỚP. Câu này vốn chỉ lọc period='year' rồi `.limit(1)` KHÔNG có order by. Năm
-  // học đầu tiên mỗi lớp chỉ có một WIG lớp mỗi lĩnh vực nên không lộ; từ năm thứ hai trở đi
-  // (wigs_lop_ky_uidx khoá theo cả period_label — hai năm là hai dòng hợp lệ) Postgres được
-  // quyền trả về dòng của NĂM NGOÁI, và tiến độ năm nay chảy vào bảng năm ngoái, im lặng.
-  void source_wig_id;
-  let soi: string | null = null;
-  if (kind === 'academic') {
-    const {data: chaLop} = await supabase
-      .from('wigs')
-      .select('id')
-      .eq('class_id', class_id)
-      .eq('scope', 'class')
-      .eq('area', area)
-      .eq('period', 'year')
-      .eq('period_label', nam.label)
-      .neq('measure_by', 'cuon')
-      .limit(1)
-      .maybeSingle();
-    soi = chaLop?.id ?? null;
-  }
-
-  const ban = {
-    class_id,
-    student_id,
-    scope: 'student' as const,
-    kind,
-    // Gửi lại là một lượt duyệt mới — nhận xét trả lại của lượt trước không còn đúng nữa.
-    reject_note: null,
-    // Em gõ thì gửi cô duyệt; cô gõ thì duyệt luôn — cô chính là người duyệt.
-    status: laChinhEm ? 'sent' : 'approved',
-    set_by: laChinhEm ? 'student' : 'teacher',
-    measure_by,
-    title,
-    area,
-    period: 'year' as const,
-    period_label: nam.label,
-    baseline,
-    target_value,
-    unit,
-    // Khoảng ngày của em, kẹp trong năm học: không sớm hơn đầu năm, không muộn hơn cuối năm.
-    start_date: /^\d{4}-\d{2}-\d{2}$/.test(batDau) && batDau > nam.start ? batDau : nam.start,
-    end_date: han > nam.end ? nam.end : han,
-    source_wig_id: soi,
+  // Nội dung chung (dùng cho cả insert lẫn update). trang_thai đặt riêng theo nhánh.
+  const noiDung = {
+    ten,
+    linh_vuc,
+    subject_id,
+    kieu_dich,
+    chieu,
+    ky,
+    don_vi_id: kieu_dich === 'chu' || kieu_dich === 'ti_le_dat' ? null : don_vi_id,
+    x_so: kieu_dich === 'chu' ? null : x_so,
+    y_so: kieu_dich === 'chu' ? null : y_so,
+    x_chu: kieu_dich === 'chu' ? x_chu : null,
+    y_chu: kieu_dich === 'chu' ? y_chu : null,
+    chua_do_x,
+    ket_thuc,
+    nguon_so,
+    ly_do_tra_lai: null,
   };
+  // "Lưu nháp" giữ ở nháp; mặc định gửi thầy cô duyệt.
+  const trang_thai = String(formData.get('action') ?? 'gui') === 'nhap' ? 'nhap' : 'gui';
 
-  // Mỗi em MỘT mục tiêu mỗi DOMAIN mỗi năm (khoá wigs_em_domain_uidx, 0145 — PRD v3 4.2).
-  // Đã có thì SỬA, không đẻ cái thứ hai — hai mục tiêu cùng domain là hai vạch tiến độ cho một
-  // chuyện, và không màn hình nào nói được cái nào mới là thật.
-  const {data: daCo} = await supabase
-    .from('wigs')
-    .select('id, status, created_at, kind')
-    .eq('student_id', student_id)
-    .eq('scope', 'student')
-    .eq('area', area)
-    .eq('period_label', nam.label)
-    .maybeSingle();
-
-  let wigId = daCo?.id ?? null;
-  if (wigId) {
-    // CỬA SỔ MỘT NGÀY ĐÃ BỎ (15/08/2026). PRD v3: "WIGs có thể được thay đổi trong năm, nhưng
-    // vẫn cần GVCN duyệt." Khoá cứng sau 24 giờ ngược với "thay đổi trong năm" — và `ban.status`
-    // ngay bên dưới đã tự đưa mục tiêu về 'sent' mỗi lần em sửa, nên việc DUYỆT LẠI mới là chốt
-    // thật, không cần thêm một cửa sổ thời gian chặn hẳn việc sửa.
-    //
-    // XOÁ thì KHÁC — xem xoaMucTieuCuaEm(): xoá kéo theo mất cả lịch sử tick (cascade), một hành
-    // động không đảo ngược được như sửa, nên cửa sổ một ngày vẫn giữ nguyên ở đó.
-    // SỬA thì KHÔNG gửi set_by/kind: đè set_by='teacher' lên WIG em tự đặt vừa phá thước đo
-    // "% em tự đặt" vừa trip trigger 0133. Giữ nguyên giá trị cũ — chỉ nhánh INSERT mới đặt set_by.
-    const {set_by: _sb, kind: _k, ...banSua} = ban;
-    void _sb;
-    void _k;
-    const {error} = await supabase.from('wigs').update(banSua).eq('id', wigId);
-    if (error) return {ok: false, error: (friendlyError(error))};
+  if (muc_tieu_id) {
+    // Sửa: KHÔNG đụng class_id/campus_id/student_id/cap (trigger chặn đổi lớp). Sửa nội dung tự
+    // đưa mục tiêu về 'gui' qua trigger; ta vẫn nói rõ trang_thai đích để nhánh "lưu nháp" đúng.
+    const {data, error} = await supabase
+      .from('muc_tieu')
+      .update({...noiDung, trang_thai})
+      .eq('id', muc_tieu_id)
+      .eq('cap', 'em')
+      .select('id');
+    if (error) return {ok: false, error: friendlyError(error)};
+    if (!data || data.length === 0)
+      return {ok: false, error: 'Không lưu được — em không có quyền với lớp này.'};
   } else {
-    const {data, error} = await supabase.from('wigs').insert(ban).select('id').maybeSingle();
-    if (error) return {ok: false, error: (friendlyError(error))};
-    if (!data) return {ok: false, error: 'Không lưu được mục tiêu (không có quyền).'};
-    wigId = data.id;
+    const campus_id = await layCampus(supabase, class_id);
+    if (!campus_id) return {ok: false, error: 'Không rõ lớp của em nên chưa lưu được.'};
+    const {data, error} = await supabase
+      .from('muc_tieu')
+      .insert({
+        cap: 'em',
+        campus_id,
+        class_id,
+        student_id,
+        trang_thai,
+        ...noiDung,
+        bat_dau: isValidDayVN(bat_dau) ? bat_dau : todayInVN(),
+      })
+      .select('id')
+      .maybeSingle();
+    if (error) return {ok: false, error: friendlyError(error)};
+    if (!data) return {ok: false, error: 'Không lưu được — em không có quyền với lớp này.'};
   }
-
-  // VIỆC CỦA EM ĐÃ RỜI KHỎI ĐÂY (0121).
-  //
-  // Trước 14/08/2026 một lần bấm Lưu làm ba việc: đặt mục tiêu năm, tạo một việc dẫn dắt, và rải
-  // mười hai mốc tháng. Mô hình mới tách hẳn: mục tiêu NĂM đặt một lần đầu năm, còn việc để tick
-  // thì treo dưới CAM KẾT của từng tuần — mỗi tuần tối đa 2 cam kết.
-  //
-  // Đúng thứ tự mà PRD v3 viết: "Mỗi học sinh sau khi đặt Wig đều phải thiết lập Weekly
-  // commitment, lead measure, lịch PDR meeting của tuần đầu tiên và Buddy."
-  //
-  // Mốc tháng thì không còn khái niệm ấy nữa.
 
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]/wig/chi-tiet', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  if (trang_thai === 'nhap') return {ok: true, message: 'Đã lưu nháp.'};
   return {
     ok: true,
     message: laChinhEm
-      ? 'Đã gửi giáo viên duyệt.'
+      ? muc_tieu_id
+        ? 'Sửa xong, mục tiêu quay lại chờ thầy cô duyệt.'
+        : 'Đã gửi thầy cô.'
       : 'Đã lưu mục tiêu cho em.',
   };
 }
 
-// Cô duyệt mục tiêu em vừa gửi.
+// Tập trung / thôi tập trung (tối đa 2 — trigger mt_kiem_tap_trung là luật thật).
+export async function datTapTrung(formData: FormData) {
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('muc_tieu_id') ?? '');
+  const bat = String(formData.get('bat') ?? '') === '1';
+  if (!id) veTrangEm(student_id, loi('Thiếu mục tiêu.'));
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('muc_tieu')
+    .update({dang_tap_trung: bat})
+    .eq('id', id)
+    .eq('cap', 'em')
+    .select('id');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data || data.length === 0) veTrangEm(student_id, loi('Không đổi được — không có quyền hoặc đã xoá.'));
+  veTrangEm(student_id, bat ? 'Đang tập trung mục tiêu này' : 'Đã thôi tập trung');
+}
+
+// Đóng mục tiêu (ly_do_dong: dat/doi/bo — trigger đòi đúng ba giá trị ấy).
+export async function dongMucTieu(formData: FormData) {
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('muc_tieu_id') ?? '');
+  const ly_do_dong = String(formData.get('ly_do_dong') ?? '');
+  if (!id) veTrangEm(student_id, loi('Thiếu mục tiêu.'));
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('muc_tieu')
+    .update({trang_thai: 'dong', ly_do_dong})
+    .eq('id', id)
+    .eq('cap', 'em')
+    .select('id');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data || data.length === 0) veTrangEm(student_id, loi('Không đóng được — không có quyền hoặc đã xoá.'));
+  veTrangEm(student_id, 'Đã đóng mục tiêu');
+}
+
+// Xoá mục tiêu — RLS chỉ cho khi nhap/gui/tra_lai VÀ chưa có số đo/dây/cam kết hiệu lực dưới nó.
+export async function xoaMucTieu(formData: FormData) {
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('muc_tieu_id') ?? '');
+  if (!id) veTrangEm(student_id, loi('Thiếu mục tiêu.'));
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('muc_tieu').delete().eq('id', id).eq('cap', 'em').select('id');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data || data.length === 0)
+    veTrangEm(student_id, loi('Chỉ xoá được khi mục tiêu chưa có số nào ghi dưới nó.'));
+  veTrangEm(student_id, 'Đã xoá mục tiêu');
+}
+
+// GVCN duyệt / trả lại mục tiêu của em (trigger mt_truoc_sua kiểm quyền + ký + kiểm trần).
 export async function duyetMucTieu(formData: FormData) {
   await requireRole(['teacher', 'admin']);
-  const wig_id = String(formData.get('wig_id') ?? '');
+  const id = String(formData.get('muc_tieu_id') ?? '');
   const student_id = String(formData.get('student_id') ?? '');
   const supabase = await createClient();
-  const me = await getCurrentProfile();
   const {data, error} = await supabase
-    .from('wigs')
-    // Vết duyệt (0145): ai duyệt, lúc nào — PRD v3 4.2 đòi WIG "được GVCN thông qua" là một
-    // sự kiện có thật, không phải một cột status đổi không dấu tay.
-    .update({status: 'approved', approved_by: me?.id ?? null, approved_at: new Date().toISOString(), reject_note: null})
-    .eq('id', wig_id)
-    .eq('scope', 'student')
+    .from('muc_tieu')
+    .update({trang_thai: 'duyet'})
+    .eq('id', id)
+    .eq('cap', 'em')
     .select('id')
     .maybeSingle();
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
   if (!data) veTrangEm(student_id, loi('Mục tiêu này không còn nữa.'));
-  revalidatePath('/[locale]/wig/chi-tiet', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
   veTrangEm(student_id, 'Đã duyệt mục tiêu của em');
 }
 
-// ── DUYỆT MÀ KHÔNG NHẢY TRANG (24/08/2026) ───────────────────────────────────────────────────
-//
-// Hai bản trả-về-state cho useActionState, dùng bởi components/wig/NutDuyet. Khác bản cũ ở đúng
-// một điều: KHÔNG redirect. Bản cũ kết bằng `veTrangEm` — bấm Duyệt ở bảng /wig là bị ném sang
-// trang của em, mất chỗ đang đứng; và mỗi lượt gật là dựng lại một trang nặng cho một câu UPDATE.
-export type DuyetState = {ok: boolean; error?: string};
-
-export async function duyetMucTieuTraVe(_prev: DuyetState, formData: FormData): Promise<DuyetState> {
-  // requireRole đã trả về hồ sơ — bản cũ gọi thêm getCurrentProfile(), tức hai lượt hỏi CSDL cho
-  // cùng một câu trả lời. Trên đường truyền mất gói thì mỗi lượt là một lần rút thăm.
-  const me = await requireRole(['teacher', 'admin']);
-  const wig_id = String(formData.get('wig_id') ?? '').trim();
-  if (!wig_id) return {ok: false, error: 'Thiếu mục tiêu cần duyệt.'};
-  const supabase = await createClient();
-  const {data, error} = await supabase
-    .from('wigs')
-    // Vết duyệt (0145): ai duyệt, lúc nào — PRD v3 4.2 đòi WIG "được GVCN thông qua" là một sự
-    // kiện có thật, không phải một cột status đổi không dấu tay.
-    .update({status: 'approved', approved_by: me.id, approved_at: new Date().toISOString(), reject_note: null})
-    .eq('id', wig_id)
-    .eq('scope', 'student')
-    .select('id')
-    .maybeSingle();
-  if (error) return {ok: false, error: friendlyError(error)};
-  if (!data) return {ok: false, error: 'Mục tiêu này không còn nữa.'};
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]/wig/chi-tiet', 'page');
-  return {ok: true};
-}
-
-export async function duyetCamKetCuaEmTraVe(_prev: DuyetState, formData: FormData): Promise<DuyetState> {
-  await requireRole(['teacher', 'admin']);
-  const id = String(formData.get('commitment_id') ?? '').trim();
-  if (!id) return {ok: false, error: 'Thiếu cam kết cần duyệt.'};
-  const supabase = await createClient();
-  const {data, error} = await supabase.from('commitments').update({status: 'approved'}).eq('id', id).select('id');
-  if (error) return {ok: false, error: friendlyError(error)};
-  if (!data || data.length === 0) return {ok: false, error: 'Không duyệt được cam kết này.'};
-  revalidatePath('/[locale]/wig', 'page');
-  return {ok: true};
-}
-
-// Cô TRẢ LẠI mục tiêu kèm nhận xét (PRD v3 4.2: rejected kèm nhận xét để em sửa và gửi lại).
-// Nhận xét là bắt buộc — wig_reject_note_ck (0145) chặn ở CSDL, đây chỉ báo câu dễ hiểu.
 export async function traLaiMucTieu(formData: FormData) {
   await requireRole(['teacher', 'admin']);
-  const wig_id = String(formData.get('wig_id') ?? '');
+  const id = String(formData.get('muc_tieu_id') ?? '');
   const student_id = String(formData.get('student_id') ?? '');
   const note = String(formData.get('note') ?? '').trim();
   if (!note) veTrangEm(student_id, loi('Trả lại thì ghi cho em một câu vì sao nhé.'));
   if (note.length > 300) veTrangEm(student_id, loi('Nhận xét tối đa 300 ký tự.'));
   const supabase = await createClient();
   const {data, error} = await supabase
-    .from('wigs')
-    .update({status: 'rejected', reject_note: note})
-    .eq('id', wig_id)
-    .eq('scope', 'student')
-    // Chỉ trả lại cái đang CHỜ — mục tiêu đã duyệt muốn mở lại thì đi đường "Xin sửa" của em.
-    .eq('status', 'sent')
+    .from('muc_tieu')
+    .update({trang_thai: 'tra_lai', ly_do_tra_lai: note})
+    .eq('id', id)
+    .eq('cap', 'em')
+    .eq('trang_thai', 'gui')
     .select('id')
     .maybeSingle();
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
   if (!data) veTrangEm(student_id, loi('Mục tiêu này không còn chờ duyệt.'));
-  revalidatePath('/[locale]/wig/chi-tiet', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
   veTrangEm(student_id, 'Đã trả lại kèm nhận xét cho em');
 }
 
-// Xoá mục tiêu của em.
-//
-// Hai người xoá được, vì hai lý do khác nhau:
-//   · CÔ — bất cứ lúc nào, như mọi bản ghi khác của lớp (rls_all_wigs).
-//   · CHÍNH EM — chỉ trong cửa sổ một ngày. Đây là đường "con không nhận mục tiêu này": cô đặt hộ
-//     xong em thấy không phải chuyện của mình thì bỏ thẳng, không phải viết đơn xin sửa rồi ngồi
-//     chờ. Qua 24 giờ thì hết đường ấy — xem 0102.
-export async function xoaMucTieuCuaEm(formData: FormData) {
-  const me = await getCurrentProfile();
-  if (!me) return;
-  const wig_id = String(formData.get('wig_id') ?? '');
-  const student_id = String(formData.get('student_id') ?? '');
-  if (!wig_id) veTrangEm(student_id, loi('Thiếu mục tiêu.'));
-
-  const supabase = await createClient();
-  const {data: w} = await supabase
-    .from('wigs')
-    .select('id, status, created_at')
-    .eq('id', wig_id)
-    .eq('scope', 'student')
-    .maybeSingle();
-  if (!w) veTrangEm(student_id, loi('Mục tiêu này không còn nữa.'));
-
-  const laChinhEm = me.id === student_id && me.role === 'student';
-  if (laChinhEm && !conTrongCuaSo(w))
-    veTrangEm(student_id, loi('Mục tiêu này đã chốt rồi (quá 1 ngày). Em muốn bỏ thì nhắn giáo viên nhé.'));
-
-  // lead_measures và lead_progress dưới nó đi theo (on delete cascade, 0002).
-  const {error} = await supabase.from('wigs').delete().eq('id', wig_id).eq('scope', 'student');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
-
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]/wig/chi-tiet', 'page');
-  veTrangEm(student_id, 'Đã xoá mục tiêu');
-}
-
-
-// XOÁ MỘT CAM KẾT TUẦN — của chính em (chưa chốt tuần) hoặc do cô/quản trị dọn.
-//
-// Chủ dự án 16/08/2026: "liệu tôi muốn bỏ đi để làm lại thì sao?". Trước đây cam kết đặt rồi là
-// không có đường lùi trên màn — em hứa nhầm trận đánh, hay gõ "tét" để thử, thì kẹt luôn tới cuối
-// tuần. Việc và tick dưới cam kết đi theo (cascade); tuần đã chốt thì trigger trg_khoa_sau_khi_chot
-// chặn, RLS lo phần "của ai".
-export async function xoaCamKetTuan(formData: FormData) {
-  const me = await getCurrentProfile();
-  if (!me) return;
-  const id = String(formData.get('commitment_id') ?? '');
-  const student_id = String(formData.get('student_id') ?? '');
-  if (!id) veTrangEm(student_id, loi('Thiếu cam kết.'));
-  const supabase = await createClient();
-  const {data, error} = await supabase.from('commitments').delete().eq('id', id).select('id');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if ((data ?? []).length === 0) veTrangEm(student_id, loi('Không xoá được — cam kết không còn, hoặc tuần đã chốt.'));
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]/student/hop', 'page');
-  revalidatePath('/[locale]/wig', 'page');
-  veTrangEm(student_id, 'Đã xoá cam kết');
-}
-
-
-// CÔ DUYỆT CAM KẾT CỦA EM — ngay trên trang của em (về lại đúng trang ấy). Bản ở /wig (duyetCamKet)
-// về trang lớp; hai nơi, một câu UPDATE, cùng RLS.
-export async function duyetCamKetCuaEm(formData: FormData) {
+// Duyệt mục tiêu KHÔNG nhảy trang (NutDuyet trên bảng /wig, useActionState).
+export async function duyetMucTieuTraVe(_prev: DuyetState, formData: FormData): Promise<DuyetState> {
   await requireRole(['teacher', 'admin']);
-  const id = String(formData.get('commitment_id') ?? '');
-  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('muc_tieu_id') ?? '').trim();
+  if (!id) return {ok: false, error: 'Thiếu mục tiêu cần duyệt.'};
   const supabase = await createClient();
-  const {data, error} = await supabase.from('commitments').update({status: 'approved'}).eq('id', id).select('id');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if ((data ?? []).length === 0) veTrangEm(student_id, loi('Không duyệt được cam kết này.'));
+  const {data, error} = await supabase
+    .from('muc_tieu')
+    .update({trang_thai: 'duyet'})
+    .eq('id', id)
+    .eq('cap', 'em')
+    .select('id')
+    .maybeSingle();
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data) return {ok: false, error: 'Mục tiêu này không còn nữa.'};
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  veTrangEm(student_id, 'Đã duyệt cam kết');
+  return {ok: true};
 }
 
-
-// XOÁ MỘT VIỆC DẪN DẮT — của chính em, tuần chưa chốt (RLS rls_xoa_viec_cua_em, 0141). Cam kết mẹ
-// tự về chờ duyệt (trigger). Cô/quản trị dọn thì đi đường quản trị (rls_xoa_viec_chi_quan_tri).
-export async function xoaViecCuaEm(formData: FormData) {
-  const me = await getCurrentProfile();
-  if (!me) return;
-  const id = String(formData.get('lead_id') ?? '');
-  const student_id = String(formData.get('student_id') ?? '');
-  const supabase = await createClient();
-  const {data, error} = await supabase.from('lead_measures').delete().eq('id', id).select('id');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if ((data ?? []).length === 0) veTrangEm(student_id, loi('Không xoá được — việc không còn, hoặc tuần đã chốt.'));
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]/wig', 'page');
-  veTrangEm(student_id, 'Đã xoá việc');
-}
-
-
-export type CamKetState = {ok: boolean; message?: string; error?: string; fieldError?: string};
-
-// SỬA CAM KẾT TUẦN + VIỆC DƯỚI NÓ — của chính em, khi chưa duyệt (đã duyệt thì đi đường "xin sửa").
-// Trigger 0129/0141 tự đưa cam kết về 'sent' khi tên đổi hay việc bị đụng; RLS lo "của ai".
-export async function suaCamKetTuan(_prev: CamKetState, formData: FormData): Promise<CamKetState> {
-  const me = await getCurrentProfile();
-  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
-  const id = String(formData.get('commitment_id') ?? '');
-  const title = String(formData.get('title') ?? '').trim();
-  if (!id) return {ok: false, error: 'Thiếu cam kết.'};
-  if (!title) return {ok: false, fieldError: 'title', error: 'Cam kết không được để trống.'};
-  if (title.length > 160) return {ok: false, fieldError: 'title', error: 'Tối đa 160 ký tự.'};
-  const supabase = await createClient();
-  const {data: ck, error: e1} = await supabase.from('commitments').update({title}).eq('id', id).select('id');
-  if (e1) return {ok: false, error: friendlyError(e1)};
-  if ((ck ?? []).length === 0) return {ok: false, error: 'Không sửa được — cam kết không còn, hoặc tuần đã chốt.'};
-  for (const vId of formData.getAll('viec_id').map(String)) {
-    const vTitle = String(formData.get(`viec_title_${vId}`) ?? '').trim();
-    const vTarget = Number(String(formData.get(`viec_target_${vId}`) ?? '').trim());
-    if (!vTitle) return {ok: false, error: 'Tên việc không được để trống.'};
-    if (!Number.isFinite(vTarget) || vTarget <= 0) return {ok: false, error: `Đích của "${vTitle}" phải là số lớn hơn 0.`};
-    const {error: e2} = await supabase.from('lead_measures').update({title: vTitle, target_value: vTarget}).eq('id', vId);
-    if (e2) return {ok: false, error: friendlyError(e2)};
-  }
-  // ── THÊM MỘT VIỆC VÀO CAM KẾT ĐÃ CÓ (24/08/2026) ─────────────────────────────────────────
-  //
-  // Cam kết được phép gửi mà chưa có việc ("em chưa nghĩ ra thì thêm sau") — nhưng tới hôm nay
-  // KHÔNG có đường nào để thêm sau thật: khung Sửa chỉ sửa được những việc đã có. Cam kết trống
-  // là cam kết không bao giờ tick được, và cả tuần trôi qua không ai thấy vì sao. Nay khung Sửa
-  // nhận thêm MỘT việc mới, dùng đúng bộ ô của lúc tạo (tên · thứ · cách đong đếm).
-  const themTitle = String(formData.get('viec_title') ?? '').trim();
-  if (themTitle) {
-    const {data: ckWig} = await supabase
-      .from('commitments')
-      .select('wig_id, wigs(unit)')
-      .eq('id', id)
-      .maybeSingle();
-    const donVi = (ckWig as unknown as {wigs: {unit: string | null} | null} | null)?.wigs?.unit ?? '';
-    const thu = formData
-      .getAll('viec_days')
-      .map((d) => Number(String(d)))
-      .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
-      .sort((a, b) => a - b);
-    const kieu = kieuDonVi(donVi);
-    const nhapLuong = kieu === 'luong' && String(formData.get('viec_nhap_luong') ?? '') === '1';
-    const unitPerTick =
-      kieu === 'luong' && !nhapLuong ? Number(String(formData.get('viec_upt') ?? '').trim() || '1') : 1;
-    const viecTarget = nhapLuong ? Number(String(formData.get('viec_luong') ?? '').trim()) : thu.length * unitPerTick;
-    if (thu.length === 0)
-      return {ok: false, fieldError: 'viec_days', error: 'Em chọn ít nhất một thứ trong tuần cho việc ấy nhé.'};
-    if (kieu === 'luong' && !nhapLuong && (!Number.isFinite(unitPerTick) || unitPerTick <= 0))
-      return {ok: false, fieldError: 'viec_upt', error: `Mỗi lần em làm được bao nhiêu ${donVi}?`};
-    if (nhapLuong && (!Number.isFinite(viecTarget) || viecTarget <= 0))
-      return {ok: false, fieldError: 'viec_luong', error: `Tuần này em mong đạt bao nhiêu ${donVi}?`};
-    const {error: e3} = await supabase.from('lead_measures').insert({
-      commitment_id: id,
-      title: themTitle,
-      target_value: viecTarget,
-      unit: kieu === 'do' ? null : donVi || null,
-      active_weekdays: thu,
-      unit_per_tick: unitPerTick,
-      nhap_luong: nhapLuong,
-    });
-    if (e3) return {ok: false, error: friendlyError(e3)};
-  }
-
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]/wig', 'page');
-  return {ok: true, message: 'Đã sửa — cam kết về chờ giáo viên duyệt lại.'};
-}
-
-// Tick "đã đạt" cho đích ghi nhận ngoài. Cô và trò tự theo dõi ở ngoài app (bài kiểm tra, sổ liên
-// lạc); app chỉ ghi lại AI xác nhận và LÚC NÀO — xem docs/MO_HINH_WIG.md §5.0.
-export async function danhDauDaDat(formData: FormData) {
-  const me = await getCurrentProfile();
-  if (!me) return;
-  const wig_id = String(formData.get('wig_id') ?? '');
-  const student_id = String(formData.get('student_id') ?? '');
-  const bo = String(formData.get('bo') ?? '') === '1';
-  const supabase = await createClient();
-  const {error} = await supabase
-    .from('wigs')
-    .update(
-      bo
-        ? {achieved_at: null, achieved_by: null}
-        : {achieved_at: new Date().toISOString(), achieved_by: me.id},
-    )
-    .eq('id', wig_id);
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  veTrangEm(student_id, bo ? 'Đã bỏ đánh dấu' : 'Đã đánh dấu ĐẠT');
-}
-
-// ── SỐ ĐO NGOÀI APP (0108) ───────────────────────────────────────────────────────────────────
-//
-// Mục tiêu `measure_by='manual'` — cân nặng, chiều cao, điểm trung bình môn — app không đếm được.
-// Tới 0108 nó chỉ có đúng một bit `achieved_at`, nên không ai đọc ra em đang đi nhanh hay chậm và
-// buổi họp không có gì để cầm. Nay mỗi tuần một dòng số.
-//
-// Chủ dự án chốt: EM ghi được, CÔ ghi được, KHÔNG có bước duyệt, và đến khi buổi họp WIG của lớp
-// được chốt thì khoá. Chốt thật nằm ở RLS (rls_insert/update_wig_so_do đọc `tuan_da_hop`); hàm này
-// chỉ là cửa, và nó cố tình KHÔNG kiểm lại điều kiện khoá — hai chỗ cùng phán một luật là hai chỗ
-// để chúng trôi khỏi nhau, mà tầng dưới mới là tầng có thẩm quyền.
-//
-// `vai_tro` do MÁY CHỦ suy từ người đang đăng nhập, không đọc từ form: nó là thứ màn hình dùng để
-// nói "em tự ghi" hay "cô ghi", và một con số tự khai mà khai sai cả nguồn thì tệ hơn là không có.
+// ── SỐ ĐO NGOÀI APP (so_do) ──────────────────────────────────────────────────────────────────
+// Mục tiêu ĐO (nguon_so='ghi_tay'): cân nặng, điểm môn — máy không đếm được. Mỗi lần ghi là MỘT
+// dòng mới (lịch sử giữ lại, số MỚI NHẤT là số thật — private.so_hien_tai đọc 'moi_nhat'). Luật
+// ngày (không tương lai, không trước bat_dau) nằm ở trigger so_do_truoc_ghi.
 export async function ghiSoDo(_prev: MucTieuState, formData: FormData): Promise<MucTieuState> {
   const me = await getCurrentProfile();
   if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
-
-  const wig_id = String(formData.get('wig_id') ?? '');
+  const muc_tieu_id = String(formData.get('muc_tieu_id') ?? '');
+  if (!muc_tieu_id) return {ok: false, error: 'Không rõ đang ghi cho mục tiêu nào.'};
   const raw = String(formData.get('gia_tri') ?? '').trim();
-  if (!wig_id) return {ok: false, error: 'Không rõ đang ghi cho mục tiêu nào.'};
   if (raw === '') return {ok: false, fieldError: 'gia_tri', error: 'Em điền số đã nhé.'};
-
   const gia_tri = Number(raw);
   if (!Number.isFinite(gia_tri) || gia_tri < 0)
-    return {ok: false, fieldError: 'gia_tri', error: 'Phải là một số từ 0 trở lên.'};
+    return {ok: false, fieldError: 'gia_tri', error: 'Số phải từ 0 trở lên.'};
+  const ngayGui = String(formData.get('ngay') ?? '').trim();
+  const ngay = isValidDayVN(ngayGui) ? ngayGui : todayInVN();
 
-  const vai_tro = me.role === 'student' ? 'student' : 'teacher';
   const supabase = await createClient();
+  // student_id của dòng số đo = chủ mục tiêu (mục tiêu lớp/trường thì null).
+  const {data: mt} = await supabase.from('muc_tieu').select('student_id').eq('id', muc_tieu_id).maybeSingle();
 
-  // GHI VÀO TUẦN ĐANG XEM, không phải tuần hôm nay.
-  //
-  // Trước đây hàm này luôn dùng weekRangeVN() — tuần hiện tại. Màn của em thì luôn đứng ở tuần
-  // này nên không lộ; nhưng trang /wig của cô lật được sang tuần khác, và ở đó cô gõ một con số
-  // rồi nó lặng lẽ rơi vào TUẦN NÀY, biến mất khỏi màn cô đang nhìn. Đúng họ lỗi "nhập rồi mà
-  // không thấy đâu" — thứ khó chẩn nhất, vì không có câu báo nào và dữ liệu thì vẫn ghi được.
-  //
-  // KIỂM, ĐỪNG TIN Ô ẨN: giá trị này do trình duyệt gửi. Không phải một ngày hợp lệ thì rơi về
-  // tuần hiện tại, và luôn quy về THỨ HAI của tuần chứa ngày ấy (khoá của bảng là tuần, không
-  // phải ngày). Cửa sổ cho phép để nguyên như cũ — RLS và dấu chốt buổi họp mới là thứ chặn thật.
-  const tuanGui = String(formData.get('week') ?? '').trim();
-  const tuan = isValidDayVN(tuanGui) ? weekRangeVN(new Date(`${mondayOf(tuanGui)}T12:00:00Z`)) : weekRangeVN();
-
-  // Một dòng cho mỗi (mục tiêu, tuần). Ghi lại trong cùng tuần là SỬA — hai con số cho một tuần
-  // thì buổi họp không biết đọc cái nào. 23505 nghĩa là dòng đã có, chuyển sang cập nhật.
-  const ban = {wig_id, week_start: tuan.start, gia_tri, nguoi_nhap: me.id, vai_tro};
-  const {error} = await supabase.from('wig_so_do').insert(ban);
-  if (error) {
-    if (error.code !== '23505') return {ok: false, error: friendlyError(error)};
-    const {data, error: e2} = await supabase
-      .from('wig_so_do')
-      .update(ban)
-      .eq('wig_id', wig_id)
-      .eq('week_start', tuan.start)
-      .select('id');
-    if (e2) return {ok: false, error: friendlyError(e2)};
-    // .select() để phân biệt "RLS chặn" với "đã ghi": thiếu nó thì tuần đã chốt vẫn báo thành công.
-    if ((data?.length ?? 0) === 0)
-      return {ok: false, error: 'Tuần này lớp đã họp chốt rồi nên số không sửa được nữa.'};
-  }
+  const {data, error} = await supabase
+    .from('so_do')
+    .insert({
+      muc_tieu_id,
+      ngay,
+      gia_tri,
+      nguon: 'tay',
+      nguoi_ghi: me.id,
+      student_id: mt?.student_id ?? null,
+    })
+    .select('id');
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data || data.length === 0)
+    return {ok: false, error: 'Không ghi được — em không có quyền với mục tiêu này.'};
 
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
-  return {ok: true, message: 'Đã ghi số của tuần này.'};
-}
-
-// ── SỔ CỦA CON ───────────────────────────────────────────────────────────────────────────────
-//
-// Trong Leader in Me, cuốn sổ THUỘC VỀ HỌC SINH — không phải hồ sơ của giáo viên. Đó là toàn bộ
-// lý do nó có tác dụng, nên phân quyền phải nói đúng điều ấy: em viết, người lớn đọc. Chính sách
-// rls_write_student_reflections (0100) là chốt cuối; hàm này chỉ là cửa.
-//
-// Khác mọi thứ còn lại trong mô hình: cô KHÔNG viết hộ được ở đây. Mục tiêu thì cô đặt hộ được
-// (docs/MO_HINH_WIG.md §4), nhưng một cuốn sổ ai cũng viết được thì không còn là sổ của em nữa.
-export async function luuSoCuaCon(_prev: MucTieuState, formData: FormData): Promise<MucTieuState> {
-  const me = await getCurrentProfile();
-  if (!me || me.role !== 'student') return {ok: false, error: 'Chỉ chính em mới viết được sổ này.'};
-
-  const class_id = String(formData.get('class_id') ?? '');
-  const body = String(formData.get('body') ?? '').trim();
-  if (!body) return {ok: false, fieldError: 'body', error: 'Em viết vài chữ đã nhé.'};
-  if (body.length > 2000) return {ok: false, fieldError: 'body', error: 'Tối đa 2000 ký tự.'};
-
-  const supabase = await createClient();
-  const tuan = weekRangeVN();
-
-  // Một dòng cho mỗi (em, tuần) — khoá duy nhất ở CSDL. Viết lại trong cùng tuần là SỬA, không đẻ
-  // thêm dòng; 23505 nghĩa là hai tab cùng gửi, chuyển sang cập nhật chứ không báo lỗi cho em.
-  const {error} = await supabase
-    .from('student_reflections')
-    .insert({student_id: me.id, class_id, week_start: tuan.start, body});
-  if (error && (error as {code?: string}).code === '23505') {
-    const {error: e2} = await supabase
-      .from('student_reflections')
-      .update({body, updated_at: new Date().toISOString()})
-      .eq('student_id', me.id)
-      .eq('week_start', tuan.start);
-    if (e2) return {ok: false, error: (friendlyError(e2))};
-  } else if (error) {
-    return {ok: false, error: (friendlyError(error))};
-  }
-
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  return {ok: true, message: 'Đã lưu vào sổ của em.'};
-}
-
-// ── CHỈNH NHỊP ───────────────────────────────────────────────────────────────────────────────
-//
-// App rải mốc tháng đều nhau khi cô khai mục tiêu năm (lib/wig-nhip.ts). Nhưng năm học không đều:
-// có Tết, có tuần thi, có tháng vào hè. Hàm này cho cô kéo lại.
-//
-// LUẬT DUY NHẤT: tổng các tháng phải bằng đúng đích năm. Không có luật ấy thì "nhịp" thành một
-// dãy số rời rạc, và cảnh báo lệch nhịp — thứ đắt giá nhất của cả đợt sửa — sẽ nói dối theo hướng
-// không ai đoán được. Kéo tháng này lên thì phải hạ tháng khác xuống; app không tự bù, vì tự bù
-// nghĩa là sửa một con số cô không nhìn thấy.
-export async function chinhNhip(_prev: MucTieuState, formData: FormData): Promise<MucTieuState> {
-  await requireRole(['teacher', 'admin']);
-  const nam_id = String(formData.get('nam_id') ?? '');
-  const supabase = await createClient();
-
-  const {data: nam} = await supabase
-    .from('wigs')
-    .select('id, target_value, baseline')
-    .eq('id', nam_id)
-    .eq('scope', 'class')
-    .eq('period', 'year')
-    // Mục tiêu cuộn không chia được: "86% học sinh đạt" chia cho 30 em không ra câu nào có nghĩa.
-    .neq('measure_by', 'cuon')
-    .maybeSingle();
-  if (!nam) return {ok: false, error: 'Mục tiêu năm này không còn nữa.'};
-
-  const {data: thang} = await supabase
-    .from('wigs')
-    .select('id')
-    .eq('parent_wig_id', nam_id)
-    .eq('period', 'month');
-
-  const moi = new Map<string, number>();
-  for (const m of thang ?? []) {
-    const raw = String(formData.get(`moc_${m.id}`) ?? '').trim();
-    const n = Number(raw);
-    if (!Number.isFinite(n) || n <= 0)
-      return {ok: false, fieldError: `moc_${m.id}`, error: 'Mỗi tháng phải là số lớn hơn 0.'};
-    moi.set(m.id, n);
-  }
-  if (moi.size === 0) return {ok: false, error: 'Mục tiêu năm này chưa có mốc tháng nào.'};
-
-  const tong = [...moi.values()].reduce((s, n) => s + n, 0);
-  const can = Number(nam.target_value) - Number(nam.baseline ?? 0);
-  if (Math.round(tong) !== Math.round(can))
-    return {
-      ok: false,
-      error: `Tổng các tháng đang là ${Math.round(tong)}, phải bằng ${Math.round(can)}. Kéo tháng này lên thì hạ tháng khác xuống.`,
-    };
-
-  // Ghi từng tháng. Không gộp thành một câu được vì mỗi dòng một giá trị khác nhau; đổi lại con số
-  // ở đây tối đa là 12, không phải 52.
-  for (const [id, n] of moi) {
-    const {error} = await supabase.from('wigs').update({target_value: n}).eq('id', id);
-    if (error) return {ok: false, error: (friendlyError(error))};
-  }
-
   revalidatePath('/[locale]/wig', 'page');
-  revalidatePath('/[locale]/wig/chi-tiet', 'page');
-  return {ok: true, message: 'Đã chỉnh nhịp các tháng.'};
+  return {ok: true, message: 'Đã ghi số.'};
 }
 
-// BẠN ĐỒNG HÀNH kiểu ghép-cặp-bạn-cùng-lớp ĐÃ BỎ (12/08/2026).
+// ════════════════════════════════════════════════════════════════════════════════════════════
+// 2. VIỆC EM LÀM (thuoc) + LƯỢT GHI (luot)
 //
-// Hàm ghepBuddyTuan và components/wig/BanDongHanh.tsx gỡ khỏi mã nguồn: app chỉ còn MỘT nghĩa
-// Buddy — con sư tử AI (lib/buddy.ts). Bảng buddy_pairs vẫn nằm nguyên trong CSDL cùng dữ liệu
-// đã ghép; không xoá, chỉ thôi đọc và thôi ghi. Xem ghi chú ở components/student/StudentMeetings.
+// "Việc" là thứ nhỏ em làm đều mỗi ngày. Trigger th_truoc_them (20 §3.3) đặt trang_thai='chay',
+// duyet='gui', created_by, và kiểm trần ≤4 hàng/em. Việc `gui` của em VẪN ghi lượt được ngay
+// (C107) — không ai phải chờ duyệt mới được làm việc tốt.
+// ════════════════════════════════════════════════════════════════════════════════════════════
 
-// ════════════════════════════════════════════════════════════════════════════════════════════
-// EM TỰ ĐẶT CAM KẾT TUẦN — mắt xích bị đứt của cả vòng, nối lại (16/08/2026)
-// ════════════════════════════════════════════════════════════════════════════════════════════
-//
-// Cho tới hôm nay, đường DUY NHẤT sinh ra cam kết tuần của một em là ô "việc tuần này" mà GIÁO
-// VIÊN gõ trong phòng họp. Chủ dự án bảo gỡ ("phải là em đặt chứ"), tôi gỡ — và quên rằng phía em
-// chưa hề có đường thay thế. Kết quả: nửa cây cầu. Em viết cam kết thành một câu văn trong biên
-// bản, còn bảng của cô đọc bảng `commitments` — hai bên nói về hai thứ khác nhau, và không có gì
-// để tick suốt cả tuần.
-//
-// Đây là chỗ nối lại. Ba luật, và cả ba đều đã có sẵn trong CSDL — hàm này chỉ nói lại cho đúng
-// câu tiếng Việt thay vì để người dùng nhận một mã lỗi Postgres:
-//
-//   · Cam kết của em treo dưới MỤC TIÊU NĂM CỦA CHÍNH EM (cam_ket_hop_le, 0121).
-//   · Tối đa 2 cam kết mỗi tuần (chan_qua_hai_cam_ket) — "ít thì mới tập trung được".
-//   · Em đặt thì vào trạng thái CHỜ DUYỆT, và máy tự ghi là em đặt (cam_ket_trang_thai, 0129).
-//     Không tin ô nào của trình duyệt về hai chuyện ấy.
-export async function datCamKetTuan(
-  _prev: MucTieuState,
-  formData: FormData,
-): Promise<MucTieuState> {
+export async function luuViec(_prev: ViecState, formData: FormData): Promise<ViecState> {
   const me = await getCurrentProfile();
   if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
+  const student_id = String(formData.get('student_id') ?? '');
+  const class_id = String(formData.get('class_id') ?? '');
+  const laChinhEm = me.id === student_id && me.role === 'student';
+  const laNhanSu = me.role === 'teacher' || me.role === 'admin' || me.role === 'principal';
+  if (!laChinhEm && !laNhanSu) return {ok: false, error: 'Chỉ em mới ghi được phần này.'};
 
-  const title = String(formData.get('title') ?? '').trim();
-  if (!title) return {ok: false, fieldError: 'title', error: 'Em viết cam kết của tuần đã nhé.'};
-  if (title.length > 160)
-    return {ok: false, fieldError: 'title', error: 'Cam kết tối đa 160 ký tự — viết ngắn cho dễ nhớ.'};
+  const ten = String(formData.get('ten') ?? '').trim();
+  if (!ten) return {ok: false, fieldError: 'ten', error: 'Em sẽ làm việc gì? Bắt đầu bằng một việc làm.'};
+  if (ten.length > 200) return {ok: false, fieldError: 'ten', error: 'Tối đa 200 ký tự.'};
 
-  // TUẦN NÀO: nhận từ form nhưng KIỂM lại, và luôn quy về thứ Hai. Bỏ trống thì là tuần tới —
-  // buổi họp cuối tuần đặt cam kết cho tuần sắp tới, đó là nhịp mặc định.
-  const tuanGui = String(formData.get('week') ?? '').trim();
-  const monday = isValidDayVN(tuanGui) ? mondayOf(tuanGui) : nextWeekRangeVN().start;
+  const don_vi_id = String(formData.get('don_vi_id') ?? '').trim();
+  if (!don_vi_id) return {ok: false, fieldError: 'don_vi_id', error: 'Chọn đơn vị em đong đếm việc này.'};
 
-  const supabase = await createClient();
+  const cach_ghi = String(formData.get('cach_ghi') ?? 'cham'); // cham/dien_so/he_thong
+  const chieu_dich = String(formData.get('chieu_dich') ?? 'it_nhat'); // it_nhat/nhieu_nhat
+  const gop = String(formData.get('gop') ?? 'tong'); // tong/moi_nhat/dem_dat_nguong
+  const kyTuanRaw = Number(String(formData.get('ky_tuan') ?? '1'));
+  const ky_tuan = [1, 2, 4].includes(kyTuanRaw) ? kyTuanRaw : 1;
+  const chi_tieu_ky = Number(String(formData.get('chi_tieu_ky') ?? '').trim());
+  if (!Number.isFinite(chi_tieu_ky) || chi_tieu_ky <= 0)
+    return {ok: false, fieldError: 'chi_tieu_ky', error: `Bao nhiêu là đủ mỗi ${ky_tuan === 1 ? 'tuần' : ky_tuan + ' tuần'}?`};
 
-  // Lớp em đang học, và mục tiêu năm của chính em để treo cam kết vào.
-  const {data: ghiDanh} = await supabase
-    .from('enrollments')
-    .select('class_id')
-    .eq('student_id', me.id)
-    .eq('is_active', true)
-    .maybeSingle();
-  if (!ghiDanh?.class_id)
-    return {ok: false, error: 'Em chưa được xếp lớp nên chưa đặt cam kết được.'};
+  const moiLan = Number(String(formData.get('moi_lan') ?? '').trim());
+  const moi_lan = cach_ghi === 'cham' ? (Number.isFinite(moiLan) && moiLan > 0 ? moiLan : 1) : null;
+  const nguongRaw = Number(String(formData.get('nguong_moi_lan') ?? '').trim());
+  const nguong_moi_lan = gop === 'dem_dat_nguong' && Number.isFinite(nguongRaw) ? nguongRaw : null;
+  const cho_bu = String(formData.get('cho_bu') ?? '') === '1';
 
-  // EM CHỌN TRẬN ĐÁNH CỦA TUẦN NÀY (0138). Lớp có ba bốn mục tiêu năm; mỗi tuần em hứa vào cái
-  // nào là quyền của em. Không gửi lên thì rơi về mục tiêu năm của chính em — đường cũ, vẫn giữ
-  // cho mục tiêu riêng không thuộc trận nào của lớp.
-  //
-  // KIỂM Ở ĐÂY LÀ ĐỂ CÂU BÁO NÓI ĐƯỢC TIẾNG NGƯỜI; chốt thật nằm ở trigger cam_ket_hop_le, và nó
-  // mới là thứ chặn khi ai đó gửi tay lên id mục tiêu của một lớp khác.
-  const wigGui = String(formData.get('wig_id') ?? '').trim();
-  let wigId: string | null = null;
-  // Đơn vị của việc = đơn vị của MỤC TIÊU nó góp vào (không hỏi thêm một ô): "bài", "giờ", "trang".
-  let donVi = '';
-
-  if (wigGui) {
-    const {data: chon} = await supabase
-      .from('wigs')
-      .select('id, unit')
-      .eq('id', wigGui)
-      .eq('period', 'year')
-      // PRD v3: cam kết chỉ treo dưới WIG ĐÃ DUYỆT — trigger cam_ket_hop_le (0148) là chốt
-      // thật, lọc ở đây để ô chọn với câu báo cùng nói một luật.
-      .eq('status', 'approved')
-      .neq('measure_by', 'cuon')
-      .or(`and(scope.eq.class,class_id.eq.${ghiDanh.class_id}),and(scope.eq.student,student_id.eq.${me.id})`)
-      .maybeSingle();
-    if (!chon?.id)
-      return {ok: false, fieldError: 'wig_id', error: 'Mục tiêu em chọn chưa được duyệt hoặc không thuộc lớp mình.'};
-    wigId = chon.id;
-    donVi = chon.unit ?? '';
-  } else {
-    // Đường-rơi-về "mục tiêu học tập duy nhất" đã chết từ 18/08/2026: mỗi em nay có TỚI 4 WIG
-    // (một mỗi domain, khoá wigs_em_domain_uidx) — maybeSingle() trên nhiều dòng là ăn lỗi ngay.
-    // Không đoán hộ: bắt chọn.
-    return {ok: false, fieldError: 'wig_id', error: 'Em chọn mục tiêu mà cam kết này phục vụ nhé.'};
-  }
-
-  if (!wigId)
-    return {
-      ok: false,
-      error: 'Em đặt mục tiêu năm trước đã — cam kết mỗi tuần là một bước đi tới mục tiêu ấy.',
-    };
-
-  // ── ĐỌC VÀ KIỂM VIỆC TRƯỚC KHI TẠO CAM KẾT (24/08/2026) ───────────────────────────────────
-  //
-  // Bản cũ tạo cam kết xong mới kiểm mấy ô của việc, nên một ô số bỏ trống để lại HAI hậu quả mà
-  // em không gỡ được: cam kết đã nằm trong CSDL nhưng KHÔNG có việc nào để tick, và bấm lại là đẻ
-  // cam kết thứ hai — trần 2 cam kết mỗi tuần cháy hết vì hai lời hứa trống. Gặp thật ở lớp
-  // Marketing 24/08: cả hai cam kết của một em đều 0 việc, tuần trôi qua không tick được gì.
-  //
-  // Kiểm ở đây là kiểm thuần (không đụng CSDL) nên hỏng thì KHÔNG có gì được ghi, em sửa ô rồi
-  // gửi lại là xong — không còn câu "Cam kết ĐÃ gửi rồi" đứng cạnh một cái form còn nguyên chữ.
-  const viecTitle = String(formData.get('viec_title') ?? '').trim();
-  const thu = formData
-    .getAll('viec_days')
+  // Những ngày trong tuần em làm (1=Thứ Hai … 7=Chủ nhật).
+  const ngay_ap_dung = formData
+    .getAll('ngay')
     .map((d) => Number(String(d)))
     .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
     .sort((a, b) => a - b);
-  // ĐO BẰNG GÌ (0110 — luật đã có ở mục tiêu năm, nay đặt lại đúng chỗ là VIỆC TUẦN; chủ dự án
-  // 16/08/2026: "lead measures phải có sự đong đếm ở đó, hoặc dữ liệu có thể điền được như điểm số,
-  // bài học... không chỉ mỗi tick, trước đó đã làm đúng rồi bạn lại ẩn đi").
-  //   'luot' (buổi, ngày)          → một chạm mỗi ngày; chỉ tiêu = số thứ được bật.
-  //   'luong' (bài, giờ, trang)    → HAI cách: mỗi lần CỐ ĐỊNH n (một chạm, đáng n) — hoặc "mỗi lần
-  //                                  một khác" (ô điền số mỗi ngày, chỉ tiêu tuần em tự khai).
-  //   'do' (điểm, kg)              → không có việc tick; con số ghi ở ô số đo của mục tiêu.
-  const kieu = kieuDonVi(donVi);
-  const nhapLuong = kieu === 'luong' && String(formData.get('viec_nhap_luong') ?? '') === '1';
-  const uptRaw = String(formData.get('viec_upt') ?? '').trim();
-  const luongRaw = String(formData.get('viec_luong') ?? '').trim();
-  const unitPerTick = kieu === 'luong' && !nhapLuong ? Number(uptRaw || '1') : 1;
-  // Chỉ tiêu = SỐ THỨ ĐƯỢC BẬT, không hỏi thành một ô riêng (0103): mỗi ngày một lượt tick, nên
-  // hai con số ấy không thể lệch nhau — hỏi cả hai là mời người dùng tự mâu thuẫn với mình.
-  const viecTarget = nhapLuong ? Number(luongRaw) : thu.length * unitPerTick;
+  if (cach_ghi !== 'he_thong' && ngay_ap_dung.length === 0)
+    return {ok: false, fieldError: 'ngay', error: 'Em chọn ít nhất một ngày trong tuần cho việc ấy nhé.'};
 
-  if (viecTitle) {
-    if (thu.length === 0)
-      return {ok: false, fieldError: 'viec_days', error: 'Em chọn ít nhất một thứ trong tuần cho việc ấy nhé.'};
-    if (kieu === 'luong' && !nhapLuong && (!Number.isFinite(unitPerTick) || unitPerTick <= 0))
-      return {ok: false, fieldError: 'viec_upt', error: `Mỗi lần em làm được bao nhiêu ${donVi}?`};
-    if (nhapLuong && (!Number.isFinite(viecTarget) || viecTarget <= 0))
-      return {ok: false, fieldError: 'viec_luong', error: `Tuần này em mong đạt bao nhiêu ${donVi}?`};
-  }
+  const tuTuan = String(formData.get('tu_tuan') ?? 'nay');
+  const tu_tuan = tuTuan === 'sau' ? nextWeekRangeVN().start : weekRangeVN().start;
 
-  const {data: daTao, error} = await supabase
-    .from('commitments')
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('thuoc')
     .insert({
-      wig_id: wigId,
-      class_id: ghiDanh.class_id,
-      student_id: me.id,
-      week_start: monday,
-      title,
-      // Cột NOT NULL nhưng trigger đè lại bằng lĩnh vực của mục tiêu năm — gửi một giá trị hợp lệ
-      // bất kỳ để qua cửa, đừng đọc nó như lựa chọn của người dùng.
-      area: 'knowledge',
+      chu_the: 'em',
+      class_id,
+      student_id,
+      ten,
+      don_vi_id,
+      cach_ghi,
+      chieu_dich,
+      gop,
+      ky_tuan,
+      chi_tieu_ky,
+      moi_lan,
+      nguong_moi_lan,
+      ngay_ap_dung,
+      cho_bu,
+      pham_vi: 'tung_em',
+      tu_tuan,
     })
     .select('id')
     .maybeSingle();
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data) return {ok: false, error: 'Không lưu được — em không có quyền với lớp này.'};
 
-  if (error) {
-    // Trần 2 cam kết là luật CÓ CHỦ Ý, không phải sự cố — nói bằng tiếng người.
-    if (/hai cam k|tối đa 2|qua_hai/i.test(error.message))
-      return {
-        ok: false,
-        error: 'Mỗi tuần chỉ đặt 2 cam kết thôi — ít thì mới tập trung được. Xoá bớt rồi đặt lại nhé.',
-      };
-    return {ok: false, error: friendlyError(error)};
-  }
-
-  // ── VIỆC ĐỂ TICK, NGAY TRONG CÙNG MỘT LẦN BẤM ─────────────────────────────────────────────
-  //
-  // Một lời hứa không có việc để tick là một lời hứa không ai đo được: cả tuần trôi qua, ô tick
-  // trống trơn, và tới buổi họp thì không có gì để nói ngoài trí nhớ. Bắt em quay lại một màn khác
-  // để thêm việc là chỗ người ta bỏ dở — nhất là trẻ con, nhất là trên điện thoại.
-  //
-  // Nên gộp vào một bước, và để TUỲ CHỌN: em chưa nghĩ ra việc thì cam kết vẫn gửi được, thêm sau
-  // bằng nút Sửa của thẻ cam kết.
-  if (viecTitle && daTao?.id) {
-    const {error: eViec} = await supabase.from('lead_measures').insert({
-      commitment_id: daTao.id,
-      title: viecTitle,
-      target_value: viecTarget,
-      unit: kieu === 'do' ? null : donVi || null,
-      active_weekdays: thu,
-      unit_per_tick: unitPerTick,
-      nhap_luong: nhapLuong,
+  // Nối việc vào một mục tiêu (không bắt buộc). Cùng đơn vị thì cộng số (gop_so); khác thì chỉ
+  // hướng (chi_huong) — form quyết. Dây hỏng KHÔNG làm mất việc đã lưu.
+  const giup_muc_tieu = String(formData.get('giup_muc_tieu') ?? '').trim();
+  if (giup_muc_tieu) {
+    const vai = String(formData.get('cong_vao') ?? '') === '1' ? 'gop_so' : 'chi_huong';
+    const he_so = Number(String(formData.get('he_so') ?? '1').trim());
+    const {error: eNoi} = await supabase.from('noi').insert({
+      cha_id: giup_muc_tieu,
+      con_thuoc_id: data.id,
+      vai,
+      he_so: Number.isFinite(he_so) && he_so > 0 ? he_so : 1,
+      noi_tu_dong: false,
+      created_by: me.id,
     });
-    // Cam kết đã lưu rồi thì nói rõ ra, đừng để em tưởng mất cả hai và gửi lại.
-    if (eViec)
-      return {ok: false, error: `Cam kết đã gửi, nhưng việc chưa lưu được: ${friendlyError(eViec)}`};
+    if (eNoi) return {ok: false, error: `Việc đã lưu, nhưng chưa nối vào mục tiêu được: ${friendlyError(eNoi)}`};
   }
 
   revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/hop', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  return {ok: true, message: 'Đã gửi thầy cô. Em ghi được ngay từ hôm nay.'};
+}
+
+// Đổi chỉ tiêu từ TUẦN SAU (thuoc_lich_su). Trigger thls_truoc_them quyết định hiệu lực ngay hay
+// về chờ duyệt (hạ >30% hoặc hạ lần hai trong năm → cho_duyet + thuoc.duyet='gui').
+export async function suaChiTieu(_prev: ViecState, formData: FormData): Promise<ViecState> {
+  const me = await getCurrentProfile();
+  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
+  const thuoc_id = String(formData.get('thuoc_id') ?? '');
+  if (!thuoc_id) return {ok: false, error: 'Thiếu việc cần sửa.'};
+  const chi_tieu_ky = Number(String(formData.get('chi_tieu_ky') ?? '').trim());
+  if (!Number.isFinite(chi_tieu_ky) || chi_tieu_ky <= 0)
+    return {ok: false, fieldError: 'chi_tieu_ky', error: 'Chỉ tiêu mới phải là số lớn hơn 0.'};
+  const ly_do = String(formData.get('ly_do') ?? '').trim() || null;
+  const moiLan = Number(String(formData.get('moi_lan') ?? '').trim());
+  const moi_lan = Number.isFinite(moiLan) && moiLan > 0 ? moiLan : null;
+  const ngay_ap_dung = formData
+    .getAll('ngay')
+    .map((d) => Number(String(d)))
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
+    .sort((a, b) => a - b);
+
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('thuoc_lich_su')
+    .insert({
+      thuoc_id,
+      tu_tuan: nextWeekRangeVN().start,
+      chi_tieu_ky,
+      moi_lan,
+      ngay_ap_dung: ngay_ap_dung.length ? ngay_ap_dung : null,
+      ly_do,
+    })
+    .select('trang_thai')
+    .maybeSingle();
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data) return {ok: false, error: 'Không lưu được — em không có quyền với việc này.'};
+
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
   return {
     ok: true,
-    message: viecTitle
-      ? 'Đã gửi cam kết và việc của tuần cho giáo viên duyệt.'
-      : 'Đã gửi cam kết tuần cho giáo viên duyệt.',
+    message:
+      data.trang_thai === 'cho_duyet'
+        ? 'Đã lưu, chờ duyệt lại vì hạ nhiều.'
+        : 'Đã lưu chỉ tiêu mới, áp dụng từ tuần sau.',
   };
+}
+
+// Tạm dừng / chạy lại / kết thúc việc (từ tuần sau). Trigger th_truoc_sua kiểm quyền.
+export async function doiTrangThaiViec(formData: FormData) {
+  const student_id = String(formData.get('student_id') ?? '');
+  const thuoc_id = String(formData.get('thuoc_id') ?? '');
+  const viec = String(formData.get('viec') ?? ''); // tam_dung | chay | ket_thuc
+  if (!thuoc_id) veTrangEm(student_id, loi('Thiếu việc.'));
+  const supabase = await createClient();
+  const patch =
+    viec === 'ket_thuc'
+      ? {den_tuan: nextWeekRangeVN().start}
+      : viec === 'tam_dung'
+        ? {trang_thai: 'tam_dung'}
+        : {trang_thai: 'chay'};
+  const {data, error} = await supabase.from('thuoc').update(patch).eq('id', thuoc_id).select('id');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data || data.length === 0) veTrangEm(student_id, loi('Không đổi được — không có quyền hoặc đã xoá.'));
+  veTrangEm(
+    student_id,
+    viec === 'ket_thuc'
+      ? 'Việc sẽ kết thúc từ tuần sau'
+      : viec === 'tam_dung'
+        ? 'Đã tạm dừng việc'
+        : 'Đã cho việc chạy lại',
+  );
+}
+
+// Xoá việc — RLS chỉ cho khi chưa từng duyệt và chưa có lượt ghi.
+export async function xoaViec(formData: FormData) {
+  const student_id = String(formData.get('student_id') ?? '');
+  const thuoc_id = String(formData.get('thuoc_id') ?? '');
+  if (!thuoc_id) veTrangEm(student_id, loi('Thiếu việc.'));
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('thuoc').delete().eq('id', thuoc_id).select('id');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data || data.length === 0)
+    veTrangEm(student_id, loi('Chỉ xoá được khi việc chưa ghi lần nào.'));
+  veTrangEm(student_id, 'Đã xoá việc');
+}
+
+// ── GHI LƯỢT ─────────────────────────────────────────────────────────────────────────────────
+//
+// EM tự ghi: cửa sổ 7 ngày + khoá chữ ký (rls_em_ghi_luot). "Một con số cho một ngày": xoá dòng
+// tay của ngày ấy rồi ghi lại. giaTri < 0 = xoá trắng ngày (nút Bớt về 0); giaTri = 0 là MỘT dòng
+// thật (việc kiêng: giữ được ≠ chưa ghi). Cửa sổ kiểm sớm ở TS để câu báo đúng chỗ; RLS là chốt.
+async function ghiLuotChung(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  args: {thuocId: string; studentId: string; ngay: string; giaTri: number; nguoiGhi: string},
+): Promise<LuotResult> {
+  const {thuocId, studentId, ngay, giaTri, nguoiGhi} = args;
+  await supabase
+    .from('luot')
+    .delete()
+    .eq('thuoc_id', thuocId)
+    .eq('student_id', studentId)
+    .eq('ngay', ngay)
+    .eq('nguon', 'tay');
+  if (giaTri < 0) {
+    revalidatePath('/[locale]/student', 'page');
+    revalidatePath('/[locale]/student/[id]', 'page');
+    return {ok: true};
+  }
+  const {data, error} = await supabase
+    .from('luot')
+    .insert({thuoc_id: thuocId, student_id: studentId, ngay, gia_tri: giaTri, nguon: 'tay', nguoi_ghi: nguoiGhi})
+    .select('id');
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data || data.length === 0) return {ok: false, error: 'Không ghi được — thử lại nhé.'};
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  return {ok: true};
+}
+
+export async function ghiLuot(thuocId: string, ngay: string, giaTri: number): Promise<LuotResult> {
+  const me = await getCurrentProfile();
+  if (!me || me.role !== 'student') return {ok: false, error: 'Chỉ em mới ghi được phần này.'};
+  if (!thuocId || !isValidDayVN(ngay)) return {ok: false, error: 'Thiếu việc hoặc ngày.'};
+  // Cửa sổ 7 ngày (hôm nay lùi 6 ngày là ngày sớm nhất). Ngoài cửa sổ → nhờ thầy cô ghi giúp.
+  const today = todayInVN();
+  const cachNgay = Math.round(
+    (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${ngay}T00:00:00Z`)) / 86_400_000,
+  );
+  if (cachNgay > 6 || cachNgay < 0)
+    return {ok: false, error: 'Chỉ ghi được trong 7 ngày gần nhất — nhờ thầy cô ghi giúp.'};
+
+  const supabase = await createClient();
+  const res = await ghiLuotChung(supabase, {thuocId, studentId: me.id, ngay, giaTri, nguoiGhi: me.id});
+  // Trong cửa sổ mà vẫn bị chặn → gần như chắc là tuần đã ký (luot_bi_khoa).
+  if (!res.ok && res.error) return {ok: false, error: 'Ngày này đã khoá sau buổi họp với bạn.'};
+  return res;
+}
+
+// THẦY CÔ ghi bù cho em (mọi lớp — C25): không vướng cửa sổ 7 ngày, vẫn không vượt chữ ký.
+export async function ghiBuLuot(
+  thuocId: string,
+  studentId: string,
+  ngay: string,
+  giaTri: number,
+): Promise<LuotResult> {
+  const me = await requireRole(['teacher', 'admin']);
+  if (!thuocId || !studentId || !isValidDayVN(ngay)) return {ok: false, error: 'Thiếu việc, em hoặc ngày.'};
+  const supabase = await createClient();
+  const res = await ghiLuotChung(supabase, {thuocId, studentId, ngay, giaTri, nguoiGhi: me.id});
+  if (!res.ok && res.error)
+    return {ok: false, error: 'Tuần này em đã ghi nhận buổi họp — mở lại qua yêu cầu sửa có lưu vết.'};
+  return res;
+}
+
+// ════════════════════════════════════════════════════════════════════════════════════════════
+// 3. CAM KẾT TUẦN (cam_ket) — KHÔNG có vòng duyệt; em tự chấm Thắng/Thua
+//
+// Trigger ck_truoc_them (20 §3.4) đặt created_by, trang_thai='hieu_luc', xoá sạch phần chấm, và
+// kiểm trần 2/tuần (đếm theo TỪNG tuần). ck_truoc_sua kiểm luật "chấm từ thứ Sáu tuần cuối",
+// ký gợi ý lúc chấm, và "em tự chấm cam kết của mình".
+// ════════════════════════════════════════════════════════════════════════════════════════════
+
+export async function luuCamKet(_prev: CamKetState, formData: FormData): Promise<CamKetState> {
+  const me = await getCurrentProfile();
+  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
+  const student_id = String(formData.get('student_id') ?? '');
+  const class_id = String(formData.get('class_id') ?? '');
+  const laChinhEm = me.id === student_id && me.role === 'student';
+  const laNhanSu = me.role === 'teacher' || me.role === 'admin' || me.role === 'principal';
+  if (!laChinhEm && !laNhanSu) return {ok: false, error: 'Chỉ em mới ghi được phần này.'};
+
+  const noi_dung = String(formData.get('noi_dung') ?? '').trim();
+  if (!noi_dung) return {ok: false, fieldError: 'noi_dung', error: 'Tuần này em hứa làm gì? Viết một câu.'};
+  if (noi_dung.length > 300) return {ok: false, fieldError: 'noi_dung', error: 'Tối đa 300 ký tự.'};
+
+  const soTuanRaw = Number(String(formData.get('so_tuan') ?? '1'));
+  const so_tuan = [1, 2, 3, 4].includes(soTuanRaw) ? soTuanRaw : 1;
+
+  const khi = String(formData.get('khi') ?? 'nay');
+  const tuanGui = String(formData.get('tuan_bat_dau') ?? '').trim();
+  const tuan_bat_dau = isValidDayVN(tuanGui)
+    ? mondayOf(tuanGui)
+    : khi === 'sau'
+      ? nextWeekRangeVN().start
+      : weekRangeVN().start;
+
+  const soHuaRaw = String(formData.get('so_hua') ?? '').trim();
+  const so_hua = soHuaRaw === '' ? null : Number(soHuaRaw);
+  if (so_hua !== null && (!Number.isFinite(so_hua) || so_hua <= 0))
+    return {ok: false, fieldError: 'so_hua', error: 'Con số của cam kết phải lớn hơn 0.'};
+  const don_vi_id = String(formData.get('don_vi_id') ?? '').trim() || null;
+  const muc_tieu_id = String(formData.get('muc_tieu_id') ?? '').trim() || null;
+  const thuoc_id = String(formData.get('thuoc_id') ?? '').trim() || null;
+
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('cam_ket')
+    .insert({
+      chu_the: 'em',
+      class_id,
+      student_id,
+      noi_dung,
+      so_hua,
+      don_vi_id,
+      so_tuan,
+      tuan_bat_dau,
+      muc_tieu_id,
+      thuoc_id,
+    })
+    .select('id')
+    .maybeSingle();
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data) return {ok: false, error: 'Không lưu được — em không có quyền với lớp này.'};
+
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  return {ok: true, message: 'Đã lưu cam kết.'};
+}
+
+// Em tự chấm Thắng/Thua (ket_qua rỗng = bỏ chấm). Nút đã mờ trước thứ Sáu; nếu vẫn gửi thì
+// trigger văng 23514 "Đợi đến thứ Sáu tuần cuối rồi chấm nhé" — action hiện nguyên câu.
+export async function chamCamKet(formData: FormData) {
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('cam_ket_id') ?? '');
+  const ketQuaRaw = String(formData.get('ket_qua') ?? '').trim();
+  if (!id) veTrangEm(student_id, loi('Thiếu cam kết.'));
+  const ket_qua = ketQuaRaw === 'thang' || ketQuaRaw === 'thua' ? ketQuaRaw : null;
+  const soDatRaw = String(formData.get('so_dat') ?? '').trim();
+  const so_dat = soDatRaw === '' ? null : Number(soDatRaw);
+  if (so_dat !== null && (!Number.isFinite(so_dat) || so_dat < 0))
+    veTrangEm(student_id, loi('Số đạt được phải từ 0 trở lên.'));
+
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('cam_ket')
+    .update({ket_qua, so_dat: ket_qua === null ? null : so_dat})
+    .eq('id', id)
+    .select('id');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data || data.length === 0) veTrangEm(student_id, loi('Không chấm được — không có quyền hoặc đã xoá.'));
+  veTrangEm(student_id, ket_qua === null ? 'Đã bỏ chấm' : ket_qua === 'thang' ? 'Đã chấm Thắng' : 'Đã chấm Thua');
+}
+
+// Huỷ cam kết — RLS chỉ cho khi chưa chấm, chưa kể lại trong họp, chưa ai xác nhận.
+export async function xoaCamKet(formData: FormData) {
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('cam_ket_id') ?? '');
+  if (!id) veTrangEm(student_id, loi('Thiếu cam kết.'));
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('cam_ket').delete().eq('id', id).select('id');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data || data.length === 0)
+    veTrangEm(student_id, loi('Không huỷ được — cam kết đã chấm hoặc đã kể lại trong buổi họp.'));
+  veTrangEm(student_id, 'Đã huỷ cam kết');
+}
+
+// Người chứng xác nhận cam kết (buddy / thầy cô / phụ huynh). Trigger ckxn_dung_vai đặt nguoi_id
+// = uid và SUY vai từ quan hệ — không tin cột `vai` gửi lên (đặt tạm 'buddy' để qua kiểu TS).
+export async function xacNhanCamKet(formData: FormData) {
+  const student_id = String(formData.get('student_id') ?? '');
+  const cam_ket_id = String(formData.get('cam_ket_id') ?? '');
+  const y_kien = String(formData.get('y_kien') ?? '').trim() || null;
+  const dong_y = String(formData.get('dong_y') ?? '1') !== '0';
+  if (!cam_ket_id) veTrangEm(student_id, loi('Thiếu cam kết.'));
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('cam_ket_xac_nhan')
+    .insert({cam_ket_id, y_kien, dong_y, vai: 'buddy'})
+    .select('id');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data || data.length === 0) veTrangEm(student_id, loi('Không xác nhận được — không có quyền.'));
+  veTrangEm(student_id, 'Đã xác nhận cam kết');
+}
+
+// ════════════════════════════════════════════════════════════════════════════════════════════
+// 4. DÂY NỐI (noi) — em tự nối việc/mục tiêu của mình HƯỚNG lên mục tiêu lớp (chi_huong).
+//
+// gop_so lên lớp/trường chỉ thầy cô/BGH; em chỉ gop_so lên mục tiêu CỦA CHÍNH EM. Dây không sửa
+// tại chỗ — gỡ rồi nối lại (không có policy UPDATE). Máy tự nối đi đường trigger riêng, không qua
+// đây.
+// ════════════════════════════════════════════════════════════════════════════════════════════
+
+export async function noiNguon(formData: FormData) {
+  const me = await getCurrentProfile();
+  if (!me) redirect('/login');
+  const student_id = String(formData.get('student_id') ?? '');
+  const cha_id = String(formData.get('cha_id') ?? '');
+  const con_muc_tieu_id = String(formData.get('con_muc_tieu_id') ?? '').trim() || null;
+  const con_thuoc_id = String(formData.get('con_thuoc_id') ?? '').trim() || null;
+  const vai = String(formData.get('vai') ?? 'chi_huong') === 'gop_so' ? 'gop_so' : 'chi_huong';
+  const heSo = Number(String(formData.get('he_so') ?? '1').trim());
+  if (!cha_id || (!con_muc_tieu_id && !con_thuoc_id)) veTrangEm(student_id, loi('Thiếu nguồn hoặc mục tiêu cha.'));
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('noi')
+    .insert({
+      cha_id,
+      con_muc_tieu_id,
+      con_thuoc_id,
+      vai,
+      he_so: Number.isFinite(heSo) && heSo > 0 ? heSo : 1,
+      noi_tu_dong: false,
+      created_by: me.id,
+    })
+    .select('id');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data || data.length === 0) veTrangEm(student_id, loi('Không nối được — không có quyền.'));
+  veTrangEm(student_id, vai === 'gop_so' ? 'Đã nối để cộng số vào mục tiêu' : 'Đã nối hướng tới mục tiêu');
+}
+
+export async function goNguon(formData: FormData) {
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('noi_id') ?? '');
+  if (!id) veTrangEm(student_id, loi('Thiếu dây cần gỡ.'));
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('noi').delete().eq('id', id).select('id');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data || data.length === 0) veTrangEm(student_id, loi('Không gỡ được — không có quyền hoặc đã gỡ.'));
+  veTrangEm(student_id, 'Đã gỡ dây');
 }

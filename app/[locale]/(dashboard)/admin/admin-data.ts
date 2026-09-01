@@ -25,7 +25,7 @@ export const layDanhMuc = cache(async () => {
       // báo trước: nút trông y như xoá được, hộp thoại vẫn hỏi "chắc chưa", bấm đồng ý xong mới
       // hiện một dòng đỏ thoáng qua. Chủ dự án đã tưởng mình xoá hết lớp rồi trong khi còn bốn.
       .select(
-        'id, name, school_year, grade, grade_id, campus_id, homeroom_teacher_id, is_active, wigs(count), enrollments(count)',
+        'id, name, school_year, grade, grade_id, campus_id, homeroom_teacher_id, is_active, muc_tieu(count), enrollments(count)',
       )
       .order('name'),
     supabase

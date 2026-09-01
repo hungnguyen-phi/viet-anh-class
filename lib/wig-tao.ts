@@ -1,259 +1,318 @@
-import {ngayCuaKy} from '@/lib/dates';
 import {friendlyError} from '@/lib/errors';
 import type {createClient} from '@/lib/supabase/server';
 import type {Database} from '@/lib/database.types';
 
 type Sb = Awaited<ReturnType<typeof createClient>>;
-type Area = Database['public']['Enums']['wig_domain'];
+type LinhVuc = Database['public']['Enums']['wig_domain'];
+type MucTieuInsert = Database['public']['Tables']['muc_tieu']['Insert'];
+type CamKetInsert = Database['public']['Tables']['cam_ket']['Insert'];
 
 // ════════════════════════════════════════════════════════════════════════════
-// TẠO MỘT MỤC TIÊU (WIG) — MỘT ĐƯỜNG DUY NHẤT cho mọi nơi trong app.
+// TẠO MỤC TIÊU + CAM KẾT — MỘT ĐƯỜNG DUY NHẤT cho mọi nơi trong app (PA2).
 // ════════════════════════════════════════════════════════════════════════════
 //
-// ĐỔI MÔ HÌNH 14/08/2026 (xem 0121). WIG chỉ còn CẤP NĂM:
+// ĐỔI MÔ HÌNH PA2 (0161–0169). Bảng cũ (wigs / commitments / lead_measures) ĐÃ DROP. Đường ghi
+// nay trỏ hai bảng mới:
+//   · muc_tieu — mục tiêu 4 cấp (trường / lớp / nhóm / em), nhiều kiểu đích (10-SCHEMA §2.1)
+//   · cam_ket  — lời hứa 1–4 tuần, không còn vòng duyệt (10-SCHEMA §4.1)
 //
-//   "wig thì chỉ tạo wig năm thôi, gv tạo cho lớp, hs tạo cho hs gắn theo lớp, sau đó ko còn
-//    tháng nữa, sau đó mỗi tuần sẽ là weekly commitment, không còn là wig tuần nữa"
-//
-// Nên cả cỗ máy chia mốc (lib/wig-nhip.ts, sinhNhip, chaHopLe, ràng buộc chuỗi năm→tháng→tuần)
-// đã gỡ bỏ. Việc của một tuần nay treo dưới CAM KẾT — xem taoCamKet() ở cuối tệp.
+// Việc theo tuần (lead measure cũ) nay là bảng `thuoc` riêng — KHÔNG đi qua tệp này; xem action
+// tạo/sửa thước của màn cô và màn em.
 //
 // Đặt ở lib/ chứ không trong file 'use server': file đó chỉ được export hàm async, nên mọi thứ
-// dùng chung phải sống bên ngoài.
+// dùng chung (kiểu, hàm kiểm) phải sống bên ngoài.
+//
+// TRIẾT LÝ KIỂM (CLAUDE.md §5): luật thật nằm ở CHECK/trigger/RLS của CSDL. Ở đây chỉ chặn những
+// lỗi người-dùng-hay-gặp để trả một câu tiếng người TRƯỚC khi đi một vòng mạng; phần còn lại để
+// CHECK bắt rồi friendlyError() dịch. Mỗi nhánh dưới đây soi đúng một ràng buộc trong 10-SCHEMA.
 
 export type KetQuaTao = {ok: true; id: string} | {ok: false; loi: string; field?: string};
 
-// ── Hai bộ chuẩn hoá dùng chung cho MỌI chỗ ghi lead measure ──────────────────────────────────
-// Trang /wig và phòng họp đều tạo việc; đặt luật ở một chỗ để hai bên không trôi khỏi nhau.
-
-// Những thứ trong tuần mà một việc được tick (ISO: 1=T2 … 7=CN).
-// Bỏ trống → T2–T6, mặc định của một việc học ngày thường. Đây là chỗ đặt mặc định, KHÔNG phải
-// cột trong CSDL: cột để cả 7 thứ nên các việc tạo trước 0073 không bị siết ngược.
+// ── Chuẩn hoá NGÀY ÁP DỤNG trong tuần (ISO: 1=T2 … 7=CN) ────────────────────────────────────────
+// Dùng cho mảng `ngay_ap_dung` của `thuoc` và mọi chỗ chọn thứ. Bỏ trống → T2–T6, mặc định của
+// một việc học ngày thường (CSDL để cả 7 thứ nên các bản ghi cũ không bị siết ngược).
 export function chuanHoaThu(raw: unknown[]): number[] {
   const n = raw.map((v) => Number(v)).filter((x) => Number.isInteger(x) && x >= 1 && x <= 7);
   const uniq = [...new Set(n)].sort((a, b) => a - b);
   return uniq.length > 0 ? uniq : [1, 2, 3, 4, 5];
 }
 
-// Một lượt tick đáng bao nhiêu đơn vị của mục tiêu cha (0076).
+// ════════════════════════════════════════════════════════════════════════════
+// MỤC TIÊU (muc_tieu)
+// ════════════════════════════════════════════════════════════════════════════
 //
-// TRẢ null KHI Ô RỖNG, và nơi gọi phải BỎ HẲN cột khỏi lệnh cập nhật — đừng thay bằng 1.
-//
-// Vì sao quan trọng: hệ số KHÔNG đóng băng vào từng lượt tick; wig_actual nhân nó lúc ĐỌC. Nên
-// ghi đè 30 thành 1 là chia toàn bộ lịch sử tick cho 30 — một mục tiêu đang "30/30 đã đạt" tụt
-// về "1/30" chỉ vì ai đó mở panel sửa để đổi cái tên rồi bấm Lưu. Ô number không có `required`
-// thì trình duyệt gửi lên chuỗi rỗng mà không kêu gì, `??` chỉ bắt null nên chuỗi rỗng lọt qua,
-// Number('') = 0, rồi bản cũ lặng lẽ biến nó thành 1 và báo "Đã cập nhật".
-//
-// Gõ bậy (chữ, số âm, 0) thì về 1: đó là giá trị mặc định có nghĩa, và CHECK ở CSDL chặn ≤ 0 làm
-// lớp thứ hai.
-export function chuanHoaHeSo(raw: string | null): number | null {
-  if (raw === null || raw.trim() === '') return null;
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : 1;
-}
-
-// ── MỤC TIÊU CUỘN ─────────────────────────────────────────────────────────────────────────────
-// "86% học sinh của lớp có 6/8 môn tính điểm đạt 6.5 trở lên" — dạng của cả 13 mục tiêu lớp thật
-// ở cơ sở Gò Vấp. Nó không phải một quãng đường A→B mà là một PHÉP ĐẾM: đếm xem bao nhiêu đơn vị
-// con đã đạt đủ số mục tiêu năm của mình.
-//
-// `tong_dich` (số 8 trong "6/8 môn") KHÔNG tham gia phép tính — em đặt 7 mục tiêu môn và đạt 6
-// thì vẫn là đạt. Nó chỉ để câu chữ trên màn hình giống hệt câu cô đã viết trong kế hoạch.
-export type ThongTinCuon = {
-  ty_le_can: number;
-  so_dich_can: number;
-  tong_dich: number | null;
-};
-
-export type ThongTinWig = {
-  /** Mục tiêu trường thì bỏ trống và truyền campus_id. */
-  class_id: string;
-  /** Mặc định 'class'. 'school' bắt buộc đi kèm campus_id và measure_by 'cuon'. */
-  scope?: 'class' | 'school';
+// Một cửa duy nhất cho cả 4 cấp và 6 kiểu đích, để màn cô / màn em / màn BGH không mỗi nơi một
+// bộ luật (đúng bệnh "hai nguồn sự thật" cả đợt PA2 đang chữa). `cap` quyết cột khoá; `kieu_dich`
+// quyết ô số nào bắt buộc.
+export type ThongTinMucTieu = {
+  cap: 'truong' | 'lop' | 'nhom' | 'em';
+  /** Bắt buộc khi cap='truong'. Các cấp khác để trống thì tự suy từ lớp. */
   campus_id?: string;
-  cuon?: ThongTinCuon;
-  title: string;
-  baseline: number | null;
-  target_value: number;
-  unit: string;
-  /** Nhãn năm học, vd '2026-2027'. */
-  period_label: string;
-  // 'tick'   — đích ĐẾM ĐƯỢC ("1200 bài"): máy cộng từ lượt tick để vẽ vạch tiến độ.
-  // 'manual' — đích GHI NHẬN NGOÀI ("điểm TB 8,0"): cô và trò tự theo dõi, đạt thì tick một ô.
-  // 'cuon'   — số của nó do MÁY ĐẾM NGƯỢC từ các đơn vị con; xem ThongTinCuon.
-  //
-  // LƯU Ý SAU 0121: vạch tiến độ của mục tiêu NĂM vẫn còn (chủ dự án: "vẫn có vạch tiến độ, chưa
-  // đủ thì cảnh báo chậm…"), nhưng THẮNG/THUA thì thôi suy từ tick — nó là V/X do người bấm trên
-  // từng cam kết tuần.
-  measure_by?: 'tick' | 'manual' | 'cuon';
-  area?: Area;
+  class_id?: string | null;
+  nhom_id?: string | null;
+  student_id?: string | null;
+  ten: string;
+  linh_vuc?: LinhVuc;
+  subject_id?: string | null;
+  // 'toi'          — đi từ x tới y (có mốc xuất phát hoặc chưa đo)
+  // 'tran_tich_luy'— trần tích luỹ, luôn chiều 'giu'
+  // 'giu'          — giữ mức, cần chu kỳ
+  // 'toc_do_ky'    — tốc độ mỗi kỳ, cần chu kỳ
+  // 'ti_le_dat'    — % đơn vị con đạt, cần lay_tu
+  // 'chu'          — đích bằng CHỮ (y_chu), không cần số/đơn vị
+  kieu_dich?: 'toi' | 'tran_tich_luy' | 'giu' | 'toc_do_ky' | 'ti_le_dat' | 'chu';
+  chieu?: 'tang' | 'giam' | 'giu';
+  x_so?: number | null;
+  y_so?: number | null;
+  chua_do_x?: boolean;
+  x_chu?: string | null;
+  y_chu?: string | null;
+  don_vi_id?: string | null;
+  ky?: 'tuan' | 'hai_tuan' | 'thang' | null;
+  /** YYYY-MM-DD. Bỏ trống → CSDL lấy hôm nay (giờ VN). */
+  bat_dau?: string;
+  /** YYYY-MM-DD — BẮT BUỘC. */
+  ket_thuc: string;
+  /** Nhãn năm học, vd '2026-2027'. Bỏ trống → CSDL lấy năm học hiện tại. */
+  nam_hoc?: string;
+  nguon_so?: 'thuoc' | 'ghi_tay' | 'he_thong' | 'con' | 'thanh_phan';
+  nguon_he_thong?: 'diem_danh' | null;
+  gop_con?: 'cong' | 'trung_binh' | 'ti_le_dat' | null;
+  gop_thanh_phan?: 'cong' | 'trung_binh' | null;
+  nguong_con?: number | null;
+  lay_tu?: 'thuoc' | 'muc_tieu_em' | 'muc_tieu_lop' | null;
+  mau_id?: string | null;
+  trang_thai?: 'nhap' | 'gui' | 'duyet' | 'tra_lai' | 'dong';
+  dang_tap_trung?: boolean;
 };
 
-// Mục tiêu cuộn đi đường riêng vì gần như không dùng được ô nào của đường thường: không có đơn
-// vị (luôn là %), không có mốc xuất phát (đếm từ 0 em), và số của nó do máy đếm ngược.
-// Vẫn vào chung một cửa taoMotWig() để nơi gọi chỉ biết một hàm.
-async function taoCuon(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao> {
-  const c = w.cuon;
-  const laTruong = w.scope === 'school';
-  if (!c) return {ok: false, loi: 'Thiếu hai con số của phép cuộn.'};
-  if (!w.title) return {ok: false, field: 'title', loi: 'Hãy đặt tên cho mục tiêu.'};
-  if (w.title.length > 160)
-    return {ok: false, field: 'title', loi: 'Tên mục tiêu tối đa 160 ký tự.'};
-  if (!Number.isFinite(c.ty_le_can) || c.ty_le_can <= 0 || c.ty_le_can > 100)
-    return {ok: false, field: 'ty_le_can', loi: 'Tỉ lệ cần đạt phải nằm trong khoảng 1–100%.'};
-  if (!Number.isInteger(c.so_dich_can) || c.so_dich_can < 1)
-    return {
-      ok: false,
-      field: 'so_dich_can',
-      loi: `Mỗi ${laTruong ? 'lớp' : 'bạn'} cần đạt ít nhất 1 mục tiêu.`,
-    };
-  if (c.tong_dich !== null && (!Number.isInteger(c.tong_dich) || c.tong_dich < c.so_dich_can))
-    return {
-      ok: false,
-      field: 'tong_dich',
-      loi: 'Tổng số mục tiêu không được nhỏ hơn số cần đạt.',
-    };
-  if (!w.area) return {ok: false, field: 'area', loi: 'Hãy chọn lĩnh vực.'};
-  if (laTruong && !w.campus_id) return {ok: false, loi: 'Thiếu cơ sở.'};
-  if (!laTruong && !w.class_id) return {ok: false, loi: 'Thiếu lớp.'};
+export async function taoMucTieu(supabase: Sb, w: ThongTinMucTieu): Promise<KetQuaTao> {
+  // ── Cấp + cột khoá (mt_khoa_ck) ────────────────────────────────────────────────────────────
+  let campus_id = w.campus_id ?? null;
+  let class_id: string | null = null;
+  let nhom_id: string | null = null;
+  let student_id: string | null = null;
 
-  const ky = ngayCuaKy('year', w.period_label);
-  if (!ky) return {ok: false, field: 'period_label', loi: 'Hãy chọn năm học cho mục tiêu này.'};
+  if (w.cap === 'truong') {
+    if (!campus_id) return {ok: false, loi: 'Thiếu cơ sở cho mục tiêu trường.'};
+  } else {
+    if (!w.class_id) return {ok: false, loi: 'Thiếu lớp.'};
+    class_id = w.class_id;
+    if (w.cap === 'nhom') {
+      if (!w.nhom_id) return {ok: false, field: 'nhom_id', loi: 'Hãy chọn nhóm cho mục tiêu này.'};
+      nhom_id = w.nhom_id;
+    } else if (w.cap === 'em') {
+      if (!w.student_id) return {ok: false, loi: 'Thiếu học sinh cho mục tiêu cá nhân.'};
+      student_id = w.student_id;
+    }
+    // campus_id NOT NULL kể cả với mục tiêu lớp/nhóm/em — tự tra từ lớp nếu nơi gọi không đưa.
+    if (!campus_id) {
+      const {data: lop, error: eLop} = await supabase
+        .from('classes')
+        .select('campus_id')
+        .eq('id', class_id)
+        .maybeSingle();
+      if (eLop) return {ok: false, loi: friendlyError(eLop)};
+      if (!lop) return {ok: false, loi: 'Không tìm thấy lớp (hoặc không có quyền với lớp này).'};
+      campus_id = lop.campus_id;
+    }
+  }
 
-  const {data, error} = await supabase
-    .from('wigs')
-    .insert({
-      class_id: laTruong ? null : w.class_id,
-      campus_id: laTruong ? w.campus_id : null,
-      scope: laTruong ? 'school' : 'class',
-      title: w.title,
-      area: w.area,
-      period: 'year',
-      period_label: w.period_label,
-      // Đích CHÍNH LÀ tỉ lệ, và đơn vị là %. Hai cột này không phải bản sao thừa của ty_le_can:
-      // mọi màn hình cũ đọc target_value/unit để vẽ vạch và ghi chú, nên để trống là chúng hiện
-      // một mục tiêu "0" mà không báo gì.
-      target_value: c.ty_le_can,
-      unit: '%',
-      baseline: null,
-      start_date: ky.start,
-      end_date: ky.end,
-      measure_by: 'cuon',
-      ty_le_can: c.ty_le_can,
-      so_dich_can: c.so_dich_can,
-      tong_dich: c.tong_dich,
-    })
-    .select('id')
-    .maybeSingle();
+  // ── Tên (mt_ten_ck) ────────────────────────────────────────────────────────────────────────
+  const ten = w.ten.trim();
+  if (!ten) return {ok: false, field: 'ten', loi: 'Hãy đặt tên cho mục tiêu.'};
+  if (ten.length > 200) return {ok: false, field: 'ten', loi: 'Tên mục tiêu tối đa 200 ký tự.'};
+
+  // ── Ngày (mt_ngay_ck) ──────────────────────────────────────────────────────────────────────
+  if (!w.ket_thuc) return {ok: false, field: 'ket_thuc', loi: 'Hãy chọn ngày kết thúc.'};
+  if (w.bat_dau && w.bat_dau > w.ket_thuc)
+    return {ok: false, field: 'ket_thuc', loi: 'Ngày kết thúc phải sau ngày bắt đầu.'};
+
+  const kieu_dich = w.kieu_dich ?? 'toi';
+  const chieu = w.chieu ?? (kieu_dich === 'tran_tich_luy' ? 'giu' : 'tang');
+  const nguon_so = w.nguon_so ?? 'ghi_tay';
+
+  // ── Đích theo kiểu ─────────────────────────────────────────────────────────────────────────
+  if (kieu_dich === 'chu') {
+    // mt_chu_ck: đích bằng chữ thì y_chu bắt buộc; số/đơn vị bỏ qua.
+    if (!w.y_chu || !w.y_chu.trim())
+      return {ok: false, field: 'y_chu', loi: 'Hãy mô tả đích cần đạt.'};
+  } else {
+    // mt_so_dich_ck: mọi kiểu số đều cần y_so.
+    if (w.y_so === null || w.y_so === undefined || !Number.isFinite(w.y_so))
+      return {ok: false, field: 'y_so', loi: 'Hãy nhập con số cần đạt.'};
+
+    if (kieu_dich === 'toi') {
+      // mt_y_can_x_ck: có mốc xuất phát HOẶC đánh dấu chưa đo được.
+      const coX = w.x_so !== null && w.x_so !== undefined && Number.isFinite(w.x_so);
+      if (!coX && !w.chua_do_x)
+        return {
+          ok: false,
+          field: 'x_so',
+          loi: 'Nhập mốc bắt đầu, hoặc đánh dấu "chưa đo được".',
+        };
+      // mt_chieu_thuan_ck: chiều phải khớp với x→y (trừ khi giữ mức).
+      if (coX && chieu !== 'giu') {
+        if (chieu === 'tang' && !((w.x_so as number) < (w.y_so as number)))
+          return {ok: false, field: 'y_so', loi: 'Đích tăng thì số cần đạt phải lớn hơn mốc bắt đầu.'};
+        if (chieu === 'giam' && !((w.x_so as number) > (w.y_so as number)))
+          return {ok: false, field: 'y_so', loi: 'Đích giảm thì số cần đạt phải nhỏ hơn mốc bắt đầu.'};
+      }
+    }
+    if (kieu_dich === 'tran_tich_luy' && chieu !== 'giu')
+      // mt_tran_giu_ck
+      return {ok: false, field: 'chieu', loi: 'Trần tích luỹ luôn là giữ mức, không tăng/giảm.'};
+    if ((kieu_dich === 'toc_do_ky' || kieu_dich === 'giu') && !w.ky)
+      // mt_ky_can_ck
+      return {ok: false, field: 'ky', loi: 'Hãy chọn chu kỳ (tuần / hai tuần / tháng).'};
+    if (kieu_dich === 'ti_le_dat' && !w.lay_tu)
+      // mt_ti_le_ck
+      return {ok: false, field: 'lay_tu', loi: 'Hãy chọn tỉ lệ này đếm trên cái gì.'};
+  }
+
+  // ── Đơn vị (mt_don_vi_ck): mọi kiểu trừ 'chu'/'ti_le_dat' đều cần đơn vị ────────────────────
+  if (kieu_dich !== 'chu' && kieu_dich !== 'ti_le_dat' && !w.don_vi_id)
+    return {ok: false, field: 'don_vi_id', loi: 'Hãy chọn đơn vị (vd điểm, bài, buổi).'};
+
+  // ── Nguồn số (mt_nguon_con_ck / mt_gop_tp_ck / mt_he_thong_ck) ─────────────────────────────
+  if (nguon_so === 'con') {
+    if (w.cap === 'em')
+      return {ok: false, loi: 'Mục tiêu của một em không thể gộp số từ mục tiêu con.'};
+    if (!w.gop_con)
+      return {ok: false, field: 'gop_con', loi: 'Hãy chọn cách gộp số từ mục tiêu con.'};
+  }
+  if (nguon_so === 'thanh_phan' && !w.gop_thanh_phan)
+    return {ok: false, field: 'gop_thanh_phan', loi: 'Hãy chọn cách gộp các thành phần.'};
+  if (nguon_so === 'he_thong' && !w.nguon_he_thong)
+    return {ok: false, loi: 'Thiếu nguồn hệ thống cho mục tiêu này.'};
+
+  const row: MucTieuInsert = {
+    cap: w.cap,
+    campus_id,
+    class_id,
+    nhom_id,
+    student_id,
+    ten,
+    linh_vuc: w.linh_vuc ?? 'knowledge',
+    subject_id: w.subject_id ?? null,
+    kieu_dich,
+    chieu,
+    x_so: kieu_dich === 'chu' ? null : w.x_so ?? null,
+    y_so: kieu_dich === 'chu' ? null : w.y_so ?? null,
+    chua_do_x: w.chua_do_x ?? false,
+    x_chu: w.x_chu ?? null,
+    y_chu: kieu_dich === 'chu' ? (w.y_chu as string).trim() : null,
+    don_vi_id: w.don_vi_id ?? null,
+    ky: w.ky ?? null,
+    ket_thuc: w.ket_thuc,
+    nguon_so,
+    nguon_he_thong: w.nguon_he_thong ?? null,
+    gop_con: w.gop_con ?? null,
+    gop_thanh_phan: w.gop_thanh_phan ?? null,
+    nguong_con: w.nguong_con ?? null,
+    lay_tu: w.lay_tu ?? null,
+    mau_id: w.mau_id ?? null,
+    trang_thai: w.trang_thai ?? 'nhap',
+    dang_tap_trung: w.dang_tap_trung ?? false,
+  };
+  // Chỉ đặt bat_dau/nam_hoc khi nơi gọi truyền — để trống cho CSDL lấy mặc định (hôm nay VN / năm
+  // học hiện tại) thay vì áp một giá trị sai.
+  if (w.bat_dau) row.bat_dau = w.bat_dau;
+  if (w.nam_hoc) row.nam_hoc = w.nam_hoc;
+
+  const {data, error} = await supabase.from('muc_tieu').insert(row).select('id').maybeSingle();
   if (error) return {ok: false, loi: friendlyError(error)};
-  if (!data)
-    return {
-      ok: false,
-      loi: laTruong
-        ? 'Không tạo được mục tiêu trường (chỉ ban giám hiệu của cơ sở này mới đặt được).'
-        : 'Không tạo được mục tiêu (không có quyền với lớp này).',
-    };
-  return {ok: true, id: data.id};
-}
-
-export async function taoMotWig(supabase: Sb, w: ThongTinWig): Promise<KetQuaTao> {
-  if (w.measure_by === 'cuon' || w.scope === 'school') return taoCuon(supabase, w);
-  if (!w.class_id) return {ok: false, loi: 'Thiếu lớp.'};
-  // Tên là BẮT BUỘC ở tầng ứng dụng (cột DB để nullable cho các WIG cũ). Một mục tiêu không tên
-  // thì mọi màn hình sau đó chỉ hiện được con số trần, không ai biết nó là mục tiêu gì.
-  if (!w.title) return {ok: false, field: 'title', loi: 'Hãy đặt tên cho mục tiêu.'};
-  if (w.title.length > 160)
-    return {ok: false, field: 'title', loi: 'Tên mục tiêu tối đa 160 ký tự.'};
-  if (!Number.isFinite(w.target_value) || w.target_value <= 0)
-    return {ok: false, field: 'target_value', loi: 'Mục tiêu phải là số lớn hơn 0.'};
-  // "Từ" được phép bỏ trống (chưa đo được mốc đầu), nhưng gõ rồi thì phải là số hợp lệ.
-  if (w.baseline !== null && (!Number.isFinite(w.baseline) || w.baseline < 0))
-    return {ok: false, field: 'baseline', loi: 'Mốc xuất phát phải là số từ 0 trở lên.'};
-  if (w.baseline !== null && w.baseline >= w.target_value)
-    return {
-      ok: false,
-      field: 'baseline',
-      loi: 'Mốc xuất phát phải nhỏ hơn mục tiêu — nếu không thì không còn gì để cải thiện.',
-    };
-  if (!w.unit)
-    return {ok: false, field: 'unit', loi: 'Hãy nhập đơn vị (vd điểm, buổi, lần).'};
-  if (!w.area) return {ok: false, field: 'area', loi: 'Hãy chọn lĩnh vực.'};
-
-  const ky = ngayCuaKy('year', w.period_label);
-  if (!ky) return {ok: false, field: 'period_label', loi: 'Hãy chọn năm học cho mục tiêu này.'};
-
-  const {data, error} = await supabase
-    .from('wigs')
-    .insert({
-      class_id: w.class_id,
-      scope: 'class',
-      title: w.title,
-      baseline: w.baseline,
-      area: w.area,
-      period: 'year',
-      period_label: w.period_label,
-      target_value: w.target_value,
-      unit: w.unit,
-      start_date: ky.start,
-      end_date: ky.end,
-      measure_by: w.measure_by === 'manual' ? 'manual' : 'tick',
-    })
-    .select('id')
-    .maybeSingle();
-  if (error) return {ok: false, loi: friendlyError(error)};
-  // .select() để phân biệt "RLS chặn" với "đã tạo": không có nó thì lớp không thuộc quyền mình
-  // vẫn báo thành công, và người dùng đi tìm một mục tiêu chưa từng được ghi.
-  if (!data) return {ok: false, loi: 'Không tạo được mục tiêu (không có quyền với lớp này).'};
-
-  // KHÔNG rải nhịp tháng/tuần nữa — xem ghi chú ở đầu tệp.
+  // .select() để phân biệt "RLS chặn" với "đã tạo": không có nó thì bản ghi ngoài quyền vẫn báo
+  // thành công, và người dùng đi tìm một mục tiêu chưa từng được ghi.
+  if (!data) return {ok: false, loi: 'Không tạo được mục tiêu (không có quyền ghi ở đây).'};
   return {ok: true, id: data.id};
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// CAM KẾT TUẦN — một lời hứa, tối đa 2 mỗi tuần.
+// CAM KẾT (cam_ket) — một lời hứa 1–4 tuần.
 // ════════════════════════════════════════════════════════════════════════════
 //
-// Cam kết KHÔNG mang con số đích của riêng nó: con số nằm ở các việc dẫn dắt treo dưới. Lĩnh vực
-// cũng không hỏi — CSDL tự thừa kế từ mục tiêu năm (trigger cam_ket_hop_le, 0121), vì khai lệch
-// một cái là cam kết rơi khỏi cây tổng hợp mà nhìn màn hình vẫn thấy nằm đúng chỗ.
-//
-// Bốn cái chặn (tối đa 2, treo đúng mục tiêu, không treo vào mục tiêu cuộn, tuần đã chốt thì
-// khoá) đều nằm ở CSDL. Ở đây chỉ kiểm những thứ để báo lỗi tử tế trước khi đi một vòng mạng.
+// Cam kết KHÔNG còn vòng duyệt (10-SCHEMA §4.1). Luật "tối đa 2/tuần", ai được chấm, khoá sau khi
+// chấm/kể lại — đều ở trigger ck_truoc_them/ck_truoc_sua (20-QUYEN §3.4). Ở đây chỉ kiểm những
+// thứ để báo lỗi tử tế trước khi đi một vòng mạng.
 export type ThongTinCamKet = {
-  wig_id: string;
+  chu_the: 'lop' | 'nhom' | 'em';
   class_id: string;
-  /** Bỏ trống = cam kết của LỚP. */
+  nhom_id?: string | null;
   student_id?: string | null;
   /** Thứ Hai của tuần, dạng YYYY-MM-DD. */
-  week_start: string;
-  title: string;
+  tuan_bat_dau: string;
+  /** 1–4, mặc định 1. */
+  so_tuan?: number;
+  noi_dung: string;
+  /** Con số hứa (tuỳ chọn). Có số thì BẮT BUỘC có đơn vị (ck_don_vi_ck), và ngược lại. */
+  so_hua?: number | null;
+  don_vi_id?: string | null;
+  /** Neo cam kết vào một thước / một mục tiêu (tuỳ chọn). */
+  thuoc_id?: string | null;
+  muc_tieu_id?: string | null;
+  pdr_meeting_id?: string | null;
 };
 
 export async function taoCamKet(supabase: Sb, c: ThongTinCamKet): Promise<KetQuaTao> {
-  if (!c.wig_id)
-    return {ok: false, field: 'wig_id', loi: 'Chọn mục tiêu năm mà cam kết này phục vụ.'};
   if (!c.class_id) return {ok: false, loi: 'Thiếu lớp.'};
-  if (!c.week_start) return {ok: false, field: 'week_start', loi: 'Thiếu tuần.'};
-  const ten = c.title.trim();
-  if (!ten) return {ok: false, field: 'title', loi: 'Hãy viết cam kết của tuần này.'};
-  if (ten.length > 160) return {ok: false, field: 'title', loi: 'Cam kết tối đa 160 ký tự.'};
 
-  const {data, error} = await supabase
-    .from('commitments')
-    .insert({
-      wig_id: c.wig_id,
-      class_id: c.class_id,
-      student_id: c.student_id ?? null,
-      week_start: c.week_start,
-      title: ten,
-      // Cột NOT NULL nhưng trigger đè lại bằng lĩnh vực của mục tiêu năm. Gửi một giá trị hợp lệ
-      // bất kỳ chỉ để qua cửa NOT NULL; đừng đọc nó như một lựa chọn của người dùng.
-      area: 'knowledge',
-    })
-    .select('id')
-    .maybeSingle();
+  // Cột khoá (ck_khoa_ck)
+  let nhom_id: string | null = null;
+  let student_id: string | null = null;
+  if (c.chu_the === 'nhom') {
+    if (!c.nhom_id) return {ok: false, loi: 'Thiếu nhóm cho cam kết của nhóm.'};
+    nhom_id = c.nhom_id;
+  } else if (c.chu_the === 'em') {
+    if (!c.student_id) return {ok: false, loi: 'Thiếu học sinh cho cam kết cá nhân.'};
+    student_id = c.student_id;
+  }
+
+  // Tuần (ck_thu_hai_ck): phải là thứ Hai. So bằng giờ trưa UTC để tránh lệch ngày ở biên.
+  if (!c.tuan_bat_dau) return {ok: false, field: 'tuan_bat_dau', loi: 'Thiếu tuần.'};
+  const isodow = new Date(`${c.tuan_bat_dau}T12:00:00Z`).getUTCDay(); // 0=CN … 1=T2
+  if (isodow !== 1)
+    return {ok: false, field: 'tuan_bat_dau', loi: 'Tuần phải bắt đầu từ thứ Hai.'};
+
+  // Số tuần (ck_so_tuan_ck)
+  const so_tuan = c.so_tuan ?? 1;
+  if (!Number.isInteger(so_tuan) || so_tuan < 1 || so_tuan > 4)
+    return {ok: false, field: 'so_tuan', loi: 'Cam kết kéo dài từ 1 đến 4 tuần.'};
+
+  // Nội dung (ck_noi_dung_ck)
+  const noi_dung = c.noi_dung.trim();
+  if (!noi_dung) return {ok: false, field: 'noi_dung', loi: 'Hãy viết cam kết của tuần này.'};
+  if (noi_dung.length > 300)
+    return {ok: false, field: 'noi_dung', loi: 'Cam kết tối đa 300 ký tự.'};
+
+  // Số hứa ↔ đơn vị đi cặp (ck_don_vi_ck, ck_so_hua_ck)
+  const coSo = c.so_hua !== null && c.so_hua !== undefined;
+  if (coSo) {
+    if (!Number.isFinite(c.so_hua as number) || (c.so_hua as number) < 0)
+      return {ok: false, field: 'so_hua', loi: 'Con số hứa phải từ 0 trở lên.'};
+    if (!c.don_vi_id)
+      return {ok: false, field: 'don_vi_id', loi: 'Có con số thì hãy chọn đơn vị.'};
+  } else if (c.don_vi_id) {
+    return {ok: false, field: 'so_hua', loi: 'Đã chọn đơn vị thì hãy nhập con số hứa.'};
+  }
+
+  const row: CamKetInsert = {
+    chu_the: c.chu_the,
+    class_id: c.class_id,
+    nhom_id,
+    student_id,
+    tuan_bat_dau: c.tuan_bat_dau,
+    so_tuan,
+    noi_dung,
+    so_hua: coSo ? (c.so_hua as number) : null,
+    don_vi_id: coSo ? c.don_vi_id ?? null : null,
+    thuoc_id: c.thuoc_id ?? null,
+    muc_tieu_id: c.muc_tieu_id ?? null,
+    pdr_meeting_id: c.pdr_meeting_id ?? null,
+  };
+
+  const {data, error} = await supabase.from('cam_ket').insert(row).select('id').maybeSingle();
   if (error) return {ok: false, loi: friendlyError(error)};
-  if (!data) return {ok: false, loi: 'Không tạo được cam kết (không có quyền với lớp này).'};
+  if (!data) return {ok: false, loi: 'Không tạo được cam kết (không có quyền ghi ở đây).'};
   return {ok: true, id: data.id};
 }
