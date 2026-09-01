@@ -5,7 +5,7 @@ import {createPortal} from 'react-dom';
 import {useTranslations} from 'next-intl';
 import {useRouter} from '@/i18n/navigation';
 import {Clock, Pencil, Loader2, WifiOff} from 'lucide-react';
-import {checkinMood} from '@/app/[locale]/(dashboard)/student/actions';
+import {checkinMood} from '@/app/[locale]/(dashboard)/student/mood-actions';
 import {useFocusTrap} from '@/lib/useFocusTrap';
 import type {Database} from '@/lib/database.types';
 

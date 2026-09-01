@@ -5,7 +5,6 @@ import {
   Target,
   ClipboardCheck,
   Trophy,
-  MessagesSquare,
   GraduationCap,
   Building2,
   Layers,
@@ -51,7 +50,7 @@ export default async function ClassDetailPage({
       ? supabase.from('profiles').select('full_name, email').eq('id', cls.homeroom_teacher_id).maybeSingle()
       : Promise.resolve({data: null}),
     supabase.from('enrollments').select('id', {count: 'exact', head: true}).eq('class_id', id).eq('is_active', true),
-    supabase.from('wigs').select('id', {count: 'exact', head: true}).eq('class_id', id),
+    supabase.from('muc_tieu').select('id', {count: 'exact', head: true}).eq('class_id', id),
     supabase.from('campuses').select('id, name').eq('is_active', true).order('name'),
     supabase.from('grades').select('id, name, campus_id, is_active').order('sort_order'),
     supabase
@@ -74,7 +73,6 @@ export default async function ClassDetailPage({
     {href: '/wig', label: tn('wig'), desc: t('linkWig'), Icon: Target, hex: 'var(--color-subj-skills)', soft: softOf('var(--color-subj-skills)')},
     {href: '/attendance', label: tn('attendance'), desc: t('linkAttendance'), Icon: ClipboardCheck, hex: 'var(--color-subj-english)', soft: softOf('var(--color-subj-english)')},
     {href: '/', label: tn('compete'), desc: t('linkScoreboard'), Icon: Trophy, hex: 'var(--color-warn)', soft: softOf('var(--color-warn)')},
-    {href: '/meeting', label: tn('meeting'), desc: t('linkMeeting'), Icon: MessagesSquare, hex: 'var(--color-subj-physical)', soft: softOf('var(--color-subj-physical)')},
   ];
 
   const metaChip = 'inline-flex items-center gap-1.5 rounded-full bg-navy/[0.06] px-3 py-1 text-[12px] font-bold text-txt';

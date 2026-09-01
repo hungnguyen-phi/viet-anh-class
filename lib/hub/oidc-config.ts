@@ -9,7 +9,7 @@ import {nho} from '@/lib/dem-ram';
 // TRÌNH DUYỆT sinh (đúng như bản đấu nối yêu cầu — verifier không bao giờ rời máy người dùng cho
 // tới lúc đổi mã). Ép nó vào khuôn của thư viện phức tạp hơn là tự làm bằng fetch trần + jose để
 // verify chữ ký — đúng cách bản đấu nối của Hub tự làm mẫu (mục 6.2/6.3), và đúng phong cách gọi
-// HTTP trần đã dùng khắp dự án (xem lib/buddy.ts).
+// HTTP trần đã dùng khắp dự án.
 export type HubDiscovery = {
   issuer: string;
   authorization_endpoint: string;

@@ -1,6 +1,6 @@
 import {getTranslations} from 'next-intl/server';
 import {Clock3} from 'lucide-react';
-import {updateEditRequest, withdrawEditRequest} from '@/app/[locale]/(dashboard)/student/actions';
+import {updateEditRequest, withdrawEditRequest} from '@/app/[locale]/(dashboard)/student/yeu-cau-actions';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {kindLabel} from './RequestInbox';

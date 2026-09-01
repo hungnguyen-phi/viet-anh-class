@@ -4,19 +4,28 @@ import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
 import {getCurrentProfile} from '@/lib/auth';
 import {friendlyError} from '@/lib/errors';
-import {isoWeekLabel, todayInVN, vnNoon, mondayOf, shiftWeeks} from '@/lib/dates';
+import {isoWeekLabel, todayInVN, vnNoon, mondayOf, shiftWeeks, tuanTuNhan} from '@/lib/dates';
 
 // ════════════════════════════════════════════════════════════════════════════
-// HỌP PDR (Plan-Do-Review) — PRD v3 mục 6.2.7
+// HỌP VỚI BẠN (Plan-Do-Review) — mô hình MỤC TIÊU PA2 (40-B ⑥, 40-F F7, 40-G)
 // ════════════════════════════════════════════════════════════════════════════
 //
-// Mỗi tuần em họp với buddy (1-1 hoặc 1-1-1, GVCN ghép cặp ở /roster) và LẦN LƯỢT trả lời
-// 6 câu hỏi. Mỗi dòng pdr_meetings là PHẦN TRẢ LỜI CỦA MỘT EM — buổi 1-1-1 có ba dòng cùng
-// tuần. Câu 6 ("Tuần này bạn cam kết điều gì?") sinh bản ghi cam kết của TUẦN TỚI, bắt buộc
-// gắn vào một WIG ĐÃ DUYỆT của chính em — cam kết không phục vụ mục tiêu nào là "lạc mục tiêu".
+// Mỗi tuần em họp với bạn cùng nhóm (1-1 hoặc 1-1-1, GVCN ghép ở /roster) và LẦN LƯỢT trả lời sáu
+// câu. Mỗi dòng pdr_meetings là phần trả lời CỦA MỘT EM — buổi 1-1-1 có ba dòng cùng tuần.
 //
-// RLS (0146) là chốt thật: em chỉ ghi dòng của mình, chỉ tới khi Ghi nhận; biên bản chỉ người
-// tham gia + giáo viên thấy. Mã ở đây lo câu báo lỗi nói tiếng người và lo ráp buddy đúng.
+//   · Câu 1  nhắc lời hứa tuần qua (chỉ đọc, khối HopPdr dựng từ cam_ket).
+//   · Câu 2  KỂ LẠI từng cam kết TỚI HẠN qua bảng pdr_ke_lai — chấm Thắng/Thua từng cái; trigger
+//            pkl_sau_ghi tự CHÉP kết quả về cam_ket (cam_ket là nguồn duy nhất của kết quả).
+//            Cam kết nhiều tuần chưa tới hạn thì chỉ kể tình hình (ghi_chu, ket_qua để null).
+//            Máy GỢI Ý Thắng/Thua qua goi_y_cam_ket() — hiển thị ở HopPdr, trigger chụp lại lúc chấm.
+//   · Câu 6  SINH cam kết mới cho tuần kế tiếp (1–4 tuần), KHÔNG bắt gắn mục tiêu (lac_muc_tieu ok).
+//
+// RLS là chốt thật (20-QUYEN): em chỉ ghi dòng của mình, chỉ tới khi Ghi nhận; ghi_duoc_pdr_ke_lai
+// gác câu 2; ck_truoc_them gác trần 2 cam kết/tuần. Mã ở đây lo câu báo lỗi nói tiếng người, lo ráp
+// bạn cùng nhóm đúng, và chặn Ghi nhận khi còn cam kết tới hạn chưa chấm.
+//
+// Chữ ký (L8/C22): người bấm Ghi nhận LÀ người ký (acknowledged_by = uid người bấm). Ở lớp thường
+// chỉ chính em ký; ở lớp bật nhập hộ (classes.nhap_ho) bạn cùng buổi được ký hộ; thầy cô KHÔNG ký.
 
 export type PdrState = {ok: boolean; error?: string; fieldError?: string; message?: string};
 
@@ -25,7 +34,7 @@ const CAU = ['q1_plan', 'q2_result', 'q3_obstacle', 'q4_overcome', 'q5_better_wa
 export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrState> {
   const me = await getCurrentProfile();
   if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
-  if (me.role !== 'student') return {ok: false, error: 'Biên bản PDR do chính em ghi.'};
+  if (me.role !== 'student') return {ok: false, error: 'Chỉ em mới ghi được phần này.'};
 
   const traLoi = {} as {[K in (typeof CAU)[number]]: string | null};
   for (const c of CAU) {
@@ -34,7 +43,7 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
     traLoi[c] = v || null;
   }
 
-  // BUDDY hằng tuần hay COACH (1-1 với GVCN, hằng tháng) — hai nhánh của cùng một biên bản 6 câu.
+  // Họp với BẠN hằng tuần hay với THẦY CÔ (1-1, hằng tháng) — hai nhánh của cùng một biên bản 6 câu.
   const loai = String(formData.get('type') ?? 'buddy');
   if (loai !== 'buddy' && loai !== 'coach')
     return {ok: false, error: 'Không rõ đây là buổi họp loại nào.'};
@@ -49,7 +58,7 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
     .maybeSingle();
   if (!ghiDanh?.class_id) return {ok: false, error: 'Em chưa được xếp lớp.'};
 
-  // NGƯỜI NGỒI HỌP LẤY TỪ CSDL, không tin form: buddy do GVCN ghép, coach là chính GVCN.
+  // NGƯỜI NGỒI HỌP LẤY TỪ CSDL, không tin form: bạn cùng nhóm do GVCN ghép, coach là chính GVCN.
   // Thứ tự ổn định theo ngày ghép để counterpart/second không nhảy chỗ mỗi lần lưu.
   let counterpart: string | null = null;
   let secondBuddy: string | null = null;
@@ -59,13 +68,13 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
       .select('student_id, buddy_id, created_at')
       .eq('is_active', true)
       .or(`student_id.eq.${me.id},buddy_id.eq.${me.id}`)
-      // Nhóm 3 sinh cả 3 cặp trong MỘT giao dịch (0153) → created_at bằng nhau; thêm khoá phụ
-      // để counterpart/second không đổi chỗ giữa hai lần đọc.
+      // Nhóm 3 sinh cả 3 cặp trong MỘT giao dịch → created_at bằng nhau; thêm khoá phụ để
+      // counterpart/second không đổi chỗ giữa hai lần đọc.
       .order('created_at')
       .order('id');
     const banHoc = (cap ?? []).map((p) => (p.student_id === me.id ? p.buddy_id : p.student_id));
     if (banHoc.length === 0)
-      return {ok: false, error: 'Em chưa có buddy — giáo viên ghép cặp xong là họp được.'};
+      return {ok: false, error: 'Em chưa có bạn cùng nhóm — thầy cô ghép xong là họp được.'};
     counterpart = banHoc[0];
     secondBuddy = banHoc[1] ?? null;
   } else {
@@ -75,12 +84,8 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
     counterpart = gvcn;
   }
 
-  // ── TUẦN CỦA BIÊN BẢN ĐI THEO THANH TUẦN (24/08/2026) ────────────────────────────────────
-  //
-  // Trước đây tuần luôn suy từ NGÀY HÔM NAY, nên buổi họp sáng thứ Hai — buổi nhìn lại tuần vừa
-  // xong — không có chỗ nào để ghi: form mở ra là của tuần mới. Nay màn gửi lên thứ Hai của tuần
-  // biên bản, và ở đây kiểm lại (ô hidden nằm trong trình duyệt, sửa được):
-  //
+  // ── TUẦN CỦA BIÊN BẢN ĐI THEO THANH TUẦN ──────────────────────────────────────────────────
+  // Màn gửi lên thứ Hai của tuần biên bản; ở đây kiểm lại (ô hidden nằm trong trình duyệt, sửa được):
   //   · phải đúng là một thứ Hai;
   //   · KHÔNG ghi cho tuần chưa tới — chưa sống thì chưa có gì để nhìn lại;
   //   · chỉ tuần này và tuần trước. Xa hơn thì câu 6 sinh cam kết cho một tuần đã đi qua.
@@ -123,120 +128,146 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
       .select('id')
       .maybeSingle();
     if (error) return {ok: false, error: friendlyError(error)};
-    if (!data) return {ok: false, error: 'Không lưu được biên bản (không có quyền).'};
+    if (!data) return {ok: false, error: 'Không lưu được — em không có quyền với lớp này.'};
     meetingId = data.id;
   }
 
-  // ── CÂU 2 → CHỐT THẮNG/THUA CHO CAM KẾT TUẦN TRƯỚC (PRD v3 6.2.7) ────────────────────────
-  // Từ 19/08/2026 đây là ĐƯỜNG CHẤM DUY NHẤT (không còn họp lớp): em tự chấm; không bấm thì
-  // cam kết để trống thắng/thua.
-  // Chốt cho cam kết tuần trước CHƯA có kết quả: ưu tiên cái sinh từ PDR tuần trước; nếu chỉ
-  // có một cái chưa chấm thì là nó; còn mơ hồ (2 cái, không cái nào từ PDR) thì KHÔNG đoán.
   let canhBao = '';
-  const chot = String(formData.get('q2_verdict') ?? '').trim();
-  if (chot === 'win' || chot === 'lose') {
-    // Chấm cam kết CỦA CHÍNH TUẦN BIÊN BẢN. Trước 24/08/2026 chỗ này suy từ hôm nay ("tuần
-    // trước của hôm nay") — trùng kết quả khi họp đầu tuần, nhưng sai hẳn khi em mở biên bản của
-    // một tuần khác: chấm Thắng/Thua của tuần A rồi ghi vào cam kết của tuần B.
-    const monTruoc = tuanBienBan;
-    const {data: ckTruoc} = await supabase
-      .from('commitments')
-      .select('id, pdr_meeting_id, verdict, pdr_meetings(type)')
-      .eq('student_id', me.id)
-      .eq('week_start', monTruoc)
-      .is('verdict', null);
-    const ds = (ckTruoc ?? []) as unknown as {
-      id: string;
-      pdr_meeting_id: string | null;
-      verdict: string | null;
-      pdr_meetings: {type: string} | null;
-    }[];
-    // ƯU TIÊN cam kết mà buổi sinh ra nó CÙNG LOẠI với buổi đang lưu (audit 18/08): tuần trước có
-    // cả buổi buddy lẫn coach thì mỗi buổi một cam kết cùng week_start — không phân loại thì
-    // Thắng/Thua của buổi buddy có thể ghi nhầm vào cam kết của buổi coach.
-    const muctieu =
-      ds.find((c) => c.pdr_meetings?.type === loai) ??
-      ds.find((c) => c.pdr_meeting_id) ??
-      (ds.length === 1 ? ds[0] : null);
-    if (muctieu) {
-      const {data: goiY} = await supabase.rpc('cam_ket_goi_y', {p_commitment: muctieu.id});
-      const {error} = await supabase
-        .from('commitments')
-        .update({
-          verdict: chot,
-          verdict_goi_y: (goiY as string | null) === 'win' || goiY === 'lose' ? goiY : null,
-          verdict_by: me.id,
-          verdict_at: new Date().toISOString(),
-        })
-        .eq('id', muctieu.id);
-      if (error) canhBao = ' Kết quả Thắng/Thua chưa ghi được (cam kết tuần trước có thể đã chốt rồi).';
-    } else if (ds.length > 1) {
-      canhBao = ' Tuần trước có hai cam kết chưa chấm — không rõ Thắng/Thua này thuộc cam kết nào nên chưa ghi.';
-    }
-  }
 
-  // ── CÂU 6 → CAM KẾT TUẦN TỚI ──────────────────────────────────────────────────────────────
-  // Chỉ sinh MỘT lần cho mỗi buổi (soi pdr_meeting_id); em sửa câu 6 sau đó thì sửa lời văn ở
-  // thẻ cam kết như mọi cam kết khác, không đẻ bản thứ hai.
-  const wigGui = String(formData.get('wig_id') ?? '').trim();
+  // ── CÂU 2 → KỂ LẠI TỪNG CAM KẾT TỚI HẠN (pdr_ke_lai) ──────────────────────────────────────
+  // Form gửi lên bốn mảng SONG SONG theo chỉ số: cam_ket_id · ket_qua ('thang'/'thua'/'') · so_dat ·
+  // ghi_chu. Chỉ ghi dòng em thực sự kể (có ket_qua HOẶC ghi_chu HOẶC so_dat) — không đẻ dòng rỗng,
+  // và tránh vô tình xoá điểm đã chấm khi lưu lại biên bản không đụng câu 2. Trigger pkl_sau_ghi
+  // chép ket_qua sang cam_ket và chụp gợi ý máy; ở đây không tự chấm cam_ket.
+  const keLaiIds = formData.getAll('ke_lai_cam_ket').map((v) => String(v));
+  const keLaiKq = formData.getAll('ke_lai_ket_qua').map((v) => String(v));
+  const keLaiSo = formData.getAll('ke_lai_so_dat').map((v) => String(v));
+  const keLaiGhi = formData.getAll('ke_lai_ghi_chu').map((v) => String(v));
+  let loiKeLai = 0;
+  for (let i = 0; i < keLaiIds.length; i++) {
+    const camKetId = keLaiIds[i].trim();
+    if (!/^[0-9a-f-]{36}$/i.test(camKetId)) continue;
+    const kqRaw = (keLaiKq[i] ?? '').trim();
+    const ketQua = kqRaw === 'thang' || kqRaw === 'thua' ? kqRaw : null;
+    const soRaw = (keLaiSo[i] ?? '').trim();
+    const soDatNum = soRaw === '' ? null : Number(soRaw);
+    const soDat = soDatNum !== null && Number.isFinite(soDatNum) && soDatNum >= 0 ? soDatNum : null;
+    const ghiChu = (keLaiGhi[i] ?? '').trim().slice(0, 300) || null;
+    if (!ketQua && !ghiChu && soDat === null) continue; // em chưa kể gì cho cam kết này
+    const {error} = await supabase
+      .from('pdr_ke_lai')
+      .upsert(
+        {pdr_meeting_id: meetingId, cam_ket_id: camKetId, ket_qua: ketQua, so_dat: soDat, ghi_chu: ghiChu},
+        {onConflict: 'pdr_meeting_id,cam_ket_id'},
+      );
+    if (error) loiKeLai++;
+  }
+  if (loiKeLai > 0)
+    canhBao =
+      loiKeLai === 1
+        ? ' Một cam kết chưa kể lại được (có thể biên bản đã đóng hoặc cam kết không phải của em).'
+        : ` ${loiKeLai} cam kết chưa kể lại được.`;
+
+  // ── CÂU 6 → SINH CAM KẾT MỚI CHO TUẦN KẾ TIẾP ─────────────────────────────────────────────
+  // Chỉ sinh MỘT lần cho mỗi buổi (soi pdr_meeting_id); em sửa câu 6 sau đó thì sửa lời văn ở thẻ
+  // cam kết như mọi cam kết khác, không đẻ bản thứ hai. Không bắt gắn mục tiêu — cam kết "lạc mục
+  // tiêu" vẫn hợp lệ (lac_muc_tieu). Gắn thước/mục tiêu là TUỲ CHỌN; trigger ck_truoc_them kiểm
+  // link cùng chủ thể + trần 2/tuần.
   if (traLoi.q6_commitment) {
-    if (!wigGui)
-      return {
-        ok: false,
-        fieldError: 'wig_id',
-        error: 'Cam kết phải gắn vào một WIG đã duyệt của em — chọn WIG nhé.',
-      };
+    const noiDung = traLoi.q6_commitment.trim();
+    if (noiDung.length > 300)
+      return {ok: false, fieldError: 'q6_commitment', error: 'Cam kết tối đa 300 ký tự.'};
     const {data: daSinh} = await supabase
-      .from('commitments')
+      .from('cam_ket')
       .select('id')
       .eq('pdr_meeting_id', meetingId)
+      .limit(1)
       .maybeSingle();
     if (!daSinh) {
-      // WIG phải là CỦA EM và ĐÃ DUYỆT (PRD v3: "1 trong các WIG đã duyệt của học sinh").
-      const {data: wig} = await supabase
-        .from('wigs')
-        .select('id')
-        .eq('id', wigGui)
-        .eq('student_id', me.id)
-        .eq('scope', 'student')
-        .eq('status', 'approved')
-        .maybeSingle();
-      if (!wig)
-        return {ok: false, fieldError: 'wig_id', error: 'WIG này chưa được duyệt hoặc không phải của em.'};
-      const {error} = await supabase.from('commitments').insert({
-        wig_id: wig.id,
+      const soTuanRaw = Number(String(formData.get('q6_so_tuan') ?? '1'));
+      const soTuan = Number.isInteger(soTuanRaw) && soTuanRaw >= 1 && soTuanRaw <= 4 ? soTuanRaw : 1;
+      const thuocId = String(formData.get('q6_thuoc_id') ?? '').trim() || null;
+      const mucTieuId = String(formData.get('q6_muc_tieu_id') ?? '').trim() || null;
+      const {error} = await supabase.from('cam_ket').insert({
+        chu_the: 'em',
         class_id: ghiDanh.class_id,
         student_id: me.id,
-        week_start: shiftWeeks(tuanBienBan, 1),
-        title: traLoi.q6_commitment.slice(0, 160),
-        area: 'knowledge', // trigger đè bằng lĩnh vực của WIG — giá trị qua cửa, không phải lựa chọn
+        tuan_bat_dau: shiftWeeks(tuanBienBan, 1),
+        so_tuan: soTuan,
+        noi_dung: noiDung,
+        thuoc_id: thuocId,
+        muc_tieu_id: mucTieuId,
         pdr_meeting_id: meetingId,
       });
       if (error) {
-        if (/hai cam k|tối đa 2|qua_hai/i.test(error.message))
-          return {
-            ok: false,
-            error: 'Tuần tới đã đủ 2 cam kết — cam kết trong câu 6 không sinh thêm được. Biên bản vẫn đã lưu.',
-          };
-        return {ok: false, error: friendlyError(error)};
+        if (/nhiều nhất 2 cam kết|2\/tuần|tối đa 2/i.test(error.message ?? ''))
+          canhBao +=
+            ' Tuần tới đã đủ 2 cam kết — cam kết ở câu 6 chưa sinh thêm được. Biên bản vẫn đã lưu.';
+        else canhBao += ' Cam kết ở câu 6 chưa lưu được: ' + friendlyError(error);
       }
     }
   }
 
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
-  return {ok: true, message: 'Đã lưu biên bản PDR.' + canhBao};
+  return {ok: true, message: 'Đã lưu biên bản.' + canhBao};
 }
 
-// Nút "Ghi nhận" — xác nhận buổi họp ĐÃ DIỄN RA (PRD v3: chưa Ghi nhận thì không tính KPI).
-// Người bấm là người tham gia (RLS pdr_student_update / pdr_staff_all quyết ai bấm được);
-// bấm xong biên bản đóng — USING của policy không cho em sửa nữa.
+// Nút "Ghi nhận" — chữ ký xác nhận buổi họp ĐÃ DIỄN RA (chưa Ghi nhận thì không tính KPI). Người
+// bấm LÀ người ký (acknowledged_by = uid). Ở lớp thường chỉ chính em ký; lớp bật nhập hộ thì bạn
+// cùng buổi ký hộ; thầy cô KHÔNG ký (L8/C22). RLS + trigger pdr_truoc_sua là chốt cuối; các kiểm
+// dưới đây chỉ để câu báo lỗi nói tiếng người. Ghi nhận đóng cả tuần lượt ghi (luot_bi_khoa) nên
+// chặn khi còn cam kết TỚI HẠN chưa chấm ở câu 2.
 export async function ghiNhanPdr(_prev: PdrState, formData: FormData): Promise<PdrState> {
   const me = await getCurrentProfile();
   if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
   const id = String(formData.get('meeting_id') ?? '');
   if (!id) return {ok: false, error: 'Thiếu buổi họp.'};
+
   const supabase = await createClient();
+  const {data: bb} = await supabase
+    .from('pdr_meetings')
+    .select('student_id, class_id, type, counterpart_id, second_buddy_id, acknowledged_at, week_label')
+    .eq('id', id)
+    .maybeSingle();
+  if (!bb) return {ok: false, error: 'Không tìm thấy buổi họp, hoặc em không tham gia buổi này.'};
+  if (bb.acknowledged_at)
+    return {ok: false, error: 'Buổi họp đã Ghi nhận rồi — biên bản đã đóng.'};
+
+  // L8: thầy cô KHÔNG ký thay.
+  if (me.role !== 'student')
+    return {ok: false, error: 'Chữ ký là của em hoặc bạn em — thầy cô không ký thay.'};
+  // Bạn ký hộ chỉ được ở lớp bật nhập hộ, và chỉ khi là bạn trong buổi họp (buddy).
+  if (me.id !== bb.student_id) {
+    const {data: lop} = await supabase
+      .from('classes')
+      .select('nhap_ho')
+      .eq('id', bb.class_id)
+      .maybeSingle();
+    if (!lop?.nhap_ho)
+      return {
+        ok: false,
+        error: 'Ở lớp mình, chỉ em bấm Ghi nhận được — em bấm trên máy của em nhé.',
+      };
+    if (bb.type !== 'buddy' || (me.id !== bb.counterpart_id && me.id !== bb.second_buddy_id))
+      return {ok: false, error: 'Chỉ em hoặc bạn cùng nhóm trong buổi họp mới ký được biên bản.'};
+  }
+
+  // Chặn khi còn cam kết TỚI HẠN (tuan_ket_thuc ≤ tuần biên bản) chưa chấm Thắng/Thua (câu 2).
+  const tuan = tuanTuNhan(bb.week_label);
+  if (tuan) {
+    const {count} = await supabase
+      .from('cam_ket')
+      .select('id', {count: 'exact', head: true})
+      .eq('student_id', bb.student_id)
+      .eq('chu_the', 'em')
+      .eq('trang_thai', 'hieu_luc')
+      .is('ket_qua', null)
+      .lte('tuan_ket_thuc', tuan.start);
+    if (count && count > 0)
+      return {ok: false, error: `Còn ${count} cam kết chưa chấm Thắng/Thua ở câu 2.`};
+  }
+
   const {data, error} = await supabase
     .from('pdr_meetings')
     .update({acknowledged_at: new Date().toISOString(), acknowledged_by: me.id})

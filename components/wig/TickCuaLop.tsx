@@ -18,14 +18,16 @@ import {createClient} from '@/lib/supabase/client';
 //
 // ── MỘT LƯỢT CỦA LỚP LÀ MỘT DÒNG KHÔNG GẮN VỚI EM NÀO ────────────────────────────────────────
 //
-// `lead_progress.student_id` để RỖNG. Cột ấy vốn cho phép rỗng từ đầu, và mọi bảng đếm "em nào
-// đã tham gia" đều lọc theo nó — nên một lượt của lớp không lẫn vào phần của bất kỳ em nào, và
-// cũng không làm em nào bỗng dưng "đã đủ".
+// Đây là lượt `ca_doi` (thước có `pham_vi='ca_doi'` — cả đội tính chung, cô là người điền). Trong
+// bảng `luot`, một lượt cả đội để `student_id` RỖNG (`coalesce(student_id, 'doi')` gộp mọi dòng
+// rỗng lại thành một chủ thể "doi"), còn lượt của TỪNG em thì mang `student_id` của em ấy. Mọi
+// bảng đếm "em nào đã tham gia" đều lọc theo `student_id is not null` — nên một lượt của lớp không
+// lẫn vào phần của bất kỳ em nào, và cũng không làm em nào bỗng dưng "đã đủ".
 //
 // Ghi thẳng qua supabase client, không qua server action: đây là một cú chạm trong lúc cô đang
 // nhìn bảng, và một vòng revalidate cả trang chỉ để đổi màu một ô là bắt cô chờ đúng lúc không
-// nên chờ. RLS (rls_all_lead_progress) đã cho GVCN toàn quyền với lớp mình, và trigger 0136 vẫn
-// chặn nếu ngày ấy không thuộc thứ mà việc này áp dụng.
+// nên chờ. RLS trên `luot` đã cho GVCN toàn quyền với lớp mình, trigger `luot_truoc_ghi` tự điền
+// `nguoi_ghi` là cô và vẫn chặn nếu ngày ấy không thuộc thứ mà việc này áp dụng.
 export function TickCuaLop({
   leadId,
   days,
@@ -34,6 +36,7 @@ export function TickCuaLop({
   moKhoa,
   dayShort,
 }: {
+  /** Id của thước (`thuoc.id`) mà lớp tick chung. */
   leadId: string;
   /** Những ngày trong tuần đang xem mà việc này áp dụng, dạng 'YYYY-MM-DD'. */
   days: string[];
@@ -60,19 +63,22 @@ export function TickCuaLop({
     startTransition(() => apply({date, on}));
 
     const {error} = on
-      ? await supabase.from('lead_progress').insert({
-          lead_measure_id: leadId,
-          // RỖNG — đây là lượt của LỚP, không của em nào. Xem ghi chú đầu tệp.
+      ? await supabase.from('luot').insert({
+          thuoc_id: leadId,
+          // RỖNG — đây là lượt cả đội, không của em nào. Xem ghi chú đầu tệp.
           student_id: null,
-          logged_date: date,
-          value: 1,
+          ngay: date,
+          // Một chạm = một lượt. `gia_tri` đã theo đơn vị của thước; trigger tự điền `nguoi_ghi`.
+          gia_tri: 1,
         })
       : await supabase
-          .from('lead_progress')
+          .from('luot')
           .delete()
-          .eq('lead_measure_id', leadId)
+          .eq('thuoc_id', leadId)
           .is('student_id', null)
-          .eq('logged_date', date);
+          .eq('ngay', date)
+          // Chỉ xoá lượt cô điền tay; lượt hệ thống (từ điểm danh) luôn gắn student_id nên không lọt.
+          .eq('nguon', 'tay');
 
     setDangGhi((p) => {
       const s = new Set(p);

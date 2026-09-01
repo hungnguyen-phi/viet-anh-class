@@ -43,7 +43,7 @@ export async function WeekNav({
   // ngoài — người dùng đọc thành "bấm sang tuần khác thì mất hết chi tiết".
   basePath?: '/wig' | '/wig/chi-tiet';
 }) {
-  const t = await getTranslations('wig');
+  const t = await getTranslations('tuan');
 
   const href = (m: string) => ({
     pathname: basePath,

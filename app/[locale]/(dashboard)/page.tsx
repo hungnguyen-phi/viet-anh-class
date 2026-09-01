@@ -20,34 +20,46 @@ import {DonutRing} from '@/components/charts/DonutRing';
 import {AREAS, areaLabel, areaIcon} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
 
-type WigRow = {
-  wig_id: string;
-  area: string;
-  period: string;
-  period_label: string | null;
-  end_date: string;
+// Mục tiêu LỚP (muc_tieu_v, cap='lop', đã duyệt) — chỉ lấy cột màn cần.
+// `trang_thai_do` là trạng thái NHỊP (dat/dang_thang/sat_nut/truot…), khác `trang_thai` (duyệt).
+type GoalRow = {
+  linh_vuc: string | null;
   pct: number | null;
-  status: string | null;
+  trang_thai_do: string | null;
 };
-// Một dòng của RPC class_lead_board (0073/0074) — chỉ lấy những cột khối lead measure cần.
-type ClassLeadRow = {
-  lead_measure_id: string;
-  title: string;
-  target_value: number | string;
-  class_total: number | string;
-  // 0098 — thước đo của một việc là SỐ EM ĐÃ ĐỦ, không phải tổng tick của cả lớp.
-  students_done: number | string;
-  class_size: number | string;
+// Một dòng thước của lớp (bang_lop_thuoc) — "n/m bạn đủ" tuần này.
+type ThuocRow = {
+  thuoc_id: string;
+  ten: string;
+  si_so: number;
+  so_em_dat: number;
 };
 
 // AREAS + màu/icon/nhãn lĩnh vực ("Môn") lấy từ lib/areas (đọc area_config, fallback = giá trị cũ).
 
-// Meta trạng thái WIG (label lấy từ i18n, màu/nền theo design system v3).
+// Gom trạng thái NHỊP của một mục tiêu về ba nhóm mà DonutRing và chip trạng thái hiểu.
+// Nguồn: private.so_hien_tai → muc_tieu_v.trang_thai_do (0166). 'dang_lam'/'chua_biet'/'mien'
+// là "chưa đủ số để nói thắng thua" → không tô màu, không đếm vào banner.
+function nhipVe(tt: string | null): 'on_track' | 'mid' | 'off_track' | null {
+  switch (tt) {
+    case 'dat':
+    case 'dang_thang':
+    case 'dang_giu':
+    case 'vuot':
+      return 'on_track';
+    case 'sat_nut':
+      return 'mid';
+    case 'truot':
+      return 'off_track';
+    default:
+      return null;
+  }
+}
+
+// Meta trạng thái nhịp (label lấy từ i18n, màu/nền theo design system v3).
 // Ba màu này TRÙNG KHÍT token success/warn/status-bad, chỉ là trước đây gõ lại bằng hex — nên
 // đổi token trong globals.css thì trang lớp vẫn giữ màu cũ. Nay trỏ thẳng vào token.
 // `color` là màu CHỮ trên chip (11px in đậm → cần 4.5:1), `bg` pha từ nấc SÁNG của cùng màu.
-// Dùng chung một giá trị cho cả hai thì chữ chỉ đạt 4.34:1 (xanh) và 3.16:1 (vàng) — đo được
-// trên màn 360px. Xem ghi chú hai nấc màu trong app/globals.css.
 const STATUS_META: Record<string, {color: string; bg: string}> = {
   on_track: {color: 'var(--color-success-dark)', bg: softOf('var(--color-success)')},
   mid: {color: 'var(--color-warn-text)', bg: softOf('var(--color-warn)')},
@@ -68,7 +80,7 @@ export default async function ClassPage({
   const {class: classParam} = await searchParams;
   setRequestLocale(locale);
   const profile = await requireProfile();
-  // Học sinh chỉ xem scoreboard CÁ NHÂN — tổng hợp lớp dành cho GV/quản trị (spec 20/07).
+  // Học sinh chỉ xem bảng CÁ NHÂN — tổng hợp lớp dành cho GV/quản trị (spec 20/07).
   if (profile.role === 'student') redirect('/student');
   const t = await getTranslations();
   const supabase = await createClient();
@@ -92,37 +104,35 @@ export default async function ClassPage({
 
   const gvcnName = profile.role === 'teacher' ? profile.full_name : null;
 
-  // 4 truy vấn chỉ phụ thuộc myClass.id — chạy song song:
-  // sĩ số (GVCN) + tiến độ WIG năm & tuần + thứ hạng thi đua + tên khối/cơ sở.
+  // Các truy vấn chỉ phụ thuộc myClass.id — chạy song song, một đợt:
+  //   · sĩ số (GVCN)                       enrollments đếm
+  //   · mục tiêu LỚP 4 lĩnh vực (nhịp năm)  muc_tieu_v cap='lop' đã duyệt
+  //   · ba số thi đua tách nhau            thi_dua_lop (KHÔNG cộng thành một điểm — 30 §4.2)
+  //   · điểm xếp hạng cho huy hiệu          class_ranks
+  //   · việc của lớp tuần này               bang_lop_thuoc ("n/m bạn đủ")
   //
-  // Tên khối/cơ sở: người thử báo "chỗ khối, cấp, campus hiện #1/1 không hiểu là gì". Thực ra
-  // #1/1 là huy hiệu XẾP HẠNG (hạng 1 trong 1 lớp), còn TÊN khối và cơ sở thì trước nay không
-  // được hiện ở đâu cả — nên nhãn "Khối" đứng cạnh "#1/1" bị đọc thành "khối = #1/1".
-  // MỘT ĐỢT, KHÔNG PHẢI HAI (audit tốc độ 10/08/2026).
-  //
-  // class_lead_board trước đây đứng riêng một vòng mạng SAU đợt này, dù nó chỉ cần myClass.id —
-  // đúng bằng đầu vào của cả bốn câu ở đây. Tức là người dùng chờ thêm trọn một vòng đi-về mà
-  // không đổi lấy điều gì. Kéo vào cùng đợt: bốn tầng chờ còn ba.
-  //
-  // Câu `classes` lấy tên khối + tên cơ sở cũng bỏ hẳn: getClassContext đã mang sẵn cả hai về
-  // (nay có thêm campuses(name)), hỏi lại là hỏi cùng một dòng hai lần trong một lượt tải.
-  const [rosterRes, {data: wigRows}, {data: ranksData}, {data: boardData}] = await Promise.all([
-    profile.role === 'teacher'
-      ? supabase
-          .from('enrollments')
-          .select('id', {count: 'exact', head: true})
-          .eq('class_id', myClass.id)
-          .eq('is_active', true)
-      : Promise.resolve(null),
-    supabase
-      .from('wig_progress_v')
-      .select('wig_id, area, period, period_label, end_date, pct, status')
-      .eq('class_id', myClass.id)
-      .eq('scope', 'class')
-      .in('period', ['year', 'week']),
-    supabase.rpc('class_ranks', {c: myClass.id}),
-    supabase.rpc('class_lead_board', {p_class: myClass.id}),
-  ]);
+  // Đây là mô hình mục tiêu PA2 (0166): view wig_progress_v và RPC class_lead_board CŨ đã gỡ.
+  // Mục tiêu lớp nay là mục tiêu NĂM theo lĩnh vực; "việc tuần" cũ thay bằng thước lớp — một luật
+  // đếm (bang_lop_thuoc) chung cho cả màn em, bảng tick của cô và trang chủ, không thể trôi lệch.
+  const [rosterRes, {data: goalRows}, {data: thiDua}, {data: ranksData}, {data: thuocRows}] =
+    await Promise.all([
+      profile.role === 'teacher'
+        ? supabase
+            .from('enrollments')
+            .select('id', {count: 'exact', head: true})
+            .eq('class_id', myClass.id)
+            .eq('is_active', true)
+        : Promise.resolve(null),
+      supabase
+        .from('muc_tieu_v')
+        .select('linh_vuc, pct, trang_thai_do')
+        .eq('class_id', myClass.id)
+        .eq('cap', 'lop')
+        .eq('trang_thai', 'duyet'),
+      supabase.rpc('thi_dua_lop', {p_class: myClass.id}),
+      supabase.rpc('class_ranks', {c: myClass.id}),
+      supabase.rpc('bang_lop_thuoc', {p_class: myClass.id}),
+    ]);
   const rosterCount: number | null = rosterRes ? (rosterRes.count ?? 0) : null;
   // grades(name) là khối đã khai chuẩn; cột `grade` (text) là bản gõ tay thời chưa có bảng khối.
   const lopDayDu = myClass as typeof myClass & {
@@ -132,55 +142,32 @@ export default async function ClassPage({
   const gradeName = lopDayDu.grades?.name ?? myClass.grade ?? null;
   const campusName = lopDayDu.campuses?.name ?? null;
 
-  const rows = (wigRows ?? []) as WigRow[];
-  const yearRows = rows.filter((r) => r.period === 'year');
-  const weekRows = rows
-    .filter((r) => r.period === 'week')
-    .sort((a, b) => a.end_date.localeCompare(b.end_date));
-  const wigByArea = new Map(yearRows.map((r) => [r.area, r]));
-  const weeksByArea = new Map<string, WigRow[]>();
-  for (const w of weekRows) {
-    const arr = weeksByArea.get(w.area) ?? [];
-    arr.push(w);
-    weeksByArea.set(w.area, arr);
+  // Một mục tiêu MỖI lĩnh vực (mục tiêu lớp là mục tiêu năm — mỗi lĩnh vực nhiều nhất một).
+  const goals = (goalRows ?? []) as GoalRow[];
+  const goalByArea = new Map<string, GoalRow>();
+  for (const g of goals) {
+    if (g.linh_vuc && !goalByArea.has(g.linh_vuc)) goalByArea.set(g.linh_vuc, g);
   }
 
-  // Lead measure TUẦN NÀY — đi qua đúng cái RPC mà học sinh và bảng tick của GVCN đang dùng.
-  //
-  // Trước đây khối này tự hỏi lead_measures của MỌI WIG tuần trong `weekRows` (câu trên không lọc
-  // ngày) rồi cộng lead_progress cũng không lọc ngày. Nó chính là nửa còn lại của sự cố 7B1 ngày
-  // 03/08: /wig đã nói đúng "tuần này chưa có WIG nào" và màn hình học sinh trống trơn, nhưng
-  // trang chủ — màn hình GVCN mở đầu tiên — vẫn trưng "Dành 30 phút đọc sách 0/30" của một WIG
-  // đóng từ hôm trước, dưới đúng dòng chữ "Lead measure tuần này".
-  //
-  // Chưa kể nó tự hỏng dần theo thời gian: một việc đã đạt ở tuần 28 vĩnh viễn được đếm là "xong"
-  // trong ô "tuần này", nên tới giữa năm tỷ số hoàn thành là tỷ số CẢ NĂM mang nhãn tuần.
-  //
-  // Gọi class_lead_board (0074) thay vì chép lại luật lọc: nó đã ràng cả hai đầu — WIG phải giao
-  // với tuần, và tick phải nằm trong bảy ngày ấy. Một luật, ba màn hình, không thể trôi khỏi nhau.
-  // (Lượt gọi ấy nay nằm trong đợt song song ở đầu hàm — xem ghi chú tại đó.)
-  // MỘT VIỆC XONG KHI MỌI EM ĐỦ PHẦN CỦA MÌNH (0098), không phải khi tổng tick chạm mục tiêu.
-  //
-  // Mục tiêu nay là của MỖI EM ("mỗi em 3 bài"), nên tổng của cả lớp không trả lời được câu hỏi
-  // mà ô này đặt ra. Lớp 30 em mà 3 lượt tick đầu tiên đã tô xanh "xong" là đúng cảnh chủ dự án
-  // bắt được ở màn hình học sinh — trang chủ của GVCN cũng đọc chung một con số ấy.
-  const leads = ((boardData ?? []) as ClassLeadRow[]).map((l) => {
-    const duEm = Number(l.students_done ?? 0);
-    const siSo = Number(l.class_size ?? 0);
-    return {
-      id: l.lead_measure_id,
-      title: l.title,
-      target: siSo,
-      actual: duEm,
-      done: siSo > 0 && duEm >= siSo,
-    };
-  });
-  const leadsDone = leads.filter((l) => l.done).length;
+  // Ba số thi đua — TÁCH nhau, mỗi số một kỳ/luật khác nhau (30 §4.2). null = chưa có số → "—".
+  const td = (thiDua?.[0] ?? null) as
+    | {diem_muc_tieu: number | null; diem_thuoc: number | null; diem_cam_ket: number | null}
+    | null;
+  const fmtDiem = (n: number | null | undefined) =>
+    n === null || n === undefined ? '—' : `${Math.round(Number(n))}%`;
 
-  // Banner "3 giây": thắng khi số lĩnh vực on-track ≥ số off-track (theo WIG năm).
-  const onCount = yearRows.filter((r) => r.status === 'on_track').length;
-  const offCount = yearRows.filter((r) => r.status === 'off_track').length;
-  const isWinning = yearRows.length > 0 ? onCount >= offCount : null;
+  // Việc của lớp tuần này — "n/m bạn đủ" (so_em_dat / si_so). done khi mọi em đã đủ.
+  const thuocs = ((thuocRows ?? []) as ThuocRow[]).map((r) => {
+    const dat = Number(r.so_em_dat ?? 0);
+    const si = Number(r.si_so ?? 0);
+    return {id: r.thuoc_id, ten: r.ten, dat, si, done: si > 0 && dat >= si};
+  });
+  const thuocDone = thuocs.filter((r) => r.done).length;
+
+  // Banner "3 giây": thắng khi số lĩnh vực đúng nhịp ≥ số chậm nhịp (theo mục tiêu năm của lớp).
+  const onCount = goals.filter((g) => nhipVe(g.trang_thai_do) === 'on_track').length;
+  const offCount = goals.filter((g) => nhipVe(g.trang_thai_do) === 'off_track').length;
+  const isWinning = goals.length > 0 ? onCount >= offCount : null;
 
   const statusLabel: Record<string, string> = {
     on_track: t('class.onTrack'),
@@ -188,13 +175,6 @@ export default async function ClassPage({
     off_track: t('class.offTrack'),
   };
 
-  // Chỉ còn lấy ĐIỂM thi đua từ class_ranks.
-  //
-  // Đã BỎ bốn huy hiệu thứ hạng "Khối #1/3 · Cấp #1/6 · Campus #1/2 · Group #1/6".
-  // Lý do: với một trường mới, gần như mọi lớp đều là #1/1 hoặc #1/2 nên con số không nói lên
-  // điều gì, mà lại đứng cạnh nhãn "Khối"/"Campus" khiến giáo viên đọc thành mã của khối/cơ sở —
-  // đúng như người thử đã hiểu nhầm ("để #1/1 không hiểu là gì"). Tên khối và cơ sở THẬT giờ đã
-  // hiện ngay dòng trên, nên bốn huy hiệu này chỉ còn gây rối.
   const rank = ranksData?.[0];
 
   return (
@@ -239,12 +219,7 @@ export default async function ClassPage({
             ) : (
               <Flame size={14} strokeWidth={2.5} />
             )}
-            {/* Ghi rõ đây là chỉ số CẢ NĂM. Huy hiệu này trước chỉ có "1/1 on-track" và đứng ngay
-                trên khối "Lead measure tuần này", nên đọc liền hai dòng là hiểu thành tuần này
-                đang thắng — trong khi nó cộng dồn từ đầu năm qua mọi WIG tuần con.
-                Khối lead bên dưới nay đã bám đúng tuần hiện tại (xem chỗ gọi class_lead_board),
-                nên hai con số cạnh nhau đo hai kỳ khác nhau — mỗi cái phải tự nói ra mình đo gì. */}
-            {t('class.yearOnTrack', {n: onCount, total: yearRows.length})}
+            {t('class.yearOnTrack', {n: onCount, total: goals.length})}
           </span>
         </div>
       )}
@@ -259,12 +234,6 @@ export default async function ClassPage({
             {myClass.school_year}
           </span>
           {rank && (
-            // TÊN PHẢI KHÁC NHAU KHI CON SỐ KHÁC NHAU.
-            //
-            // Chip này và tab "Thi đua" trước đây cùng mang chữ "Điểm thi đua" nhưng đo hai thứ
-            // khác hẳn: đây là PHẦN TRĂM hoàn thành mục tiêu năm (0–100, lọc theo năm học), còn
-            // bên kia là TỔNG LƯỢT tick nhân hệ số (không trần, không lọc kỳ). Hôm nay cả hai
-            // đều bằng 0 nên chưa ai để ý; tới giữa năm sẽ là "42" và "318" dưới cùng một cái tên.
             <span
               className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-linear-to-b from-gold-soft to-gold px-3.5 py-1.5 text-[12px] font-extrabold text-navy shadow-[var(--shadow-gold)]"
               title={t('class.scoreHint')}
@@ -303,23 +272,50 @@ export default async function ClassPage({
             )}
           </div>
         )}
-
       </div>
 
-      {/* WIG năm — 4 lĩnh vực */}
+      {/* Ba số thi đua TÁCH nhau — không cộng thành một điểm (thi_dua_lop, 30 §4.2) */}
+      {td && (
+        <div className="glass rounded-[22px] p-5 sm:px-6">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              {label: t('class.diemMucTieu'), value: td.diem_muc_tieu},
+              {label: t('class.diemViec'), value: td.diem_thuoc},
+              {label: t('class.diemCamKet'), value: td.diem_cam_ket},
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="rounded-[16px] bg-navy/[0.04] px-4 py-3.5 text-center"
+              >
+                <div className="font-display text-[26px] font-bold leading-none text-navy">
+                  {fmtDiem(s.value)}
+                </div>
+                <div className="mt-1.5 text-[12px] font-extrabold text-grey-mid">
+                  {s.label}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-center text-[11.5px] font-semibold text-grey-mid">
+            {t('lopMucTieu.baSoHint')}
+          </p>
+        </div>
+      )}
+
+      {/* Mục tiêu năm của lớp — 4 lĩnh vực */}
       <section>
-        {/* Câu định nghĩa "WIG = Wildly Important Goal…" đã bỏ cùng đợt với bản trên màn của em. */}
         <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
-          {t('class.wigYear')}
+          {t('lopMucTieu.khuMucTieu')}
         </h2>
         <div
           className="grid gap-3.5"
           style={{gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))'}}
         >
           {AREAS.map((a) => {
-            const w = wigByArea.get(a);
+            const g = goalByArea.get(a);
             const am = areaMeta[a];
-            const meta = STATUS_META[w?.status ?? ''];
+            const nhip = nhipVe(g?.trang_thai_do ?? null);
+            const meta = nhip ? STATUS_META[nhip] : undefined;
             const Icon = areaIcon(am);
             return (
               <div key={a} className="glass glass-hover rounded-[20px] p-4 text-center">
@@ -332,17 +328,17 @@ export default async function ClassPage({
                   </span>
                   {areaLabel(am, locale)}
                 </div>
-                {w ? (
+                {g ? (
                   <>
                     <div className="mt-3.5 flex justify-center">
-                      <DonutRing pct={Number(w.pct ?? 0)} status={w.status ?? ''} />
+                      <DonutRing pct={Number(g.pct ?? 0)} status={nhip ?? ''} />
                     </div>
-                    {meta && (
+                    {meta && nhip && (
                       <span
                         className="mt-3 inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-extrabold"
                         style={{background: meta.bg, color: meta.color}}
                       >
-                        {statusLabel[w.status ?? ''] ?? ''}
+                        {statusLabel[nhip] ?? ''}
                       </span>
                     )}
                   </>
@@ -357,147 +353,70 @@ export default async function ClassPage({
         </div>
       </section>
 
-      {/* WIG tuần + Lead measure — 2 cột */}
-      <div
-        className="grid items-start gap-5"
-        style={{gridTemplateColumns: 'repeat(auto-fit,minmax(min(360px,100%),1fr))'}}
-      >
-        {/* WIG tuần theo 4 lĩnh vực — dãy pip thắng/thua vuông (PRD §6.1.1) */}
-        <div>
-          <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
-            {t('class.wigWeek')}
+      {/* Việc của lớp tuần này — mỗi thước "n/m bạn đủ" + thanh tiến độ */}
+      <section>
+        <div className="mb-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1.5">
+          <h2 className="font-display text-[17px] font-bold text-navy">
+            {t('lopMucTieu.khuViec')}
           </h2>
-          <div className="glass rounded-[20px]">
-            {AREAS.map((a, i) => {
-              const weeks = weeksByArea.get(a) ?? [];
-              const wins = weeks.filter((w) => Number(w.pct ?? 0) >= 1).length;
-              const am = areaMeta[a];
+          {thuocs.length > 0 && (
+            <span className="rounded-full bg-navy px-2.5 py-1 text-[11px] font-extrabold text-white">
+              {thuocDone}/{thuocs.length} {t('class.leadDone')}
+            </span>
+          )}
+        </div>
+        {thuocs.length === 0 ? (
+          <p className="text-xs italic text-grey-mid">{t('lopMucTieu.viecTrong')}</p>
+        ) : (
+          <div className="glass overflow-x-auto rounded-[20px]">
+            {thuocs.map((r, i) => {
+              const pct = r.si > 0 ? Math.min(1, r.dat / r.si) : 0;
+              const barBg =
+                pct >= 1
+                  ? 'var(--color-success)'
+                  : pct >= 0.5
+                    ? 'var(--color-gold-mid)'
+                    : 'var(--color-status-bad)';
               return (
                 <div
-                  key={a}
-                  className={`flex flex-wrap items-center gap-x-[9px] gap-y-2 px-3.5 py-3 ${
-                    i < AREAS.length - 1 ? 'border-b border-navy/[0.08]' : ''
+                  key={r.id}
+                  className={`flex items-center gap-3 px-4 py-3 ${
+                    i < thuocs.length - 1 ? 'border-b border-navy/[0.08]' : ''
                   }`}
                 >
                   <span
-                    className="h-[9px] w-[9px] shrink-0 rounded-full"
-                    style={{background: am.hex}}
-                  />
-                  <span className="text-[13px] font-extrabold text-navy">
-                    {areaLabel(am, locale)}
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-full"
+                    style={{
+                      background: r.done ? 'var(--color-success)' : 'rgba(38,39,93,0.08)',
+                      color: r.done ? '#ffffff' : 'var(--color-grey-mid)',
+                    }}
+                  >
+                    {r.done ? (
+                      <Check size={14} strokeWidth={3} />
+                    ) : (
+                      <Minus size={14} strokeWidth={3} />
+                    )}
                   </span>
-                  <span className="flex-1" />
-                  {weeks.length > 0 ? (
-                    <>
-                      <span className="flex gap-1">
-                        {weeks.slice(-10).map((w) => {
-                          const won = Number(w.pct ?? 0) >= 1;
-                          return (
-                            <span
-                              key={w.wig_id}
-                              title={w.period_label ?? ''}
-                              className="grid h-[22px] w-[22px] place-items-center rounded-[7px]"
-                              style={{
-                                background: won ? 'var(--color-success)' : 'rgba(38,39,93,0.08)',
-                                color: won ? '#ffffff' : 'var(--color-grey-mid)',
-                              }}
-                            >
-                              {won ? (
-                                <Check size={12} strokeWidth={3} />
-                              ) : (
-                                <X size={12} strokeWidth={3} />
-                              )}
-                            </span>
-                          );
-                        })}
-                      </span>
-                      <span className="w-9 shrink-0 text-right font-display text-[15px] font-bold text-navy">
-                        {wins}
-                        <span className="text-[11.5px] font-bold text-grey-mid">
-                          /{weeks.length}
-                        </span>
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-[11.5px] font-semibold text-grey-mid">
-                      {t('class.noWeekWig')}
-                    </span>
-                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-extrabold text-navy">
+                      {r.ten}
+                    </div>
+                    <div className="mt-[7px] h-[9px] overflow-hidden rounded-[5px] bg-navy/[0.08]">
+                      <div
+                        className="h-full rounded-[5px]"
+                        style={{width: `${Math.round(pct * 100)}%`, background: barBg}}
+                      />
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-right text-xs font-bold text-grey-mid">
+                    {t('viec.nEmDu', {n: r.dat, si: r.si})}
+                  </span>
                 </div>
               );
             })}
           </div>
-        </div>
-
-        {/* Lead measure tuần này — hoàn thành/tổng + thanh tiến độ 3 màu */}
-        <div>
-          <div className="mb-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1.5">
-            <h2 className="font-display text-[17px] font-bold text-navy">
-              {t('class.leadWeek')}
-            </h2>
-            {leads.length > 0 && (
-              <span className="rounded-full bg-navy px-2.5 py-1 text-[11px] font-extrabold text-white">
-                {leadsDone}/{leads.length} {t('class.leadDone')}
-              </span>
-            )}
-          </div>
-          {leads.length === 0 ? (
-            <p className="text-xs italic text-grey-mid">{t('class.noLeads')}</p>
-          ) : (
-            <div className="glass overflow-x-auto rounded-[20px]">
-              {leads.map((l, i) => {
-                const pct = l.target > 0 ? Math.min(1, l.actual / l.target) : 0;
-                const barBg =
-                  pct >= 1
-                    ? 'var(--color-success)'
-                    : pct >= 0.5
-                      ? 'var(--color-gold-mid)'
-                      : 'var(--color-status-bad)';
-                return (
-                  <div
-                    key={l.id}
-                    className={`flex items-center gap-3 px-4 py-3 ${
-                      i < leads.length - 1 ? 'border-b border-navy/[0.08]' : ''
-                    }`}
-                  >
-                    <span
-                      className="grid h-7 w-7 shrink-0 place-items-center rounded-full"
-                      style={{
-                        background: l.done ? 'var(--color-success)' : 'rgba(38,39,93,0.08)',
-                        color: l.done ? '#ffffff' : 'var(--color-grey-mid)',
-                      }}
-                    >
-                      {l.done ? (
-                        <Check size={14} strokeWidth={3} />
-                      ) : (
-                        <Minus size={14} strokeWidth={3} />
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-extrabold text-navy">
-                        {l.title}
-                      </div>
-                      <div className="mt-[7px] h-[9px] overflow-hidden rounded-[5px] bg-navy/[0.08]">
-                        <div
-                          className="h-full rounded-[5px]"
-                          style={{width: `${Math.round(pct * 100)}%`, background: barBg}}
-                        />
-                      </div>
-                    </div>
-                    <span className="shrink-0 font-display text-base font-bold text-navy">
-                      {l.actual}
-                      <span className="text-xs font-bold text-grey-mid">
-                        /{l.target} {t('class.studentsDoneUnit')}
-                      </span>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
+        )}
+      </section>
     </div>
   );
 }

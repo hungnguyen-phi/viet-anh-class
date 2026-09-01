@@ -1,25 +1,17 @@
 import {getTranslations} from 'next-intl/server';
-import {CheckCircle2} from 'lucide-react';
+import {Check} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {createClient} from '@/lib/supabase/server';
-import {tenHienThi} from '@/lib/ten-hien-thi';
-import {kieuDonVi} from '@/lib/don-vi';
-import {weekFromMonday} from '@/lib/dates';
-import {duyetMucTieuTraVe} from '@/app/[locale]/(dashboard)/student/actions';
-import {duyetCamKetTraVe} from '@/app/[locale]/(dashboard)/wig/actions';
-import {NutDuyet} from '@/components/wig/NutDuyet';
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
-// CÁC EM TUẦN NÀY — cùng một cây với màn của em, nhìn từ phía cô.
+// CÁC EM TUẦN NÀY — mỗi em một dòng, nhìn từ phía thầy cô (khu "Các em" của /wig, 40-C).
 // ════════════════════════════════════════════════════════════════════════════════════════════
 //
-// Chủ dự án 16/08/2026: "bên giáo viên thì wig 1 đàng, bên học sinh thì wig 1 nẻo?". Đúng: trang
-// WIG của cô chỉ có cây của LỚP (mục tiêu năm lớp → cam kết lớp → việc cô tick), còn cây của TỪNG
-// EM (mục tiêu năm em → cam kết em → việc em tick) chỉ hiện trên màn của em — cô muốn duyệt phải
-// vào từng trang một, mà ở đó lại có nút "đặt hộ / sửa / xoá" không thuộc về cô.
-//
-// Nay: mỗi em một dòng, đúng ba cột của cây — mục tiêu năm · cam kết tuần này · việc đạt — và
-// CÔ CHỈ CÓ MỘT ĐỘNG TÁC: DUYỆT. Không đặt hộ, không sửa, không xoá (0129/0133: lời hứa là của em).
+// Mô hình PA2: MỌI số trên màn đi qua hàm lõi, không màn nào tự cộng. Bảng này đọc đúng một hàm
+// definer tự gác `bang_lop_em(p_class, p_tuan)` — hàm trả về, cho từng em: tên, số mục tiêu đang
+// chạy, việc đủ nhịp / tổng việc, cam kết giữ / tổng cam kết, và đã ghi nhận buổi họp với bạn hay
+// chưa. Thầy cô CHỈ ĐỌC ở đây; muốn duyệt thì vào khu "Chờ duyệt", muốn ghi bù cho em thì mở bảng
+// của em (nút "Xem bảng của em"). Bảng này không có nút "đặt hộ / sửa / xoá" — lời hứa là của em.
 export async function BangCacEm({
   classId,
   monday,
@@ -31,172 +23,82 @@ export async function BangCacEm({
   weekQ: string;
   classParam?: string;
 }) {
-  const t = await getTranslations('wig');
-  const tg = await getTranslations('goal');
+  const t = await getTranslations('lopMucTieu');
   const supabase = await createClient();
-  const [{data: emRows}, {data: mtRows}, {data: lopRows}, {data: ckRows}] = await Promise.all([
-    supabase
-      .from('enrollments')
-      .select('student_id, profiles!enrollments_student_id_fkey(full_name, email)')
-      .eq('class_id', classId)
-      .eq('is_active', true),
-    supabase
-      .from('wigs')
-      .select('id, student_id, kind, title, status, target_value, unit, source_wig_id')
-      .eq('class_id', classId)
-      .eq('scope', 'student')
-      .eq('period', 'year'),
-    // Tên mục tiêu năm của LỚP — để nói rõ mục tiêu của em góp vào cái nào ("300 bài lấy từ đâu ra?").
-    supabase.from('wigs').select('id, title').eq('class_id', classId).eq('scope', 'class').eq('period', 'year'),
-    supabase
-      .from('commitments')
-      .select('id, student_id, title, status, verdict, lead_measures(id, title, target_value, unit, unit_per_tick, lead_progress(student_id, value, logged_date))')
-      .eq('class_id', classId)
-      .eq('week_start', monday)
-      .not('student_id', 'is', null)
-      .order('created_at'),
-  ]);
+  const {data} = await supabase.rpc('bang_lop_em', {p_class: classId, p_tuan: monday});
 
-  type MT = {id: string; student_id: string | null; kind: string | null; title: string; status: string; target_value: number; unit: string; source_wig_id: string | null};
-  const tenLop = new Map(((lopRows ?? []) as {id: string; title: string | null}[]).map((w) => [w.id, w.title ?? '']));
-  type CK = {
-    id: string;
-    student_id: string | null;
-    title: string;
-    status: string;
-    verdict: string | null;
-    lead_measures: {id: string; title: string; target_value: number | string; unit: string | null; unit_per_tick: number | string | null; lead_progress: {student_id: string | null; value: number | string | null; logged_date: string}[] | null}[] | null;
-  };
-  const tuanDen = weekFromMonday(monday).end; // Chủ Nhật của tuần đang xem — biên lọc tick
-  const mtTheoEm = new Map<string, MT[]>();
-  for (const m of (mtRows ?? []) as MT[]) if (m.student_id) mtTheoEm.set(m.student_id, [...(mtTheoEm.get(m.student_id) ?? []), m]);
-  const ckTheoEm = new Map<string, CK[]>();
-  for (const c of (ckRows ?? []) as unknown as CK[]) if (c.student_id) ckTheoEm.set(c.student_id, [...(ckTheoEm.get(c.student_id) ?? []), c]);
+  const em = (data ?? [])
+    .slice()
+    .sort((a, b) => (a.ho_ten ?? '').localeCompare(b.ho_ten ?? '', 'vi'));
 
-  const em = ((emRows ?? []) as unknown as {student_id: string; profiles: {full_name: string | null; email: string | null} | null}[])
-    .map((e) => ({id: e.student_id, ten: tenHienThi(e.profiles?.full_name, e.profiles?.email)}))
-    .sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
+  // Giữ ngữ cảnh tuần/lớp khi bấm sang bảng của em, để thầy cô không rơi về "tuần này" của em.
+  const emHref = (id: string) => ({
+    pathname: `/student/${id}` as const,
+    query: {...(classParam ? {class: classParam} : {}), ...(weekQ ? {week: weekQ} : {})},
+  });
 
   const th = 'px-3 py-2 text-left text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid';
+  const num = 'px-3 py-2.5 text-right text-[13px] font-extrabold tabular-nums text-navy';
 
   return (
     <section className="glass rounded-[20px] p-[18px]">
-      <h2 className="mb-3 font-display text-[15px] font-bold text-navy">{t('studentsThisWeek')}</h2>
+      <h2 className="mb-3 font-display text-[15px] font-bold text-navy">{t('khuCacEm')}</h2>
       {em.length === 0 ? (
-        <p className="text-[12.5px] font-semibold text-grey-mid">{t('studentListEmpty')}</p>
+        <p className="text-[12.5px] font-semibold text-grey-mid">{t('cacEmTrong')}</p>
       ) : (
         <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
-          <table className="w-full min-w-[720px] border-collapse">
+          <table className="w-full min-w-[640px] border-collapse">
             <thead>
               <tr className="bg-navy/[0.03]">
-                <th className={th}>{t('colStudent')}</th>
-                <th className={th}>{t('colYearGoal')}</th>
-                <th className={th}>{t('colCommitment')}</th>
-                <th className={`${th} text-right`}>{t('colWorks')}</th>
+                <th className={th}>{t('cotEm')}</th>
+                <th className={`${th} text-right`}>{t('cotMucTieu')}</th>
+                <th className={`${th} text-right`}>{t('cotViec')}</th>
+                <th className={`${th} text-right`}>{t('cotCamKet')}</th>
+                <th className={`${th} text-center`}>{t('cotHop')}</th>
               </tr>
             </thead>
             <tbody>
-              {em.map((e) => {
-                const mts = mtTheoEm.get(e.id) ?? [];
-                const cks = ckTheoEm.get(e.id) ?? [];
-                const viec = cks.flatMap((c) => c.lead_measures ?? []);
-                const viecDat = viec.filter((l) => {
-                  // Cùng luật với màn của em + phòng họp (audit 18/08): lọc tick trong tuần; đơn vị
-                  // 'do' lấy số mới nhất, còn lại cộng value × unit_per_tick.
-                  const tick = (l.lead_progress ?? []).filter(
-                    (p) => p.student_id === e.id && p.logged_date >= monday && p.logged_date <= tuanDen,
-                  );
-                  const upt = Number(l.unit_per_tick) || 1;
-                  let dat: number;
-                  if (kieuDonVi(l.unit ?? '') === 'do') {
-                    const moi = tick.slice().sort((a, b) => b.logged_date.localeCompare(a.logged_date))[0];
-                    dat = moi ? Number(moi.value) || 0 : 0;
-                  } else {
-                    dat = tick.reduce((s, p) => s + (Number(p.value) || 0), 0) * upt;
-                  }
-                  return Number(l.target_value) > 0 && dat >= Number(l.target_value);
-                }).length;
-                return (
-                  <tr key={e.id} className="border-t border-navy/[0.07] align-top">
-                    <td className="px-3 py-2.5">
-                      <Link href={`/student/${e.id}`} className="inline-flex min-h-[24px] items-center text-[13px] font-bold text-navy hover:underline">
-                        {e.ten}
-                      </Link>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {mts.length === 0 ? (
-                        <span className="text-[12px] italic text-grey-mid">—</span>
-                      ) : (
-                        <ul className="flex flex-col gap-1">
-                          {mts.map((m) => (
-                            <li key={m.id} className="flex flex-wrap items-center gap-1.5 text-[12.5px] font-semibold text-navy">
-                              <span className="min-w-0">{m.title}</span>
-                              <span className="text-grey-mid">· {m.target_value} {m.unit}</span>
-                              {/* ĐÃ GẬT THÌ PHẢI CÒN DẤU (24/08/2026). Sau khi cô bấm Duyệt, hàng này
-                                  được dựng lại từ máy chủ — bản cũ không vẽ gì cho 'approved', nên cái
-                                  nút chỉ biến mất và cô không biết vừa xảy ra chuyện gì. Dấu tích đứng
-                                  NGAY SAU con số, trước dòng "góp vào" (dòng ấy chiếm cả bề ngang, để
-                                  dấu tích sau nó thì nó rơi xuống hàng dưới trông như một vết bẩn). */}
-                              {m.status === 'approved' && (
-                                <CheckCircle2
-                                  size={11}
-                                  strokeWidth={2.5}
-                                  aria-label={tg('approved')}
-                                  className="shrink-0 text-success-dark"
-                                />
-                              )}
-                              {m.source_wig_id && tenLop.get(m.source_wig_id) && (
-                                <span className="basis-full text-[11px] font-semibold text-grey-mid">
-                                  {t('contributesTo', {title: tenLop.get(m.source_wig_id) ?? ''})}
-                                </span>
-                              )}
-                              {m.status === 'sent' && (
-                                <NutDuyet
-                                  hanhDong={duyetMucTieuTraVe}
-                                  o={{wig_id: m.id, student_id: e.id}}
-                                  label={`${tg('approveShort')}: ${m.title} — ${e.ten}`}
-                                />
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {cks.length === 0 ? (
-                        <span className="text-[12px] italic text-grey-mid">—</span>
-                      ) : (
-                        <ul className="flex flex-col gap-1">
-                          {cks.map((c) => (
-                            <li key={c.id} className="flex flex-wrap items-center gap-1.5 text-[12.5px] font-semibold text-navy">
-                              <span className="min-w-0">{c.title}</span>
-                              {c.status === 'sent' ? (
-                                <NutDuyet
-                                  hanhDong={duyetCamKetTraVe}
-                                  o={{commitment_id: c.id, week: weekQ, class_id: classParam}}
-                                  label={`${tg('approveShort')}: ${c.title} — ${e.ten}`}
-                                />
-                              ) : c.status === 'approved' && !c.verdict ? (
-                                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
-                                  <CheckCircle2 size={11} strokeWidth={2.5} />
-                                  {tg('approvedShort')}
-                                </span>
-                              ) : c.verdict ? (
-                                <span className={`rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${c.verdict === 'win' ? 'bg-success/15 text-success-dark' : 'bg-status-bad/[0.12] text-status-bad'}`}>
-                                  {c.verdict === 'win' ? 'V' : 'X'}
-                                </span>
-                              ) : null}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 text-right text-[13px] font-extrabold tabular-nums text-navy">
-                      {viec.length > 0 ? `${viecDat}/${viec.length}` : <span className="font-semibold text-grey-mid">—</span>}
-                    </td>
-                  </tr>
-                );
-              })}
+              {em.map((e) => (
+                <tr key={e.student_id} className="border-t border-navy/[0.07] align-middle">
+                  <td className="px-3 py-2.5">
+                    <Link
+                      href={emHref(e.student_id)}
+                      className="inline-flex min-h-[24px] items-center text-[13px] font-bold text-navy hover:underline"
+                    >
+                      {e.ho_ten}
+                    </Link>
+                  </td>
+                  <td className={num}>
+                    {e.mt_tong > 0 ? e.mt_tong : <span className="font-semibold text-grey-mid">—</span>}
+                  </td>
+                  <td className={num}>
+                    {e.thuoc_tong > 0 ? (
+                      `${e.thuoc_dat}/${e.thuoc_tong}`
+                    ) : (
+                      <span className="font-semibold text-grey-mid">—</span>
+                    )}
+                  </td>
+                  <td className={num}>
+                    {e.ck_tong > 0 ? (
+                      `${e.ck_thang}/${e.ck_tong}`
+                    ) : (
+                      <span className="font-semibold text-grey-mid">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5 text-center">
+                    {e.pdr_da_ky ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-success/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
+                        <Check size={11} strokeWidth={3} />
+                        {t('hopDaKy')}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-extrabold text-grey-mid">
+                        {t('hopChua')}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
