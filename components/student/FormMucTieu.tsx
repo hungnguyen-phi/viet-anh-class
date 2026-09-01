@@ -527,8 +527,18 @@ export function FormMucTieu3Buoc({
           </div>
         </div>
 
-        {/* CÁCH KHÁC — đếm/đo + kiểu mục tiêu (giữ/giảm/không-số). */}
-        {moKhac ? (
+        {/* CÁCH KHÁC — luôn có nút BẬT/TẮT (chủ dự án 02/09: mở rồi phải đóng lại được). */}
+        <button
+          type="button"
+          data-kiem="mt-mo-khac"
+          onClick={() => setMoKhac((v) => !v)}
+          aria-expanded={moKhac}
+          className="inline-flex min-h-[24px] items-center gap-1 py-1 text-[12px] font-bold text-grey-mid underline hover:text-navy"
+        >
+          {t('cachKhac')}
+          <span aria-hidden>{moKhac ? '▴' : '▾'}</span>
+        </button>
+        {moKhac && (
           <div className="flex flex-col gap-2 rounded-[12px] bg-navy/[0.03] p-2.5">
             {cheDo !== 'bot' && (
               <>
@@ -559,15 +569,6 @@ export function FormMucTieu3Buoc({
               </p>
             )}
           </div>
-        ) : (
-          <button
-            type="button"
-            data-kiem="mt-mo-khac"
-            onClick={() => setMoKhac(true)}
-            className="inline-flex min-h-[24px] items-center py-1 text-[12px] font-bold text-grey-mid underline hover:text-navy"
-          >
-            {t('cachKhac')}
-          </button>
         )}
 
         {/* ③ ĐỌC LẠI CÂU MỤC TIÊU — ráp từ chính chữ em gõ. */}
