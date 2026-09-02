@@ -1477,9 +1477,9 @@
     "khuMucTieuLop": "Class goals",
     "mucTieuLopNhac": "What the whole class is driving. Tick your work below and this number goes up.",
     "loViec": "Your work driving this goal",
-    "loCamKet": "Your weekly commitment for this goal",
+    "loCamKet": "Your weekly commitment",
     "loCamKetTrong": "No commitment for this goal this week.",
-    "loViecBoTro": "Supporting work (tick to fulfil the commitment)"
+    "loViecBoTro": "Supporting work (tick to fulfil)"
   },
   "mucTieu": {
     "tt_dat": "Achieved",
@@ -1866,7 +1866,13 @@
     "noiDungEm": "What will you commit to this week?",
     "chonMucTieu": "Which class goal?",
     "huongNhac": "Your commitment points at a class goal so you help push it up.",
-    "viecBoTroHoi": "Work to fulfil it (e.g. read daily) — optional"
+    "viecBoTroHoi": "Work to fulfil it (e.g. read daily) — optional",
+    "suaCamKet": "Edit commitment",
+    "xoaCamKet": "Delete commitment",
+    "xoaHoi": "Delete this commitment?",
+    "viecBoTroLabel": "Supporting work (teacher ticks)",
+    "viecBoTroHint": "Tick daily to fulfil the commitment — optional.",
+    "soHuaLabel": "Target amount?"
   },
   "duyet": {
     "duyet": "Approve",
@@ -1964,8 +1970,8 @@
     "camKetTuanNgan": "Weekly commitment",
     "khoaMoKhi": "unlocks after a goal",
     "viecDayTrong": "No work drives this goal yet — add one for the class to do.",
-    "camKetHuong": "This week’s commitment for this goal",
-    "camKetTrongMt": "No commitment for this goal this week.",
+    "camKetHuong": "This week’s commitment",
+    "camKetTrongMt": "No commitment this week.",
     "viecChuaGan": "Work not linked to a goal",
     "camKetChuaHuong": "Commitments not aimed at a goal",
     "viecBoTroCo": "Teacher supporting work"
