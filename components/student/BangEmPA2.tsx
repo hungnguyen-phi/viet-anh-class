@@ -74,7 +74,7 @@ export type CamKetEm = {
 const so = (n: number | null | undefined) =>
   n == null ? '0' : Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
 
-function themNgay(s: string, delta: number): string {
+export function themNgay(s: string, delta: number): string {
   const d = new Date(s + 'T12:00:00Z');
   d.setUTCDate(d.getUTCDate() + delta);
   return d.toISOString().slice(0, 10);
@@ -202,7 +202,7 @@ export function BangEmPA2({
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // ④ HÀNG VIỆC — 12 ô tuần + 7 ô ngày
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-function HangViec({
+export function HangViec({
   v,
   weekDays,
   today,
@@ -425,7 +425,7 @@ function HangViec({
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // ⑤ THẺ CAM KẾT — em tự chấm Thắng/Thua qua <form action={chamCamKet}>
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-function TheCamKet({
+export function TheCamKet({
   c,
   studentId,
   laChinhEm,

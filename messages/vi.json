@@ -1475,7 +1475,10 @@
     "caLop": "Cả lớp: {n}/{si} bạn đã đạt",
     "xemDaDong": "Mục tiêu đã đóng ({n})",
     "khuMucTieuLop": "Mục tiêu của lớp",
-    "mucTieuLopNhac": "Đích cả lớp cùng đẩy. Em tick việc của mình ở dưới là con số này nhích lên."
+    "mucTieuLopNhac": "Đích cả lớp cùng đẩy. Em tick việc của mình ở dưới là con số này nhích lên.",
+    "loViec": "Việc em làm đẩy mục tiêu này",
+    "loCamKet": "Cam kết tuần của em cho mục tiêu này",
+    "loCamKetTrong": "Tuần này chưa có cam kết cho mục tiêu này."
   },
   "mucTieu": {
     "tt_dat": "Đã đạt",

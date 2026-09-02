@@ -24,6 +24,7 @@ import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox'
 import {tenHienThi} from '@/lib/ten-hien-thi';
 import {MucTieuCuaCon} from '@/components/student/MucTieuCuaCon';
 import {MucTieuLopChoEm, type MucTieuLopThe} from '@/components/student/MucTieuLopChoEm';
+import {LoTrinhEm} from '@/components/student/LoTrinhEm';
 import type {DonViChon, MucTieuLopChon, MauMucTieu, BuocThe} from '@/components/student/FormMucTieu';
 import {BangEmPA2, type ViecEm, type ViecTuan, type CamKetEm} from '@/components/student/BangEmPA2';
 import type {Database} from '@/lib/database.types';
@@ -215,6 +216,7 @@ export async function StudentScoreboard({
 
   const [
     luotRes,
+    noiRes,
     tuanHocRes,
     mucTieuLopRes,
     mauRes,
@@ -234,6 +236,10 @@ export async function StudentScoreboard({
           .eq('student_id', studentId)
           .gte('ngay', weekDays[0])
           .lte('ngay', weekDays[6])
+      : Promise.resolve({data: null}),
+    // Dây "góp số": việc nào đẩy mục tiêu nào — để bày việc DƯỚI mục tiêu nó phục vụ (hội tụ).
+    thuocIds.length > 0
+      ? supabase.from('noi').select('cha_id, con_thuoc_id').eq('vai', 'gop_so').in('con_thuoc_id', thuocIds)
       : Promise.resolve({data: null}),
     campusId
       ? supabase.from('tuan_hoc').select('loai').eq('campus_id', campusId).eq('week_start', monday).maybeSingle()
@@ -350,6 +356,7 @@ export async function StudentScoreboard({
     pct: m.pct,
     so: m.so,
     y_so: m.y_so,
+    don_vi_id: m.don_vi_id,
     ten_don_vi: m.ten_don_vi,
     ket_thuc: m.ket_thuc,
   }));
@@ -446,6 +453,23 @@ export async function StudentScoreboard({
       tenMucTieu: c.muc_tieu_id ? tenMucTieuTheoId.get(c.muc_tieu_id) ?? null : null,
       tenViec: c.thuoc_id ? tenViecTheoThuoc.get(c.thuoc_id) ?? null : null,
     }));
+
+  // HỘI TỤ: gom việc + cam kết theo MỤC TIÊU chúng phục vụ, để bày DƯỚI mục tiêu (không còn hai khu rời).
+  const goalCuaThuoc = new Map<string, string>();
+  for (const n of (noiRes.data ?? []) as {cha_id: string; con_thuoc_id: string}[]) goalCuaThuoc.set(n.con_thuoc_id, n.cha_id);
+  const viecCuaMt: Record<string, ViecEm[]> = {};
+  const viecMoCoi: ViecEm[] = [];
+  for (const v of viec) {
+    const g = goalCuaThuoc.get(v.thuoc_id);
+    if (g) (viecCuaMt[g] ??= []).push(v);
+    else viecMoCoi.push(v);
+  }
+  const camKetCuaMt: Record<string, CamKetEm[]> = {};
+  const camKetMoCoi: CamKetEm[] = [];
+  for (const c of camKet) {
+    if (c.muc_tieu_id) (camKetCuaMt[c.muc_tieu_id] ??= []).push(c);
+    else camKetMoCoi.push(c);
+  }
 
   // ── Băng rôn (② — bày ở máy chủ, không cần client) ──────────────────────────────────────────
   const bangRonRaw = Array.isArray(bangRonRes.data) ? bangRonRes.data[0] : bangRonRes.data;
@@ -576,16 +600,37 @@ export async function StudentScoreboard({
       {/* ② BĂNG RÔN */}
       {bangRon}
 
-      {/* ③a MỤC TIÊU CỦA LỚP — em nhìn thấy % chung (đích cả lớp cùng đẩy). Chỉ đọc. */}
+      {/* ③ MỤC TIÊU CỦA LỚP — LỘ TRÌNH: mỗi mục tiêu lớp + việc em tick đẩy nó + cam kết của em cho nó. */}
       {classId && mucTieuLopThe.length > 0 ? (
         <section>
           <h2 className="mb-1 font-display text-[17px] font-bold text-navy">{tBang('khuMucTieuLop')}</h2>
           <p className="mb-3 text-[12.5px] font-semibold text-grey-mid">{tBang('mucTieuLopNhac')}</p>
-          <MucTieuLopChoEm mucTieu={mucTieuLopThe} mauTheoArea={mauTheoArea} nhanTheoArea={nhanTheoArea} />
+          <div className="flex flex-col gap-4">
+            {mucTieuLopThe.map((g) => (
+              <div key={g.id}>
+                <MucTieuLopChoEm mucTieu={[g]} mauTheoArea={mauTheoArea} nhanTheoArea={nhanTheoArea} />
+                <LoTrinhEm
+                  goal={{id: g.id, ten: g.ten, don_vi_id: g.don_vi_id, ten_don_vi: g.ten_don_vi}}
+                  viec={viecCuaMt[g.id] ?? []}
+                  camKet={camKetCuaMt[g.id] ?? []}
+                  studentId={studentId}
+                  classId={classId}
+                  laChinhEm={canTick}
+                  monday={monday}
+                  thisMonday={thisMonday}
+                  today={today}
+                  daChotHopTuan={daChotHopTuan}
+                  tuanNghi={tuanNghi}
+                  weekDays={weekDays}
+                  dayShort={dayShort}
+                />
+              </div>
+            ))}
+          </div>
         </section>
       ) : null}
 
-      {/* ③ MỤC TIÊU CỦA EM */}
+      {/* ④ MỤC TIÊU CỦA EM — quản lý mục tiêu riêng; mục tiêu nào có việc/cam kết thì lộ trình nằm ngay dưới. */}
       {classId ? (
         <section>
           <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{tBang('khuMucTieu')}</h2>
@@ -603,25 +648,49 @@ export async function StudentScoreboard({
             buocTheoMt={buocTheoMt}
             mauList={mauList}
           />
+          {mtRows
+            .filter((m) => !!m.id && ((viecCuaMt[m.id] ?? []).length > 0 || (camKetCuaMt[m.id] ?? []).length > 0))
+            .map((m) => (
+              <div key={m.id ?? ''} className="mt-3">
+                <p className="mb-1 text-[13px] font-extrabold text-navy">{m.ten}</p>
+                <LoTrinhEm
+                  goal={{id: m.id ?? '', ten: m.ten ?? '', don_vi_id: m.don_vi_id ?? null, ten_don_vi: m.ten_don_vi ?? null}}
+                  viec={viecCuaMt[m.id ?? ''] ?? []}
+                  camKet={camKetCuaMt[m.id ?? ''] ?? []}
+                  studentId={studentId}
+                  classId={classId}
+                  laChinhEm={canTick}
+                  monday={monday}
+                  thisMonday={thisMonday}
+                  today={today}
+                  daChotHopTuan={daChotHopTuan}
+                  tuanNghi={tuanNghi}
+                  weekDays={weekDays}
+                  dayShort={dayShort}
+                />
+              </div>
+            ))}
         </section>
       ) : null}
 
-      {/* ④ VIỆC + ⑤ CAM KẾT */}
-      <BangEmPA2
-        laChinhEm={canTick}
-        studentId={studentId}
-        classId={classId ?? ''}
-        viec={viec}
-        camKet={camKet}
-        weekDays={weekDays}
-        today={today}
-        monday={monday}
-        thisMonday={thisMonday}
-        tuanNghi={tuanNghi}
-        daChotHopTuan={daChotHopTuan}
-        dayShort={dayShort}
-        mucTieuLop={mucTieuLopCk}
-      />
+      {/* ⑤ VIỆC & CAM KẾT CHƯA GẮN MỤC TIÊU — hiếm; gom một chỗ để không lạc. */}
+      {(viecMoCoi.length > 0 || camKetMoCoi.length > 0) && (
+        <BangEmPA2
+          laChinhEm={canTick}
+          studentId={studentId}
+          classId={classId ?? ''}
+          viec={viecMoCoi}
+          camKet={camKetMoCoi}
+          weekDays={weekDays}
+          today={today}
+          monday={monday}
+          thisMonday={thisMonday}
+          tuanNghi={tuanNghi}
+          daChotHopTuan={daChotHopTuan}
+          dayShort={dayShort}
+          mucTieuLop={mucTieuLopCk}
+        />
+      )}
 
       {/* ⑥ HỌP CỦA EM */}
       <section className="flex flex-col gap-3">

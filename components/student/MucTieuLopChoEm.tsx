@@ -15,6 +15,7 @@ export type MucTieuLopThe = {
   pct: number | null;
   so: number | null;
   y_so: number | null;
+  don_vi_id: string | null;
   ten_don_vi: string | null;
   ket_thuc: string | null;
 };

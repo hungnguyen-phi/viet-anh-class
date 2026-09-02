@@ -1475,7 +1475,10 @@
     "caLop": "Class: {n}/{si} students reached it",
     "xemDaDong": "Closed {n, plural, one {WIG} other {WIGs}} ({n})",
     "khuMucTieuLop": "Class goals",
-    "mucTieuLopNhac": "What the whole class is driving. Tick your work below and this number goes up."
+    "mucTieuLopNhac": "What the whole class is driving. Tick your work below and this number goes up.",
+    "loViec": "Your work driving this goal",
+    "loCamKet": "Your weekly commitment for this goal",
+    "loCamKetTrong": "No commitment for this goal this week."
   },
   "mucTieu": {
     "tt_dat": "Achieved",
