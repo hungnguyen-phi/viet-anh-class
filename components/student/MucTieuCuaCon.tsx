@@ -2,7 +2,7 @@
 
 import {useActionState, useEffect, useState} from 'react';
 import {useTranslations} from 'next-intl';
-import {Check, CheckCircle2, CornerDownRight, Pencil, Plus, Target, Focus} from 'lucide-react';
+import {Check, CheckCircle2, CornerDownRight, Pencil, Plus, Target, Focus, Circle, ListChecks} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, ctlWithBorder, btnGhost, btnGold} from '@/components/ui/Field';
 import {Popup} from '@/components/ui/Popup';
@@ -15,7 +15,7 @@ import {
   type MonChon,
   type MucTieuLopChon,
   type MauMucTieu,
-  type BuocChon,
+  type BuocThe,
 } from '@/components/student/FormMucTieu';
 import {
   datTapTrung,
@@ -23,6 +23,8 @@ import {
   duyetMucTieu,
   traLaiMucTieu,
   ghiSoDo,
+  datBuocXong,
+  datHanhDong,
   noiNguon,
   goNguon,
   type MucTieuState,
@@ -81,7 +83,7 @@ export function MucTieuCuaCon({
   /** Mẫu mục tiêu của lớp. */
   mauList?: MauMucTieu[];
   /** Các bước của mỗi mục tiêu KẾ HOẠCH — để form sửa hiện lại bước cũ. */
-  buocTheoMt?: Record<string, BuocChon[]>;
+  buocTheoMt?: Record<string, BuocThe[]>;
   /** Dây nối theo id mục tiêu con. */
   noiTheoMt?: Record<string, NoiHienThi[]>;
 }) {
@@ -119,6 +121,7 @@ export function MucTieuCuaCon({
                 canManage={canManage}
                 mucTieuLop={mucTieuLop}
                 noi={noiTheoMt[mt.id ?? ''] ?? []}
+                buoc={buocTheoMt[mt.id ?? ''] ?? []}
                 onSua={() => setMoForm({area: a, suaId: mt.id ?? undefined})}
                 onDone={setBao}
               />
@@ -202,6 +205,7 @@ function TheMucTieu({
   canManage,
   mucTieuLop,
   noi,
+  buoc,
   onSua,
   onDone,
 }: {
@@ -213,13 +217,17 @@ function TheMucTieu({
   canManage: boolean;
   mucTieuLop: MucTieuLopChon[];
   noi: NoiHienThi[];
+  buoc: BuocThe[];
   onSua: () => void;
   onDone: (msg: string) => void;
 }) {
   const t = useTranslations('mucTieu');
   const canGhi = laChinhEm;
   const coQuang = mt.pct != null; // kiểu có quãng mới vẽ vòng %
-  const ghiTay = mt.nguon_so === 'ghi_tay' || mt.nguon_so === 'thanh_phan';
+  const laKeHoach = mt.loai_moc === 'ke_hoach';
+  const laHanhDong = mt.loai_moc === 'hanh_dong';
+  // Ghi số tay CHỈ cho đo lường; kế hoạch tick bước, hành động bấm "đã đạt".
+  const ghiTay = mt.loai_moc === 'do_luong' && (mt.nguon_so === 'ghi_tay' || mt.nguon_so === 'thanh_phan');
 
   return (
     <div
@@ -305,6 +313,81 @@ function TheMucTieu({
 
       {/* GHI SỐ — chỉ mục tiêu ĐO (ghi tay). */}
       {ghiTay && canGhi && mt.trang_thai !== 'dong' && <GhiSo mtId={mt.id ?? ''} dv={mt.ten_don_vi ?? ''} onDone={onDone} />}
+
+      {/* KẾ HOẠCH — checklist các bước: tick 1 bước → % tự nhảy (buoc.xong_at → trigger). */}
+      {laKeHoach && buoc.length > 0 && mt.trang_thai !== 'dong' && (
+        <div className="flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
+          <p className="flex items-center gap-1.5 text-[11.5px] font-extrabold uppercase tracking-wide text-grey-mid">
+            <ListChecks size={13} strokeWidth={2.5} />
+            {t('cacBuoc')}
+          </p>
+          {buoc.map((b) => {
+            const noiDungBuoc = (
+              <>
+                <span className="grid h-[22px] w-[22px] shrink-0 place-items-center">
+                  {b.xong ? (
+                    <span style={{background: mau.hex}} className="grid h-[22px] w-[22px] place-items-center rounded-full text-white">
+                      <Check size={13} strokeWidth={3.5} />
+                    </span>
+                  ) : (
+                    <Circle size={20} strokeWidth={2} className="text-navy/25" />
+                  )}
+                </span>
+                <span className={`min-w-0 flex-1 text-[13px] font-semibold leading-snug ${b.xong ? 'text-grey-mid line-through' : 'text-navy'}`}>
+                  {b.tieu_de}
+                </span>
+                <span className="shrink-0 text-[11px] font-extrabold tabular-nums text-grey-mid">{Math.round(b.phan_tram)}%</span>
+              </>
+            );
+            return canGhi ? (
+              <form key={b.id} action={datBuocXong}>
+                <input type="hidden" name="buoc_id" value={b.id} />
+                <input type="hidden" name="xong" value={b.xong ? '' : '1'} />
+                <button
+                  type="submit"
+                  data-kiem="buoc-tick"
+                  aria-pressed={b.xong}
+                  className="flex min-h-[44px] w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-1.5 text-left transition-colors hover:bg-navy/[0.04]"
+                >
+                  {noiDungBuoc}
+                </button>
+              </form>
+            ) : (
+              <div key={b.id} className="flex min-h-[36px] items-center gap-2.5 px-1.5">
+                {noiDungBuoc}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* HÀNH ĐỘNG — một nút "đã đạt" (0↔100%), không gõ số. */}
+      {laHanhDong && canGhi && mt.trang_thai !== 'dong' && (
+        <form action={datHanhDong}>
+          <input type="hidden" name="muc_tieu_id" value={mt.id ?? ''} />
+          <input type="hidden" name="dat" value={mt.dat ? '' : '1'} />
+          <SubmitButton
+            className={
+              mt.dat
+                ? 'inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[12px] border-[1.5px] border-success/40 bg-success/[0.12] px-3.5 text-[13px] font-extrabold text-success-dark transition-colors hover:bg-success/20'
+                : `${btnGold} min-h-[44px]`
+            }
+            wrapClass="contents"
+          >
+            {mt.dat ? (
+              <>
+                <CheckCircle2 size={15} strokeWidth={2.5} />
+                {t('daXong')}
+              </>
+            ) : (
+              <>
+                <Check size={15} strokeWidth={3} />
+                {t('danhDauDat')}
+              </>
+            )}
+          </SubmitButton>
+        </form>
+      )}
 
       {/* Hàng nút. */}
       <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-navy/[0.06] pt-2.5">
