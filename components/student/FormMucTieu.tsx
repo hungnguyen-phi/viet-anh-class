@@ -186,8 +186,15 @@ export function FormMucTieu3Buoc({
       {key: 'clCoHan', dat: Boolean(ketThuc)},
       {key: 'clCoMoTa', dat: moTa.trim().length >= 20},
     ];
-    // Mục tiêu của LỚP không "hỗ trợ mục tiêu lớp" nào (ô đó đã ẩn) → bỏ tiêu chí, khỏi bị trừ điểm oan.
-    return cap === 'lop' ? list.filter((c) => c.key !== 'clLienKet') : list;
+    // Chỉ giữ tiêu chí PHỤ THUỘC vào ô em nhập, để form rỗng = 0% (không tặng điểm oan):
+    //  · Mục tiêu LỚP: bỏ "hỗ trợ mục tiêu lớp" (ô đó đã ẩn).
+    //  · Kiểu Hành động/Kế hoạch (không đo lường): "đo được" + "vừa sức" luôn đúng sẵn → bỏ, khỏi
+    //    cho 40% khi chưa gõ gì.
+    return list.filter((c) => {
+      if (cap === 'lop' && c.key === 'clLienKet') return false;
+      if (!laDo && (c.key === 'clDoDuoc' || c.key === 'clVuaSuc')) return false;
+      return true;
+    });
   }, [ten, y, x, donViId, hoTroCho, ketThuc, moTa, laDo, suy.chieu, dangSua]);
   const soDat = tieuChi.filter((c) => c.dat).length;
   const phanTram = Math.round((soDat / tieuChi.length) * 100);
@@ -648,16 +655,9 @@ export function FormMucTieu3Buoc({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Lưu nháp giữ ở nháp; nút chính gửi thầy cô duyệt. */}
-          <button
-            type="submit"
-            name="action"
-            value="nhap"
-            className="inline-flex min-h-[24px] items-center py-1 text-[12px] font-extrabold text-navy underline"
-          >
-            {t('luuNhap')}
-          </button>
+        {/* Ba nút CÙNG cỡ, mỗi nút một khung một màu: Lưu (vàng, chính) · Lưu nháp (viền navy) ·
+            Thôi (viền xám). Không để riêng "Lưu" có khung còn hai nút kia trơ chữ. */}
+        <div className="flex flex-wrap items-center gap-2.5">
           <SubmitButton
             className="btn-gold rounded-[12px] px-4 py-2.5 text-[13px] font-extrabold"
             name="action"
@@ -666,10 +666,19 @@ export function FormMucTieu3Buoc({
           >
             <span data-kiem="mt-gui">{laChinhEm ? t('gui') : t('luu')}</span>
           </SubmitButton>
+          {/* Lưu nháp giữ ở nháp; nút chính (vàng) gửi thầy cô duyệt. */}
+          <button
+            type="submit"
+            name="action"
+            value="nhap"
+            className="cursor-pointer rounded-[12px] border-2 border-navy bg-white px-4 py-2.5 text-[13px] font-extrabold text-navy transition-colors hover:bg-navy/[0.06]"
+          >
+            {t('luuNhap')}
+          </button>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex min-h-[24px] cursor-pointer items-center py-1 text-[12px] font-extrabold text-grey-mid underline"
+            className="cursor-pointer rounded-[12px] border-2 border-grey-mid/40 bg-white px-4 py-2.5 text-[13px] font-extrabold text-grey-mid transition-colors hover:bg-navy/[0.04]"
           >
             {t('thoi')}
           </button>
