@@ -94,18 +94,18 @@ function dinhSo(n: number): string {
 // đường dự đoán/pace nên không thể vẽ sai. Đích cắm ở đỉnh; cột cao theo tỉ lệ so/đích.
 function BieuDoThat({lichSu, dich, mau}: {lichSu: {tuan_ket: string; so: number}[]; dich: number; mau: string}) {
   if (lichSu.length < 2 || dich <= 0) return null;
-  const W = 320;
-  const H = 72;
+  const W = 240;
+  const H = 48;
   const n = lichSu.length;
   const bw = W / n;
   const maxSo = Math.max(...lichSu.map((p) => p.so));
   // Trục theo SỐ THẬT cao nhất (có headroom) để thấy rõ xu hướng đi lên. Đích chỉ là vạch tham chiếu:
-  // vẽ nếu còn lọt trong khung, không thì ghi nhãn "đích · còn xa" (không bóp méo, chỉ đổi tầm nhìn).
+  // vẽ nếu còn lọt trong khung; không thì bỏ qua (đích đã có ở dòng số phía trên).
   const dinh = Math.max(maxSo * 1.18, 1);
   const dichTrongKhung = dich <= dinh;
   const yDich = 6 + (H - 6) * (1 - dich / dinh);
   return (
-    <svg viewBox={`0 0 ${W} ${H + 14}`} className="w-full" style={{height: 74}} preserveAspectRatio="none" role="img" aria-label="Biểu đồ số thật theo tuần">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{height: 48}} preserveAspectRatio="none" role="img" aria-label="Biểu đồ số thật theo tuần">
       {dichTrongKhung && (
         <line x1="0" y1={yDich} x2={W} y2={yDich} stroke="currentColor" strokeWidth="1.2" strokeDasharray="4 4" className="text-grey-mid" opacity="0.55" />
       )}
@@ -113,9 +113,6 @@ function BieuDoThat({lichSu, dich, mau}: {lichSu: {tuan_ket: string; so: number}
         const h = Math.max(2, (H - 8) * (p.so / dinh));
         return <rect key={i} x={i * bw + bw * 0.16} y={H - h} width={bw * 0.68} height={h} rx="2" fill={mau} opacity={i === n - 1 ? 1 : 0.42} />;
       })}
-      <text x={W - 1} y={11} fontSize="9" textAnchor="end" fill="currentColor" className="text-grey-mid" fontWeight="700">
-        {dichTrongKhung ? `đích ${dinhSo(dich)}` : `đích ${dinhSo(dich)} · còn xa`}
-      </text>
     </svg>
   );
 }
