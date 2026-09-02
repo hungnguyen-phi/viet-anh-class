@@ -19,6 +19,7 @@ import {useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
 import {ListChecks, Flag, Check, Plus, Minus, X} from 'lucide-react';
 import {isoDowVN} from '@/lib/dates';
+import {ThemCamKetEm} from '@/components/student/ThemCamKetEm';
 import {ghiLuot, chamCamKet, type LuotResult} from '@/app/[locale]/(dashboard)/student/actions';
 
 export type ViecTuan = {
@@ -83,6 +84,7 @@ const ddmm = (s: string | null) => (s ? `${s.slice(8, 10)}/${s.slice(5, 7)}` : '
 export function BangEmPA2({
   laChinhEm,
   studentId,
+  classId,
   viec,
   camKet,
   weekDays,
@@ -92,9 +94,11 @@ export function BangEmPA2({
   tuanNghi,
   daChotHopTuan,
   dayShort,
+  mucTieuLop = [],
 }: {
   laChinhEm: boolean;
   studentId: string;
+  classId: string;
   viec: ViecEm[];
   camKet: CamKetEm[];
   weekDays: string[];
@@ -104,6 +108,7 @@ export function BangEmPA2({
   tuanNghi: boolean;
   daChotHopTuan: boolean;
   dayShort: string[];
+  mucTieuLop?: {id: string; ten: string; don_vi_id: string | null; ten_don_vi: string | null}[];
 }) {
   const tb = useTranslations('bangEm');
   const tv = useTranslations('viec');
@@ -185,6 +190,10 @@ export function BangEmPA2({
             ))}
           </div>
         )}
+        {/* Em tự đặt cam kết tuần của mình, hướng vào mục tiêu lớp để cùng đẩy nó lên. */}
+        {laChinhEm && classId ? (
+          <ThemCamKetEm studentId={studentId} classId={classId} monday={monday} mucTieuLop={mucTieuLop} />
+        ) : null}
       </section>
     </div>
   );
