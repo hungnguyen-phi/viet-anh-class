@@ -263,6 +263,28 @@ export async function luuViec(_prev: CreateWigState, formData: FormData): Promis
   if (error) return {ok: false, error: friendlyError(error)};
   if (!data || data.length === 0) return {ok: false, error: KHONG_QUYEN};
 
+  // ĐẨY MỤC TIÊU NÀO: nối việc mới GÓP SỐ vào một mục tiêu lớp → mục tiêu tự cộng từ lượt tick.
+  // Trigger noi_hop_le đòi mục tiêu ĐANG là nguon_so='thuoc' TRƯỚC khi nhận dây góp số — nên phải
+  // bật 'thuoc' trước, rồi mới nối; nối hỏng thì hoàn nguyên. Dây hỏng không làm mất việc đã lưu.
+  const day_muc_tieu = str(formData, 'day_muc_tieu');
+  if (day_muc_tieu && data[0]?.id) {
+    const {data: mtCu} = await supabase.from('muc_tieu').select('nguon_so').eq('id', day_muc_tieu).maybeSingle();
+    if (mtCu?.nguon_so === 'ghi_tay') {
+      await supabase.from('muc_tieu').update({nguon_so: 'thuoc'}).eq('id', day_muc_tieu).eq('nguon_so', 'ghi_tay');
+    }
+    const {error: eNoi} = await supabase.from('noi').insert({
+      cha_id: day_muc_tieu,
+      con_thuoc_id: data[0].id,
+      vai: 'gop_so',
+      he_so: 1,
+      noi_tu_dong: false,
+    });
+    // Nối hỏng và mục tiêu vừa bị bật 'thuoc' (chưa có dây nào khác) → trả về ghi tay.
+    if (eNoi && mtCu?.nguon_so === 'ghi_tay') {
+      await supabase.from('muc_tieu').update({nguon_so: 'ghi_tay'}).eq('id', day_muc_tieu).eq('nguon_so', 'thuoc');
+    }
+  }
+
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]', 'page');

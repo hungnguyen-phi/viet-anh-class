@@ -1,5 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
-import {ArrowLeft, ArrowRight, Check, X} from 'lucide-react';
+import {ArrowLeft, ArrowRight, Check, X, CalendarDays, Trash2} from 'lucide-react';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
@@ -12,6 +12,16 @@ import {AREAS, areaLabel, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
 import {Flash} from '@/components/ui/Flash';
 import {BangCacEm} from '@/components/wig/BangCacEm';
+import {NutTaoMucTieuLop} from '@/components/wig/NutTaoMucTieuLop';
+import {NutTaoViecLop} from '@/components/wig/NutTaoViecLop';
+import {ThaoTacMucTieuLop} from '@/components/wig/ThaoTacMucTieuLop';
+import {SuaLoiCamKetLop} from '@/components/wig/SuaLoiCamKetLop';
+import {SuaChiTieuLop} from '@/components/wig/SuaChiTieuLop';
+import {SubmitButton} from '@/components/ui/SubmitButton';
+import type {DangSuaMt} from '@/components/student/FormMucTieu';
+import {DonutRing} from '@/components/charts/DonutRing';
+import {datBuocXong, datHanhDong} from '@/app/[locale]/(dashboard)/student/actions';
+import {xoaViecLop} from '@/app/[locale]/(dashboard)/wig/actions';
 import {
   ghiSoMucTieuLop,
   chamCamKetLop,
@@ -49,6 +59,11 @@ type MucTieuV = {
   id: string;
   ten: string | null;
   linh_vuc: Area | null;
+  subject_id: string | null;
+  mo_ta: string | null;
+  don_vi_id: string | null;
+  loai_moc: string | null;
+  dat: boolean | null;
   trang_thai: string | null;
   trang_thai_do: string | null;
   nguon_so: string | null;
@@ -69,6 +84,41 @@ type MucTieuV = {
   ly_do_tra_lai: string | null;
   student_id: string | null;
 };
+
+// Làm tròn số hiển thị: tối đa 1 chữ số thập phân (số đo tính từ tick hay ra 1.98…).
+function dinhSo(n: number): string {
+  return (Math.round(n * 10) / 10).toString();
+}
+
+// BIỂU ĐỒ THẬT — cột dồn = số THẬT của mục tiêu ở cuối mỗi tuần (0175) + một vạch ĐÍCH. KHÔNG có
+// đường dự đoán/pace nên không thể vẽ sai. Đích cắm ở đỉnh; cột cao theo tỉ lệ so/đích.
+function BieuDoThat({lichSu, dich, mau}: {lichSu: {tuan_ket: string; so: number}[]; dich: number; mau: string}) {
+  if (lichSu.length < 2 || dich <= 0) return null;
+  const W = 168;
+  const H = 46;
+  const n = lichSu.length;
+  const bw = W / n;
+  const maxSo = Math.max(...lichSu.map((p) => p.so));
+  // Trục theo SỐ THẬT cao nhất (có headroom) để thấy rõ xu hướng đi lên. Đích chỉ là vạch tham chiếu:
+  // vẽ nếu còn lọt trong khung, không thì ghi nhãn "đích · còn xa" (không bóp méo, chỉ đổi tầm nhìn).
+  const dinh = Math.max(maxSo * 1.18, 1);
+  const dichTrongKhung = dich <= dinh;
+  const yDich = 6 + (H - 6) * (1 - dich / dinh);
+  return (
+    <svg viewBox={`0 0 ${W} ${H + 12}`} className="w-full" style={{height: 44}} role="img" aria-label="Biểu đồ số thật theo tuần">
+      {dichTrongKhung && (
+        <line x1="0" y1={yDich} x2={W} y2={yDich} stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" className="text-grey-mid" opacity="0.6" />
+      )}
+      {lichSu.map((p, i) => {
+        const h = Math.max(1.5, (H - 6) * (p.so / dinh));
+        return <rect key={i} x={i * bw + bw * 0.18} y={H - h} width={bw * 0.64} height={h} rx="1.5" fill={mau} opacity={i === n - 1 ? 1 : 0.5} />;
+      })}
+      <text x={W} y={9} fontSize="7.5" textAnchor="end" fill="currentColor" className="text-grey-mid">
+        {dichTrongKhung ? `đích ${dinhSo(dich)}` : `đích ${dinhSo(dich)} · còn xa`}
+      </text>
+    </svg>
+  );
+}
 
 export default async function WigPage({
   params,
@@ -94,6 +144,19 @@ export default async function WigPage({
   ]);
 
   if (!myClass) return <KhongCoLop role={profile.role} />;
+
+  // Nhãn 4 lĩnh vực + danh sách đơn vị — cho form "Đặt mục tiêu cho lớp" (dùng chung form màn em).
+  const nhanTheoArea = Object.fromEntries(AREAS.map((a) => [a, areaLabel(areaMeta[a], locale)]));
+  const {data: dvRows} = await supabase
+    .from('don_vi')
+    .select('id, ma, nhan_vi, nhan_en')
+    .eq('is_active', true)
+    .order('ma');
+  const donViList = ((dvRows ?? []) as {id: string; ma: string; nhan_vi: string; nhan_en: string}[]).map((d) => ({
+    id: d.id,
+    ma: d.ma,
+    nhan: locale === 'vi' ? d.nhan_vi : d.nhan_en,
+  }));
 
   // ── TUẦN ĐANG XEM ─────────────────────────────────────────────────────────────────────────
   const todayVN = todayInVN();
@@ -131,7 +194,7 @@ export default async function WigPage({
     supabase
       .from('muc_tieu_v')
       .select(
-        'id, ten, linh_vuc, trang_thai, trang_thai_do, nguon_so, kieu_dich, chieu, chua_do_x, ket_thuc, ky, x_so, x_chu, y_so, y_chu, ten_don_vi, so, le_ra, pct, dang_tap_trung, ly_do_tra_lai, student_id',
+        'id, ten, linh_vuc, subject_id, mo_ta, don_vi_id, loai_moc, dat, trang_thai, trang_thai_do, nguon_so, kieu_dich, chieu, chua_do_x, ket_thuc, ky, x_so, x_chu, y_so, y_chu, ten_don_vi, so, le_ra, pct, dang_tap_trung, ly_do_tra_lai, student_id',
       )
       .eq('class_id', myClass.id)
       .eq('cap', 'lop')
@@ -184,7 +247,54 @@ export default async function WigPage({
     | {diem_muc_tieu: number | null; diem_thuoc: number | null; diem_cam_ket: number | null}
     | undefined;
   const mucTieuLop = (mtRows ?? []) as unknown as MucTieuV[];
+  // Bước của mục tiêu lớp loại KẾ HOẠCH — để hiện checklist tick trên thẻ (cô tick, % nhảy).
+  const keIds = mucTieuLop.filter((m) => m.loai_moc === 'ke_hoach').map((m) => m.id);
+  const {data: buocRows} = keIds.length
+    ? await supabase.from('buoc').select('id, muc_tieu_id, tieu_de, phan_tram, xong_at').in('muc_tieu_id', keIds).order('thu_tu')
+    : {data: null};
+  const buocTheoMt = new Map<string, {id: string; tieu_de: string; phan_tram: number; xong: boolean}[]>();
+  for (const b of (buocRows ?? []) as {id: string; muc_tieu_id: string; tieu_de: string; phan_tram: number; xong_at: string | null}[]) {
+    const arr = buocTheoMt.get(b.muc_tieu_id) ?? [];
+    arr.push({id: b.id, tieu_de: b.tieu_de, phan_tram: Number(b.phan_tram), xong: b.xong_at != null});
+    buocTheoMt.set(b.muc_tieu_id, arr);
+  }
+
+  // ── HỘI TỤ: việc nào ĐẨY mục tiêu nào (dây góp số) → bày việc DƯỚI mục tiêu nó phục vụ. ────────
+  const wigIds = mucTieuLop.map((m) => m.id);
+  const {data: noiRows} = wigIds.length
+    ? await supabase
+        .from('noi')
+        .select('cha_id, con_thuoc_id')
+        .in('cha_id', wigIds)
+        .eq('vai', 'gop_so')
+        .not('con_thuoc_id', 'is', null)
+    : {data: null};
+  const wigCuaViec = new Map<string, string>(); // thuoc_id → wig_id
+  const viecCuaWig = new Map<string, string[]>(); // wig_id → [thuoc_id]
+  for (const n of (noiRows ?? []) as {cha_id: string; con_thuoc_id: string}[]) {
+    wigCuaViec.set(n.con_thuoc_id, n.cha_id);
+    const arr = viecCuaWig.get(n.cha_id) ?? [];
+    arr.push(n.con_thuoc_id);
+    viecCuaWig.set(n.cha_id, arr);
+  }
+
+  // ── BIỂU ĐỒ THẬT: số của mục tiêu ở cuối 8 tuần gần đây (0175) — chỉ vẽ cái đã xảy ra, không dự đoán.
+  const lichSuTheoWig = new Map<string, {tuan_ket: string; so: number}[]>();
+  await Promise.all(
+    mucTieuLop
+      .filter((m) => m.pct != null || m.so != null) // chỉ mục tiêu có đo bằng số
+      .map(async (m) => {
+        const {data} = await supabase.rpc('muc_tieu_lich_su_tuan', {p_muc_tieu: m.id, p_so_tuan: 8});
+        lichSuTheoWig.set(
+          m.id,
+          ((data ?? []) as {tuan_ket: string; so: number | null}[]).map((r) => ({tuan_ket: r.tuan_ket, so: Number(r.so ?? 0)})),
+        );
+      }),
+  );
   const thuoc = thuocRows ?? [];
+  const viecTheoId = new Map(thuoc.map((v) => [v.thuoc_id, v]));
+  // Việc CHƯA gắn mục tiêu nào — mới đứng ở khu "Việc của lớp"; việc đã gắn nằm dưới mục tiêu nó đẩy.
+  const viecChuaGan = thuoc.filter((v) => !wigCuaViec.has(v.thuoc_id));
   // Cam kết của tuần đang xem: khoảng [tuan_bat_dau, tuan_ket_thuc] GIAO tuần đang xem.
   const camKet = (ckRows ?? []).filter((c) => {
     const bd = c.tuan_bat_dau ?? '';
@@ -200,21 +310,6 @@ export default async function WigPage({
   const soCho = (mtCho ?? []).length + (thuocCho ?? []).length + haChoLop.length;
 
   // ── Câu mô tả một mục tiêu (Từ x lên y đv · trước ngày) ────────────────────────────────────
-  const cauMucTieu = (m: MucTieuV): string => {
-    const dv = m.ten_don_vi ?? '';
-    const x = m.x_chu ?? (m.x_so == null ? '' : String(m.x_so));
-    const y = m.y_chu ?? (m.y_so == null ? '' : String(m.y_so));
-    const ngay = ngayVN(m.ket_thuc);
-    if (m.chua_do_x) return tMt('chuaBietDen', {y, dv, ngay});
-    if (m.kieu_dich === 'giu') {
-      const dau = m.chieu === 'giam' ? 'không quá' : m.chieu === 'tang' ? 'ít nhất' : '';
-      return tMt('giuMuc', {dau, y, dv});
-    }
-    if (m.kieu_dich === 'tran_tich_luy') return tMt('caNamKhongQua', {y, dv});
-    return m.chieu === 'giam'
-      ? tMt('tuDenGiam', {x, y, dv, ngay})
-      : tMt('tuDen', {x, y, dv, ngay});
-  };
 
   // Nhãn trạng thái đã-đo (chỉ mục tiêu đã duyệt mới có nhịp thật để so).
   const nhanTrangThai = (m: MucTieuV): {text: string; cls: string} | null => {
@@ -252,6 +347,14 @@ export default async function WigPage({
         <h1 className="mr-auto font-display text-[22px] font-bold text-navy">
           {t('title')} · {myClass.name}
         </h1>
+        {/* Lối tới đặt LỊCH HỌP (buddy hằng tuần + PDR hằng tháng) — khu ấy ở /roster (Danh sách). */}
+        <Link
+          href={{pathname: '/roster', query: classParam ? {class: classParam} : {}}}
+          className="inline-flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[12px] font-extrabold text-navy transition-all hover:border-navy"
+        >
+          <CalendarDays size={14} strokeWidth={2.5} />
+          {t('lichHop')}
+        </Link>
         {(accessible.length > 1 || profile.role === 'admin' || profile.role === 'principal') && (
           <ClassPicker classes={accessible} current={myClass.id} />
         )}
@@ -295,10 +398,16 @@ export default async function WigPage({
       <div className="grid items-start gap-4 lg:grid-cols-[1.4fr_1fr]">
         {/* ── ② MỤC TIÊU CỦA LỚP ────────────────────────────────────────────────────────────── */}
         <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
-          <h2 className="font-display text-[15px] font-bold text-navy">{t('khuMucTieu')}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-display text-[15px] font-bold text-navy">{t('khuMucTieu')}</h2>
+            <div className="ml-auto">
+              <NutTaoMucTieuLop classId={myClass.id} nhanTheoArea={nhanTheoArea} donViList={donViList} />
+            </div>
+          </div>
           {mucTieuLop.length === 0 ? (
-            <div className="rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-5 text-center text-[12.5px] font-semibold text-grey-mid">
-              {t('mucTieuTrong')}
+            <div className="flex flex-col items-center gap-3 rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-5 text-center">
+              <p className="text-[12.5px] font-semibold text-grey-mid">{t('mucTieuTrong')}</p>
+              <NutTaoMucTieuLop classId={myClass.id} nhanTheoArea={nhanTheoArea} donViList={donViList} />
             </div>
           ) : (
             mucTieuLop.map((m) => {
@@ -308,39 +417,66 @@ export default async function WigPage({
               return (
                 <div
                   key={m.id}
-                  className="flex flex-col gap-2 rounded-[14px] border-[1.5px] border-navy/10 p-3.5"
+                  style={{
+                    borderColor: `color-mix(in srgb, ${meta.hex} 30%, white)`,
+                    background: `color-mix(in srgb, ${meta.hex} 6%, white)`,
+                  }}
+                  className="flex flex-col gap-2 rounded-[14px] border-[1.5px] p-3.5"
                 >
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span
-                      className="inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-extrabold"
-                      style={{background: meta.soft, color: meta.hex}}
-                    >
-                      {areaLabel(meta, locale)}
-                    </span>
-                    <span className="min-w-0 flex-1 font-display text-[15px] font-bold text-navy">
-                      {m.ten ?? areaLabel(meta, locale)}
-                    </span>
-                    {nhan && (
-                      <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${nhan.cls}`}>
-                        {nhan.text}
+                  <div className="flex items-start gap-3.5">
+                    {/* Vòng tiến độ như thẻ của em — nhìn là biết mục tiêu tới đâu. */}
+                    {m.pct != null ? (
+                      <DonutRing pct={Number(m.pct)} color={meta.hex} size={54} />
+                    ) : (
+                      <span className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full bg-navy/[0.05] text-[11px] font-extrabold text-grey-mid">
+                        —
                       </span>
                     )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span
+                          className="inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-extrabold"
+                          style={{background: meta.soft, color: meta.hex}}
+                        >
+                          {areaLabel(meta, locale)}
+                        </span>
+                        <span className="min-w-0 flex-1 font-display text-[15px] font-bold text-navy">
+                          {m.ten ?? areaLabel(meta, locale)}
+                        </span>
+                        {nhan && (
+                          <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${nhan.cls}`}>
+                            {nhan.text}
+                          </span>
+                        )}
+                      </div>
+                      {/* Một dòng gọn: số hiện / đích · đến hạn. Bỏ "đang ở", "lẽ ra" (tinh gọn). */}
+                      <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[12px] font-semibold text-grey-mid">
+                        {m.loai_moc === 'do_luong' && m.y_so != null ? (
+                          <span className="text-[13.5px] font-extrabold tabular-nums text-navy">
+                            {m.so != null ? dinhSo(m.so) : '–'}
+                            <span className="font-bold text-grey-mid">
+                              {' / '}
+                              {dinhSo(m.y_so)} {dv}
+                            </span>
+                          </span>
+                        ) : null}
+                        <span>{tMt('denHan', {ngay: ngayVN(m.ket_thuc)})}</span>
+                      </p>
+                      {m.trang_thai === 'tra_lai' && m.ly_do_tra_lai && (
+                        <p className="mt-1 text-[11.5px] font-semibold text-status-bad">
+                          {tMt('lyDoTraLai', {note: m.ly_do_tra_lai})}
+                        </p>
+                      )}
+                      {/* Biểu đồ THẬT — số thật cuối mỗi tuần + vạch đích, không dự đoán. */}
+                      {m.y_so != null && (lichSuTheoWig.get(m.id)?.length ?? 0) >= 2 && (
+                        <div className="mt-1.5">
+                          <BieuDoThat lichSu={lichSuTheoWig.get(m.id)!} dich={Number(m.y_so)} mau={meta.hex} />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-[12.5px] font-semibold text-grey-mid">{cauMucTieu(m)}</p>
-                  {m.trang_thai === 'tra_lai' && m.ly_do_tra_lai && (
-                    <p className="text-[11.5px] font-semibold text-status-bad">
-                      {tMt('lyDoTraLai', {note: m.ly_do_tra_lai})}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap items-baseline gap-x-3 text-[12.5px] font-bold text-navy">
-                    {m.so != null && <span>{tMt('dangO', {so: m.so, dv})}</span>}
-                    {m.le_ra != null && (
-                      <span className="text-grey-mid">{tMt('leRaHomNay', {so: m.le_ra, dv})}</span>
-                    )}
-                    {m.pct != null && <span className="tabular-nums text-grey-mid">{Math.round(Number(m.pct) * 100)}%</span>}
-                  </div>
-                  {/* Ghi số hôm nay — chỉ mục tiêu ĐO TAY đã duyệt (máy không đếm được). */}
-                  {m.nguon_so === 'ghi_tay' && m.trang_thai === 'duyet' && (
+                  {/* Ghi số hôm nay — chỉ mục tiêu ĐO LƯỜNG đã duyệt (máy không đếm được). */}
+                  {m.loai_moc === 'do_luong' && m.nguon_so === 'ghi_tay' && m.trang_thai === 'duyet' && (
                     <form action={ghiSoMucTieuLop} className="mt-1 flex flex-wrap items-end gap-2">
                       {ctx}
                       <input type="hidden" name="muc_tieu_id" value={m.id} />
@@ -365,14 +501,103 @@ export default async function WigPage({
                           className="w-24 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
                         />
                       </label>
-                      <button
-                        type="submit"
+                      <SubmitButton
                         className="rounded-[8px] bg-navy px-3 py-1.5 text-[12px] font-extrabold text-white transition-all hover:bg-navy/90"
+                        wrapClass="contents"
                       >
                         {t('ghiSoGhi')}
-                      </button>
+                      </SubmitButton>
                     </form>
                   )}
+
+                  {/* KẾ HOẠCH — checklist các bước (cô tick, % nhảy qua trigger). */}
+                  {m.loai_moc === 'ke_hoach' && m.trang_thai === 'duyet' && (buocTheoMt.get(m.id)?.length ?? 0) > 0 && (
+                    <div className="mt-1 flex flex-col gap-1.5 rounded-[12px] bg-white/70 p-2.5">
+                      {buocTheoMt.get(m.id)!.map((b) => (
+                        <form key={b.id} action={datBuocXong}>
+                          <input type="hidden" name="buoc_id" value={b.id} />
+                          <input type="hidden" name="xong" value={b.xong ? '' : '1'} />
+                          <SubmitButton
+                            className="flex min-h-[40px] w-full items-center gap-2.5 rounded-[10px] px-1.5 text-left transition-colors hover:bg-navy/[0.04]"
+                            wrapClass="contents"
+                          >
+                            <span className="grid h-[22px] w-[22px] shrink-0 place-items-center">
+                              {b.xong ? (
+                                <span style={{background: meta.hex}} className="grid h-[22px] w-[22px] place-items-center rounded-full text-white">
+                                  <Check size={13} strokeWidth={3.5} />
+                                </span>
+                              ) : (
+                                <span className="h-[20px] w-[20px] rounded-full border-2 border-navy/25" />
+                              )}
+                            </span>
+                            <span className={`min-w-0 flex-1 text-[13px] font-semibold leading-snug ${b.xong ? 'text-grey-mid line-through' : 'text-navy'}`}>
+                              {b.tieu_de}
+                            </span>
+                            <span className="shrink-0 text-[11px] font-extrabold tabular-nums text-grey-mid">{Math.round(b.phan_tram)}%</span>
+                          </SubmitButton>
+                        </form>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* HÀNH ĐỘNG — một nút "đã đạt" (0↔100%). */}
+                  {m.loai_moc === 'hanh_dong' && m.trang_thai === 'duyet' && (
+                    <form action={datHanhDong} className="mt-1">
+                      <input type="hidden" name="muc_tieu_id" value={m.id} />
+                      <input type="hidden" name="dat" value={m.dat ? '' : '1'} />
+                      <SubmitButton
+                        className={
+                          m.dat
+                            ? 'inline-flex min-h-[40px] items-center gap-1.5 rounded-[12px] border-[1.5px] border-success/40 bg-success/[0.12] px-3.5 text-[13px] font-extrabold text-success-dark transition-colors hover:bg-success/20'
+                            : 'inline-flex min-h-[40px] items-center gap-1.5 rounded-[12px] bg-gold px-3.5 text-[13px] font-extrabold text-navy transition-all hover:brightness-95'
+                        }
+                        wrapClass="contents"
+                      >
+                        <Check size={15} strokeWidth={3} />
+                        {m.dat ? tMt('daXong') : tMt('danhDauDat')}
+                      </SubmitButton>
+                    </form>
+                  )}
+
+                  {/* HỘI TỤ — việc ĐẨY mục tiêu này (dây góp số). Tick của các em đẩy số ở trên lên. */}
+                  {(viecCuaWig.get(m.id) ?? []).length > 0 && (
+                    <div className="mt-1 flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
+                      <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('viecDay')}</p>
+                      {(viecCuaWig.get(m.id) ?? []).map((tid) => {
+                        const dv = viecTheoId.get(tid);
+                        if (!dv) return null;
+                        const xanh = dv.trang_thai === 'dat' || dv.trang_thai === 'dang_thang' || dv.trang_thai === 'dang_giu';
+                        return (
+                          <div key={tid} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <span className="text-[12px] font-extrabold text-gold-deep">↗</span>
+                            <span className="min-w-0 flex-1 text-[12.5px] font-bold text-navy">{dv.ten}</span>
+                            <span className="text-[11.5px] font-extrabold tabular-nums text-grey-mid">
+                              {tViec('nEmDu', {n: dv.so_em_dat, si: dv.si_so})}
+                            </span>
+                            <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[9.5px] font-extrabold ${xanh ? 'bg-success/[0.12] text-success-dark' : 'bg-gold/[0.18] text-gold-text'}`}>
+                              {xanh ? tViec('du') : tViec('chuaDu')}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Sửa · Đóng · Xoá mục tiêu của lớp. */}
+                  <ThaoTacMucTieuLop
+                    goal={m as unknown as DangSuaMt}
+                    classId={myClass.id}
+                    weekQ={weekQ}
+                    nhanTheoArea={nhanTheoArea}
+                    donViList={donViList}
+                    buocDangSua={(buocTheoMt.get(m.id) ?? []).map((b) => ({
+                      tieu_de: b.tieu_de,
+                      phan_tram: b.phan_tram,
+                      bat_dau: null,
+                      ket_thuc: null,
+                      mo_ta: null,
+                    }))}
+                  />
                 </div>
               );
             })
@@ -380,13 +605,21 @@ export default async function WigPage({
         </section>
 
         {/* ── ③ VIỆC CỦA LỚP ────────────────────────────────────────────────────────────────── */}
-        <section className="glass rounded-[20px] p-[18px]">
-          <h2 className="mb-3 font-display text-[15px] font-bold text-navy">{t('khuViec')}</h2>
-          {thuoc.length === 0 ? (
-            <p className="text-[12.5px] font-semibold text-grey-mid">{t('viecTrong')}</p>
+        <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-display text-[15px] font-bold text-navy">{t('khuViec')}</h2>
+            <div className="ml-auto">
+              <NutTaoViecLop classId={myClass.id} donViList={donViList} mucTieuList={mucTieuLop.map((m) => ({id: m.id, ten: m.ten ?? ''}))} />
+            </div>
+          </div>
+          {viecChuaGan.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-5 text-center">
+              <p className="text-[12.5px] font-semibold text-grey-mid">{thuoc.length > 0 ? t('viecDaGanHet') : t('viecTrong')}</p>
+              <NutTaoViecLop classId={myClass.id} donViList={donViList} mucTieuList={mucTieuLop.map((m) => ({id: m.id, ten: m.ten ?? ''}))} />
+            </div>
           ) : (
             <div className="flex flex-col gap-2">
-              {thuoc.map((v) => {
+              {viecChuaGan.map((v) => {
                 const xanh = v.trang_thai === 'dat' || v.trang_thai === 'dang_thang' || v.trang_thai === 'dang_giu';
                 const do_ = v.trang_thai === 'can_co' || v.trang_thai === 'vuot' || v.trang_thai === 'truot';
                 const chip = v.mien
@@ -409,6 +642,20 @@ export default async function WigPage({
                     <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-extrabold ${chip}`}>
                       {v.mien ? tViec('oNghi') : v.trang_thai === 'dat' || v.trang_thai === 'dang_thang' ? tViec('du') : tViec('chuaDu')}
                     </span>
+                    {/* Sửa chỉ tiêu (áp từ tuần sau). */}
+                    <SuaChiTieuLop thuocId={v.thuoc_id} chiTieuHienTai={null} donVi="" classId={myClass.id} weekQ={weekQ} />
+                    {/* Xoá việc lớp — RLS chỉ cho khi chưa duyệt/chưa có lượt; đã chạy thì báo cách kết thúc. */}
+                    <form action={xoaViecLop}>
+                      {ctx}
+                      <input type="hidden" name="thuoc_id" value={v.thuoc_id} />
+                      <SubmitButton
+                        label={t('xoaViec')}
+                        className="grid h-7 w-7 place-items-center rounded-[8px] text-status-bad transition-colors hover:bg-status-bad/10"
+                        wrapClass="contents"
+                      >
+                        <Trash2 size={13} strokeWidth={2.5} />
+                      </SubmitButton>
+                    </form>
                   </div>
                 );
               })}
@@ -462,31 +709,32 @@ export default async function WigPage({
                       className="w-28 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12px] text-navy"
                     />
                   )}
-                  <button
-                    type="submit"
+                  <SubmitButton
                     name="ket_qua"
                     value="thang"
                     className="inline-flex items-center gap-1 rounded-[8px] border-[1.5px] border-success/40 bg-success/[0.12] px-2.5 py-1 text-[12px] font-extrabold text-success-dark transition-all hover:bg-success/20"
+                    wrapClass="contents"
                   >
                     <Check size={12} strokeWidth={3} />
                     {tCk('thang')}
-                  </button>
-                  <button
-                    type="submit"
+                  </SubmitButton>
+                  <SubmitButton
                     name="ket_qua"
                     value="thua"
                     className="inline-flex items-center gap-1 rounded-[8px] border-[1.5px] border-status-bad/40 bg-status-bad/[0.08] px-2.5 py-1 text-[12px] font-extrabold text-status-bad transition-all hover:bg-status-bad/15"
+                    wrapClass="contents"
                   >
                     <X size={12} strokeWidth={3} />
                     {tCk('thua')}
-                  </button>
+                  </SubmitButton>
                 </form>
+                <SuaLoiCamKetLop camKetId={c.id ?? ''} noiDung={c.noi_dung ?? ''} classId={myClass.id} weekQ={weekQ} />
                 <form action={xoaCamKetLop}>
                   {ctx}
                   <input type="hidden" name="cam_ket_id" value={c.id ?? undefined} />
-                  <button type="submit" className="text-[11.5px] font-bold text-grey-mid hover:text-status-bad">
+                  <SubmitButton className="text-[11.5px] font-bold text-grey-mid hover:text-status-bad" wrapClass="contents">
                     {tCk('huy')}
-                  </button>
+                  </SubmitButton>
                 </form>
               </div>
             </div>
@@ -528,12 +776,12 @@ export default async function WigPage({
                   ))}
                 </select>
               )}
-              <button
-                type="submit"
+              <SubmitButton
                 className="rounded-[8px] bg-navy px-3 py-1.5 text-[12px] font-extrabold text-white transition-all hover:bg-navy/90"
+                wrapClass="contents"
               >
                 {tCk('luu')}
-              </button>
+              </SubmitButton>
             </div>
           </form>
         </details>
@@ -571,9 +819,9 @@ export default async function WigPage({
                   <form action={xoaMau}>
                     {ctx}
                     <input type="hidden" name="mau_id" value={mm.id} />
-                    <button type="submit" className="text-[11.5px] font-bold text-grey-mid hover:text-status-bad">
+                    <SubmitButton className="text-[11.5px] font-bold text-grey-mid hover:text-status-bad" wrapClass="contents">
                       {t('mauXoa')}
-                    </button>
+                    </SubmitButton>
                   </form>
                 </div>
               );
@@ -625,12 +873,12 @@ export default async function WigPage({
                   placeholder="y"
                   className="w-16 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
                 />
-                <button
-                  type="submit"
+                <SubmitButton
                   className="rounded-[8px] bg-navy px-3 py-1.5 text-[12px] font-extrabold text-white transition-all hover:bg-navy/90"
+                  wrapClass="contents"
                 >
                   {t('ghiSoGhi')}
-                </button>
+                </SubmitButton>
               </div>
             </form>
           </details>
@@ -661,12 +909,12 @@ export default async function WigPage({
                 <form action={duyetMucTieuEm} className="contents">
                   {ctx}
                   <input type="hidden" name="muc_tieu_id" value={m.id ?? undefined} />
-                  <button
-                    type="submit"
+                  <SubmitButton
                     className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-2.5 py-0.5 text-[10.5px] font-extrabold text-gold-text transition-all hover:bg-gold/30"
+                    wrapClass="contents"
                   >
                     {tDuyet('duyet')}
-                  </button>
+                  </SubmitButton>
                 </form>
                 <details className="relative">
                   <summary className="cursor-pointer list-none rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2.5 py-0.5 text-[11px] font-extrabold text-navy hover:border-navy">
@@ -681,9 +929,9 @@ export default async function WigPage({
                       placeholder={tDuyet('traLaiNhan')}
                       className="w-full rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12px] text-navy"
                     />
-                    <button type="submit" className="self-start rounded-[8px] bg-navy px-2.5 py-1 text-[11px] font-extrabold text-white">
+                    <SubmitButton className="self-start rounded-[8px] bg-navy px-2.5 py-1 text-[11px] font-extrabold text-white" wrapClass="contents">
                       {tDuyet('traLaiGui')}
-                    </button>
+                    </SubmitButton>
                   </form>
                 </details>
               </div>
@@ -702,12 +950,12 @@ export default async function WigPage({
                 <form action={duyetThuoc} className="contents">
                   {ctx}
                   <input type="hidden" name="thuoc_id" value={v.id} />
-                  <button
-                    type="submit"
+                  <SubmitButton
                     className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-2.5 py-0.5 text-[10.5px] font-extrabold text-gold-text transition-all hover:bg-gold/30"
+                    wrapClass="contents"
                   >
                     {tDuyet('duyet')}
-                  </button>
+                  </SubmitButton>
                 </form>
                 <details>
                   <summary className="cursor-pointer list-none rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2.5 py-0.5 text-[11px] font-extrabold text-navy hover:border-navy">
@@ -722,9 +970,9 @@ export default async function WigPage({
                       placeholder={tDuyet('traLaiNhan')}
                       className="w-full rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12px] text-navy"
                     />
-                    <button type="submit" className="self-start rounded-[8px] bg-navy px-2.5 py-1 text-[11px] font-extrabold text-white">
+                    <SubmitButton className="self-start rounded-[8px] bg-navy px-2.5 py-1 text-[11px] font-extrabold text-white" wrapClass="contents">
                       {tDuyet('traLaiGui')}
-                    </button>
+                    </SubmitButton>
                   </form>
                 </details>
               </div>
@@ -746,12 +994,12 @@ export default async function WigPage({
                   <form action={duyetHaChiTieu} className="contents">
                     {ctx}
                     <input type="hidden" name="lich_su_id" value={r.id} />
-                    <button
-                      type="submit"
+                    <SubmitButton
                       className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-2.5 py-0.5 text-[10.5px] font-extrabold text-gold-text transition-all hover:bg-gold/30"
+                      wrapClass="contents"
                     >
                       {tDuyet('duyet')}
-                    </button>
+                    </SubmitButton>
                   </form>
                 </div>
               );

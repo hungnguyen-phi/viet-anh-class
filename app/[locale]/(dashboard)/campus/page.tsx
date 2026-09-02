@@ -9,6 +9,7 @@ import {ClassForm} from '@/app/[locale]/(dashboard)/admin/ClassForm';
 import {ClassManager} from '@/app/[locale]/(dashboard)/admin/ClassManager';
 import {SchoolRollup, type RollupRow} from './SchoolRollup';
 import {NutDuyet} from '@/components/wig/NutDuyet';
+import {NutTraLaiMtLop} from '@/components/campus/NutTraLaiMtLop';
 import {duyetMucTieuLop} from './actions';
 import {LichTuanHoc} from './LichTuanHoc';
 import {CongTacNhapHo} from './CongTacNhapHo';
@@ -278,6 +279,7 @@ export default async function CampusPage({
                     o={{muc_tieu_id: w.id ?? undefined}}
                     label={`${tCo('cotChoDuyet')} — ${w.ten ?? ''}`}
                   />
+                  <NutTraLaiMtLop mtId={w.id ?? ''} ten={w.ten ?? ''} />
                 </div>
               );
             })}

@@ -64,6 +64,43 @@ export async function ghiSoMucTieuLop(formData: FormData) {
   veWig('Đã ghi số cho mục tiêu của lớp', classId, week);
 }
 
+// ── ĐÓNG / XOÁ MỤC TIÊU CỦA LỚP ──────────────────────────────────────────────────────────────
+// Bản của em (student/actions) khoá .eq('cap','em') và nhảy về /student; lớp cần bản riêng ở lại
+// /wig. Luật ai-được-làm nằm ở RLS (ghi_duoc_muc_tieu) — .select() phân biệt "RLS chặn" với "xong".
+export async function dongMucTieuLop(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const {classId, week} = nen(formData);
+  const id = String(formData.get('muc_tieu_id') ?? '').trim();
+  const ly_do_dong = String(formData.get('ly_do_dong') ?? '');
+  if (!id) veWig(loi('Thiếu mục tiêu.'), classId, week);
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('muc_tieu')
+    .update({trang_thai: 'dong', ly_do_dong})
+    .eq('id', id)
+    .eq('cap', 'lop')
+    .select('id');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veWig(loi(friendlyError(error)), classId, week);
+  if (!data || data.length === 0) veWig(loi('Không đóng được — không có quyền hoặc đã xoá.'), classId, week);
+  veWig('Đã đóng mục tiêu của lớp', classId, week);
+}
+
+// Xoá — RLS chỉ cho khi nhap/gui/tra_lai VÀ chưa có số đo/dây dưới nó; đã duyệt thì Đóng, không xoá.
+export async function xoaMucTieuLop(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const {classId, week} = nen(formData);
+  const id = String(formData.get('muc_tieu_id') ?? '').trim();
+  if (!id) veWig(loi('Thiếu mục tiêu.'), classId, week);
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('muc_tieu').delete().eq('id', id).eq('cap', 'lop').select('id');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veWig(loi(friendlyError(error)), classId, week);
+  if (!data || data.length === 0)
+    veWig(loi('Không xoá được — mục tiêu đã duyệt hoặc có số đo. Hãy Đóng thay vì xoá.'), classId, week);
+  veWig('Đã xoá mục tiêu của lớp', classId, week);
+}
+
 // ── CHẤM CAM KẾT CỦA LỚP (Thắng/Thua) ────────────────────────────────────────────────────────
 // Chỉ GVCN/admin — RLS gác; action chỉ lo câu báo. Nút đã mờ trước thứ Sáu tuần cuối; nếu vẫn
 // gửi thì trigger 23514 văng câu "Đợi đến thứ Sáu tuần cuối rồi chấm nhé", hiện nguyên.

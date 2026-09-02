@@ -54,3 +54,7 @@ next-env.d.ts
 /instrumentation.ts
 /instrumentation-node.ts
 xem-trang.html
+wig-*.png
+do*.png
+e2e-*.png
+cm-*.png
