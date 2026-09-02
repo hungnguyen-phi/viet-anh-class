@@ -1,5 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
-import {ArrowLeft, ArrowRight, Check, X, CalendarDays, Trash2} from 'lucide-react';
+import {ArrowLeft, ArrowRight, Check, X, CalendarDays, Trash2, Lock} from 'lucide-react';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
@@ -395,6 +395,47 @@ export default async function WigPage({
         <p className="mt-2 text-[11.5px] font-semibold text-grey-mid">{t('baSoHint')}</p>
       </section>
 
+      {/* Chưa có mục tiêu → gộp về MỘT tấm: mục tiêu là đích (bước ①), việc + cam kết khoá
+          lại kèm lời "mở khi có mục tiêu" — cho thấy chúng phục vụ mục tiêu, không phải 3 ngã rẽ. */}
+      {mucTieuLop.length === 0 ? (
+        <section className="glass flex flex-col gap-4 rounded-[20px] p-[18px]">
+          <div className="flex flex-col items-center gap-2.5 rounded-[16px] border-[1.5px] border-dashed border-navy/25 px-5 py-7 text-center">
+            <h2 className="font-display text-[16px] font-bold text-navy">{t('khuMucTieu')}</h2>
+            <p className="max-w-[440px] text-[12.5px] font-semibold leading-relaxed text-grey-mid">
+              {t('rongDanDat')}
+            </p>
+            <div className="mt-1">
+              <NutTaoMucTieuLop classId={myClass.id} nhanTheoArea={nhanTheoArea} donViList={donViList} />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="h-px flex-1 bg-navy/10" />
+            <span className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('rongTiepTheo')}</span>
+            <span className="h-px flex-1 bg-navy/10" />
+          </div>
+          <div className="flex flex-col gap-2">
+            {[
+              {n: 2, nhan: t('khuViec')},
+              {n: 3, nhan: t('camKetTuanNgan')},
+            ].map((b) => (
+              <div
+                key={b.n}
+                className="flex items-center gap-3 rounded-[12px] border-[1.5px] border-navy/[0.08] bg-navy/[0.02] px-3.5 py-2.5 opacity-70"
+              >
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-navy/10 text-[12px] font-extrabold text-navy">
+                  {b.n}
+                </span>
+                <span className="text-[13px] font-bold text-navy">{b.nhan}</span>
+                <span className="ml-auto inline-flex items-center gap-1 text-[11.5px] font-semibold text-grey-mid">
+                  <Lock size={12} strokeWidth={2.5} />
+                  {t('khoaMoKhi')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : (
+      <>
       <div className="grid items-start gap-4 lg:grid-cols-[1.4fr_1fr]">
         {/* ── ② MỤC TIÊU CỦA LỚP ────────────────────────────────────────────────────────────── */}
         <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
@@ -608,9 +649,12 @@ export default async function WigPage({
         <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-[15px] font-bold text-navy">{t('khuViec')}</h2>
-            <div className="ml-auto">
-              <NutTaoViecLop classId={myClass.id} donViList={donViList} mucTieuList={mucTieuLop.map((m) => ({id: m.id, ten: m.ten ?? ''}))} />
-            </div>
+            {/* Nút ở góc chỉ hiện khi ĐÃ có việc (thêm nữa); lúc rỗng để nút to giữa ô, khỏi lặp chữ. */}
+            {viecChuaGan.length > 0 && (
+              <div className="ml-auto">
+                <NutTaoViecLop classId={myClass.id} donViList={donViList} mucTieuList={mucTieuLop.map((m) => ({id: m.id, ten: m.ten ?? ''}))} />
+              </div>
+            )}
           </div>
           {viecChuaGan.length === 0 ? (
             <div className="flex flex-col items-center gap-3 rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-5 text-center">
@@ -786,6 +830,8 @@ export default async function WigPage({
           </form>
         </details>
       </section>
+      </>
+      )}
 
       {/* ── ⑤ CÁC EM TUẦN NÀY (component chung, tự đọc bang_lop_em) ─────────────────────────── */}
       <BangCacEm classId={myClass.id} monday={monday} weekQ={weekQ} classParam={classParam} />
