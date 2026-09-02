@@ -272,22 +272,15 @@ function TheMucTieu({
 
           <p className="mt-1 text-[12.5px] font-semibold tabular-nums text-grey-mid">{cauDich(mt, t)}</p>
 
-          {/* ĐANG Ở — số hiện tại + nguồn. */}
+          {/* Số hiện tại — gọn: chỉ "Đang ở …". Bỏ nguồn "máy cộng từ N việc" (việc đã hiện ở lộ trình
+              dưới) và bỏ "hôm nay lẽ ra …" (số phán xét). Chỉ giữ chữ chuẩn. */}
           <p className="mt-1 text-[12.5px] font-bold text-navy">
             {mt.so == null ? (
               <span className="font-semibold italic text-grey-mid">{t('chuaCoSo')}</span>
             ) : (
-              <>
-                {t('dangO', {so: dinhSo(mt.so), dv: mt.ten_don_vi ?? ''})}
-                <span className="ml-1 font-semibold text-grey-mid">· {nguonChu(mt, t)}</span>
-              </>
+              t('dangO', {so: dinhSo(mt.so), dv: mt.ten_don_vi ?? ''})
             )}
           </p>
-          {coQuang && mt.le_ra != null && (
-            <p className="mt-0.5 text-[11.5px] font-semibold text-grey-mid">
-              {t('leRaHomNay', {so: dinhSo(mt.le_ra), dv: mt.ten_don_vi ?? ''})}
-            </p>
-          )}
 
           {/* DÂY — hướng tới / góp số vào mục tiêu cha. */}
           {noi.map((n) => (
