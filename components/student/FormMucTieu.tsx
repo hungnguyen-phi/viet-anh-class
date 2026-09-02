@@ -158,7 +158,7 @@ export function FormMucTieu3Buoc({
   // Chiều (tăng/giữ/giảm) suy thẳng từ hai số — mọi mục tiêu ĐO nay ghi tay (đếm là việc của khu
   // "Việc em làm", không phải của mục tiêu). Chỉ dùng cho enum lưu, không bày ra màn nữa.
   const suy = suyTuSo(x, y, false);
-  const nhanDv = donViList.find((d) => d.id === donViId)?.ma ?? '';
+  const nhanDv = donViList.find((d) => d.id === donViId)?.nhan ?? '';
 
   // ── CHẤM CHẤT LƯỢNG MỤC TIÊU (SMART) ─────────────────────────────────────────────────────
   // Mỗi tiêu chí một điểm; điểm % = số đạt / tổng. Đây vừa là điểm, vừa là HƯỚNG DẪN: em nhìn ô
@@ -186,7 +186,8 @@ export function FormMucTieu3Buoc({
       {key: 'clCoHan', dat: Boolean(ketThuc)},
       {key: 'clCoMoTa', dat: moTa.trim().length >= 20},
     ];
-    return list;
+    // Mục tiêu của LỚP không "hỗ trợ mục tiêu lớp" nào (ô đó đã ẩn) → bỏ tiêu chí, khỏi bị trừ điểm oan.
+    return cap === 'lop' ? list.filter((c) => c.key !== 'clLienKet') : list;
   }, [ten, y, x, donViId, hoTroCho, ketThuc, moTa, laDo, suy.chieu, dangSua]);
   const soDat = tieuChi.filter((c) => c.dat).length;
   const phanTram = Math.round((soDat / tieuChi.length) * 100);
@@ -197,10 +198,12 @@ export function FormMucTieu3Buoc({
     if (loaiMoc !== 'do_luong') return null; // hành động/kế hoạch có ghi chú riêng
     if (!y.trim() || !nhanDv || !ketThuc) return null;
     const ngay = ngayVN(ketThuc);
-    if (suy.chieu === 'giu') return t('cauChotGiu', {ten, dau: '≥', y, dv: nhanDv});
-    if (!x.trim()) return t('cauChotChuaX', {ten, y, dv: nhanDv, ngay});
-    return t('cauChot', {ten, x, chieu: suy.chieu === 'giam' ? t('chieuGiam') : t('chieuTang'), y, dv: nhanDv, ngay});
-  }, [ten, loaiMoc, suy.chieu, x, y, nhanDv, ketThuc, t]);
+    // Chủ ngữ đúng: mục tiêu của LỚP → "Lớp sẽ…", của EM → "Em sẽ…".
+    const p = cap === 'lop' ? 'Lop' : '';
+    if (suy.chieu === 'giu') return t(`cauChot${p}Giu`, {ten, dau: '≥', y, dv: nhanDv});
+    if (!x.trim()) return t(`cauChot${p}ChuaX`, {ten, y, dv: nhanDv, ngay});
+    return t(`cauChot${p}`, {ten, x, chieu: suy.chieu === 'giam' ? t('chieuGiam') : t('chieuTang'), y, dv: nhanDv, ngay});
+  }, [ten, loaiMoc, suy.chieu, x, y, nhanDv, ketThuc, t, cap]);
 
   function chonMau(m: MauMucTieu) {
     setTen(m.ten);
@@ -312,45 +315,8 @@ export function FormMucTieu3Buoc({
           </div>
         )}
 
-        {/* ─── CHẤM CHẤT LƯỢNG (SMART) ─── thanh ▮▮▯▯▯ + %; bấm mở bảng gợi ý. */}
-        <div className="rounded-[12px] border-[1.5px] border-navy/10 p-2.5">
-          <button
-            type="button"
-            data-kiem="mt-chat-luong"
-            onClick={() => setMoChatLuong((v) => !v)}
-            className="flex w-full items-center gap-2.5"
-          >
-            <span className="flex gap-0.5">
-              {tieuChi.map((c, i) => (
-                <span
-                  key={i}
-                  className={`h-2 w-4 rounded-full ${c.dat ? 'bg-success' : 'bg-navy/15'}`}
-                />
-              ))}
-            </span>
-            <span className="text-[12.5px] font-extrabold text-navy">
-              {t('chatLuong')} · {phanTram}%
-            </span>
-            <Info size={13} strokeWidth={2.5} className="ml-auto text-grey-mid" />
-          </button>
-          {moChatLuong && (
-            <div className="mt-2 flex flex-col gap-1.5 border-t border-navy/10 pt-2">
-              <p className="text-[11.5px] font-semibold text-grey-mid">{t('chatLuongMo')}</p>
-              {tieuChi.map((c) => (
-                <div key={c.key} className="flex items-start gap-1.5 text-[12px] font-semibold">
-                  <span
-                    className={`mt-px grid h-4 w-4 shrink-0 place-items-center rounded-full ${
-                      c.dat ? 'bg-success text-white' : 'border-[1.5px] border-navy/25 text-transparent'
-                    }`}
-                  >
-                    <Check size={10} strokeWidth={3} />
-                  </span>
-                  <span className={c.dat ? 'text-grey-mid line-through' : 'text-navy'}>{t(c.key)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* ── PHẦN 1 · MỤC TIÊU LÀ GÌ? (nhóm · tên · mô tả) ─────────────────────────────── */}
+        <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid/80">{t('phanLaGi')}</p>
 
         {/* NHÓM — 4 chip (chỉ 4 lĩnh vực, không "Khác"). */}
         <div>
@@ -448,6 +414,11 @@ export function FormMucTieu3Buoc({
             <p className="mt-1 text-[11px] font-semibold text-grey-mid">{t('hoTroGiaiThich')}</p>
           </Field>
         )}
+
+        {/* ── PHẦN 2 · ĐO THẾ NÀO? (loại cột mốc · số · hạn) ────────────────────────────── */}
+        <p className="mt-1 border-t border-navy/[0.07] pt-3 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid/80">
+          {t('phanDoTheNao')}
+        </p>
 
         {/* LOẠI CỘT MỐC — ba khuôn theo hình dạng mục tiêu (0172). Mỗi loại có "?" giải thích để em
             CHỌN ĐÚNG loại: đo lường = con số lên/xuống; kế hoạch = nhiều bước không gói vào một số;
@@ -575,7 +546,7 @@ export function FormMucTieu3Buoc({
                   name="_don_vi_ui"
                   value={donViId}
                   onChange={setDonViId}
-                  danhSach={donViList.map((d) => ({ma: d.id, nhan: d.ma}))}
+                  danhSach={donViList.map((d) => ({ma: d.id, nhan: d.nhan}))}
                   chuaChon={t('donViChon')}
                   loi={state.fieldError === 'don_vi_id'}
                 />
@@ -638,6 +609,43 @@ export function FormMucTieu3Buoc({
           >
             {cauRap ?? t('cauChotTrong')}
           </div>
+        </div>
+
+        {/* CHẤT LƯỢNG — dời xuống gần nút Lưu (đừng để 0% chình ình trên đầu). Bấm mở gợi ý. */}
+        <div className="rounded-[12px] border-[1.5px] border-navy/10 p-2.5">
+          <button
+            type="button"
+            data-kiem="mt-chat-luong"
+            onClick={() => setMoChatLuong((v) => !v)}
+            className="flex w-full items-center gap-2.5"
+          >
+            <span className="flex gap-0.5">
+              {tieuChi.map((c, i) => (
+                <span key={i} className={`h-2 w-4 rounded-full ${c.dat ? 'bg-success' : 'bg-navy/15'}`} />
+              ))}
+            </span>
+            <span className="text-[12.5px] font-extrabold text-navy">
+              {t('chatLuong')} · {phanTram}%
+            </span>
+            <Info size={13} strokeWidth={2.5} className="ml-auto text-grey-mid" />
+          </button>
+          {moChatLuong && (
+            <div className="mt-2 flex flex-col gap-1.5 border-t border-navy/10 pt-2">
+              <p className="text-[11.5px] font-semibold text-grey-mid">{t('chatLuongMo')}</p>
+              {tieuChi.map((c) => (
+                <div key={c.key} className="flex items-start gap-1.5 text-[12px] font-semibold">
+                  <span
+                    className={`mt-px grid h-4 w-4 shrink-0 place-items-center rounded-full ${
+                      c.dat ? 'bg-success text-white' : 'border-[1.5px] border-navy/25 text-transparent'
+                    }`}
+                  >
+                    <Check size={10} strokeWidth={3} />
+                  </span>
+                  <span className={c.dat ? 'text-grey-mid line-through' : 'text-navy'}>{t(c.key)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -704,7 +712,7 @@ function OChon({chon, onClick, nhan, kiem}: {chon: boolean; onClick: () => void;
       type="button"
       data-kiem={kiem}
       onClick={onClick}
-      className={`min-h-[40px] rounded-[10px] border-[1.5px] px-2.5 py-2 text-[12.5px] font-bold transition-colors ${
+      className={`min-h-[40px] w-full rounded-[10px] border-[1.5px] px-2.5 py-2 text-[12.5px] font-bold transition-colors ${
         chon ? 'border-navy bg-navy/[0.06] text-navy' : 'border-navy/15 bg-white text-grey-mid hover:border-navy/40'
       }`}
     >

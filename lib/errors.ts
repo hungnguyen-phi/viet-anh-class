@@ -42,8 +42,12 @@ export function friendlyError(error: PgError): string {
       return 'Dữ liệu này đã tồn tại (bị trùng).';
     case '23503': // foreign_key_violation
       return 'Không thực hiện được vì còn dữ liệu liên quan.';
-    case '23514': // check_violation
-      return 'Giá trị nhập không hợp lệ.';
+    case '23514': // check_violation — CÓ THỂ là trigger tự raise câu tiếng Việt (dùng errcode 23514,
+      // ví dụ "Ngày của mục tiêu phải nằm trong năm học…"). Đừng nuốt câu ấy bằng câu chung chung:
+      // chỉ generic khi là lỗi CHECK gốc của Postgres (câu tiếng Anh "violates check constraint").
+      return error.message && !/check constraint/i.test(error.message)
+        ? error.message
+        : 'Giá trị nhập không hợp lệ.';
     case '23502': // not_null_violation
       return 'Thiếu thông tin bắt buộc.';
     case '42501': // insufficient_privilege

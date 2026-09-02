@@ -1701,7 +1701,12 @@
     "buocTieuDePh": "e.g. Pick a topic",
     "buocPhanTram": "Percent",
     "buocXoa": "Remove step",
-    "themBuoc": "Add step"
+    "themBuoc": "Add step",
+    "cauChotLop": "Our class will {ten}, from {x} {chieu} {y} {dv}, by {ngay}.",
+    "cauChotLopChuaX": "Our class will {ten}, reaching {y} {dv}, by {ngay}.",
+    "cauChotLopGiu": "Our class will {ten}: keep {dau} {y} {dv} all year.",
+    "phanLaGi": "What is the goal?",
+    "phanDoTheNao": "How is it measured?"
   },
   "viec": {
     "chipLop": "Class",

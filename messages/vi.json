@@ -1701,7 +1701,12 @@
     "buocTieuDePh": "vd: Chọn đề tài",
     "buocPhanTram": "Phần trăm",
     "buocXoa": "Xoá bước",
-    "themBuoc": "Thêm bước"
+    "themBuoc": "Thêm bước",
+    "cauChotLop": "Lớp sẽ {ten}, từ {x} {chieu} {y} {dv}, trước {ngay}.",
+    "cauChotLopChuaX": "Lớp sẽ {ten}, tới {y} {dv}, trước {ngay}.",
+    "cauChotLopGiu": "Lớp sẽ {ten}: giữ {dau} {y} {dv} suốt năm.",
+    "phanLaGi": "Mục tiêu là gì?",
+    "phanDoTheNao": "Đo thế nào?"
   },
   "viec": {
     "chipLop": "Của lớp",
