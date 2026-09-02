@@ -804,9 +804,40 @@ export async function luuCamKet(_prev: CamKetState, formData: FormData): Promise
     return {ok: false, fieldError: 'so_hua', error: 'Con số của cam kết phải lớn hơn 0.'};
   const don_vi_id = String(formData.get('don_vi_id') ?? '').trim() || null;
   const muc_tieu_id = String(formData.get('muc_tieu_id') ?? '').trim() || null;
-  const thuoc_id = String(formData.get('thuoc_id') ?? '').trim() || null;
+  let thuoc_id = String(formData.get('thuoc_id') ?? '').trim() || null;
 
   const supabase = await createClient();
+
+  // VIỆC BỔ TRỢ — em ghi tên một việc để tick hằng ngày cho hoàn thành cam kết này. Tạo một thuoc
+  // của em (không nối vào mục tiêu — số dừng ở cam kết), rồi cam kết trỏ vào nó qua thuoc_id.
+  const tenViecBoTro = String(formData.get('viec_bo_tro') ?? '').trim();
+  if (tenViecBoTro && don_vi_id) {
+    const {data: vRow, error: vErr} = await supabase
+      .from('thuoc')
+      .insert({
+        chu_the: 'em',
+        class_id,
+        student_id,
+        ten: tenViecBoTro,
+        don_vi_id,
+        cach_ghi: 'cham',
+        chieu_dich: 'it_nhat',
+        gop: 'tong',
+        ky_tuan: 1,
+        chi_tieu_ky: so_hua ?? 1,
+        moi_lan: 1,
+        ngay_ap_dung: [1, 2, 3, 4, 5, 6, 7],
+        pham_vi: 'tung_em',
+        tu_tuan: tuan_bat_dau,
+        duyet: 'duyet',
+        trang_thai: 'chay',
+      })
+      .select('id')
+      .maybeSingle();
+    if (vErr) return {ok: false, error: friendlyError(vErr)};
+    if (vRow) thuoc_id = vRow.id;
+  }
+
   const {data, error} = await supabase
     .from('cam_ket')
     .insert({

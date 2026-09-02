@@ -611,7 +611,7 @@ export async function StudentScoreboard({
                 <MucTieuLopChoEm mucTieu={[g]} mauTheoArea={mauTheoArea} nhanTheoArea={nhanTheoArea} />
                 <LoTrinhEm
                   goal={{id: g.id, ten: g.ten, don_vi_id: g.don_vi_id, ten_don_vi: g.ten_don_vi}}
-                  viec={viecCuaMt[g.id] ?? []}
+                  viec={viec}
                   camKet={camKetCuaMt[g.id] ?? []}
                   studentId={studentId}
                   classId={classId}
@@ -630,67 +630,8 @@ export async function StudentScoreboard({
         </section>
       ) : null}
 
-      {/* ④ MỤC TIÊU CỦA EM — quản lý mục tiêu riêng; mục tiêu nào có việc/cam kết thì lộ trình nằm ngay dưới. */}
-      {classId ? (
-        <section>
-          <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{tBang('khuMucTieu')}</h2>
-          <MucTieuCuaCon
-            studentId={studentId}
-            classId={classId}
-            mucTieu={mtRows}
-            laChinhEm={canTick}
-            canManage={canManage}
-            namHoc={cls?.school_year ?? null}
-            nhanTheoArea={nhanTheoArea}
-            mauTheoArea={mauTheoArea}
-            donViList={donViList}
-            mucTieuLop={mucTieuLop}
-            buocTheoMt={buocTheoMt}
-            mauList={mauList}
-          />
-          {mtRows
-            .filter((m) => !!m.id && ((viecCuaMt[m.id] ?? []).length > 0 || (camKetCuaMt[m.id] ?? []).length > 0))
-            .map((m) => (
-              <div key={m.id ?? ''} className="mt-3">
-                <p className="mb-1 text-[13px] font-extrabold text-navy">{m.ten}</p>
-                <LoTrinhEm
-                  goal={{id: m.id ?? '', ten: m.ten ?? '', don_vi_id: m.don_vi_id ?? null, ten_don_vi: m.ten_don_vi ?? null}}
-                  viec={viecCuaMt[m.id ?? ''] ?? []}
-                  camKet={camKetCuaMt[m.id ?? ''] ?? []}
-                  studentId={studentId}
-                  classId={classId}
-                  laChinhEm={canTick}
-                  monday={monday}
-                  thisMonday={thisMonday}
-                  today={today}
-                  daChotHopTuan={daChotHopTuan}
-                  tuanNghi={tuanNghi}
-                  weekDays={weekDays}
-                  dayShort={dayShort}
-                />
-              </div>
-            ))}
-        </section>
-      ) : null}
-
-      {/* ⑤ VIỆC & CAM KẾT CHƯA GẮN MỤC TIÊU — hiếm; gom một chỗ để không lạc. */}
-      {(viecMoCoi.length > 0 || camKetMoCoi.length > 0) && (
-        <BangEmPA2
-          laChinhEm={canTick}
-          studentId={studentId}
-          classId={classId ?? ''}
-          viec={viecMoCoi}
-          camKet={camKetMoCoi}
-          weekDays={weekDays}
-          today={today}
-          monday={monday}
-          thisMonday={thisMonday}
-          tuanNghi={tuanNghi}
-          daChotHopTuan={daChotHopTuan}
-          dayShort={dayShort}
-          mucTieuLop={mucTieuLopCk}
-        />
-      )}
+      {/* Mục tiêu RIÊNG của em + khu việc/cam kết rời ĐÃ BỎ (mô hình mới: đích duy nhất là mục
+          tiêu lớp; em chỉ có cam kết + việc bổ trợ hướng vào nó). */}
 
       {/* ⑥ HỌP CỦA EM */}
       <section className="flex flex-col gap-3">
