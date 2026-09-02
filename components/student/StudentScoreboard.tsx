@@ -23,6 +23,7 @@ import {MyRequests, type MyRequest} from '@/components/student/MyRequests';
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {tenHienThi} from '@/lib/ten-hien-thi';
 import {MucTieuCuaCon} from '@/components/student/MucTieuCuaCon';
+import {MucTieuLopChoEm, type MucTieuLopThe} from '@/components/student/MucTieuLopChoEm';
 import type {DonViChon, MucTieuLopChon, MauMucTieu, BuocThe} from '@/components/student/FormMucTieu';
 import {BangEmPA2, type ViecEm, type ViecTuan, type CamKetEm} from '@/components/student/BangEmPA2';
 import type {Database} from '@/lib/database.types';
@@ -237,11 +238,11 @@ export async function StudentScoreboard({
     campusId
       ? supabase.from('tuan_hoc').select('loai').eq('campus_id', campusId).eq('week_start', monday).maybeSingle()
       : Promise.resolve({data: null}),
-    // Mục tiêu lớp đã duyệt — để em hướng mục tiêu của mình vào.
+    // Mục tiêu lớp đã duyệt — em NHÌN thấy % chung (cùng view muc_tieu_v với cô) + làm menu hướng vào.
     classId
       ? supabase
           .from('muc_tieu_v')
-          .select('id, ten, linh_vuc')
+          .select('id, ten, linh_vuc, loai_moc, pct, so, y_so, don_vi_id, ten_don_vi, ket_thuc')
           .eq('class_id', classId)
           .eq('cap', 'lop')
           .eq('trang_thai', 'duyet')
@@ -316,11 +317,42 @@ export async function StudentScoreboard({
     });
   }
 
-  const mucTieuLop: MucTieuLopChon[] = ((mucTieuLopRes.data ?? []) as {
+  const mucTieuLopRows = (mucTieuLopRes.data ?? []) as {
     id: string | null;
     ten: string | null;
     linh_vuc: string | null;
-  }[]).map((m) => ({id: m.id ?? '', ten: m.ten ?? '', linh_vuc: m.linh_vuc ?? 'knowledge'}));
+    loai_moc: string | null;
+    pct: number | null;
+    so: number | null;
+    y_so: number | null;
+    don_vi_id: string | null;
+    ten_don_vi: string | null;
+    ket_thuc: string | null;
+  }[];
+  const mucTieuLop: MucTieuLopChon[] = mucTieuLopRows.map((m) => ({
+    id: m.id ?? '',
+    ten: m.ten ?? '',
+    linh_vuc: m.linh_vuc ?? 'knowledge',
+  }));
+  // Danh sách cho ô "hướng tới mục tiêu" của cam kết em — kèm đơn vị (ràng buộc: có số phải có đơn vị).
+  const mucTieuLopCk = mucTieuLopRows.map((m) => ({
+    id: m.id ?? '',
+    ten: m.ten ?? '',
+    don_vi_id: m.don_vi_id,
+    ten_don_vi: m.ten_don_vi,
+  }));
+  // Bản đầy đủ (kèm %) để em NHÌN thấy mục tiêu lớp — chính con số cô thấy.
+  const mucTieuLopThe: MucTieuLopThe[] = mucTieuLopRows.map((m) => ({
+    id: m.id ?? '',
+    ten: m.ten ?? '',
+    linh_vuc: m.linh_vuc ?? 'knowledge',
+    loai_moc: m.loai_moc,
+    pct: m.pct,
+    so: m.so,
+    y_so: m.y_so,
+    ten_don_vi: m.ten_don_vi,
+    ket_thuc: m.ket_thuc,
+  }));
   const mauList = (mauRes.data ?? []) as MauMucTieu[];
 
   // Gộp luot theo (thuoc, ngày).
@@ -544,6 +576,15 @@ export async function StudentScoreboard({
       {/* ② BĂNG RÔN */}
       {bangRon}
 
+      {/* ③a MỤC TIÊU CỦA LỚP — em nhìn thấy % chung (đích cả lớp cùng đẩy). Chỉ đọc. */}
+      {classId && mucTieuLopThe.length > 0 ? (
+        <section>
+          <h2 className="mb-1 font-display text-[17px] font-bold text-navy">{tBang('khuMucTieuLop')}</h2>
+          <p className="mb-3 text-[12.5px] font-semibold text-grey-mid">{tBang('mucTieuLopNhac')}</p>
+          <MucTieuLopChoEm mucTieu={mucTieuLopThe} mauTheoArea={mauTheoArea} nhanTheoArea={nhanTheoArea} />
+        </section>
+      ) : null}
+
       {/* ③ MỤC TIÊU CỦA EM */}
       {classId ? (
         <section>
@@ -569,6 +610,7 @@ export async function StudentScoreboard({
       <BangEmPA2
         laChinhEm={canTick}
         studentId={studentId}
+        classId={classId ?? ''}
         viec={viec}
         camKet={camKet}
         weekDays={weekDays}
@@ -578,6 +620,7 @@ export async function StudentScoreboard({
         tuanNghi={tuanNghi}
         daChotHopTuan={daChotHopTuan}
         dayShort={dayShort}
+        mucTieuLop={mucTieuLopCk}
       />
 
       {/* ⑥ HỌP CỦA EM */}

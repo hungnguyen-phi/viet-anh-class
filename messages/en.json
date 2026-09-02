@@ -1473,7 +1473,9 @@
     "khuHop": "My meetings",
     "daChotHop": "This week is locked by your PDR sign-off — ask your teacher to change anything.",
     "caLop": "Class: {n}/{si} students reached it",
-    "xemDaDong": "Closed {n, plural, one {WIG} other {WIGs}} ({n})"
+    "xemDaDong": "Closed {n, plural, one {WIG} other {WIGs}} ({n})",
+    "khuMucTieuLop": "Class goals",
+    "mucTieuLopNhac": "What the whole class is driving. Tick your work below and this number goes up."
   },
   "mucTieu": {
     "tt_dat": "Achieved",
@@ -1850,7 +1852,11 @@
     "cauChot": "Week {khoang}: I commit to {noiDung}{so}. {giup}",
     "cauChotSo": ", reaching {hua} {dv}",
     "luu": "Save commitment",
-    "daLuu": "Commitment saved."
+    "daLuu": "Commitment saved.",
+    "themCuaEm": "+ Add my weekly commitment",
+    "noiDungEm": "What will you commit to this week?",
+    "chonMucTieu": "Which class goal?",
+    "huongNhac": "Your commitment points at a class goal so you help push it up."
   },
   "duyet": {
     "duyet": "Approve",
