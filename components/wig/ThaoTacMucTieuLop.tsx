@@ -8,7 +8,6 @@ import {useTranslations} from 'next-intl';
 import {Pencil} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {FormMucTieu3Buoc, type DonViChon, type DangSuaMt, type BuocChon} from '@/components/student/FormMucTieu';
-import {dongMucTieuLop} from '@/app/[locale]/(dashboard)/wig/lop-actions';
 
 export function ThaoTacMucTieuLop({
   goal,
@@ -31,7 +30,7 @@ export function ThaoTacMucTieuLop({
 
   return (
     <div className="mt-1.5 flex items-center gap-3 border-t border-navy/[0.06] pt-2">
-      {/* Sửa = chỉ icon bút (tinh gọn). Xoá nằm TRONG hộp Sửa, không đặt riêng ở thẻ. */}
+      {/* Chỉ icon bút Sửa (tinh gọn). Xoá nằm TRONG hộp Sửa. Bỏ "Đóng" khỏi thẻ (hiếm dùng, gây rối). */}
       <button
         type="button"
         onClick={() => setSua(true)}
@@ -41,18 +40,6 @@ export function ThaoTacMucTieuLop({
       >
         <Pencil size={14} strokeWidth={2.5} />
       </button>
-
-      <form action={dongMucTieuLop}>
-        <input type="hidden" name="class_id" value={classId} />
-        <input type="hidden" name="week" value={weekQ} />
-        <input type="hidden" name="muc_tieu_id" value={goal?.id ?? ''} />
-        <SubmitButton
-          className="inline-flex min-h-[26px] items-center text-[12px] font-extrabold text-grey-mid underline hover:text-navy"
-          wrapClass="contents"
-        >
-          {t('dongNgan')}
-        </SubmitButton>
-      </form>
 
       {sua && (
         <FormMucTieu3Buoc

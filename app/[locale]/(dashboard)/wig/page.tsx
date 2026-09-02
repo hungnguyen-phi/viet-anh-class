@@ -17,6 +17,7 @@ import {NutTaoMucTieuLop} from '@/components/wig/NutTaoMucTieuLop';
 import {NutTaoViecLop} from '@/components/wig/NutTaoViecLop';
 import {ThaoTacMucTieuLop} from '@/components/wig/ThaoTacMucTieuLop';
 import {SuaLoiCamKetLop} from '@/components/wig/SuaLoiCamKetLop';
+import {NutThemCamKetLop} from '@/components/wig/NutThemCamKetLop';
 import {SuaChiTieuLop} from '@/components/wig/SuaChiTieuLop';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import type {DangSuaMt} from '@/components/student/FormMucTieu';
@@ -93,8 +94,8 @@ function dinhSo(n: number): string {
 // đường dự đoán/pace nên không thể vẽ sai. Đích cắm ở đỉnh; cột cao theo tỉ lệ so/đích.
 function BieuDoThat({lichSu, dich, mau}: {lichSu: {tuan_ket: string; so: number}[]; dich: number; mau: string}) {
   if (lichSu.length < 2 || dich <= 0) return null;
-  const W = 168;
-  const H = 46;
+  const W = 320;
+  const H = 72;
   const n = lichSu.length;
   const bw = W / n;
   const maxSo = Math.max(...lichSu.map((p) => p.so));
@@ -104,15 +105,15 @@ function BieuDoThat({lichSu, dich, mau}: {lichSu: {tuan_ket: string; so: number}
   const dichTrongKhung = dich <= dinh;
   const yDich = 6 + (H - 6) * (1 - dich / dinh);
   return (
-    <svg viewBox={`0 0 ${W} ${H + 12}`} className="w-full" style={{height: 44}} role="img" aria-label="Biểu đồ số thật theo tuần">
+    <svg viewBox={`0 0 ${W} ${H + 14}`} className="w-full" style={{height: 74}} preserveAspectRatio="none" role="img" aria-label="Biểu đồ số thật theo tuần">
       {dichTrongKhung && (
-        <line x1="0" y1={yDich} x2={W} y2={yDich} stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" className="text-grey-mid" opacity="0.6" />
+        <line x1="0" y1={yDich} x2={W} y2={yDich} stroke="currentColor" strokeWidth="1.2" strokeDasharray="4 4" className="text-grey-mid" opacity="0.55" />
       )}
       {lichSu.map((p, i) => {
-        const h = Math.max(1.5, (H - 6) * (p.so / dinh));
-        return <rect key={i} x={i * bw + bw * 0.18} y={H - h} width={bw * 0.64} height={h} rx="1.5" fill={mau} opacity={i === n - 1 ? 1 : 0.5} />;
+        const h = Math.max(2, (H - 8) * (p.so / dinh));
+        return <rect key={i} x={i * bw + bw * 0.16} y={H - h} width={bw * 0.68} height={h} rx="2" fill={mau} opacity={i === n - 1 ? 1 : 0.42} />;
       })}
-      <text x={W} y={9} fontSize="7.5" textAnchor="end" fill="currentColor" className="text-grey-mid">
+      <text x={W - 1} y={11} fontSize="9" textAnchor="end" fill="currentColor" className="text-grey-mid" fontWeight="700">
         {dichTrongKhung ? `đích ${dinhSo(dich)}` : `đích ${dinhSo(dich)} · còn xa`}
       </text>
     </svg>
@@ -347,16 +348,8 @@ export default async function WigPage({
     if (m.trang_thai === 'nhap') return {text: tMt('nhap'), cls: 'bg-navy/[0.06] text-grey-mid'};
     if (m.trang_thai === 'gui') return {text: tMt('choBghDuyet'), cls: 'bg-gold/[0.18] text-gold-text'};
     if (m.trang_thai === 'tra_lai') return {text: tMt('traLai'), cls: 'bg-status-bad/[0.12] text-status-bad'};
-    const d = m.trang_thai_do;
-    if (!d) return null;
-    const xanh = d === 'dat' || d === 'dang_thang' || d === 'dang_giu';
-    const do_ = d === 'can_co' || d === 'vuot' || d === 'truot';
-    const cls = xanh
-      ? 'bg-success/[0.12] text-success-dark'
-      : do_
-        ? 'bg-status-bad/[0.12] text-status-bad'
-        : 'bg-gold/[0.18] text-gold-text';
-    return {text: tMt(`tt_${d}`), cls};
+    // Bỏ nhãn nhịp đo ("Sát nút"/"Vượt"…): mục tiêu nay cô nhập số tay, nhãn pace vô nghĩa + gây rối.
+    return null;
   };
 
   const baSo = (label: string, val: number | null | undefined) => (
@@ -633,9 +626,12 @@ export default async function WigPage({
                     </form>
                   )}
 
-                  {/* ── LỘ TRÌNH ②: CAM KẾT tuần hướng vào mục tiêu này — cô thêm/chấm/sửa/xoá. ── */}
+                  {/* ── LỘ TRÌNH: CAM KẾT tuần của cô cho mục tiêu này → dưới mỗi cam kết là việc bổ trợ. ── */}
                   <div className="mt-1 flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
-                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('camKetHuong')}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('camKetHuong')}</p>
+                      <NutThemCamKetLop classId={myClass.id} weekQ={weekQ} monday={monday} mucTieuId={m.id} />
+                    </div>
                     {(camKetCuaWig.get(m.id) ?? []).length === 0 ? (
                       <p className="text-[11.5px] font-semibold italic text-grey-mid">{t('camKetTrongMt')}</p>
                     ) : (
@@ -695,13 +691,6 @@ export default async function WigPage({
                               </SubmitButton>
                             </form>
                             <SuaLoiCamKetLop camKetId={c.id ?? ''} noiDung={c.noi_dung ?? ''} classId={myClass.id} weekQ={weekQ} />
-                            <form action={xoaCamKetLop}>
-                              {ctx}
-                              <input type="hidden" name="cam_ket_id" value={c.id ?? undefined} />
-                              <SubmitButton className="text-[11px] font-bold text-grey-mid hover:text-status-bad" wrapClass="contents">
-                                {tCk('huy')}
-                              </SubmitButton>
-                            </form>
                           </div>
                           {/* VIỆC BỔ TRỢ của cô cho cam kết này — cô tick (cả đội) để hoàn thành. */}
                           {c.thuoc_id && boTroTheoId.has(c.thuoc_id) && (
@@ -722,43 +711,6 @@ export default async function WigPage({
                         </div>
                       ))
                     )}
-                    <details className="rounded-[10px] border border-dashed border-navy/25 p-2">
-                      <summary className="cursor-pointer text-[11.5px] font-extrabold text-navy">{t('themCamKet')}</summary>
-                      <form action={taoCamKetLop} className="mt-2 flex flex-col gap-2">
-                        {ctx}
-                        <input type="hidden" name="tuan_bat_dau" value={monday} />
-                        <input type="hidden" name="muc_tieu_id" value={m.id} />
-                        <input
-                          name="noi_dung"
-                          maxLength={300}
-                          placeholder={tCk('noiDungLop')}
-                          className="rounded-[8px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[12.5px] text-navy"
-                        />
-                        {/* Việc bổ trợ của cô — cô tick cả đội để hoàn thành cam kết. */}
-                        <input
-                          name="viec_bo_tro"
-                          maxLength={100}
-                          placeholder={tCk('viecBoTroHoi')}
-                          className="rounded-[8px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[12px] text-navy"
-                        />
-                        <div className="flex flex-wrap items-center gap-2">
-                          <input
-                            type="number"
-                            name="so_hua"
-                            step="any"
-                            min="0"
-                            placeholder={tCk('soHua')}
-                            className="w-24 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12px] text-navy"
-                          />
-                          <SubmitButton
-                            className="rounded-[8px] bg-navy px-3 py-1.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy/90"
-                            wrapClass="contents"
-                          >
-                            {tCk('luu')}
-                          </SubmitButton>
-                        </div>
-                      </form>
-                    </details>
                   </div>
 
                   {/* Sửa · Đóng · Xoá mục tiêu của lớp. */}
