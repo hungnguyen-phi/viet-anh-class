@@ -2,15 +2,15 @@
 
 import {useActionState, useEffect, useMemo, useState} from 'react';
 import {useLocale, useTranslations} from 'next-intl';
-import {AlertCircle, Trash2, Lightbulb, Info, Check, ArrowUp, ArrowDown, ArrowRight} from 'lucide-react';
+import {AlertCircle, Trash2, Lightbulb, Info, Check, HelpCircle} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder, inputInline} from '@/components/ui/Field';
 import {ONgayVN, ngayVN} from '@/components/ui/ONgayVN';
-import {schoolYearRangeVN} from '@/lib/dates';
 import {ChonCuon} from '@/components/ui/ChonCuon';
 import {AREAS} from '@/lib/areas';
 import {luuMucTieu, xoaMucTieu, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
+import {xoaMucTieuLop} from '@/app/[locale]/(dashboard)/wig/lop-actions';
 import type {Database} from '@/lib/database.types';
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
@@ -81,12 +81,15 @@ export function FormMucTieu3Buoc({
   mucTieuLop = [],
   buocDangSua = [],
   dangSua = null,
+  cap = 'em',
   onClose,
   onDone,
 }: {
   studentId: string;
   classId: string;
   laChinhEm: boolean;
+  /** 'lop' = GVCN đặt mục tiêu CHO LỚP (gửi BGH duyệt); 'em' = mục tiêu của học sinh. */
+  cap?: 'em' | 'lop';
   /** Tên em — chỉ khi thầy cô gõ giúp, để tiêu đề nói rõ đang gõ cho ai. */
   tenEm?: string;
   /** Lĩnh vực của ô em vừa bấm ở màn ngoài (mặc định lĩnh vực đầu). */
@@ -111,7 +114,6 @@ export function FormMucTieu3Buoc({
   const [ten, setTen] = useState(dangSua?.ten ?? '');
   const [linhVuc, setLinhVuc] = useState<string>(dangSua?.linh_vuc ?? areaPreset ?? AREAS[0]);
   const [monId, setMonId] = useState<string>(dangSua?.subject_id ?? '');
-  const [chuaDoX, setChuaDoX] = useState(dangSua?.chua_do_x ?? false);
   const [x, setX] = useState(dangSua?.x_so != null ? String(dangSua.x_so) : '');
   const [y, setY] = useState(dangSua?.y_so != null ? String(dangSua.y_so) : '');
   const [donViId, setDonViId] = useState<string>(dangSua?.don_vi_id ?? '');
@@ -136,6 +138,8 @@ export function FormMucTieu3Buoc({
       mo_ta: b.mo_ta ?? '',
     })),
   );
+  // Giải thích loại cột mốc đang mở (dí "?"): null | do_luong | hanh_dong | ke_hoach.
+  const [moHelp, setMoHelp] = useState<string | null>(null);
   // SMART tooltip + bảng chấm chất lượng mở/đóng.
   const [moSmart, setMoSmart] = useState(false);
   const [moChatLuong, setMoChatLuong] = useState(false);
@@ -152,16 +156,8 @@ export function FormMucTieu3Buoc({
 
   const err = (f: string) => (state.fieldError === f ? state.error : null);
   // Chiều (tăng/giữ/giảm) suy thẳng từ hai số — mọi mục tiêu ĐO nay ghi tay (đếm là việc của khu
-  // "Việc em làm", không phải của mục tiêu). Nhãn chiều để em thấy app hiểu đúng ("nhìn 2s là hiểu").
-  const suy = suyTuSo(x, y, chuaDoX);
-  const suyNhan =
-    (x.trim() === '' && !chuaDoX) || y.trim() === ''
-      ? null
-      : suy.chieu === 'giam'
-        ? t('suyGiam')
-        : suy.chieu === 'giu'
-          ? t('suyGiu')
-          : t('suyTang');
+  // "Việc em làm", không phải của mục tiêu). Chỉ dùng cho enum lưu, không bày ra màn nữa.
+  const suy = suyTuSo(x, y, false);
   const nhanDv = donViList.find((d) => d.id === donViId)?.ma ?? '';
 
   // ── CHẤM CHẤT LƯỢNG MỤC TIÊU (SMART) ─────────────────────────────────────────────────────
@@ -182,7 +178,7 @@ export function FormMucTieu3Buoc({
       {
         key: 'clVuaSuc',
         // Đích cao hơn hiện tại (đúng hướng), và không xa gấp hơn 20 lần — chống "0 → 1 triệu".
-        dat: !laDo || suy.chieu !== 'tang' || chuaDoX
+        dat: !laDo || suy.chieu !== 'tang' || x.trim() === ''
           ? Boolean(y.trim()) || !laDo
           : Number.isFinite(yNum) && Number.isFinite(xNum) && yNum > xNum && yNum <= (xNum || 1) * 20,
       },
@@ -191,7 +187,7 @@ export function FormMucTieu3Buoc({
       {key: 'clCoMoTa', dat: moTa.trim().length >= 20},
     ];
     return list;
-  }, [ten, y, x, donViId, hoTroCho, ketThuc, moTa, laDo, suy.chieu, chuaDoX, dangSua]);
+  }, [ten, y, x, donViId, hoTroCho, ketThuc, moTa, laDo, suy.chieu, dangSua]);
   const soDat = tieuChi.filter((c) => c.dat).length;
   const phanTram = Math.round((soDat / tieuChi.length) * 100);
 
@@ -202,10 +198,9 @@ export function FormMucTieu3Buoc({
     if (!y.trim() || !nhanDv || !ketThuc) return null;
     const ngay = ngayVN(ketThuc);
     if (suy.chieu === 'giu') return t('cauChotGiu', {ten, dau: '≥', y, dv: nhanDv});
-    if (chuaDoX) return t('cauChotChuaX', {ten, y, dv: nhanDv, ngay});
-    if (!x.trim()) return null;
+    if (!x.trim()) return t('cauChotChuaX', {ten, y, dv: nhanDv, ngay});
     return t('cauChot', {ten, x, chieu: suy.chieu === 'giam' ? t('chieuGiam') : t('chieuTang'), y, dv: nhanDv, ngay});
-  }, [ten, loaiMoc, suy.chieu, chuaDoX, x, y, nhanDv, ketThuc, t]);
+  }, [ten, loaiMoc, suy.chieu, x, y, nhanDv, ketThuc, t]);
 
   function chonMau(m: MauMucTieu) {
     setTen(m.ten);
@@ -223,16 +218,22 @@ export function FormMucTieu3Buoc({
   // ngoài khung 4 domain (Marketing/CLB), đặt ở màn của thầy cô, không bày cho học sinh.
   const suG: string[] = [...AREAS];
 
-  const tieuDe = dangSua
-    ? t('formTitleSua')
-    : laChinhEm
-      ? t('formTitle')
-      : t('formTitleHo', {ten: tenEm ?? ''});
+  const tieuDe =
+    cap === 'lop'
+      ? dangSua
+        ? t('formTitleLopSua')
+        : t('formTitleLop')
+      : dangSua
+        ? t('formTitleSua')
+        : laChinhEm
+          ? t('formTitle')
+          : t('formTitleHo', {ten: tenEm ?? ''});
 
   return (
     <Popup title={tieuDe} onClose={onClose} width="max-w-[640px]">
       <form action={formAction} className="flex flex-col gap-3">
-        <input type="hidden" name="student_id" value={studentId} />
+        <input type="hidden" name="cap" value={cap} />
+        <input type="hidden" name="student_id" value={cap === 'lop' ? '' : studentId} />
         <input type="hidden" name="class_id" value={classId} />
         {dangSua && <input type="hidden" name="muc_tieu_id" value={dangSua.id ?? ''} />}
         {/* Các giá trị suy ra — máy chủ kiểm lại, đây chỉ chuyển đúng enum. */}
@@ -242,8 +243,8 @@ export function FormMucTieu3Buoc({
         <input type="hidden" name="chieu" value={suy.chieu} />
         <input type="hidden" name="ky" value="" />
         <input type="hidden" name="nguon_so" value="ghi_tay" />
-        <input type="hidden" name="chua_do_x" value={chuaDoX ? '1' : ''} />
-        <input type="hidden" name="x_so" value={chuaDoX ? '' : x} />
+        <input type="hidden" name="chua_do_x" value={x.trim() === '' ? '1' : ''} />
+        <input type="hidden" name="x_so" value={x} />
         <input type="hidden" name="y_so" value={y} />
         <input type="hidden" name="y_chu" value="" />
         <input type="hidden" name="don_vi_id" value={donViId} />
@@ -433,7 +434,7 @@ export function FormMucTieu3Buoc({
         </Field>
 
         {/* HỖ TRỢ CHO — nối mục tiêu của em vào mục tiêu của lớp (chỉ khi tạo mới). */}
-        {!dangSua && mucTieuLop.length > 0 && (
+        {!dangSua && cap !== 'lop' && mucTieuLop.length > 0 && (
           <Field label={t('hoTroCho')} htmlFor="mt-ho-tro">
             <ChonCuon
               id="mt-ho-tro"
@@ -448,17 +449,45 @@ export function FormMucTieu3Buoc({
           </Field>
         )}
 
-        {/* LOẠI CỘT MỐC — ba khuôn theo hình dạng mục tiêu (0172). */}
+        {/* LOẠI CỘT MỐC — ba khuôn theo hình dạng mục tiêu (0172). Mỗi loại có "?" giải thích để em
+            CHỌN ĐÚNG loại: đo lường = con số lên/xuống; kế hoạch = nhiều bước không gói vào một số;
+            hành động = một việc làm/chưa làm (dùng hạn chế vì mục tiêu nên đo được). */}
         <div>
           <p className="mb-1.5 text-[12px] font-bold text-grey-mid">{t('loaiMocLabel')}</p>
           <div data-kiem="mt-loai-moc" className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
-            <OChon chon={loaiMoc === 'do_luong'} onClick={() => setLoaiMoc('do_luong')} nhan={t('mocDoLuong')} kiem="mt-moc-do-luong" />
-            <OChon chon={loaiMoc === 'hanh_dong'} onClick={() => setLoaiMoc('hanh_dong')} nhan={t('mocHanhDong')} kiem="mt-moc-hanh-dong" />
-            <OChon chon={loaiMoc === 'ke_hoach'} onClick={() => setLoaiMoc('ke_hoach')} nhan={t('mocKeHoach')} kiem="mt-moc-ke-hoach" />
+            {[
+              {ma: 'do_luong', nhan: t('mocDoLuong'), kiem: 'mt-moc-do-luong', giai: t('mocDoLuongGiai')},
+              {ma: 'hanh_dong', nhan: t('mocHanhDong'), kiem: 'mt-moc-hanh-dong', giai: t('mocHanhDongGiai')},
+              {ma: 'ke_hoach', nhan: t('mocKeHoach'), kiem: 'mt-moc-ke-hoach', giai: t('mocKeHoachGiai')},
+            ].map((o) => (
+              <div key={o.ma} className="relative">
+                <OChon chon={loaiMoc === o.ma} onClick={() => setLoaiMoc(o.ma)} nhan={o.nhan} kiem={o.kiem} />
+                <button
+                  type="button"
+                  data-kiem={`${o.kiem}-help`}
+                  onClick={() => setMoHelp((v) => (v === o.ma ? null : o.ma))}
+                  aria-label={t('giaiThichLoai', {loai: o.nhan})}
+                  aria-expanded={moHelp === o.ma}
+                  className="absolute right-1 top-1 grid h-6 w-6 cursor-pointer place-items-center rounded-full text-grey-mid transition-colors hover:bg-navy/10 hover:text-navy"
+                >
+                  <HelpCircle size={15} strokeWidth={2.5} />
+                </button>
+              </div>
+            ))}
           </div>
-          <p className="mt-1 text-[11px] font-semibold text-grey-mid">
-            {loaiMoc === 'do_luong' ? t('mocDoLuongGt') : loaiMoc === 'hanh_dong' ? t('mocHanhDongGt') : t('mocKeHoachGt')}
-          </p>
+          {/* Dí "?" → hiện giải thích đầy đủ của loại đó; chưa dí → câu ngắn của loại đang chọn. */}
+          {moHelp ? (
+            <p
+              data-kiem="mt-loai-giai"
+              className="mt-1.5 rounded-[10px] bg-gold/[0.12] px-2.5 py-2 text-[12px] font-semibold leading-relaxed text-navy"
+            >
+              {moHelp === 'do_luong' ? t('mocDoLuongGiai') : moHelp === 'hanh_dong' ? t('mocHanhDongGiai') : t('mocKeHoachGiai')}
+            </p>
+          ) : (
+            <p className="mt-1 text-[11px] font-semibold text-grey-mid">
+              {loaiMoc === 'do_luong' ? t('mocDoLuongGt') : loaiMoc === 'hanh_dong' ? t('mocHanhDongGt') : t('mocKeHoachGt')}
+            </p>
+          )}
         </div>
 
         {/* HÀNH ĐỘNG: không có ô số — làm xong là 100%. */}
@@ -561,21 +590,10 @@ export function FormMucTieu3Buoc({
                   min="0"
                   inputMode="decimal"
                   value={x}
-                  disabled={chuaDoX}
                   onChange={(e) => setX(e.target.value)}
-                  placeholder={chuaDoX ? '—' : '0'}
+                  placeholder="0"
                   className={ctlWithBorder(state.fieldError === 'x_so')}
                 />
-                <label className="mt-1 flex cursor-pointer items-center gap-1.5 text-[11.5px] font-semibold text-grey-mid">
-                  <input
-                    type="checkbox"
-                    data-kiem="mt-chua-do-x"
-                    checked={chuaDoX}
-                    onChange={(e) => setChuaDoX(e.target.checked)}
-                    className="h-3.5 w-3.5 rounded border-navy/30"
-                  />
-                  {t('chuaBietX')}
-                </label>
               </Field>
               <Field label={t('giaTriMucTieu')} htmlFor="mt-y" error={err('y_so')}>
                 <input
@@ -591,27 +609,10 @@ export function FormMucTieu3Buoc({
                 />
               </Field>
             </div>
-
-            {/* App tự hiểu tăng/giữ/giảm từ hai số — cho em thấy để yên tâm. */}
-            {suyNhan && (
-              <p
-                data-kiem="mt-suy-chieu"
-                className="inline-flex items-center gap-1.5 self-start rounded-full bg-navy/[0.05] px-2.5 py-1 text-[12px] font-semibold text-navy"
-              >
-                {suy.chieu === 'giam' ? (
-                  <ArrowDown size={14} strokeWidth={2.8} className="shrink-0 text-gold-deep" />
-                ) : suy.chieu === 'giu' ? (
-                  <ArrowRight size={14} strokeWidth={2.8} className="shrink-0 text-gold-deep" />
-                ) : (
-                  <ArrowUp size={14} strokeWidth={2.8} className="shrink-0 text-gold-deep" />
-                )}
-                {suyNhan}
-              </p>
-            )}
           </div>
         )}
 
-        {/* NGÀY ĐẾN HẠN + preset nhanh. */}
+        {/* NGÀY ĐẾN HẠN. */}
         <div>
           <Field label={t('ngayDenHan')} error={err('ket_thuc')}>
             <span data-kiem="mt-han" className="block max-w-[220px]">
@@ -624,15 +625,6 @@ export function FormMucTieu3Buoc({
               />
             </span>
           </Field>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => setKetThuc(schoolYearRangeVN().end)}
-              className="rounded-full border-[1.5px] border-navy/15 bg-white px-2.5 py-1 text-[11.5px] font-bold text-navy hover:border-navy"
-            >
-              {t('presetNamNay')}
-            </button>
-          </div>
         </div>
 
         {/* ③ ĐỌC LẠI CÂU MỤC TIÊU — ráp từ chính chữ em gõ. */}
@@ -676,17 +668,22 @@ export function FormMucTieu3Buoc({
         </div>
       </form>
 
-      {/* XOÁ — chỉ được khi mục tiêu chưa có số nào ghi dưới nó (RLS quyết). */}
-      {dangSua && laChinhEm && (
+      {/* XOÁ — nằm TRONG hộp Sửa (tinh gọn): thẻ không có nút xoá riêng nữa. RLS quyết được xoá hay
+          không (chưa có số/dây dưới nó). Mục tiêu lớp đi qua action riêng (về /wig). */}
+      {dangSua && (laChinhEm || cap === 'lop') && (
         <form
-          action={xoaMucTieu}
+          action={cap === 'lop' ? xoaMucTieuLop : xoaMucTieu}
           className="mt-2 flex justify-end"
           onSubmit={(e) => {
             if (!window.confirm(t('xoaHoi'))) e.preventDefault();
           }}
         >
           <input type="hidden" name="muc_tieu_id" value={dangSua.id ?? ''} />
-          <input type="hidden" name="student_id" value={studentId} />
+          {cap === 'lop' ? (
+            <input type="hidden" name="class_id" value={classId} />
+          ) : (
+            <input type="hidden" name="student_id" value={studentId} />
+          )}
           <SubmitButton
             className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 text-[11.5px] font-extrabold text-status-bad underline"
             wrapClass="contents"

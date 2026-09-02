@@ -68,9 +68,13 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   const muc_tieu_id = String(formData.get('muc_tieu_id') ?? '').trim();
   const student_id = String(formData.get('student_id') ?? '');
   const class_id = String(formData.get('class_id') ?? '');
-  const laChinhEm = me.id === student_id && me.role === 'student';
+  // cap='lop': GVCN đặt MỤC TIÊU CỦA LỚP (gửi BGH duyệt) — cùng form với màn em, khác chủ thể.
+  const laLop = String(formData.get('cap') ?? 'em') === 'lop';
+  const cap: 'em' | 'lop' = laLop ? 'lop' : 'em';
+  const laChinhEm = !laLop && me.id === student_id && me.role === 'student';
   const laNhanSu = me.role === 'teacher' || me.role === 'admin' || me.role === 'principal';
-  if (!laChinhEm && !laNhanSu) return {ok: false, error: 'Chỉ em mới ghi được phần này.'};
+  if (laLop && !laNhanSu) return {ok: false, error: 'Chỉ thầy cô mới đặt mục tiêu cho lớp.'};
+  if (!laLop && !laChinhEm && !laNhanSu) return {ok: false, error: 'Chỉ em mới ghi được phần này.'};
 
   const ten = String(formData.get('ten') ?? '').trim();
   if (!ten) return {ok: false, fieldError: 'ten', error: 'Em muốn tiến bộ ở việc gì? Viết một câu.'};
@@ -205,21 +209,21 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
       .from('muc_tieu')
       .update({...noiDung, trang_thai})
       .eq('id', muc_tieu_id)
-      .eq('cap', 'em')
+      .eq('cap', cap)
       .select('id');
     if (error) return {ok: false, error: friendlyError(error)};
     if (!data || data.length === 0)
       return {ok: false, error: 'Không lưu được — em không có quyền với lớp này.'};
   } else {
     const campus_id = await layCampus(supabase, class_id);
-    if (!campus_id) return {ok: false, error: 'Không rõ lớp của em nên chưa lưu được.'};
+    if (!campus_id) return {ok: false, error: 'Không rõ lớp nên chưa lưu được.'};
     const {data, error} = await supabase
       .from('muc_tieu')
       .insert({
-        cap: 'em',
+        cap,
         campus_id,
         class_id,
-        student_id,
+        student_id: laLop ? null : student_id,
         trang_thai,
         ...noiDung,
         bat_dau: isValidDayVN(bat_dau) ? bat_dau : todayInVN(),
@@ -279,7 +283,13 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]/campus', 'page');
   if (trang_thai === 'nhap') return {ok: true, message: 'Đã lưu nháp.'};
+  if (laLop)
+    return {
+      ok: true,
+      message: muc_tieu_id ? 'Sửa xong, mục tiêu lớp chờ Ban giám hiệu duyệt.' : 'Đã gửi Ban giám hiệu duyệt mục tiêu lớp.',
+    };
   return {
     ok: true,
     message: laChinhEm
@@ -904,6 +914,18 @@ export async function noiNguon(formData: FormData) {
   const heSo = Number(String(formData.get('he_so') ?? '1').trim());
   if (!cha_id || (!con_muc_tieu_id && !con_thuoc_id)) veTrangEm(student_id, loi('Thiếu nguồn hoặc mục tiêu cha.'));
   const supabase = await createClient();
+  // NỐI GÓP SỐ TỪ MỘT VIỆC → mục tiêu tự cộng từ lượt tick. Trigger noi_hop_le đòi mục tiêu ĐANG
+  // là nguon_so='thuoc' TRƯỚC khi nhận dây góp số, nên bật 'thuoc' trước rồi mới nối; nối hỏng thì
+  // hoàn nguyên. Không đụng 'thanh_phan'/'he_thong'. RLS gác: chỉ chủ mục tiêu đổi được.
+  const bumThuoc = vai === 'gop_so' && !!con_thuoc_id;
+  let daBat = false;
+  if (bumThuoc) {
+    const {data: mtCu} = await supabase.from('muc_tieu').select('nguon_so').eq('id', cha_id).maybeSingle();
+    if (mtCu?.nguon_so === 'ghi_tay') {
+      await supabase.from('muc_tieu').update({nguon_so: 'thuoc'}).eq('id', cha_id).eq('nguon_so', 'ghi_tay');
+      daBat = true;
+    }
+  }
   const {data, error} = await supabase
     .from('noi')
     .insert({
@@ -916,12 +938,15 @@ export async function noiNguon(formData: FormData) {
       created_by: me.id,
     })
     .select('id');
+  if (error && daBat) {
+    await supabase.from('muc_tieu').update({nguon_so: 'ghi_tay'}).eq('id', cha_id).eq('nguon_so', 'thuoc');
+  }
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
   if (!data || data.length === 0) veTrangEm(student_id, loi('Không nối được — không có quyền.'));
-  veTrangEm(student_id, vai === 'gop_so' ? 'Đã nối để cộng số vào mục tiêu' : 'Đã nối hướng tới mục tiêu');
+  veTrangEm(student_id, vai === 'gop_so' ? 'Đã nối — mục tiêu sẽ tự cộng từ việc này' : 'Đã nối hướng tới mục tiêu');
 }
 
 export async function goNguon(formData: FormData) {
@@ -929,7 +954,19 @@ export async function goNguon(formData: FormData) {
   const id = String(formData.get('noi_id') ?? '');
   if (!id) veTrangEm(student_id, loi('Thiếu dây cần gỡ.'));
   const supabase = await createClient();
+  // Nhớ dây này thuộc mục tiêu nào + có phải góp-số-từ-việc không, để hoàn nguyên nguon_so sau khi gỡ.
+  const {data: truoc} = await supabase.from('noi').select('cha_id, vai, con_thuoc_id').eq('id', id).maybeSingle();
   const {data, error} = await supabase.from('noi').delete().eq('id', id).select('id');
+  // Gỡ dây góp số cuối cùng của một mục tiêu → trả về ghi tay (không còn việc nào để cộng).
+  if (!error && data && data.length > 0 && truoc?.vai === 'gop_so' && truoc?.con_thuoc_id && truoc?.cha_id) {
+    const {count} = await supabase
+      .from('noi')
+      .select('id', {count: 'exact', head: true})
+      .eq('cha_id', truoc.cha_id)
+      .eq('vai', 'gop_so')
+      .not('con_thuoc_id', 'is', null);
+    if (!count) await supabase.from('muc_tieu').update({nguon_so: 'ghi_tay'}).eq('id', truoc.cha_id).eq('nguon_so', 'thuoc');
+  }
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');

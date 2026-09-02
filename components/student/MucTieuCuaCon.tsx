@@ -340,17 +340,15 @@ function TheMucTieu({
               </>
             );
             return canGhi ? (
-              <form key={b.id} action={datBuocXong}>
+              <form key={b.id} action={datBuocXong} data-kiem="buoc-tick">
                 <input type="hidden" name="buoc_id" value={b.id} />
                 <input type="hidden" name="xong" value={b.xong ? '' : '1'} />
-                <button
-                  type="submit"
-                  data-kiem="buoc-tick"
-                  aria-pressed={b.xong}
+                <SubmitButton
                   className="flex min-h-[44px] w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-1.5 text-left transition-colors hover:bg-navy/[0.04]"
+                  wrapClass="contents"
                 >
                   {noiDungBuoc}
-                </button>
+                </SubmitButton>
               </form>
             ) : (
               <div key={b.id} className="flex min-h-[36px] items-center gap-2.5 px-1.5">
