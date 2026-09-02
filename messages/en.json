@@ -1475,7 +1475,10 @@
     "caLop": "Class: {n}/{si} students reached it",
     "xemDaDong": "Closed {n, plural, one {WIG} other {WIGs}} ({n})",
     "khuMucTieuLop": "Class goals",
-    "mucTieuLopNhac": "What the whole class is driving. Tick your work below and this number goes up."
+    "mucTieuLopNhac": "What the whole class is driving. Tick your work below and this number goes up.",
+    "loViec": "Your work driving this goal",
+    "loCamKet": "Your weekly commitment for this goal",
+    "loCamKetTrong": "No commitment for this goal this week."
   },
   "mucTieu": {
     "tt_dat": "Achieved",
@@ -1698,7 +1701,12 @@
     "buocTieuDePh": "e.g. Pick a topic",
     "buocPhanTram": "Percent",
     "buocXoa": "Remove step",
-    "themBuoc": "Add step"
+    "themBuoc": "Add step",
+    "cauChotLop": "Our class will {ten}, from {x} {chieu} {y} {dv}, by {ngay}.",
+    "cauChotLopChuaX": "Our class will {ten}, reaching {y} {dv}, by {ngay}.",
+    "cauChotLopGiu": "Our class will {ten}: keep {dau} {y} {dv} all year.",
+    "phanLaGi": "What is the goal?",
+    "phanDoTheNao": "How is it measured?"
   },
   "viec": {
     "chipLop": "Class",
@@ -1952,6 +1960,11 @@
     "rongDanDat": "Set the class target first — then add the work that drives it and a weekly commitment.",
     "rongTiepTheo": "next, to drive the goal",
     "camKetTuanNgan": "Weekly commitment",
-    "khoaMoKhi": "unlocks after a goal"
+    "khoaMoKhi": "unlocks after a goal",
+    "viecDayTrong": "No work drives this goal yet — add one for the class to do.",
+    "camKetHuong": "This week’s commitment for this goal",
+    "camKetTrongMt": "No commitment for this goal this week.",
+    "viecChuaGan": "Work not linked to a goal",
+    "camKetChuaHuong": "Commitments not aimed at a goal"
   }
 }

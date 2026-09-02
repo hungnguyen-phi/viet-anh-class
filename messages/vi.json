@@ -1475,7 +1475,10 @@
     "caLop": "Cả lớp: {n}/{si} bạn đã đạt",
     "xemDaDong": "Mục tiêu đã đóng ({n})",
     "khuMucTieuLop": "Mục tiêu của lớp",
-    "mucTieuLopNhac": "Đích cả lớp cùng đẩy. Em tick việc của mình ở dưới là con số này nhích lên."
+    "mucTieuLopNhac": "Đích cả lớp cùng đẩy. Em tick việc của mình ở dưới là con số này nhích lên.",
+    "loViec": "Việc em làm đẩy mục tiêu này",
+    "loCamKet": "Cam kết tuần của em cho mục tiêu này",
+    "loCamKetTrong": "Tuần này chưa có cam kết cho mục tiêu này."
   },
   "mucTieu": {
     "tt_dat": "Đã đạt",
@@ -1698,7 +1701,12 @@
     "buocTieuDePh": "vd: Chọn đề tài",
     "buocPhanTram": "Phần trăm",
     "buocXoa": "Xoá bước",
-    "themBuoc": "Thêm bước"
+    "themBuoc": "Thêm bước",
+    "cauChotLop": "Lớp sẽ {ten}, từ {x} {chieu} {y} {dv}, trước {ngay}.",
+    "cauChotLopChuaX": "Lớp sẽ {ten}, tới {y} {dv}, trước {ngay}.",
+    "cauChotLopGiu": "Lớp sẽ {ten}: giữ {dau} {y} {dv} suốt năm.",
+    "phanLaGi": "Mục tiêu là gì?",
+    "phanDoTheNao": "Đo thế nào?"
   },
   "viec": {
     "chipLop": "Của lớp",
@@ -1952,6 +1960,11 @@
     "rongDanDat": "Đặt đích cho cả lớp trước — rồi thêm việc đẩy đích và cam kết mỗi tuần.",
     "rongTiepTheo": "tiếp theo, để đẩy mục tiêu",
     "camKetTuanNgan": "Cam kết tuần",
-    "khoaMoKhi": "mở khi có mục tiêu"
+    "khoaMoKhi": "mở khi có mục tiêu",
+    "viecDayTrong": "Chưa có việc đẩy mục tiêu này — thêm một việc để cả lớp cùng làm.",
+    "camKetHuong": "Cam kết tuần hướng mục tiêu này",
+    "camKetTrongMt": "Tuần này chưa có cam kết cho mục tiêu này.",
+    "viecChuaGan": "Việc chưa gắn mục tiêu",
+    "camKetChuaHuong": "Cam kết chưa hướng mục tiêu"
   }
 }
