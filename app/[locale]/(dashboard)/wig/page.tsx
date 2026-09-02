@@ -95,7 +95,7 @@ function dinhSo(n: number): string {
 function BieuDoThat({lichSu, dich, mau}: {lichSu: {tuan_ket: string; so: number}[]; dich: number; mau: string}) {
   if (lichSu.length < 2 || dich <= 0) return null;
   const W = 240;
-  const H = 48;
+  const H = 40;
   const n = lichSu.length;
   const bw = W / n;
   const maxSo = Math.max(...lichSu.map((p) => p.so));
@@ -105,7 +105,7 @@ function BieuDoThat({lichSu, dich, mau}: {lichSu: {tuan_ket: string; so: number}
   const dichTrongKhung = dich <= dinh;
   const yDich = 6 + (H - 6) * (1 - dich / dinh);
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{height: 48}} preserveAspectRatio="none" role="img" aria-label="Biểu đồ số thật theo tuần">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-[200px] max-w-full" style={{height: 40}} preserveAspectRatio="none" role="img" aria-label="Biểu đồ số thật theo tuần">
       {dichTrongKhung && (
         <line x1="0" y1={yDich} x2={W} y2={yDich} stroke="currentColor" strokeWidth="1.2" strokeDasharray="4 4" className="text-grey-mid" opacity="0.55" />
       )}
@@ -533,7 +533,7 @@ export default async function WigPage({
                       )}
                       {/* Biểu đồ THẬT — số thật cuối mỗi tuần + vạch đích, không dự đoán. */}
                       {m.y_so != null && (lichSuTheoWig.get(m.id)?.length ?? 0) >= 2 && (
-                        <div className="mt-1.5">
+                        <div className="mt-1.5 flex justify-end">
                           <BieuDoThat lichSu={lichSuTheoWig.get(m.id)!} dich={Number(m.y_so)} mau={meta.hex} />
                         </div>
                       )}
