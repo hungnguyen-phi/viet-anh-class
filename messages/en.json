@@ -1551,9 +1551,8 @@
     "nEmHuongVao": "{n, plural, one {# student aligned to this WIG} other {# students aligned to this WIG}}",
     "formTitle": "Set my WIG",
     "formTitleSua": "Edit WIG",
-    "formTitleLop": "Set a class goal",
-    "formTitleLopSua": "Edit class goal",
     "formTitleLop": "Class WIG",
+    "formTitleLopSua": "Edit class goal",
     "formTitleTruong": "Campus WIG",
     "formTitleHo": "Set a WIG for {ten}",
     "chipGoGiup": "Typed by teacher",
@@ -1943,6 +1942,10 @@
     "nhomThanhVien": "Members",
     "nhomTuBan": "from buddy pairing",
     "nhomGo": "Disband group",
-    "nhomGoHoi": "Disband {ten}? Its lead measures and WIGs close from next week."
+    "nhomGoHoi": "Disband {ten}? Its lead measures and WIGs close from next week.",
+    "rongDanDat": "Set the class target first — then add the work that drives it and a weekly commitment.",
+    "rongTiepTheo": "next, to drive the goal",
+    "camKetTuanNgan": "Weekly commitment",
+    "khoaMoKhi": "unlocks after a goal"
   }
 }

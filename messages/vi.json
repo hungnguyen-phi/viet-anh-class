@@ -1551,9 +1551,8 @@
     "nEmHuongVao": "{n} em hướng vào mục tiêu này",
     "formTitle": "Đặt mục tiêu của em",
     "formTitleSua": "Sửa mục tiêu",
-    "formTitleLop": "Đặt mục tiêu cho lớp",
-    "formTitleLopSua": "Sửa mục tiêu của lớp",
     "formTitleLop": "Mục tiêu của lớp",
+    "formTitleLopSua": "Sửa mục tiêu của lớp",
     "formTitleTruong": "Mục tiêu của cơ sở",
     "formTitleHo": "Đặt mục tiêu cho {ten}",
     "chipGoGiup": "Thầy cô gõ giúp",
@@ -1943,6 +1942,10 @@
     "nhomThanhVien": "Thành viên",
     "nhomTuBan": "từ nhóm bạn",
     "nhomGo": "Giải tán nhóm",
-    "nhomGoHoi": "Giải tán nhóm {ten}? Việc và mục tiêu của nhóm sẽ đóng từ tuần sau."
+    "nhomGoHoi": "Giải tán nhóm {ten}? Việc và mục tiêu của nhóm sẽ đóng từ tuần sau.",
+    "rongDanDat": "Đặt đích cho cả lớp trước — rồi thêm việc đẩy đích và cam kết mỗi tuần.",
+    "rongTiepTheo": "tiếp theo, để đẩy mục tiêu",
+    "camKetTuanNgan": "Cam kết tuần",
+    "khoaMoKhi": "mở khi có mục tiêu"
   }
 }
