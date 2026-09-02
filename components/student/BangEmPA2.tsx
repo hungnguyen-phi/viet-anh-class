@@ -14,7 +14,7 @@
 // Cửa sổ 7 ngày, khoá chữ ký, luật thứ Sáu là RLS/trigger thật — nút chỉ mờ sẵn cho đúng sự thật.
 // Mọi ô nhập controlled (bài học 31/08): value + onChange, dọn khi ghi xong.
 
-import {useState, useTransition} from 'react';
+import {useState, useTransition, useEffect} from 'react';
 import {useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
 import {ListChecks, Flag, Check, Plus, Minus, X} from 'lucide-react';
@@ -245,7 +245,18 @@ function HangViec({
   }
 
   const kyNhan = v.ky_tuan === 2 ? tv('ky2Tuan') : v.ky_tuan === 4 ? tv('ky4Tuan') : tv('kyTuan');
-  const napNgay = (d: string, giaTri: number) => ghi(() => ghiLuot(v.thuoc_id, d, giaTri));
+
+  // TICK NHANH — cập nhật lạc quan: số nhảy NGAY tại chỗ, ghi lượt + làm mới chạy nền (không khoá
+  // nút, không đợi cả trang tải lại). Khi rảnh (dangChay=false) thì dọn override để lấy số thật;
+  // nếu ghi hỏng, ghi() không refresh → dọn override đưa về số cũ (tự lùi lại).
+  const [luotLocal, datLuotLocal] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (!dangChay) datLuotLocal({});
+  }, [dangChay]);
+  const napNgay = (d: string, giaTri: number) => {
+    datLuotLocal((cu) => ({...cu, [d]: giaTri < 0 ? 0 : giaTri}));
+    ghi(() => ghiLuot(v.thuoc_id, d, giaTri));
+  };
 
   return (
     <div className={`px-3.5 py-3 ${vien ? 'border-t border-navy/10' : ''}`}>
@@ -289,7 +300,7 @@ function HangViec({
       <div className="mt-2 grid grid-cols-7 gap-[3px]">
         {weekDays.map((d, i) => {
           const ap = v.ngay_ap_dung.includes(isoDowVN(d));
-          const giaNgay = v.ngayLuot[d] ?? 0;
+          const giaNgay = d in luotLocal ? luotLocal[d] : v.ngayLuot[d] ?? 0;
           const coSo = giaNgay > 0;
           const tuongLai = d > today;
           const moChinhNgay = moNgay(d) && ap && !heThong;
@@ -320,7 +331,7 @@ function HangViec({
               <span className="text-[9.5px] font-bold text-grey-mid">{dayShort[i]}</span>
               <button
                 type="button"
-                disabled={!moChinhNgay || dangChay}
+                disabled={!moChinhNgay}
                 onClick={onClick}
                 title={
                   tuongLai
@@ -358,7 +369,6 @@ function HangViec({
               {v.cach_ghi === 'cham' && coSo && moChinhNgay && (
                 <button
                   type="button"
-                  disabled={dangChay}
                   onClick={() => napNgay(d, giaNgay <= 1 ? -1 : giaNgay - 1)}
                   className="mt-0.5 grid h-4 w-full place-items-center rounded-[5px] text-grey-mid hover:text-status-bad"
                   title={tv('chamBot')}
@@ -395,7 +405,7 @@ function HangViec({
             </button>
             <button
               type="button"
-              disabled={dangChay || soDien.trim() === ''}
+              disabled={soDien.trim() === ""}
               onClick={() => {
                 const ngay = oDien;
                 napNgay(ngay, Number(soDien));

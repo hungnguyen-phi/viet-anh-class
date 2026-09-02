@@ -1952,6 +1952,11 @@
     "rongDanDat": "Đặt đích cho cả lớp trước — rồi thêm việc đẩy đích và cam kết mỗi tuần.",
     "rongTiepTheo": "tiếp theo, để đẩy mục tiêu",
     "camKetTuanNgan": "Cam kết tuần",
-    "khoaMoKhi": "mở khi có mục tiêu"
+    "khoaMoKhi": "mở khi có mục tiêu",
+    "viecDayTrong": "Chưa có việc đẩy mục tiêu này — thêm một việc để cả lớp cùng làm.",
+    "camKetHuong": "Cam kết tuần hướng mục tiêu này",
+    "camKetTrongMt": "Tuần này chưa có cam kết cho mục tiêu này.",
+    "viecChuaGan": "Việc chưa gắn mục tiêu",
+    "camKetChuaHuong": "Cam kết chưa hướng mục tiêu"
   }
 }

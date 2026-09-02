@@ -301,6 +301,16 @@ export default async function WigPage({
     const kt = c.tuan_ket_thuc ?? bd;
     return bd <= wk.end && kt >= wk.start;
   });
+  // HỘI TỤ: gom cam kết theo mục tiêu nó hướng vào (để bày DƯỚI mục tiêu, không thành khu riêng).
+  const camKetCuaWig = new Map<string, typeof camKet>();
+  const camKetMoCoi: typeof camKet = [];
+  for (const c of camKet) {
+    if (c.muc_tieu_id && wigIds.includes(c.muc_tieu_id)) {
+      const arr = camKetCuaWig.get(c.muc_tieu_id) ?? [];
+      arr.push(c);
+      camKetCuaWig.set(c.muc_tieu_id, arr);
+    } else camKetMoCoi.push(c);
+  }
   const mau = mauRows ?? [];
   const haChoLop = (haCho ?? []).filter((r) => {
     const th = r.thuoc as {class_id: string | null} | {class_id: string | null}[] | null;
@@ -436,7 +446,9 @@ export default async function WigPage({
         </section>
       ) : (
       <>
-      <div className="grid items-start gap-4 lg:grid-cols-[1.4fr_1fr]">
+      {/* HỘI TỤ: mỗi mục tiêu là MỘT lộ trình (mục tiêu → việc đẩy nó → cam kết hướng nó). Không còn
+          khu "Việc"/"Cam kết" đứng riêng. Một cột dọc để đọc theo lộ trình. */}
+      <div className="flex flex-col gap-4">
         {/* ── ② MỤC TIÊU CỦA LỚP ────────────────────────────────────────────────────────────── */}
         <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
           <div className="flex flex-wrap items-center gap-2">
@@ -600,11 +612,13 @@ export default async function WigPage({
                     </form>
                   )}
 
-                  {/* HỘI TỤ — việc ĐẨY mục tiêu này (dây góp số). Tick của các em đẩy số ở trên lên. */}
-                  {(viecCuaWig.get(m.id) ?? []).length > 0 && (
-                    <div className="mt-1 flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
-                      <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('viecDay')}</p>
-                      {(viecCuaWig.get(m.id) ?? []).map((tid) => {
+                  {/* ── LỘ TRÌNH ①: VIỆC đẩy mục tiêu này — cô thêm/sửa/xoá, em tick ở màn em. ── */}
+                  <div className="mt-1 flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
+                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('viecDay')}</p>
+                    {(viecCuaWig.get(m.id) ?? []).length === 0 ? (
+                      <p className="text-[11.5px] font-semibold italic text-grey-mid">{t('viecDayTrong')}</p>
+                    ) : (
+                      (viecCuaWig.get(m.id) ?? []).map((tid) => {
                         const dv = viecTheoId.get(tid);
                         if (!dv) return null;
                         const xanh = dv.trang_thai === 'dat' || dv.trang_thai === 'dang_thang' || dv.trang_thai === 'dang_giu';
@@ -618,11 +632,131 @@ export default async function WigPage({
                             <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[9.5px] font-extrabold ${xanh ? 'bg-success/[0.12] text-success-dark' : 'bg-gold/[0.18] text-gold-text'}`}>
                               {xanh ? tViec('du') : tViec('chuaDu')}
                             </span>
+                            <SuaChiTieuLop thuocId={dv.thuoc_id} chiTieuHienTai={null} donVi="" classId={myClass.id} weekQ={weekQ} />
+                            <form action={xoaViecLop}>
+                              {ctx}
+                              <input type="hidden" name="thuoc_id" value={dv.thuoc_id} />
+                              <SubmitButton
+                                label={t('xoaViec')}
+                                className="grid h-6 w-6 place-items-center rounded-[7px] text-status-bad transition-colors hover:bg-status-bad/10"
+                                wrapClass="contents"
+                              >
+                                <Trash2 size={12} strokeWidth={2.5} />
+                              </SubmitButton>
+                            </form>
                           </div>
                         );
-                      })}
+                      })
+                    )}
+                    <div className="mt-0.5">
+                      <NutTaoViecLop classId={myClass.id} donViList={donViList} mucTieuList={[{id: m.id, ten: m.ten ?? ''}]} />
                     </div>
-                  )}
+                  </div>
+
+                  {/* ── LỘ TRÌNH ②: CAM KẾT tuần hướng vào mục tiêu này — cô thêm/chấm/sửa/xoá. ── */}
+                  <div className="mt-1 flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
+                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('camKetHuong')}</p>
+                    {(camKetCuaWig.get(m.id) ?? []).length === 0 ? (
+                      <p className="text-[11.5px] font-semibold italic text-grey-mid">{t('camKetTrongMt')}</p>
+                    ) : (
+                      (camKetCuaWig.get(m.id) ?? []).map((c) => (
+                        <div key={c.id} className="flex flex-col gap-1.5 rounded-[10px] border border-navy/10 bg-white p-2.5">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">{c.noi_dung}</span>
+                            {c.so_hua != null && (
+                              <span className="text-[11px] font-bold tabular-nums text-grey-mid">
+                                {tCk('chipSo', {dat: c.so_dat ?? 0, hua: c.so_hua, dv: c.ten_don_vi ?? ''})}
+                              </span>
+                            )}
+                            {c.ket_qua === 'thang' && (
+                              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[9.5px] font-extrabold text-success-dark">
+                                <Check size={10} strokeWidth={3} />
+                                {tCk('thang')}
+                              </span>
+                            )}
+                            {c.ket_qua === 'thua' && (
+                              <span className="inline-flex shrink-0 items-center rounded-full bg-status-bad/[0.12] px-2 py-0.5 text-[9.5px] font-extrabold text-status-bad">
+                                {tCk('thua')}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <form action={chamCamKetLop} className="flex items-center gap-1.5">
+                              {ctx}
+                              <input type="hidden" name="cam_ket_id" value={c.id ?? undefined} />
+                              {c.so_hua != null && (
+                                <input
+                                  type="number"
+                                  name="so_dat"
+                                  step="any"
+                                  min="0"
+                                  defaultValue={c.so_dat ?? undefined}
+                                  placeholder={tCk('soDatHoi', {dv: c.ten_don_vi ?? ''})}
+                                  className="w-24 rounded-[7px] border-[1.5px] border-navy/20 px-2 py-1 text-[11.5px] text-navy"
+                                />
+                              )}
+                              <SubmitButton
+                                name="ket_qua"
+                                value="thang"
+                                className="inline-flex items-center gap-1 rounded-[7px] border-[1.5px] border-success/40 bg-success/[0.12] px-2 py-1 text-[11.5px] font-extrabold text-success-dark transition-all hover:bg-success/20"
+                                wrapClass="contents"
+                              >
+                                <Check size={11} strokeWidth={3} />
+                                {tCk('thang')}
+                              </SubmitButton>
+                              <SubmitButton
+                                name="ket_qua"
+                                value="thua"
+                                className="inline-flex items-center gap-1 rounded-[7px] border-[1.5px] border-status-bad/40 bg-status-bad/[0.08] px-2 py-1 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-status-bad/15"
+                                wrapClass="contents"
+                              >
+                                <X size={11} strokeWidth={3} />
+                                {tCk('thua')}
+                              </SubmitButton>
+                            </form>
+                            <SuaLoiCamKetLop camKetId={c.id ?? ''} noiDung={c.noi_dung ?? ''} classId={myClass.id} weekQ={weekQ} />
+                            <form action={xoaCamKetLop}>
+                              {ctx}
+                              <input type="hidden" name="cam_ket_id" value={c.id ?? undefined} />
+                              <SubmitButton className="text-[11px] font-bold text-grey-mid hover:text-status-bad" wrapClass="contents">
+                                {tCk('huy')}
+                              </SubmitButton>
+                            </form>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    <details className="rounded-[10px] border border-dashed border-navy/25 p-2">
+                      <summary className="cursor-pointer text-[11.5px] font-extrabold text-navy">{t('themCamKet')}</summary>
+                      <form action={taoCamKetLop} className="mt-2 flex flex-col gap-2">
+                        {ctx}
+                        <input type="hidden" name="tuan_bat_dau" value={monday} />
+                        <input type="hidden" name="muc_tieu_id" value={m.id} />
+                        <input
+                          name="noi_dung"
+                          maxLength={300}
+                          placeholder={tCk('noiDungLop')}
+                          className="rounded-[8px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[12.5px] text-navy"
+                        />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input
+                            type="number"
+                            name="so_hua"
+                            step="any"
+                            min="0"
+                            placeholder={tCk('soHua')}
+                            className="w-24 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12px] text-navy"
+                          />
+                          <SubmitButton
+                            className="rounded-[8px] bg-navy px-3 py-1.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy/90"
+                            wrapClass="contents"
+                          >
+                            {tCk('luu')}
+                          </SubmitButton>
+                        </div>
+                      </form>
+                    </details>
+                  </div>
 
                   {/* Sửa · Đóng · Xoá mục tiêu của lớp. */}
                   <ThaoTacMucTieuLop
@@ -645,58 +779,24 @@ export default async function WigPage({
           )}
         </section>
 
-        {/* ── ③ VIỆC CỦA LỚP ────────────────────────────────────────────────────────────────── */}
-        <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-[15px] font-bold text-navy">{t('khuViec')}</h2>
-            {/* Nút ở góc chỉ hiện khi ĐÃ có việc (thêm nữa); lúc rỗng để nút to giữa ô, khỏi lặp chữ. */}
-            {viecChuaGan.length > 0 && (
-              <div className="ml-auto">
-                <NutTaoViecLop classId={myClass.id} donViList={donViList} mucTieuList={mucTieuLop.map((m) => ({id: m.id, ten: m.ten ?? ''}))} />
-              </div>
-            )}
-          </div>
-          {viecChuaGan.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-5 text-center">
-              <p className="text-[12.5px] font-semibold text-grey-mid">{thuoc.length > 0 ? t('viecDaGanHet') : t('viecTrong')}</p>
-              <NutTaoViecLop classId={myClass.id} donViList={donViList} mucTieuList={mucTieuLop.map((m) => ({id: m.id, ten: m.ten ?? ''}))} />
-            </div>
-          ) : (
+        {/* VIỆC CHƯA GẮN mục tiêu — hiếm (việc giờ nằm dưới mục tiêu nó đẩy). Gom gọn để cô nối lại. */}
+        {viecChuaGan.length > 0 && (
+          <section className="glass flex flex-col gap-2 rounded-[20px] p-[18px]">
+            <h2 className="font-display text-[14px] font-bold text-navy">{t('viecChuaGan')}</h2>
             <div className="flex flex-col gap-2">
               {viecChuaGan.map((v) => {
                 const xanh = v.trang_thai === 'dat' || v.trang_thai === 'dang_thang' || v.trang_thai === 'dang_giu';
-                const do_ = v.trang_thai === 'can_co' || v.trang_thai === 'vuot' || v.trang_thai === 'truot';
-                const chip = v.mien
-                  ? 'bg-navy/[0.06] text-grey-mid'
-                  : xanh
-                    ? 'bg-success/[0.12] text-success-dark'
-                    : do_
-                      ? 'bg-status-bad/[0.12] text-status-bad'
-                      : 'bg-gold/[0.18] text-gold-text';
                 return (
-                  <div
-                    key={v.thuoc_id}
-                    className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2"
-                  >
+                  <div key={v.thuoc_id} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2">
                     <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">{v.ten}</span>
-                    <span className="text-[12px] font-extrabold tabular-nums text-navy">
-                      {t('cotViec') === '' ? null : null}
-                      {tViec('nEmDu', {n: v.so_em_dat, si: v.si_so})}
+                    <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-extrabold ${xanh ? 'bg-success/[0.12] text-success-dark' : 'bg-gold/[0.18] text-gold-text'}`}>
+                      {v.mien ? tViec('oNghi') : xanh ? tViec('du') : tViec('chuaDu')}
                     </span>
-                    <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-extrabold ${chip}`}>
-                      {v.mien ? tViec('oNghi') : v.trang_thai === 'dat' || v.trang_thai === 'dang_thang' ? tViec('du') : tViec('chuaDu')}
-                    </span>
-                    {/* Sửa chỉ tiêu (áp từ tuần sau). */}
                     <SuaChiTieuLop thuocId={v.thuoc_id} chiTieuHienTai={null} donVi="" classId={myClass.id} weekQ={weekQ} />
-                    {/* Xoá việc lớp — RLS chỉ cho khi chưa duyệt/chưa có lượt; đã chạy thì báo cách kết thúc. */}
                     <form action={xoaViecLop}>
                       {ctx}
                       <input type="hidden" name="thuoc_id" value={v.thuoc_id} />
-                      <SubmitButton
-                        label={t('xoaViec')}
-                        className="grid h-7 w-7 place-items-center rounded-[8px] text-status-bad transition-colors hover:bg-status-bad/10"
-                        wrapClass="contents"
-                      >
+                      <SubmitButton label={t('xoaViec')} className="grid h-7 w-7 place-items-center rounded-[8px] text-status-bad transition-colors hover:bg-status-bad/10" wrapClass="contents">
                         <Trash2 size={13} strokeWidth={2.5} />
                       </SubmitButton>
                     </form>
@@ -704,132 +804,34 @@ export default async function WigPage({
                 );
               })}
             </div>
-          )}
-        </section>
+          </section>
+        )}
       </div>
 
-      {/* ── ④ CAM KẾT CỦA LỚP ───────────────────────────────────────────────────────────────── */}
+      {/* CAM KẾT CHƯA HƯỚNG mục tiêu — hiếm (cam kết giờ nằm dưới mục tiêu). Gom gọn để cô nối lại. */}
+      {camKetMoCoi.length > 0 && (
       <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
-        <h2 className="font-display text-[15px] font-bold text-navy">{t('khuCamKet')}</h2>
-        {camKet.length === 0 ? (
-          <p className="text-[12.5px] font-semibold text-grey-mid">{t('camKetTrong')}</p>
-        ) : (
-          camKet.map((c) => (
-            <div key={c.id} className="flex flex-col gap-2 rounded-[14px] border-[1.5px] border-navy/10 p-3.5">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="min-w-0 flex-1 font-display text-[14.5px] font-bold text-navy">
-                  {c.noi_dung}
-                </span>
-                {c.so_hua != null && (
-                  <span className="text-[11.5px] font-bold text-grey-mid tabular-nums">
-                    {tCk('chipSo', {dat: c.so_dat ?? 0, hua: c.so_hua, dv: c.ten_don_vi ?? ''})}
-                  </span>
-                )}
-                {c.ket_qua === 'thang' && (
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
-                    <Check size={11} strokeWidth={3} />
-                    {tCk('thang')}
-                  </span>
-                )}
-                {c.ket_qua === 'thua' && (
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-status-bad/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-status-bad">
-                    {tCk('thua')}
-                  </span>
-                )}
-              </div>
-              {/* Cô chấm Thắng/Thua (RLS: chỉ GVCN/admin; nút văng lỗi nếu chấm sớm). */}
-              <div className="flex flex-wrap items-center gap-2">
-                <form action={chamCamKetLop} className="flex items-center gap-2">
-                  {ctx}
-                  <input type="hidden" name="cam_ket_id" value={c.id ?? undefined} />
-                  {c.so_hua != null && (
-                    <input
-                      type="number"
-                      name="so_dat"
-                      step="any"
-                      min="0"
-                      defaultValue={c.so_dat ?? undefined}
-                      placeholder={tCk('soDatHoi', {dv: c.ten_don_vi ?? ''})}
-                      className="w-28 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12px] text-navy"
-                    />
-                  )}
-                  <SubmitButton
-                    name="ket_qua"
-                    value="thang"
-                    className="inline-flex items-center gap-1 rounded-[8px] border-[1.5px] border-success/40 bg-success/[0.12] px-2.5 py-1 text-[12px] font-extrabold text-success-dark transition-all hover:bg-success/20"
-                    wrapClass="contents"
-                  >
-                    <Check size={12} strokeWidth={3} />
-                    {tCk('thang')}
-                  </SubmitButton>
-                  <SubmitButton
-                    name="ket_qua"
-                    value="thua"
-                    className="inline-flex items-center gap-1 rounded-[8px] border-[1.5px] border-status-bad/40 bg-status-bad/[0.08] px-2.5 py-1 text-[12px] font-extrabold text-status-bad transition-all hover:bg-status-bad/15"
-                    wrapClass="contents"
-                  >
-                    <X size={12} strokeWidth={3} />
-                    {tCk('thua')}
-                  </SubmitButton>
-                </form>
-                <SuaLoiCamKetLop camKetId={c.id ?? ''} noiDung={c.noi_dung ?? ''} classId={myClass.id} weekQ={weekQ} />
-                <form action={xoaCamKetLop}>
-                  {ctx}
-                  <input type="hidden" name="cam_ket_id" value={c.id ?? undefined} />
-                  <SubmitButton className="text-[11.5px] font-bold text-grey-mid hover:text-status-bad" wrapClass="contents">
-                    {tCk('huy')}
-                  </SubmitButton>
-                </form>
-              </div>
-            </div>
-          ))
-        )}
-        {/* Đặt cam kết của lớp cho tuần đang xem. */}
-        <details className="rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-3">
-          <summary className="cursor-pointer text-[12.5px] font-extrabold text-navy">
-            {t('themCamKet')}
-          </summary>
-          <form action={taoCamKetLop} className="mt-2 flex flex-col gap-2">
-            {ctx}
-            <input type="hidden" name="tuan_bat_dau" value={monday} />
-            <input
-              name="noi_dung"
-              maxLength={300}
-              placeholder={tCk('noiDungLop')}
-              className="rounded-[8px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[13px] text-navy"
-            />
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                type="number"
-                name="so_hua"
-                step="any"
-                min="0"
-                placeholder={tCk('soHua')}
-                className="w-28 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
-              />
-              {mucTieuLop.length > 0 && (
-                <select
-                  name="muc_tieu_id"
-                  className="rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
-                >
-                  <option value="">{tCk('giupKhongCo')}</option>
-                  {mucTieuLop.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.ten ?? ''}
-                    </option>
-                  ))}
-                </select>
-              )}
-              <SubmitButton
-                className="rounded-[8px] bg-navy px-3 py-1.5 text-[12px] font-extrabold text-white transition-all hover:bg-navy/90"
-                wrapClass="contents"
-              >
-                {tCk('luu')}
+        <h2 className="font-display text-[14px] font-bold text-navy">{t('camKetChuaHuong')}</h2>
+        {camKetMoCoi.map((c) => (
+          <div key={c.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2">
+            <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">{c.noi_dung}</span>
+            {c.so_hua != null && (
+              <span className="text-[11px] font-bold tabular-nums text-grey-mid">
+                {tCk('chipSo', {dat: c.so_dat ?? 0, hua: c.so_hua, dv: c.ten_don_vi ?? ''})}
+              </span>
+            )}
+            <SuaLoiCamKetLop camKetId={c.id ?? ''} noiDung={c.noi_dung ?? ''} classId={myClass.id} weekQ={weekQ} />
+            <form action={xoaCamKetLop}>
+              {ctx}
+              <input type="hidden" name="cam_ket_id" value={c.id ?? undefined} />
+              <SubmitButton className="text-[11px] font-bold text-grey-mid hover:text-status-bad" wrapClass="contents">
+                {tCk('huy')}
               </SubmitButton>
-            </div>
-          </form>
-        </details>
+            </form>
+          </div>
+        ))}
       </section>
+      )}
       </>
       )}
 

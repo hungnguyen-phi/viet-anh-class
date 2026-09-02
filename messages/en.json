@@ -1952,6 +1952,11 @@
     "rongDanDat": "Set the class target first — then add the work that drives it and a weekly commitment.",
     "rongTiepTheo": "next, to drive the goal",
     "camKetTuanNgan": "Weekly commitment",
-    "khoaMoKhi": "unlocks after a goal"
+    "khoaMoKhi": "unlocks after a goal",
+    "viecDayTrong": "No work drives this goal yet — add one for the class to do.",
+    "camKetHuong": "This week’s commitment for this goal",
+    "camKetTrongMt": "No commitment for this goal this week.",
+    "viecChuaGan": "Work not linked to a goal",
+    "camKetChuaHuong": "Commitments not aimed at a goal"
   }
 }
