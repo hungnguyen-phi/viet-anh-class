@@ -64,47 +64,44 @@ export function LoTrinhEm({
         </p>
       )}
 
-      {/* VIỆC đẩy mục tiêu này — em tick, số của mục tiêu ở trên tự nhích lên. */}
-      {viec.length > 0 && (
-        <div className="flex flex-col gap-1">
-          <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{tb('loViec')}</p>
-          <div className="flex flex-col overflow-hidden rounded-[12px] bg-white/70">
-            {viec.map((v, i) => (
-              <HangViec
-                key={v.thuoc_id}
-                v={v}
-                weekDays={weekDays}
-                today={today}
-                moNgay={moNgay}
-                daChotHopTuan={daChotHopTuan}
-                dangChay={dangChay}
-                ghi={ghi}
-                dayShort={dayShort}
-                vien={i > 0}
-              />
-            ))}
-          </div>
-        </div>
+      {/* CAM KẾT TUẦN của em cho mục tiêu này. Dưới MỖI cam kết là VIỆC bổ trợ (em tick để hoàn thành
+          cam kết). Số dừng ở cam kết (Thắng/Thua) — mục tiêu do thầy cô cập nhật, không tự cộng dồn. */}
+      <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{tb('loCamKet')}</p>
+      {camKet.length === 0 && (
+        <p className="text-[11.5px] font-semibold italic text-grey-mid">{tb('loCamKetTrong')}</p>
       )}
-
-      {/* CAM KẾT tuần của em, hướng vào mục tiêu này. */}
-      <div className="flex flex-col gap-1.5">
-        <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{tb('loCamKet')}</p>
-        {camKet.length === 0 && !laChinhEm && (
-          <p className="text-[11.5px] font-semibold italic text-grey-mid">{tb('loCamKetTrong')}</p>
-        )}
-        {camKet.map((c) => (
-          <TheCamKet key={c.id} c={c} studentId={studentId} laChinhEm={laChinhEm} tuanNghi={tuanNghi} today={today} />
-        ))}
-        {laChinhEm && classId && (
-          <ThemCamKetEm
-            studentId={studentId}
-            classId={classId}
-            monday={monday}
-            mucTieuLop={[{id: goal.id, ten: goal.ten, don_vi_id: goal.don_vi_id, ten_don_vi: goal.ten_don_vi}]}
-          />
-        )}
-      </div>
+      {camKet.map((c) => {
+        const vBoTro = c.thuoc_id ? viec.find((v) => v.thuoc_id === c.thuoc_id) : undefined;
+        return (
+          <div key={c.id} className="flex flex-col gap-1.5 rounded-[12px] bg-white/70 p-2">
+            <TheCamKet c={c} studentId={studentId} laChinhEm={laChinhEm} tuanNghi={tuanNghi} today={today} />
+            {vBoTro && (
+              <div className="rounded-[10px] bg-navy/[0.03] p-1.5">
+                <p className="mb-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">{tb('loViecBoTro')}</p>
+                <HangViec
+                  v={vBoTro}
+                  weekDays={weekDays}
+                  today={today}
+                  moNgay={moNgay}
+                  daChotHopTuan={daChotHopTuan}
+                  dangChay={dangChay}
+                  ghi={ghi}
+                  dayShort={dayShort}
+                  vien={false}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {laChinhEm && classId && (
+        <ThemCamKetEm
+          studentId={studentId}
+          classId={classId}
+          monday={monday}
+          mucTieuLop={[{id: goal.id, ten: goal.ten, don_vi_id: goal.don_vi_id, ten_don_vi: goal.ten_don_vi}]}
+        />
+      )}
     </div>
   );
 }

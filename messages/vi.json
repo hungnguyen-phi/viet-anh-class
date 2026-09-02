@@ -1478,7 +1478,8 @@
     "mucTieuLopNhac": "Đích cả lớp cùng đẩy. Em tick việc của mình ở dưới là con số này nhích lên.",
     "loViec": "Việc em làm đẩy mục tiêu này",
     "loCamKet": "Cam kết tuần của em cho mục tiêu này",
-    "loCamKetTrong": "Tuần này chưa có cam kết cho mục tiêu này."
+    "loCamKetTrong": "Tuần này chưa có cam kết cho mục tiêu này.",
+    "loViecBoTro": "Việc bổ trợ (tick để hoàn thành cam kết)"
   },
   "mucTieu": {
     "tt_dat": "Đã đạt",
@@ -1864,7 +1865,8 @@
     "themCuaEm": "+ Thêm cam kết tuần của em",
     "noiDungEm": "Tuần này em hứa làm gì?",
     "chonMucTieu": "Hướng tới mục tiêu lớp nào?",
-    "huongNhac": "Cam kết của em hướng vào mục tiêu lớp để cùng đẩy nó lên."
+    "huongNhac": "Cam kết của em hướng vào mục tiêu lớp để cùng đẩy nó lên.",
+    "viecBoTroHoi": "Việc để hoàn thành (vd: đọc mỗi ngày) — không bắt buộc"
   },
   "duyet": {
     "duyet": "Duyệt",
@@ -1965,6 +1967,7 @@
     "camKetHuong": "Cam kết tuần hướng mục tiêu này",
     "camKetTrongMt": "Tuần này chưa có cam kết cho mục tiêu này.",
     "viecChuaGan": "Việc chưa gắn mục tiêu",
-    "camKetChuaHuong": "Cam kết chưa hướng mục tiêu"
+    "camKetChuaHuong": "Cam kết chưa hướng mục tiêu",
+    "viecBoTroCo": "Việc bổ trợ của cô"
   }
 }

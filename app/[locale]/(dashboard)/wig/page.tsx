@@ -7,7 +7,8 @@ import {getClassContext} from '@/lib/queries';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {ClassOwnerNote} from '@/components/shell/ClassOwnerNote';
 import {Link} from '@/i18n/navigation';
-import {isValidDayVN, mondayOf, todayInVN, weekFromMonday, shiftWeeks, ngayVN} from '@/lib/dates';
+import {isValidDayVN, mondayOf, todayInVN, weekFromMonday, shiftWeeks, ngayVN, weekDaysVN} from '@/lib/dates';
+import {TickCuaLop} from '@/components/wig/TickCuaLop';
 import {AREAS, areaLabel, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
 import {Flash} from '@/components/ui/Flash';
@@ -27,8 +28,6 @@ import {
   chamCamKetLop,
   taoCamKetLop,
   xoaCamKetLop,
-  duyetMucTieuEm,
-  traLaiMucTieuEm,
   duyetThuoc,
   traLaiThuoc,
   duyetHaChiTieu,
@@ -203,7 +202,7 @@ export default async function WigPage({
     supabase
       .from('cam_ket_v')
       .select(
-        'id, noi_dung, so_hua, so_dat, ket_qua, ten_don_vi, muc_tieu_id, tuan_bat_dau, tuan_ket_thuc, so_tuan, trang_thai',
+        'id, noi_dung, so_hua, so_dat, ket_qua, ten_don_vi, muc_tieu_id, thuoc_id, tuan_bat_dau, tuan_ket_thuc, so_tuan, trang_thai',
       )
       .eq('class_id', myClass.id)
       .eq('chu_the', 'lop'),
@@ -218,12 +217,8 @@ export default async function WigPage({
       .select('student_id, profiles!enrollments_student_id_fkey(full_name)')
       .eq('class_id', myClass.id)
       .eq('is_active', true),
-    supabase
-      .from('muc_tieu_v')
-      .select('id, ten, linh_vuc, student_id, x_so, y_so, ten_don_vi, ket_thuc')
-      .eq('class_id', myClass.id)
-      .eq('cap', 'em')
-      .eq('trang_thai', 'gui'),
+    // Mục tiêu RIÊNG của em đã BỎ khỏi mô hình → không còn mục tiêu em nào chờ duyệt.
+    Promise.resolve({data: null}),
     supabase
       .from('thuoc')
       .select('id, ten, student_id, chi_tieu_ky, chieu_dich')
@@ -311,6 +306,32 @@ export default async function WigPage({
       camKetCuaWig.set(c.muc_tieu_id, arr);
     } else camKetMoCoi.push(c);
   }
+
+  // VIỆC BỔ TRỢ của mỗi cam kết (cô tick qua TickCuaLop, một lượt cả đội student_id=null): tên + ngày đã tick.
+  const weekDays = weekDaysVN(monday);
+  const dayShort = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  const ckThuocIds = [...new Set(camKet.map((c) => c.thuoc_id).filter(Boolean) as string[])];
+  const boTroTheoId = new Map<string, string>();
+  const daTickTheoThuoc = new Map<string, string[]>();
+  if (ckThuocIds.length > 0) {
+    const [{data: tRows}, {data: lRows}] = await Promise.all([
+      supabase.from('thuoc').select('id, ten').in('id', ckThuocIds),
+      supabase
+        .from('luot')
+        .select('thuoc_id, ngay')
+        .in('thuoc_id', ckThuocIds)
+        .is('student_id', null)
+        .gte('ngay', wk.start)
+        .lte('ngay', wk.end),
+    ]);
+    for (const tr of (tRows ?? []) as {id: string; ten: string}[]) boTroTheoId.set(tr.id, tr.ten);
+    for (const l of (lRows ?? []) as {thuoc_id: string; ngay: string}[]) {
+      const arr = daTickTheoThuoc.get(l.thuoc_id) ?? [];
+      arr.push(l.ngay);
+      daTickTheoThuoc.set(l.thuoc_id, arr);
+    }
+  }
+
   const mau = mauRows ?? [];
   const haChoLop = (haCho ?? []).filter((r) => {
     const th = r.thuoc as {class_id: string | null} | {class_id: string | null}[] | null;
@@ -612,47 +633,6 @@ export default async function WigPage({
                     </form>
                   )}
 
-                  {/* ── LỘ TRÌNH ①: VIỆC đẩy mục tiêu này — cô thêm/sửa/xoá, em tick ở màn em. ── */}
-                  <div className="mt-1 flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
-                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('viecDay')}</p>
-                    {(viecCuaWig.get(m.id) ?? []).length === 0 ? (
-                      <p className="text-[11.5px] font-semibold italic text-grey-mid">{t('viecDayTrong')}</p>
-                    ) : (
-                      (viecCuaWig.get(m.id) ?? []).map((tid) => {
-                        const dv = viecTheoId.get(tid);
-                        if (!dv) return null;
-                        const xanh = dv.trang_thai === 'dat' || dv.trang_thai === 'dang_thang' || dv.trang_thai === 'dang_giu';
-                        return (
-                          <div key={tid} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                            <span className="text-[12px] font-extrabold text-gold-deep">↗</span>
-                            <span className="min-w-0 flex-1 text-[12.5px] font-bold text-navy">{dv.ten}</span>
-                            <span className="text-[11.5px] font-extrabold tabular-nums text-grey-mid">
-                              {tViec('nEmDu', {n: dv.so_em_dat, si: dv.si_so})}
-                            </span>
-                            <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[9.5px] font-extrabold ${xanh ? 'bg-success/[0.12] text-success-dark' : 'bg-gold/[0.18] text-gold-text'}`}>
-                              {xanh ? tViec('du') : tViec('chuaDu')}
-                            </span>
-                            <SuaChiTieuLop thuocId={dv.thuoc_id} chiTieuHienTai={null} donVi="" classId={myClass.id} weekQ={weekQ} />
-                            <form action={xoaViecLop}>
-                              {ctx}
-                              <input type="hidden" name="thuoc_id" value={dv.thuoc_id} />
-                              <SubmitButton
-                                label={t('xoaViec')}
-                                className="grid h-6 w-6 place-items-center rounded-[7px] text-status-bad transition-colors hover:bg-status-bad/10"
-                                wrapClass="contents"
-                              >
-                                <Trash2 size={12} strokeWidth={2.5} />
-                              </SubmitButton>
-                            </form>
-                          </div>
-                        );
-                      })
-                    )}
-                    <div className="mt-0.5">
-                      <NutTaoViecLop classId={myClass.id} donViList={donViList} mucTieuList={[{id: m.id, ten: m.ten ?? ''}]} />
-                    </div>
-                  </div>
-
                   {/* ── LỘ TRÌNH ②: CAM KẾT tuần hướng vào mục tiêu này — cô thêm/chấm/sửa/xoá. ── */}
                   <div className="mt-1 flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
                     <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('camKetHuong')}</p>
@@ -723,6 +703,22 @@ export default async function WigPage({
                               </SubmitButton>
                             </form>
                           </div>
+                          {/* VIỆC BỔ TRỢ của cô cho cam kết này — cô tick (cả đội) để hoàn thành. */}
+                          {c.thuoc_id && boTroTheoId.has(c.thuoc_id) && (
+                            <div className="rounded-[8px] bg-navy/[0.03] p-1.5">
+                              <p className="mb-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+                                {t('viecBoTroCo')}: <span className="text-navy">{boTroTheoId.get(c.thuoc_id)}</span>
+                              </p>
+                              <TickCuaLop
+                                leadId={c.thuoc_id}
+                                days={weekDays}
+                                daTick={daTickTheoThuoc.get(c.thuoc_id) ?? []}
+                                today={todayVN}
+                                moKhoa={laTuanNay}
+                                dayShort={dayShort}
+                              />
+                            </div>
+                          )}
                         </div>
                       ))
                     )}
@@ -737,6 +733,13 @@ export default async function WigPage({
                           maxLength={300}
                           placeholder={tCk('noiDungLop')}
                           className="rounded-[8px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[12.5px] text-navy"
+                        />
+                        {/* Việc bổ trợ của cô — cô tick cả đội để hoàn thành cam kết. */}
+                        <input
+                          name="viec_bo_tro"
+                          maxLength={100}
+                          placeholder={tCk('viecBoTroHoi')}
+                          className="rounded-[8px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[12px] text-navy"
                         />
                         <div className="flex flex-wrap items-center gap-2">
                           <input
@@ -943,47 +946,6 @@ export default async function WigPage({
           <p className="text-[12.5px] font-semibold text-grey-mid">{tDuyet('khongCo')}</p>
         ) : (
           <div className="flex flex-col gap-2">
-            {(mtCho ?? []).map((m) => (
-              <div
-                key={m.id}
-                className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2"
-              >
-                <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10px] font-extrabold text-grey-mid">
-                  {tDuyet('loaiMucTieu')}
-                </span>
-                <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">
-                  {m.ten} <span className="font-semibold text-grey-mid">{tDuyet('cua', {ten: tenEm.get(m.student_id ?? '') ?? ''})}</span>
-                </span>
-                <form action={duyetMucTieuEm} className="contents">
-                  {ctx}
-                  <input type="hidden" name="muc_tieu_id" value={m.id ?? undefined} />
-                  <SubmitButton
-                    className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-2.5 py-0.5 text-[10.5px] font-extrabold text-gold-text transition-all hover:bg-gold/30"
-                    wrapClass="contents"
-                  >
-                    {tDuyet('duyet')}
-                  </SubmitButton>
-                </form>
-                <details className="relative">
-                  <summary className="cursor-pointer list-none rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2.5 py-0.5 text-[11px] font-extrabold text-navy hover:border-navy">
-                    {tDuyet('traLai')}
-                  </summary>
-                  <form action={traLaiMucTieuEm} className="mt-1 flex flex-col gap-1">
-                    {ctx}
-                    <input type="hidden" name="muc_tieu_id" value={m.id ?? undefined} />
-                    <textarea
-                      name="note"
-                      maxLength={300}
-                      placeholder={tDuyet('traLaiNhan')}
-                      className="w-full rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12px] text-navy"
-                    />
-                    <SubmitButton className="self-start rounded-[8px] bg-navy px-2.5 py-1 text-[11px] font-extrabold text-white" wrapClass="contents">
-                      {tDuyet('traLaiGui')}
-                    </SubmitButton>
-                  </form>
-                </details>
-              </div>
-            ))}
             {(thuocCho ?? []).map((v) => (
               <div
                 key={v.id}

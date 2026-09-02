@@ -153,9 +153,43 @@ export async function taoCamKetLop(formData: FormData) {
   const tuan_bat_dau = isValidDayVN(tuanGui) ? tuanGui : weekRangeVN().start;
 
   const supabase = await createClient();
+
+  // VIỆC BỔ TRỢ của CÔ — cô tick (cả đội, một lượt) để hoàn thành cam kết này. Tạo thuoc chu_the='lop'
+  // (pham_vi='ca_doi'), đơn vị lấy từ mục tiêu; cam kết trỏ vào nó qua thuoc_id. Số dừng ở cam kết.
+  const tenViecBoTro = String(formData.get('viec_bo_tro') ?? '').trim();
+  let thuoc_id: string | null = null;
+  if (tenViecBoTro && muc_tieu_id) {
+    const {data: g} = await supabase.from('muc_tieu').select('don_vi_id').eq('id', muc_tieu_id).maybeSingle();
+    const dv = g?.don_vi_id ?? null;
+    if (dv) {
+      const {data: vRow} = await supabase
+        .from('thuoc')
+        .insert({
+          chu_the: 'lop',
+          class_id,
+          ten: tenViecBoTro,
+          don_vi_id: dv,
+          cach_ghi: 'cham',
+          chieu_dich: 'it_nhat',
+          gop: 'tong',
+          ky_tuan: 1,
+          chi_tieu_ky: so_hua ?? 1,
+          moi_lan: 1,
+          ngay_ap_dung: [1, 2, 3, 4, 5, 6, 7],
+          pham_vi: 'ca_doi',
+          tu_tuan: tuan_bat_dau,
+          duyet: 'duyet',
+          trang_thai: 'chay',
+        })
+        .select('id')
+        .maybeSingle();
+      thuoc_id = vRow?.id ?? null;
+    }
+  }
+
   const {data, error} = await supabase
     .from('cam_ket')
-    .insert({chu_the: 'lop', class_id, student_id: null, noi_dung, so_hua, muc_tieu_id, so_tuan: 1, tuan_bat_dau})
+    .insert({chu_the: 'lop', class_id, student_id: null, noi_dung, so_hua, muc_tieu_id, thuoc_id, so_tuan: 1, tuan_bat_dau})
     .select('id')
     .maybeSingle();
   revalidatePath('/[locale]/wig', 'page');
