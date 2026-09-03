@@ -240,6 +240,12 @@ function TheMucTieu({
       className="relative flex flex-col gap-3 rounded-[16px] border-[1.5px] p-4"
     >
       <div className="flex items-start gap-3.5">
+        {/* Ghi số: nút nhỏ góc phải hàng đầu — không chiếm một dòng riêng. */}
+        {ghiTay && canGhi && mt.trang_thai !== 'dong' && (
+          <div className="absolute right-3 top-3">
+            <GhiSo mtId={mt.id ?? ''} dv={mt.ten_don_vi ?? ''} onDone={onDone} />
+          </div>
+        )}
         {coQuang ? (
           <DonutRing pct={mt.pct ?? 0} color={mau.hex} size={60} />
         ) : (
@@ -294,8 +300,6 @@ function TheMucTieu({
         </p>
       )}
 
-      {/* GHI SỐ — chỉ mục tiêu ĐO (ghi tay). */}
-      {ghiTay && canGhi && mt.trang_thai !== 'dong' && <GhiSo mtId={mt.id ?? ''} dv={mt.ten_don_vi ?? ''} onDone={onDone} />}
 
       {/* KẾ HOẠCH — checklist các bước: tick 1 bước → % tự nhảy (buoc.xong_at → trigger). */}
       {laKeHoach && buoc.length > 0 && mt.trang_thai !== 'dong' && (
@@ -394,10 +398,11 @@ function TheMucTieu({
             <button
               type="button"
               onClick={onSua}
-              className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 text-[12px] font-extrabold text-navy underline"
+              aria-label={t('sua')}
+              title={t('sua')}
+              className="grid h-7 w-7 cursor-pointer place-items-center rounded-[8px] text-navy transition-colors hover:bg-navy/[0.06]"
             >
-              <Pencil size={12} strokeWidth={2.5} />
-              {t('sua')}
+              <Pencil size={13} strokeWidth={2.5} />
             </button>
           </>
         )}
@@ -446,19 +451,20 @@ function GhiSo({mtId, dv, onDone}: {mtId: string; dv: string; onDone: (msg: stri
     setGia('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
-  if (!mo)
-    return (
+  // Nút nhỏ ở góc phải thẻ (đỡ tốn một dòng riêng); bấm → Popup điền số.
+  return (
+    <>
       <button
         type="button"
         data-kiem="nut-ghi"
         onClick={() => setMo(true)}
-        className={`${btnGhost} self-start`}
+        className="shrink-0 cursor-pointer rounded-[9px] border-[1.5px] border-navy/20 bg-white/80 px-2.5 py-1 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy"
       >
         {t('ghiSo')}
       </button>
-    );
-  return (
-    <form action={formAction} className="flex flex-col gap-2 rounded-[10px] bg-white/70 p-2.5">
+      {mo && (
+        <Popup title={t('ghiSo')} onClose={() => setMo(false)} width="max-w-[420px]">
+          <form action={formAction} className="flex flex-col gap-2">
       <input type="hidden" name="muc_tieu_id" value={mtId} />
       <div className="grid grid-cols-2 gap-2">
         <Field label={t('ghiSoHoi', {ngay: ngay ? ngayVN(ngay) : ''})} htmlFor="gs-gia" error={state.fieldError === 'gia_tri' ? state.error : null}>
@@ -489,7 +495,10 @@ function GhiSo({mtId, dv, onDone}: {mtId: string; dv: string; onDone: (msg: stri
           {t('thoi')}
         </button>
       </div>
-    </form>
+          </form>
+        </Popup>
+      )}
+    </>
   );
 }
 

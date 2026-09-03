@@ -17,7 +17,7 @@
 import {useActionState, useState, useTransition, useEffect} from 'react';
 import {useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {Check, Plus, Minus, X} from 'lucide-react';
+import {Check, X} from 'lucide-react';
 import {isoDowVN} from '@/lib/dates';
 import {ghiLuot, chamCamKetTaiCho, doiCamKet, type ChamEmState, type LuotResult} from '@/app/[locale]/(dashboard)/student/actions';
 import {SuaCamKetEm} from '@/components/student/SuaCamKetEm';
@@ -226,7 +226,7 @@ export function HangViec({
               datSoDien(coSo ? so(giaNgay) : '');
               datODien((cur) => (cur === d ? null : d));
             } else {
-              napNgay(d, giaNgay + 1);
+              napNgay(d, coSo ? -1 : 1);   // tick ⇄ bỏ tick — không cộng dồn +/−
             }
           };
 
@@ -260,26 +260,14 @@ export function HangViec({
               >
                 {coSo ? (
                   v.cach_ghi === 'cham' ? (
-                    giaNgay
+                    <Check size={14} strokeWidth={3} />
                   ) : (
                     so(giaNgay)
                   )
-                ) : moChinhNgay ? (
-                  <Plus size={13} strokeWidth={3} />
                 ) : (
                   ''
                 )}
               </button>
-              {v.cach_ghi === 'cham' && coSo && moChinhNgay && (
-                <button
-                  type="button"
-                  onClick={() => napNgay(d, giaNgay <= 1 ? -1 : giaNgay - 1)}
-                  className="mt-0.5 grid h-4 w-full place-items-center rounded-[5px] text-grey-mid hover:text-status-bad"
-                  title={tv('chamBot')}
-                >
-                  <Minus size={11} strokeWidth={3} />
-                </button>
-              )}
             </div>
           );
         })}
@@ -426,13 +414,13 @@ export function TheCamKet({
               >
                 {tc('thua')}
               </button>
-              <span className="text-[11px] font-semibold italic text-grey-mid">
-                {c.goi_y_may === 'thang'
-                  ? tc('goiYThang', {so: so(c.so_dat_goi_y ?? 0), n: so(c.so_hua ?? 0)})
-                  : c.goi_y_may === 'thua'
-                    ? tc('goiYThua', {so: so(c.so_dat_goi_y ?? 0), n: so(c.so_hua ?? 0)})
-                    : tc('goiYKhong')}
-              </span>
+              {(c.goi_y_may === 'thang' || c.goi_y_may === 'thua') && (
+                <span className="text-[11px] font-semibold italic text-grey-mid">
+                  {c.goi_y_may === 'thang'
+                    ? tc('goiYThang', {so: so(c.so_dat_goi_y ?? 0), n: so(c.so_hua ?? 0)})
+                    : tc('goiYThua', {so: so(c.so_dat_goi_y ?? 0), n: so(c.so_hua ?? 0)})}
+                </span>
+              )}
             </div>
             {chamState.error && <p className="text-[11px] font-semibold text-status-bad">{chamState.error}</p>}
           </form>
