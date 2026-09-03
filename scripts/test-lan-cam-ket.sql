@@ -19,6 +19,12 @@ begin
   select id into v_dv from don_vi where ma in ('ngay','lan') order by (ma = 'ngay') desc limit 1;
   select id into v_mt from muc_tieu where class_id = v_cid and cap = 'lop' and trang_thai <> 'dong' limit 1;
 
+  -- Dọn SẠCH cam kết hiện có của em này (trong giao dịch, rollback trả lại nguyên trạng) để dòng
+  -- (em × mục tiêu) sạch — nếu không, cam kết THẬT tuần này của em sẽ là "bản mới nhất" và che bản
+  -- tuần-trước ta gieo (đúng logic: bản tuần này chưa kết thúc nên chưa lăn).
+  delete from cam_ket_xac_nhan where cam_ket_id in (select id from cam_ket where student_id = v_sid);
+  delete from cam_ket where student_id = v_sid;
+
   -- Lead measure của em + cam kết KẾT THÚC tuần trước (tuan_bat_dau = thứ Hai tuần này − 7).
   insert into thuoc(chu_the,class_id,student_id,ten,don_vi_id,cach_ghi,chieu_dich,gop,ky_tuan,chi_tieu_ky,moi_lan,ngay_ap_dung,pham_vi,tu_tuan,duyet,trang_thai)
   values('em',v_cid,v_sid,'ZZTEST-lan-viec',v_dv,'cham','it_nhat','tong',1,5,1,array[1,2,3,4,5]::smallint[],'tung_em',v_mon - 7,'duyet','chay')
