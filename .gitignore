@@ -58,3 +58,4 @@ wig-*.png
 do*.png
 e2e-*.png
 cm-*.png
+scripts/.tmp-*
