@@ -123,6 +123,14 @@ export function FormMucTieu3Buoc({
   // lấy hôm nay). Không có setter vì màn của em không đổi ngày bắt đầu nữa.
   const [batDau] = useState(dangSua?.bat_dau ?? '');
   const [ketThuc, setKetThuc] = useState(dangSua?.ket_thuc ?? '');
+  // Hạn phải trong NĂM HỌC (trigger mt_truoc_them): từ hôm nay đến 31/07 của năm sau. Giới hạn ô
+  // chọn + nhắc rõ khoảng để em biết trước, khỏi gặp câu lỗi "phải nằm trong năm học".
+  const hanGioi = (() => {
+    const now = new Date();
+    const y1 = now.getMonth() + 1 >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+    const p = (n: number) => String(n).padStart(2, '0');
+    return {min: `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`, max: `${y1 + 1}-07-31`};
+  })();
   const [moTa, setMoTa] = useState(dangSua?.mo_ta ?? '');
   // "Hỗ trợ cho" — chỉ khi tạo mới (sửa dây thì làm ở thẻ). Lọc theo lĩnh vực để gọn.
   const [hoTroCho, setHoTroCho] = useState('');
@@ -604,7 +612,11 @@ export function FormMucTieu3Buoc({
 
         {/* NGÀY ĐẾN HẠN. */}
         <div>
-          <Field label={t('ngayDenHan')} error={err('ket_thuc')}>
+          <Field
+            label={t('ngayDenHan')}
+            error={err('ket_thuc')}
+            hint={t('ngayDenHanNhac', {min: ngayVN(hanGioi.min), max: ngayVN(hanGioi.max)})}
+          >
             <span data-kiem="mt-han" className="block max-w-[220px]">
               <ONgayVN
                 name="_ket_thuc_ui"
@@ -612,6 +624,8 @@ export function FormMucTieu3Buoc({
                 value={ketThuc}
                 loi={state.fieldError === 'ket_thuc'}
                 onChange={setKetThuc}
+                min={hanGioi.min}
+                max={hanGioi.max}
               />
             </span>
           </Field>
