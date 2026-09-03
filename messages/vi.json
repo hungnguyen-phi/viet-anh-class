@@ -1705,7 +1705,10 @@
     "cauChotLopGiu": "Lớp sẽ {ten}: giữ {dau} {y} {dv} suốt năm.",
     "phanLaGi": "Mục tiêu là gì?",
     "phanDoTheNao": "Đo thế nào?",
-    "formTitleToi": "Mục tiêu của tôi"
+    "formTitleToi": "Mục tiêu của tôi",
+    "huongTruongCho": "Hướng tới mục tiêu trường",
+    "huongTruongGiaiThich": "Không bắt buộc — chọn để lớp cùng hướng với cả trường.",
+    "huongTruongChon": "— Chọn một mục tiêu của trường —"
   },
   "viec": {
     "chipLop": "Của lớp",
@@ -2015,7 +2018,8 @@
     "noiTruongNut": "Nối",
     "huongLop": "Hướng tới mục tiêu lớp: {ten}",
     "congVaoLop": "số cộng vào lớp",
-    "camKetToiTuLan": "Tuần này chưa tới. Cam kết và thước đo đang có sẽ tự tiếp sang vào sáng thứ Hai."
+    "camKetToiTuLan": "Tuần này chưa tới. Cam kết và thước đo đang có sẽ tự tiếp sang vào sáng thứ Hai.",
+    "hanhDongCachDo": "Làm xong việc này là đạt mục tiêu."
   },
   "truongWig": {
     "title": "Mục tiêu của trường",

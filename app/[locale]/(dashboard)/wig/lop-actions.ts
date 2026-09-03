@@ -191,17 +191,15 @@ export async function themThuocChoCamKetToi(formData: FormData) {
     payload = {cach_ghi: 'cham', don_vi_id: ngayId as string, chi_tieu_ky: ngayChon.length, moi_lan: 1, ngay_ap_dung: ngayChon};
   }
 
+  // 0185: thước TRỎ VỀ cam kết (thuoc.cam_ket_id, n-1) — một cam kết treo nhiều thước.
   const {data: vRow, error: vErr} = await supabase
     .from('thuoc')
-    .insert({chu_the: 'em', class_id, student_id: me.id, ten, chieu_dich: 'it_nhat', gop: 'tong', ky_tuan: 1, pham_vi: 'tung_em', tu_tuan, duyet: 'duyet', trang_thai: 'chay', ...payload})
+    .insert({chu_the: 'em', class_id, student_id: me.id, ten, chieu_dich: 'it_nhat', gop: 'tong', ky_tuan: 1, pham_vi: 'tung_em', tu_tuan, duyet: 'duyet', trang_thai: 'chay', cam_ket_id, ...payload})
     .select('id')
     .maybeSingle();
+  revalidatePath('/[locale]/wig', 'page');
   if (vErr) veWig(loi(friendlyError(vErr)), classId, week);
   if (!vRow) veWig(loi('Không tạo được thước đo dẫn dắt.'), classId, week);
-  const {data, error} = await supabase.from('cam_ket').update({thuoc_id: vRow!.id}).eq('id', cam_ket_id).select('id');
-  revalidatePath('/[locale]/wig', 'page');
-  if (error) veWig(loi(friendlyError(error)), classId, week);
-  if (!data || data.length === 0) veWig(loi('Không nối được — cam kết đã chấm hoặc không có quyền.'), classId, week);
   veWig('Đã thêm thước đo dẫn dắt', classId, week);
 }
 
@@ -261,7 +259,7 @@ export async function xoaCamKetToi(formData: FormData) {
   const id = String(formData.get('cam_ket_id') ?? '').trim();
   if (!id) veWig(loi('Thiếu cam kết.'), classId, week);
   const supabase = await createClient();
-  const {data: ck} = await supabase.from('cam_ket').select('thuoc_id, ket_qua').eq('id', id).maybeSingle();
+  const {data: ck} = await supabase.from('cam_ket').select('ket_qua').eq('id', id).maybeSingle();
   if (ck?.ket_qua) veWig(loi('Cam kết đã chấm thì không xoá được — bỏ chấm trước.'), classId, week);
   // Xoá = đánh dấu 'huy' (như bản của em): biến mất khỏi màn, KHÔNG tự lăn sang tuần sau, không
   // tính trần 2/tuần. Xoá cứng dòng thì con lăn tuần (0177) thấy tuần trước còn hiệu lực sẽ nhân
@@ -275,7 +273,8 @@ export async function xoaCamKetToi(formData: FormData) {
   if (error) veWig(loi(friendlyError(error)), classId, week);
   if (!data || data.length === 0)
     veWig(loi('Không xoá được — cam kết đã chấm hoặc đã kể lại trong họp.'), classId, week);
-  if (ck?.thuoc_id) await supabase.from('thuoc').delete().eq('id', ck.thuoc_id).eq('student_id', me.id);
+  // Xoá CẢ CHÙM thước của cam kết (0185: thuoc.cam_ket_id; RLS gác từng cái).
+  await supabase.from('thuoc').delete().eq('cam_ket_id', id).eq('student_id', me.id);
   revalidatePath('/[locale]/wig', 'page');
   veWig('Đã xoá cam kết', classId, week);
 }

@@ -192,6 +192,7 @@ export async function StudentScoreboard({
   // ── Việc em làm: viec_bang + 12 tuần + 7 ô ngày (luot của chính em) ─────────────────────────
   type ViecRow = {
     thuoc_id: string;
+    cam_ket_id: string | null;
     ten: string | null;
     ten_don_vi: string | null;
     don_vi_id: string | null;
@@ -388,6 +389,7 @@ export async function StudentScoreboard({
     }));
     return {
       thuoc_id: v.thuoc_id,
+      cam_ket_id: v.cam_ket_id ?? null,
       ten: v.ten ?? '',
       ten_don_vi: v.ten_don_vi,
       don_vi_id: v.don_vi_id ?? null,

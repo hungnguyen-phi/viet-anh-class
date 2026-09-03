@@ -360,28 +360,39 @@ export default async function WigPage({
   // THƯỚC ĐO DẪN DẮT của mỗi cam kết cá nhân — lượt mang student_id CỦA thầy cô (tung_em).
   const weekDays = weekDaysVN(monday);
   const dayShort = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-  const ckThuocIds = [...new Set(camKet.map((c) => c.thuoc_id).filter(Boolean) as string[])];
-  type ThuocToi = {id: string; ten: string; cach_ghi: string; chi_tieu_ky: number | null; ngay_ap_dung: number[] | null; don_vi_id: string | null};
-  const boTroTheoId = new Map<string, ThuocToi>();
+  // 0185: một cam kết treo NHIỀU thước — thuoc trỏ về cam kết qua cam_ket_id.
+  const ckIds = camKet.map((c) => c.id).filter(Boolean) as string[];
+  type ThuocToi = {id: string; ten: string; cach_ghi: string; chi_tieu_ky: number | null; ngay_ap_dung: number[] | null; don_vi_id: string | null; cam_ket_id: string | null};
+  const thuocTheoCamKet = new Map<string, ThuocToi[]>();
   const daTickTheoThuoc = new Map<string, string[]>();
   const tongSoTheoThuoc = new Map<string, number>();
-  if (ckThuocIds.length > 0) {
-    const [{data: tRows}, {data: lRows}] = await Promise.all([
-      supabase.from('thuoc').select('id, ten, cach_ghi, chi_tieu_ky, ngay_ap_dung, don_vi_id').in('id', ckThuocIds),
-      supabase
+  if (ckIds.length > 0) {
+    const {data: tRows} = await supabase
+      .from('thuoc')
+      .select('id, ten, cach_ghi, chi_tieu_ky, ngay_ap_dung, don_vi_id, cam_ket_id')
+      .in('cam_ket_id', ckIds)
+      .neq('trang_thai', 'dong')
+      .order('created_at');
+    for (const tr of (tRows ?? []) as ThuocToi[]) {
+      const arr = thuocTheoCamKet.get(tr.cam_ket_id ?? '') ?? [];
+      arr.push(tr);
+      thuocTheoCamKet.set(tr.cam_ket_id ?? '', arr);
+    }
+    const thuocIds = [...thuocTheoCamKet.values()].flat().map((t) => t.id);
+    if (thuocIds.length > 0) {
+      const {data: lRows} = await supabase
         .from('luot')
         .select('thuoc_id, ngay, gia_tri')
-        .in('thuoc_id', ckThuocIds)
+        .in('thuoc_id', thuocIds)
         .eq('student_id', profile.id)
         .gte('ngay', wk.start)
-        .lte('ngay', wk.end),
-    ]);
-    for (const tr of (tRows ?? []) as ThuocToi[]) boTroTheoId.set(tr.id, tr);
-    for (const l of (lRows ?? []) as {thuoc_id: string; ngay: string; gia_tri: number | null}[]) {
-      const arr = daTickTheoThuoc.get(l.thuoc_id) ?? [];
-      arr.push(l.ngay);
-      daTickTheoThuoc.set(l.thuoc_id, arr);
-      tongSoTheoThuoc.set(l.thuoc_id, (tongSoTheoThuoc.get(l.thuoc_id) ?? 0) + Number(l.gia_tri ?? 0));
+        .lte('ngay', wk.end);
+      for (const l of (lRows ?? []) as {thuoc_id: string; ngay: string; gia_tri: number | null}[]) {
+        const arr = daTickTheoThuoc.get(l.thuoc_id) ?? [];
+        arr.push(l.ngay);
+        daTickTheoThuoc.set(l.thuoc_id, arr);
+        tongSoTheoThuoc.set(l.thuoc_id, (tongSoTheoThuoc.get(l.thuoc_id) ?? 0) + Number(l.gia_tri ?? 0));
+      }
     }
   }
 
@@ -479,7 +490,7 @@ export default async function WigPage({
               {t('rongDanDat')}
             </p>
             <div className="mt-1">
-              <NutTaoMucTieuLop classId={myClass.id} nhanTheoArea={nhanTheoArea} donViList={donViList} />
+              <NutTaoMucTieuLop classId={myClass.id} nhanTheoArea={nhanTheoArea} donViList={donViList} truongWigs={truongWigs.map((tw) => ({id: tw.id, ten: tw.ten ?? '', linh_vuc: ''}))} />
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -518,13 +529,13 @@ export default async function WigPage({
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-[15px] font-bold text-navy">{t('khuMucTieu')}</h2>
             <div className="ml-auto">
-              <NutTaoMucTieuLop classId={myClass.id} nhanTheoArea={nhanTheoArea} donViList={donViList} />
+              <NutTaoMucTieuLop classId={myClass.id} nhanTheoArea={nhanTheoArea} donViList={donViList} truongWigs={truongWigs.map((tw) => ({id: tw.id, ten: tw.ten ?? '', linh_vuc: ''}))} />
             </div>
           </div>
           {mucTieuLop.length === 0 ? (
             <div className="flex flex-col items-center gap-3 rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-5 text-center">
               <p className="text-[12.5px] font-semibold text-grey-mid">{t('mucTieuTrong')}</p>
-              <NutTaoMucTieuLop classId={myClass.id} nhanTheoArea={nhanTheoArea} donViList={donViList} />
+              <NutTaoMucTieuLop classId={myClass.id} nhanTheoArea={nhanTheoArea} donViList={donViList} truongWigs={truongWigs.map((tw) => ({id: tw.id, ten: tw.ten ?? '', linh_vuc: ''}))} />
             </div>
           ) : (
             mucTieuLop.map((m) => {
@@ -593,17 +604,20 @@ export default async function WigPage({
                     )}
                   </div>
 
-                  {/* KẾ HOẠCH — checklist các bước (cô tick, % nhảy qua trigger). */}
-                  {m.loai_moc === 'ke_hoach' && m.trang_thai === 'duyet' && (buocTheoMt.get(m.id)?.length ?? 0) > 0 && (
+                  {/* Chờ duyệt: hiện MÔ TẢ để người duyệt nhìn thẻ là biết mục tiêu nói gì. */}
+                  {m.trang_thai === 'gui' && m.mo_ta && (
+                    <p className="mt-1 rounded-[10px] bg-white/70 px-2.5 py-2 text-[12px] font-semibold leading-relaxed text-navy">
+                      {m.mo_ta}
+                    </p>
+                  )}
+
+                  {/* KẾ HOẠCH — checklist các bước. Đã duyệt: cô tick (% nhảy qua trigger);
+                      chưa duyệt: chỉ liệt kê để thẻ không câm — người duyệt thấy kế hoạch gồm gì. */}
+                  {m.loai_moc === 'ke_hoach' && (buocTheoMt.get(m.id)?.length ?? 0) > 0 && (
                     <div className="mt-1 flex flex-col gap-1.5 rounded-[12px] bg-white/70 p-2.5">
-                      {buocTheoMt.get(m.id)!.map((b) => (
-                        <form key={b.id} action={datBuocXong}>
-                          <input type="hidden" name="buoc_id" value={b.id} />
-                          <input type="hidden" name="xong" value={b.xong ? '' : '1'} />
-                          <SubmitButton
-                            className="flex min-h-[40px] w-full items-center gap-2.5 rounded-[10px] px-1.5 text-left transition-colors hover:bg-navy/[0.04]"
-                            wrapClass="contents"
-                          >
+                      {buocTheoMt.get(m.id)!.map((b) => {
+                        const noiDungBuoc = (
+                          <>
                             <span className="grid h-[22px] w-[22px] shrink-0 place-items-center">
                               {b.xong ? (
                                 <span style={{background: meta.hex}} className="grid h-[22px] w-[22px] place-items-center rounded-full text-white">
@@ -617,10 +631,31 @@ export default async function WigPage({
                               {b.tieu_de}
                             </span>
                             <span className="shrink-0 text-[11px] font-extrabold tabular-nums text-grey-mid">{Math.round(b.phan_tram)}%</span>
-                          </SubmitButton>
-                        </form>
-                      ))}
+                          </>
+                        );
+                        return m.trang_thai === 'duyet' ? (
+                          <form key={b.id} action={datBuocXong}>
+                            <input type="hidden" name="buoc_id" value={b.id} />
+                            <input type="hidden" name="xong" value={b.xong ? '' : '1'} />
+                            <SubmitButton
+                              className="flex min-h-[40px] w-full items-center gap-2.5 rounded-[10px] px-1.5 text-left transition-colors hover:bg-navy/[0.04]"
+                              wrapClass="contents"
+                            >
+                              {noiDungBuoc}
+                            </SubmitButton>
+                          </form>
+                        ) : (
+                          <div key={b.id} className="flex min-h-[36px] items-center gap-2.5 px-1.5">
+                            {noiDungBuoc}
+                          </div>
+                        );
+                      })}
                     </div>
+                  )}
+
+                  {/* HÀNH ĐỘNG chưa duyệt — nói cách đo để thẻ không trơ trọi như Đo lường. */}
+                  {m.loai_moc === 'hanh_dong' && m.trang_thai !== 'duyet' && m.trang_thai !== 'dong' && (
+                    <p className="mt-1 text-[11.5px] font-semibold italic text-grey-mid">{t('hanhDongCachDo')}</p>
                   )}
 
                   {/* HÀNH ĐỘNG — một nút "đã đạt" (0↔100%). */}
@@ -643,7 +678,9 @@ export default async function WigPage({
                   )}
 
                   {/* ── NGUỒN SỐ + HƯỚNG LÊN TRƯỜNG (03/09): cam kết không treo ở đây nữa — số của lớp
-                      CỘNG từ mục tiêu của thầy cô khi cùng đơn vị, khác đơn vị thì thầy cô ghi tay. ── */}
+                      CỘNG từ mục tiêu của thầy cô khi cùng đơn vị, khác đơn vị thì thầy cô ghi tay.
+                      Chỉ hiện khi ĐÃ DUYỆT — thẻ chờ duyệt không đeo khung rỗng. ── */}
+                  {m.trang_thai === 'duyet' && (
                   <div className="mt-1 flex flex-col gap-2 rounded-[12px] bg-white/60 p-2.5">
                     {m.nguon_so === 'con' ? (
                       <p className="text-[11.5px] font-semibold text-grey-mid">{t('nguonTuThayCo')}</p>
@@ -707,6 +744,7 @@ export default async function WigPage({
                       </form>
                     ) : null}
                   </div>
+                  )}
 
                   {/* Sửa · Đóng · Xoá mục tiêu của lớp. */}
                   <ThaoTacMucTieuLop
@@ -887,54 +925,50 @@ export default async function WigPage({
                             weekQ={weekQ}
                           />
                         </div>
-                        {/* THƯỚC ĐO DẪN DẮT của cam kết: tick mỗi ngày, hoặc ghi số. */}
-                        {c.thuoc_id && boTroTheoId.has(c.thuoc_id) ? (
-                          <div className="rounded-[8px] bg-navy/[0.03] p-1.5">
+                        {/* CHÙM THƯỚC ĐO DẪN DẮT của cam kết (0185: nhiều thước) — mỗi cái tick hoặc ghi số. */}
+                        {(thuocTheoCamKet.get(c.id ?? '') ?? []).map((th) => (
+                          <div key={th.id} className="rounded-[8px] bg-navy/[0.03] p-1.5">
                             <div className="mb-1 flex items-center justify-between gap-2">
-                              <p className="text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
-                                {tCk('viecBoTroLabel')}: <span className="text-navy">{boTroTheoId.get(c.thuoc_id)!.ten}</span>
-                              </p>
+                              <p className="text-[11px] font-extrabold text-navy">{th.ten}</p>
                               <SuaThuocToi
-                                thuocId={c.thuoc_id}
-                                ten={boTroTheoId.get(c.thuoc_id)!.ten}
-                                cachGhi={boTroTheoId.get(c.thuoc_id)!.cach_ghi}
-                                chiTieu={Number(boTroTheoId.get(c.thuoc_id)!.chi_tieu_ky ?? 0)}
-                                ngayApDung={boTroTheoId.get(c.thuoc_id)!.ngay_ap_dung ?? [1, 2, 3, 4, 5]}
-                                donViId={boTroTheoId.get(c.thuoc_id)!.don_vi_id}
+                                thuocId={th.id}
+                                ten={th.ten}
+                                cachGhi={th.cach_ghi}
+                                chiTieu={Number(th.chi_tieu_ky ?? 0)}
+                                ngayApDung={th.ngay_ap_dung ?? [1, 2, 3, 4, 5]}
+                                donViId={th.don_vi_id}
                                 classId={myClass.id}
                                 weekQ={weekQ}
-                                coLuot={(daTickTheoThuoc.get(c.thuoc_id) ?? []).length > 0 || (tongSoTheoThuoc.get(c.thuoc_id) ?? 0) > 0}
+                                coLuot={(daTickTheoThuoc.get(th.id) ?? []).length > 0 || (tongSoTheoThuoc.get(th.id) ?? 0) > 0}
                                 donViList={donViList}
                               />
                             </div>
-                            {boTroTheoId.get(c.thuoc_id)!.cach_ghi === 'cham' ? (
+                            {th.cach_ghi === 'cham' ? (
                               <TickCuaToi
-                                leadId={c.thuoc_id}
+                                leadId={th.id}
                                 studentId={profile.id}
-                                ngayApDung={boTroTheoId.get(c.thuoc_id)!.ngay_ap_dung ?? [1, 2, 3, 4, 5, 6, 7]}
+                                ngayApDung={th.ngay_ap_dung ?? [1, 2, 3, 4, 5, 6, 7]}
                                 days={weekDays}
-                                daTick={daTickTheoThuoc.get(c.thuoc_id) ?? []}
+                                daTick={daTickTheoThuoc.get(th.id) ?? []}
                                 today={todayVN}
                                 moKhoa={laTuanNay}
                                 dayShort={dayShort}
                               />
                             ) : (
                               <GhiSoToi
-                                leadId={c.thuoc_id}
+                                leadId={th.id}
                                 studentId={profile.id}
                                 today={todayVN}
-                                tongTuan={tongSoTheoThuoc.get(c.thuoc_id) ?? 0}
-                                chiTieu={Number(boTroTheoId.get(c.thuoc_id)!.chi_tieu_ky ?? 0)}
+                                tongTuan={tongSoTheoThuoc.get(th.id) ?? 0}
+                                chiTieu={Number(th.chi_tieu_ky ?? 0)}
                                 donVi={c.ten_don_vi ?? ''}
                               />
                             )}
                           </div>
-                        ) : (
-                          !c.thuoc_id &&
-                          laTuanNay &&
-                          !c.ket_qua && (
-                            <NutThemThuoc mode="toi" camKetId={c.id ?? ''} classId={myClass.id} weekQ={weekQ} monday={monday} donViList={donViList} />
-                          )
+                        ))}
+                        {/* Thêm thước — LUÔN mở khi tuần này & chưa chấm (một cam kết nhiều thước). */}
+                        {laTuanNay && !c.ket_qua && (
+                          <NutThemThuoc mode="toi" camKetId={c.id ?? ''} classId={myClass.id} weekQ={weekQ} monday={monday} donViList={donViList} />
                         )}
                       </div>
                     ))

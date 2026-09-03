@@ -1705,7 +1705,10 @@
     "cauChotLopGiu": "Our class will {ten}: keep {dau} {y} {dv} all year.",
     "phanLaGi": "What is the goal?",
     "phanDoTheNao": "How is it measured?",
-    "formTitleToi": "My goal"
+    "formTitleToi": "My goal",
+    "huongTruongCho": "Points to school goal",
+    "huongTruongGiaiThich": "Optional — pick one so the class pulls the school's direction.",
+    "huongTruongChon": "— Pick a school goal —"
   },
   "viec": {
     "chipLop": "Class",
@@ -2015,7 +2018,8 @@
     "noiTruongNut": "Link",
     "huongLop": "Aiming at class goal: {ten}",
     "congVaoLop": "numbers add to the class",
-    "camKetToiTuLan": "This week hasn't started yet. Current promises and lead measures roll over automatically on Monday morning."
+    "camKetToiTuLan": "This week hasn't started yet. Current promises and lead measures roll over automatically on Monday morning.",
+    "hanhDongCachDo": "Finishing this action completes the goal."
   },
   "truongWig": {
     "title": "School goals",

@@ -444,19 +444,22 @@ export function FormMucTieu3Buoc({
           />
         </Field>
 
-        {/* HỖ TRỢ CHO — nối mục tiêu của em vào mục tiêu của lớp (chỉ khi tạo mới). */}
-        {!dangSua && cap !== 'lop' && mucTieuLop.length > 0 && (
-          <Field label={t('hoTroCho')} htmlFor="mt-ho-tro">
+        {/* HỖ TRỢ CHO — nối mục tiêu vào CẤP TRÊN ngay lúc tạo: em/tôi → mục tiêu lớp;
+            lớp → mục tiêu trường (danh sách truyền vào qua cùng prop mucTieuLop). */}
+        {!dangSua && mucTieuLop.length > 0 && (
+          <Field label={cap === 'lop' ? t('huongTruongCho') : t('hoTroCho')} htmlFor="mt-ho-tro">
             <ChonCuon
               id="mt-ho-tro"
               name="_ho_tro_ui"
               value={hoTroCho}
               onChange={setHoTroCho}
               danhSach={mucTieuLop.map((m) => ({ma: m.id, nhan: m.ten}))}
-              chuaChon={t('hoTroChon')}
+              chuaChon={cap === 'lop' ? t('huongTruongChon') : t('hoTroChon')}
             />
             <span data-kiem="mt-ho-tro" className="hidden" />
-            <p className="mt-1 text-[11px] font-semibold text-grey-mid">{t('hoTroGiaiThich')}</p>
+            <p className="mt-1 text-[11px] font-semibold text-grey-mid">
+              {cap === 'lop' ? t('huongTruongGiaiThich') : t('hoTroGiaiThich')}
+            </p>
           </Field>
         )}
 

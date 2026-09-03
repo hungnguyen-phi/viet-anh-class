@@ -34,6 +34,7 @@ export type ViecTuan = {
 
 export type ViecEm = {
   thuoc_id: string;
+  cam_ket_id: string | null;
   ten: string;
   ten_don_vi: string | null;
   don_vi_id: string | null;

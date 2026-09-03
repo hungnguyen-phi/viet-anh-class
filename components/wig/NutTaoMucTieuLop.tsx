@@ -7,19 +7,22 @@ import {useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
 import {Plus} from 'lucide-react';
 import {btnGold} from '@/components/ui/Field';
-import {FormMucTieu3Buoc, type DonViChon} from '@/components/student/FormMucTieu';
+import {FormMucTieu3Buoc, type DonViChon, type MucTieuLopChon} from '@/components/student/FormMucTieu';
 
 export function NutTaoMucTieuLop({
   classId,
   nhanTheoArea,
   donViList,
   areaPreset,
+  truongWigs = [],
 }: {
   classId: string;
   nhanTheoArea: Record<string, string>;
   donViList: DonViChon[];
   /** Lĩnh vực mở sẵn (khi bấm từ một ô lĩnh vực cụ thể). */
   areaPreset?: string;
+  /** Mục tiêu TRƯỜNG đã duyệt của cơ sở — hiện ô "Hướng tới mục tiêu trường" ngay trong form. */
+  truongWigs?: MucTieuLopChon[];
 }) {
   const t = useTranslations('lopMucTieu');
   const router = useRouter();
@@ -36,6 +39,7 @@ export function NutTaoMucTieuLop({
           classId={classId}
           laChinhEm={false}
           cap="lop"
+          mucTieuLop={truongWigs}
           areaPreset={areaPreset}
           nhanTheoArea={nhanTheoArea}
           donViList={donViList}

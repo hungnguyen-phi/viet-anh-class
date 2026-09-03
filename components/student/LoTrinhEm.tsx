@@ -86,12 +86,13 @@ export function LoTrinhEm({
         </p>
       )}
       {camKet.map((c) => {
-        const vBoTro = c.thuoc_id ? viec.find((v) => v.thuoc_id === c.thuoc_id) : undefined;
+        // 0185: một cam kết treo NHIỀU thước — gom theo thuoc.cam_ket_id (viec_bang trả cột này).
+        const chumThuoc = viec.filter((v) => v.cam_ket_id === c.id);
         return (
           <div key={c.id} className="flex flex-col gap-1.5 rounded-[12px] bg-white/70 p-2">
             <TheCamKet c={c} studentId={studentId} laChinhEm={laChinhEm} tuanNghi={tuanNghi} today={today} anGiup />
-            {vBoTro ? (
-              <div className="rounded-[10px] bg-navy/[0.03] p-1.5">
+            {chumThuoc.map((vBoTro) => (
+              <div key={vBoTro.thuoc_id} className="rounded-[10px] bg-navy/[0.03] p-1.5">
                 <HangViec
                   v={vBoTro}
                   weekDays={weekDays}
@@ -107,11 +108,9 @@ export function LoTrinhEm({
                   donViList={donViList}
                 />
               </div>
-            ) : (
-              laChinhEm &&
-              classId && (
-                <NutThemThuoc mode="em" camKetId={c.id} classId={classId} studentId={studentId} monday={monday} donViList={donViList} />
-              )
+            ))}
+            {laChinhEm && classId && monday === thisMonday && c.ket_qua == null && (
+              <NutThemThuoc mode="em" camKetId={c.id} classId={classId} studentId={studentId} monday={monday} donViList={donViList} />
             )}
           </div>
         );

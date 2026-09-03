@@ -292,7 +292,8 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
       .eq('con_id', mtId)
       .eq('vai', 'chi_huong');
     if (ho_tro_cho) {
-      if (laToiGv) {
+      if (laToiGv || laLop) {
+        // laLop: "Hướng tới mục tiêu trường" chọn ngay trong form — 0182 nối CHỈ giữ hướng.
         // Mục tiêu CÁ NHÂN của thầy cô → mục tiêu lớp: hàm 0181 nối chi_huong + (cùng đơn vị)
         // gop_so và chuyển mục tiêu lớp sang nguon_so='con' để máy tự cộng. Lỗi thì nuốt như dây
         // thường: mục tiêu đã lưu là chính.
@@ -895,16 +896,15 @@ export async function themThuocChoCamKet(formData: FormData) {
     payload = {cach_ghi: 'cham', don_vi_id: ngayId as string, chi_tieu_ky: ngayChon.length, moi_lan: 1, ngay_ap_dung: ngayChon};
   }
 
+  // 0185: thước TRỎ VỀ cam kết (thuoc.cam_ket_id, n-1) — một cam kết treo nhiều thước.
+  // Trigger th_neo_cam_ket gác "cam kết của chính mình"; không đụng cam_ket nữa.
   const {data: vRow, error: vErr} = await supabase
     .from('thuoc')
-    .insert({chu_the: 'em', class_id, student_id, ten, chieu_dich: 'it_nhat', gop: 'tong', ky_tuan: 1, pham_vi: 'tung_em', tu_tuan, duyet: 'duyet', trang_thai: 'chay', ...payload})
+    .insert({chu_the: 'em', class_id, student_id, ten, chieu_dich: 'it_nhat', gop: 'tong', ky_tuan: 1, pham_vi: 'tung_em', tu_tuan, duyet: 'duyet', trang_thai: 'chay', cam_ket_id, ...payload})
     .select('id')
     .maybeSingle();
   if (vErr) veTrangEm(student_id, loi(friendlyError(vErr)));
   if (!vRow) veTrangEm(student_id, loi('Không tạo được thước đo dẫn dắt.'));
-  const {data, error} = await supabase.from('cam_ket').update({thuoc_id: vRow!.id}).eq('id', cam_ket_id).select('id');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) veTrangEm(student_id, loi('Không nối được — cam kết đã chấm hoặc không có quyền.'));
   veTrangEm(student_id, 'Đã thêm thước đo dẫn dắt');
 }
 
@@ -959,16 +959,14 @@ export async function doiCamKet(formData: FormData) {
   const id = String(formData.get('cam_ket_id') ?? '');
   if (!id) veTrangEm(student_id, loi('Thiếu cam kết.'));
   const supabase = await createClient();
-  // Lấy lead measure gắn cam kết cũ TRƯỚC (thuoc_id FK on delete set null khi xoá thuoc).
-  const {data: ck} = await supabase.from('cam_ket').select('thuoc_id').eq('id', id).maybeSingle();
   // ĐÁNH DẤU 'huy' (không xoá): đây là tín hiệu để cam kết TỰ LĂN (0177) NGỪNG lăn dòng này — bản
   // mới nhất là 'huy' thì hàm lăn bỏ qua. Xoá thì tuần sau nó lại clone từ bản cũ hơn.
   const {data, error} = await supabase.from('cam_ket').update({trang_thai: 'huy'}).eq('id', id).select('id');
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
   if (!data || data.length === 0)
     veTrangEm(student_id, loi('Không đổi được — cam kết đã chấm hoặc đã kể lại trong buổi họp.'));
-  // Xoá lead measure của cam kết cũ (chỉ việc bổ trợ CỦA EM; RLS chặn nếu không phải của em).
-  if (ck?.thuoc_id) await supabase.from('thuoc').delete().eq('id', ck.thuoc_id).eq('chu_the', 'em');
+  // Xoá CẢ CHÙM thước của cam kết (0185: thuoc.cam_ket_id; RLS chặn nếu không phải của em).
+  await supabase.from('thuoc').delete().eq('cam_ket_id', id).eq('chu_the', 'em');
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');

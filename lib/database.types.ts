@@ -3265,6 +3265,7 @@ export type Database = {
       thuoc: {
         Row: {
           cach_ghi: string
+          cam_ket_id: string | null
           chi_tieu_ky: number
           chieu_dich: string
           cho_bu: boolean
@@ -3300,6 +3301,7 @@ export type Database = {
         }
         Insert: {
           cach_ghi?: string
+          cam_ket_id?: string | null
           chi_tieu_ky: number
           chieu_dich?: string
           cho_bu?: boolean
@@ -3335,6 +3337,7 @@ export type Database = {
         }
         Update: {
           cach_ghi?: string
+          cam_ket_id?: string | null
           chi_tieu_ky?: number
           chieu_dich?: string
           cho_bu?: boolean
@@ -4165,6 +4168,7 @@ export type Database = {
         Args: { p_student?: string }
         Returns: {
           cach_ghi: string
+          cam_ket_id: string | null
           chi_tieu: number
           chi_xem: boolean
           chieu_dich: string
