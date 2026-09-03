@@ -49,6 +49,9 @@ export function NutThemCamKetLop({
             <Field label={tCk('viecBoTroLabel')} htmlFor="ck-viec" hint={tCk('viecBoTroHint')}>
               <input id="ck-viec" name="viec_bo_tro" maxLength={100} placeholder={tCk('viecBoTroHoi')} className={ctlWithBorder(false)} />
             </Field>
+            <Field label={tCk('soNgayLabel')} htmlFor="ck-ngay" hint={tCk('soNgayHint')}>
+              <input id="ck-ngay" type="number" name="so_ngay" min="1" max="7" defaultValue="5" className={`${ctlWithBorder(false)} max-w-[120px]`} />
+            </Field>
             <Field label={tCk('soHuaLabel')} htmlFor="ck-so">
               <input id="ck-so" type="number" name="so_hua" step="any" min="0" placeholder={tCk('soHua')} className={`${ctlWithBorder(false)} max-w-[160px]`} />
             </Field>

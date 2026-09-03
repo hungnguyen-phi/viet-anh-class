@@ -25,6 +25,7 @@ export function ThemCamKetEm({
   const [state, formAction] = useActionState(luuCamKet, INIT);
   const [noiDung, setNoiDung] = useState('');
   const [viecBoTro, setViecBoTro] = useState('');
+  const [soNgay, setSoNgay] = useState('5');
   const [soHua, setSoHua] = useState('');
   const [mt, setMt] = useState(mucTieuLop.length === 1 ? mucTieuLop[0].id : '');
   const batBuoc = mucTieuLop.length >= 2;
@@ -39,6 +40,7 @@ export function ThemCamKetEm({
     if (state.ok) {
       setNoiDung('');
       setViecBoTro('');
+      setSoNgay('5');
       setSoHua('');
     }
   }, [state]);
@@ -61,17 +63,31 @@ export function ThemCamKetEm({
         {state.fieldError === 'noi_dung' && state.error && (
           <p className="text-[11.5px] font-semibold text-status-bad">{state.error}</p>
         )}
-        {/* VIỆC BỔ TRỢ — một việc em tick hằng ngày để hoàn thành cam kết này (chỉ khi mục tiêu có đơn vị). */}
-        {donViId ? (
+        {/* VIỆC BỔ TRỢ — một việc em tick HẰNG NGÀY; đếm theo NGÀY, tách khỏi số hứa của cam kết. */}
+        <div className="flex flex-wrap items-center gap-2">
           <input
             name="viec_bo_tro"
             value={viecBoTro}
             onChange={(e) => setViecBoTro(e.target.value)}
             maxLength={100}
             placeholder={t('viecBoTroHoi')}
-            className="rounded-[9px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[12.5px] text-navy"
+            className="min-w-0 flex-1 rounded-[9px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[12.5px] text-navy"
           />
-        ) : null}
+          {viecBoTro.trim() && (
+            <span className="inline-flex items-center gap-1 whitespace-nowrap">
+              <input
+                type="number"
+                name="so_ngay"
+                value={soNgay}
+                onChange={(e) => setSoNgay(e.target.value)}
+                min="1"
+                max="7"
+                className="w-14 rounded-[9px] border-[1.5px] border-navy/20 px-2 py-1 text-center text-[12.5px] text-navy"
+              />
+              <span className="text-[12px] font-semibold text-grey-mid">{t('soNgayTuan')}</span>
+            </span>
+          )}
+        </div>
         {/* Đơn vị lấy TỪ mục tiêu được chọn — có số phải có đơn vị (ck_don_vi_ck). */}
         <input type="hidden" name="don_vi_id" value={donViId ? donViId : ''} />
         <div className="flex flex-wrap items-center gap-2">

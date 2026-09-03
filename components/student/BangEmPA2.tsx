@@ -269,10 +269,10 @@ export function HangViec({
       </div>
       <div className="mt-0.5 text-[11.5px] font-semibold text-grey-mid">
         {kieng
-          ? tv('chiTieuKhongQua', {n: so(v.chi_tieu), dv: v.ten_don_vi ?? '', ky: kyNhan})
-          : tv('chiTieu', {n: so(v.chi_tieu), dv: v.ten_don_vi ?? '', ky: kyNhan})}
+          ? tv('chiTieuKhongQua', {n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay'), ky: kyNhan})
+          : tv('chiTieu', {n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay'), ky: kyNhan})}
         {' · '}
-        {tv('tuanNayDuoc', {so: so(v.gia), n: so(v.chi_tieu), dv: v.ten_don_vi ?? ''})}
+        {tv('tuanNayDuoc', {so: so(v.gia), n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay')})}
       </div>
 
       {/* 12 ô tuần */}
