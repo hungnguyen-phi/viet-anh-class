@@ -194,6 +194,7 @@ export async function StudentScoreboard({
     thuoc_id: string;
     ten: string | null;
     ten_don_vi: string | null;
+    don_vi_id: string | null;
     cach_ghi: string | null;
     chieu_dich: string | null;
     chi_tieu: number | null;
@@ -389,6 +390,7 @@ export async function StudentScoreboard({
       thuoc_id: v.thuoc_id,
       ten: v.ten ?? '',
       ten_don_vi: v.ten_don_vi,
+      don_vi_id: v.don_vi_id ?? null,
       cach_ghi: v.cach_ghi ?? 'cham',
       chieu_dich: v.chieu_dich ?? 'it_nhat',
       chi_tieu: Number(v.chi_tieu ?? 0),

@@ -1,7 +1,8 @@
 'use client';
 
-// SỬA / XÓA THƯỚC ĐO DẪN DẮT của em — nút bút mở Popup đổi TÊN + ĐÍCH + NGÀY (hiệu lực ngay, không
-// duyệt); trong hộp có nút XÓA (xoaViec — chỉ xoá được khi chưa ghi lần nào). Redirect về trang em.
+// SỬA / XÓA THƯỚC ĐO DẪN DẮT của em — nút bút mở Popup đổi TÊN + CÁCH ĐO (tick mỗi ngày / đo bằng
+// số + đơn vị) + ĐÍCH + NGÀY (hiệu lực ngay, KHÔNG duyệt). Đổi đơn vị/cách-đo chỉ được khi CHƯA ghi
+// lượt nào (trigger th_truoc_sua chặn nếu đã tick — câu báo hiện nguyên). Trong hộp có nút XÓA.
 import {useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {Pencil, Trash2} from 'lucide-react';
@@ -26,6 +27,9 @@ export function SuaViecEm({
   chiTieu,
   ngayApDung,
   tenDonVi,
+  cachGhi,
+  donViId,
+  donViList = [],
 }: {
   studentId: string;
   thuocId: string;
@@ -33,9 +37,16 @@ export function SuaViecEm({
   chiTieu: number;
   ngayApDung: number[];
   tenDonVi: string | null;
+  cachGhi?: string;
+  donViId?: string | null;
+  donViList?: {id: string; ma: string; nhan?: string}[];
 }) {
   const t = useTranslations('viec');
   const [mo, setMo] = useState(false);
+  // Prefill CÁCH ĐO theo giá trị hiện tại: 'dien_so' = đo bằng số, còn lại (cham) = tick mỗi ngày.
+  const [viecCach, setViecCach] = useState<'cham' | 'dien_so'>(cachGhi === 'dien_so' ? 'dien_so' : 'cham');
+  const [viecDonVi, setViecDonVi] = useState(donViId ?? '');
+
   return (
     <>
       <button
@@ -52,6 +63,7 @@ export function SuaViecEm({
           <form action={suaViec} className="flex flex-col gap-2.5">
             <input type="hidden" name="student_id" value={studentId} />
             <input type="hidden" name="thuoc_id" value={thuocId} />
+            <input type="hidden" name="viec_cach" value={viecCach} />
             <input
               name="ten"
               defaultValue={ten}
@@ -60,18 +72,59 @@ export function SuaViecEm({
               className="rounded-[9px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[13px] text-navy"
               autoFocus
             />
-            <span className="inline-flex items-center gap-1">
-              <span className="text-[12px] font-semibold text-grey-mid">{t('dichLabel')}</span>
-              <input
-                type="number"
-                name="chi_tieu_ky"
-                defaultValue={chiTieu}
-                step="any"
-                min="0"
-                className="w-20 rounded-[9px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
-              />
-              <span className="text-[12px] font-semibold text-grey-mid">{tenDonVi ?? t('donViNgay')}</span>
-            </span>
+
+            {/* CÁCH ĐO — tick mỗi ngày (đơn vị "ngày") hoặc đo bằng số (đơn vị tùy chọn). */}
+            <div className="inline-flex w-fit rounded-[9px] border-[1.5px] border-navy/20 p-0.5 text-[12px] font-extrabold">
+              <button
+                type="button"
+                onClick={() => setViecCach('cham')}
+                className={`cursor-pointer rounded-[7px] px-2.5 py-1 transition-colors ${viecCach === 'cham' ? 'bg-navy text-white' : 'text-grey-mid'}`}
+              >
+                {t('viecTick')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setViecCach('dien_so')}
+                className={`cursor-pointer rounded-[7px] px-2.5 py-1 transition-colors ${viecCach === 'dien_so' ? 'bg-navy text-white' : 'text-grey-mid'}`}
+              >
+                {t('viecSo')}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {viecCach === 'dien_so' && (
+                <select
+                  name="viec_don_vi"
+                  value={viecDonVi}
+                  onChange={(e) => setViecDonVi(e.target.value)}
+                  required
+                  className="rounded-[9px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
+                >
+                  <option value="">{t('chonDonVi')}</option>
+                  {donViList.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.nhan ?? d.ma}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <span className="inline-flex items-center gap-1">
+                <span className="text-[12px] font-semibold text-grey-mid">{t('dichLabel')}</span>
+                <input
+                  type="number"
+                  name="chi_tieu_ky"
+                  defaultValue={chiTieu}
+                  step="any"
+                  min="0"
+                  className="w-20 rounded-[9px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
+                />
+                <span className="text-[12px] font-semibold text-grey-mid">
+                  {viecCach === 'cham' ? t('donViNgay') : viecDonVi ? (donViList.find((d) => d.id === viecDonVi)?.nhan ?? '') : (tenDonVi ?? '')}
+                </span>
+              </span>
+            </div>
+
+            {/* NGÀY áp dụng (những thứ em phải làm/ghi việc này). */}
             <div className="flex flex-wrap gap-1">
               {NGAY.map((n) => (
                 <label

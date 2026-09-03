@@ -1015,9 +1015,30 @@ export async function suaViec(formData: FormData) {
     .map((d) => Number(String(d)))
     .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
     .sort((a, b) => a - b);
-  const patch: {ten: string; chi_tieu_ky: number; ngay_ap_dung?: number[]} = {ten, chi_tieu_ky};
-  if (ngay_ap_dung.length) patch.ngay_ap_dung = ngay_ap_dung;
   const supabase = await createClient();
+  // CÁCH ĐO (sửa tùy thích): 'cham' → đơn vị "ngày" (lùi "lần"), tick; 'dien_so' → đơn vị em chọn.
+  // Đổi cách-đo/đơn vị chỉ được khi CHƯA ghi lượt — trigger th_truoc_sua chặn (23514) nếu đã tick.
+  const viecCach = String(formData.get('viec_cach') ?? 'cham') === 'dien_so' ? 'dien_so' : 'cham';
+  let cach_ghi: string;
+  let don_vi_id: string;
+  let moi_lan: number | null;
+  if (viecCach === 'dien_so') {
+    const vdv = String(formData.get('viec_don_vi') ?? '').trim();
+    if (!vdv) veTrangEm(student_id, loi('Đo bằng số thì chọn đơn vị.'));
+    cach_ghi = 'dien_so';
+    don_vi_id = vdv;
+    moi_lan = null;
+  } else {
+    const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
+    const ngayId = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
+    if (!ngayId) veTrangEm(student_id, loi('Thiếu đơn vị hệ thống (ngày/lần).'));
+    cach_ghi = 'cham';
+    don_vi_id = ngayId as string;
+    moi_lan = 1;
+  }
+  const patch: {ten: string; chi_tieu_ky: number; cach_ghi: string; don_vi_id: string; moi_lan: number | null; ngay_ap_dung?: number[]} =
+    {ten, chi_tieu_ky, cach_ghi, don_vi_id, moi_lan};
+  if (ngay_ap_dung.length) patch.ngay_ap_dung = ngay_ap_dung;
   const {data, error} = await supabase.from('thuoc').update(patch).eq('id', thuoc_id).eq('chu_the', 'em').select('id');
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
