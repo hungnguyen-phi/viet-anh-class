@@ -1854,6 +1854,8 @@
     "soNgayHint": "Fewer on holiday weeks (e.g. 4). Default 5 = Mon–Fri.",
     "viecTick": "Tick daily",
     "viecSo": "By number",
+    "doi": "Change commitment",
+    "doiHoi": "Change this week's commitment? The current commitment and its supporting task will be removed so you can set new ones.",
     "chonDonVi": "unit",
     "viecDichHoi": "reach",
     "moiTuan": "/week",

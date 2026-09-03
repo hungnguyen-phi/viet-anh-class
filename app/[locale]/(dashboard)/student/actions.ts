@@ -929,6 +929,28 @@ export async function xoaCamKet(formData: FormData) {
   veTrangEm(student_id, 'Đã huỷ cam kết');
 }
 
+// ĐỔI CAM KẾT TUẦN — em muốn hứa việc khác: xoá cam kết HIỆN TẠI KÈM lead measure gắn với nó (việc
+// bổ trợ của cam kết cũ), rồi em set lại từ đầu qua form "+ Thêm cam kết". (Cam kết giữ nguyên thì
+// lead measure giữ nguyên; đổi thì bỏ luôn lead measure cũ — theo chủ dự án 03/09.)
+export async function doiCamKet(formData: FormData) {
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('cam_ket_id') ?? '');
+  if (!id) veTrangEm(student_id, loi('Thiếu cam kết.'));
+  const supabase = await createClient();
+  // Lấy lead measure gắn cam kết cũ TRƯỚC khi xoá cam kết (thuoc_id FK on delete set null).
+  const {data: ck} = await supabase.from('cam_ket').select('thuoc_id').eq('id', id).maybeSingle();
+  const {data, error} = await supabase.from('cam_ket').delete().eq('id', id).select('id');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data || data.length === 0)
+    veTrangEm(student_id, loi('Không đổi được — cam kết đã chấm hoặc đã kể lại trong buổi họp.'));
+  // Xoá lead measure của cam kết cũ (chỉ việc bổ trợ CỦA EM; RLS chặn nếu không phải của em).
+  if (ck?.thuoc_id) await supabase.from('thuoc').delete().eq('id', ck.thuoc_id).eq('chu_the', 'em');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  veTrangEm(student_id, 'Đã bỏ cam kết cũ — em đặt cam kết mới nhé');
+}
+
 // Người chứng xác nhận cam kết (buddy / thầy cô / phụ huynh). Trigger ckxn_dung_vai đặt nguoi_id
 // = uid và SUY vai từ quan hệ — không tin cột `vai` gửi lên (đặt tạm 'buddy' để qua kiểu TS).
 export async function xacNhanCamKet(formData: FormData) {

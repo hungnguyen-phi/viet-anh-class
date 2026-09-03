@@ -1854,6 +1854,8 @@
     "soNgayHint": "Tuần có ngày lễ thì đặt ít hơn (vd 4). Mặc định 5 = T2–T6.",
     "viecTick": "Tick mỗi ngày",
     "viecSo": "Đo bằng số",
+    "doi": "Đổi cam kết",
+    "doiHoi": "Đổi cam kết tuần này? Cam kết và việc bổ trợ hiện tại sẽ bị bỏ để em đặt lại.",
     "chonDonVi": "đơn vị",
     "viecDichHoi": "đạt",
     "moiTuan": "/tuần",
