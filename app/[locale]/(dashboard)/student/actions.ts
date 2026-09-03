@@ -330,26 +330,6 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   };
 }
 
-// Tập trung / thôi tập trung (tối đa 2 — trigger mt_kiem_tap_trung là luật thật).
-export async function datTapTrung(formData: FormData) {
-  const student_id = String(formData.get('student_id') ?? '');
-  const id = String(formData.get('muc_tieu_id') ?? '');
-  const bat = String(formData.get('bat') ?? '') === '1';
-  if (!id) veTrangEm(student_id, loi('Thiếu mục tiêu.'));
-  const supabase = await createClient();
-  const {data, error} = await supabase
-    .from('muc_tieu')
-    .update({dang_tap_trung: bat})
-    .eq('id', id)
-    .eq('cap', 'em')
-    .select('id');
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) veTrangEm(student_id, loi('Không đổi được — không có quyền hoặc đã xoá.'));
-  veTrangEm(student_id, bat ? 'Đang tập trung mục tiêu này' : 'Đã thôi tập trung');
-}
-
 // Đóng mục tiêu (ly_do_dong: dat/doi/bo — trigger đòi đúng ba giá trị ấy).
 export async function dongMucTieu(formData: FormData) {
   const student_id = String(formData.get('student_id') ?? '');
@@ -928,19 +908,19 @@ export async function themThuocChoCamKet(formData: FormData) {
   veTrangEm(student_id, 'Đã thêm thước đo dẫn dắt');
 }
 
-// Em tự chấm Thắng/Thua (ket_qua rỗng = bỏ chấm). Nút đã mờ trước thứ Sáu; nếu vẫn gửi thì
-// trigger văng 23514 "Đợi đến thứ Sáu tuần cuối rồi chấm nhé" — action hiện nguyên câu.
-export async function chamCamKet(formData: FormData) {
-  const student_id = String(formData.get('student_id') ?? '');
-  const id = String(formData.get('cam_ket_id') ?? '');
+// CHẤM TẠI CHỖ (Thắng/Thua/Bỏ chấm) — KHÔNG redirect: nút bé, trang phải đứng yên (cùng mẫu
+// chamCamKetToiTaiCho bên màn thầy cô). Trả state cho useActionState; RLS/trigger vẫn là luật
+// thật — câu báo của trigger hiện nguyên cạnh nút.
+export type ChamEmState = {ok: boolean; error?: string};
+export async function chamCamKetTaiCho(_prev: ChamEmState, formData: FormData): Promise<ChamEmState> {
+  const id = String(formData.get('cam_ket_id') ?? '').trim();
+  if (!id) return {ok: false, error: 'Thiếu cam kết.'};
   const ketQuaRaw = String(formData.get('ket_qua') ?? '').trim();
-  if (!id) veTrangEm(student_id, loi('Thiếu cam kết.'));
   const ket_qua = ketQuaRaw === 'thang' || ketQuaRaw === 'thua' ? ketQuaRaw : null;
   const soDatRaw = String(formData.get('so_dat') ?? '').trim();
   const so_dat = soDatRaw === '' ? null : Number(soDatRaw);
   if (so_dat !== null && (!Number.isFinite(so_dat) || so_dat < 0))
-    veTrangEm(student_id, loi('Số đạt được phải từ 0 trở lên.'));
-
+    return {ok: false, error: 'Số đạt được phải từ 0 trở lên.'};
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('cam_ket')
@@ -950,9 +930,9 @@ export async function chamCamKet(formData: FormData) {
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) veTrangEm(student_id, loi('Không chấm được — không có quyền hoặc đã xoá.'));
-  veTrangEm(student_id, ket_qua === null ? 'Đã bỏ chấm' : ket_qua === 'thang' ? 'Đã chấm Thắng' : 'Đã chấm Thua');
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data || data.length === 0) return {ok: false, error: 'Không chấm được — không có quyền hoặc đã xoá.'};
+  return {ok: true};
 }
 
 // Huỷ cam kết — RLS chỉ cho khi chưa chấm, chưa kể lại trong họp, chưa ai xác nhận.
@@ -1090,84 +1070,4 @@ export async function xacNhanCamKet(formData: FormData) {
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
   if (!data || data.length === 0) veTrangEm(student_id, loi('Không xác nhận được — không có quyền.'));
   veTrangEm(student_id, 'Đã xác nhận cam kết');
-}
-
-// ════════════════════════════════════════════════════════════════════════════════════════════
-// 4. DÂY NỐI (noi) — em tự nối việc/mục tiêu của mình HƯỚNG lên mục tiêu lớp (chi_huong).
-//
-// gop_so lên lớp/trường chỉ thầy cô/BGH; em chỉ gop_so lên mục tiêu CỦA CHÍNH EM. Dây không sửa
-// tại chỗ — gỡ rồi nối lại (không có policy UPDATE). Máy tự nối đi đường trigger riêng, không qua
-// đây.
-// ════════════════════════════════════════════════════════════════════════════════════════════
-
-export async function noiNguon(formData: FormData) {
-  const me = await getCurrentProfile();
-  if (!me) redirect('/login');
-  const student_id = String(formData.get('student_id') ?? '');
-  const cha_id = String(formData.get('cha_id') ?? '');
-  const con_muc_tieu_id = String(formData.get('con_muc_tieu_id') ?? '').trim() || null;
-  const con_thuoc_id = String(formData.get('con_thuoc_id') ?? '').trim() || null;
-  const vai = String(formData.get('vai') ?? 'chi_huong') === 'gop_so' ? 'gop_so' : 'chi_huong';
-  const heSo = Number(String(formData.get('he_so') ?? '1').trim());
-  if (!cha_id || (!con_muc_tieu_id && !con_thuoc_id)) veTrangEm(student_id, loi('Thiếu nguồn hoặc mục tiêu cha.'));
-  const supabase = await createClient();
-  // NỐI GÓP SỐ TỪ MỘT VIỆC → mục tiêu tự cộng từ lượt tick. Trigger noi_hop_le đòi mục tiêu ĐANG
-  // là nguon_so='thuoc' TRƯỚC khi nhận dây góp số, nên bật 'thuoc' trước rồi mới nối; nối hỏng thì
-  // hoàn nguyên. Không đụng 'thanh_phan'/'he_thong'. RLS gác: chỉ chủ mục tiêu đổi được.
-  const bumThuoc = vai === 'gop_so' && !!con_thuoc_id;
-  let daBat = false;
-  if (bumThuoc) {
-    const {data: mtCu} = await supabase.from('muc_tieu').select('nguon_so').eq('id', cha_id).maybeSingle();
-    if (mtCu?.nguon_so === 'ghi_tay') {
-      await supabase.from('muc_tieu').update({nguon_so: 'thuoc'}).eq('id', cha_id).eq('nguon_so', 'ghi_tay');
-      daBat = true;
-    }
-  }
-  const {data, error} = await supabase
-    .from('noi')
-    .insert({
-      cha_id,
-      con_muc_tieu_id,
-      con_thuoc_id,
-      vai,
-      he_so: Number.isFinite(heSo) && heSo > 0 ? heSo : 1,
-      noi_tu_dong: false,
-      created_by: me.id,
-    })
-    .select('id');
-  if (error && daBat) {
-    await supabase.from('muc_tieu').update({nguon_so: 'ghi_tay'}).eq('id', cha_id).eq('nguon_so', 'thuoc');
-  }
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]/wig', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) veTrangEm(student_id, loi('Không nối được — không có quyền.'));
-  veTrangEm(student_id, vai === 'gop_so' ? 'Đã nối — mục tiêu sẽ tự cộng từ việc này' : 'Đã nối hướng tới mục tiêu');
-}
-
-export async function goNguon(formData: FormData) {
-  const student_id = String(formData.get('student_id') ?? '');
-  const id = String(formData.get('noi_id') ?? '');
-  if (!id) veTrangEm(student_id, loi('Thiếu dây cần gỡ.'));
-  const supabase = await createClient();
-  // Nhớ dây này thuộc mục tiêu nào + có phải góp-số-từ-việc không, để hoàn nguyên nguon_so sau khi gỡ.
-  const {data: truoc} = await supabase.from('noi').select('cha_id, vai, con_thuoc_id').eq('id', id).maybeSingle();
-  const {data, error} = await supabase.from('noi').delete().eq('id', id).select('id');
-  // Gỡ dây góp số cuối cùng của một mục tiêu → trả về ghi tay (không còn việc nào để cộng).
-  if (!error && data && data.length > 0 && truoc?.vai === 'gop_so' && truoc?.con_thuoc_id && truoc?.cha_id) {
-    const {count} = await supabase
-      .from('noi')
-      .select('id', {count: 'exact', head: true})
-      .eq('cha_id', truoc.cha_id)
-      .eq('vai', 'gop_so')
-      .not('con_thuoc_id', 'is', null);
-    if (!count) await supabase.from('muc_tieu').update({nguon_so: 'ghi_tay'}).eq('id', truoc.cha_id).eq('nguon_so', 'thuoc');
-  }
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]/wig', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) veTrangEm(student_id, loi('Không gỡ được — không có quyền hoặc đã gỡ.'));
-  veTrangEm(student_id, 'Đã gỡ dây');
 }

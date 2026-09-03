@@ -26,7 +26,7 @@ import {MucTieuLopChoEm, type MucTieuLopThe} from '@/components/student/MucTieuL
 import {MucTieuCuaCon} from '@/components/student/MucTieuCuaCon';
 import {LoTrinhEm} from '@/components/student/LoTrinhEm';
 import type {DonViChon, MucTieuLopChon, MauMucTieu, BuocThe} from '@/components/student/FormMucTieu';
-import {BangEmPA2, type ViecEm, type ViecTuan, type CamKetEm} from '@/components/student/BangEmPA2';
+import {TheCamKet, type ViecEm, type ViecTuan, type CamKetEm} from '@/components/student/BangEmPA2';
 import type {Database} from '@/lib/database.types';
 
 type MucTieuV = Database['public']['Views']['muc_tieu_v']['Row'];
@@ -37,7 +37,7 @@ type MucTieuV = Database['public']['Views']['muc_tieu_v']['Row'];
 //   ① Hero + điểm danh cảm xúc  (GIỮ NGUYÊN khối cũ — không đổi bản sắc)
 //   ② Băng rôn 5 giây           (bang_ron — bày ngay ở máy chủ, không cần client)
 //   ③ Mục tiêu của em           (<MucTieuCuaCon> đọc muc_tieu_v — đã viết lại)
-//   ④ Việc + ⑤ Cam kết          (<BangEmPA2> đọc viec_bang/cam_ket_v — có ghi)
+//   ④ Việc + cam kết            (bày TRONG thẻ mục tiêu qua <LoTrinhEm> — có ghi)
 //   ⑥ Họp của em                (<HopPdr> — giữ)
 //   ⑦ Yêu cầu sửa               (<MyRequests>/<RequestInbox> — giữ)
 //
@@ -611,8 +611,8 @@ export async function StudentScoreboard({
         </section>
       ) : null}
 
-      {/* ④ MỤC TIÊU NĂM CỦA EM — em tạo (GV duyệt), nối vào một mục tiêu lớp để cùng hội tụ. Dưới MỖI
-          mục tiêu năm ĐÃ DUYỆT của em là cam kết tuần + thước đo dẫn dắt (hướng vào chính mục tiêu ấy). */}
+      {/* ④ MỤC TIÊU NĂM CỦA EM — em tạo (GV duyệt), nối vào một mục tiêu lớp để cùng hội tụ. Cam kết
+          tuần + thước đo dẫn dắt nằm NGAY TRONG thẻ mục tiêu đã duyệt (cùng bố cục thẻ của thầy cô). */}
       {classId ? (
         <section>
           <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{tBang('khuMucTieu')}</h2>
@@ -629,30 +629,40 @@ export async function StudentScoreboard({
             mucTieuLop={mucTieuLop}
             buocTheoMt={buocTheoMt}
             mauList={mauList}
+            loTrinhTheoMt={Object.fromEntries(
+              mtRows
+                .filter((m) => m.trang_thai === 'duyet' && !!m.id)
+                .map((m) => [
+                  m.id ?? '',
+                  <LoTrinhEm
+                    key={m.id ?? ''}
+                    goal={{id: m.id ?? '', ten: m.ten ?? '', don_vi_id: m.don_vi_id ?? null, ten_don_vi: m.ten_don_vi ?? null}}
+                    viec={viec}
+                    camKet={camKetCuaMt[m.id ?? ''] ?? []}
+                    studentId={studentId}
+                    classId={classId}
+                    donViList={donViList}
+                    laChinhEm={canTick}
+                    monday={monday}
+                    thisMonday={thisMonday}
+                    today={today}
+                    daChotHopTuan={daChotHopTuan}
+                    tuanNghi={tuanNghi}
+                    weekDays={weekDays}
+                    dayShort={dayShort}
+                  />,
+                ]),
+            )}
           />
-          <div className="mt-3 flex flex-col gap-4">
-            {mtRows
-              .filter((m) => m.trang_thai === 'duyet' && !!m.id)
-              .map((m) => (
-                <LoTrinhEm
-                  key={m.id ?? ''}
-                  goal={{id: m.id ?? '', ten: m.ten ?? '', don_vi_id: m.don_vi_id ?? null, ten_don_vi: m.ten_don_vi ?? null}}
-                  viec={viec}
-                  camKet={camKetCuaMt[m.id ?? ''] ?? []}
-                  studentId={studentId}
-                  classId={classId}
-                  donViList={donViList}
-                  laChinhEm={canTick}
-                  monday={monday}
-                  thisMonday={thisMonday}
-                  today={today}
-                  daChotHopTuan={daChotHopTuan}
-                  tuanNghi={tuanNghi}
-                  weekDays={weekDays}
-                  dayShort={dayShort}
-                />
+          {/* Cam kết CHƯA gắn vào mục tiêu nào — vẫn hiện để không mất lời hứa nào. */}
+          {camKetMoCoi.length > 0 && (
+            <div className="mt-3 flex flex-col gap-2">
+              <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{tBang('khuCamKetLac')}</p>
+              {camKetMoCoi.map((c) => (
+                <TheCamKet key={c.id} c={c} studentId={studentId} laChinhEm={canTick} tuanNghi={tuanNghi} today={today} />
               ))}
-          </div>
+            </div>
+          )}
         </section>
       ) : null}
 

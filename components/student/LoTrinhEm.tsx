@@ -60,16 +60,26 @@ export function LoTrinhEm({
   const moNgay = (d: string) => moTuan && d <= today && d >= dauCuaSo;
 
   return (
-    <div className="mt-1.5 flex flex-col gap-2 rounded-[14px] bg-navy/[0.03] p-2.5">
+    <div className="flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
       {loi && (
         <p className="rounded-[10px] border border-status-bad/40 bg-status-bad/[0.08] px-2.5 py-1.5 text-[12px] font-bold text-status-bad">
           {loi}
         </p>
       )}
 
-      {/* CAM KẾT TUẦN của em cho mục tiêu này. Dưới MỖI cam kết là VIỆC bổ trợ (em tick để hoàn thành
-          cam kết). Số dừng ở cam kết (Thắng/Thua) — mục tiêu do thầy cô cập nhật, không tự cộng dồn. */}
-      <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{tb('loCamKet')}</p>
+      {/* CAM KẾT TUẦN của em cho mục tiêu này — hàng đầu có nút (+) thêm, như thẻ của thầy cô. Dưới
+          MỖI cam kết là thước đo dẫn dắt (em tick để hoàn thành cam kết). */}
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{tb('loCamKet')}</p>
+        {laChinhEm && classId && (
+          <ThemCamKetEm
+            studentId={studentId}
+            classId={classId}
+            monday={monday}
+            mucTieuLop={[{id: goal.id, ten: goal.ten, don_vi_id: goal.don_vi_id, ten_don_vi: goal.ten_don_vi}]}
+          />
+        )}
+      </div>
       {camKet.length === 0 && (
         <p className="text-[11.5px] font-semibold italic text-grey-mid">{tb('loCamKetTrong')}</p>
       )}
@@ -77,7 +87,7 @@ export function LoTrinhEm({
         const vBoTro = c.thuoc_id ? viec.find((v) => v.thuoc_id === c.thuoc_id) : undefined;
         return (
           <div key={c.id} className="flex flex-col gap-1.5 rounded-[12px] bg-white/70 p-2">
-            <TheCamKet c={c} studentId={studentId} laChinhEm={laChinhEm} tuanNghi={tuanNghi} today={today} />
+            <TheCamKet c={c} studentId={studentId} laChinhEm={laChinhEm} tuanNghi={tuanNghi} today={today} anGiup />
             {vBoTro ? (
               <div className="rounded-[10px] bg-navy/[0.03] p-1.5">
                 <p className="mb-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">{tb('loViecBoTro')}</p>
@@ -105,14 +115,6 @@ export function LoTrinhEm({
           </div>
         );
       })}
-      {laChinhEm && classId && (
-        <ThemCamKetEm
-          studentId={studentId}
-          classId={classId}
-          monday={monday}
-          mucTieuLop={[{id: goal.id, ten: goal.ten, don_vi_id: goal.don_vi_id, ten_don_vi: goal.ten_don_vi}]}
-        />
-      )}
     </div>
   );
 }

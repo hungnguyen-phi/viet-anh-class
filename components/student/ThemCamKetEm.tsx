@@ -53,9 +53,9 @@ export function ThemCamKetEm({
         onClick={() => setMo(true)}
         aria-label={t('themCuaEm')}
         title={t('themCuaEm')}
-        className="mt-3 grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-gold text-navy shadow-sm transition-transform hover:scale-105 active:scale-95"
+        className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full bg-gold text-navy shadow-sm transition-transform hover:scale-105 active:scale-95"
       >
-        <Plus size={18} strokeWidth={3} />
+        <Plus size={16} strokeWidth={3} />
       </button>
       {mo && (
         <Popup title={t('themCuaEm')} onClose={() => setMo(false)} width="max-w-[460px]">

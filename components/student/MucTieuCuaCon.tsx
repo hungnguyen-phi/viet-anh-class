@@ -1,8 +1,8 @@
 'use client';
 
-import {useActionState, useEffect, useState} from 'react';
+import {useActionState, useEffect, useState, type ReactNode} from 'react';
 import {useTranslations} from 'next-intl';
-import {Check, CheckCircle2, CornerDownRight, Pencil, Plus, Target, Focus, Circle, ListChecks} from 'lucide-react';
+import {Check, CheckCircle2, CornerDownRight, Pencil, Plus, Circle, ListChecks} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {Field, ctlWithBorder, btnGhost, btnGold} from '@/components/ui/Field';
 import {Popup} from '@/components/ui/Popup';
@@ -18,15 +18,12 @@ import {
   type BuocThe,
 } from '@/components/student/FormMucTieu';
 import {
-  datTapTrung,
   dongMucTieu,
   duyetMucTieu,
   traLaiMucTieu,
   ghiSoDo,
   datBuocXong,
   datHanhDong,
-  noiNguon,
-  goNguon,
   type MucTieuState,
 } from '@/app/[locale]/(dashboard)/student/actions';
 import type {Database} from '@/lib/database.types';
@@ -64,6 +61,7 @@ export function MucTieuCuaCon({
   mauList = [],
   buocTheoMt = {},
   noiTheoMt = {},
+  loTrinhTheoMt = {},
 }: {
   studentId: string;
   classId: string;
@@ -86,6 +84,8 @@ export function MucTieuCuaCon({
   buocTheoMt?: Record<string, BuocThe[]>;
   /** Dây nối theo id mục tiêu con. */
   noiTheoMt?: Record<string, NoiHienThi[]>;
+  /** Khối cam kết tuần + thước đo của TỪNG mục tiêu (dựng ở màn cha) — bày ngay trong thẻ. */
+  loTrinhTheoMt?: Record<string, ReactNode>;
 }) {
   const t = useTranslations('mucTieu');
   const [bao, setBao] = useState('');
@@ -119,9 +119,9 @@ export function MucTieuCuaCon({
                 studentId={studentId}
                 laChinhEm={laChinhEm}
                 canManage={canManage}
-                mucTieuLop={mucTieuLop}
                 noi={noiTheoMt[mt.id ?? ''] ?? []}
                 buoc={buocTheoMt[mt.id ?? ''] ?? []}
+                loTrinh={loTrinhTheoMt[mt.id ?? ''] ?? null}
                 onSua={() => setMoForm({area: a, suaId: mt.id ?? undefined})}
                 onDone={setBao}
               />
@@ -203,9 +203,9 @@ function TheMucTieu({
   studentId,
   laChinhEm,
   canManage,
-  mucTieuLop,
   noi,
   buoc,
+  loTrinh,
   onSua,
   onDone,
 }: {
@@ -215,9 +215,9 @@ function TheMucTieu({
   studentId: string;
   laChinhEm: boolean;
   canManage: boolean;
-  mucTieuLop: MucTieuLopChon[];
   noi: NoiHienThi[];
   buoc: BuocThe[];
+  loTrinh: ReactNode;
   onSua: () => void;
   onDone: (msg: string) => void;
 }) {
@@ -261,12 +261,6 @@ function TheMucTieu({
               {nhanLinhVuc}
             </span>
             <span className="font-display text-[16px] font-bold leading-tight text-navy">{mt.ten}</span>
-            {mt.dang_tap_trung && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-navy/[0.08] px-2 py-0.5 text-[10.5px] font-extrabold text-navy">
-                <Focus size={10} strokeWidth={2.8} />
-                {t('dangTapTrung')}
-              </span>
-            )}
             <ChipTrangThai mt={mt} />
           </div>
 
@@ -376,6 +370,9 @@ function TheMucTieu({
         </form>
       )}
 
+      {/* CAM KẾT TUẦN + THƯỚC ĐO của chính mục tiêu này — nằm TRONG thẻ (như thẻ của thầy cô). */}
+      {mt.trang_thai === 'duyet' && loTrinh}
+
       {/* Hàng nút. */}
       <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-navy/[0.06] pt-2.5">
         {canManage && mt.trang_thai === 'gui' && (
@@ -402,23 +399,6 @@ function TheMucTieu({
               <Pencil size={12} strokeWidth={2.5} />
               {t('sua')}
             </button>
-            {mt.trang_thai === 'duyet' && (
-              <form action={datTapTrung}>
-                <input type="hidden" name="muc_tieu_id" value={mt.id ?? ''} />
-                <input type="hidden" name="student_id" value={studentId} />
-                <input type="hidden" name="bat" value={mt.dang_tap_trung ? '' : '1'} />
-                <SubmitButton
-                  className="inline-flex min-h-[24px] items-center gap-1 text-[12px] font-extrabold text-navy underline"
-                  wrapClass="contents"
-                >
-                  <Target size={12} strokeWidth={2.5} />
-                  {mt.dang_tap_trung ? t('boTapTrung') : t('tapTrung')}
-                </SubmitButton>
-              </form>
-            )}
-            {mucTieuLop.length > 0 && mt.trang_thai === 'duyet' && (
-              <NutNoi mtId={mt.id ?? ''} studentId={studentId} mucTieuLop={mucTieuLop} noi={noi} />
-            )}
           </>
         )}
       </div>
@@ -549,68 +529,6 @@ function NutDong({mtId, studentId}: {mtId: string; studentId: string}) {
               </button>
             </div>
           </form>
-        </Popup>
-      )}
-    </>
-  );
-}
-
-// Nút Nối dây — em tự hướng tới mục tiêu lớp (chi_huong; policy cho, không cần RPC — chốt C15).
-function NutNoi({
-  mtId,
-  studentId,
-  mucTieuLop,
-  noi,
-}: {
-  mtId: string;
-  studentId: string;
-  mucTieuLop: MucTieuLopChon[];
-  noi: NoiHienThi[];
-}) {
-  const t = useTranslations('mucTieu');
-  const [mo, setMo] = useState(false);
-  const daNoi = new Set(noi.map((n) => n.cha_ten));
-  const conLai = mucTieuLop.filter((m) => !daNoi.has(m.ten));
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setMo(true)}
-        className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 text-[12px] font-extrabold text-navy underline"
-      >
-        <CornerDownRight size={12} strokeWidth={2.5} />
-        {t('noiThem')}
-      </button>
-      {mo && (
-        <Popup title={t('noiThem')} onClose={() => setMo(false)} width="max-w-[460px]">
-          <div className="flex flex-col gap-2">
-            {noi.map((n) => (
-              <form key={n.id} action={goNguon} className="flex items-center justify-between gap-2 rounded-[10px] bg-navy/[0.04] px-3 py-2">
-                <span className="truncate text-[12.5px] font-bold text-navy">{n.cha_ten}</span>
-                <input type="hidden" name="noi_id" value={n.id} />
-                <input type="hidden" name="student_id" value={studentId} />
-                <SubmitButton className="text-[11.5px] font-extrabold text-status-bad underline" wrapClass="contents">
-                  {t('noiGo')}
-                </SubmitButton>
-              </form>
-            ))}
-            {conLai.length === 0 ? (
-              <p className="text-[12px] font-semibold italic text-grey-mid">{t('noiTrong')}</p>
-            ) : (
-              conLai.map((m) => (
-                <form key={m.id} action={noiNguon} className="flex items-center justify-between gap-2 rounded-[10px] border-[1.5px] border-navy/12 px-3 py-2">
-                  <span className="truncate text-[12.5px] font-bold text-navy">{m.ten}</span>
-                  <input type="hidden" name="student_id" value={studentId} />
-                  <input type="hidden" name="cha_id" value={m.id} />
-                  <input type="hidden" name="con_muc_tieu_id" value={mtId} />
-                  <input type="hidden" name="vai" value="chi_huong" />
-                  <SubmitButton className="text-[11.5px] font-extrabold text-navy underline" wrapClass="contents">
-                    {t('noiChiHuong')}
-                  </SubmitButton>
-                </form>
-              ))
-            )}
-          </div>
         </Popup>
       )}
     </>
