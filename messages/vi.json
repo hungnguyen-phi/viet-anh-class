@@ -1479,7 +1479,8 @@
     "loCamKet": "Cam kết tuần của em",
     "loCamKetTrong": "Tuần này chưa có cam kết cho mục tiêu này.",
     "loViecBoTro": "Thước đo dẫn dắt",
-    "khuCamKetLac": "Cam kết chưa gắn vào mục tiêu nào"
+    "khuCamKetLac": "Cam kết chưa gắn vào mục tiêu nào",
+    "loCamKetTuLan": "Tuần này chưa tới. Cam kết và thước đo đang có sẽ tự tiếp sang vào sáng thứ Hai."
   },
   "mucTieu": {
     "tt_dat": "Đã đạt",
@@ -2013,7 +2014,8 @@
     "chonTruong": "Hướng tới mục tiêu trường nào?",
     "noiTruongNut": "Nối",
     "huongLop": "Hướng tới mục tiêu lớp: {ten}",
-    "congVaoLop": "số cộng vào lớp"
+    "congVaoLop": "số cộng vào lớp",
+    "camKetToiTuLan": "Tuần này chưa tới. Cam kết và thước đo đang có sẽ tự tiếp sang vào sáng thứ Hai."
   },
   "truongWig": {
     "title": "Mục tiêu của trường",

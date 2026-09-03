@@ -1479,7 +1479,8 @@
     "loCamKet": "Your weekly commitment",
     "loCamKetTrong": "No commitment for this goal this week.",
     "loViecBoTro": "Lead measure",
-    "khuCamKetLac": "Promises not linked to any goal yet"
+    "khuCamKetLac": "Promises not linked to any goal yet",
+    "loCamKetTuLan": "This week hasn't started yet. Current promises and lead measures roll over automatically on Monday morning."
   },
   "mucTieu": {
     "tt_dat": "Achieved",
@@ -2013,7 +2014,8 @@
     "chonTruong": "Aim at which school goal?",
     "noiTruongNut": "Link",
     "huongLop": "Aiming at class goal: {ten}",
-    "congVaoLop": "numbers add to the class"
+    "congVaoLop": "numbers add to the class",
+    "camKetToiTuLan": "This week hasn't started yet. Current promises and lead measures roll over automatically on Monday morning."
   },
   "truongWig": {
     "title": "School goals",

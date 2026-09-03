@@ -81,7 +81,9 @@ export function LoTrinhEm({
         )}
       </div>
       {camKet.length === 0 && (
-        <p className="text-[11.5px] font-semibold italic text-grey-mid">{tb('loCamKetTrong')}</p>
+        <p className="text-[11.5px] font-semibold italic text-grey-mid">
+          {monday > thisMonday ? tb('loCamKetTuLan') : tb('loCamKetTrong')}
+        </p>
       )}
       {camKet.map((c) => {
         const vBoTro = c.thuoc_id ? viec.find((v) => v.thuoc_id === c.thuoc_id) : undefined;

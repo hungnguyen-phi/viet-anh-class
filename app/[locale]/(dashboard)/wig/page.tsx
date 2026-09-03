@@ -845,7 +845,9 @@ export default async function WigPage({
                     />
                   </div>
                   {(camKetCuaToi.get(m.id) ?? []).length === 0 ? (
-                    <p className="text-[11.5px] font-semibold italic text-grey-mid">{t('camKetToiTrong')}</p>
+                    <p className="text-[11.5px] font-semibold italic text-grey-mid">
+                      {t(monday > thisMonday ? 'camKetToiTuLan' : 'camKetToiTrong')}
+                    </p>
                   ) : (
                     (camKetCuaToi.get(m.id) ?? []).map((c) => (
                       <div key={c.id} className="flex flex-col gap-1.5 rounded-[10px] border border-navy/10 bg-white p-2.5">
