@@ -953,6 +953,62 @@ export async function doiCamKet(formData: FormData) {
   veTrangEm(student_id, 'Đã bỏ cam kết cũ — em đặt cam kết mới nhé');
 }
 
+// SỬA CAM KẾT — đổi LỜI HỨA (noi_dung) và SỐ HỨA (so_hua) khi CHƯA chấm. Trigger ck_truoc_sua chặn
+// sửa nội dung sau khi đã chấm (câu báo hiện nguyên). Giữ nguyên đơn vị (không đụng don_vi_id) → chỉ
+// đổi so_hua khi cam kết vốn có đơn vị; ck_don_vi_ck luôn thoả (cả hai vẫn non-null).
+export async function suaCamKet(formData: FormData) {
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('cam_ket_id') ?? '');
+  if (!id) veTrangEm(student_id, loi('Thiếu cam kết.'));
+  const noi_dung = String(formData.get('noi_dung') ?? '').trim();
+  if (!noi_dung) veTrangEm(student_id, loi('Tuần này em hứa làm gì? Viết một câu.'));
+  if (noi_dung.length > 300) veTrangEm(student_id, loi('Tối đa 300 ký tự.'));
+  const patch: {noi_dung: string; so_hua?: number} = {noi_dung};
+  // Ô số hứa chỉ hiện khi cam kết có đơn vị; có gửi thì đổi (giữ đơn vị cũ trong DB).
+  const soHuaRaw = formData.get('so_hua');
+  if (soHuaRaw != null && String(soHuaRaw).trim() !== '') {
+    const so_hua = Number(String(soHuaRaw).trim());
+    if (!Number.isFinite(so_hua) || so_hua <= 0) veTrangEm(student_id, loi('Con số của cam kết phải lớn hơn 0.'));
+    patch.so_hua = so_hua;
+  }
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('cam_ket').update(patch).eq('id', id).select('id');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data || data.length === 0) veTrangEm(student_id, loi('Không sửa được — cam kết đã chấm hoặc không có quyền.'));
+  veTrangEm(student_id, 'Đã sửa cam kết');
+}
+
+// SỬA THƯỚC ĐO DẪN DẮT — đổi TÊN, ĐÍCH (chi_tieu_ky) và NGÀY áp dụng, có hiệu lực ngay (em sửa tuỳ
+// thích, không duyệt — khác suaChiTieu vốn qua thuoc_lich_su + duyệt). Trigger th_truoc_sua gác quyền.
+export async function suaViec(formData: FormData) {
+  const student_id = String(formData.get('student_id') ?? '');
+  const thuoc_id = String(formData.get('thuoc_id') ?? '');
+  if (!thuoc_id) veTrangEm(student_id, loi('Thiếu việc.'));
+  const ten = String(formData.get('ten') ?? '').trim();
+  if (!ten) veTrangEm(student_id, loi('Thước đo dẫn dắt là việc gì? Viết một câu.'));
+  if (ten.length > 160) veTrangEm(student_id, loi('Tối đa 160 ký tự.'));
+  const chi_tieu_ky = Number(String(formData.get('chi_tieu_ky') ?? '').trim());
+  if (!Number.isFinite(chi_tieu_ky) || chi_tieu_ky <= 0) veTrangEm(student_id, loi('Đích phải là số lớn hơn 0.'));
+  const ngay_ap_dung = formData
+    .getAll('ngay')
+    .map((d) => Number(String(d)))
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
+    .sort((a, b) => a - b);
+  const patch: {ten: string; chi_tieu_ky: number; ngay_ap_dung?: number[]} = {ten, chi_tieu_ky};
+  if (ngay_ap_dung.length) patch.ngay_ap_dung = ngay_ap_dung;
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('thuoc').update(patch).eq('id', thuoc_id).eq('chu_the', 'em').select('id');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data || data.length === 0) veTrangEm(student_id, loi('Không sửa được — không có quyền với việc này.'));
+  veTrangEm(student_id, 'Đã sửa thước đo dẫn dắt');
+}
+
 // Người chứng xác nhận cam kết (buddy / thầy cô / phụ huynh). Trigger ckxn_dung_vai đặt nguoi_id
 // = uid và SUY vai từ quan hệ — không tin cột `vai` gửi lên (đặt tạm 'buddy' để qua kiểu TS).
 export async function xacNhanCamKet(formData: FormData) {

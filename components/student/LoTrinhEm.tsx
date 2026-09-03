@@ -90,6 +90,8 @@ export function LoTrinhEm({
                   ghi={ghi}
                   dayShort={dayShort}
                   vien={false}
+                  studentId={studentId}
+                  laChinhEm={laChinhEm}
                 />
               </div>
             )}

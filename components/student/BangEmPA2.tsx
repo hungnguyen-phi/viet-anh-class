@@ -21,6 +21,8 @@ import {ListChecks, Flag, Check, Plus, Minus, X} from 'lucide-react';
 import {isoDowVN} from '@/lib/dates';
 import {ThemCamKetEm} from '@/components/student/ThemCamKetEm';
 import {ghiLuot, chamCamKet, doiCamKet, type LuotResult} from '@/app/[locale]/(dashboard)/student/actions';
+import {SuaCamKetEm} from '@/components/student/SuaCamKetEm';
+import {SuaViecEm} from '@/components/student/SuaViecEm';
 
 export type ViecTuan = {
   tuan: string;
@@ -166,6 +168,8 @@ export function BangEmPA2({
                 ghi={ghi}
                 dayShort={dayShort}
                 vien={i > 0}
+                studentId={studentId}
+                laChinhEm={laChinhEm}
               />
             ))}
           </div>
@@ -212,6 +216,8 @@ export function HangViec({
   ghi,
   dayShort,
   vien,
+  studentId,
+  laChinhEm = false,
 }: {
   v: ViecEm;
   weekDays: string[];
@@ -222,6 +228,8 @@ export function HangViec({
   ghi: (fn: () => Promise<LuotResult>) => void;
   dayShort: string[];
   vien: boolean;
+  studentId?: string;
+  laChinhEm?: boolean;
 }) {
   const tv = useTranslations('viec');
   const [oDien, datODien] = useState<string | null>(null);
@@ -266,6 +274,16 @@ export function HangViec({
           <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10px] font-bold text-grey-mid">{tv('chipLop')}</span>
         )}
         <span className={`text-[11.5px] font-extrabold ${ttMau}`}>{ttNhan}</span>
+        {laChinhEm && !v.chi_xem && studentId && (
+          <SuaViecEm
+            studentId={studentId}
+            thuocId={v.thuoc_id}
+            ten={v.ten}
+            chiTieu={v.chi_tieu}
+            ngayApDung={v.ngay_ap_dung}
+            tenDonVi={v.ten_don_vi}
+          />
+        )}
       </div>
       <div className="mt-0.5 text-[11.5px] font-semibold text-grey-mid">
         {kieng
@@ -452,6 +470,9 @@ export function TheCamKet({
     <div className="glass rounded-[16px] border-l-[3px] border-gold-mid p-3.5">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="min-w-0 flex-1 text-[14px] font-extrabold text-navy">{c.noi_dung}</span>
+        {laChinhEm && !daCham && (
+          <SuaCamKetEm studentId={studentId} camKetId={c.id} noiDung={c.noi_dung} soHua={c.so_hua} tenDonVi={c.ten_don_vi} />
+        )}
         {c.so_hua != null && (
           <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-bold text-navy">
             {tc('chipSo', {dat: so(c.so_dat ?? 0), hua: so(c.so_hua), dv: c.ten_don_vi ?? ''})}
@@ -541,12 +562,13 @@ export function TheCamKet({
           )}
         </div>
       )}
-      {/* ĐỔI CAM KẾT — bỏ cam kết này KÈM lead measure của nó rồi đặt lại (chủ dự án 03/09). */}
+      {/* XÓA CAM KẾT — bỏ cam kết này KÈM lead measure của nó (doiCamKet: đánh dấu 'huy' để cam kết
+          tự-lăn NGỪNG lăn dòng này + xoá thước đo dẫn dắt gắn nó). */}
       {laChinhEm && !daCham && (
         <form
           action={doiCamKet}
           onSubmit={(e) => {
-            if (!window.confirm(tc('doiHoi'))) e.preventDefault();
+            if (!window.confirm(tc('xoaHoi'))) e.preventDefault();
           }}
           className="mt-2 flex justify-end"
         >
@@ -554,9 +576,9 @@ export function TheCamKet({
           <input type="hidden" name="cam_ket_id" value={c.id} />
           <button
             type="submit"
-            className="cursor-pointer text-[11px] font-bold text-grey-mid underline hover:text-status-bad"
+            className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-bold text-grey-mid underline hover:text-status-bad"
           >
-            {tc('doi')}
+            {tc('xoaCamKet')}
           </button>
         </form>
       )}
