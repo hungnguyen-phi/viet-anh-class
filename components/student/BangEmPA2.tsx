@@ -125,13 +125,11 @@ export function HangViec({
   if (v.trang_thai === 'mien') {
     ttNhan = tv('oNghi');
   } else if (v.dat) {
-    ttNhan = tv('du');
-    ttMau = 'text-success-dark';
+    ttNhan = '';                       // "Đủ" cũng thừa — 5/5 ngày + ô xanh đã nói
   } else if (v.trang_thai === 'chua_bat_dau') {
     ttNhan = tv('oChuaBatDau');
   } else {
-    ttNhan = tv('chuaDu');
-    ttMau = 'text-gold-text';
+    ttNhan = '';                       // "Chưa đủ" thừa — số 4/5 ngày ngay dưới đã nói rồi
   }
 
   const kyNhan = v.ky_tuan === 2 ? tv('ky2Tuan') : v.ky_tuan === 4 ? tv('ky4Tuan') : tv('kyTuan');
@@ -155,7 +153,7 @@ export function HangViec({
         {v.chi_xem && (
           <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10px] font-bold text-grey-mid">{tv('chipLop')}</span>
         )}
-        <span className={`text-[11.5px] font-extrabold ${ttMau}`}>{ttNhan}</span>
+        {ttNhan && <span className={`text-[11.5px] font-extrabold ${ttMau}`}>{ttNhan}</span>}
         {laChinhEm && !v.chi_xem && studentId && (
           <SuaViecEm
             studentId={studentId}
@@ -173,15 +171,13 @@ export function HangViec({
       </div>
       <div className="mt-0.5 text-[11.5px] font-semibold text-grey-mid">
         {kieng
-          ? tv('chiTieuKhongQua', {n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay'), ky: kyNhan})
-          : tv('chiTieu', {n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay'), ky: kyNhan})}
-        {' · '}
-        {tv('tuanNayDuoc', {so: so(v.gia), n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay')})}
+          ? `${tv('chiTieuKhongQua', {n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay'), ky: kyNhan})} · ${tv('tuanNayDuoc', {so: so(v.gia), n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay')})}`
+          : tv('tuanNayDuoc', {so: so(v.gia), n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay')})}
       </div>
 
       {/* 12 ô tuần */}
       <div className="mt-2">
-        <div className="text-[10px] font-bold uppercase tracking-wide text-grey-mid">{tv('muoiHaiTuan')}</div>
+        <div className="text-[10px] font-bold text-grey-mid/70">{tv('doThi')}</div>
         <div className="mt-1 flex gap-[3px]">
           {v.muoiHaiTuan.map((w) => {
             let bg = 'bg-navy/[0.06]';
@@ -369,7 +365,7 @@ export function TheCamKet({
         )}
       </div>
 
-      {c.tenViec ? (
+      {c.tenViec && !anGiup ? (
         <p className="mt-1 text-[11px] font-semibold text-grey-mid">{tc('giupViec', {ten: c.tenViec})}</p>
       ) : c.tenMucTieu && !anGiup ? (
         <p className="mt-1 text-[11px] font-semibold text-grey-mid">{tc('giupMucTieu', {ten: c.tenMucTieu})}</p>

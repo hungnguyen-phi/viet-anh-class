@@ -1596,7 +1596,7 @@
     "suyTang": "Got it: you want to go up.",
     "suyGiam": "Got it: you want to go down.",
     "suyGiu": "Got it: you want to hold steady.",
-    "truocNgay": "By",
+    "truocNgay": "by {ngay}",
     "tuNgay": "Starting",
     "khongSo": "This WIG has no number",
     "yChu": "What will you achieve? (in words)",

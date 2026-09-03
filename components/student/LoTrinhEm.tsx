@@ -92,7 +92,6 @@ export function LoTrinhEm({
             <TheCamKet c={c} studentId={studentId} laChinhEm={laChinhEm} tuanNghi={tuanNghi} today={today} anGiup />
             {vBoTro ? (
               <div className="rounded-[10px] bg-navy/[0.03] p-1.5">
-                <p className="mb-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">{tb('loViecBoTro')}</p>
                 <HangViec
                   v={vBoTro}
                   weekDays={weekDays}

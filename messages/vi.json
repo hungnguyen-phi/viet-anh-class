@@ -1596,7 +1596,7 @@
     "suyTang": "App hiểu: em muốn tăng lên.",
     "suyGiam": "App hiểu: em muốn giảm xuống.",
     "suyGiu": "App hiểu: em muốn giữ mức.",
-    "truocNgay": "Em muốn đạt trước ngày",
+    "truocNgay": "trước {ngay}",
     "tuNgay": "Bắt đầu từ",
     "khongSo": "Mục tiêu này không đếm bằng số",
     "yChu": "Em sẽ đạt được gì? (viết bằng lời)",

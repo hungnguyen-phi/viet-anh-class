@@ -271,12 +271,20 @@ function TheMucTieu({
             <ChipTrangThai mt={mt} />
           </div>
 
-          <p className="mt-1 text-[12.5px] font-semibold tabular-nums text-grey-mid">{cauDich(mt, t)}</p>
-
-          {/* Số hiện tại — gọn: chỉ "Đang ở …". Bỏ nguồn "máy cộng từ N việc" (việc đã hiện ở lộ trình
-              dưới) và bỏ "hôm nay lẽ ra …" (số phán xét). Chỉ giữ chữ chuẩn. */}
-          {mt.so != null && (
-            <p className="mt-1 text-[12.5px] font-bold text-navy">{t('dangO', {so: dinhSo(mt.so), dv: mt.ten_don_vi ?? ''})}</p>
+          {/* Số: gộp MỘT dòng "1/10 Sách · trước 03/02/2027" như thẻ của thầy cô (góp ý 03/09) —
+              hai dòng "Từ 0 lên…" + "Đang ở…" nói cùng một chuyện. Kiểu khác (giữ, trần…) giữ cauDich. */}
+          {mt.so != null && mt.y_so != null && (mt.kieu_dich ?? 'toi') === 'toi' ? (
+            <p className="mt-1 text-[13px] font-bold tabular-nums text-navy">
+              {dinhSo(mt.so)}
+              <span className="font-semibold text-grey-mid">/{dinhSo(mt.y_so)} {mt.ten_don_vi ?? ''}{mt.ket_thuc ? ` · ${t('truocNgay', {ngay: ngayVN(mt.ket_thuc)})}` : ''}</span>
+            </p>
+          ) : (
+            <>
+              <p className="mt-1 text-[12.5px] font-semibold tabular-nums text-grey-mid">{cauDich(mt, t)}</p>
+              {mt.so != null && (
+                <p className="mt-1 text-[12.5px] font-bold text-navy">{t('dangO', {so: dinhSo(mt.so), dv: mt.ten_don_vi ?? ''})}</p>
+              )}
+            </>
           )}
 
           {/* DÂY — hướng tới / góp số vào mục tiêu cha. */}
