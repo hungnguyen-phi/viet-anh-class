@@ -17,6 +17,7 @@ import {NutTaoMucTieuToi} from '@/components/wig/NutTaoMucTieuToi';
 import {NutThemCamKetToi} from '@/components/wig/NutThemCamKetToi';
 import {SuaCamKetToi} from '@/components/wig/SuaCamKetToi';
 import {TickCuaToi} from '@/components/wig/TickCuaToi';
+import {SuaThuocToi} from '@/components/wig/SuaThuocToi';
 import {GhiSoToi} from '@/components/wig/GhiSoToi';
 import {ThaoTacMucTieuLop} from '@/components/wig/ThaoTacMucTieuLop';
 import {NutThemThuoc} from '@/components/wig/NutThemThuoc';
@@ -360,13 +361,13 @@ export default async function WigPage({
   const weekDays = weekDaysVN(monday);
   const dayShort = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
   const ckThuocIds = [...new Set(camKet.map((c) => c.thuoc_id).filter(Boolean) as string[])];
-  type ThuocToi = {id: string; ten: string; cach_ghi: string; chi_tieu_ky: number | null};
+  type ThuocToi = {id: string; ten: string; cach_ghi: string; chi_tieu_ky: number | null; ngay_ap_dung: number[] | null; don_vi_id: string | null};
   const boTroTheoId = new Map<string, ThuocToi>();
   const daTickTheoThuoc = new Map<string, string[]>();
   const tongSoTheoThuoc = new Map<string, number>();
   if (ckThuocIds.length > 0) {
     const [{data: tRows}, {data: lRows}] = await Promise.all([
-      supabase.from('thuoc').select('id, ten, cach_ghi, chi_tieu_ky').in('id', ckThuocIds),
+      supabase.from('thuoc').select('id, ten, cach_ghi, chi_tieu_ky, ngay_ap_dung, don_vi_id').in('id', ckThuocIds),
       supabase
         .from('luot')
         .select('thuoc_id, ngay, gia_tri')
@@ -900,6 +901,17 @@ export default async function WigPage({
                               <X size={11} strokeWidth={3} />
                               {tCk('thua')}
                             </SubmitButton>
+                            {/* Đã chấm rồi → cho bỏ chấm (ket_qua rỗng = null): mở đường sửa/xoá lại. */}
+                            {c.ket_qua && (
+                              <SubmitButton
+                                name="ket_qua"
+                                value=""
+                                className="rounded-[7px] px-2 py-1 text-[11.5px] font-extrabold text-grey-mid underline transition-colors hover:text-navy"
+                                wrapClass="contents"
+                              >
+                                {tCk('boCham')}
+                              </SubmitButton>
+                            )}
                           </form>
                           <SuaCamKetToi
                             camKetId={c.id ?? ''}
@@ -913,13 +925,28 @@ export default async function WigPage({
                         {/* THƯỚC ĐO DẪN DẮT của cam kết: tick mỗi ngày, hoặc ghi số. */}
                         {c.thuoc_id && boTroTheoId.has(c.thuoc_id) ? (
                           <div className="rounded-[8px] bg-navy/[0.03] p-1.5">
-                            <p className="mb-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
-                              {tCk('viecBoTroLabel')}: <span className="text-navy">{boTroTheoId.get(c.thuoc_id)!.ten}</span>
-                            </p>
+                            <div className="mb-1 flex items-center justify-between gap-2">
+                              <p className="text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+                                {tCk('viecBoTroLabel')}: <span className="text-navy">{boTroTheoId.get(c.thuoc_id)!.ten}</span>
+                              </p>
+                              <SuaThuocToi
+                                thuocId={c.thuoc_id}
+                                ten={boTroTheoId.get(c.thuoc_id)!.ten}
+                                cachGhi={boTroTheoId.get(c.thuoc_id)!.cach_ghi}
+                                chiTieu={Number(boTroTheoId.get(c.thuoc_id)!.chi_tieu_ky ?? 0)}
+                                ngayApDung={boTroTheoId.get(c.thuoc_id)!.ngay_ap_dung ?? [1, 2, 3, 4, 5]}
+                                donViId={boTroTheoId.get(c.thuoc_id)!.don_vi_id}
+                                classId={myClass.id}
+                                weekQ={weekQ}
+                                coLuot={(daTickTheoThuoc.get(c.thuoc_id) ?? []).length > 0 || (tongSoTheoThuoc.get(c.thuoc_id) ?? 0) > 0}
+                                donViList={donViList}
+                              />
+                            </div>
                             {boTroTheoId.get(c.thuoc_id)!.cach_ghi === 'cham' ? (
                               <TickCuaToi
                                 leadId={c.thuoc_id}
                                 studentId={profile.id}
+                                ngayApDung={boTroTheoId.get(c.thuoc_id)!.ngay_ap_dung ?? [1, 2, 3, 4, 5, 6, 7]}
                                 days={weekDays}
                                 daTick={daTickTheoThuoc.get(c.thuoc_id) ?? []}
                                 today={todayVN}

@@ -1816,7 +1816,8 @@
     "nEmDu": "{n}/{si} bạn đủ tuần này",
     "doThi": "12 tuần",
     "doThiChiTieu": "chỉ tiêu",
-    "chonNhom": "Nhóm"
+    "chonNhom": "Nhóm",
+    "khoaCachDo": "Đã có lượt ghi — cách đo và đơn vị giữ nguyên. Muốn đổi thì xóa thước đo và tạo lại."
   },
   "camKet": {
     "chipSo": "{dat}/{hua} {dv}",
@@ -1860,8 +1861,6 @@
     "coSo": "Cam kết có con số?",
     "soHua": "Hứa đạt",
     "soNgayTuan": "ngày/tuần",
-    "soNgayLabel": "Tick mấy ngày trong tuần?",
-    "soNgayHint": "Tuần có ngày lễ thì đặt ít hơn (vd 4). Mặc định 5 = T2–T6.",
     "viecTick": "Tick mỗi ngày",
     "viecSo": "Đo bằng số",
     "doi": "Đổi cam kết",
@@ -1898,7 +1897,16 @@
     "noiDungToi": "Tuần này tôi hứa làm gì?",
     "tongTuan": "Tuần này: {so}/{dich} {dv}",
     "ghiThem": "Ghi thêm",
-    "ghiLoi": "Không ghi được — thử lại nhé."
+    "ghiLoi": "Không ghi được — thử lại nhé.",
+    "chonNgayTick": "Tick những ngày nào?",
+    "chonNgayHint": "Bấm chọn/bỏ từng ngày. Tuần có ngày lễ thì bỏ ngày ấy ra.",
+    "donViKhac": "Khác…",
+    "donViMoiHoi": "Tên đơn vị mới (vd: trang, phút)",
+    "suaThuoc": "Sửa thước đo dẫn dắt",
+    "xoaThuoc": "Xóa thước đo",
+    "xoaThuocHoi": "Xóa thước đo này? Cam kết vẫn giữ nguyên.",
+    "boCham": "Bỏ chấm",
+    "khoaCachDo": "Đã có lượt ghi — cách đo và đơn vị giữ nguyên. Muốn đổi thì xóa thước đo và tạo lại."
   },
   "duyet": {
     "duyet": "Duyệt",

@@ -16,10 +16,13 @@ export function TickCuaToi({
   today,
   moKhoa,
   dayShort,
+  ngayApDung,
 }: {
   leadId: string;
   /** Id hồ sơ của CHÍNH thầy cô — chủ của thước và của lượt. */
   studentId: string;
+  /** isodow (1=T2…7=CN) những ngày thước áp dụng — ngày ngoài danh sách bị mờ (trigger cũng chặn). */
+  ngayApDung: number[];
   days: string[];
   daTick: string[];
   today: string;
@@ -34,8 +37,9 @@ export function TickCuaToi({
     a.on ? [...state, a.date] : state.filter((d) => d !== a.date),
   );
 
+  const apDung = (d: string) => ngayApDung.includes(((new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7) + 1);
   async function chuyen(date: string) {
-    if (!moKhoa || date > today || dangGhi.has(date)) return;
+    if (!moKhoa || date > today || dangGhi.has(date) || !apDung(date)) return;
     const on = !view.includes(date);
     setDangGhi((p) => new Set(p).add(date));
     startTransition(() => apply({date, on}));
@@ -70,7 +74,7 @@ export function TickCuaToi({
     <div className="mt-2 flex flex-wrap items-center gap-1.5">
       {days.map((d) => {
         const on = view.includes(d);
-        const sau = d > today;
+        const sau = d > today || !apDung(d);
         const bay = dangGhi.has(d);
         const thu = dayShort[(new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7];
         return (

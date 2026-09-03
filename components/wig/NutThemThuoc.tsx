@@ -7,6 +7,7 @@ import {useState} from 'react';
 import {Ruler} from 'lucide-react';
 import {useTranslations} from 'next-intl';
 import {Popup} from '@/components/ui/Popup';
+import {ChonNgayTuan} from '@/components/ui/ChonNgayTuan';
 import {Field, ctlWithBorder} from '@/components/ui/Field';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {themThuocChoCamKetToi} from '@/app/[locale]/(dashboard)/wig/lop-actions';
@@ -33,6 +34,7 @@ export function NutThemThuoc({
   const t = useTranslations('camKet');
   const [mo, setMo] = useState(false);
   const [viecCach, setViecCach] = useState<'cham' | 'dien_so'>('cham');
+  const [donVi, setDonVi] = useState('');
   const action = mode === 'toi' ? themThuocChoCamKetToi : themThuocChoCamKet;
 
   return (
@@ -76,21 +78,28 @@ export function NutThemThuoc({
                 </button>
               </div>
               {viecCach === 'cham' ? (
-                <Field label={t('soNgayLabel')} htmlFor="tt-ngay" hint={t('soNgayHint')}>
-                  <input id="tt-ngay" type="number" name="so_ngay" min="1" max="7" defaultValue="5" className={`${ctlWithBorder(false)} max-w-[120px]`} />
+                <Field label={t('chonNgayTick')} htmlFor="tt-ngay" hint={t('chonNgayHint')}>
+                  {/* Chọn ĐÍCH DANH ngày (isodow 1..7) — chi_tieu_ky server tự đếm theo số ngày đã chọn. */}
+                  <ChonNgayTuan />
                 </Field>
               ) : (
                 <div className="flex flex-wrap items-end gap-2">
                   <Field label={t('chonDonVi')} htmlFor="tt-vdv">
-                    <select id="tt-vdv" name="viec_don_vi" className={ctlWithBorder(false)} defaultValue="">
+                    <select id="tt-vdv" name="viec_don_vi" value={donVi} onChange={(e) => setDonVi(e.target.value)} className={ctlWithBorder(false)}>
                       <option value="">{t('chonDonVi')}</option>
                       {donViList.map((d) => (
                         <option key={d.id} value={d.id}>
                           {d.nhan ?? d.ma}
                         </option>
                       ))}
+                      <option value="__khac__">{t('donViKhac')}</option>
                     </select>
                   </Field>
+                  {donVi === '__khac__' && (
+                    <Field label={t('donViMoiHoi')} htmlFor="tt-dvmoi">
+                      <input id="tt-dvmoi" name="don_vi_moi" maxLength={60} placeholder={t('donViMoiHoi')} className={`${ctlWithBorder(false)} max-w-[160px]`} />
+                    </Field>
+                  )}
                   <Field label={t('viecDichHoi')} htmlFor="tt-vdich">
                     <input id="tt-vdich" type="number" name="viec_dich" step="any" min="0" placeholder={t('viecDichHoi')} className={`${ctlWithBorder(false)} max-w-[120px]`} />
                   </Field>

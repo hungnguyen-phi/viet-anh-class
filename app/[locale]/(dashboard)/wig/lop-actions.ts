@@ -6,6 +6,7 @@ import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {isValidDayVN, todayInVN, weekRangeVN} from '@/lib/dates';
+import {timHoacTaoDonVi} from '@/lib/don-vi-server';
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
 // TẦNG GHI CỦA MÀN CÔ — /wig (mô hình mục tiêu PA2)
@@ -159,22 +160,35 @@ export async function themThuocChoCamKetToi(formData: FormData) {
   if (ten.length > 160) veWig(loi('Tối đa 160 ký tự.'), classId, week);
   const tuanGui = String(formData.get('tuan_bat_dau') ?? '').trim();
   const tu_tuan = isValidDayVN(tuanGui) ? tuanGui : weekRangeVN().start;
-  const so_ngay = Math.min(7, Math.max(1, Math.round(Number(String(formData.get('so_ngay') ?? '').trim()) || 5)));
   const viecCach = String(formData.get('viec_cach') ?? 'cham') === 'dien_so' ? 'dien_so' : 'cham';
+  // Ngày ĐÍCH DANH (isodow 1..7) từ bộ chip — kiểu tick: chỉ tick được đúng những ngày này.
+  const ngayChon = formData
+    .getAll('ngay')
+    .map((d) => Number(String(d)))
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
+    .sort((a, b) => a - b);
 
   const supabase = await createClient();
   let payload: {cach_ghi: string; don_vi_id: string; chi_tieu_ky: number; moi_lan: number | null; ngay_ap_dung: number[]} | null = null;
   if (viecCach === 'dien_so') {
-    const vdv = String(formData.get('viec_don_vi') ?? '').trim();
+    let vdv = String(formData.get('viec_don_vi') ?? '').trim();
     const vdich = Number(String(formData.get('viec_dich') ?? '').trim());
     if (!vdv || !Number.isFinite(vdich) || vdich <= 0)
       veWig(loi('Đo bằng số thì chọn đơn vị và nhập đích lớn hơn 0.'), classId, week);
+    if (vdv === '__khac__') {
+      const tenDv = String(formData.get('don_vi_moi') ?? '').trim();
+      if (!tenDv) veWig(loi('Gõ tên đơn vị muốn dùng.'), classId, week);
+      const dv = await timHoacTaoDonVi(supabase, me.id, tenDv);
+      if (!dv.id) veWig(loi(dv.error ?? 'Không tạo được đơn vị mới.'), classId, week);
+      vdv = dv.id as string;
+    }
     payload = {cach_ghi: 'dien_so', don_vi_id: vdv, chi_tieu_ky: vdich, moi_lan: null, ngay_ap_dung: [1, 2, 3, 4, 5, 6, 7]};
   } else {
+    if (ngayChon.length === 0) veWig(loi('Chọn ít nhất một ngày để tick.'), classId, week);
     const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
     const ngayId = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
     if (!ngayId) veWig(loi('Thiếu đơn vị hệ thống (ngày/lần).'), classId, week);
-    payload = {cach_ghi: 'cham', don_vi_id: ngayId as string, chi_tieu_ky: so_ngay, moi_lan: 1, ngay_ap_dung: Array.from({length: so_ngay}, (_, i) => i + 1)};
+    payload = {cach_ghi: 'cham', don_vi_id: ngayId as string, chi_tieu_ky: ngayChon.length, moi_lan: 1, ngay_ap_dung: ngayChon};
   }
 
   const {data: vRow, error: vErr} = await supabase
@@ -260,6 +274,79 @@ export async function doiCamKetToi(formData: FormData) {
   if (ck?.thuoc_id) await supabase.from('thuoc').delete().eq('id', ck.thuoc_id).eq('chu_the', 'em');
   revalidatePath('/[locale]/wig', 'page');
   veWig('Đã bỏ cam kết cũ — thầy cô đặt cam kết mới nhé', classId, week);
+}
+
+// XOÁ HẲN cam kết cá nhân (trong hộp Sửa). RLS delete đòi: chưa chấm, chưa ai xác nhận, chưa kể
+// lại trong họp — thiếu điều kiện nào thì 0 dòng, câu báo chỉ đường (bỏ chấm trước rồi xoá).
+export async function xoaCamKetToi(formData: FormData) {
+  const me = await requireRole(['teacher', 'admin']);
+  const {classId, week} = nen(formData);
+  const id = String(formData.get('cam_ket_id') ?? '').trim();
+  if (!id) veWig(loi('Thiếu cam kết.'), classId, week);
+  const supabase = await createClient();
+  const {data: ck} = await supabase.from('cam_ket').select('thuoc_id, ket_qua').eq('id', id).maybeSingle();
+  if (ck?.ket_qua) veWig(loi('Cam kết đã chấm thì không xoá được — bỏ chấm trước.'), classId, week);
+  const {data, error} = await supabase.from('cam_ket').delete().eq('id', id).eq('student_id', me.id).select('id');
+  if (error) veWig(loi(friendlyError(error)), classId, week);
+  if (!data || data.length === 0)
+    veWig(loi('Không xoá được — cam kết đã chấm, đã có người xác nhận, hoặc đã kể lại trong họp.'), classId, week);
+  if (ck?.thuoc_id) await supabase.from('thuoc').delete().eq('id', ck.thuoc_id).eq('student_id', me.id);
+  revalidatePath('/[locale]/wig', 'page');
+  veWig('Đã xoá cam kết', classId, week);
+}
+
+// SỬA thước đo dẫn dắt cá nhân — tên/ngày/đích sửa thoải mái; đổi CÁCH ĐO hay ĐƠN VỊ khi đã có
+// lượt thì trigger th_truoc_sua chặn (câu báo hiện nguyên). Cần 0184 để mở đông cứng chính chủ.
+export async function suaThuocToi(formData: FormData) {
+  const me = await requireRole(['teacher', 'admin']);
+  const {classId, week} = nen(formData);
+  const thuoc_id = String(formData.get('thuoc_id') ?? '').trim();
+  if (!thuoc_id) veWig(loi('Thiếu thước đo.'), classId, week);
+  const ten = String(formData.get('ten') ?? '').trim();
+  if (!ten) veWig(loi('Thước đo dẫn dắt là việc gì? Viết một câu.'), classId, week);
+  if (ten.length > 160) veWig(loi('Tối đa 160 ký tự.'), classId, week);
+  const viecCach = String(formData.get('viec_cach') ?? 'cham') === 'dien_so' ? 'dien_so' : 'cham';
+  const ngayChon = formData
+    .getAll('ngay')
+    .map((d) => Number(String(d)))
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
+    .sort((a, b) => a - b);
+
+  const supabase = await createClient();
+  let patch: {ten: string; cach_ghi: string; don_vi_id?: string; chi_tieu_ky: number; moi_lan: number | null; ngay_ap_dung?: number[]};
+  if (viecCach === 'dien_so') {
+    const vdv = String(formData.get('viec_don_vi') ?? '').trim();
+    const vdich = Number(String(formData.get('viec_dich') ?? '').trim());
+    if (!Number.isFinite(vdich) || vdich <= 0) veWig(loi('Đích phải là số lớn hơn 0.'), classId, week);
+    patch = {ten, cach_ghi: 'dien_so', chi_tieu_ky: vdich, moi_lan: null};
+    if (vdv) patch.don_vi_id = vdv;
+  } else {
+    if (ngayChon.length === 0) veWig(loi('Chọn ít nhất một ngày để tick.'), classId, week);
+    const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
+    const ngayId = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
+    if (!ngayId) veWig(loi('Thiếu đơn vị hệ thống (ngày/lần).'), classId, week);
+    patch = {ten, cach_ghi: 'cham', don_vi_id: ngayId as string, chi_tieu_ky: ngayChon.length, moi_lan: 1, ngay_ap_dung: ngayChon};
+  }
+  const {data, error} = await supabase.from('thuoc').update(patch).eq('id', thuoc_id).eq('student_id', me.id).select('id');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veWig(loi(friendlyError(error)), classId, week);
+  if (!data || data.length === 0) veWig(loi('Không sửa được — không có quyền với thước đo này.'), classId, week);
+  veWig('Đã sửa thước đo dẫn dắt', classId, week);
+}
+
+// XOÁ thước đo cá nhân (trong hộp Sửa). th_truoc_xoa chặn khi đã có lượt — câu báo hiện nguyên.
+export async function xoaThuocToi(formData: FormData) {
+  const me = await requireRole(['teacher', 'admin']);
+  const {classId, week} = nen(formData);
+  const thuoc_id = String(formData.get('thuoc_id') ?? '').trim();
+  if (!thuoc_id) veWig(loi('Thiếu thước đo.'), classId, week);
+  const supabase = await createClient();
+  // FK cam_ket.thuoc_id là ON DELETE SET NULL — xoá thước là cam kết tự rời dây, không cần gỡ tay.
+  const {data, error} = await supabase.from('thuoc').delete().eq('id', thuoc_id).eq('student_id', me.id).select('id');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veWig(loi(friendlyError(error)), classId, week);
+  if (!data || data.length === 0) veWig(loi('Chỉ xoá được khi thước chưa ghi lần nào.'), classId, week);
+  veWig('Đã xoá thước đo dẫn dắt', classId, week);
 }
 
 // ── NỐI / GỠ mục tiêu LỚP ↔ mục tiêu TRƯỜNG (hàm 0181 gác quyền + tự xử cùng-đơn-vị) ─────────

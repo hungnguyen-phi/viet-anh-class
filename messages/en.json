@@ -1816,7 +1816,8 @@
     "nEmDu": "{n}/{si} students met it this week",
     "doThi": "12 weeks",
     "doThiChiTieu": "target",
-    "chonNhom": "Group"
+    "chonNhom": "Group",
+    "khoaCachDo": "Entries already logged — measure type and unit are locked. To change them, delete this lead measure and add a new one."
   },
   "camKet": {
     "chipSo": "{dat}/{hua} {dv}",
@@ -1860,8 +1861,6 @@
     "coSo": "Does it have a number?",
     "soHua": "Aim",
     "soNgayTuan": "days/wk",
-    "soNgayLabel": "Tick how many days a week?",
-    "soNgayHint": "Fewer on holiday weeks (e.g. 4). Default 5 = Mon–Fri.",
     "viecTick": "Tick daily",
     "viecSo": "By number",
     "doi": "Change commitment",
@@ -1898,7 +1897,16 @@
     "noiDungToi": "What do I promise this week?",
     "tongTuan": "This week: {so}/{dich} {dv}",
     "ghiThem": "Add",
-    "ghiLoi": "Could not save — try again."
+    "ghiLoi": "Could not save — try again.",
+    "chonNgayTick": "Tick on which days?",
+    "chonNgayHint": "Tap to toggle each day. Skip holidays.",
+    "donViKhac": "Other…",
+    "donViMoiHoi": "New unit name (e.g. pages, minutes)",
+    "suaThuoc": "Edit lead measure",
+    "xoaThuoc": "Delete lead measure",
+    "xoaThuocHoi": "Delete this lead measure? The commitment stays.",
+    "boCham": "Unscore",
+    "khoaCachDo": "Entries already logged — measure type and unit are locked. To change them, delete this lead measure and add a new one."
   },
   "duyet": {
     "duyet": "Approve",

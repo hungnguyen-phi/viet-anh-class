@@ -29,6 +29,7 @@ export function SuaViecEm({
   tenDonVi,
   cachGhi,
   donViId,
+  coLuot = false,
   donViList = [],
 }: {
   studentId: string;
@@ -39,6 +40,8 @@ export function SuaViecEm({
   tenDonVi: string | null;
   cachGhi?: string;
   donViId?: string | null;
+  /** Đã có lượt ghi tuần này → khoá đổi cách đo/đơn vị (trigger chặn), nói lý do thay vì để lỗi văng. */
+  coLuot?: boolean;
   donViList?: {id: string; ma: string; nhan?: string}[];
 }) {
   const t = useTranslations('viec');
@@ -73,8 +76,10 @@ export function SuaViecEm({
               autoFocus
             />
 
-            {/* CÁCH ĐO — tick mỗi ngày (đơn vị "ngày") hoặc đo bằng số (đơn vị tùy chọn). */}
-            <div className="inline-flex w-fit rounded-[9px] border-[1.5px] border-navy/20 p-0.5 text-[12px] font-extrabold">
+            {/* CÁCH ĐO — tick mỗi ngày (đơn vị "ngày") hoặc đo bằng số (đơn vị tùy chọn).
+                Đã có lượt thì đông cứng cách đo/đơn vị — nói lý do, giấu nút đổi. */}
+            {coLuot && <p className="text-[11.5px] font-semibold italic text-grey-mid">{t('khoaCachDo')}</p>}
+            <div className={coLuot ? 'hidden' : 'inline-flex w-fit rounded-[9px] border-[1.5px] border-navy/20 p-0.5 text-[12px] font-extrabold'}>
               <button
                 type="button"
                 onClick={() => setViecCach('cham')}
@@ -92,7 +97,7 @@ export function SuaViecEm({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {viecCach === 'dien_so' && (
+              {viecCach === 'dien_so' && !coLuot && (
                 <select
                   name="viec_don_vi"
                   value={viecDonVi}

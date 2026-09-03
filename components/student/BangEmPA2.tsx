@@ -287,6 +287,7 @@ export function HangViec({
             tenDonVi={v.ten_don_vi}
             cachGhi={v.cach_ghi}
             donViId={v.don_vi_id}
+            coLuot={Number(v.gia) > 0}
             donViList={donViList}
           />
         )}

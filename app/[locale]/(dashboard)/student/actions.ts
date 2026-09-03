@@ -4,6 +4,7 @@ import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {createAdminClient} from '@/lib/supabase/admin';
+import {timHoacTaoDonVi} from '@/lib/don-vi-server';
 import {getCurrentProfile, requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {kieuDonVi} from '@/lib/don-vi';
@@ -188,22 +189,9 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   if (don_vi_id === '__khac__') {
     const tenDv = String(formData.get('don_vi_moi') ?? '').trim();
     if (!tenDv) return {ok: false, fieldError: 'don_vi_id', error: 'Gõ tên đơn vị em muốn dùng.'};
-    const maDv =
-      tenDv.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'don_vi';
-    const {data: coSan} = await supabase.from('don_vi').select('id').ilike('ma', maDv).maybeSingle();
-    if (coSan?.id) don_vi_id = coSan.id;
-    else {
-      // Học sinh KHÔNG có RLS chèn don_vi (H-17). Tạo qua service-role, KIỂM SOÁT: chỉ find-or-create
-      // theo tên (đã dedupe theo ma slug ở trên), gắn created_by để biết ai thêm.
-      const dvAdmin = createAdminClient();
-      const {data: moi, error: eDv} = await dvAdmin.from('don_vi').insert({ma: maDv, nhan_vi: tenDv, nhan_en: tenDv, created_by: me.id}).select('id').maybeSingle();
-      if (moi?.id) don_vi_id = moi.id;
-      else {
-        const {data: lai} = await supabase.from('don_vi').select('id').ilike('ma', maDv).maybeSingle(); // đua chèn: tìm lại
-        if (lai?.id) don_vi_id = lai.id;
-        else return {ok: false, fieldError: 'don_vi_id', error: eDv ? friendlyError(eDv) : 'Không tạo được đơn vị mới.'};
-      }
-    }
+    const dv = await timHoacTaoDonVi(supabase, me.id, tenDv);
+    if (!dv.id) return {ok: false, fieldError: 'don_vi_id', error: dv.error ?? 'Không tạo được đơn vị mới.'};
+    don_vi_id = dv.id;
   }
   const eff_don_vi = laPhanTram ? don_vi_pt : don_vi_id;
 
@@ -895,22 +883,36 @@ export async function themThuocChoCamKet(formData: FormData) {
   if (ten.length > 160) veTrangEm(student_id, loi('Tối đa 160 ký tự.'));
   const tuanGui = String(formData.get('tuan_bat_dau') ?? '').trim();
   const tu_tuan = isValidDayVN(tuanGui) ? mondayOf(tuanGui) : weekRangeVN().start;
-  const so_ngay = Math.min(7, Math.max(1, Math.round(Number(String(formData.get('so_ngay') ?? '').trim()) || 5)));
   const viecCach = String(formData.get('viec_cach') ?? 'cham') === 'dien_so' ? 'dien_so' : 'cham';
+  // Ngày ĐÍCH DANH (isodow 1..7) từ bộ chip — kiểu tick: chỉ tick được đúng những ngày này.
+  const ngayChon = formData
+    .getAll('ngay')
+    .map((d) => Number(String(d)))
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
+    .sort((a, b) => a - b);
 
   const supabase = await createClient();
   let payload: {cach_ghi: string; don_vi_id: string; chi_tieu_ky: number; moi_lan: number | null; ngay_ap_dung: number[]};
   if (viecCach === 'dien_so') {
-    const vdv = String(formData.get('viec_don_vi') ?? '').trim();
+    let vdv = String(formData.get('viec_don_vi') ?? '').trim();
     const vdich = Number(String(formData.get('viec_dich') ?? '').trim());
     if (!vdv || !Number.isFinite(vdich) || vdich <= 0)
       veTrangEm(student_id, loi('Đo bằng số thì chọn đơn vị và nhập đích lớn hơn 0.'));
+    if (vdv === '__khac__') {
+      const tenDv = String(formData.get('don_vi_moi') ?? '').trim();
+      if (!tenDv) veTrangEm(student_id, loi('Gõ tên đơn vị em muốn dùng.'));
+      const me = await getCurrentProfile();
+      const dv = await timHoacTaoDonVi(supabase, me!.id, tenDv);
+      if (!dv.id) veTrangEm(student_id, loi(dv.error ?? 'Không tạo được đơn vị mới.'));
+      vdv = dv.id as string;
+    }
     payload = {cach_ghi: 'dien_so', don_vi_id: vdv, chi_tieu_ky: vdich, moi_lan: null, ngay_ap_dung: [1, 2, 3, 4, 5, 6, 7]};
   } else {
+    if (ngayChon.length === 0) veTrangEm(student_id, loi('Em chọn ít nhất một ngày để tick nhé.'));
     const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
     const ngayId = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
     if (!ngayId) veTrangEm(student_id, loi('Thiếu đơn vị hệ thống (ngày/lần).'));
-    payload = {cach_ghi: 'cham', don_vi_id: ngayId as string, chi_tieu_ky: so_ngay, moi_lan: 1, ngay_ap_dung: Array.from({length: so_ngay}, (_, i) => i + 1)};
+    payload = {cach_ghi: 'cham', don_vi_id: ngayId as string, chi_tieu_ky: ngayChon.length, moi_lan: 1, ngay_ap_dung: ngayChon};
   }
 
   const {data: vRow, error: vErr} = await supabase
