@@ -937,9 +937,11 @@ export async function doiCamKet(formData: FormData) {
   const id = String(formData.get('cam_ket_id') ?? '');
   if (!id) veTrangEm(student_id, loi('Thiếu cam kết.'));
   const supabase = await createClient();
-  // Lấy lead measure gắn cam kết cũ TRƯỚC khi xoá cam kết (thuoc_id FK on delete set null).
+  // Lấy lead measure gắn cam kết cũ TRƯỚC (thuoc_id FK on delete set null khi xoá thuoc).
   const {data: ck} = await supabase.from('cam_ket').select('thuoc_id').eq('id', id).maybeSingle();
-  const {data, error} = await supabase.from('cam_ket').delete().eq('id', id).select('id');
+  // ĐÁNH DẤU 'huy' (không xoá): đây là tín hiệu để cam kết TỰ LĂN (0177) NGỪNG lăn dòng này — bản
+  // mới nhất là 'huy' thì hàm lăn bỏ qua. Xoá thì tuần sau nó lại clone từ bản cũ hơn.
+  const {data, error} = await supabase.from('cam_ket').update({trang_thai: 'huy'}).eq('id', id).select('id');
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
   if (!data || data.length === 0)
     veTrangEm(student_id, loi('Không đổi được — cam kết đã chấm hoặc đã kể lại trong buổi họp.'));

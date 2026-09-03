@@ -107,7 +107,8 @@ export async function StudentScoreboard({
       .select(
         'id, noi_dung, trang_thai, ket_qua, so_hua, so_dat, ten_don_vi, so_tuan, tuan_bat_dau, tuan_ket_thuc, xong_at, goi_y_may, so_dat_goi_y, muc_tieu_id, thuoc_id, lac_muc_tieu',
       )
-      .eq('student_id', studentId),
+      .eq('student_id', studentId)
+      .neq('trang_thai', 'huy'),
     supabase.from('don_vi').select('id, ma, nhan_vi, nhan_en').eq('is_active', true).order('ma'),
     supabase
       .from('pdr_meetings')
