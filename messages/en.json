@@ -1892,8 +1892,9 @@
     "xoaCamKet": "Delete commitment",
     "xoaHoi": "Delete this commitment?",
     "viecBoTroLabel": "Lead measure",
-    "viecBoTroHint": "Tick daily to fulfil the commitment — optional.",
-    "soHuaLabel": "Target amount?"
+    "viecBoTroHint": "Tick daily to fulfil the commitment.",
+    "soHuaLabel": "Target amount?",
+    "themThuoc": "Add lead measure"
   },
   "duyet": {
     "duyet": "Approve",

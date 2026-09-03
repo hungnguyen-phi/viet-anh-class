@@ -18,25 +18,16 @@ export function ThemCamKetEm({
   classId,
   monday,
   mucTieuLop,
-  donViList = [],
 }: {
   studentId: string;
   classId: string;
   monday: string;
   mucTieuLop: {id: string; ten: string; don_vi_id: string | null; ten_don_vi: string | null}[];
-  donViList?: {id: string; ma: string; nhan?: string}[];
 }) {
   const t = useTranslations('camKet');
   const [state, formAction] = useActionState(luuCamKet, INIT);
   const [mo, setMo] = useState(false);
   const [noiDung, setNoiDung] = useState('');
-  const [viecBoTro, setViecBoTro] = useState('');
-  // Việc bổ trợ đo theo cột mốc: 'cham' = tick mỗi ngày (đích = số NGÀY) · 'dien_so' = đo bằng số
-  // với đơn vị tùy chọn (phút/%/trang/km…, đích = số/tuần). (Kế hoạch nhiều-bước để sau.)
-  const [viecCach, setViecCach] = useState<'cham' | 'dien_so'>('cham');
-  const [soNgay, setSoNgay] = useState('5');
-  const [viecDonVi, setViecDonVi] = useState('');
-  const [viecDich, setViecDich] = useState('');
   const [soHua, setSoHua] = useState('');
   const [mt, setMt] = useState(mucTieuLop.length === 1 ? mucTieuLop[0].id : '');
   const batBuoc = mucTieuLop.length >= 2;
@@ -51,11 +42,6 @@ export function ThemCamKetEm({
     if (state.ok) {
       setMo(false);
       setNoiDung('');
-      setViecBoTro('');
-      setViecCach('cham');
-      setSoNgay('5');
-      setViecDonVi('');
-      setViecDich('');
       setSoHua('');
     }
   }, [state]);
@@ -88,80 +74,6 @@ export function ThemCamKetEm({
             />
             {state.fieldError === 'noi_dung' && state.error && (
               <p className="text-[11.5px] font-semibold text-status-bad">{state.error}</p>
-            )}
-            {/* VIỆC BỔ TRỢ — một cột mốc nhỏ em tự theo dõi: TICK mỗi ngày, hoặc ĐO BẰNG SỐ (đơn vị tùy). */}
-            <input
-              name="viec_bo_tro"
-              value={viecBoTro}
-              onChange={(e) => setViecBoTro(e.target.value)}
-              maxLength={100}
-              placeholder={t('viecBoTroHoi')}
-              className="rounded-[9px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[12.5px] text-navy"
-            />
-            {viecBoTro.trim() && (
-              <>
-                <input type="hidden" name="viec_cach" value={viecCach} />
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="inline-flex rounded-[9px] border-[1.5px] border-navy/20 p-0.5 text-[12px] font-extrabold">
-                    <button
-                      type="button"
-                      onClick={() => setViecCach('cham')}
-                      className={`cursor-pointer rounded-[7px] px-2.5 py-1 transition-colors ${viecCach === 'cham' ? 'bg-navy text-white' : 'text-grey-mid'}`}
-                    >
-                      {t('viecTick')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViecCach('dien_so')}
-                      className={`cursor-pointer rounded-[7px] px-2.5 py-1 transition-colors ${viecCach === 'dien_so' ? 'bg-navy text-white' : 'text-grey-mid'}`}
-                    >
-                      {t('viecSo')}
-                    </button>
-                  </div>
-                  {viecCach === 'cham' ? (
-                    <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                      <input
-                        type="number"
-                        name="so_ngay"
-                        value={soNgay}
-                        onChange={(e) => setSoNgay(e.target.value)}
-                        min="1"
-                        max="7"
-                        className="w-14 rounded-[9px] border-[1.5px] border-navy/20 px-2 py-1 text-center text-[12.5px] text-navy"
-                      />
-                      <span className="text-[12px] font-semibold text-grey-mid">{t('soNgayTuan')}</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                      <select
-                        name="viec_don_vi"
-                        value={viecDonVi}
-                        onChange={(e) => setViecDonVi(e.target.value)}
-                        required
-                        className="rounded-[9px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
-                      >
-                        <option value="">{t('chonDonVi')}</option>
-                        {donViList.map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.nhan ?? d.ma}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        name="viec_dich"
-                        value={viecDich}
-                        onChange={(e) => setViecDich(e.target.value)}
-                        step="any"
-                        min="0"
-                        placeholder={t('viecDichHoi')}
-                        className="w-16 rounded-[9px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
-                      />
-                      <span className="text-[12px] font-semibold text-grey-mid">{t('moiTuan')}</span>
-                    </span>
-                  )}
-                </div>
-              </>
             )}
             {/* Đơn vị lấy TỪ mục tiêu được chọn — có số phải có đơn vị (ck_don_vi_ck). */}
             <input type="hidden" name="don_vi_id" value={donViId ? donViId : ''} />

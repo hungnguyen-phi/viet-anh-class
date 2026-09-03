@@ -8,6 +8,7 @@ import {useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
 import {HangViec, TheCamKet, themNgay, type ViecEm, type CamKetEm} from '@/components/student/BangEmPA2';
 import {ThemCamKetEm} from '@/components/student/ThemCamKetEm';
+import {NutThemThuoc} from '@/components/wig/NutThemThuoc';
 import type {LuotResult} from '@/app/[locale]/(dashboard)/student/actions';
 
 export function LoTrinhEm({
@@ -77,7 +78,7 @@ export function LoTrinhEm({
         return (
           <div key={c.id} className="flex flex-col gap-1.5 rounded-[12px] bg-white/70 p-2">
             <TheCamKet c={c} studentId={studentId} laChinhEm={laChinhEm} tuanNghi={tuanNghi} today={today} />
-            {vBoTro && (
+            {vBoTro ? (
               <div className="rounded-[10px] bg-navy/[0.03] p-1.5">
                 <p className="mb-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">{tb('loViecBoTro')}</p>
                 <HangViec
@@ -95,6 +96,11 @@ export function LoTrinhEm({
                   donViList={donViList}
                 />
               </div>
+            ) : (
+              laChinhEm &&
+              classId && (
+                <NutThemThuoc mode="em" camKetId={c.id} classId={classId} studentId={studentId} monday={monday} donViList={donViList} />
+              )
             )}
           </div>
         );
@@ -105,7 +111,6 @@ export function LoTrinhEm({
           classId={classId}
           monday={monday}
           mucTieuLop={[{id: goal.id, ten: goal.ten, don_vi_id: goal.don_vi_id, ten_don_vi: goal.ten_don_vi}]}
-          donViList={donViList}
         />
       )}
     </div>

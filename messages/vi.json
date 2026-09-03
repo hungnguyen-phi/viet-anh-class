@@ -1892,8 +1892,9 @@
     "xoaCamKet": "Xóa cam kết",
     "xoaHoi": "Xóa cam kết này?",
     "viecBoTroLabel": "Thước đo dẫn dắt",
-    "viecBoTroHint": "Cô tick mỗi ngày để hoàn thành cam kết — không bắt buộc.",
-    "soHuaLabel": "Đạt bao nhiêu?"
+    "viecBoTroHint": "Tick mỗi ngày để hoàn thành cam kết.",
+    "soHuaLabel": "Đạt bao nhiêu?",
+    "themThuoc": "Thêm thước đo dẫn dắt"
   },
   "duyet": {
     "duyet": "Duyệt",
