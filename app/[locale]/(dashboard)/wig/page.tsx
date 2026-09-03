@@ -479,7 +479,7 @@ export default async function WigPage({
                   }}
                   className="flex flex-col gap-2 rounded-[14px] border-[1.5px] p-3.5"
                 >
-                  <div className="flex items-start gap-3.5">
+                  <div className="flex flex-wrap items-start gap-3.5">
                     {/* Vòng tiến độ như thẻ của em — nhìn là biết mục tiêu tới đâu. */}
                     {m.pct != null ? (
                       <DonutRing pct={Number(m.pct)} color={meta.hex} size={54} />
@@ -523,13 +523,13 @@ export default async function WigPage({
                           {tMt('lyDoTraLai', {note: m.ly_do_tra_lai})}
                         </p>
                       )}
-                      {/* Biểu đồ THẬT — số thật cuối mỗi tuần + vạch đích, không dự đoán. */}
-                      {m.y_so != null && (lichSuTheoWig.get(m.id)?.length ?? 0) >= 2 && (
-                        <div className="mt-1.5 flex justify-end">
-                          <BieuDoThat lichSu={lichSuTheoWig.get(m.id)!} dich={Number(m.y_so)} mau={meta.hex} />
-                        </div>
-                      )}
                     </div>
+                    {/* Biểu đồ THẬT — NGANG hàng đầu, bên phải (tận dụng khoảng trống); màn hẹp tự rớt xuống. */}
+                    {m.y_so != null && (lichSuTheoWig.get(m.id)?.length ?? 0) >= 2 && (
+                      <div className="ml-auto shrink-0 self-center">
+                        <BieuDoThat lichSu={lichSuTheoWig.get(m.id)!} dich={Number(m.y_so)} mau={meta.hex} />
+                      </div>
+                    )}
                   </div>
 
                   {/* KẾ HOẠCH — checklist các bước (cô tick, % nhảy qua trigger). */}
