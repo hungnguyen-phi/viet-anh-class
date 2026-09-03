@@ -101,48 +101,20 @@ export async function xoaMucTieuLop(formData: FormData) {
   veWig('Đã xoá mục tiêu của lớp', classId, week);
 }
 
-// ── CHẤM CAM KẾT CỦA LỚP (Thắng/Thua) ────────────────────────────────────────────────────────
-// Chỉ GVCN/admin — RLS gác; action chỉ lo câu báo. Nút đã mờ trước thứ Sáu tuần cuối; nếu vẫn
-// gửi thì trigger 23514 văng câu "Đợi đến thứ Sáu tuần cuối rồi chấm nhé", hiện nguyên.
-export async function chamCamKetLop(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
-  const {classId, week} = nen(formData);
-  const id = String(formData.get('cam_ket_id') ?? '').trim();
-  if (!id) veWig(loi('Thiếu cam kết.'), classId, week);
-  const ketQuaRaw = String(formData.get('ket_qua') ?? '').trim();
-  const ket_qua = ketQuaRaw === 'thang' || ketQuaRaw === 'thua' ? ketQuaRaw : null;
-  const soDatRaw = String(formData.get('so_dat') ?? '').trim();
-  const so_dat = soDatRaw === '' ? null : Number(soDatRaw);
-  if (so_dat !== null && (!Number.isFinite(so_dat) || so_dat < 0))
-    veWig(loi('Số đạt được phải từ 0 trở lên.'), classId, week);
+// ════════════════════════════════════════════════════════════════════════════════════════════
+// CAM KẾT + THƯỚC ĐO CÁ NHÂN CỦA THẦY CÔ (chốt 03/09: cam kết không treo ở mục tiêu lớp nữa)
+//
+// Thầy cô có mục tiêu CÁ NHÂN (cap='em', student_id = thầy cô) nối vào mục tiêu lớp; cam kết
+// tuần + thước đo dẫn dắt của thầy cô treo ở mục tiêu cá nhân ấy, chu_the='em' — tự hứa, tự
+// chấm, y như em. Quyền mở ở 0181; các action dưới đây chỉ khác bộ của em ở chỗ Ở LẠI /wig.
+// ════════════════════════════════════════════════════════════════════════════════════════════
 
-  const supabase = await createClient();
-  const {data, error} = await supabase
-    .from('cam_ket')
-    .update({ket_qua, so_dat: ket_qua === null ? null : so_dat})
-    .eq('id', id)
-    .eq('chu_the', 'lop')
-    .select('id');
-  revalidatePath('/[locale]/wig', 'page');
-  if (error) veWig(loi(friendlyError(error)), classId, week);
-  if (!data || data.length === 0)
-    veWig(loi('Chỉ thầy cô chủ nhiệm chấm cam kết của lớp.'), classId, week);
-  veWig(
-    ket_qua === null ? 'Đã bỏ chấm' : ket_qua === 'thang' ? 'Đã chấm Thắng' : 'Đã chấm Thua',
-    classId,
-    week,
-  );
-}
-
-// ── ĐẶT CAM KẾT CỦA LỚP ──────────────────────────────────────────────────────────────────────
-// Một lời hứa của cả lớp cho tuần đang xem. Trần 2/tuần và created_by/trang_thai do trigger
-// ck_truoc_them đặt; action chỉ đặt nội dung.
-export async function taoCamKetLop(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
+export async function taoCamKetToi(formData: FormData) {
+  const me = await requireRole(['teacher', 'admin']);
   const {classId, week} = nen(formData);
   const class_id = classId ?? '';
   const noi_dung = String(formData.get('noi_dung') ?? '').trim();
-  if (!noi_dung) veWig(loi('Tuần này cả lớp hứa làm gì? Viết một câu.'), classId, week);
+  if (!noi_dung) veWig(loi('Tuần này thầy cô hứa làm gì? Viết một câu.'), classId, week);
   if (noi_dung.length > 300) veWig(loi('Tối đa 300 ký tự.'), classId, week);
   const soHuaRaw = String(formData.get('so_hua') ?? '').trim();
   let so_hua = soHuaRaw === '' ? null : Number(soHuaRaw);
@@ -153,9 +125,7 @@ export async function taoCamKetLop(formData: FormData) {
   const tuan_bat_dau = isValidDayVN(tuanGui) ? tuanGui : weekRangeVN().start;
 
   const supabase = await createClient();
-
-  // Đơn vị của CAM KẾT lấy TỪ mục tiêu lớp; ràng buộc ck_don_vi_ck: có số hứa ⟺ có đơn vị. Thiếu
-  // một trong hai thì bỏ cả hai (cam kết chấm Thắng/Thua tay), tránh lỗi "Giá trị nhập không hợp lệ".
+  // Đơn vị ÉP theo mục tiêu cá nhân; ck_don_vi_ck: có số hứa ⟺ có đơn vị.
   let don_vi_id: string | null = null;
   if (muc_tieu_id) {
     const {data: g} = await supabase.from('muc_tieu').select('don_vi_id').eq('id', muc_tieu_id).maybeSingle();
@@ -165,30 +135,28 @@ export async function taoCamKetLop(formData: FormData) {
     so_hua = null;
     don_vi_id = null;
   }
-
-  // Thước đo dẫn dắt (thuoc) KHÔNG tạo ở đây nữa — có nút "+ Thước đo dẫn dắt" riêng dưới mỗi cam
-  // kết (themThuocChoCamKetLop). Form cam kết chỉ còn lời hứa + số.
   const {data, error} = await supabase
     .from('cam_ket')
-    .insert({chu_the: 'lop', class_id, student_id: null, noi_dung, so_hua, don_vi_id, muc_tieu_id, thuoc_id: null, so_tuan: 1, tuan_bat_dau})
+    .insert({chu_the: 'em', class_id, student_id: me.id, noi_dung, so_hua, don_vi_id, muc_tieu_id, thuoc_id: null, so_tuan: 1, tuan_bat_dau})
     .select('id')
     .maybeSingle();
   revalidatePath('/[locale]/wig', 'page');
   if (error) veWig(loi(friendlyError(error)), classId, week);
   if (!data) veWig(loi('Không lưu được — thầy cô không có quyền với lớp này.'), classId, week);
-  veWig('Đã lưu cam kết của lớp', classId, week);
+  veWig('Đã lưu cam kết', classId, week);
 }
 
-// THÊM THƯỚC ĐO DẪN DẮT cho một cam kết của LỚP (nút "+" riêng dưới cam kết). Tạo thuoc chu_the='lop'
-// pham_vi='ca_doi' rồi nối vào cam kết qua thuoc_id. Đo 'cham' (tick số ngày) hoặc 'dien_so' (đơn vị + đích).
-export async function themThuocChoCamKetLop(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
+// THÊM THƯỚC ĐO DẪN DẮT cho một cam kết CÁ NHÂN của thầy cô — như themThuocChoCamKet của em
+// (chu_the='em', pham_vi='tung_em') nhưng ở lại /wig.
+export async function themThuocChoCamKetToi(formData: FormData) {
+  const me = await requireRole(['teacher', 'admin']);
   const {classId, week} = nen(formData);
   const class_id = classId ?? '';
   const cam_ket_id = String(formData.get('cam_ket_id') ?? '').trim();
   if (!cam_ket_id) veWig(loi('Thiếu cam kết.'), classId, week);
   const ten = String(formData.get('ten') ?? '').trim();
   if (!ten) veWig(loi('Thước đo dẫn dắt là việc gì? Viết một câu.'), classId, week);
+  if (ten.length > 160) veWig(loi('Tối đa 160 ký tự.'), classId, week);
   const tuanGui = String(formData.get('tuan_bat_dau') ?? '').trim();
   const tu_tuan = isValidDayVN(tuanGui) ? tuanGui : weekRangeVN().start;
   const so_ngay = Math.min(7, Math.max(1, Math.round(Number(String(formData.get('so_ngay') ?? '').trim()) || 5)));
@@ -209,11 +177,12 @@ export async function themThuocChoCamKetLop(formData: FormData) {
     payload = {cach_ghi: 'cham', don_vi_id: ngayId as string, chi_tieu_ky: so_ngay, moi_lan: 1, ngay_ap_dung: Array.from({length: so_ngay}, (_, i) => i + 1)};
   }
 
-  const {data: vRow} = await supabase
+  const {data: vRow, error: vErr} = await supabase
     .from('thuoc')
-    .insert({chu_the: 'lop', class_id, ten, chieu_dich: 'it_nhat', gop: 'tong', ky_tuan: 1, pham_vi: 'ca_doi', tu_tuan, duyet: 'duyet', trang_thai: 'chay', ...payload})
+    .insert({chu_the: 'em', class_id, student_id: me.id, ten, chieu_dich: 'it_nhat', gop: 'tong', ky_tuan: 1, pham_vi: 'tung_em', tu_tuan, duyet: 'duyet', trang_thai: 'chay', ...payload})
     .select('id')
     .maybeSingle();
+  if (vErr) veWig(loi(friendlyError(vErr)), classId, week);
   if (!vRow) veWig(loi('Không tạo được thước đo dẫn dắt.'), classId, week);
   const {data, error} = await supabase.from('cam_ket').update({thuoc_id: vRow!.id}).eq('id', cam_ket_id).select('id');
   revalidatePath('/[locale]/wig', 'page');
@@ -222,23 +191,104 @@ export async function themThuocChoCamKetLop(formData: FormData) {
   veWig('Đã thêm thước đo dẫn dắt', classId, week);
 }
 
-export async function xoaCamKetLop(formData: FormData) {
-  await requireRole(['teacher', 'admin']);
+// Thầy cô tự chấm Thắng/Thua cam kết CÁ NHÂN (ck_truoc_sua: em tự chấm của mình — thầy cô là
+// "em" của cam kết này). Trước thứ Sáu tuần cuối trigger văng câu chờ, hiện nguyên.
+export async function chamCamKetToi(formData: FormData) {
+  const me = await requireRole(['teacher', 'admin']);
+  const {classId, week} = nen(formData);
+  const id = String(formData.get('cam_ket_id') ?? '').trim();
+  if (!id) veWig(loi('Thiếu cam kết.'), classId, week);
+  const ketQuaRaw = String(formData.get('ket_qua') ?? '').trim();
+  const ket_qua = ketQuaRaw === 'thang' || ketQuaRaw === 'thua' ? ketQuaRaw : null;
+  const soDatRaw = String(formData.get('so_dat') ?? '').trim();
+  const so_dat = soDatRaw === '' ? null : Number(soDatRaw);
+  if (so_dat !== null && (!Number.isFinite(so_dat) || so_dat < 0))
+    veWig(loi('Số đạt được phải từ 0 trở lên.'), classId, week);
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('cam_ket')
+    .update({ket_qua, so_dat: ket_qua === null ? null : so_dat})
+    .eq('id', id)
+    .eq('student_id', me.id)
+    .select('id');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veWig(loi(friendlyError(error)), classId, week);
+  if (!data || data.length === 0) veWig(loi('Không chấm được — không có quyền hoặc đã xoá.'), classId, week);
+  veWig(ket_qua === null ? 'Đã bỏ chấm' : ket_qua === 'thang' ? 'Đã chấm Thắng' : 'Đã chấm Thua', classId, week);
+}
+
+// SỬA lời hứa + số hứa cam kết cá nhân (giữ đơn vị — như suaCamKet của em).
+export async function suaCamKetToi(formData: FormData) {
+  const me = await requireRole(['teacher', 'admin']);
+  const {classId, week} = nen(formData);
+  const id = String(formData.get('cam_ket_id') ?? '').trim();
+  if (!id) veWig(loi('Thiếu cam kết.'), classId, week);
+  const noi_dung = String(formData.get('noi_dung') ?? '').trim();
+  if (!noi_dung) veWig(loi('Tuần này thầy cô hứa làm gì? Viết một câu.'), classId, week);
+  if (noi_dung.length > 300) veWig(loi('Tối đa 300 ký tự.'), classId, week);
+  const patch: {noi_dung: string; so_hua?: number} = {noi_dung};
+  const soHuaRaw = formData.get('so_hua');
+  if (soHuaRaw != null && String(soHuaRaw).trim() !== '') {
+    const so_hua = Number(String(soHuaRaw).trim());
+    if (!Number.isFinite(so_hua) || so_hua <= 0) veWig(loi('Con số của cam kết phải lớn hơn 0.'), classId, week);
+    patch.so_hua = so_hua;
+  }
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('cam_ket').update(patch).eq('id', id).eq('student_id', me.id).select('id');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veWig(loi(friendlyError(error)), classId, week);
+  if (!data || data.length === 0) veWig(loi('Không sửa được — cam kết đã chấm hoặc không có quyền.'), classId, week);
+  veWig('Đã sửa cam kết', classId, week);
+}
+
+// ĐỔI cam kết cá nhân: đánh dấu 'huy' (tín hiệu ngừng tự lăn 0177) + xoá thước đo gắn kèm.
+export async function doiCamKetToi(formData: FormData) {
+  const me = await requireRole(['teacher', 'admin']);
   const {classId, week} = nen(formData);
   const id = String(formData.get('cam_ket_id') ?? '').trim();
   if (!id) veWig(loi('Thiếu cam kết.'), classId, week);
   const supabase = await createClient();
+  const {data: ck} = await supabase.from('cam_ket').select('thuoc_id').eq('id', id).maybeSingle();
   const {data, error} = await supabase
     .from('cam_ket')
-    .delete()
+    .update({trang_thai: 'huy'})
     .eq('id', id)
-    .eq('chu_the', 'lop')
+    .eq('student_id', me.id)
     .select('id');
-  revalidatePath('/[locale]/wig', 'page');
   if (error) veWig(loi(friendlyError(error)), classId, week);
-  if (!data || data.length === 0)
-    veWig(loi('Không huỷ được — cam kết đã chấm hoặc không có quyền.'), classId, week);
-  veWig('Đã huỷ cam kết của lớp', classId, week);
+  if (!data || data.length === 0) veWig(loi('Không đổi được — cam kết đã chấm rồi.'), classId, week);
+  if (ck?.thuoc_id) await supabase.from('thuoc').delete().eq('id', ck.thuoc_id).eq('chu_the', 'em');
+  revalidatePath('/[locale]/wig', 'page');
+  veWig('Đã bỏ cam kết cũ — thầy cô đặt cam kết mới nhé', classId, week);
+}
+
+// ── NỐI / GỠ mục tiêu LỚP ↔ mục tiêu TRƯỜNG (hàm 0181 gác quyền + tự xử cùng-đơn-vị) ─────────
+export async function noiWigTruong(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const {classId, week} = nen(formData);
+  const con = String(formData.get('muc_tieu_id') ?? '').trim();
+  const cha = String(formData.get('truong_id') ?? '').trim();
+  if (!con || !cha) veWig(loi('Chọn mục tiêu trường để hướng tới đã nhé.'), classId, week);
+  const supabase = await createClient();
+  const {error} = await supabase.rpc('noi_wig_len_tren', {p_con: con, p_cha: cha});
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]/truong', 'page');
+  if (error) veWig(loi(friendlyError(error)), classId, week);
+  veWig('Đã nối vào mục tiêu của trường', classId, week);
+}
+
+export async function goWigTruong(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const {classId, week} = nen(formData);
+  const con = String(formData.get('muc_tieu_id') ?? '').trim();
+  const cha = String(formData.get('truong_id') ?? '').trim();
+  if (!con || !cha) veWig(loi('Thiếu dây cần gỡ.'), classId, week);
+  const supabase = await createClient();
+  const {error} = await supabase.rpc('go_wig_len_tren', {p_con: con, p_cha: cha});
+  revalidatePath('/[locale]/wig', 'page');
+  revalidatePath('/[locale]/truong', 'page');
+  if (error) veWig(loi(friendlyError(error)), classId, week);
+  veWig('Đã gỡ khỏi mục tiêu của trường', classId, week);
 }
 
 // ── DUYỆT / TRẢ LẠI mục tiêu của EM (chờ ở màn cô) ───────────────────────────────────────────

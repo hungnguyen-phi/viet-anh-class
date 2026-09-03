@@ -31,6 +31,7 @@ import {
   LogOut,
   Menu,
   MessageCircle,
+  School,
   Settings,
   ShieldCheck,
   Target,
@@ -84,6 +85,8 @@ const LINKS: Record<string, NavItem[]> = {
     {href: '/attendance', key: 'attendance', Icon: ClipboardCheck},
     {href: '/grades', key: 'grades', Icon: GraduationCap},
     {href: '/wig', key: 'wig', Icon: Target},
+    // Mục tiêu TRƯỜNG (0181) — đích trên cùng của chuỗi hội tụ, chỉ admin/BGH ghi được.
+    {href: '/truong', key: 'truongWig', Icon: School},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},
   ],
   // BGH làm việc ở CẤP TRƯỜNG, không phải cấp lớp.
@@ -102,6 +105,7 @@ const LINKS: Record<string, NavItem[]> = {
   // sinh". Họ chỉ XEM, RLS chặn mọi đường ghi.
   principal: [
     {href: '/campus', key: 'campus', Icon: Building2},
+    {href: '/truong', key: 'truongWig', Icon: School},
     {href: '/roster', key: 'roster', Icon: Users},
     {href: '/grades', key: 'grades', Icon: GraduationCap},
     {href: '/timetable', key: 'schedule', Icon: CalendarDays},

@@ -70,12 +70,19 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   const student_id = String(formData.get('student_id') ?? '');
   const class_id = String(formData.get('class_id') ?? '');
   // cap='lop': GVCN đặt MỤC TIÊU CỦA LỚP (gửi BGH duyệt) — cùng form với màn em, khác chủ thể.
-  const laLop = String(formData.get('cap') ?? 'em') === 'lop';
-  const cap: 'em' | 'lop' = laLop ? 'lop' : 'em';
-  const laChinhEm = !laLop && me.id === student_id && me.role === 'student';
+  // cap='truong': admin/BGH đặt MỤC TIÊU CỦA TRƯỜNG (campus_id thay class_id).
+  const capRaw = String(formData.get('cap') ?? 'em');
+  const cap: 'em' | 'lop' | 'truong' = capRaw === 'lop' ? 'lop' : capRaw === 'truong' ? 'truong' : 'em';
+  const laLop = cap === 'lop';
+  const laTruong = cap === 'truong';
+  const laChinhEm = cap === 'em' && me.id === student_id && me.role === 'student';
   const laNhanSu = me.role === 'teacher' || me.role === 'admin' || me.role === 'principal';
+  // Thầy cô đặt mục tiêu CÁ NHÂN của chính mình (0181) — cũng cap='em', student_id = thầy cô.
+  const laToiGv = cap === 'em' && me.id === student_id && laNhanSu;
   if (laLop && !laNhanSu) return {ok: false, error: 'Chỉ thầy cô mới đặt mục tiêu cho lớp.'};
-  if (!laLop && !laChinhEm && !laNhanSu) return {ok: false, error: 'Chỉ em mới ghi được phần này.'};
+  if (laTruong && !(me.role === 'admin' || me.role === 'principal'))
+    return {ok: false, error: 'Chỉ ban giám hiệu mới đặt mục tiêu cho trường.'};
+  if (cap === 'em' && !laChinhEm && !laNhanSu) return {ok: false, error: 'Chỉ em mới ghi được phần này.'};
 
   const ten = String(formData.get('ten') ?? '').trim();
   if (!ten) return {ok: false, fieldError: 'ten', error: 'Em muốn tiến bộ ở việc gì? Viết một câu.'};
@@ -237,15 +244,18 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
     if (!data || data.length === 0)
       return {ok: false, error: 'Không lưu được — em không có quyền với lớp này.'};
   } else {
-    const campus_id = await layCampus(supabase, class_id);
-    if (!campus_id) return {ok: false, error: 'Không rõ lớp nên chưa lưu được.'};
+    // Mục tiêu TRƯỜNG: campus gửi thẳng từ form (không có lớp); còn lại suy campus từ lớp.
+    const campus_id = laTruong
+      ? String(formData.get('campus_id') ?? '').trim() || null
+      : await layCampus(supabase, class_id);
+    if (!campus_id) return {ok: false, error: laTruong ? 'Chọn cơ sở cho mục tiêu trường.' : 'Không rõ lớp nên chưa lưu được.'};
     const {data, error} = await supabase
       .from('muc_tieu')
       .insert({
         cap,
         campus_id,
-        class_id,
-        student_id: laLop ? null : student_id,
+        class_id: laTruong ? null : class_id,
+        student_id: laLop || laTruong ? null : student_id,
         trang_thai,
         ...noiDung,
         bat_dau: isValidDayVN(bat_dau) ? bat_dau : todayInVN(),
@@ -286,7 +296,7 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   // Đồng bộ theo lựa chọn hiện tại: gỡ dây chi_huong cũ của mục tiêu này rồi nối lại nếu có chọn.
   // Không chặn luồng chính nếu lỗi (RLS/mục tiêu lớp không hợp lệ) — mục tiêu đã lưu là chính,
   // dây chỉ là liên kết phụ; nuốt lỗi có chủ ý và để em/thầy cô nối lại ở thẻ nếu cần.
-  if (mtId) {
+  if (mtId && !laTruong) {
     await supabase
       .from('noi')
       .delete()
@@ -294,11 +304,18 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
       .eq('con_id', mtId)
       .eq('vai', 'chi_huong');
     if (ho_tro_cho) {
-      await supabase.from('noi').insert({
-        cha_id: ho_tro_cho,
-        con_muc_tieu_id: mtId, // con_loai/con_id là cột generated — tự suy từ đây
-        vai: 'chi_huong',
-      });
+      if (laToiGv) {
+        // Mục tiêu CÁ NHÂN của thầy cô → mục tiêu lớp: hàm 0181 nối chi_huong + (cùng đơn vị)
+        // gop_so và chuyển mục tiêu lớp sang nguon_so='con' để máy tự cộng. Lỗi thì nuốt như dây
+        // thường: mục tiêu đã lưu là chính.
+        await supabase.rpc('noi_wig_len_tren', {p_con: mtId, p_cha: ho_tro_cho});
+      } else {
+        await supabase.from('noi').insert({
+          cha_id: ho_tro_cho,
+          con_muc_tieu_id: mtId, // con_loai/con_id là cột generated — tự suy từ đây
+          vai: 'chi_huong',
+        });
+      }
     }
   }
 
@@ -306,7 +323,10 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]/campus', 'page');
+  revalidatePath('/[locale]/truong', 'page');
   if (trang_thai === 'nhap') return {ok: true, message: 'Đã lưu nháp.'};
+  if (laTruong) return {ok: true, message: 'Đã lưu mục tiêu của trường.'};
+  if (laToiGv) return {ok: true, message: 'Đã lưu mục tiêu của thầy cô.'};
   if (laLop)
     return {
       ok: true,

@@ -3826,6 +3826,8 @@ export type Database = {
         Args: { p_muc_tieu: string; p_so_tuan?: number }
         Returns: { tuan_ket: string; so: number }[]
       }
+      noi_wig_len_tren: { Args: { p_con: string; p_cha: string }; Returns: undefined }
+      go_wig_len_tren: { Args: { p_con: string; p_cha: string }; Returns: undefined }
       cam_ket_da_ke_lai: { Args: { k: string }; Returns: boolean }
       cam_ket_student: { Args: { k: string }; Returns: string }
       campus_ranks: {

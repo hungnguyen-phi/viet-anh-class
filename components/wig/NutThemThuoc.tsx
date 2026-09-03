@@ -9,7 +9,7 @@ import {useTranslations} from 'next-intl';
 import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder} from '@/components/ui/Field';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {themThuocChoCamKetLop} from '@/app/[locale]/(dashboard)/wig/lop-actions';
+import {themThuocChoCamKetToi} from '@/app/[locale]/(dashboard)/wig/lop-actions';
 import {themThuocChoCamKet} from '@/app/[locale]/(dashboard)/student/actions';
 
 export function NutThemThuoc({
@@ -21,7 +21,8 @@ export function NutThemThuoc({
   monday,
   donViList = [],
 }: {
-  mode: 'lop' | 'em';
+  /** 'toi' = thước cá nhân của thầy cô (ở lại /wig); 'em' = thước của em (về /student). */
+  mode: 'toi' | 'em';
   camKetId: string;
   classId: string;
   studentId?: string;
@@ -32,7 +33,7 @@ export function NutThemThuoc({
   const t = useTranslations('camKet');
   const [mo, setMo] = useState(false);
   const [viecCach, setViecCach] = useState<'cham' | 'dien_so'>('cham');
-  const action = mode === 'lop' ? themThuocChoCamKetLop : themThuocChoCamKet;
+  const action = mode === 'toi' ? themThuocChoCamKetToi : themThuocChoCamKet;
 
   return (
     <>
@@ -50,7 +51,7 @@ export function NutThemThuoc({
             <input type="hidden" name="cam_ket_id" value={camKetId} />
             <input type="hidden" name="class_id" value={classId} />
             {mode === 'em' && <input type="hidden" name="student_id" value={studentId ?? ''} />}
-            {mode === 'lop' && <input type="hidden" name="week" value={weekQ ?? ''} />}
+            {mode === 'toi' && <input type="hidden" name="week" value={weekQ ?? ''} />}
             <input type="hidden" name="tuan_bat_dau" value={monday} />
             <input type="hidden" name="viec_cach" value={viecCach} />
             <Field label={t('viecBoTroLabel')} htmlFor="tt-ten" hint={t('viecBoTroHint')}>

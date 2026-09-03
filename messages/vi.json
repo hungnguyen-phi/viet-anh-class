@@ -86,7 +86,8 @@
     "grades": "Học bạ",
     "inbox": "Liên lạc",
     "menu": "Thực đơn",
-    "gallery": "Hình ảnh"
+    "gallery": "Hình ảnh",
+    "truongWig": "Mục tiêu trường"
   },
   "class": {
     "gvcn": "GVCN",
@@ -1559,7 +1560,7 @@
     "formTitleSua": "Sửa mục tiêu",
     "formTitleLop": "Mục tiêu của lớp",
     "formTitleLopSua": "Sửa mục tiêu của lớp",
-    "formTitleTruong": "Mục tiêu của cơ sở",
+    "formTitleTruong": "Đặt mục tiêu cho trường",
     "formTitleHo": "Đặt mục tiêu cho {ten}",
     "chipGoGiup": "Thầy cô gõ giúp",
     "mauLop": "Mẫu của lớp",
@@ -1710,7 +1711,8 @@
     "cauChotLopChuaX": "Lớp sẽ {ten}, tới {y} {dv}, trước {ngay}.",
     "cauChotLopGiu": "Lớp sẽ {ten}: giữ {dau} {y} {dv} suốt năm.",
     "phanLaGi": "Mục tiêu là gì?",
-    "phanDoTheNao": "Đo thế nào?"
+    "phanDoTheNao": "Đo thế nào?",
+    "formTitleToi": "Mục tiêu của tôi"
   },
   "viec": {
     "chipLop": "Của lớp",
@@ -1894,7 +1896,11 @@
     "viecBoTroLabel": "Thước đo dẫn dắt",
     "viecBoTroHint": "Tick mỗi ngày để hoàn thành cam kết.",
     "soHuaLabel": "Đạt bao nhiêu?",
-    "themThuoc": "Thêm thước đo dẫn dắt"
+    "themThuoc": "Thêm thước đo dẫn dắt",
+    "noiDungToi": "Tuần này tôi hứa làm gì?",
+    "tongTuan": "Tuần này: {so}/{dich} {dv}",
+    "ghiThem": "Ghi thêm",
+    "ghiLoi": "Không ghi được — thử lại nhé."
   },
   "duyet": {
     "duyet": "Duyệt",
@@ -1995,6 +2001,37 @@
     "camKetTrongMt": "Tuần này chưa có cam kết.",
     "viecChuaGan": "Việc chưa gắn mục tiêu",
     "camKetChuaHuong": "Cam kết chưa hướng mục tiêu",
-    "viecBoTroCo": "Thước đo dẫn dắt của cô"
+    "viecBoTroCo": "Thước đo dẫn dắt của cô",
+    "khuMucTieuToi": "Mục tiêu của tôi",
+    "taoMucTieuToi": "Đặt mục tiêu của tôi",
+    "mucTieuToiTrong": "Thầy cô cũng có mục tiêu riêng như các em — đặt một mục tiêu và nối vào mục tiêu của lớp để cùng đẩy nó lên.",
+    "themCamKetToi": "Thêm cam kết tuần của tôi",
+    "camKetToiNhan": "Cam kết tuần của tôi",
+    "camKetToiTrong": "Tuần này tôi chưa hứa gì — bấm (+) để hứa một việc.",
+    "nguonTuThayCo": "Số của lớp cộng dồn từ mục tiêu của thầy cô.",
+    "ghiSoNhan": "Ghi số mới nhất:",
+    "ghiSoLuu": "Lưu số",
+    "huongTruong": "Hướng tới mục tiêu trường: {ten}",
+    "congVaoTruong": "số cộng vào trường",
+    "goTruong": "Gỡ",
+    "chonTruong": "Hướng tới mục tiêu trường nào?",
+    "noiTruongNut": "Nối",
+    "huongLop": "Hướng tới mục tiêu lớp: {ten}",
+    "congVaoLop": "số cộng vào lớp"
+  },
+  "truongWig": {
+    "title": "Mục tiêu của trường",
+    "khu": "Mục tiêu của trường",
+    "giaiThich": "Mục tiêu lớn nhất của cả trường. Mục tiêu của các lớp nối vào đây — cùng đơn vị thì số tự cộng lên, khác đơn vị thì chỉ giữ hướng.",
+    "taoNut": "Đặt mục tiêu cho trường",
+    "trong": "Trường chưa có mục tiêu nào. Đặt mục tiêu đầu tiên để các lớp cùng hướng vào.",
+    "khongCoCoSo": "Chưa có cơ sở nào trong hệ thống.",
+    "nguonTuLop": "Số cộng dồn từ các lớp.",
+    "lopDaNoi": "Các lớp đã hướng vào",
+    "chuaLopNao": "Chưa có lớp nào hướng vào mục tiêu này.",
+    "coGopSo": "Cộng số",
+    "chiGiuHuong": "Giữ hướng",
+    "dong": "Đóng",
+    "xoa": "Xoá mục tiêu"
   }
 }

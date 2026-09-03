@@ -86,7 +86,8 @@
     "grades": "Grades",
     "inbox": "Messages",
     "menu": "Meal menu",
-    "gallery": "Photos"
+    "gallery": "Photos",
+    "truongWig": "School goals"
   },
   "class": {
     "gvcn": "Homeroom teacher",
@@ -1559,7 +1560,7 @@
     "formTitleSua": "Edit WIG",
     "formTitleLop": "Class WIG",
     "formTitleLopSua": "Edit class goal",
-    "formTitleTruong": "Campus WIG",
+    "formTitleTruong": "Set a school goal",
     "formTitleHo": "Set a WIG for {ten}",
     "chipGoGiup": "Typed by teacher",
     "mauLop": "Class templates",
@@ -1710,7 +1711,8 @@
     "cauChotLopChuaX": "Our class will {ten}, reaching {y} {dv}, by {ngay}.",
     "cauChotLopGiu": "Our class will {ten}: keep {dau} {y} {dv} all year.",
     "phanLaGi": "What is the goal?",
-    "phanDoTheNao": "How is it measured?"
+    "phanDoTheNao": "How is it measured?",
+    "formTitleToi": "My goal"
   },
   "viec": {
     "chipLop": "Class",
@@ -1894,7 +1896,11 @@
     "viecBoTroLabel": "Lead measure",
     "viecBoTroHint": "Tick daily to fulfil the commitment.",
     "soHuaLabel": "Target amount?",
-    "themThuoc": "Add lead measure"
+    "themThuoc": "Add lead measure",
+    "noiDungToi": "What do I promise this week?",
+    "tongTuan": "This week: {so}/{dich} {dv}",
+    "ghiThem": "Add",
+    "ghiLoi": "Could not save — try again."
   },
   "duyet": {
     "duyet": "Approve",
@@ -1995,6 +2001,37 @@
     "camKetTrongMt": "No commitment this week.",
     "viecChuaGan": "Work not linked to a goal",
     "camKetChuaHuong": "Commitments not aimed at a goal",
-    "viecBoTroCo": "Teacher lead measure"
+    "viecBoTroCo": "Teacher lead measure",
+    "khuMucTieuToi": "My goals",
+    "taoMucTieuToi": "Set my goal",
+    "mucTieuToiTrong": "Teachers have their own goals too — set one and link it to the class goal to push it together.",
+    "themCamKetToi": "Add my weekly commitment",
+    "camKetToiNhan": "My weekly commitments",
+    "camKetToiTrong": "No promise yet this week — tap (+) to make one.",
+    "nguonTuThayCo": "The class number adds up from the teacher's goal.",
+    "ghiSoNhan": "Log the latest number:",
+    "ghiSoLuu": "Save",
+    "huongTruong": "Aiming at school goal: {ten}",
+    "congVaoTruong": "numbers add to the school",
+    "goTruong": "Unlink",
+    "chonTruong": "Aim at which school goal?",
+    "noiTruongNut": "Link",
+    "huongLop": "Aiming at class goal: {ten}",
+    "congVaoLop": "numbers add to the class"
+  },
+  "truongWig": {
+    "title": "School goals",
+    "khu": "School goals",
+    "giaiThich": "The biggest goals of the whole school. Class goals link here — same unit and numbers add up, different unit and they just keep direction.",
+    "taoNut": "Set a school goal",
+    "trong": "No school goal yet. Set the first one so classes can aim at it.",
+    "khongCoCoSo": "No campus in the system yet.",
+    "nguonTuLop": "Numbers add up from classes.",
+    "lopDaNoi": "Classes aiming here",
+    "chuaLopNao": "No class aims at this goal yet.",
+    "coGopSo": "Adds numbers",
+    "chiGiuHuong": "Direction only",
+    "dong": "Close",
+    "xoa": "Delete goal"
   }
 }

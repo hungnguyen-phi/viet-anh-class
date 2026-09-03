@@ -82,14 +82,21 @@ export function FormMucTieu3Buoc({
   buocDangSua = [],
   dangSua = null,
   cap = 'em',
+  campusId = '',
+  laToi = false,
   onClose,
   onDone,
 }: {
   studentId: string;
   classId: string;
   laChinhEm: boolean;
-  /** 'lop' = GVCN đặt mục tiêu CHO LỚP (gửi BGH duyệt); 'em' = mục tiêu của học sinh. */
-  cap?: 'em' | 'lop';
+  /** 'lop' = GVCN đặt mục tiêu CHO LỚP (gửi BGH duyệt); 'em' = mục tiêu cá nhân (học sinh, hoặc
+   *  thầy cô tự đứng tên — 0181); 'truong' = BGH/admin đặt mục tiêu CỦA TRƯỜNG (cần campusId). */
+  cap?: 'em' | 'lop' | 'truong';
+  /** Cơ sở — chỉ dùng khi cap='truong'. */
+  campusId?: string;
+  /** true = thầy cô đặt mục tiêu CÁ NHÂN của CHÍNH MÌNH (0181) — đổi tiêu đề cho đúng. */
+  laToi?: boolean;
   /** Tên em — chỉ khi thầy cô gõ giúp, để tiêu đề nói rõ đang gõ cho ai. */
   tenEm?: string;
   /** Lĩnh vực của ô em vừa bấm ở màn ngoài (mặc định lĩnh vực đầu). */
@@ -201,7 +208,7 @@ export function FormMucTieu3Buoc({
     //  · Kiểu Hành động/Kế hoạch (không đo lường): "đo được" + "vừa sức" luôn đúng sẵn → bỏ, khỏi
     //    cho 40% khi chưa gõ gì.
     return list.filter((c) => {
-      if (cap === 'lop' && c.key === 'clLienKet') return false;
+      if (cap !== 'em' && c.key === 'clLienKet') return false;
       if (!laDo && (c.key === 'clDoDuoc' || c.key === 'clVuaSuc')) return false;
       return true;
     });
@@ -212,6 +219,7 @@ export function FormMucTieu3Buoc({
   // Câu ráp SỐNG — ghép từ chính những ô em vừa gõ (§F4 cauChot*).
   const cauRap = useMemo(() => {
     if (!ten.trim()) return null;
+    if (cap === 'truong') return null; // câu ráp chưa có chủ ngữ "trường" — bỏ, đỡ nói sai
     if (loaiMoc !== 'do_luong') return null; // hành động/kế hoạch có ghi chú riêng
     if (!y.trim() || !nhanDv || !ketThuc) return null;
     const ngay = ngayVN(ketThuc);
@@ -239,7 +247,13 @@ export function FormMucTieu3Buoc({
   const suG: string[] = [...AREAS];
 
   const tieuDe =
-    cap === 'lop'
+    laToi
+      ? dangSua
+        ? t('formTitleSua')
+        : t('formTitleToi')
+      : cap === 'truong'
+      ? t('formTitleTruong')
+      : cap === 'lop'
       ? dangSua
         ? t('formTitleLopSua')
         : t('formTitleLop')
@@ -253,8 +267,9 @@ export function FormMucTieu3Buoc({
     <Popup title={tieuDe} onClose={onClose} width="max-w-[640px]">
       <form action={formAction} className="flex flex-col gap-3">
         <input type="hidden" name="cap" value={cap} />
-        <input type="hidden" name="student_id" value={cap === 'lop' ? '' : studentId} />
+        <input type="hidden" name="student_id" value={cap === 'em' ? studentId : ''} />
         <input type="hidden" name="class_id" value={classId} />
+        {cap === 'truong' && <input type="hidden" name="campus_id" value={campusId} />}
         {dangSua && <input type="hidden" name="muc_tieu_id" value={dangSua.id ?? ''} />}
         {/* Các giá trị suy ra — máy chủ kiểm lại, đây chỉ chuyển đúng enum. */}
         <input type="hidden" name="linh_vuc" value={linhVuc} />

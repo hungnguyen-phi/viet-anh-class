@@ -31,6 +31,7 @@ const NAMESPACE_CHO_CLIENT = [
   'grades',
   'inbox',
   'login',
+  'truongWig',
   'lopMucTieu',
   'menu',
   'mucTieu',

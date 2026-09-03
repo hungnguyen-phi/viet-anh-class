@@ -8,16 +8,17 @@ import {ClassPicker} from '@/components/shell/ClassPicker';
 import {ClassOwnerNote} from '@/components/shell/ClassOwnerNote';
 import {Link} from '@/i18n/navigation';
 import {isValidDayVN, mondayOf, todayInVN, weekFromMonday, shiftWeeks, ngayVN, weekDaysVN} from '@/lib/dates';
-import {TickCuaLop} from '@/components/wig/TickCuaLop';
 import {AREAS, areaLabel, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
 import {Flash} from '@/components/ui/Flash';
 import {BangCacEm} from '@/components/wig/BangCacEm';
 import {NutTaoMucTieuLop} from '@/components/wig/NutTaoMucTieuLop';
-import {NutTaoViecLop} from '@/components/wig/NutTaoViecLop';
+import {NutTaoMucTieuToi} from '@/components/wig/NutTaoMucTieuToi';
+import {NutThemCamKetToi} from '@/components/wig/NutThemCamKetToi';
+import {SuaCamKetToi} from '@/components/wig/SuaCamKetToi';
+import {TickCuaToi} from '@/components/wig/TickCuaToi';
+import {GhiSoToi} from '@/components/wig/GhiSoToi';
 import {ThaoTacMucTieuLop} from '@/components/wig/ThaoTacMucTieuLop';
-import {SuaLoiCamKetLop} from '@/components/wig/SuaLoiCamKetLop';
-import {NutThemCamKetLop} from '@/components/wig/NutThemCamKetLop';
 import {NutThemThuoc} from '@/components/wig/NutThemThuoc';
 import {SuaChiTieuLop} from '@/components/wig/SuaChiTieuLop';
 import {SubmitButton} from '@/components/ui/SubmitButton';
@@ -27,11 +28,9 @@ import {datBuocXong, datHanhDong} from '@/app/[locale]/(dashboard)/student/actio
 import {xoaViecLop} from '@/app/[locale]/(dashboard)/wig/actions';
 import {
   ghiSoMucTieuLop,
-  chamCamKetLop,
-  taoCamKetLop,
-  xoaCamKetLop,
-  duyetThuoc,
-  traLaiThuoc,
+  chamCamKetToi,
+  noiWigTruong,
+  goWigTruong,
   duyetHaChiTieu,
   duyetMucTieuEm,
   traLaiMucTieuEm,
@@ -176,9 +175,13 @@ export default async function WigPage({
   );
 
   // ── ĐỌC DỮ LIỆU (song song) ───────────────────────────────────────────────────────────────
+  const MT_COLS =
+    'id, ten, linh_vuc, subject_id, mo_ta, don_vi_id, loai_moc, dat, trang_thai, trang_thai_do, nguon_so, kieu_dich, chieu, chua_do_x, ket_thuc, ky, x_so, x_chu, y_so, y_chu, ten_don_vi, so, le_ra, pct, dang_tap_trung, ly_do_tra_lai, student_id';
   const [
     {data: thiDua},
     {data: mtRows},
+    {data: mtToiRows},
+    {data: truongRows},
     {data: thuocRows},
     {data: ckRows},
     {data: enrolled},
@@ -188,20 +191,36 @@ export default async function WigPage({
     supabase.rpc('thi_dua_lop', {p_class: myClass.id}),
     supabase
       .from('muc_tieu_v')
-      .select(
-        'id, ten, linh_vuc, subject_id, mo_ta, don_vi_id, loai_moc, dat, trang_thai, trang_thai_do, nguon_so, kieu_dich, chieu, chua_do_x, ket_thuc, ky, x_so, x_chu, y_so, y_chu, ten_don_vi, so, le_ra, pct, dang_tap_trung, ly_do_tra_lai, student_id',
-      )
+      .select(MT_COLS)
       .eq('class_id', myClass.id)
       .eq('cap', 'lop')
       .neq('trang_thai', 'dong'),
+    // MỤC TIÊU CÁ NHÂN CỦA THẦY CÔ (0181): cap='em' nhưng student_id là chính thầy cô.
+    supabase
+      .from('muc_tieu_v')
+      .select(MT_COLS)
+      .eq('class_id', myClass.id)
+      .eq('cap', 'em')
+      .eq('student_id', profile.id)
+      .neq('trang_thai', 'dong'),
+    // Mục tiêu TRƯỜNG đã duyệt của cơ sở — để thẻ mục tiêu lớp chọn "hướng tới".
+    supabase
+      .from('muc_tieu_v')
+      .select('id, ten, don_vi_id, ten_don_vi, so, y_so')
+      .eq('campus_id', (myClass as unknown as {campus_id: string}).campus_id)
+      .eq('cap', 'truong')
+      .eq('trang_thai', 'duyet'),
     supabase.rpc('bang_lop_thuoc', {p_class: myClass.id, p_tuan: monday}),
+    // CAM KẾT CÁ NHÂN của thầy cô (chốt 03/09: cam kết không treo ở mục tiêu lớp nữa).
     supabase
       .from('cam_ket_v')
       .select(
         'id, noi_dung, so_hua, so_dat, ket_qua, ten_don_vi, muc_tieu_id, thuoc_id, tuan_bat_dau, tuan_ket_thuc, so_tuan, trang_thai',
       )
       .eq('class_id', myClass.id)
-      .eq('chu_the', 'lop'),
+      .eq('chu_the', 'em')
+      .eq('student_id', profile.id)
+      .neq('trang_thai', 'huy'),
     supabase
       .from('enrollments')
       .select('student_id, profiles!enrollments_student_id_fkey(full_name)')
@@ -233,6 +252,15 @@ export default async function WigPage({
     | {diem_muc_tieu: number | null; diem_thuoc: number | null; diem_cam_ket: number | null}
     | undefined;
   const mucTieuLop = (mtRows ?? []) as unknown as MucTieuV[];
+  const mucTieuToi = (mtToiRows ?? []) as unknown as MucTieuV[];
+  const truongWigs = (truongRows ?? []) as unknown as {
+    id: string;
+    ten: string | null;
+    don_vi_id: string | null;
+    ten_don_vi: string | null;
+    so: number | null;
+    y_so: number | null;
+  }[];
   // Bước của mục tiêu lớp loại KẾ HOẠCH — để hiện checklist tick trên thẻ (cô tick, % nhảy).
   const keIds = mucTieuLop.filter((m) => m.loai_moc === 'ke_hoach').map((m) => m.id);
   const {data: buocRows} = keIds.length
@@ -247,14 +275,44 @@ export default async function WigPage({
 
   // ── HỘI TỤ: việc nào ĐẨY mục tiêu nào (dây góp số) → bày việc DƯỚI mục tiêu nó phục vụ. ────────
   const wigIds = mucTieuLop.map((m) => m.id);
-  const {data: noiRows} = wigIds.length
-    ? await supabase
-        .from('noi')
-        .select('cha_id, con_thuoc_id')
-        .in('cha_id', wigIds)
-        .eq('vai', 'gop_so')
-        .not('con_thuoc_id', 'is', null)
-    : {data: null};
+  const mtToiIds = mucTieuToi.map((m) => m.id);
+  const truongIds = truongWigs.map((m) => m.id);
+  const [{data: noiRows}, {data: noiToiRows}, {data: noiTruongRows}] = await Promise.all([
+    wigIds.length
+      ? supabase
+          .from('noi')
+          .select('cha_id, con_thuoc_id')
+          .in('cha_id', wigIds)
+          .eq('vai', 'gop_so')
+          .not('con_thuoc_id', 'is', null)
+      : Promise.resolve({data: null}),
+    // Dây mục tiêu CÁ NHÂN của thầy cô → mục tiêu lớp (chi_huong = giữ hướng; gop_so = máy cộng).
+    mtToiIds.length
+      ? supabase.from('noi').select('cha_id, con_muc_tieu_id, vai').in('con_muc_tieu_id', mtToiIds)
+      : Promise.resolve({data: null}),
+    // Dây mục tiêu LỚP → mục tiêu TRƯỜNG.
+    truongIds.length && wigIds.length
+      ? supabase.from('noi').select('cha_id, con_muc_tieu_id, vai').in('cha_id', truongIds).in('con_muc_tieu_id', wigIds)
+      : Promise.resolve({data: null}),
+  ]);
+  // con (mục tiêu tôi) → {chaId, gop}: đã nối vào mục tiêu lớp nào, có cộng số không.
+  const noiCuaToi = new Map<string, {chaId: string; gop: boolean}>();
+  for (const n of (noiToiRows ?? []) as {cha_id: string; con_muc_tieu_id: string; vai: string}[]) {
+    const cur = noiCuaToi.get(n.con_muc_tieu_id) ?? {chaId: n.cha_id, gop: false};
+    if (n.vai === 'gop_so') cur.gop = true;
+    cur.chaId = n.cha_id;
+    noiCuaToi.set(n.con_muc_tieu_id, cur);
+  }
+  // con (mục tiêu lớp) → {chaId, gop}: đã hướng tới mục tiêu trường nào.
+  const noiLenTruong = new Map<string, {chaId: string; gop: boolean}>();
+  for (const n of (noiTruongRows ?? []) as {cha_id: string; con_muc_tieu_id: string; vai: string}[]) {
+    const cur = noiLenTruong.get(n.con_muc_tieu_id) ?? {chaId: n.cha_id, gop: false};
+    if (n.vai === 'gop_so') cur.gop = true;
+    cur.chaId = n.cha_id;
+    noiLenTruong.set(n.con_muc_tieu_id, cur);
+  }
+  const tenTruong = new Map(truongWigs.map((m) => [m.id, m.ten ?? '']));
+  const tenWigLop = new Map(mucTieuLop.map((m) => [m.id, m.ten ?? '']));
   const wigCuaViec = new Map<string, string>(); // thuoc_id → wig_id
   const viecCuaWig = new Map<string, string[]>(); // wig_id → [thuoc_id]
   for (const n of (noiRows ?? []) as {cha_id: string; con_thuoc_id: string}[]) {
@@ -267,7 +325,7 @@ export default async function WigPage({
   // ── BIỂU ĐỒ THẬT: số của mục tiêu ở cuối 8 tuần gần đây (0175) — chỉ vẽ cái đã xảy ra, không dự đoán.
   const lichSuTheoWig = new Map<string, {tuan_ket: string; so: number}[]>();
   await Promise.all(
-    mucTieuLop
+    [...mucTieuLop, ...mucTieuToi]
       .filter((m) => m.pct != null || m.so != null) // chỉ mục tiêu có đo bằng số
       .map(async (m) => {
         const {data} = await supabase.rpc('muc_tieu_lich_su_tuan', {p_muc_tieu: m.id, p_so_tuan: 8});
@@ -281,45 +339,48 @@ export default async function WigPage({
   const viecTheoId = new Map(thuoc.map((v) => [v.thuoc_id, v]));
   // Việc CHƯA gắn mục tiêu nào — mới đứng ở khu "Việc của lớp"; việc đã gắn nằm dưới mục tiêu nó đẩy.
   const viecChuaGan = thuoc.filter((v) => !wigCuaViec.has(v.thuoc_id));
-  // Cam kết của tuần đang xem: khoảng [tuan_bat_dau, tuan_ket_thuc] GIAO tuần đang xem.
+  // Cam kết CÁ NHÂN của thầy cô trong tuần đang xem: [tuan_bat_dau, tuan_ket_thuc] GIAO tuần.
   const camKet = (ckRows ?? []).filter((c) => {
     const bd = c.tuan_bat_dau ?? '';
     const kt = c.tuan_ket_thuc ?? bd;
     return bd <= wk.end && kt >= wk.start;
   });
-  // HỘI TỤ: gom cam kết theo mục tiêu nó hướng vào (để bày DƯỚI mục tiêu, không thành khu riêng).
-  const camKetCuaWig = new Map<string, typeof camKet>();
-  const camKetMoCoi: typeof camKet = [];
+  // Gom cam kết theo mục tiêu CÁ NHÂN nó hướng vào (bày DƯỚI mục tiêu của tôi).
+  const camKetCuaToi = new Map<string, typeof camKet>();
+  const camKetToiMoCoi: typeof camKet = [];
   for (const c of camKet) {
-    if (c.muc_tieu_id && wigIds.includes(c.muc_tieu_id)) {
-      const arr = camKetCuaWig.get(c.muc_tieu_id) ?? [];
+    if (c.muc_tieu_id && mtToiIds.includes(c.muc_tieu_id)) {
+      const arr = camKetCuaToi.get(c.muc_tieu_id) ?? [];
       arr.push(c);
-      camKetCuaWig.set(c.muc_tieu_id, arr);
-    } else camKetMoCoi.push(c);
+      camKetCuaToi.set(c.muc_tieu_id, arr);
+    } else camKetToiMoCoi.push(c);
   }
 
-  // VIỆC BỔ TRỢ của mỗi cam kết (cô tick qua TickCuaLop, một lượt cả đội student_id=null): tên + ngày đã tick.
+  // THƯỚC ĐO DẪN DẮT của mỗi cam kết cá nhân — lượt mang student_id CỦA thầy cô (tung_em).
   const weekDays = weekDaysVN(monday);
   const dayShort = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
   const ckThuocIds = [...new Set(camKet.map((c) => c.thuoc_id).filter(Boolean) as string[])];
-  const boTroTheoId = new Map<string, string>();
+  type ThuocToi = {id: string; ten: string; cach_ghi: string; chi_tieu_ky: number | null};
+  const boTroTheoId = new Map<string, ThuocToi>();
   const daTickTheoThuoc = new Map<string, string[]>();
+  const tongSoTheoThuoc = new Map<string, number>();
   if (ckThuocIds.length > 0) {
     const [{data: tRows}, {data: lRows}] = await Promise.all([
-      supabase.from('thuoc').select('id, ten').in('id', ckThuocIds),
+      supabase.from('thuoc').select('id, ten, cach_ghi, chi_tieu_ky').in('id', ckThuocIds),
       supabase
         .from('luot')
-        .select('thuoc_id, ngay')
+        .select('thuoc_id, ngay, gia_tri')
         .in('thuoc_id', ckThuocIds)
-        .is('student_id', null)
+        .eq('student_id', profile.id)
         .gte('ngay', wk.start)
         .lte('ngay', wk.end),
     ]);
-    for (const tr of (tRows ?? []) as {id: string; ten: string}[]) boTroTheoId.set(tr.id, tr.ten);
-    for (const l of (lRows ?? []) as {thuoc_id: string; ngay: string}[]) {
+    for (const tr of (tRows ?? []) as ThuocToi[]) boTroTheoId.set(tr.id, tr);
+    for (const l of (lRows ?? []) as {thuoc_id: string; ngay: string; gia_tri: number | null}[]) {
       const arr = daTickTheoThuoc.get(l.thuoc_id) ?? [];
       arr.push(l.ngay);
       daTickTheoThuoc.set(l.thuoc_id, arr);
+      tongSoTheoThuoc.set(l.thuoc_id, (tongSoTheoThuoc.get(l.thuoc_id) ?? 0) + Number(l.gia_tri ?? 0));
     }
   }
 
@@ -580,98 +641,71 @@ export default async function WigPage({
                     </form>
                   )}
 
-                  {/* ── LỘ TRÌNH: CAM KẾT tuần của cô cho mục tiêu này → dưới mỗi cam kết là việc bổ trợ. ── */}
-                  <div className="mt-1 flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('camKetHuong')}</p>
-                      <NutThemCamKetLop classId={myClass.id} weekQ={weekQ} monday={monday} mucTieuId={m.id} tenMucTieu={m.ten ?? ""} tenDonVi={m.ten_don_vi} />
-                    </div>
-                    {(camKetCuaWig.get(m.id) ?? []).length === 0 ? (
-                      <p className="text-[11.5px] font-semibold italic text-grey-mid">{t('camKetTrongMt')}</p>
-                    ) : (
-                      (camKetCuaWig.get(m.id) ?? []).map((c) => (
-                        <div key={c.id} className="flex flex-col gap-1.5 rounded-[10px] border border-navy/10 bg-white p-2.5">
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">{c.noi_dung}</span>
-                            {c.so_hua != null && (
-                              <span className="text-[11px] font-bold tabular-nums text-grey-mid">
-                                {tCk('chipSo', {dat: c.so_dat ?? 0, hua: c.so_hua, dv: c.ten_don_vi ?? ''})}
-                              </span>
-                            )}
-                            {c.ket_qua === 'thang' && (
-                              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[9.5px] font-extrabold text-success-dark">
-                                <Check size={10} strokeWidth={3} />
-                                {tCk('thang')}
-                              </span>
-                            )}
-                            {c.ket_qua === 'thua' && (
-                              <span className="inline-flex shrink-0 items-center rounded-full bg-status-bad/[0.12] px-2 py-0.5 text-[9.5px] font-extrabold text-status-bad">
-                                {tCk('thua')}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <form action={chamCamKetLop} className="flex items-center gap-1.5">
-                              {ctx}
-                              <input type="hidden" name="cam_ket_id" value={c.id ?? undefined} />
-                              {c.so_hua != null && (
-                                <input
-                                  type="number"
-                                  name="so_dat"
-                                  step="any"
-                                  min="0"
-                                  defaultValue={c.so_dat ?? undefined}
-                                  placeholder={tCk('soDatHoi', {dv: c.ten_don_vi ?? ''})}
-                                  className="w-24 rounded-[7px] border-[1.5px] border-navy/20 px-2 py-1 text-[11.5px] text-navy"
-                                />
-                              )}
-                              <SubmitButton
-                                name="ket_qua"
-                                value="thang"
-                                className="inline-flex items-center gap-1 rounded-[7px] border-[1.5px] border-success/40 bg-success/[0.12] px-2 py-1 text-[11.5px] font-extrabold text-success-dark transition-all hover:bg-success/20"
-                                wrapClass="contents"
-                              >
-                                <Check size={11} strokeWidth={3} />
-                                {tCk('thang')}
-                              </SubmitButton>
-                              <SubmitButton
-                                name="ket_qua"
-                                value="thua"
-                                className="inline-flex items-center gap-1 rounded-[7px] border-[1.5px] border-status-bad/40 bg-status-bad/[0.08] px-2 py-1 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-status-bad/15"
-                                wrapClass="contents"
-                              >
-                                <X size={11} strokeWidth={3} />
-                                {tCk('thua')}
-                              </SubmitButton>
-                            </form>
-                            <SuaLoiCamKetLop camKetId={c.id ?? ''} noiDung={c.noi_dung ?? ''} classId={myClass.id} weekQ={weekQ} />
-                          </div>
-                          {/* VIỆC BỔ TRỢ của cô cho cam kết này — cô tick (cả đội) để hoàn thành. Chưa có
-                              thì hiện nút "+ Thước đo dẫn dắt" (chỉ tuần này, cam kết chưa chấm). */}
-                          {c.thuoc_id && boTroTheoId.has(c.thuoc_id) ? (
-                            <div className="rounded-[8px] bg-navy/[0.03] p-1.5">
-                              <p className="mb-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
-                                {t('viecBoTroCo')}: <span className="text-navy">{boTroTheoId.get(c.thuoc_id)}</span>
-                              </p>
-                              <TickCuaLop
-                                leadId={c.thuoc_id}
-                                days={weekDays}
-                                daTick={daTickTheoThuoc.get(c.thuoc_id) ?? []}
-                                today={todayVN}
-                                moKhoa={laTuanNay}
-                                dayShort={dayShort}
-                              />
-                            </div>
-                          ) : (
-                            !c.thuoc_id &&
-                            laTuanNay &&
-                            !c.ket_qua && (
-                              <NutThemThuoc mode="lop" camKetId={c.id ?? ''} classId={myClass.id} weekQ={weekQ} monday={monday} donViList={donViList} />
-                            )
-                          )}
-                        </div>
-                      ))
-                    )}
+                  {/* ── NGUỒN SỐ + HƯỚNG LÊN TRƯỜNG (03/09): cam kết không treo ở đây nữa — số của lớp
+                      CỘNG từ mục tiêu của thầy cô khi cùng đơn vị, khác đơn vị thì thầy cô ghi tay. ── */}
+                  <div className="mt-1 flex flex-col gap-2 rounded-[12px] bg-white/60 p-2.5">
+                    {m.nguon_so === 'con' ? (
+                      <p className="text-[11.5px] font-semibold text-grey-mid">{t('nguonTuThayCo')}</p>
+                    ) : m.loai_moc === 'do_luong' && m.trang_thai === 'duyet' && m.nguon_so === 'ghi_tay' ? (
+                      <form action={ghiSoMucTieuLop} className="flex flex-wrap items-center gap-1.5">
+                        {ctx}
+                        <input type="hidden" name="muc_tieu_id" value={m.id} />
+                        <span className="text-[11.5px] font-semibold text-grey-mid">{t('ghiSoNhan')}</span>
+                        <input
+                          type="number"
+                          name="gia_tri"
+                          step="any"
+                          min="0"
+                          placeholder={dv}
+                          className="w-24 rounded-[7px] border-[1.5px] border-navy/20 px-2 py-1 text-[11.5px] text-navy"
+                        />
+                        <SubmitButton
+                          className="rounded-[7px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy"
+                          wrapClass="contents"
+                        >
+                          {t('ghiSoLuu')}
+                        </SubmitButton>
+                      </form>
+                    ) : null}
+                    {noiLenTruong.has(m.id) ? (
+                      <div className="flex flex-wrap items-center gap-1.5 text-[11.5px] font-semibold text-grey-mid">
+                        <span>
+                          {t('huongTruong', {ten: tenTruong.get(noiLenTruong.get(m.id)!.chaId) ?? ''})}
+                          {noiLenTruong.get(m.id)!.gop ? ` · ${t('congVaoTruong')}` : ''}
+                        </span>
+                        <form action={goWigTruong} className="contents">
+                          {ctx}
+                          <input type="hidden" name="muc_tieu_id" value={m.id} />
+                          <input type="hidden" name="truong_id" value={noiLenTruong.get(m.id)!.chaId} />
+                          <SubmitButton className="text-[11px] font-bold text-grey-mid hover:text-status-bad" wrapClass="contents">
+                            {t('goTruong')}
+                          </SubmitButton>
+                        </form>
+                      </div>
+                    ) : truongWigs.length > 0 && m.trang_thai === 'duyet' ? (
+                      <form action={noiWigTruong} className="flex flex-wrap items-center gap-1.5">
+                        {ctx}
+                        <input type="hidden" name="muc_tieu_id" value={m.id} />
+                        <select
+                          name="truong_id"
+                          defaultValue=""
+                          className="rounded-[7px] border-[1.5px] border-navy/20 px-2 py-1 text-[11.5px] text-navy"
+                        >
+                          <option value="">{t('chonTruong')}</option>
+                          {truongWigs.map((tw) => (
+                            <option key={tw.id} value={tw.id}>
+                              {tw.ten}
+                            </option>
+                          ))}
+                        </select>
+                        <SubmitButton
+                          className="rounded-[7px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy"
+                          wrapClass="contents"
+                        >
+                          {t('noiTruongNut')}
+                        </SubmitButton>
+                      </form>
+                    ) : null}
                   </div>
 
                   {/* Sửa · Đóng · Xoá mục tiêu của lớp. */}
@@ -724,32 +758,202 @@ export default async function WigPage({
         )}
       </div>
 
-      {/* CAM KẾT CHƯA HƯỚNG mục tiêu — hiếm (cam kết giờ nằm dưới mục tiêu). Gom gọn để cô nối lại. */}
-      {camKetMoCoi.length > 0 && (
-      <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
-        <h2 className="font-display text-[14px] font-bold text-navy">{t('camKetChuaHuong')}</h2>
-        {camKetMoCoi.map((c) => (
-          <div key={c.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2">
-            <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">{c.noi_dung}</span>
-            {c.so_hua != null && (
-              <span className="text-[11px] font-bold tabular-nums text-grey-mid">
-                {tCk('chipSo', {dat: c.so_dat ?? 0, hua: c.so_hua, dv: c.ten_don_vi ?? ''})}
-              </span>
-            )}
-            <SuaLoiCamKetLop camKetId={c.id ?? ''} noiDung={c.noi_dung ?? ''} classId={myClass.id} weekQ={weekQ} />
-            <form action={xoaCamKetLop}>
-              {ctx}
-              <input type="hidden" name="cam_ket_id" value={c.id ?? undefined} />
-              <SubmitButton className="text-[11px] font-bold text-grey-mid hover:text-status-bad" wrapClass="contents">
-                {tCk('huy')}
-              </SubmitButton>
-            </form>
-          </div>
-        ))}
-      </section>
-      )}
       </>
       )}
+
+      {/* ── MỤC TIÊU CỦA TÔI (0181) — thầy cô cũng có mục tiêu cá nhân như em, nối vào mục tiêu
+          lớp; cam kết tuần + thước đo dẫn dắt của thầy cô treo Ở ĐÂY, không ở thẻ lớp nữa. ── */}
+      <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="font-display text-[15px] font-bold text-navy">{t('khuMucTieuToi')}</h2>
+          <div className="ml-auto">
+            <NutTaoMucTieuToi
+              teacherId={profile.id}
+              classId={myClass.id}
+              nhanTheoArea={nhanTheoArea}
+              donViList={donViList}
+              mucTieuLop={mucTieuLop
+                .filter((g) => g.trang_thai === 'duyet')
+                .map((g) => ({id: g.id, ten: g.ten ?? '', linh_vuc: (g.linh_vuc ?? 'knowledge') as string}))}
+            />
+          </div>
+        </div>
+        {mucTieuToi.length === 0 ? (
+          <p className="text-[12.5px] font-semibold text-grey-mid">{t('mucTieuToiTrong')}</p>
+        ) : (
+          mucTieuToi.map((m) => {
+            const meta = areaMeta[(m.linh_vuc ?? 'knowledge') as Area];
+            const dv = m.ten_don_vi ?? '';
+            const day = noiCuaToi.get(m.id);
+            return (
+              <div
+                key={m.id}
+                style={{
+                  borderColor: `color-mix(in srgb, ${meta.hex} 30%, white)`,
+                  background: `color-mix(in srgb, ${meta.hex} 6%, white)`,
+                }}
+                className="flex flex-col gap-2 rounded-[14px] border-[1.5px] p-3.5"
+              >
+                <div className="flex flex-wrap items-start gap-3.5">
+                  {m.pct != null ? (
+                    <DonutRing pct={Number(m.pct)} color={meta.hex} size={54} />
+                  ) : (
+                    <span className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full bg-navy/[0.05] text-[11px] font-extrabold text-grey-mid">
+                      —
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <span className="font-display text-[15px] font-bold text-navy">{m.ten ?? ''}</span>
+                    <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[12px] font-semibold text-grey-mid">
+                      {m.loai_moc === 'do_luong' && m.y_so != null ? (
+                        <span className="text-[13.5px] font-extrabold tabular-nums text-navy">
+                          {m.so != null ? dinhSo(m.so) : '–'}
+                          <span className="font-bold text-grey-mid">
+                            {' / '}
+                            {dinhSo(m.y_so)} {dv}
+                          </span>
+                        </span>
+                      ) : null}
+                      <span>{tMt('denHan', {ngay: ngayVN(m.ket_thuc)})}</span>
+                    </p>
+                    {/* Nối vào mục tiêu lớp nào — và số có chảy lên không. */}
+                    {day && (
+                      <p className="mt-0.5 text-[11.5px] font-semibold text-grey-mid">
+                        {t('huongLop', {ten: tenWigLop.get(day.chaId) ?? ''})}
+                        {day.gop ? ` · ${t('congVaoLop')}` : ''}
+                      </p>
+                    )}
+                  </div>
+                  {m.y_so != null && (lichSuTheoWig.get(m.id)?.length ?? 0) >= 2 && (
+                    <div className="ml-auto shrink-0 self-center">
+                      <BieuDoThat lichSu={lichSuTheoWig.get(m.id)!} dich={Number(m.y_so)} mau={meta.hex} />
+                    </div>
+                  )}
+                </div>
+
+                {/* CAM KẾT TUẦN của tôi cho mục tiêu này. */}
+                <div className="mt-1 flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('camKetToiNhan')}</p>
+                    <NutThemCamKetToi
+                      classId={myClass.id}
+                      weekQ={weekQ}
+                      monday={monday}
+                      mucTieuId={m.id}
+                      tenMucTieu={m.ten ?? ''}
+                      tenDonVi={m.ten_don_vi}
+                    />
+                  </div>
+                  {(camKetCuaToi.get(m.id) ?? []).length === 0 ? (
+                    <p className="text-[11.5px] font-semibold italic text-grey-mid">{t('camKetToiTrong')}</p>
+                  ) : (
+                    (camKetCuaToi.get(m.id) ?? []).map((c) => (
+                      <div key={c.id} className="flex flex-col gap-1.5 rounded-[10px] border border-navy/10 bg-white p-2.5">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">{c.noi_dung}</span>
+                          {c.so_hua != null && (
+                            <span className="text-[11px] font-bold tabular-nums text-grey-mid">
+                              {tCk('chipSo', {dat: c.so_dat ?? 0, hua: c.so_hua, dv: c.ten_don_vi ?? ''})}
+                            </span>
+                          )}
+                          {c.ket_qua === 'thang' && (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[9.5px] font-extrabold text-success-dark">
+                              <Check size={10} strokeWidth={3} />
+                              {tCk('thang')}
+                            </span>
+                          )}
+                          {c.ket_qua === 'thua' && (
+                            <span className="inline-flex shrink-0 items-center rounded-full bg-status-bad/[0.12] px-2 py-0.5 text-[9.5px] font-extrabold text-status-bad">
+                              {tCk('thua')}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <form action={chamCamKetToi} className="flex items-center gap-1.5">
+                            {ctx}
+                            <input type="hidden" name="cam_ket_id" value={c.id ?? undefined} />
+                            {c.so_hua != null && (
+                              <input
+                                type="number"
+                                name="so_dat"
+                                step="any"
+                                min="0"
+                                defaultValue={c.so_dat ?? undefined}
+                                placeholder={tCk('soDatHoi', {dv: c.ten_don_vi ?? ''})}
+                                className="w-24 rounded-[7px] border-[1.5px] border-navy/20 px-2 py-1 text-[11.5px] text-navy"
+                              />
+                            )}
+                            <SubmitButton
+                              name="ket_qua"
+                              value="thang"
+                              className="inline-flex items-center gap-1 rounded-[7px] border-[1.5px] border-success/40 bg-success/[0.12] px-2 py-1 text-[11.5px] font-extrabold text-success-dark transition-all hover:bg-success/20"
+                              wrapClass="contents"
+                            >
+                              <Check size={11} strokeWidth={3} />
+                              {tCk('thang')}
+                            </SubmitButton>
+                            <SubmitButton
+                              name="ket_qua"
+                              value="thua"
+                              className="inline-flex items-center gap-1 rounded-[7px] border-[1.5px] border-status-bad/40 bg-status-bad/[0.08] px-2 py-1 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-status-bad/15"
+                              wrapClass="contents"
+                            >
+                              <X size={11} strokeWidth={3} />
+                              {tCk('thua')}
+                            </SubmitButton>
+                          </form>
+                          <SuaCamKetToi
+                            camKetId={c.id ?? ''}
+                            noiDung={c.noi_dung ?? ''}
+                            soHua={c.so_hua}
+                            tenDonVi={c.ten_don_vi}
+                            classId={myClass.id}
+                            weekQ={weekQ}
+                          />
+                        </div>
+                        {/* THƯỚC ĐO DẪN DẮT của cam kết: tick mỗi ngày, hoặc ghi số. */}
+                        {c.thuoc_id && boTroTheoId.has(c.thuoc_id) ? (
+                          <div className="rounded-[8px] bg-navy/[0.03] p-1.5">
+                            <p className="mb-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+                              {tCk('viecBoTroLabel')}: <span className="text-navy">{boTroTheoId.get(c.thuoc_id)!.ten}</span>
+                            </p>
+                            {boTroTheoId.get(c.thuoc_id)!.cach_ghi === 'cham' ? (
+                              <TickCuaToi
+                                leadId={c.thuoc_id}
+                                studentId={profile.id}
+                                days={weekDays}
+                                daTick={daTickTheoThuoc.get(c.thuoc_id) ?? []}
+                                today={todayVN}
+                                moKhoa={laTuanNay}
+                                dayShort={dayShort}
+                              />
+                            ) : (
+                              <GhiSoToi
+                                leadId={c.thuoc_id}
+                                studentId={profile.id}
+                                today={todayVN}
+                                tongTuan={tongSoTheoThuoc.get(c.thuoc_id) ?? 0}
+                                chiTieu={Number(boTroTheoId.get(c.thuoc_id)!.chi_tieu_ky ?? 0)}
+                                donVi={c.ten_don_vi ?? ''}
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          !c.thuoc_id &&
+                          laTuanNay &&
+                          !c.ket_qua && (
+                            <NutThemThuoc mode="toi" camKetId={c.id ?? ''} classId={myClass.id} weekQ={weekQ} monday={monday} donViList={donViList} />
+                          )
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </section>
 
       {/* ── ⑤ CÁC EM TUẦN NÀY (component chung, tự đọc bang_lop_em) ─────────────────────────── */}
       <BangCacEm classId={myClass.id} monday={monday} weekQ={weekQ} classParam={classParam} />

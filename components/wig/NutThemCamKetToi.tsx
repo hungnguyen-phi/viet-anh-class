@@ -1,16 +1,17 @@
 'use client';
 
-// Nút "+" thêm CAM KẾT tuần của lớp. Bấm → mở hộp: chỉ lời hứa + số hứa. Thước đo dẫn dắt tách ra
-// nút riêng dưới mỗi cam kết (NutThemThuoc). Dùng action taoCamKetLop (redirect) — lưu xong về đúng lớp/tuần.
+// Nút "+" thêm CAM KẾT tuần CÁ NHÂN của thầy cô (treo ở mục tiêu cá nhân, không phải mục tiêu
+// lớp — chốt 03/09). Bấm → hộp: lời hứa + số hứa với đơn vị ÉP theo mục tiêu cá nhân. Thước đo
+// dẫn dắt có nút riêng dưới mỗi cam kết (NutThemThuoc mode='toi').
 import {useState} from 'react';
 import {Plus} from 'lucide-react';
 import {useTranslations} from 'next-intl';
 import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder} from '@/components/ui/Field';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {taoCamKetLop} from '@/app/[locale]/(dashboard)/wig/lop-actions';
+import {taoCamKetToi} from '@/app/[locale]/(dashboard)/wig/lop-actions';
 
-export function NutThemCamKetLop({
+export function NutThemCamKetToi({
   classId,
   weekQ,
   monday,
@@ -34,30 +35,28 @@ export function NutThemCamKetLop({
       <button
         type="button"
         onClick={() => setMo(true)}
-        aria-label={t('themCamKet')}
-        title={t('themCamKet')}
+        aria-label={t('themCamKetToi')}
+        title={t('themCamKetToi')}
         className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full bg-gold text-navy shadow-sm transition-transform hover:scale-105 active:scale-95"
       >
         <Plus size={16} strokeWidth={3} />
       </button>
       {mo && (
-        <Popup title={t('themCamKet')} onClose={() => setMo(false)} width="max-w-[460px]">
-          <form action={taoCamKetLop} className="flex flex-col gap-3">
+        <Popup title={t('themCamKetToi')} onClose={() => setMo(false)} width="max-w-[460px]">
+          <form action={taoCamKetToi} className="flex flex-col gap-3">
             <input type="hidden" name="class_id" value={classId} />
             <input type="hidden" name="week" value={weekQ} />
             <input type="hidden" name="tuan_bat_dau" value={monday} />
             <input type="hidden" name="muc_tieu_id" value={mucTieuId} />
-            {/* Cam kết này thuộc mục tiêu nào — nói rõ ngay trong hộp, khỏi đoán. */}
             <p className="text-[12px] font-bold text-grey-mid">{tCk('giupMucTieu', {ten: tenMucTieu})}</p>
-            <Field label={tCk('noiDungLop')} htmlFor="ck-noi">
-              <input id="ck-noi" name="noi_dung" maxLength={300} placeholder={tCk('noiDungLop')} className={ctlWithBorder(false)} autoFocus />
+            <Field label={tCk('noiDungToi')} htmlFor="ckt-noi">
+              <input id="ckt-noi" name="noi_dung" maxLength={300} placeholder={tCk('noiDungToi')} className={ctlWithBorder(false)} autoFocus />
             </Field>
-            {/* Đơn vị ÉP theo mục tiêu (action lấy don_vi_id từ muc_tieu) — chỉ hiện ô số khi mục
-                tiêu đo bằng số; không có đơn vị thì cam kết chấm Thắng/Thua tay, khỏi hỏi số. */}
+            {/* Đơn vị ÉP theo mục tiêu cá nhân — mục tiêu không đo bằng số thì cam kết chấm tay. */}
             {tenDonVi && (
-              <Field label={tCk('soHuaLabel')} htmlFor="ck-so">
+              <Field label={tCk('soHuaLabel')} htmlFor="ckt-so">
                 <span className="inline-flex items-center gap-2">
-                  <input id="ck-so" type="number" name="so_hua" step="any" min="0" placeholder={tCk('soHua')} className={`${ctlWithBorder(false)} max-w-[160px]`} />
+                  <input id="ckt-so" type="number" name="so_hua" step="any" min="0" placeholder={tCk('soHua')} className={`${ctlWithBorder(false)} max-w-[160px]`} />
                   <span className="text-[13px] font-bold text-grey-mid">{tenDonVi}</span>
                 </span>
               </Field>
