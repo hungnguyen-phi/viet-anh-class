@@ -23,6 +23,7 @@ import {MyRequests, type MyRequest} from '@/components/student/MyRequests';
 import {RequestInbox, type EditRequest} from '@/components/student/RequestInbox';
 import {tenHienThi} from '@/lib/ten-hien-thi';
 import {MucTieuLopChoEm, type MucTieuLopThe} from '@/components/student/MucTieuLopChoEm';
+import {MucTieuCuaCon} from '@/components/student/MucTieuCuaCon';
 import {LoTrinhEm} from '@/components/student/LoTrinhEm';
 import type {DonViChon, MucTieuLopChon, MauMucTieu, BuocThe} from '@/components/student/FormMucTieu';
 import {BangEmPA2, type ViecEm, type ViecTuan, type CamKetEm} from '@/components/student/BangEmPA2';
@@ -600,19 +601,47 @@ export async function StudentScoreboard({
       {/* ② BĂNG RÔN */}
       {bangRon}
 
-      {/* ③ MỤC TIÊU CỦA LỚP — LỘ TRÌNH: mỗi mục tiêu lớp + việc em tick đẩy nó + cam kết của em cho nó. */}
+      {/* ③ MỤC TIÊU CỦA LỚP — CHỈ XEM: đích chung cả lớp mà mục tiêu năm của em hướng (hỗ trợ) vào. */}
       {classId && mucTieuLopThe.length > 0 ? (
         <section>
           <h2 className="mb-1 font-display text-[17px] font-bold text-navy">{tBang('khuMucTieuLop')}</h2>
           <p className="mb-3 text-[12.5px] font-semibold text-grey-mid">{tBang('mucTieuLopNhac')}</p>
           <div className="flex flex-col gap-4">
             {mucTieuLopThe.map((g) => (
-              <div key={g.id}>
-                <MucTieuLopChoEm mucTieu={[g]} mauTheoArea={mauTheoArea} nhanTheoArea={nhanTheoArea} />
+              <MucTieuLopChoEm key={g.id} mucTieu={[g]} mauTheoArea={mauTheoArea} nhanTheoArea={nhanTheoArea} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* ④ MỤC TIÊU NĂM CỦA EM — em tạo (GV duyệt), nối vào một mục tiêu lớp để cùng hội tụ. Dưới MỖI
+          mục tiêu năm ĐÃ DUYỆT của em là cam kết tuần + thước đo dẫn dắt (hướng vào chính mục tiêu ấy). */}
+      {classId ? (
+        <section>
+          <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{tBang('khuMucTieu')}</h2>
+          <MucTieuCuaCon
+            studentId={studentId}
+            classId={classId}
+            mucTieu={mtRows}
+            laChinhEm={canTick}
+            canManage={canManage}
+            namHoc={cls?.school_year ?? null}
+            nhanTheoArea={nhanTheoArea}
+            mauTheoArea={mauTheoArea}
+            donViList={donViList}
+            mucTieuLop={mucTieuLop}
+            buocTheoMt={buocTheoMt}
+            mauList={mauList}
+          />
+          <div className="mt-3 flex flex-col gap-4">
+            {mtRows
+              .filter((m) => m.trang_thai === 'duyet' && !!m.id)
+              .map((m) => (
                 <LoTrinhEm
-                  goal={{id: g.id, ten: g.ten, don_vi_id: g.don_vi_id, ten_don_vi: g.ten_don_vi}}
+                  key={m.id ?? ''}
+                  goal={{id: m.id ?? '', ten: m.ten ?? '', don_vi_id: m.don_vi_id ?? null, ten_don_vi: m.ten_don_vi ?? null}}
                   viec={viec}
-                  camKet={camKetCuaMt[g.id] ?? []}
+                  camKet={camKetCuaMt[m.id ?? ''] ?? []}
                   studentId={studentId}
                   classId={classId}
                   donViList={donViList}
@@ -625,14 +654,10 @@ export async function StudentScoreboard({
                   weekDays={weekDays}
                   dayShort={dayShort}
                 />
-              </div>
-            ))}
+              ))}
           </div>
         </section>
       ) : null}
-
-      {/* Mục tiêu RIÊNG của em + khu việc/cam kết rời ĐÃ BỎ (mô hình mới: đích duy nhất là mục
-          tiêu lớp; em chỉ có cam kết + việc bổ trợ hướng vào nó). */}
 
       {/* ⑥ HỌP CỦA EM */}
       <section className="flex flex-col gap-3">
