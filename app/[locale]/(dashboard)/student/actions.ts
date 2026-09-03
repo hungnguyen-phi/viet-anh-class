@@ -88,7 +88,7 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   const kieu_dich = String(formData.get('kieu_dich') ?? 'toi'); // toi/tran_tich_luy/giu/toc_do_ky/ti_le_dat/chu
   const chieu = String(formData.get('chieu') ?? 'tang'); // tang/giam/giu
   const ky = String(formData.get('ky') ?? '').trim() || null; // tuan/hai_tuan/thang
-  const don_vi_id = String(formData.get('don_vi_id') ?? '').trim() || null;
+  let don_vi_id = String(formData.get('don_vi_id') ?? '').trim() || null;
   const subject_id = String(formData.get('subject_id') ?? '').trim() || null;
   const chua_do_x = String(formData.get('chua_do_x') ?? '') === '1';
 
@@ -175,6 +175,24 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   if (laPhanTram) {
     const {data: dv} = await supabase.from('don_vi').select('id').eq('ma', 'phan_tram').maybeSingle();
     don_vi_pt = dv?.id ?? null;
+  }
+  // "khác": em tự gõ đơn vị chưa có — tìm-hoặc-tạo trong don_vi (dedupe theo `ma` slug), dùng id thật.
+  if (don_vi_id === '__khac__') {
+    const tenDv = String(formData.get('don_vi_moi') ?? '').trim();
+    if (!tenDv) return {ok: false, fieldError: 'don_vi_id', error: 'Gõ tên đơn vị em muốn dùng.'};
+    const maDv =
+      tenDv.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'don_vi';
+    const {data: coSan} = await supabase.from('don_vi').select('id').ilike('ma', maDv).maybeSingle();
+    if (coSan?.id) don_vi_id = coSan.id;
+    else {
+      const {data: moi, error: eDv} = await supabase.from('don_vi').insert({ma: maDv, nhan_vi: tenDv, nhan_en: tenDv}).select('id').maybeSingle();
+      if (moi?.id) don_vi_id = moi.id;
+      else {
+        const {data: lai} = await supabase.from('don_vi').select('id').ilike('ma', maDv).maybeSingle(); // đua chèn: tìm lại
+        if (lai?.id) don_vi_id = lai.id;
+        else return {ok: false, fieldError: 'don_vi_id', error: eDv ? friendlyError(eDv) : 'Không tạo được đơn vị mới.'};
+      }
+    }
   }
   const eff_don_vi = laPhanTram ? don_vi_pt : don_vi_id;
 

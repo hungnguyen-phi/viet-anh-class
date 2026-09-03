@@ -117,6 +117,8 @@ export function FormMucTieu3Buoc({
   const [x, setX] = useState(dangSua?.x_so != null ? String(dangSua.x_so) : '');
   const [y, setY] = useState(dangSua?.y_so != null ? String(dangSua.y_so) : '');
   const [donViId, setDonViId] = useState<string>(dangSua?.don_vi_id ?? '');
+  // "khác" → em tự gõ một đơn vị chưa có trong danh sách (luuMucTieu tạo/khớp trong bảng don_vi).
+  const [donViMoi, setDonViMoi] = useState('');
   // Không còn ô chọn ngày bắt đầu — giữ giá trị cũ khi sửa, còn tạo mới thì để trống (máy chủ
   // lấy hôm nay). Không có setter vì màn của em không đổi ngày bắt đầu nữa.
   const [batDau] = useState(dangSua?.bat_dau ?? '');
@@ -553,10 +555,20 @@ export function FormMucTieu3Buoc({
                   name="_don_vi_ui"
                   value={donViId}
                   onChange={setDonViId}
-                  danhSach={donViList.map((d) => ({ma: d.id, nhan: d.nhan}))}
+                  danhSach={[...donViList.map((d) => ({ma: d.id, nhan: d.nhan})), {ma: '__khac__', nhan: t('donViKhac')}]}
                   chuaChon={t('donViChon')}
                   loi={state.fieldError === 'don_vi_id'}
                 />
+                {donViId === '__khac__' && (
+                  <input
+                    name="don_vi_moi"
+                    value={donViMoi}
+                    onChange={(e) => setDonViMoi(e.target.value)}
+                    maxLength={30}
+                    placeholder={t('donViMoiHoi')}
+                    className="mt-1.5 w-full rounded-[9px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[13px] text-navy"
+                  />
+                )}
                 <span data-kiem="mt-don-vi" className="hidden" />
               </Field>
               <Field label={t('giaTriBanDau')} htmlFor="mt-x" error={err('x_so')}>
