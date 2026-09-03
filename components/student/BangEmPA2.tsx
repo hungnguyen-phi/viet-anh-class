@@ -465,12 +465,8 @@ export function TheCamKet({
   const tc = useTranslations('camKet');
   const [soDat, datSoDat] = useState(c.so_hua != null ? so(c.so_hua) : '');
 
-  const tuanCuoi = c.tuan_ket_thuc ?? themNgay(c.tuan_bat_dau, (Math.max(1, c.so_tuan) - 1) * 7);
-  const thuSauCuoi = themNgay(tuanCuoi, 4);
   const daCham = c.ket_qua != null;
-  const chamMo = laChinhEm && !daCham && !tuanNghi && (today >= thuSauCuoi || c.xong_at != null);
-  const nhieuTuan = c.so_tuan > 1;
-  const chuaToiHan = nhieuTuan && today < thuSauCuoi && c.xong_at == null;
+  const chamMo = laChinhEm && !daCham && !tuanNghi;
 
   return (
     <div className="glass rounded-[16px] border-l-[3px] border-gold-mid p-3.5">
@@ -492,10 +488,6 @@ export function TheCamKet({
           >
             {c.ket_qua === 'thang' ? tc('thang') : tc('thua')}
           </span>
-        ) : chuaToiHan ? (
-          <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-bold text-grey-mid">
-            {tc('tuanN', {n: 1, tong: c.so_tuan})}
-          </span>
         ) : (
           <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-bold text-grey-mid">
             {tc('chuaCham')}
@@ -515,9 +507,7 @@ export function TheCamKet({
 
       {laChinhEm && !daCham && !tuanNghi && (
         <div className="mt-2">
-          {chuaToiHan ? (
-            <p className="text-[11.5px] font-semibold italic text-grey-mid">{tc('chuaToiHan', {tong: c.so_tuan})}</p>
-          ) : (
+          {(
             <form action={chamCamKet} className="flex flex-col gap-1.5">
               <input type="hidden" name="student_id" value={studentId} />
               <input type="hidden" name="cam_ket_id" value={c.id} />
@@ -539,7 +529,6 @@ export function TheCamKet({
                   name="ket_qua"
                   value="thang"
                   disabled={!chamMo}
-                  title={!chamMo ? tc('choThuSau') : undefined}
                   className="cursor-pointer rounded-[9px] bg-success px-3 py-1 text-[12px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {tc('thang')}
@@ -549,7 +538,6 @@ export function TheCamKet({
                   name="ket_qua"
                   value="thua"
                   disabled={!chamMo}
-                  title={!chamMo ? tc('choThuSau') : undefined}
                   className="cursor-pointer rounded-[9px] border-[1.5px] border-status-bad/40 px-3 py-1 text-[12px] font-extrabold text-status-bad disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {tc('thua')}
