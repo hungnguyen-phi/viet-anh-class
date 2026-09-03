@@ -477,7 +477,6 @@ export async function StudentScoreboard({
   // ── Băng rôn (② — bày ở máy chủ, không cần client) ──────────────────────────────────────────
   const bangRonRaw = Array.isArray(bangRonRes.data) ? bangRonRes.data[0] : bangRonRes.data;
   const tuanNghi = (tuanHocRes.data as {loai: string} | null)?.loai === 'nghi';
-  const bangRon = <BangRon raw={bangRonRaw} tuanNghi={tuanNghi} tBang={tBang} tTuan={tTuan} />;
 
   const daChotHopTuan = Boolean(pdrBuddyRes.data?.acknowledged_at);
 
@@ -600,14 +599,10 @@ export async function StudentScoreboard({
         end={weekDays[6]}
       />
 
-      {/* ② BĂNG RÔN */}
-      {bangRon}
-
       {/* ③ MỤC TIÊU CỦA LỚP — CHỈ XEM: đích chung cả lớp mà mục tiêu năm của em hướng (hỗ trợ) vào. */}
       {classId && mucTieuLopThe.length > 0 ? (
         <section>
-          <h2 className="mb-1 font-display text-[17px] font-bold text-navy">{tBang('khuMucTieuLop')}</h2>
-          <p className="mb-3 text-[12.5px] font-semibold text-grey-mid">{tBang('mucTieuLopNhac')}</p>
+          <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{tBang('khuMucTieuLop')}</h2>
           <div className="flex flex-col gap-4">
             {mucTieuLopThe.map((g) => (
               <MucTieuLopChoEm key={g.id} mucTieu={[g]} mauTheoArea={mauTheoArea} nhanTheoArea={nhanTheoArea} />

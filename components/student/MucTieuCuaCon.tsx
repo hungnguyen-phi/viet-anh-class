@@ -274,13 +274,9 @@ function TheMucTieu({
 
           {/* Số hiện tại — gọn: chỉ "Đang ở …". Bỏ nguồn "máy cộng từ N việc" (việc đã hiện ở lộ trình
               dưới) và bỏ "hôm nay lẽ ra …" (số phán xét). Chỉ giữ chữ chuẩn. */}
-          <p className="mt-1 text-[12.5px] font-bold text-navy">
-            {mt.so == null ? (
-              <span className="font-semibold italic text-grey-mid">{t('chuaCoSo')}</span>
-            ) : (
-              t('dangO', {so: dinhSo(mt.so), dv: mt.ten_don_vi ?? ''})
-            )}
-          </p>
+          {mt.so != null && (
+            <p className="mt-1 text-[12.5px] font-bold text-navy">{t('dangO', {so: dinhSo(mt.so), dv: mt.ten_don_vi ?? ''})}</p>
+          )}
 
           {/* DÂY — hướng tới / góp số vào mục tiêu cha. */}
           {noi.map((n) => (
@@ -420,7 +416,6 @@ function TheMucTieu({
                 </SubmitButton>
               </form>
             )}
-            {mt.trang_thai !== 'dong' && <NutDong mtId={mt.id ?? ''} studentId={studentId} />}
             {mucTieuLop.length > 0 && mt.trang_thai === 'duyet' && (
               <NutNoi mtId={mt.id ?? ''} studentId={studentId} mucTieuLop={mucTieuLop} noi={noi} />
             )}

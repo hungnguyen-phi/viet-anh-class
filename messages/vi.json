@@ -1672,6 +1672,7 @@
     "giaTriBanDau": "Giá trị ban đầu",
     "giaTriMucTieu": "Giá trị mục tiêu *",
     "ngayDenHan": "Ngày đến hạn *",
+    "ngayDenHanNhac": "Trong năm học: từ {min} đến {max}",
     "presetNamNay": "Theo năm nay",
     "presetHocKy": "Cuối học kỳ",
     "presetThang": "Cuối tháng này",

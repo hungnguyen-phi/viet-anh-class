@@ -1672,6 +1672,7 @@
     "giaTriBanDau": "Starting value",
     "giaTriMucTieu": "Target value *",
     "ngayDenHan": "Due date *",
+    "ngayDenHanNhac": "Within the school year: {min} – {max}",
     "presetNamNay": "This school year",
     "presetHocKy": "End of term",
     "presetThang": "End of month",
