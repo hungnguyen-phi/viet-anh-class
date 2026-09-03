@@ -584,7 +584,7 @@ export default async function WigPage({
                   <div className="mt-1 flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('camKetHuong')}</p>
-                      <NutThemCamKetLop classId={myClass.id} weekQ={weekQ} monday={monday} mucTieuId={m.id} />
+                      <NutThemCamKetLop classId={myClass.id} weekQ={weekQ} monday={monday} mucTieuId={m.id} tenMucTieu={m.ten ?? ""} tenDonVi={m.ten_don_vi} />
                     </div>
                     {(camKetCuaWig.get(m.id) ?? []).length === 0 ? (
                       <p className="text-[11.5px] font-semibold italic text-grey-mid">{t('camKetTrongMt')}</p>
