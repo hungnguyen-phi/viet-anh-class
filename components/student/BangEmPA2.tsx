@@ -121,7 +121,7 @@ export function HangViec({
 
   // Nhãn trạng thái nhỏ (Đủ / Chưa đủ / Đang làm / Nghỉ).
   let ttNhan = tv('dangChay');
-  let ttMau = 'text-grey-mid';
+  const ttMau = 'text-grey-mid';       // chỉ còn nhãn trạng thái đặc biệt (nghỉ/chưa bắt đầu) — một màu
   if (v.trang_thai === 'mien') {
     ttNhan = tv('oNghi');
   } else if (v.dat) {
