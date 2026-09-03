@@ -151,9 +151,6 @@ export async function taoCamKetLop(formData: FormData) {
   const muc_tieu_id = String(formData.get('muc_tieu_id') ?? '').trim() || null;
   const tuanGui = String(formData.get('tuan_bat_dau') ?? '').trim();
   const tuan_bat_dau = isValidDayVN(tuanGui) ? tuanGui : weekRangeVN().start;
-  // Số NGÀY cần tick cho việc bổ trợ (mặc định 5 = T2–T6). Việc bổ trợ đếm theo NGÀY, tách số hứa.
-  const soNgayRaw = String(formData.get('so_ngay') ?? '').trim();
-  const so_ngay = Math.min(7, Math.max(1, Math.round(Number(soNgayRaw) || 5)));
 
   const supabase = await createClient();
 
@@ -169,57 +166,60 @@ export async function taoCamKetLop(formData: FormData) {
     don_vi_id = null;
   }
 
-  // VIỆC BỔ TRỢ của CÔ — cô tick (cả đội, một lượt) hằng NGÀY. Đếm theo NGÀY (đích = so_ngay), TÁCH
-  // khỏi số hứa của cam kết. thuoc chu_the='lop' pham_vi='ca_doi'; cam kết trỏ vào nó qua thuoc_id.
-  const tenViecBoTro = String(formData.get('viec_bo_tro') ?? '').trim();
-  let thuoc_id: string | null = null;
-  if (tenViecBoTro) {
-    // Việc bổ trợ = cột mốc nhỏ: 'cham' tick mỗi ngày (đích = số NGÀY) hoặc 'dien_so' đo bằng số
-    // với đơn vị cô chọn (đích/tuần). Đơn vị "ngày" lùi "lần" nếu 0176 chưa chạy — thuoc.don_vi_id NOT NULL.
-    const viecCach = String(formData.get('viec_cach') ?? 'cham') === 'dien_so' ? 'dien_so' : 'cham';
-    let viecPayload: {cach_ghi: string; don_vi_id: string; chi_tieu_ky: number; moi_lan: number | null; ngay_ap_dung: number[]} | null = null;
-    if (viecCach === 'dien_so') {
-      const vdv = String(formData.get('viec_don_vi') ?? '').trim();
-      const vdich = Number(String(formData.get('viec_dich') ?? '').trim());
-      if (!vdv || !Number.isFinite(vdich) || vdich <= 0)
-        veWig(loi('Đo bằng số thì chọn đơn vị và nhập đích lớn hơn 0.'), classId, week);
-      viecPayload = {cach_ghi: 'dien_so', don_vi_id: vdv, chi_tieu_ky: vdich, moi_lan: null, ngay_ap_dung: [1, 2, 3, 4, 5, 6, 7]};
-    } else {
-      const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
-      const ngayId = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
-      if (ngayId) viecPayload = {cach_ghi: 'cham', don_vi_id: ngayId, chi_tieu_ky: so_ngay, moi_lan: 1, ngay_ap_dung: Array.from({length: so_ngay}, (_, i) => i + 1)};
-    }
-    if (viecPayload) {
-      const {data: vRow} = await supabase
-        .from('thuoc')
-        .insert({
-          chu_the: 'lop',
-          class_id,
-          ten: tenViecBoTro,
-          chieu_dich: 'it_nhat',
-          gop: 'tong',
-          ky_tuan: 1,
-          pham_vi: 'ca_doi',
-          tu_tuan: tuan_bat_dau,
-          duyet: 'duyet',
-          trang_thai: 'chay',
-          ...viecPayload,
-        })
-        .select('id')
-        .maybeSingle();
-      thuoc_id = vRow?.id ?? null;
-    }
-  }
-
+  // Thước đo dẫn dắt (thuoc) KHÔNG tạo ở đây nữa — có nút "+ Thước đo dẫn dắt" riêng dưới mỗi cam
+  // kết (themThuocChoCamKetLop). Form cam kết chỉ còn lời hứa + số.
   const {data, error} = await supabase
     .from('cam_ket')
-    .insert({chu_the: 'lop', class_id, student_id: null, noi_dung, so_hua, don_vi_id, muc_tieu_id, thuoc_id, so_tuan: 1, tuan_bat_dau})
+    .insert({chu_the: 'lop', class_id, student_id: null, noi_dung, so_hua, don_vi_id, muc_tieu_id, thuoc_id: null, so_tuan: 1, tuan_bat_dau})
     .select('id')
     .maybeSingle();
   revalidatePath('/[locale]/wig', 'page');
   if (error) veWig(loi(friendlyError(error)), classId, week);
   if (!data) veWig(loi('Không lưu được — thầy cô không có quyền với lớp này.'), classId, week);
   veWig('Đã lưu cam kết của lớp', classId, week);
+}
+
+// THÊM THƯỚC ĐO DẪN DẮT cho một cam kết của LỚP (nút "+" riêng dưới cam kết). Tạo thuoc chu_the='lop'
+// pham_vi='ca_doi' rồi nối vào cam kết qua thuoc_id. Đo 'cham' (tick số ngày) hoặc 'dien_so' (đơn vị + đích).
+export async function themThuocChoCamKetLop(formData: FormData) {
+  await requireRole(['teacher', 'admin']);
+  const {classId, week} = nen(formData);
+  const class_id = classId ?? '';
+  const cam_ket_id = String(formData.get('cam_ket_id') ?? '').trim();
+  if (!cam_ket_id) veWig(loi('Thiếu cam kết.'), classId, week);
+  const ten = String(formData.get('ten') ?? '').trim();
+  if (!ten) veWig(loi('Thước đo dẫn dắt là việc gì? Viết một câu.'), classId, week);
+  const tuanGui = String(formData.get('tuan_bat_dau') ?? '').trim();
+  const tu_tuan = isValidDayVN(tuanGui) ? tuanGui : weekRangeVN().start;
+  const so_ngay = Math.min(7, Math.max(1, Math.round(Number(String(formData.get('so_ngay') ?? '').trim()) || 5)));
+  const viecCach = String(formData.get('viec_cach') ?? 'cham') === 'dien_so' ? 'dien_so' : 'cham';
+
+  const supabase = await createClient();
+  let payload: {cach_ghi: string; don_vi_id: string; chi_tieu_ky: number; moi_lan: number | null; ngay_ap_dung: number[]} | null = null;
+  if (viecCach === 'dien_so') {
+    const vdv = String(formData.get('viec_don_vi') ?? '').trim();
+    const vdich = Number(String(formData.get('viec_dich') ?? '').trim());
+    if (!vdv || !Number.isFinite(vdich) || vdich <= 0)
+      veWig(loi('Đo bằng số thì chọn đơn vị và nhập đích lớn hơn 0.'), classId, week);
+    payload = {cach_ghi: 'dien_so', don_vi_id: vdv, chi_tieu_ky: vdich, moi_lan: null, ngay_ap_dung: [1, 2, 3, 4, 5, 6, 7]};
+  } else {
+    const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
+    const ngayId = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
+    if (!ngayId) veWig(loi('Thiếu đơn vị hệ thống (ngày/lần).'), classId, week);
+    payload = {cach_ghi: 'cham', don_vi_id: ngayId as string, chi_tieu_ky: so_ngay, moi_lan: 1, ngay_ap_dung: Array.from({length: so_ngay}, (_, i) => i + 1)};
+  }
+
+  const {data: vRow} = await supabase
+    .from('thuoc')
+    .insert({chu_the: 'lop', class_id, ten, chieu_dich: 'it_nhat', gop: 'tong', ky_tuan: 1, pham_vi: 'ca_doi', tu_tuan, duyet: 'duyet', trang_thai: 'chay', ...payload})
+    .select('id')
+    .maybeSingle();
+  if (!vRow) veWig(loi('Không tạo được thước đo dẫn dắt.'), classId, week);
+  const {data, error} = await supabase.from('cam_ket').update({thuoc_id: vRow!.id}).eq('id', cam_ket_id).select('id');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) veWig(loi(friendlyError(error)), classId, week);
+  if (!data || data.length === 0) veWig(loi('Không nối được — cam kết đã chấm hoặc không có quyền.'), classId, week);
+  veWig('Đã thêm thước đo dẫn dắt', classId, week);
 }
 
 export async function xoaCamKetLop(formData: FormData) {

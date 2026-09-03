@@ -18,6 +18,7 @@ import {NutTaoViecLop} from '@/components/wig/NutTaoViecLop';
 import {ThaoTacMucTieuLop} from '@/components/wig/ThaoTacMucTieuLop';
 import {SuaLoiCamKetLop} from '@/components/wig/SuaLoiCamKetLop';
 import {NutThemCamKetLop} from '@/components/wig/NutThemCamKetLop';
+import {NutThemThuoc} from '@/components/wig/NutThemThuoc';
 import {SuaChiTieuLop} from '@/components/wig/SuaChiTieuLop';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import type {DangSuaMt} from '@/components/student/FormMucTieu';
@@ -584,7 +585,7 @@ export default async function WigPage({
                   <div className="mt-1 flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('camKetHuong')}</p>
-                      <NutThemCamKetLop classId={myClass.id} weekQ={weekQ} monday={monday} mucTieuId={m.id} donViList={donViList} />
+                      <NutThemCamKetLop classId={myClass.id} weekQ={weekQ} monday={monday} mucTieuId={m.id} />
                     </div>
                     {(camKetCuaWig.get(m.id) ?? []).length === 0 ? (
                       <p className="text-[11.5px] font-semibold italic text-grey-mid">{t('camKetTrongMt')}</p>
@@ -646,8 +647,9 @@ export default async function WigPage({
                             </form>
                             <SuaLoiCamKetLop camKetId={c.id ?? ''} noiDung={c.noi_dung ?? ''} classId={myClass.id} weekQ={weekQ} />
                           </div>
-                          {/* VIỆC BỔ TRỢ của cô cho cam kết này — cô tick (cả đội) để hoàn thành. */}
-                          {c.thuoc_id && boTroTheoId.has(c.thuoc_id) && (
+                          {/* VIỆC BỔ TRỢ của cô cho cam kết này — cô tick (cả đội) để hoàn thành. Chưa có
+                              thì hiện nút "+ Thước đo dẫn dắt" (chỉ tuần này, cam kết chưa chấm). */}
+                          {c.thuoc_id && boTroTheoId.has(c.thuoc_id) ? (
                             <div className="rounded-[8px] bg-navy/[0.03] p-1.5">
                               <p className="mb-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
                                 {t('viecBoTroCo')}: <span className="text-navy">{boTroTheoId.get(c.thuoc_id)}</span>
@@ -661,6 +663,12 @@ export default async function WigPage({
                                 dayShort={dayShort}
                               />
                             </div>
+                          ) : (
+                            !c.thuoc_id &&
+                            laTuanNay &&
+                            !c.ket_qua && (
+                              <NutThemThuoc mode="lop" camKetId={c.id ?? ''} classId={myClass.id} weekQ={weekQ} monday={monday} donViList={donViList} />
+                            )
                           )}
                         </div>
                       ))
