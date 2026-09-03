@@ -2012,7 +2012,6 @@
     "ghiSoNhan": "Log the latest number:",
     "ghiSoLuu": "Save",
     "huongTruong": "Aiming at school goal: {ten}",
-    "congVaoTruong": "numbers add to the school",
     "goTruong": "Unlink",
     "chonTruong": "Aim at which school goal?",
     "noiTruongNut": "Link",
@@ -2022,16 +2021,16 @@
   "truongWig": {
     "title": "School goals",
     "khu": "School goals",
-    "giaiThich": "The biggest goals of the whole school. Class goals link here — same unit and numbers add up, different unit and they just keep direction.",
+    "giaiThich": "The school's biggest goal, measured its own way. Class goals point here so the whole school pulls one direction.",
     "taoNut": "Set a school goal",
     "trong": "No school goal yet. Set the first one so classes can aim at it.",
     "khongCoCoSo": "No campus in the system yet.",
-    "nguonTuLop": "Numbers add up from classes.",
     "lopDaNoi": "Classes aiming here",
     "chuaLopNao": "No class aims at this goal yet.",
-    "coGopSo": "Adds numbers",
     "chiGiuHuong": "Direction only",
     "dong": "Close",
-    "xoa": "Delete goal"
+    "xoa": "Delete goal",
+    "ghiSoNhan": "Latest number:",
+    "ghiSoLuu": "Save"
   }
 }

@@ -2012,7 +2012,6 @@
     "ghiSoNhan": "Ghi số mới nhất:",
     "ghiSoLuu": "Lưu số",
     "huongTruong": "Hướng tới mục tiêu trường: {ten}",
-    "congVaoTruong": "số cộng vào trường",
     "goTruong": "Gỡ",
     "chonTruong": "Hướng tới mục tiêu trường nào?",
     "noiTruongNut": "Nối",
@@ -2022,16 +2021,16 @@
   "truongWig": {
     "title": "Mục tiêu của trường",
     "khu": "Mục tiêu của trường",
-    "giaiThich": "Mục tiêu lớn nhất của cả trường. Mục tiêu của các lớp nối vào đây — cùng đơn vị thì số tự cộng lên, khác đơn vị thì chỉ giữ hướng.",
+    "giaiThich": "Mục tiêu lớn nhất của cả trường, đo theo cách riêng của trường. Mục tiêu của các lớp hướng vào đây để cả trường cùng một hướng.",
     "taoNut": "Đặt mục tiêu cho trường",
     "trong": "Trường chưa có mục tiêu nào. Đặt mục tiêu đầu tiên để các lớp cùng hướng vào.",
     "khongCoCoSo": "Chưa có cơ sở nào trong hệ thống.",
-    "nguonTuLop": "Số cộng dồn từ các lớp.",
     "lopDaNoi": "Các lớp đã hướng vào",
     "chuaLopNao": "Chưa có lớp nào hướng vào mục tiêu này.",
-    "coGopSo": "Cộng số",
     "chiGiuHuong": "Giữ hướng",
     "dong": "Đóng",
-    "xoa": "Xoá mục tiêu"
+    "xoa": "Xoá mục tiêu",
+    "ghiSoNhan": "Ghi số mới nhất:",
+    "ghiSoLuu": "Lưu số"
   }
 }

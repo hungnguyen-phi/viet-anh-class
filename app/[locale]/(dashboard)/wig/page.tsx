@@ -671,7 +671,6 @@ export default async function WigPage({
                       <div className="flex flex-wrap items-center gap-1.5 text-[11.5px] font-semibold text-grey-mid">
                         <span>
                           {t('huongTruong', {ten: tenTruong.get(noiLenTruong.get(m.id)!.chaId) ?? ''})}
-                          {noiLenTruong.get(m.id)!.gop ? ` · ${t('congVaoTruong')}` : ''}
                         </span>
                         <form action={goWigTruong} className="contents">
                           {ctx}

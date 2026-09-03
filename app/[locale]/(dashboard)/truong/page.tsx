@@ -10,7 +10,7 @@ import {getAreaMeta} from '@/lib/area-config';
 import {DonutRing} from '@/components/charts/DonutRing';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {NutTaoMucTieuTruong} from '@/components/wig/NutTaoMucTieuTruong';
-import {dongMucTieuTruong, xoaMucTieuTruong} from './truong-actions';
+import {dongMucTieuTruong, ghiSoMucTieuTruong, xoaMucTieuTruong} from './truong-actions';
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
 // /truong — MỤC TIÊU CỦA TRƯỜNG (cap='truong'), chỉ admin/BGH (chốt 03/09).
@@ -187,7 +187,6 @@ export default async function TruongPage({
                         </span>
                       )}
                       <span>{tMt('denHan', {ngay: ngayVN(m.ket_thuc)})}</span>
-                      {m.nguon_so === 'con' && <span>{t('nguonTuLop')}</span>}
                     </p>
                   </div>
                   {/* Đóng / Xoá. */}
@@ -217,6 +216,29 @@ export default async function TruongPage({
                   </div>
                 </div>
 
+                {/* Ghi số — trường đo theo cách riêng, ban giám hiệu điền lại con số mới nhất. */}
+                {m.trang_thai === 'duyet' && m.loai_moc === 'do_luong' && m.nguon_so === 'ghi_tay' && (
+                  <form action={ghiSoMucTieuTruong} className="flex flex-wrap items-center gap-1.5">
+                    <input type="hidden" name="campus" value={campus.id} />
+                    <input type="hidden" name="muc_tieu_id" value={m.id} />
+                    <span className="text-[11.5px] font-semibold text-grey-mid">{t('ghiSoNhan')}</span>
+                    <input
+                      type="number"
+                      name="gia_tri"
+                      step="any"
+                      min="0"
+                      placeholder={m.ten_don_vi ?? ''}
+                      className="w-24 rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-[12.5px] text-navy"
+                    />
+                    <SubmitButton
+                      className="rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy"
+                      wrapClass="contents"
+                    >
+                      {t('ghiSoLuu')}
+                    </SubmitButton>
+                  </form>
+                )}
+
                 {/* Các lớp đã hướng vào mục tiêu này. */}
                 <div className="mt-1 rounded-[12px] bg-white/60 p-2.5">
                   <p className="mb-1 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('lopDaNoi')}</p>
@@ -228,12 +250,8 @@ export default async function TruongPage({
                         <div key={i} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12.5px]">
                           <span className="font-extrabold text-navy">{l.lop}</span>
                           <span className="min-w-0 flex-1 font-semibold text-grey-mid">{l.ten}</span>
-                          <span
-                            className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                              l.gop ? 'bg-success/[0.12] text-success-dark' : 'bg-navy/[0.06] text-grey-mid'
-                            }`}
-                          >
-                            {l.gop ? t('coGopSo') : t('chiGiuHuong')}
+                          <span className="inline-flex shrink-0 items-center rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10px] font-extrabold text-grey-mid">
+                            {t('chiGiuHuong')}
                           </span>
                         </div>
                       ))}

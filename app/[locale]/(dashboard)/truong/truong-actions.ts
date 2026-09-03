@@ -7,6 +7,7 @@ import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
+import {todayInVN} from '@/lib/dates';
 
 function veTruong(msg: string, campus?: string): never {
   const q = new URLSearchParams();
@@ -49,4 +50,27 @@ export async function xoaMucTieuTruong(formData: FormData) {
   if (!data || data.length === 0)
     veTruong(loi('Không xoá được — mục tiêu đã có lớp nối vào hoặc có số đo. Hãy Đóng thay vì xoá.'), campus);
   veTruong('Đã xoá mục tiêu của trường', campus);
+}
+
+// GHI SỐ cho mục tiêu trường — trường đo theo cách riêng, ban giám hiệu điền lại con số.
+// Mỗi lần ghi là MỘT dòng so_do mới (số mới nhất là số thật, lịch sử giữ) — như bản của lớp.
+export async function ghiSoMucTieuTruong(formData: FormData) {
+  const me = await requireRole(['admin', 'principal']);
+  const campus = String(formData.get('campus') ?? '').trim() || undefined;
+  const muc_tieu_id = String(formData.get('muc_tieu_id') ?? '').trim();
+  if (!muc_tieu_id) veTruong(loi('Không rõ đang ghi cho mục tiêu nào.'), campus);
+  const raw = String(formData.get('gia_tri') ?? '').trim();
+  if (raw === '') veTruong(loi('Điền số đã nhé.'), campus);
+  const gia_tri = Number(raw);
+  if (!Number.isFinite(gia_tri) || gia_tri < 0) veTruong(loi('Số phải từ 0 trở lên.'), campus);
+  const supabase = await createClient();
+  const {data, error} = await supabase
+    .from('so_do')
+    .insert({muc_tieu_id, ngay: todayInVN(), gia_tri, nguon: 'tay', nguoi_ghi: me.id, student_id: null})
+    .select('id');
+  revalidatePath('/[locale]/truong', 'page');
+  if (error) veTruong(loi(friendlyError(error)), campus);
+  if (!data || data.length === 0)
+    veTruong(loi('Không ghi được — không có quyền với mục tiêu này.'), campus);
+  veTruong('Đã ghi số cho mục tiêu của trường', campus);
 }
