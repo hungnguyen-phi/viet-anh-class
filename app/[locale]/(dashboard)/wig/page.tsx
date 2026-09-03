@@ -19,6 +19,7 @@ import {SuaCamKetToi} from '@/components/wig/SuaCamKetToi';
 import {TickCuaToi} from '@/components/wig/TickCuaToi';
 import {SuaThuocToi} from '@/components/wig/SuaThuocToi';
 import {GhiSoToi} from '@/components/wig/GhiSoToi';
+import {ChamCamKetToi} from '@/components/wig/ChamCamKetToi';
 import {ThaoTacMucTieuLop} from '@/components/wig/ThaoTacMucTieuLop';
 import {NutThemThuoc} from '@/components/wig/NutThemThuoc';
 import {SuaChiTieuLop} from '@/components/wig/SuaChiTieuLop';
@@ -29,7 +30,6 @@ import {datBuocXong, datHanhDong} from '@/app/[locale]/(dashboard)/student/actio
 import {xoaViecLop} from '@/app/[locale]/(dashboard)/wig/actions';
 import {
   ghiSoMucTieuLop,
-  chamCamKetToi,
   noiWigTruong,
   goWigTruong,
   duyetHaChiTieu,
@@ -869,50 +869,13 @@ export default async function WigPage({
                           )}
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <form action={chamCamKetToi} className="flex items-center gap-1.5">
-                            {ctx}
-                            <input type="hidden" name="cam_ket_id" value={c.id ?? undefined} />
-                            {c.so_hua != null && (
-                              <input
-                                type="number"
-                                name="so_dat"
-                                step="any"
-                                min="0"
-                                defaultValue={c.so_dat ?? undefined}
-                                placeholder={tCk('soDatHoi', {dv: c.ten_don_vi ?? ''})}
-                                className="w-24 rounded-[7px] border-[1.5px] border-navy/20 px-2 py-1 text-[11.5px] text-navy"
-                              />
-                            )}
-                            <SubmitButton
-                              name="ket_qua"
-                              value="thang"
-                              className="inline-flex items-center gap-1 rounded-[7px] border-[1.5px] border-success/40 bg-success/[0.12] px-2 py-1 text-[11.5px] font-extrabold text-success-dark transition-all hover:bg-success/20"
-                              wrapClass="contents"
-                            >
-                              <Check size={11} strokeWidth={3} />
-                              {tCk('thang')}
-                            </SubmitButton>
-                            <SubmitButton
-                              name="ket_qua"
-                              value="thua"
-                              className="inline-flex items-center gap-1 rounded-[7px] border-[1.5px] border-status-bad/40 bg-status-bad/[0.08] px-2 py-1 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-status-bad/15"
-                              wrapClass="contents"
-                            >
-                              <X size={11} strokeWidth={3} />
-                              {tCk('thua')}
-                            </SubmitButton>
-                            {/* Đã chấm rồi → cho bỏ chấm (ket_qua rỗng = null): mở đường sửa/xoá lại. */}
-                            {c.ket_qua && (
-                              <SubmitButton
-                                name="ket_qua"
-                                value=""
-                                className="rounded-[7px] px-2 py-1 text-[11.5px] font-extrabold text-grey-mid underline transition-colors hover:text-navy"
-                                wrapClass="contents"
-                              >
-                                {tCk('boCham')}
-                              </SubmitButton>
-                            )}
-                          </form>
+                          <ChamCamKetToi
+                            camKetId={c.id ?? ''}
+                            soHua={c.so_hua != null ? Number(c.so_hua) : null}
+                            soDat={c.so_dat != null ? Number(c.so_dat) : null}
+                            ketQua={c.ket_qua ?? null}
+                            tenDonVi={c.ten_don_vi}
+                          />
                           <SuaCamKetToi
                             camKetId={c.id ?? ''}
                             noiDung={c.noi_dung ?? ''}

@@ -206,18 +206,19 @@ export async function themThuocChoCamKetToi(formData: FormData) {
 }
 
 // Thầy cô tự chấm Thắng/Thua cam kết CÁ NHÂN (ck_truoc_sua: em tự chấm của mình — thầy cô là
-// "em" của cam kết này). Trước thứ Sáu tuần cuối trigger văng câu chờ, hiện nguyên.
-export async function chamCamKetToi(formData: FormData) {
+// CHẤM TẠI CHỖ (Thắng/Thua/Bỏ chấm) — KHÔNG redirect: nút bé, trang phải đứng yên. Trả state
+// cho useActionState; revalidatePath làm mới số. ket_qua rỗng = bỏ chấm (trigger xoá sạch chữ ký).
+export type ChamState = {ok: boolean; error?: string};
+export async function chamCamKetToiTaiCho(_prev: ChamState, formData: FormData): Promise<ChamState> {
   const me = await requireRole(['teacher', 'admin']);
-  const {classId, week} = nen(formData);
   const id = String(formData.get('cam_ket_id') ?? '').trim();
-  if (!id) veWig(loi('Thiếu cam kết.'), classId, week);
+  if (!id) return {ok: false, error: 'Thiếu cam kết.'};
   const ketQuaRaw = String(formData.get('ket_qua') ?? '').trim();
   const ket_qua = ketQuaRaw === 'thang' || ketQuaRaw === 'thua' ? ketQuaRaw : null;
   const soDatRaw = String(formData.get('so_dat') ?? '').trim();
   const so_dat = soDatRaw === '' ? null : Number(soDatRaw);
   if (so_dat !== null && (!Number.isFinite(so_dat) || so_dat < 0))
-    veWig(loi('Số đạt được phải từ 0 trở lên.'), classId, week);
+    return {ok: false, error: 'Số đạt được phải từ 0 trở lên.'};
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('cam_ket')
@@ -226,12 +227,11 @@ export async function chamCamKetToi(formData: FormData) {
     .eq('student_id', me.id)
     .select('id');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) veWig(loi(friendlyError(error)), classId, week);
-  if (!data || data.length === 0) veWig(loi('Không chấm được — không có quyền hoặc đã xoá.'), classId, week);
-  veWig(ket_qua === null ? 'Đã bỏ chấm' : ket_qua === 'thang' ? 'Đã chấm Thắng' : 'Đã chấm Thua', classId, week);
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data || data.length === 0) return {ok: false, error: 'Không chấm được — không có quyền hoặc đã xoá.'};
+  return {ok: true};
 }
 
-// SỬA lời hứa + số hứa cam kết cá nhân (giữ đơn vị — như suaCamKet của em).
 export async function suaCamKetToi(formData: FormData) {
   const me = await requireRole(['teacher', 'admin']);
   const {classId, week} = nen(formData);
