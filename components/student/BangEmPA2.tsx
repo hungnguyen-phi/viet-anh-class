@@ -37,6 +37,7 @@ export type ViecEm = {
   thuoc_id: string;
   ten: string;
   ten_don_vi: string | null;
+  don_vi_id: string | null;
   cach_ghi: string; // cham | dien | he_thong
   chieu_dich: string; // it_nhat | nhieu_nhat
   chi_tieu: number;
@@ -218,6 +219,7 @@ export function HangViec({
   vien,
   studentId,
   laChinhEm = false,
+  donViList = [],
 }: {
   v: ViecEm;
   weekDays: string[];
@@ -230,6 +232,7 @@ export function HangViec({
   vien: boolean;
   studentId?: string;
   laChinhEm?: boolean;
+  donViList?: {id: string; ma: string; nhan?: string}[];
 }) {
   const tv = useTranslations('viec');
   const [oDien, datODien] = useState<string | null>(null);
@@ -282,6 +285,9 @@ export function HangViec({
             chiTieu={v.chi_tieu}
             ngayApDung={v.ngay_ap_dung}
             tenDonVi={v.ten_don_vi}
+            cachGhi={v.cach_ghi}
+            donViId={v.don_vi_id}
+            donViList={donViList}
           />
         )}
       </div>

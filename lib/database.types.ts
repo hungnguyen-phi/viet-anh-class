@@ -4174,6 +4174,7 @@ export type Database = {
           ky_tu: string
           ky_tuan: number
           le_ra: number
+          don_vi_id: string
           ngay_ap_dung: number[]
           ten: string
           ten_don_vi: string

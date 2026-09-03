@@ -92,6 +92,7 @@ export function LoTrinhEm({
                   vien={false}
                   studentId={studentId}
                   laChinhEm={laChinhEm}
+                  donViList={donViList}
                 />
               </div>
             )}
