@@ -296,9 +296,6 @@ export default async function ClassPage({
               </div>
             ))}
           </div>
-          <p className="mt-3 text-center text-[11.5px] font-semibold text-grey-mid">
-            {t('lopMucTieu.baSoHint')}
-          </p>
         </div>
       )}
 

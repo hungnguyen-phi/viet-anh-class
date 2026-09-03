@@ -405,7 +405,6 @@ export default async function WigPage({
           {baSo(t('cotViec'), td?.diem_thuoc)}
           {baSo(t('cotCamKet'), td?.diem_cam_ket)}
         </div>
-        <p className="mt-2 text-[11.5px] font-semibold text-grey-mid">{t('baSoHint')}</p>
       </section>
 
       {/* Chưa có mục tiêu → gộp về MỘT tấm: mục tiêu là đích (bước ①), việc + cam kết khoá
