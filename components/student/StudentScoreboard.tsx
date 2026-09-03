@@ -614,6 +614,7 @@ export async function StudentScoreboard({
                   camKet={camKetCuaMt[g.id] ?? []}
                   studentId={studentId}
                   classId={classId}
+                  donViList={donViList}
                   laChinhEm={canTick}
                   monday={monday}
                   thisMonday={thisMonday}

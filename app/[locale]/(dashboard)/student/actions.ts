@@ -822,10 +822,23 @@ export async function luuCamKet(_prev: CamKetState, formData: FormData): Promise
   // của em (không nối vào mục tiêu — số dừng ở cam kết), rồi cam kết trỏ vào nó qua thuoc_id.
   const tenViecBoTro = String(formData.get('viec_bo_tro') ?? '').trim();
   if (tenViecBoTro) {
-    // Đơn vị "ngày" cho việc bổ trợ (tick hằng ngày). Lùi 'lan' nếu 0176 chưa chạy — thuoc.don_vi_id NOT NULL.
-    const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
-    const viecDonVi = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
-    if (!viecDonVi) return {ok: false, error: 'Thiếu đơn vị hệ thống (ngày/lần).'};
+    // Việc bổ trợ là một CỘT MỐC nhỏ, đo theo 1 trong 2 cách (tách khỏi số hứa của cam kết):
+    //  · 'cham'    = tick mỗi ngày, đích = số NGÀY (đơn vị "ngày", lùi "lần" nếu 0176 chưa chạy);
+    //  · 'dien_so' = đo bằng số với đơn vị em chọn (phút/%/trang/km…), đích = số/tuần.
+    const viecCach = String(formData.get('viec_cach') ?? 'cham') === 'dien_so' ? 'dien_so' : 'cham';
+    let viecPayload: {cach_ghi: string; don_vi_id: string; chi_tieu_ky: number; moi_lan: number | null; ngay_ap_dung: number[]};
+    if (viecCach === 'dien_so') {
+      const vdv = String(formData.get('viec_don_vi') ?? '').trim();
+      const vdich = Number(String(formData.get('viec_dich') ?? '').trim());
+      if (!vdv || !Number.isFinite(vdich) || vdich <= 0)
+        return {ok: false, error: 'Đo bằng số thì chọn đơn vị và nhập đích lớn hơn 0.'};
+      viecPayload = {cach_ghi: 'dien_so', don_vi_id: vdv, chi_tieu_ky: vdich, moi_lan: null, ngay_ap_dung: [1, 2, 3, 4, 5, 6, 7]};
+    } else {
+      const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
+      const ngayId = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
+      if (!ngayId) return {ok: false, error: 'Thiếu đơn vị hệ thống (ngày/lần).'};
+      viecPayload = {cach_ghi: 'cham', don_vi_id: ngayId, chi_tieu_ky: so_ngay, moi_lan: 1, ngay_ap_dung: Array.from({length: so_ngay}, (_, i) => i + 1)};
+    }
     const {data: vRow, error: vErr} = await supabase
       .from('thuoc')
       .insert({
@@ -833,18 +846,14 @@ export async function luuCamKet(_prev: CamKetState, formData: FormData): Promise
         class_id,
         student_id,
         ten: tenViecBoTro,
-        don_vi_id: viecDonVi, // "ngày" (lùi "lần"): đếm theo ngày, TÁCH đơn vị WIG
-        cach_ghi: 'cham',
         chieu_dich: 'it_nhat',
         gop: 'tong',
         ky_tuan: 1,
-        chi_tieu_ky: so_ngay, // đích = số NGÀY cần tick, KHÔNG phải số hứa của cam kết
-        moi_lan: 1,
-        ngay_ap_dung: Array.from({length: so_ngay}, (_, i) => i + 1), // [1..so_ngay] = T2 trở đi
         pham_vi: 'tung_em',
         tu_tuan: tuan_bat_dau,
         duyet: 'duyet',
         trang_thai: 'chay',
+        ...viecPayload,
       })
       .select('id')
       .maybeSingle();

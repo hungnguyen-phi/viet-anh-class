@@ -24,6 +24,7 @@ export function LoTrinhEm({
   tuanNghi,
   weekDays,
   dayShort,
+  donViList = [],
 }: {
   goal: {id: string; ten: string; don_vi_id: string | null; ten_don_vi: string | null};
   viec: ViecEm[];
@@ -38,6 +39,7 @@ export function LoTrinhEm({
   tuanNghi: boolean;
   weekDays: string[];
   dayShort: string[];
+  donViList?: {id: string; ma: string; nhan?: string}[];
 }) {
   const tb = useTranslations('bangEm');
   const tv = useTranslations('viec');
@@ -100,6 +102,7 @@ export function LoTrinhEm({
           classId={classId}
           monday={monday}
           mucTieuLop={[{id: goal.id, ten: goal.ten, don_vi_id: goal.don_vi_id, ten_don_vi: goal.ten_don_vi}]}
+          donViList={donViList}
         />
       )}
     </div>
