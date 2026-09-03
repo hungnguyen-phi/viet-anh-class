@@ -74,6 +74,7 @@ export function FormMucTieu3Buoc({
   laChinhEm,
   tenEm,
   areaPreset,
+  khoaLinhVuc = false,
   nhanTheoArea,
   donViList,
   monList = [],
@@ -101,6 +102,7 @@ export function FormMucTieu3Buoc({
   tenEm?: string;
   /** Lĩnh vực của ô em vừa bấm ở màn ngoài (mặc định lĩnh vực đầu). */
   areaPreset?: string;
+  khoaLinhVuc?: boolean;
   /** Nhãn 4 lĩnh vực đã dịch (từ area_config). */
   nhanTheoArea: Record<string, string>;
   donViList: DonViChon[];
@@ -350,14 +352,25 @@ export function FormMucTieu3Buoc({
         {/* ── PHẦN 1 · MỤC TIÊU LÀ GÌ? (nhóm · tên · mô tả) ─────────────────────────────── */}
         <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid/80">{t('phanLaGi')}</p>
 
-        {/* NHÓM — 4 chip (chỉ 4 lĩnh vực, không "Khác"). */}
+        {/* NHÓM — 4 chip (chỉ 4 lĩnh vực, không "Khác"). Mở từ nút (+) của MỘT ô lĩnh vực
+            (areaPreset) thì KHOÁ luôn nhóm ấy — bấm ở ô Phẩm chất mà đổi được sang Kiến thức
+            thì cái ô mất nghĩa. */}
         <div>
           <p className="mb-1.5 text-[12px] font-bold text-grey-mid">{t('linhVuc')}</p>
-          <div data-kiem="mt-buoc-1" className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-            {suG.map((a) => (
-              <OChon key={a} chon={linhVuc === a} onClick={() => setLinhVuc(a)} nhan={nhanTheoArea[a] ?? a} kiem="mt-linh-vuc" />
-            ))}
-          </div>
+          {khoaLinhVuc && !dangSua ? (
+            <span
+              data-kiem="mt-buoc-1"
+              className="inline-flex items-center rounded-full bg-navy/[0.06] px-3 py-1 text-[12.5px] font-extrabold text-navy"
+            >
+              {nhanTheoArea[linhVuc] ?? linhVuc}
+            </span>
+          ) : (
+            <div data-kiem="mt-buoc-1" className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+              {suG.map((a) => (
+                <OChon key={a} chon={linhVuc === a} onClick={() => setLinhVuc(a)} nhan={nhanTheoArea[a] ?? a} kiem="mt-linh-vuc" />
+              ))}
+            </div>
+          )}
           {monList.length > 0 && (
             <div className="mt-2">
               <Field label={t('mon')} htmlFor="mt-mon">

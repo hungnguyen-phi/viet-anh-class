@@ -90,7 +90,7 @@ export function MucTieuCuaCon({
   const t = useTranslations('mucTieu');
   const [bao, setBao] = useState('');
   // moForm giữ lĩnh vực của ô em vừa bấm (đặt mới), hoặc id mục tiêu đang sửa.
-  const [moForm, setMoForm] = useState<null | {area: string; suaId?: string}>(null);
+  const [moForm, setMoForm] = useState<null | {area: string; suaId?: string; khoa?: boolean}>(null);
   const theoArea = new Map(mucTieu.map((m) => [m.linh_vuc ?? 'knowledge', m]));
   const canGhi = laChinhEm;
   const dangSua = moForm?.suaId ? (mucTieu.find((m) => m.id === moForm.suaId) ?? null) : null;
@@ -133,7 +133,7 @@ export function MucTieuCuaCon({
               type="button"
               data-kiem="o-trong-muc-tieu"
               data-area={a}
-              onClick={() => setMoForm({area: a})}
+              onClick={() => setMoForm({area: a, khoa: true})}
               style={{
                 borderColor: `color-mix(in srgb, ${mau.hex} 30%, white)`,
                 background: `color-mix(in srgb, ${mau.hex} 9%, white)`,
@@ -180,6 +180,7 @@ export function MucTieuCuaCon({
           classId={classId}
           laChinhEm={laChinhEm}
           areaPreset={moForm.area}
+          khoaLinhVuc={moForm.khoa ?? false}
           nhanTheoArea={nhanTheoArea}
           donViList={donViList}
           monList={monList}
