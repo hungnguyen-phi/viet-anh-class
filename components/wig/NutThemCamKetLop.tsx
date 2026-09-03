@@ -1,7 +1,8 @@
 'use client';
 
-// Nút "+" thêm CAM KẾT tuần của lớp (thay form dài trong thẻ). Bấm → mở hộp gọn: lời hứa · việc bổ
-// trợ (cô tick cho đủ) · số. Dùng action taoCamKetLop (redirect) — lưu xong tự về đúng lớp/tuần.
+// Nút "+" thêm CAM KẾT tuần của lớp. Bấm → mở hộp: lời hứa · VIỆC BỔ TRỢ (một cột mốc nhỏ cô tick/
+// đo cả đội) · số hứa. Việc bổ trợ đo tùy đơn vị: "Tick mỗi ngày" (số ngày) hoặc "Đo bằng số" (đơn
+// vị + đích/tuần) — y như màn của em. Dùng action taoCamKetLop (redirect) — lưu xong về đúng lớp/tuần.
 import {useState} from 'react';
 import {Plus} from 'lucide-react';
 import {useTranslations} from 'next-intl';
@@ -15,15 +16,18 @@ export function NutThemCamKetLop({
   weekQ,
   monday,
   mucTieuId,
+  donViList = [],
 }: {
   classId: string;
   weekQ: string;
   monday: string;
   mucTieuId: string;
+  donViList?: {id: string; ma: string; nhan?: string}[];
 }) {
   const t = useTranslations('lopMucTieu');
   const tCk = useTranslations('camKet');
   const [mo, setMo] = useState(false);
+  const [viecCach, setViecCach] = useState<'cham' | 'dien_so'>('cham');
 
   return (
     <>
@@ -49,9 +53,47 @@ export function NutThemCamKetLop({
             <Field label={tCk('viecBoTroLabel')} htmlFor="ck-viec" hint={tCk('viecBoTroHint')}>
               <input id="ck-viec" name="viec_bo_tro" maxLength={100} placeholder={tCk('viecBoTroHoi')} className={ctlWithBorder(false)} />
             </Field>
-            <Field label={tCk('soNgayLabel')} htmlFor="ck-ngay" hint={tCk('soNgayHint')}>
-              <input id="ck-ngay" type="number" name="so_ngay" min="1" max="7" defaultValue="5" className={`${ctlWithBorder(false)} max-w-[120px]`} />
-            </Field>
+            {/* CÁCH ĐO việc bổ trợ: tick mỗi ngày (số ngày) hoặc đo bằng số (đơn vị + đích/tuần). */}
+            <div>
+              <input type="hidden" name="viec_cach" value={viecCach} />
+              <div className="mb-1.5 inline-flex rounded-[9px] border-[1.5px] border-navy/20 p-0.5 text-[12px] font-extrabold">
+                <button
+                  type="button"
+                  onClick={() => setViecCach('cham')}
+                  className={`cursor-pointer rounded-[7px] px-2.5 py-1 transition-colors ${viecCach === 'cham' ? 'bg-navy text-white' : 'text-grey-mid'}`}
+                >
+                  {tCk('viecTick')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViecCach('dien_so')}
+                  className={`cursor-pointer rounded-[7px] px-2.5 py-1 transition-colors ${viecCach === 'dien_so' ? 'bg-navy text-white' : 'text-grey-mid'}`}
+                >
+                  {tCk('viecSo')}
+                </button>
+              </div>
+              {viecCach === 'cham' ? (
+                <Field label={tCk('soNgayLabel')} htmlFor="ck-ngay" hint={tCk('soNgayHint')}>
+                  <input id="ck-ngay" type="number" name="so_ngay" min="1" max="7" defaultValue="5" className={`${ctlWithBorder(false)} max-w-[120px]`} />
+                </Field>
+              ) : (
+                <div className="flex flex-wrap items-end gap-2">
+                  <Field label={tCk('chonDonVi')} htmlFor="ck-vdv">
+                    <select id="ck-vdv" name="viec_don_vi" className={ctlWithBorder(false)} defaultValue="">
+                      <option value="">{tCk('chonDonVi')}</option>
+                      {donViList.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.nhan ?? d.ma}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label={tCk('viecDichHoi')} htmlFor="ck-vdich">
+                    <input id="ck-vdich" type="number" name="viec_dich" step="any" min="0" placeholder={tCk('viecDichHoi')} className={`${ctlWithBorder(false)} max-w-[120px]`} />
+                  </Field>
+                </div>
+              )}
+            </div>
             <Field label={tCk('soHuaLabel')} htmlFor="ck-so">
               <input id="ck-so" type="number" name="so_hua" step="any" min="0" placeholder={tCk('soHua')} className={`${ctlWithBorder(false)} max-w-[160px]`} />
             </Field>

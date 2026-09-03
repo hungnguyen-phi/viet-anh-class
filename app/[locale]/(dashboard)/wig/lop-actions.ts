@@ -174,32 +174,40 @@ export async function taoCamKetLop(formData: FormData) {
   const tenViecBoTro = String(formData.get('viec_bo_tro') ?? '').trim();
   let thuoc_id: string | null = null;
   if (tenViecBoTro) {
-    // Đơn vị "ngày" (lùi "lần" nếu 0176 chưa chạy) — thuoc.don_vi_id NOT NULL.
-    const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
-    const viecDonVi = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
-    if (viecDonVi) {
-    const {data: vRow} = await supabase
-      .from('thuoc')
-      .insert({
-        chu_the: 'lop',
-        class_id,
-        ten: tenViecBoTro,
-        don_vi_id: viecDonVi,
-        cach_ghi: 'cham',
-        chieu_dich: 'it_nhat',
-        gop: 'tong',
-        ky_tuan: 1,
-        chi_tieu_ky: so_ngay,
-        moi_lan: 1,
-        ngay_ap_dung: Array.from({length: so_ngay}, (_, i) => i + 1),
-        pham_vi: 'ca_doi',
-        tu_tuan: tuan_bat_dau,
-        duyet: 'duyet',
-        trang_thai: 'chay',
-      })
-      .select('id')
-      .maybeSingle();
-    thuoc_id = vRow?.id ?? null;
+    // Việc bổ trợ = cột mốc nhỏ: 'cham' tick mỗi ngày (đích = số NGÀY) hoặc 'dien_so' đo bằng số
+    // với đơn vị cô chọn (đích/tuần). Đơn vị "ngày" lùi "lần" nếu 0176 chưa chạy — thuoc.don_vi_id NOT NULL.
+    const viecCach = String(formData.get('viec_cach') ?? 'cham') === 'dien_so' ? 'dien_so' : 'cham';
+    let viecPayload: {cach_ghi: string; don_vi_id: string; chi_tieu_ky: number; moi_lan: number | null; ngay_ap_dung: number[]} | null = null;
+    if (viecCach === 'dien_so') {
+      const vdv = String(formData.get('viec_don_vi') ?? '').trim();
+      const vdich = Number(String(formData.get('viec_dich') ?? '').trim());
+      if (!vdv || !Number.isFinite(vdich) || vdich <= 0)
+        veWig(loi('Đo bằng số thì chọn đơn vị và nhập đích lớn hơn 0.'), classId, week);
+      viecPayload = {cach_ghi: 'dien_so', don_vi_id: vdv, chi_tieu_ky: vdich, moi_lan: null, ngay_ap_dung: [1, 2, 3, 4, 5, 6, 7]};
+    } else {
+      const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
+      const ngayId = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
+      if (ngayId) viecPayload = {cach_ghi: 'cham', don_vi_id: ngayId, chi_tieu_ky: so_ngay, moi_lan: 1, ngay_ap_dung: Array.from({length: so_ngay}, (_, i) => i + 1)};
+    }
+    if (viecPayload) {
+      const {data: vRow} = await supabase
+        .from('thuoc')
+        .insert({
+          chu_the: 'lop',
+          class_id,
+          ten: tenViecBoTro,
+          chieu_dich: 'it_nhat',
+          gop: 'tong',
+          ky_tuan: 1,
+          pham_vi: 'ca_doi',
+          tu_tuan: tuan_bat_dau,
+          duyet: 'duyet',
+          trang_thai: 'chay',
+          ...viecPayload,
+        })
+        .select('id')
+        .maybeSingle();
+      thuoc_id = vRow?.id ?? null;
     }
   }
 
