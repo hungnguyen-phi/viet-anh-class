@@ -1479,7 +1479,7 @@
     "loViec": "Your work driving this goal",
     "loCamKet": "Your weekly commitment",
     "loCamKetTrong": "No commitment for this goal this week.",
-    "loViecBoTro": "Supporting work (tick to fulfil)"
+    "loViecBoTro": "Lead measure"
   },
   "mucTieu": {
     "tt_dat": "Achieved",
@@ -1809,7 +1809,7 @@
   "camKet": {
     "chipSo": "{dat}/{hua} {dv}",
     "chipChuaDien": "number not entered",
-    "giupViec": "Serves lead measure: {ten}",
+    "giupViec": "Lead measure: {ten}",
     "giupMucTieu": "Serves WIG: {ten}",
     "lac": "Not linked to any WIG",
     "tuanNay": "This week",
@@ -1881,7 +1881,7 @@
     "suaCamKet": "Edit commitment",
     "xoaCamKet": "Delete commitment",
     "xoaHoi": "Delete this commitment?",
-    "viecBoTroLabel": "Supporting work (teacher ticks)",
+    "viecBoTroLabel": "Lead measure",
     "viecBoTroHint": "Tick daily to fulfil the commitment — optional.",
     "soHuaLabel": "Target amount?"
   },
@@ -1985,6 +1985,6 @@
     "camKetTrongMt": "No commitment this week.",
     "viecChuaGan": "Work not linked to a goal",
     "camKetChuaHuong": "Commitments not aimed at a goal",
-    "viecBoTroCo": "Teacher supporting work"
+    "viecBoTroCo": "Teacher lead measure"
   }
 }

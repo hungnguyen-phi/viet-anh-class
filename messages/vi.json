@@ -1479,7 +1479,7 @@
     "loViec": "Việc em làm đẩy mục tiêu này",
     "loCamKet": "Cam kết tuần của em",
     "loCamKetTrong": "Tuần này chưa có cam kết cho mục tiêu này.",
-    "loViecBoTro": "Việc bổ trợ (tick cho đủ cam kết)"
+    "loViecBoTro": "Thước đo dẫn dắt"
   },
   "mucTieu": {
     "tt_dat": "Đã đạt",
@@ -1809,7 +1809,7 @@
   "camKet": {
     "chipSo": "{dat}/{hua} {dv}",
     "chipChuaDien": "chưa điền số",
-    "giupViec": "Giúp việc: {ten}",
+    "giupViec": "Thước đo dẫn dắt: {ten}",
     "giupMucTieu": "Giúp mục tiêu: {ten}",
     "lac": "Chưa nối vào mục tiêu nào",
     "tuanNay": "Tuần này",
@@ -1855,7 +1855,7 @@
     "viecTick": "Tick mỗi ngày",
     "viecSo": "Đo bằng số",
     "doi": "Đổi cam kết",
-    "doiHoi": "Đổi cam kết tuần này? Cam kết và việc bổ trợ hiện tại sẽ bị bỏ để em đặt lại.",
+    "doiHoi": "Đổi cam kết tuần này? Cam kết và thước đo dẫn dắt hiện tại sẽ bị bỏ để em đặt lại.",
     "chonDonVi": "đơn vị",
     "viecDichHoi": "đạt",
     "moiTuan": "/tuần",
@@ -1881,7 +1881,7 @@
     "suaCamKet": "Sửa cam kết",
     "xoaCamKet": "Xóa cam kết",
     "xoaHoi": "Xóa cam kết này?",
-    "viecBoTroLabel": "Việc bổ trợ (cô tick cho đủ)",
+    "viecBoTroLabel": "Thước đo dẫn dắt",
     "viecBoTroHint": "Cô tick mỗi ngày để hoàn thành cam kết — không bắt buộc.",
     "soHuaLabel": "Đạt bao nhiêu?"
   },
@@ -1985,6 +1985,6 @@
     "camKetTrongMt": "Tuần này chưa có cam kết.",
     "viecChuaGan": "Việc chưa gắn mục tiêu",
     "camKetChuaHuong": "Cam kết chưa hướng mục tiêu",
-    "viecBoTroCo": "Việc bổ trợ của cô"
+    "viecBoTroCo": "Thước đo dẫn dắt của cô"
   }
 }
