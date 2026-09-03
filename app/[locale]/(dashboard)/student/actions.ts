@@ -799,10 +799,20 @@ export async function luuCamKet(_prev: CamKetState, formData: FormData): Promise
       : weekRangeVN().start;
 
   const soHuaRaw = String(formData.get('so_hua') ?? '').trim();
-  const so_hua = soHuaRaw === '' ? null : Number(soHuaRaw);
+  let so_hua = soHuaRaw === '' ? null : Number(soHuaRaw);
   if (so_hua !== null && (!Number.isFinite(so_hua) || so_hua <= 0))
     return {ok: false, fieldError: 'so_hua', error: 'Con số của cam kết phải lớn hơn 0.'};
-  const don_vi_id = String(formData.get('don_vi_id') ?? '').trim() || null;
+  let don_vi_id = String(formData.get('don_vi_id') ?? '').trim() || null;
+  // ck_don_vi_ck: "có số hứa" ⟺ "có đơn vị". Thiếu một trong hai thì bỏ CẢ hai — đừng để em gặp
+  // lỗi "Giá trị nhập không hợp lệ" chỉ vì để trống ô số. Không có số thì cam kết chấm Thắng/Thua tay.
+  if (so_hua === null || don_vi_id === null) {
+    so_hua = null;
+    don_vi_id = null;
+  }
+  // Số NGÀY cần tick trong tuần cho việc bổ trợ (mặc định 5 = T2–T6; tuần có ngày lễ thì đặt khác).
+  // Việc bổ trợ đếm theo NGÀY — TÁCH khỏi số hứa của cam kết (khác đơn vị, không đổ số qua nhau).
+  const soNgayRaw = String(formData.get('so_ngay') ?? '').trim();
+  const so_ngay = Math.min(7, Math.max(1, Math.round(Number(soNgayRaw) || 5)));
   const muc_tieu_id = String(formData.get('muc_tieu_id') ?? '').trim() || null;
   let thuoc_id = String(formData.get('thuoc_id') ?? '').trim() || null;
 
@@ -811,7 +821,24 @@ export async function luuCamKet(_prev: CamKetState, formData: FormData): Promise
   // VIỆC BỔ TRỢ — em ghi tên một việc để tick hằng ngày cho hoàn thành cam kết này. Tạo một thuoc
   // của em (không nối vào mục tiêu — số dừng ở cam kết), rồi cam kết trỏ vào nó qua thuoc_id.
   const tenViecBoTro = String(formData.get('viec_bo_tro') ?? '').trim();
-  if (tenViecBoTro && don_vi_id) {
+  if (tenViecBoTro) {
+    // Việc bổ trợ là một CỘT MỐC nhỏ, đo theo 1 trong 2 cách (tách khỏi số hứa của cam kết):
+    //  · 'cham'    = tick mỗi ngày, đích = số NGÀY (đơn vị "ngày", lùi "lần" nếu 0176 chưa chạy);
+    //  · 'dien_so' = đo bằng số với đơn vị em chọn (phút/%/trang/km…), đích = số/tuần.
+    const viecCach = String(formData.get('viec_cach') ?? 'cham') === 'dien_so' ? 'dien_so' : 'cham';
+    let viecPayload: {cach_ghi: string; don_vi_id: string; chi_tieu_ky: number; moi_lan: number | null; ngay_ap_dung: number[]};
+    if (viecCach === 'dien_so') {
+      const vdv = String(formData.get('viec_don_vi') ?? '').trim();
+      const vdich = Number(String(formData.get('viec_dich') ?? '').trim());
+      if (!vdv || !Number.isFinite(vdich) || vdich <= 0)
+        return {ok: false, error: 'Đo bằng số thì chọn đơn vị và nhập đích lớn hơn 0.'};
+      viecPayload = {cach_ghi: 'dien_so', don_vi_id: vdv, chi_tieu_ky: vdich, moi_lan: null, ngay_ap_dung: [1, 2, 3, 4, 5, 6, 7]};
+    } else {
+      const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
+      const ngayId = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
+      if (!ngayId) return {ok: false, error: 'Thiếu đơn vị hệ thống (ngày/lần).'};
+      viecPayload = {cach_ghi: 'cham', don_vi_id: ngayId, chi_tieu_ky: so_ngay, moi_lan: 1, ngay_ap_dung: Array.from({length: so_ngay}, (_, i) => i + 1)};
+    }
     const {data: vRow, error: vErr} = await supabase
       .from('thuoc')
       .insert({
@@ -819,18 +846,14 @@ export async function luuCamKet(_prev: CamKetState, formData: FormData): Promise
         class_id,
         student_id,
         ten: tenViecBoTro,
-        don_vi_id,
-        cach_ghi: 'cham',
         chieu_dich: 'it_nhat',
         gop: 'tong',
         ky_tuan: 1,
-        chi_tieu_ky: so_hua ?? 1,
-        moi_lan: 1,
-        ngay_ap_dung: [1, 2, 3, 4, 5, 6, 7],
         pham_vi: 'tung_em',
         tu_tuan: tuan_bat_dau,
         duyet: 'duyet',
         trang_thai: 'chay',
+        ...viecPayload,
       })
       .select('id')
       .maybeSingle();
@@ -904,6 +927,30 @@ export async function xoaCamKet(formData: FormData) {
   if (!data || data.length === 0)
     veTrangEm(student_id, loi('Không huỷ được — cam kết đã chấm hoặc đã kể lại trong buổi họp.'));
   veTrangEm(student_id, 'Đã huỷ cam kết');
+}
+
+// ĐỔI CAM KẾT TUẦN — em muốn hứa việc khác: xoá cam kết HIỆN TẠI KÈM lead measure gắn với nó (việc
+// bổ trợ của cam kết cũ), rồi em set lại từ đầu qua form "+ Thêm cam kết". (Cam kết giữ nguyên thì
+// lead measure giữ nguyên; đổi thì bỏ luôn lead measure cũ — theo chủ dự án 03/09.)
+export async function doiCamKet(formData: FormData) {
+  const student_id = String(formData.get('student_id') ?? '');
+  const id = String(formData.get('cam_ket_id') ?? '');
+  if (!id) veTrangEm(student_id, loi('Thiếu cam kết.'));
+  const supabase = await createClient();
+  // Lấy lead measure gắn cam kết cũ TRƯỚC (thuoc_id FK on delete set null khi xoá thuoc).
+  const {data: ck} = await supabase.from('cam_ket').select('thuoc_id').eq('id', id).maybeSingle();
+  // ĐÁNH DẤU 'huy' (không xoá): đây là tín hiệu để cam kết TỰ LĂN (0177) NGỪNG lăn dòng này — bản
+  // mới nhất là 'huy' thì hàm lăn bỏ qua. Xoá thì tuần sau nó lại clone từ bản cũ hơn.
+  const {data, error} = await supabase.from('cam_ket').update({trang_thai: 'huy'}).eq('id', id).select('id');
+  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (!data || data.length === 0)
+    veTrangEm(student_id, loi('Không đổi được — cam kết đã chấm hoặc đã kể lại trong buổi họp.'));
+  // Xoá lead measure của cam kết cũ (chỉ việc bổ trợ CỦA EM; RLS chặn nếu không phải của em).
+  if (ck?.thuoc_id) await supabase.from('thuoc').delete().eq('id', ck.thuoc_id).eq('chu_the', 'em');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  veTrangEm(student_id, 'Đã bỏ cam kết cũ — em đặt cam kết mới nhé');
 }
 
 // Người chứng xác nhận cam kết (buddy / thầy cô / phụ huynh). Trigger ckxn_dung_vai đặt nguoi_id

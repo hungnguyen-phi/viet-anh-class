@@ -20,7 +20,7 @@ import {useTranslations} from 'next-intl';
 import {ListChecks, Flag, Check, Plus, Minus, X} from 'lucide-react';
 import {isoDowVN} from '@/lib/dates';
 import {ThemCamKetEm} from '@/components/student/ThemCamKetEm';
-import {ghiLuot, chamCamKet, type LuotResult} from '@/app/[locale]/(dashboard)/student/actions';
+import {ghiLuot, chamCamKet, doiCamKet, type LuotResult} from '@/app/[locale]/(dashboard)/student/actions';
 
 export type ViecTuan = {
   tuan: string;
@@ -269,10 +269,10 @@ export function HangViec({
       </div>
       <div className="mt-0.5 text-[11.5px] font-semibold text-grey-mid">
         {kieng
-          ? tv('chiTieuKhongQua', {n: so(v.chi_tieu), dv: v.ten_don_vi ?? '', ky: kyNhan})
-          : tv('chiTieu', {n: so(v.chi_tieu), dv: v.ten_don_vi ?? '', ky: kyNhan})}
+          ? tv('chiTieuKhongQua', {n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay'), ky: kyNhan})
+          : tv('chiTieu', {n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay'), ky: kyNhan})}
         {' · '}
-        {tv('tuanNayDuoc', {so: so(v.gia), n: so(v.chi_tieu), dv: v.ten_don_vi ?? ''})}
+        {tv('tuanNayDuoc', {so: so(v.gia), n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay')})}
       </div>
 
       {/* 12 ô tuần */}
@@ -540,6 +540,25 @@ export function TheCamKet({
             </form>
           )}
         </div>
+      )}
+      {/* ĐỔI CAM KẾT — bỏ cam kết này KÈM lead measure của nó rồi đặt lại (chủ dự án 03/09). */}
+      {laChinhEm && !daCham && (
+        <form
+          action={doiCamKet}
+          onSubmit={(e) => {
+            if (!window.confirm(tc('doiHoi'))) e.preventDefault();
+          }}
+          className="mt-2 flex justify-end"
+        >
+          <input type="hidden" name="student_id" value={studentId} />
+          <input type="hidden" name="cam_ket_id" value={c.id} />
+          <button
+            type="submit"
+            className="cursor-pointer text-[11px] font-bold text-grey-mid underline hover:text-status-bad"
+          >
+            {tc('doi')}
+          </button>
+        </form>
       )}
     </div>
   );

@@ -145,41 +145,65 @@ export async function taoCamKetLop(formData: FormData) {
   if (!noi_dung) veWig(loi('Tuần này cả lớp hứa làm gì? Viết một câu.'), classId, week);
   if (noi_dung.length > 300) veWig(loi('Tối đa 300 ký tự.'), classId, week);
   const soHuaRaw = String(formData.get('so_hua') ?? '').trim();
-  const so_hua = soHuaRaw === '' ? null : Number(soHuaRaw);
+  let so_hua = soHuaRaw === '' ? null : Number(soHuaRaw);
   if (so_hua !== null && (!Number.isFinite(so_hua) || so_hua <= 0))
     veWig(loi('Con số của cam kết phải lớn hơn 0.'), classId, week);
   const muc_tieu_id = String(formData.get('muc_tieu_id') ?? '').trim() || null;
   const tuanGui = String(formData.get('tuan_bat_dau') ?? '').trim();
   const tuan_bat_dau = isValidDayVN(tuanGui) ? tuanGui : weekRangeVN().start;
+  // Số NGÀY cần tick cho việc bổ trợ (mặc định 5 = T2–T6). Việc bổ trợ đếm theo NGÀY, tách số hứa.
+  const soNgayRaw = String(formData.get('so_ngay') ?? '').trim();
+  const so_ngay = Math.min(7, Math.max(1, Math.round(Number(soNgayRaw) || 5)));
 
   const supabase = await createClient();
 
-  // VIỆC BỔ TRỢ của CÔ — cô tick (cả đội, một lượt) để hoàn thành cam kết này. Tạo thuoc chu_the='lop'
-  // (pham_vi='ca_doi'), đơn vị lấy từ mục tiêu; cam kết trỏ vào nó qua thuoc_id. Số dừng ở cam kết.
+  // Đơn vị của CAM KẾT lấy TỪ mục tiêu lớp; ràng buộc ck_don_vi_ck: có số hứa ⟺ có đơn vị. Thiếu
+  // một trong hai thì bỏ cả hai (cam kết chấm Thắng/Thua tay), tránh lỗi "Giá trị nhập không hợp lệ".
+  let don_vi_id: string | null = null;
+  if (muc_tieu_id) {
+    const {data: g} = await supabase.from('muc_tieu').select('don_vi_id').eq('id', muc_tieu_id).maybeSingle();
+    don_vi_id = g?.don_vi_id ?? null;
+  }
+  if (so_hua === null || don_vi_id === null) {
+    so_hua = null;
+    don_vi_id = null;
+  }
+
+  // VIỆC BỔ TRỢ của CÔ — cô tick (cả đội, một lượt) hằng NGÀY. Đếm theo NGÀY (đích = so_ngay), TÁCH
+  // khỏi số hứa của cam kết. thuoc chu_the='lop' pham_vi='ca_doi'; cam kết trỏ vào nó qua thuoc_id.
   const tenViecBoTro = String(formData.get('viec_bo_tro') ?? '').trim();
   let thuoc_id: string | null = null;
-  if (tenViecBoTro && muc_tieu_id) {
-    const {data: g} = await supabase.from('muc_tieu').select('don_vi_id').eq('id', muc_tieu_id).maybeSingle();
-    const dv = g?.don_vi_id ?? null;
-    if (dv) {
+  if (tenViecBoTro) {
+    // Việc bổ trợ = cột mốc nhỏ: 'cham' tick mỗi ngày (đích = số NGÀY) hoặc 'dien_so' đo bằng số
+    // với đơn vị cô chọn (đích/tuần). Đơn vị "ngày" lùi "lần" nếu 0176 chưa chạy — thuoc.don_vi_id NOT NULL.
+    const viecCach = String(formData.get('viec_cach') ?? 'cham') === 'dien_so' ? 'dien_so' : 'cham';
+    let viecPayload: {cach_ghi: string; don_vi_id: string; chi_tieu_ky: number; moi_lan: number | null; ngay_ap_dung: number[]} | null = null;
+    if (viecCach === 'dien_so') {
+      const vdv = String(formData.get('viec_don_vi') ?? '').trim();
+      const vdich = Number(String(formData.get('viec_dich') ?? '').trim());
+      if (!vdv || !Number.isFinite(vdich) || vdich <= 0)
+        veWig(loi('Đo bằng số thì chọn đơn vị và nhập đích lớn hơn 0.'), classId, week);
+      viecPayload = {cach_ghi: 'dien_so', don_vi_id: vdv, chi_tieu_ky: vdich, moi_lan: null, ngay_ap_dung: [1, 2, 3, 4, 5, 6, 7]};
+    } else {
+      const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
+      const ngayId = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
+      if (ngayId) viecPayload = {cach_ghi: 'cham', don_vi_id: ngayId, chi_tieu_ky: so_ngay, moi_lan: 1, ngay_ap_dung: Array.from({length: so_ngay}, (_, i) => i + 1)};
+    }
+    if (viecPayload) {
       const {data: vRow} = await supabase
         .from('thuoc')
         .insert({
           chu_the: 'lop',
           class_id,
           ten: tenViecBoTro,
-          don_vi_id: dv,
-          cach_ghi: 'cham',
           chieu_dich: 'it_nhat',
           gop: 'tong',
           ky_tuan: 1,
-          chi_tieu_ky: so_hua ?? 1,
-          moi_lan: 1,
-          ngay_ap_dung: [1, 2, 3, 4, 5, 6, 7],
           pham_vi: 'ca_doi',
           tu_tuan: tuan_bat_dau,
           duyet: 'duyet',
           trang_thai: 'chay',
+          ...viecPayload,
         })
         .select('id')
         .maybeSingle();
@@ -189,7 +213,7 @@ export async function taoCamKetLop(formData: FormData) {
 
   const {data, error} = await supabase
     .from('cam_ket')
-    .insert({chu_the: 'lop', class_id, student_id: null, noi_dung, so_hua, muc_tieu_id, thuoc_id, so_tuan: 1, tuan_bat_dau})
+    .insert({chu_the: 'lop', class_id, student_id: null, noi_dung, so_hua, don_vi_id, muc_tieu_id, thuoc_id, so_tuan: 1, tuan_bat_dau})
     .select('id')
     .maybeSingle();
   revalidatePath('/[locale]/wig', 'page');

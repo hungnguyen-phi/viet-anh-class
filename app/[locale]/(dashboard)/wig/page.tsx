@@ -32,8 +32,6 @@ import {
   duyetThuoc,
   traLaiThuoc,
   duyetHaChiTieu,
-  taoMau,
-  xoaMau,
 } from '@/app/[locale]/(dashboard)/wig/lop-actions';
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
@@ -43,14 +41,13 @@ import {
 // Bản cũ đọc wigs/wig_progress_v/wig_so_do/commitments/metrics_tuan_v — tất cả ĐÃ BỊ DROP. Viết
 // lại từ đầu: MỌI con số đi qua hàm lõi / view invoker, màn này KHÔNG tự cộng gì.
 //
-// Bảy khu, đúng thứ tự 40-C:
+// Sáu khu, đúng thứ tự 40-C:
 //   ① Ba số tách  · thi_dua_lop()  — mục tiêu / việc / cam kết, KHÔNG gộp thành một điểm
 //   ② Mục tiêu lớp · muc_tieu_v (cap='lop') + ô "Ghi số hôm nay" cho mục tiêu đo tay
 //   ③ Việc của lớp · bang_lop_thuoc()  — "n/m bạn đủ", lẽ ra, trạng thái
 //   ④ Cam kết lớp · cam_ket_v (chu_the='lop') — cô chấm Thắng/Thua
 //   ⑤ Các em      · <BangCacEm> (bang_lop_em)  — chỉ đọc, dẫn sang bảng của em
-//   ⑥ Mẫu         · muc_tieu_mau (≤8)  — cô soạn để em chỉ điền số
-//   ⑦ Chờ duyệt   · mục tiêu em 'gui' + việc 'gui' + hạ chỉ tiêu 'cho_duyet'
+//   ⑥ Chờ duyệt   · mục tiêu em 'gui' + việc 'gui' + hạ chỉ tiêu 'cho_duyet'
 //
 // Tạo mục tiêu/việc của lớp (form 3 bước, gửi BGH duyệt) dùng CHUNG component form với màn em —
 // khu ② chỉ có nút mở; component form là phần việc của PR-4 khác, không dựng lại ở đây.
@@ -181,7 +178,6 @@ export default async function WigPage({
     {data: mtRows},
     {data: thuocRows},
     {data: ckRows},
-    {data: mauRows},
     {data: enrolled},
     {data: mtCho},
     {data: thuocCho},
@@ -204,12 +200,6 @@ export default async function WigPage({
       )
       .eq('class_id', myClass.id)
       .eq('chu_the', 'lop'),
-    supabase
-      .from('muc_tieu_mau')
-      .select('id, ten, linh_vuc, chieu, x_goi_y, y_goi_y')
-      .eq('class_id', myClass.id)
-      .eq('is_active', true)
-      .limit(8),
     supabase
       .from('enrollments')
       .select('student_id, profiles!enrollments_student_id_fkey(full_name)')
@@ -330,7 +320,6 @@ export default async function WigPage({
     }
   }
 
-  const mau = mauRows ?? [];
   const haChoLop = (haCho ?? []).filter((r) => {
     const th = r.thuoc as {class_id: string | null} | {class_id: string | null}[] | null;
     const cid = Array.isArray(th) ? th[0]?.class_id : th?.class_id;
@@ -627,7 +616,7 @@ export default async function WigPage({
                   <div className="mt-1 flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('camKetHuong')}</p>
-                      <NutThemCamKetLop classId={myClass.id} weekQ={weekQ} monday={monday} mucTieuId={m.id} />
+                      <NutThemCamKetLop classId={myClass.id} weekQ={weekQ} monday={monday} mucTieuId={m.id} donViList={donViList} />
                     </div>
                     {(camKetCuaWig.get(m.id) ?? []).length === 0 ? (
                       <p className="text-[11.5px] font-semibold italic text-grey-mid">{t('camKetTrongMt')}</p>
@@ -790,102 +779,7 @@ export default async function WigPage({
       {/* ── ⑤ CÁC EM TUẦN NÀY (component chung, tự đọc bang_lop_em) ─────────────────────────── */}
       <BangCacEm classId={myClass.id} monday={monday} weekQ={weekQ} classParam={classParam} />
 
-      {/* ── ⑥ MẪU MỤC TIÊU cho các em ──────────────────────────────────────────────────────── */}
-      <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
-        <h2 className="font-display text-[15px] font-bold text-navy">{t('khuMau')}</h2>
-        {mau.length === 0 ? (
-          <p className="text-[12.5px] font-semibold text-grey-mid">{t('mauTrong')}</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {mau.map((mm) => {
-              const meta = areaMeta[(mm.linh_vuc ?? 'knowledge') as Area];
-              return (
-                <div
-                  key={mm.id}
-                  className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2"
-                >
-                  <span
-                    className="inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-extrabold"
-                    style={{background: meta.soft, color: meta.hex}}
-                  >
-                    {areaLabel(meta, locale)}
-                  </span>
-                  <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">{mm.ten}</span>
-                  {(mm.x_goi_y != null || mm.y_goi_y != null) && (
-                    <span className="text-[11.5px] font-semibold text-grey-mid tabular-nums">
-                      {mm.x_goi_y ?? '?'} → {mm.y_goi_y ?? '?'}
-                    </span>
-                  )}
-                  <form action={xoaMau}>
-                    {ctx}
-                    <input type="hidden" name="mau_id" value={mm.id} />
-                    <SubmitButton className="text-[11.5px] font-bold text-grey-mid hover:text-status-bad" wrapClass="contents">
-                      {t('mauXoa')}
-                    </SubmitButton>
-                  </form>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {mau.length < 8 && (
-          <details className="rounded-[14px] border-[1.5px] border-dashed border-navy/20 p-3">
-            <summary className="cursor-pointer text-[12.5px] font-extrabold text-navy">{t('mauThem')}</summary>
-            <form action={taoMau} className="mt-2 flex flex-col gap-2">
-              {ctx}
-              <input
-                name="ten"
-                maxLength={120}
-                placeholder={t('mauTen')}
-                className="rounded-[8px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[13px] text-navy"
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  name="linh_vuc"
-                  defaultValue="knowledge"
-                  className="rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
-                >
-                  {AREAS.map((a) => (
-                    <option key={a} value={a}>
-                      {areaLabel(areaMeta[a], locale)}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  name="chieu"
-                  defaultValue="tang"
-                  className="rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
-                >
-                  <option value="tang">{tViec('chieuItNhat')}</option>
-                  <option value="giam">{tViec('chieuKhongQua')}</option>
-                </select>
-                <input
-                  type="number"
-                  name="x_goi_y"
-                  step="any"
-                  placeholder="x"
-                  className="w-16 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
-                />
-                <input
-                  type="number"
-                  name="y_goi_y"
-                  step="any"
-                  placeholder="y"
-                  className="w-16 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
-                />
-                <SubmitButton
-                  className="rounded-[8px] bg-navy px-3 py-1.5 text-[12px] font-extrabold text-white transition-all hover:bg-navy/90"
-                  wrapClass="contents"
-                >
-                  {t('ghiSoGhi')}
-                </SubmitButton>
-              </div>
-            </form>
-          </details>
-        )}
-      </section>
-
-      {/* ── ⑦ CHỜ DUYỆT ─────────────────────────────────────────────────────────────────────── */}
+      {/* ── ⑥ CHỜ DUYỆT ─────────────────────────────────────────────────────────────────────── */}
       <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
         <h2 className="font-display text-[15px] font-bold text-navy">
           {soCho > 0 ? tDuyet('choDuyetN', {n: soCho}) : tDuyet('choDuyet')}
