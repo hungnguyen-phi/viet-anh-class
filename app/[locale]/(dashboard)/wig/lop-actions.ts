@@ -255,29 +255,6 @@ export async function suaCamKetToi(formData: FormData) {
   veWig('Đã sửa cam kết', classId, week);
 }
 
-// ĐỔI cam kết cá nhân: đánh dấu 'huy' (tín hiệu ngừng tự lăn 0177) + xoá thước đo gắn kèm.
-export async function doiCamKetToi(formData: FormData) {
-  const me = await requireRole(['teacher', 'admin']);
-  const {classId, week} = nen(formData);
-  const id = String(formData.get('cam_ket_id') ?? '').trim();
-  if (!id) veWig(loi('Thiếu cam kết.'), classId, week);
-  const supabase = await createClient();
-  const {data: ck} = await supabase.from('cam_ket').select('thuoc_id').eq('id', id).maybeSingle();
-  const {data, error} = await supabase
-    .from('cam_ket')
-    .update({trang_thai: 'huy'})
-    .eq('id', id)
-    .eq('student_id', me.id)
-    .select('id');
-  if (error) veWig(loi(friendlyError(error)), classId, week);
-  if (!data || data.length === 0) veWig(loi('Không đổi được — cam kết đã chấm rồi.'), classId, week);
-  if (ck?.thuoc_id) await supabase.from('thuoc').delete().eq('id', ck.thuoc_id).eq('chu_the', 'em');
-  revalidatePath('/[locale]/wig', 'page');
-  veWig('Đã bỏ cam kết cũ — thầy cô đặt cam kết mới nhé', classId, week);
-}
-
-// XOÁ HẲN cam kết cá nhân (trong hộp Sửa). RLS delete đòi: chưa chấm, chưa ai xác nhận, chưa kể
-// lại trong họp — thiếu điều kiện nào thì 0 dòng, câu báo chỉ đường (bỏ chấm trước rồi xoá).
 export async function xoaCamKetToi(formData: FormData) {
   const me = await requireRole(['teacher', 'admin']);
   const {classId, week} = nen(formData);
@@ -286,10 +263,18 @@ export async function xoaCamKetToi(formData: FormData) {
   const supabase = await createClient();
   const {data: ck} = await supabase.from('cam_ket').select('thuoc_id, ket_qua').eq('id', id).maybeSingle();
   if (ck?.ket_qua) veWig(loi('Cam kết đã chấm thì không xoá được — bỏ chấm trước.'), classId, week);
-  const {data, error} = await supabase.from('cam_ket').delete().eq('id', id).eq('student_id', me.id).select('id');
+  // Xoá = đánh dấu 'huy' (như bản của em): biến mất khỏi màn, KHÔNG tự lăn sang tuần sau, không
+  // tính trần 2/tuần. Xoá cứng dòng thì con lăn tuần (0177) thấy tuần trước còn hiệu lực sẽ nhân
+  // bản lại — thành cam kết ma.
+  const {data, error} = await supabase
+    .from('cam_ket')
+    .update({trang_thai: 'huy'})
+    .eq('id', id)
+    .eq('student_id', me.id)
+    .select('id');
   if (error) veWig(loi(friendlyError(error)), classId, week);
   if (!data || data.length === 0)
-    veWig(loi('Không xoá được — cam kết đã chấm, đã có người xác nhận, hoặc đã kể lại trong họp.'), classId, week);
+    veWig(loi('Không xoá được — cam kết đã chấm hoặc đã kể lại trong họp.'), classId, week);
   if (ck?.thuoc_id) await supabase.from('thuoc').delete().eq('id', ck.thuoc_id).eq('student_id', me.id);
   revalidatePath('/[locale]/wig', 'page');
   veWig('Đã xoá cam kết', classId, week);

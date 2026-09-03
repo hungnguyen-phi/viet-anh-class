@@ -4,11 +4,11 @@
 // "Đổi cam kết" (đánh dấu huỷ + bỏ thước đo, đặt lại từ đầu — như doiCamKet của em).
 import {useState} from 'react';
 import {useTranslations} from 'next-intl';
-import {Pencil, RefreshCcw, Trash2} from 'lucide-react';
+import {Pencil, Trash2} from 'lucide-react';
 import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder} from '@/components/ui/Field';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {suaCamKetToi, doiCamKetToi, xoaCamKetToi} from '@/app/[locale]/(dashboard)/wig/lop-actions';
+import {suaCamKetToi, xoaCamKetToi} from '@/app/[locale]/(dashboard)/wig/lop-actions';
 
 export function SuaCamKetToi({
   camKetId,
@@ -66,23 +66,8 @@ export function SuaCamKetToi({
               {t('luuSua')}
             </SubmitButton>
           </form>
-          {/* Đổi hẳn cam kết (huỷ + bỏ thước, đặt lại bằng nút (+)) · Xoá hẳn (chưa chấm mới xoá được). */}
-          <div className="mt-3 flex items-center justify-between gap-2 border-t border-navy/10 pt-3">
-            <form
-              action={doiCamKetToi}
-              onSubmit={(e) => {
-                if (!confirm(t('doiHoi'))) e.preventDefault();
-              }}
-            >
-              {ctx}
-              <SubmitButton
-                className="inline-flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-status-bad/40 px-3 py-1.5 text-[12px] font-extrabold text-status-bad transition-colors hover:bg-status-bad/[0.08]"
-                wrapClass="contents"
-              >
-                <RefreshCcw size={13} strokeWidth={2.5} />
-                {t('doi')}
-              </SubmitButton>
-            </form>
+          {/* Xoá = huỷ ngầm (ẩn + dừng lăn tuần + bỏ thước) — muốn đặt cái khác thì bấm (+). */}
+          <div className="mt-3 flex items-center justify-end gap-2 border-t border-navy/10 pt-3">
             <form
               action={xoaCamKetToi}
               onSubmit={(e) => {
