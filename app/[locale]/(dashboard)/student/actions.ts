@@ -3,6 +3,7 @@
 import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
+import {createAdminClient} from '@/lib/supabase/admin';
 import {getCurrentProfile, requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {kieuDonVi} from '@/lib/don-vi';
@@ -185,7 +186,10 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
     const {data: coSan} = await supabase.from('don_vi').select('id').ilike('ma', maDv).maybeSingle();
     if (coSan?.id) don_vi_id = coSan.id;
     else {
-      const {data: moi, error: eDv} = await supabase.from('don_vi').insert({ma: maDv, nhan_vi: tenDv, nhan_en: tenDv}).select('id').maybeSingle();
+      // Học sinh KHÔNG có RLS chèn don_vi (H-17). Tạo qua service-role, KIỂM SOÁT: chỉ find-or-create
+      // theo tên (đã dedupe theo ma slug ở trên), gắn created_by để biết ai thêm.
+      const dvAdmin = createAdminClient();
+      const {data: moi, error: eDv} = await dvAdmin.from('don_vi').insert({ma: maDv, nhan_vi: tenDv, nhan_en: tenDv, created_by: me.id}).select('id').maybeSingle();
       if (moi?.id) don_vi_id = moi.id;
       else {
         const {data: lai} = await supabase.from('don_vi').select('id').ilike('ma', maDv).maybeSingle(); // đua chèn: tìm lại
