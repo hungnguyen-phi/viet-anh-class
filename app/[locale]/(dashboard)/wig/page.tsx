@@ -182,7 +182,6 @@ export default async function WigPage({
     {data: ckRows},
     {data: enrolled},
     {data: mtCho},
-    {data: thuocCho},
     {data: haCho},
   ] = await Promise.all([
     supabase.rpc('thi_dua_lop', {p_class: myClass.id}),
@@ -215,11 +214,6 @@ export default async function WigPage({
       .eq('class_id', myClass.id)
       .eq('cap', 'em')
       .eq('trang_thai', 'gui'),
-    supabase
-      .from('thuoc')
-      .select('id, ten, student_id, chi_tieu_ky, chieu_dich')
-      .eq('class_id', myClass.id)
-      .eq('duyet', 'gui'),
     supabase
       .from('thuoc_lich_su')
       .select('id, thuoc_id, chi_tieu_ky, la_ha, thuoc(ten, class_id, student_id, chi_tieu_ky)')
@@ -333,7 +327,7 @@ export default async function WigPage({
     const cid = Array.isArray(th) ? th[0]?.class_id : th?.class_id;
     return cid === myClass.id;
   });
-  const soCho = (mtCho ?? []).length + (thuocCho ?? []).length + haChoLop.length;
+  const soCho = (mtCho ?? []).length + haChoLop.length;
 
   // ── Câu mô tả một mục tiêu (Từ x lên y đv · trước ngày) ────────────────────────────────────
 
@@ -536,40 +530,6 @@ export default async function WigPage({
                       )}
                     </div>
                   </div>
-                  {/* Ghi số hôm nay — chỉ mục tiêu ĐO LƯỜNG đã duyệt (máy không đếm được). */}
-                  {m.loai_moc === 'do_luong' && m.nguon_so === 'ghi_tay' && m.trang_thai === 'duyet' && (
-                    <form action={ghiSoMucTieuLop} className="mt-1 flex flex-wrap items-end gap-2">
-                      {ctx}
-                      <input type="hidden" name="muc_tieu_id" value={m.id} />
-                      <label className="flex flex-col gap-0.5 text-[10.5px] font-bold text-grey-mid">
-                        {t('ghiSoNgay')}
-                        <input
-                          type="date"
-                          name="ngay"
-                          defaultValue={todayVN}
-                          max={todayVN}
-                          className="rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-0.5 text-[10.5px] font-bold text-grey-mid">
-                        {t('ghiSoHomNay')}
-                        <input
-                          type="number"
-                          name="gia_tri"
-                          step="any"
-                          min="0"
-                          inputMode="decimal"
-                          className="w-24 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
-                        />
-                      </label>
-                      <SubmitButton
-                        className="rounded-[8px] bg-navy px-3 py-1.5 text-[12px] font-extrabold text-white transition-all hover:bg-navy/90"
-                        wrapClass="contents"
-                      >
-                        {t('ghiSoGhi')}
-                      </SubmitButton>
-                    </form>
-                  )}
 
                   {/* KẾ HOẠCH — checklist các bước (cô tick, % nhảy qua trigger). */}
                   {m.loai_moc === 'ke_hoach' && m.trang_thai === 'duyet' && (buocTheoMt.get(m.id)?.length ?? 0) > 0 && (
@@ -826,47 +786,6 @@ export default async function WigPage({
                   <form action={traLaiMucTieuEm} className="mt-1 flex flex-col gap-1">
                     {ctx}
                     <input type="hidden" name="muc_tieu_id" value={m.id ?? undefined} />
-                    <textarea
-                      name="note"
-                      maxLength={300}
-                      placeholder={tDuyet('traLaiNhan')}
-                      className="w-full rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12px] text-navy"
-                    />
-                    <SubmitButton className="self-start rounded-[8px] bg-navy px-2.5 py-1 text-[11px] font-extrabold text-white" wrapClass="contents">
-                      {tDuyet('traLaiGui')}
-                    </SubmitButton>
-                  </form>
-                </details>
-              </div>
-            ))}
-            {(thuocCho ?? []).map((v) => (
-              <div
-                key={v.id}
-                className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2"
-              >
-                <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10px] font-extrabold text-grey-mid">
-                  {tDuyet('loaiViec')}
-                </span>
-                <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">
-                  {v.ten} <span className="font-semibold text-grey-mid">{tDuyet('cua', {ten: tenEm.get(v.student_id ?? '') ?? ''})}</span>
-                </span>
-                <form action={duyetThuoc} className="contents">
-                  {ctx}
-                  <input type="hidden" name="thuoc_id" value={v.id} />
-                  <SubmitButton
-                    className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-2.5 py-0.5 text-[10.5px] font-extrabold text-gold-text transition-all hover:bg-gold/30"
-                    wrapClass="contents"
-                  >
-                    {tDuyet('duyet')}
-                  </SubmitButton>
-                </form>
-                <details>
-                  <summary className="cursor-pointer list-none rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2.5 py-0.5 text-[11px] font-extrabold text-navy hover:border-navy">
-                    {tDuyet('traLai')}
-                  </summary>
-                  <form action={traLaiThuoc} className="mt-1 flex flex-col gap-1">
-                    {ctx}
-                    <input type="hidden" name="thuoc_id" value={v.id} />
                     <textarea
                       name="note"
                       maxLength={300}
