@@ -123,3 +123,13 @@ export async function layTrangStudent(
   }
   return (data ?? null) as TrangStudent | null;
 }
+
+// ── VỎ TRANG (0191): chuông + cờ tổ trưởng + tin nhắn theo vai — MỘT lượt cho mọi trang ──
+export type TrangLayout = {chuong: number; toTruong: boolean; tinNhan: number};
+/** null = CSDL chưa có hàm (PGRST202/42883) → layout rơi về ba câu lẻ; lỗi khác cũng null để vỏ trang không sập. */
+export async function layTrangLayout(sb: SupabaseClient): Promise<TrangLayout | null> {
+  const {data, error} = await sb.rpc('trang_layout');
+  if (error || !data) return null;
+  const j = data as Partial<TrangLayout>;
+  return {chuong: Number(j.chuong ?? 0), toTruong: Boolean(j.toTruong), tinNhan: Number(j.tinNhan ?? 0)};
+}

@@ -71,7 +71,7 @@ export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: strin
             checked={allChecked}
             onChange={() => setSel(allChecked ? [] : chonDuoc.map((r) => r.id))}
             disabled={chonDuoc.length === 0}
-            className="cham-44 h-4 w-4 cursor-pointer accent-[var(--color-navy)]"
+            className="cham-44 h-6 w-6 cursor-pointer accent-[var(--color-navy)]"
           />
           {t('selectAll')}
         </label>
@@ -129,7 +129,7 @@ export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: strin
                 onChange={() => toggle(p.id)}
                 disabled={laMinh}
                 aria-label={t('pickFor', {name: who})}
-                className="cham-44 mt-1 h-4 w-4 flex-none cursor-pointer accent-[var(--color-navy)] disabled:opacity-30"
+                className="cham-44 mt-0.5 h-6 w-6 flex-none cursor-pointer accent-[var(--color-navy)] disabled:opacity-30"
               />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-noi-dung font-extrabold text-navy">
@@ -205,7 +205,7 @@ export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: strin
                   onChange={() => toggle(p.id)}
                   disabled={laMinh}
                   aria-label={t('pickFor', {name: who})}
-                  className="cham-44 h-4 w-4 flex-none cursor-pointer accent-[var(--color-navy)] disabled:cursor-not-allowed disabled:opacity-30"
+                  className="cham-44 h-6 w-6 flex-none cursor-pointer accent-[var(--color-navy)] disabled:cursor-not-allowed disabled:opacity-30"
                 />
                 <span role="cell" className="min-w-0 flex-[1.3] truncate text-than font-bold text-navy">
                   {/* Chưa có họ tên thì nói thẳng là chưa có, đừng vẽ một dấu gạch ngang. Một ô chỉ

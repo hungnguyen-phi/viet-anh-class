@@ -3,6 +3,7 @@ import {requireProfile, getUserId} from '@/lib/auth';
 import {signOut} from '@/lib/auth-actions';
 import {PARENT_PORTAL} from '@/lib/flags';
 import {createClient} from '@/lib/supabase/server';
+import {layTrangLayout} from '@/lib/trang-gop';
 import {AppNav} from '@/components/shell/AppNav';
 import {IntroGuide} from '@/components/shell/IntroGuide';
 import {getInboxUnreadCount} from '@/components/inbox/unread';
@@ -40,46 +41,29 @@ export default async function DashboardLayout({
   // trang, mọi vai. RLS vẫn là thứ quyết định: câu nào không phải phận sự thì trả về rỗng.
   const uid = await getUserId();
 
-  // Nhánh lỗi trả rỗng để một sự cố mạng ở cái chuông không làm sập cả layout.
-  const unreadPromise = supabase
-    .from('notifications')
-    .select('id', {count: 'exact', head: true})
-    .eq('read', false)
-    .then(
-      (r) => r.count,
-      () => null,
-    );
-
-  // Học sinh chỉ thấy link "Điểm danh" nếu là tổ trưởng điểm danh (PRD §6.2 màn 3).
-  const leaderPromise = uid
-    ? supabase
-        .from('enrollments')
-        .select('is_attendance_leader')
-        .eq('student_id', uid)
-        .eq('is_active', true)
-        .eq('is_attendance_leader', true)
-        .limit(1)
-        .maybeSingle()
-        .then(
-          (r) => Boolean(r.data),
-          () => false,
-        )
-    : Promise.resolve(false);
-
-  // Tin nhắn phụ huynh↔giáo viên chưa đọc — badge trên icon phong bì. Hàm là SECURITY INVOKER,
-  // tự lọc theo auth.uid(), nên vai không có kênh liên lạc chỉ nhận về số 0.
-  const msgPromise = getInboxUnreadCount(supabase).catch(() => 0);
-
   // Bắt buộc đã đăng nhập + đã được cấp quyền (không 'pending'). Bọc react cache() nên các trang
   // gọi lại requireProfile()/requireRole() bên dưới KHÔNG đẻ thêm vòng mạng nào.
   const profilePromise = requireProfile();
 
-  const [profile, isAttendanceLeader, unreadCount, unreadMessages] = await Promise.all([
-    profilePromise,
-    leaderPromise,
-    unreadPromise,
-    msgPromise,
-  ]);
+  // 0191 (M3, 04/09): ba câu vỏ trang (chuông, cờ tổ trưởng, tin nhắn theo vai) gộp MỘT lượt
+  // trang_layout(). Chưa có hàm trên CSDL (hoặc lỗi) → rơi về ba câu lẻ song song như trước.
+  const goiPromise = uid ? layTrangLayout(supabase) : Promise.resolve(null);
+  const leThua = async () => {
+    const [chuong, toTruong, p] = await Promise.all([
+      supabase.from('notifications').select('id', {count: 'exact', head: true}).eq('read', false).then((r) => r.count ?? 0, () => 0),
+      uid
+        ? supabase.from('enrollments').select('is_attendance_leader').eq('student_id', uid).eq('is_active', true).eq('is_attendance_leader', true).limit(1).maybeSingle().then((r) => Boolean(r.data), () => false)
+        : Promise.resolve(false),
+      profilePromise,
+    ]);
+    // Số tin nhắn phụ huynh↔giáo viên: CHỈ vai có kênh (học sinh — nửa người dùng — trước đây vẫn bị hỏi để nhận 0).
+    const tinNhan = p.role === 'parent' || p.role === 'teacher' || p.role === 'admin' ? await getInboxUnreadCount(supabase).catch(() => 0) : 0;
+    return {chuong, toTruong, tinNhan};
+  };
+  const [profile, vo] = await Promise.all([profilePromise, goiPromise.then((g) => g ?? leThua())]);
+  const isAttendanceLeader = vo.toTruong;
+  const unreadCount = vo.chuong;
+  const unreadMessages = vo.tinNhan;
 
   // PRD v3 #10: Giai đoạn 1 CHƯA có phiên bản phụ huynh. Tài khoản phụ huynh còn lại (schema
   // giữ nguyên) thấy một lời hẹn thay vì báo cáo — bật lại bằng PARENT_PORTAL=true, không sửa mã.

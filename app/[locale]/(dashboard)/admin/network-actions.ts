@@ -8,6 +8,7 @@ import {requireRole} from '@/lib/auth';
 import {getTranslations} from 'next-intl/server';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
+import {quen} from '@/lib/dem-ram';
 
 function flash(msg: string): never {
   const g = tachLoi(msg);
@@ -39,6 +40,7 @@ export async function addSchoolNetwork(formData: FormData) {
     .upsert({label, cidr, campus_id, is_active: true}, {onConflict: 'campus_id,cidr'});
   if (!error) await supabase.rpc('log_audit', {p_action: 'add_school_network', p_detail: {label, cidr}});
   revalidatePath('/[locale]/admin', 'page');
+  quen('congdanh:');   // đệm cửa sổ/IP/mạng ở màn em (StudentScoreboard) — sửa xong thấy ngay
   flash(error ? loi(friendlyError(error)) : t('netDaThem', {label}));
 }
 
@@ -57,6 +59,7 @@ export async function addCurrentSchoolIp(formData: FormData) {
     .upsert({label, cidr, campus_id, is_active: true}, {onConflict: 'campus_id,cidr'});
   if (!error) await supabase.rpc('log_audit', {p_action: 'add_current_ip', p_detail: {cidr}});
   revalidatePath('/[locale]/admin', 'page');
+  quen('congdanh:');   // đệm cửa sổ/IP/mạng ở màn em (StudentScoreboard) — sửa xong thấy ngay
   flash(error ? loi(friendlyError(error)) : t('netDaThemIp', {ip}));
 }
 
@@ -69,6 +72,7 @@ export async function setSchoolNetworkActive(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.from('school_networks').update({is_active: active}).eq('id', id);
   revalidatePath('/[locale]/admin', 'page');
+  quen('congdanh:');   // đệm cửa sổ/IP/mạng ở màn em (StudentScoreboard) — sửa xong thấy ngay
   flash(error ? loi(friendlyError(error)) : active ? t('netDaBat') : t('netDaTat'));
 }
 
@@ -80,5 +84,6 @@ export async function deleteSchoolNetwork(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.from('school_networks').delete().eq('id', id);
   revalidatePath('/[locale]/admin', 'page');
+  quen('congdanh:');   // đệm cửa sổ/IP/mạng ở màn em (StudentScoreboard) — sửa xong thấy ngay
   flash(error ? loi(friendlyError(error)) : t('netDaXoa'));
 }
