@@ -63,17 +63,23 @@ export function ThemCamKetEm({
             <input type="hidden" name="student_id" value={studentId} />
             <input type="hidden" name="class_id" value={classId} />
             <input type="hidden" name="tuan_bat_dau" value={monday} />
+            <label htmlFor="ck-em-noi" className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
+              {t('noiDungEm')}
+            </label>
             <input
+              id="ck-em-noi"
               name="noi_dung"
               value={noiDung}
               onChange={(e) => setNoiDung(e.target.value)}
               maxLength={300}
-              placeholder={t('noiDungEm')}
-              className="rounded-[8px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-than text-navy"
+              placeholder={t('noiDungPh')}
+              aria-invalid={state.fieldError === 'noi_dung' ? true : undefined}
+              aria-describedby={state.fieldError === 'noi_dung' ? 'ck-em-noi-loi' : undefined}
+              className="ctl-h rounded-[8px] border-[1.5px] border-navy/20 px-2.5 text-base text-navy sm:text-than"
               autoFocus
             />
             {state.fieldError === 'noi_dung' && state.error && (
-              <p className="text-chu-thich font-semibold text-status-bad">{state.error}</p>
+              <p id="ck-em-noi-loi" role="alert" className="text-chu-thich font-semibold text-status-bad">{state.error}</p>
             )}
             {/* Đơn vị lấy TỪ mục tiêu được chọn — có số phải có đơn vị (ck_don_vi_ck). */}
             <input type="hidden" name="don_vi_id" value={donViId ? donViId : ''} />

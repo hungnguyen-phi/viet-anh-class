@@ -241,12 +241,6 @@ function TheMucTieu({
       className="relative flex flex-col gap-3 rounded-[16px] border-[1.5px] p-4"
     >
       <div className="flex items-start gap-3.5">
-        {/* Ghi số: nút nhỏ góc phải hàng đầu — không chiếm một dòng riêng. */}
-        {ghiTay && canGhi && mt.trang_thai !== 'dong' && (
-          <div className="absolute right-3 top-3 z-[1]">
-            <GhiSo mtId={mt.id ?? ''} dv={mt.ten_don_vi ?? ''} onDone={onDone} />
-          </div>
-        )}
         {coQuang ? (
           <DonutRing pct={mt.pct ?? 0} color={mau.hex} size={60} />
         ) : (
@@ -259,7 +253,7 @@ function TheMucTieu({
           </span>
         )}
 
-        <div className={`min-w-0 flex-1 ${ghiTay && canGhi && mt.trang_thai !== 'dong' ? 'pr-16' : ''}`}>
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span
               style={{background: `color-mix(in srgb, ${mau.hex} 16%, white)`}}
@@ -300,6 +294,12 @@ function TheMucTieu({
             </span>
           ))}
         </div>
+        {/* Ghi số: phần tử thứ ba của hàng đầu — tiêu đề tự co, chữ dài (EN 'Log a number') không đè. */}
+        {ghiTay && canGhi && mt.trang_thai !== 'dong' && (
+          <div className="shrink-0">
+            <GhiSo mtId={mt.id ?? ''} dv={mt.ten_don_vi ?? ''} onDone={onDone} />
+          </div>
+        )}
       </div>
 
       {/* NHẬN XÉT TRẢ LẠI — hiện ngay trên thẻ để em biết sửa gì. */}
