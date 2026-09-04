@@ -156,7 +156,12 @@
     "inbox": "Liên lạc",
     "menu": "Thực đơn",
     "gallery": "Hình ảnh",
-    "truongWig": "Mục tiêu trường"
+    "truongWig": "Mục tiêu trường",
+    "locNam": "Năm học",
+    "locCoSo": "Cơ sở",
+    "locKhoi": "Khối",
+    "locLop": "Lớp",
+    "locTatCa": "Tất cả"
   },
   "class": {
     "gvcn": "GVCN",
@@ -878,7 +883,11 @@
     "cotHop": "Em đã họp bạn",
     "cotChoDuyet": "Chờ duyệt",
     "khuLopCham": "Lớp nào đi chậm",
-    "lopChamTrong": "Chưa lớp nào có mục tiêu — chưa vào cuộc, không phải đang thua."
+    "lopChamTrong": "Chưa lớp nào có mục tiêu — chưa vào cuộc, không phải đang thua.",
+    "locNam": "Năm học",
+    "locKhoi": "Khối",
+    "locTatCa": "Tất cả",
+    "locBoLoc": "Lọc lớp"
   },
   "notif": {
     "title": "Thông báo",

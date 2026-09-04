@@ -156,7 +156,12 @@
     "inbox": "Messages",
     "menu": "Meal menu",
     "gallery": "Photos",
-    "truongWig": "School goals"
+    "truongWig": "School goals",
+    "locNam": "School year",
+    "locCoSo": "Campus",
+    "locKhoi": "Grade",
+    "locLop": "Class",
+    "locTatCa": "All"
   },
   "class": {
     "gvcn": "Homeroom teacher",
@@ -878,7 +883,11 @@
     "cotHop": "Buddy meeting signed",
     "cotChoDuyet": "Pending",
     "khuLopCham": "Classes falling behind",
-    "lopChamTrong": "No class has a goal yet — not started, not losing."
+    "lopChamTrong": "No class has a goal yet — not started, not losing.",
+    "locNam": "School year",
+    "locKhoi": "Grade",
+    "locTatCa": "All",
+    "locBoLoc": "Filter classes"
   },
   "notif": {
     "title": "Notifications",

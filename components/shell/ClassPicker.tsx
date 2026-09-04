@@ -6,6 +6,10 @@ import {useTranslations} from 'next-intl';
 import {useRouter, usePathname} from '@/i18n/navigation';
 import {useSearchParams} from 'next/navigation';
 import type {ClassOption} from '@/lib/queries';
+import {BoLocLop} from '@/components/shell/BoLocLop';
+
+// Trên ngưỡng này (admin/BGH: vài chục lớp) dùng bộ lọc bốn cấp; GVCN 2–3 lớp giữ select gọn.
+const NGUONG_BO_LOC = 6;
 
 // Bộ chọn lớp cho admin/BGH (và GVCN nhiều lớp) — đổi lớp đang xem qua ?class=.
 //
@@ -38,6 +42,7 @@ export function ClassPicker({
   }, [dangChuyen]);
 
   if (classes.length <= 1) return null;
+  if (classes.length > NGUONG_BO_LOC) return <BoLocLop classes={classes} current={current} />;
 
   // Nhóm = "Cơ sở · Khối". <optgroup> không lồng được hai cấp, nên gộp tên; một cơ sở thì chỉ hiện
   // khối; một khối thì không nhóm (nhóm một mục là nhiễu). `classes` đã sắp (cơ sở, khối, tên)
