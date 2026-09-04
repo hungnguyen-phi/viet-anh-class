@@ -181,7 +181,7 @@ export default async function CampusPage({
           id: s.id,
           full_name:
             s.role === 'pending'
-              ? `${s.full_name ?? s.email} — chưa cấp quyền, chọn là cấp luôn`
+              ? `${s.full_name ?? s.email} — ${t('chuaCapQuyenChon')}`
               : s.full_name,
           email: s.email,
         })),

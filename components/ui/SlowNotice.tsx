@@ -2,6 +2,7 @@
 
 import {useEffect, useState} from 'react';
 import {RotateCcw} from 'lucide-react';
+import {useTranslations} from 'next-intl';
 
 // Sau bao lâu thì coi là "quá lâu" và bày cách tự thoát.
 // 12 giây: đủ dài để không quấy rầy thao tác bình thường (đo thực tế phần lớn dưới 3 giây),
@@ -16,6 +17,7 @@ export const SLOW_MS = 12_000;
 // chập chờn. Không có lời nhắc này thì người dùng đứng chờ rồi kết luận app hỏng, hoặc bấm lại
 // lần nữa.
 export function SlowNotice({pending}: {pending: boolean}) {
+  const t = useTranslations('common');
   const [slow, setSlow] = useState(false);
 
   useEffect(() => {
@@ -40,8 +42,7 @@ export function SlowNotice({pending}: {pending: boolean}) {
       <div className="flex items-start gap-2.5">
         <RotateCcw size={16} strokeWidth={2.5} className="mt-0.5 shrink-0 text-gold-deep" />
         <p className="text-than font-semibold leading-[1.55] text-navy">
-          Máy chủ đang phản hồi chậm. <b>Đừng bấm lại</b> — thao tác có thể đã xong rồi. Hãy tải
-          lại trang (F5) để xem kết quả.
+          {t.rich('mayChuCham', {b: (c) => <b>{c}</b>})}
         </p>
       </div>
     </div>

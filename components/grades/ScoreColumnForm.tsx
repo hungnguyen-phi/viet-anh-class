@@ -95,10 +95,10 @@ export async function ScoreColumnForm({
               id={`s-${r.reviewId}`}
               name={`s_${r.reviewId}`}
               type="number"
+              inputMode="decimal"
               step="any"
               min="0"
               max="10"
-              inputMode="decimal"
               defaultValue={r.current}
               className={`${inputInline} w-[78px] text-center`}
             />

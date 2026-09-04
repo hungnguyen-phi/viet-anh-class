@@ -50,10 +50,10 @@ export function DongThongBao({
       >
         <span className="flex items-center gap-2">
           {moiLucVao && <span className="h-2 w-2 shrink-0 rounded-full bg-gold-deep" />}
-          <span className="text-[14px] font-bold text-navy">{title}</span>
-          <span className="ml-auto shrink-0 text-[11px] font-semibold text-grey-mid">{ngay}</span>
+          <span className="text-noi-dung font-bold text-navy">{title}</span>
+          <span className="ml-auto shrink-0 text-chu-thich font-semibold text-grey-mid">{ngay}</span>
         </span>
-        {body && <span className="mt-1 block text-[13px] leading-relaxed text-txt">{body}</span>}
+        {body && <span className="mt-1 block text-than leading-relaxed text-txt">{body}</span>}
       </button>
     </form>
   );

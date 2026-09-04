@@ -75,7 +75,7 @@ export function LevelPicker({
       {value.length > 0 && (
         <p className="mt-1.5 text-chu-thich font-semibold text-grey-mid">
           {nums
-            ? `${t('willSeed')}: ${nums.map((n) => `Khối ${n}`).join(' · ')}`
+            ? `${t('willSeed')}: ${nums.map((n) => t('khoiN', {n})).join(' · ')}`
             : t('manualGradeHint')}
         </p>
       )}

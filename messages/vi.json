@@ -107,7 +107,20 @@
     "dobChuSo": "Ngày sinh chỉ nhận chữ số: ngày 1–31, tháng 1–12, năm đủ 4 số.",
     "dobThang": "Tháng sinh phải từ 1 đến 12.",
     "dobNam": "Năm sinh phải trong khoảng 1900–{nam}.",
-    "dobSoNgay": "Tháng {thang}/{nam} chỉ có {n} ngày."
+    "dobSoNgay": "Tháng {thang}/{nam} chỉ có {n} ngày.",
+    "loiTrangTitle": "Trang này gặp trục trặc",
+    "loiTrangMoTa": "Không tải được dữ liệu. Thường là do mạng chập hoặc phiên đăng nhập vừa hết hạn — bấm “Thử lại” là phần lớn trường hợp vào được ngay.",
+    "thuLai": "Thử lại",
+    "veTrangChinh": "Về trang chính",
+    "maLoiKyThuat": "Mã lỗi: {ma} — đọc mã này cho bộ phận kỹ thuật khi báo lỗi.",
+    "khongTimThayTrang": "Không tìm thấy trang",
+    "khongTimThayMoTa": "Đường dẫn này không tồn tại hoặc đã được đổi. Kiểm tra lại địa chỉ, hoặc quay về trang chính.",
+    "mayChuCham": "Máy chủ đang phản hồi chậm. <b>Đừng bấm lại</b> — thao tác có thể đã xong rồi. Hãy tải lại trang (F5) để xem kết quả.",
+    "dongThongBao": "Đóng thông báo",
+    "tienDoPhanTram": "Tiến độ {pct}%",
+    "logoTruong": "Logo Trường Việt Anh",
+    "mau": "Màu",
+    "bieuTuong": "Biểu tượng"
   },
   "roles": {
     "admin": "Quản trị viên",
@@ -507,7 +520,15 @@
     "moTaGrades": "Học bạ: điểm số và rèn luyện",
     "moTaCampus": "Bảng tổng hợp toàn trường (BGH)",
     "moTaAdmin": "Trang quản trị (màn hình này)",
-    "hocSinhChuaVaoLop": "Học sinh chưa vào lớp nào"
+    "hocSinhChuaVaoLop": "Học sinh chưa vào lớp nào",
+    "hsLoLungTrong": "Không có em nào đang lơ lửng. Em nào đăng nhập mà chưa được xếp lớp sẽ hiện ở đây.",
+    "hsLoLungMoTa": "Những em đã đăng nhập được nhưng chưa thuộc lớp nào. Chọn lớp rồi bấm Xếp lớp — em vào lớp ngay, không phải mời lại.",
+    "chonLopCho": "Chọn lớp cho {ten}",
+    "chonLop": "Chọn lớp",
+    "xepLop": "Xếp lớp",
+    "emailKhongHopLe": "Email không hợp lệ: {ds}. Dạng đúng: ten@truongvietanh.com",
+    "emailSaiDinhDang": "Chưa đúng định dạng: {ds} — cần dạng ten@truongvietanh.com",
+    "khoiN": "Khối {n}"
   },
   "wig": {
     "weekResolved": "Tuần {week} · {from} → {to}",
@@ -716,7 +737,9 @@
     "viecTuan": "Việc con làm tuần này",
     "camKetTuan": "Cam kết tuần này",
     "hopBan": "Con đã họp với bạn tuần này",
-    "hopChua": "Tuần này con chưa họp với bạn"
+    "hopChua": "Tuần này con chưa họp với bạn",
+    "hinhAnhLop": "Hình ảnh lớp",
+    "hinhAnhLopMoTa": "Ảnh học tập và sự kiện do giáo viên chủ nhiệm đăng"
   },
   "student": {
     "title": "Bảng thành tích của em",
@@ -921,7 +944,9 @@
     "locNam": "Năm học",
     "locKhoi": "Khối",
     "locTatCa": "Tất cả",
-    "locBoLoc": "Lọc lớp"
+    "locBoLoc": "Lọc lớp",
+    "chuaCapQuyenChon": "chưa cấp quyền, chọn là cấp luôn",
+    "emailGoiY": "Nhập email dạng ten@truongvietanh.com. Nhiều email thì ngăn cách bằng dấu phẩy."
   },
   "notif": {
     "title": "Thông báo",
@@ -1383,7 +1408,20 @@
     "publishN": "Công bố {n} phiếu",
     "unpublishN": "Gỡ công bố {n} phiếu",
     "classTableTitle": "Bảng điểm cả lớp · {term}",
-    "missingCount": "Còn {n} em trong lớp chưa có phiếu của đợt này"
+    "missingCount": "Còn {n} em trong lớp chưa có phiếu của đợt này",
+    "daCongBoPhieu": "Đã công bố <b>{da}</b>/{tong} phiếu",
+    "conChuaXepHanhKiem": " · còn {n} em chưa xếp hạnh kiểm",
+    "daRoiLop": "○ đã rời lớp",
+    "lopNhan": "Lớp",
+    "hienODay": " hiện ở đây.",
+    "trungBinhHeSo": "Trung bình đã tính theo hệ số của từng loại điểm (×2, ×3 ghi ngay cạnh con điểm).",
+    "diemRenLuyen": "Điểm rèn luyện:",
+    "reviewHintDuoi": " được nguyên văn. Ghi chú nội bộ thì đừng viết vào đây.",
+    "daCoNhanXet": "Đã có nhận xét {da}/{tong}",
+    "luuNhanXetHanhKiem": "Lưu nhận xét & hạnh kiểm",
+    "namHocDuDot": "Năm học {nam} đã khai báo đủ 5 đợt đánh giá cho cơ sở này.",
+    "khaiBaoDotTitle": "Khai báo đợt đánh giá · năm học {nam}",
+    "taoDot": "+ Tạo đợt"
   },
   "goal": {
     "hint": "Em chưa có mục tiêu nào.",
@@ -2287,7 +2325,9 @@
     "csDaMoi1": "Đã mời {email}. Vai trò giáo viên được gán khi họ đăng nhập lần đầu.",
     "csDaMoiN": "Đã mời {n} giáo viên. Vai trò được gán khi họ đăng nhập lần đầu.",
     "csBoQuaEmail": "(bỏ qua {n} email sai định dạng)",
-    "csDaHuyMoi": "Đã huỷ lời mời {email}"
+    "csDaHuyMoi": "Đã huỷ lời mời {email}",
+    "phanTramBuoc": "Phần trăm các bước phải cộng đủ 100% (đang {dang}%).",
+    "daLuuChuaNoi": "Việc đã lưu, nhưng chưa nối vào mục tiêu được: {loi}"
   },
   "formChung": {
     "luuThuoc": "Lưu thước đo",

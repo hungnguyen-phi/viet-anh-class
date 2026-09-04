@@ -92,7 +92,7 @@ export async function ClassScoreTable({
                 title={t('leftClassTitle')}
                 className="inline-flex shrink-0 items-center gap-1 rounded-full bg-navy/[0.07] px-2 py-0.5 text-chu-thich font-extrabold text-navy/70"
               >
-                ○ đã rời lớp
+                {t('daRoiLop')}
               </span>
             )}
           </span>

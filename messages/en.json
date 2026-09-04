@@ -107,7 +107,20 @@
     "dobChuSo": "Date of birth must be digits: day 1–31, month 1–12, 4-digit year.",
     "dobThang": "Birth month must be 1 to 12.",
     "dobNam": "Birth year must be between 1900 and {nam}.",
-    "dobSoNgay": "{thang}/{nam} has only {n} days."
+    "dobSoNgay": "{thang}/{nam} has only {n} days.",
+    "loiTrangTitle": "This page hit a snag",
+    "loiTrangMoTa": "The data could not be loaded. Usually the network hiccupped or your session just expired — “Try again” fixes most cases.",
+    "thuLai": "Try again",
+    "veTrangChinh": "Back to home",
+    "maLoiKyThuat": "Error code: {ma} — quote it when you report the problem.",
+    "khongTimThayTrang": "Page not found",
+    "khongTimThayMoTa": "This address does not exist or has moved. Check the link, or go back to the home page.",
+    "mayChuCham": "The server is slow to respond. <b>Do not tap again</b> — your action may already be done. Reload the page (F5) to see the result.",
+    "dongThongBao": "Dismiss notification",
+    "tienDoPhanTram": "Progress {pct}%",
+    "logoTruong": "Viet Anh School logo",
+    "mau": "Colour",
+    "bieuTuong": "Icon"
   },
   "roles": {
     "admin": "Administrator",
@@ -507,7 +520,15 @@
     "moTaGrades": "Report card: scores and conduct",
     "moTaCampus": "School-wide summary (principals)",
     "moTaAdmin": "Administration (this screen)",
-    "hocSinhChuaVaoLop": "Students not in any class"
+    "hocSinhChuaVaoLop": "Students not in any class",
+    "hsLoLungTrong": "No student is waiting. Anyone who signs in without a class will appear here.",
+    "hsLoLungMoTa": "Students who can sign in but belong to no class yet. Pick a class and press Assign — they join at once, no new invite needed.",
+    "chonLopCho": "Choose a class for {ten}",
+    "chonLop": "Choose a class",
+    "xepLop": "Assign",
+    "emailKhongHopLe": "Invalid email: {ds}. Expected form: name@truongvietanh.com",
+    "emailSaiDinhDang": "Wrong format: {ds} — use name@truongvietanh.com",
+    "khoiN": "Grade {n}"
   },
   "wig": {
     "weekResolved": "Week {week} · {from} → {to}",
@@ -716,7 +737,9 @@
     "viecTuan": "Lead measures this week",
     "camKetTuan": "This week's commitments",
     "hopBan": "Buddy meeting done this week",
-    "hopChua": "No buddy meeting this week"
+    "hopChua": "No buddy meeting this week",
+    "hinhAnhLop": "Class photos",
+    "hinhAnhLopMoTa": "Learning and event photos posted by the homeroom teacher"
   },
   "student": {
     "title": "My achievement board",
@@ -921,7 +944,9 @@
     "locNam": "School year",
     "locKhoi": "Grade",
     "locTatCa": "All",
-    "locBoLoc": "Filter classes"
+    "locBoLoc": "Filter classes",
+    "chuaCapQuyenChon": "not yet granted — picking them grants access",
+    "emailGoiY": "Enter emails like name@truongvietanh.com. Separate several with commas."
   },
   "notif": {
     "title": "Notifications",
@@ -1383,7 +1408,20 @@
     "publishN": "Publish {n} sheets",
     "unpublishN": "Unpublish {n} sheets",
     "classTableTitle": "Class score table · {term}",
-    "missingCount": "{n} student(s) in the class still have no sheet for this period"
+    "missingCount": "{n} student(s) in the class still have no sheet for this period",
+    "daCongBoPhieu": "Published <b>{da}</b>/{tong} reports",
+    "conChuaXepHanhKiem": " · {n} student(s) still without conduct",
+    "daRoiLop": "○ left the class",
+    "lopNhan": "Class",
+    "hienODay": " will appear here.",
+    "trungBinhHeSo": "The average is already weighted by score type (×2, ×3 shown next to each score).",
+    "diemRenLuyen": "Conduct score:",
+    "reviewHintDuoi": " word for word. Keep internal notes elsewhere.",
+    "daCoNhanXet": "Comments written {da}/{tong}",
+    "luuNhanXetHanhKiem": "Save comments & conduct",
+    "namHocDuDot": "School year {nam} already has all 5 assessment terms for this campus.",
+    "khaiBaoDotTitle": "Add an assessment term · school year {nam}",
+    "taoDot": "+ Create term"
   },
   "goal": {
     "hint": "No goal yet.",
@@ -2287,7 +2325,9 @@
     "csDaMoi1": "Invited {email}. The teacher role is assigned at their first sign-in.",
     "csDaMoiN": "Invited {n} teachers. Roles are assigned at their first sign-in.",
     "csBoQuaEmail": "({n} malformed email(s) skipped)",
-    "csDaHuyMoi": "Invitation to {email} cancelled"
+    "csDaHuyMoi": "Invitation to {email} cancelled",
+    "phanTramBuoc": "Step percentages must add up to 100% (currently {dang}%).",
+    "daLuuChuaNoi": "Saved, but could not link it to the goal: {loi}"
   },
   "formChung": {
     "luuThuoc": "Save lead measure",

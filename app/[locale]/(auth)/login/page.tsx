@@ -14,6 +14,7 @@ export default async function LoginPage({
   const {locale} = await params;
   setRequestLocale(locale);
   const t = await getTranslations('login');
+  const tc = await getTranslations('common');
 
   return (
     <main
@@ -72,7 +73,7 @@ export default async function LoginPage({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-viet-anh-128.webp"
-              alt="Logo Trường Việt Anh"
+              alt={tc('logoTruong')}
               width={44}
               height={44}
               fetchPriority="high"
@@ -105,7 +106,7 @@ export default async function LoginPage({
         </h1>
 
         {/* Slogan */}
-        <p className="mt-5 max-w-[560px] text-center text-[14.5px] font-semibold leading-[1.5] text-navy/75 sm:mt-8 sm:text-[17px]">
+        <p className="mt-5 max-w-[560px] text-center text-noi-dung font-semibold leading-[1.5] text-navy/75 sm:mt-8 sm:text-tieu-de">
           {t('hero')}
         </p>
 

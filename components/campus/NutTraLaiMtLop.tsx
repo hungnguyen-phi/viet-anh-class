@@ -20,7 +20,7 @@ export function NutTraLaiMtLop({mtId, ten}: {mtId: string; ten: string}) {
 
   return (
     <details ref={chiTiet} className="relative">
-      <summary className="cursor-pointer list-none rounded-full border-[1.5px] border-navy/20 bg-white px-2.5 py-0.5 text-[11px] font-extrabold text-navy hover:border-navy">
+      <summary className="cursor-pointer list-none rounded-full border-[1.5px] border-navy/20 bg-white inline-flex min-h-[44px] items-center px-3 py-1 text-chu-thich font-extrabold text-navy hover:border-navy">
         {t('traLai')}
       </summary>
       <form action={action} className="mt-1 flex flex-col gap-1">
@@ -30,15 +30,15 @@ export function NutTraLaiMtLop({mtId, ten}: {mtId: string; ten: string}) {
           maxLength={300}
           placeholder={t('traLaiNhan')}
           aria-label={`${t('traLai')} — ${ten}`}
-          className="w-full rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12px] text-navy"
+          className="w-full rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-base text-navy sm:text-chu-thich"
         />
         {state.error && (
-          <span className="inline-flex items-center gap-1 text-[10.5px] font-extrabold text-status-bad">
+          <span className="inline-flex items-center gap-1 text-chu-thich font-extrabold text-status-bad">
             <AlertCircle size={11} strokeWidth={2.5} />
             {state.error}
           </span>
         )}
-        <SubmitButton className="self-start rounded-[8px] bg-navy px-2.5 py-1 text-[11px] font-extrabold text-white" wrapClass="contents">
+        <SubmitButton className="min-h-[44px] self-start rounded-[8px] bg-navy px-3 text-chu-thich font-extrabold text-white" wrapClass="contents">
           {t('traLaiGui')}
         </SubmitButton>
       </form>

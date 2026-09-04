@@ -2,6 +2,9 @@
 //
 // Bản 17/08/2026: rãnh nhạt hơn, vòng dày hơn (14 % đường kính) và số ở giữa đậm — bản cũ vòng mảnh
 // 10 % trên nền trắng nên ở 1 % trông như một vết xước, và người xem không đọc ra đó là "tiến độ".
+// useTranslations của next-intl chạy được cả trong Server Component (không cần 'use client').
+import {useTranslations} from 'next-intl';
+
 const STATUS_COLOR: Record<string, string> = {
   on_track: 'var(--color-success)',
   mid: 'var(--color-warn)',
@@ -22,6 +25,7 @@ export function DonutRing({
   /** Chữ nhỏ dưới con số (vd "năm") — bỏ trống thì chỉ có %. */
   nhan?: string;
 }) {
+  const t = useTranslations('common');
   const percent = Math.max(0, Math.min(100, Math.round((pct ?? 0) * 100)));
   const ring = color ?? STATUS_COLOR[status ?? ''] ?? 'var(--color-navy)';
   const inset = Math.round(size * 0.14);
@@ -29,7 +33,7 @@ export function DonutRing({
   return (
     <div
       role="img"
-      aria-label={`Tiến độ ${percent}%`}
+      aria-label={t('tienDoPhanTram', {pct: percent})}
       className="relative mx-auto grid shrink-0 place-items-center rounded-full"
       style={{
         height: size,
@@ -42,7 +46,7 @@ export function DonutRing({
         <span className="font-display font-bold tabular-nums text-navy" style={{fontSize}}>
           {percent}%
         </span>
-        {nhan && <span className="mt-0.5 text-[9.5px] font-extrabold uppercase tracking-wide text-grey-mid">{nhan}</span>}
+        {nhan && <span className="mt-0.5 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{nhan}</span>}
       </span>
     </div>
   );

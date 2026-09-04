@@ -56,11 +56,11 @@ export async function ReviewListForm({
               được nguyên văn. */}
           <p className="mt-0.5 text-chu-thich italic text-grey-mid">
             {t('reviewHint')}
-            được nguyên văn. Ghi chú nội bộ thì đừng viết vào đây.
+            {t('reviewHintDuoi')}
           </p>
         </div>
         <span className="rounded-full bg-navy/[0.08] px-2 py-0.5 text-chu-thich font-extrabold text-navy">
-          Đã có nhận xét {daDien}/{rows.length}
+          {t('daCoNhanXet', {da: daDien, tong: rows.length})}
         </span>
       </div>
 
@@ -126,7 +126,7 @@ export async function ReviewListForm({
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-navy/[0.08] px-[18px] py-3">
         <SubmitButton className={btnGold} wrapClass="contents">
-          Lưu nhận xét &amp; hạnh kiểm
+          {t('luuNhanXetHanhKiem')}
         </SubmitButton>
       </div>
     </form>

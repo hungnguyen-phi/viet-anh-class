@@ -1,6 +1,7 @@
 'use client';
 
 import {useState} from 'react';
+import {useTranslations} from 'next-intl';
 
 // Ô nhập NHIỀU email (mỗi dòng / ngăn cách bởi phẩy, chấm phẩy) có kiểm định dạng NGAY TẠI Ô.
 //
@@ -24,6 +25,7 @@ export function InviteEmailsField({
   ariaLabel: string;
   className?: string;
 }) {
+  const t = useTranslations('admin');
   const [bad, setBad] = useState<string[]>([]);
 
   return (
@@ -45,13 +47,13 @@ export function InviteEmailsField({
           e.target.setCustomValidity(
             invalid.length === 0
               ? ''
-              : `Email không hợp lệ: ${invalid.join(', ')}. Dạng đúng: ten@truongvietanh.com`,
+              : t('emailKhongHopLe', {ds: invalid.join(', ')}),
           );
         }}
       />
       {bad.length > 0 && (
         <p className="text-chu-thich font-semibold text-status-bad">
-          Chưa đúng định dạng: {bad.join(', ')} — cần dạng ten@truongvietanh.com
+          {t('emailSaiDinhDang', {ds: bad.join(', ')})}
         </p>
       )}
     </div>

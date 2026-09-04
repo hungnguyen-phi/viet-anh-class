@@ -87,12 +87,12 @@ export default async function DashboardLayout({
     return (
       <div className="grid min-h-screen place-items-center px-6">
         <div className="glass flex max-w-[420px] flex-col items-center gap-4 rounded-[20px] p-6 text-center">
-          <p className="text-[14px] font-semibold leading-relaxed text-navy">{tc('parentPaused')}</p>
+          <p className="text-noi-dung font-semibold leading-relaxed text-navy">{tc('parentPaused')}</p>
           {/* Không có nút này thì phụ huynh dùng chung máy với con bị kẹt (audit 04/09/2026). */}
           <form action={signOut}>
             <button
               type="submit"
-              className="min-h-11 cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-[13px] font-extrabold text-navy transition-colors hover:border-navy"
+              className="min-h-11 cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-than font-extrabold text-navy transition-colors hover:border-navy"
             >
               {tc('logout')}
             </button>
@@ -113,7 +113,7 @@ export default async function DashboardLayout({
           dùng utility của Tailwind cho chỗ này. */}
       <a
         href="#noi-dung"
-        className="skip-link rounded-[10px] bg-navy px-4 py-2.5 text-[13px] font-extrabold text-white"
+        className="skip-link rounded-[10px] bg-navy px-4 py-2.5 text-than font-extrabold text-white"
       >
         {tc('skipToContent')}
       </a>

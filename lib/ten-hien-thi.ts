@@ -14,7 +14,7 @@
 //
 // KHÔNG BAO GIỜ rơi về UUID: "0226fd73-…" không giúp ai nhận ra ai, mà lại lộ khoá chính.
 
-export const TEN_CHUA_CO = 'Chưa có tên';
+export const TEN_CHUA_CO = 'Chưa có tên';   // fallback vi cho chỗ không có t(); UI chính dùng admin.chuaDatTen
 
 export function tenHienThi(
   fullName?: string | null,

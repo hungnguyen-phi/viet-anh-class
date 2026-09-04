@@ -30,8 +30,8 @@ export async function ClassOverview({
         ))}
       </div>
       <p className="mt-2 text-chu-thich font-semibold text-grey-mid">
-        Đã công bố <b className="text-navy">{daCongBo}</b>/{rows.length} phiếu
-        {chuaXep > 0 && <> · còn {chuaXep} em chưa xếp hạnh kiểm</>}
+        {t.rich('daCongBoPhieu', {da: daCongBo, tong: rows.length, b: (c) => <b className="text-navy">{c}</b>})}
+        {chuaXep > 0 && t('conChuaXepHanhKiem', {n: chuaXep})}
       </p>
     </section>
   );

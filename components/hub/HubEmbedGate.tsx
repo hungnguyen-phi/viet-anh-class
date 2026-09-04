@@ -120,23 +120,23 @@ export function HubEmbedGate() {
         {state === 'connecting' && (
           <>
             <Loader2 size={32} strokeWidth={2.5} className="animate-spin text-navy" />
-            <p className="text-[15px] font-bold text-navy">{t('hubConnecting')}</p>
+            <p className="text-doc font-bold text-navy">{t('hubConnecting')}</p>
           </>
         )}
         {state === 'error' && (
           <>
-            <p className="text-[14px] font-semibold leading-relaxed text-navy">{t('hubError')}</p>
+            <p className="text-noi-dung font-semibold leading-relaxed text-navy">{t('hubError')}</p>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="rounded-[12px] bg-navy px-4 py-2 text-[13px] font-extrabold text-white"
+              className="min-h-[44px] rounded-[12px] bg-navy px-4 text-than font-extrabold text-white"
             >
               {t('hubRetry')}
             </button>
           </>
         )}
         {state === 'no_account' && (
-          <p className="text-[14px] font-semibold leading-relaxed text-navy">{t('hubNoAccount')}</p>
+          <p className="text-noi-dung font-semibold leading-relaxed text-navy">{t('hubNoAccount')}</p>
         )}
       </div>
     </div>

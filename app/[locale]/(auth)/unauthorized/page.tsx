@@ -61,7 +61,7 @@ export default async function UnauthorizedPage({params}: {params: Promise<{local
         <p className="mt-2.5 text-sm leading-relaxed text-txt">{t('message')}</p>
 
         {profile?.email && (
-          <p className="mt-2 text-[12.5px] font-semibold text-grey-mid">
+          <p className="mt-2 text-than font-semibold text-grey-mid">
             {t('yourAccount', {email: profile.email})}
           </p>
         )}
@@ -69,17 +69,17 @@ export default async function UnauthorizedPage({params}: {params: Promise<{local
         {/* AI DUYỆT. Danh sách thật, có email bấm gửi thư được — thay cho "liên hệ quản trị viên",
             một câu không chỉ tới ai cả. */}
         <div className="mt-5 rounded-[16px] border-[1.5px] border-navy/10 bg-white/60 p-4 text-left">
-          <div className="text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+          <div className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
             {t('whoApproves')}
           </div>
           {admins && admins.length > 0 ? (
             <ul className="mt-1.5 flex flex-col gap-1.5">
               {admins.map((a) => (
                 <li key={a.email} className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="text-[13px] font-bold text-navy">{a.full_name ?? a.email}</span>
+                  <span className="text-than font-bold text-navy">{a.full_name ?? a.email}</span>
                   <a
                     href={`mailto:${a.email}`}
-                    className="inline-flex min-h-[24px] items-center gap-1 text-[12px] font-semibold text-navy/70 underline"
+                    className="inline-flex min-h-[44px] items-center gap-1 text-chu-thich font-semibold text-navy/70 underline"
                   >
                     <Mail size={11} strokeWidth={2.5} />
                     {a.email}
@@ -88,7 +88,7 @@ export default async function UnauthorizedPage({params}: {params: Promise<{local
               ))}
             </ul>
           ) : (
-            <p className="mt-1.5 text-[12.5px] font-semibold text-grey-mid">{t('noAdminYet')}</p>
+            <p className="mt-1.5 text-than font-semibold text-grey-mid">{t('noAdminYet')}</p>
           )}
         </div>
 
@@ -97,7 +97,7 @@ export default async function UnauthorizedPage({params}: {params: Promise<{local
               Người dùng có một việc để làm thay vì chỉ có nút đăng xuất. */}
           <Link
             href="/unauthorized"
-            className="inline-flex cursor-pointer items-center gap-2 rounded-[12px] border-[1.5px] border-navy/20 bg-white px-5 py-2.5 font-display text-[13.5px] font-bold text-navy transition-all hover:border-navy"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-[12px] border-[1.5px] border-navy/20 bg-white px-5 py-2.5 font-display text-noi-dung font-bold text-navy transition-all hover:border-navy"
           >
             <RotateCcw size={15} strokeWidth={2.4} />
             {t('checkAgain')}

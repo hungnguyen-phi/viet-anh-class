@@ -44,7 +44,7 @@ export function TeacherManager({teachers, invites}: {teachers: Teacher[]; invite
           type="email"
           multiple
           pattern="[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+(\s*[,;]\s*[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+)*"
-          title="Nhập email dạng ten@truongvietanh.com. Nhiều email thì ngăn cách bằng dấu phẩy."
+          title={t('emailGoiY')}
           placeholder={t('inviteTeacherPlaceholder')} aria-label={t('inviteTeacherPlaceholder')}
           className={`${inp} min-w-[220px] flex-1`}
           required

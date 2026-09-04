@@ -29,6 +29,7 @@ export function AreaConfigForm({rows}: {rows: {area: Area; meta: AreaMeta}[]}) {
 
 function AreaCard({area, meta}: {area: Area; meta: AreaMeta}) {
   const t = useTranslations('admin');
+  const tc = useTranslations('common');
   const [color, setColor] = useState(meta.hex);
   const [icon, setIcon] = useState(meta.icon_name);
   const [labelVi, setLabelVi] = useState(meta.label_vi);
@@ -66,7 +67,7 @@ function AreaCard({area, meta}: {area: Area; meta: AreaMeta}) {
             {t('color')}
             <input
               name="color_hex"
-                aria-label="Màu"
+                aria-label={tc('mau')}
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
@@ -76,7 +77,7 @@ function AreaCard({area, meta}: {area: Area; meta: AreaMeta}) {
           <label className={`${lbl} flex-1`}>
             {t('icon')}
             <select name="icon_name"
-                aria-label="Biểu tượng" value={icon} onChange={(e) => setIcon(e.target.value)} className={`cursor-pointer ${inp}`}>
+                aria-label={tc('bieuTuong')} value={icon} onChange={(e) => setIcon(e.target.value)} className={`cursor-pointer ${inp}`}>
               {AREA_ICON_NAMES.map((n) => (
                 <option key={n} value={n}>
                   {n}

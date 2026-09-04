@@ -37,5 +37,5 @@ export async function timHoacTaoDonVi(
   // Đua chèn (hai người cùng tạo một đơn vị): tìm lại lần nữa trước khi bỏ cuộc.
   const {data: lai} = await supabase.from('don_vi').select('id').ilike('ma', maDv).maybeSingle();
   if (lai?.id) return {id: lai.id};
-  return {id: null, error: eDv?.message ?? 'Không tạo được đơn vị mới.'};
+  return {id: null, error: eDv?.message ?? 'Không tạo được đơn vị mới.'};   // fallback vi — caller đã dịch qua loi.khongTaoDonVi
 }

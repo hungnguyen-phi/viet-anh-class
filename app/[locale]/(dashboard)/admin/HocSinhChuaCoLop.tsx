@@ -1,6 +1,7 @@
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {selectInline} from '@/components/ui/Field';
 import {xepLopChoHocSinh} from './actions';
+import {getTranslations} from 'next-intl/server';
 
 // ════════════════════════════════════════════════════════════════════════════
 // HỌC SINH ĐÃ CÓ TÀI KHOẢN NHƯNG CHƯA THUỘC LỚP NÀO.
@@ -15,17 +16,18 @@ import {xepLopChoHocSinh} from './actions';
 //
 // KHÔNG có nút xoá tài khoản ở đây, cố ý: người lạ đăng nhập nhầm thì hạ vai trong bảng người dùng
 // ở trên, đó mới là chỗ của việc ấy. Trộn hai việc vào một khối là mời người ta bấm nhầm.
-export function HocSinhChuaCoLop({
+export async function HocSinhChuaCoLop({
   hocSinh,
   lops,
 }: {
   hocSinh: {id: string; email: string; full_name: string | null}[];
   lops: {id: string; name: string; school_year: string | null}[];
 }) {
+  const t = await getTranslations('admin');
   if (hocSinh.length === 0) {
     return (
       <p className="text-than font-semibold italic leading-relaxed text-grey-mid">
-        Không có em nào đang lơ lửng. Em nào đăng nhập mà chưa được xếp lớp sẽ hiện ở đây.
+        {t('hsLoLungTrong')}
       </p>
     );
   }
@@ -33,8 +35,7 @@ export function HocSinhChuaCoLop({
   return (
     <div className="flex flex-col gap-2">
       <p className="text-chu-thich font-semibold italic leading-relaxed text-grey-mid">
-        Những em đã đăng nhập được nhưng chưa thuộc lớp nào. Chọn lớp rồi bấm Xếp lớp — em vào lớp
-        ngay, không phải mời lại.
+        {t('hsLoLungMoTa')}
       </p>
 
       {hocSinh.map((h) => (
@@ -54,8 +55,8 @@ export function HocSinhChuaCoLop({
               <span className="block truncate text-chu-thich font-semibold text-grey-mid">{h.email}</span>
             )}
           </span>
-          <select name="class_id" aria-label={`Chọn lớp cho ${h.full_name || h.email}`} required className={`${selectInline} w-[190px]`}>
-            <option value="">Chọn lớp</option>
+          <select name="class_id" aria-label={t('chonLopCho', {ten: h.full_name || h.email})} required className={`${selectInline} w-[190px]`}>
+            <option value="">{t('chonLop')}</option>
             {lops.map((l) => (
               <option key={l.id} value={l.id}>
                 {l.name}
@@ -64,10 +65,10 @@ export function HocSinhChuaCoLop({
             ))}
           </select>
           <SubmitButton
-            className="btn-gold h-9 cursor-pointer rounded-[12px] px-3 text-than font-extrabold"
+            className="btn-gold ctl-h cursor-pointer rounded-[12px] px-3 text-than font-extrabold"
             wrapClass="contents"
           >
-            Xếp lớp
+            {t('xepLop')}
           </SubmitButton>
         </form>
       ))}

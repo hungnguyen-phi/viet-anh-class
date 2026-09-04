@@ -2,6 +2,7 @@
 
 import {useEffect} from 'react';
 import {RotateCcw, TriangleAlert} from 'lucide-react';
+import {useTranslations} from 'next-intl';
 
 // Lưới an toàn cho MỌI trang sau đăng nhập.
 //
@@ -19,6 +20,7 @@ export default function DashboardError({
   error: Error & {digest?: string};
   reset: () => void;
 }) {
+  const t = useTranslations('common');
   useEffect(() => {
     // Ghi ra console để còn lần được dấu vết khi người dùng báo lỗi; `digest` là mã Next gán
     // cho lỗi phía server, đối chiếu được với log của container.
@@ -31,21 +33,16 @@ export default function DashboardError({
         <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-status-bad/10 text-status-bad">
           <TriangleAlert size={24} strokeWidth={2.2} />
         </div>
-        <h1 className="mt-3 font-display text-[19px] font-bold text-navy">
-          Trang này gặp trục trặc
-        </h1>
-        <p className="mt-2 text-[13.5px] font-semibold leading-[1.65] text-navy/70">
-          Không tải được dữ liệu. Thường là do mạng chập hoặc phiên đăng nhập vừa hết hạn — bấm
-          “Thử lại” là phần lớn trường hợp vào được ngay.
-        </p>
+        <h1 className="mt-3 font-display text-tieu-de font-bold text-navy">{t('loiTrangTitle')}</h1>
+        <p className="mt-2 text-noi-dung font-semibold leading-[1.65] text-navy/70">{t('loiTrangMoTa')}</p>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
           <button
             type="button"
             onClick={reset}
-            className="btn-gold inline-flex h-11 cursor-pointer items-center gap-2 rounded-[12px] px-5 text-[13.5px] font-extrabold"
+            className="btn-gold inline-flex h-11 cursor-pointer items-center gap-2 rounded-[12px] px-5 text-noi-dung font-extrabold"
           >
-            <RotateCcw size={16} strokeWidth={2.4} />
-            Thử lại
+            <RotateCcw size={16} strokeWidth={2.5} />
+            {t('thuLai')}
           </button>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages --
               CỐ Ý dùng <a> chứ không phải <Link>: đây là màn hình lỗi, tức là router phía client
@@ -53,15 +50,13 @@ export default function DashboardError({
               rơi vào chính lỗi vừa xảy ra; <a> nạp lại trang từ đầu, dựng sạch mọi thứ. */}
           <a
             href="/"
-            className="inline-flex h-11 items-center rounded-[12px] border-[1.5px] border-navy/20 bg-white px-5 text-[13.5px] font-extrabold text-navy transition-colors hover:border-navy"
+            className="inline-flex h-11 items-center rounded-[12px] border-[1.5px] border-navy/20 bg-white px-5 text-noi-dung font-extrabold text-navy transition-colors hover:border-navy"
           >
-            Về trang chính
+            {t('veTrangChinh')}
           </a>
         </div>
         {error.digest && (
-          <p className="mt-4 text-[11px] font-semibold text-navy/65">
-            Mã lỗi: {error.digest} — đọc mã này cho bộ phận kỹ thuật khi báo lỗi.
-          </p>
+          <p className="mt-4 text-chu-thich font-semibold text-navy/65">{t('maLoiKyThuat', {ma: error.digest})}</p>
         )}
       </div>
     </div>

@@ -620,10 +620,8 @@ export default async function ReportPage({
           <Images size={16} strokeWidth={2} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-display text-noi-dung font-bold text-navy">Hình ảnh lớp</span>
-          <span className="block text-than font-semibold text-grey-mid">
-            Ảnh học tập và sự kiện do giáo viên chủ nhiệm đăng
-          </span>
+          <span className="block font-display text-noi-dung font-bold text-navy">{t('hinhAnhLop')}</span>
+          <span className="block text-than font-semibold text-grey-mid">{t('hinhAnhLopMoTa')}</span>
         </span>
         <ChevronRight size={16} strokeWidth={2} className="shrink-0 text-grey-mid" />
       </Link>

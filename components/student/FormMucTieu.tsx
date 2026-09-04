@@ -422,12 +422,28 @@ export function FormMucTieu3Buoc({
                   <p className="mt-1 italic text-grey-mid">{t('smartVd')}</p>
                 </div>
               )}
-              <input id="mt-ten" data-kiem="mt-ten" name="ten" value={ten} onChange={(e) => setTen(e.target.value)} placeholder={t('tenPh')} maxLength={200} className={ctlWithBorder(state.fieldError === 'ten')} autoFocus />
-              {err('ten') && <p className="mt-1 text-chu-thich font-bold text-status-bad">{err('ten')}</p>}
+              <input
+                id="mt-ten"
+                data-kiem="mt-ten"
+                name="ten"
+                value={ten}
+                onChange={(e) => setTen(e.target.value)}
+                placeholder={t('tenPh')}
+                maxLength={200}
+                aria-invalid={err('ten') ? true : undefined}
+                aria-describedby={err('ten') ? 'mt-ten-loi' : undefined}
+                className={ctlWithBorder(state.fieldError === 'ten')}
+                autoFocus
+              />
+              {err('ten') && (
+                <p id="mt-ten-loi" role="alert" className="mt-1 text-chu-thich font-bold text-status-bad">
+                  {err('ten')}
+                </p>
+              )}
             </div>
 
-            <Field label={t('moTa')} htmlFor="mt-mo-ta">
-              <textarea id="mt-mo-ta" data-kiem="mt-mo-ta" value={moTa} onChange={(e) => setMoTa(e.target.value)} placeholder={t(laToi ? 'moTaPhToi' : cap === 'lop' ? 'moTaPhLop' : cap === 'truong' ? 'moTaPhTruong' : 'moTaPh')} rows={2} maxLength={1000} className={ctlWithBorder(false)} />
+            <Field label={t('moTa')} htmlFor="mt-mo-ta" error={err('mo_ta')}>
+              <textarea id="mt-mo-ta" data-kiem="mt-mo-ta" value={moTa} onChange={(e) => setMoTa(e.target.value)} placeholder={t(laToi ? 'moTaPhToi' : cap === 'lop' ? 'moTaPhLop' : cap === 'truong' ? 'moTaPhTruong' : 'moTaPh')} rows={2} maxLength={1000} className={ctlWithBorder(!!err('mo_ta'))} />
             </Field>
 
             {/* HƯỚNG LÊN CẤP TRÊN — em/tôi → mục tiêu lớp; lớp → mục tiêu trường. Người lớn: bắt buộc. */}

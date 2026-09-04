@@ -31,7 +31,7 @@ export async function TermCreateForm({
   if (conLai.length === 0) {
     return (
       <p className="text-chu-thich italic text-grey-mid">
-        Năm học {schoolYear} đã khai báo đủ 5 đợt đánh giá cho cơ sở này.
+        {t('namHocDuDot', {nam: schoolYear})}
       </p>
     );
   }
@@ -43,7 +43,7 @@ export async function TermCreateForm({
       <input type="hidden" name="class_id" value={classId} />
 
       <h2 className="mb-2 font-display text-noi-dung font-bold text-navy">
-        Khai báo đợt đánh giá · năm học {schoolYear}
+        {t('khaiBaoDotTitle', {nam: schoolYear})}
       </h2>
 
       {/* NÚT PHẢI ĐỨNG CÙNG HÀNG VỚI CÁC Ô NHẬP.
@@ -79,7 +79,7 @@ export async function TermCreateForm({
         {/* Hai cột trên màn hẹp: nút chiếm trọn dòng thay vì đứng lẻ một nửa dòng cuối. */}
         <div className="col-span-2 flex items-end sm:col-span-1">
           <SubmitButton className={`${btnGold} w-full sm:w-auto`} wrapClass="contents">
-            + Tạo đợt
+            {t('taoDot')}
           </SubmitButton>
         </div>
       </div>

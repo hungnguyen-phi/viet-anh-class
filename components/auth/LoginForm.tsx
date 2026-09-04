@@ -121,12 +121,12 @@ export function LoginForm() {
               type="button"
               onClick={signInGoogle}
               disabled={loading !== false}
-              className="flex h-[50px] w-full cursor-pointer items-center justify-center gap-[11px] rounded-[14px] border border-navy/[0.16] bg-white font-display text-[14.5px] font-bold text-navy shadow-[0_8px_20px_-8px_rgba(38,39,93,0.28)] transition-all hover:brightness-[0.98] active:translate-y-px disabled:opacity-60"
+              className="flex h-[50px] w-full cursor-pointer items-center justify-center gap-[11px] rounded-[14px] border border-navy/[0.16] bg-white font-display text-noi-dung font-bold text-navy shadow-[0_8px_20px_-8px_rgba(38,39,93,0.28)] transition-all hover:brightness-[0.98] active:translate-y-px disabled:opacity-60"
             >
               {loading === 'google' ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
               {t('googleButton')}
             </button>
-            <div className="mt-2 text-center text-[11px] font-semibold text-navy/70">
+            <div className="mt-2 text-center text-chu-thich font-semibold text-navy/70">
               {t('googleHint')}
             </div>
           </>
@@ -154,19 +154,19 @@ export function LoginForm() {
                   placeholder={t('emailPlaceholder')}
                   aria-label={t('emailPlaceholder')}
                   autoFocus
-                  className="h-11 min-w-0 flex-1 rounded-[12px] border border-navy/[0.18] bg-white px-[13px] text-[13.5px] font-bold text-navy outline-none transition-all focus:border-gold focus:shadow-[0_0_0_3px_rgba(249,221,14,0.22)]"
+                  className="h-11 min-w-0 flex-1 rounded-[12px] border border-navy/[0.18] bg-white px-[13px] text-base font-bold text-navy transition-all sm:text-noi-dung focus:border-gold focus:shadow-[0_0_0_3px_rgba(249,221,14,0.22)]"
                 />
                 <button
                   type="submit"
                   disabled={loading !== false}
-                  className="btn-gold inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-[12px] px-4 font-display text-[13px] font-black disabled:opacity-60"
+                  className="btn-gold inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-[12px] px-4 font-display text-than font-black disabled:opacity-60"
                 >
                   {loading === 'magic' && <Loader2 size={15} className="animate-spin" />}
                   {t('sendShort')}
                 </button>
               </form>
             ) : (
-              <div className="flex items-center gap-[9px] text-[12.5px] font-bold text-success-dark">
+              <div className="flex items-center gap-[9px] text-than font-bold text-success-dark">
                 <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-success text-white">
                   <Check size={12} strokeWidth={3.2} />
                 </span>

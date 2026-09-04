@@ -150,7 +150,7 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
       return {ok: false, fieldError: 'buoc', error: t('themItNhatMotBuocCho')};
     const tong = cacBuoc.reduce((s, b) => s + b.phan_tram, 0);
     if (Math.round(tong) !== 100)
-      return {ok: false, fieldError: 'buoc', error: `Phần trăm các bước phải cộng đủ 100% (đang ${Math.round(tong)}%).`};
+      return {ok: false, fieldError: 'buoc', error: t('phanTramBuoc', {dang: Math.round(tong)})};
   }
 
   const ket_thuc = String(formData.get('ket_thuc') ?? '').trim();
@@ -598,7 +598,7 @@ export async function luuViec(_prev: ViecState, formData: FormData): Promise<Vie
       noi_tu_dong: false,
       created_by: me.id,
     });
-    if (eNoi) return {ok: false, error: `Việc đã lưu, nhưng chưa nối vào mục tiêu được: ${friendlyError(eNoi)}`};
+    if (eNoi) return {ok: false, error: t('daLuuChuaNoi', {loi: friendlyError(eNoi)})};
   }
 
   revalidatePath('/[locale]/student', 'page');
@@ -714,7 +714,7 @@ async function ghiLuotChung(
     .insert({thuoc_id: thuocId, student_id: studentId, ngay, gia_tri: giaTri, nguon: 'tay', nguoi_ghi: nguoiGhi})
     .select('id');
   if (error) return {ok: false, error: friendlyError(error)};
-  if (!data || data.length === 0) return {ok: false, error: 'Không ghi được — thử lại nhé.'};
+  if (!data || data.length === 0) return {ok: false, error: 'Không ghi được — thử lại nhé.'};   // helper không export, không có t(); caller hiện qua viec.ghiLoi
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   return {ok: true};

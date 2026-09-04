@@ -11,9 +11,18 @@
 // sẽ bị middleware redirect về /login trước khi tới được đây. Cố ý không sửa: muốn khách lạ thấy
 // 404 thì middleware phải giữ danh sách route hợp lệ, mà danh sách như vậy sẽ âm thầm 404 trang
 // thật mỗi lần thêm route mới. Không tiết lộ route nào tồn tại cho người lạ cũng an toàn hơn.
-export default function NotFound() {
+// Ngoài provider next-intl (chạy trước app/[locale]/layout.tsx) nên KHÔNG dùng được t(): bảng chuỗi
+// tĩnh vi/en, chọn theo cookie NEXT_LOCALE (next-intl đặt) — mặc định vi.
+import {cookies} from 'next/headers';
+const CHU = {
+  vi: {title: 'Không tìm thấy trang', moTa: 'Đường dẫn này không tồn tại hoặc đã được đổi. Kiểm tra lại địa chỉ, hoặc quay về trang chính.', ve: 'Về trang chính'},
+  en: {title: 'Page not found', moTa: 'This address does not exist or has moved. Check the link, or go back to the home page.', ve: 'Back to home'},
+} as const;
+export default async function NotFound() {
+  const lang = (await cookies()).get('NEXT_LOCALE')?.value === 'en' ? 'en' : 'vi';
+  const c = CHU[lang];
   return (
-    <html lang="vi">
+    <html lang={lang}>
       <body
         style={{
           margin: 0,
@@ -29,17 +38,14 @@ export default function NotFound() {
       >
         <div style={{maxWidth: 440, textAlign: 'center'}}>
           <div style={{fontSize: 64, fontWeight: 700, lineHeight: 1, opacity: 0.15}}>404</div>
-          <h1 style={{margin: '12px 0 0', fontSize: 22, fontWeight: 700}}>Không tìm thấy trang</h1>
-          <p style={{margin: '10px 0 0', fontSize: 14, lineHeight: 1.65, opacity: 0.75}}>
-            Đường dẫn này không tồn tại hoặc đã được đổi. Kiểm tra lại địa chỉ, hoặc quay về trang
-            chính.
-          </p>
+          <h1 style={{margin: '12px 0 0', fontSize: 22, fontWeight: 700}}>{c.title}</h1>
+          <p style={{margin: '10px 0 0', fontSize: 14, lineHeight: 1.65, opacity: 0.75}}>{c.moTa}</p>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages --
               CỐ Ý dùng <a>: trang này chạy NGOÀI app/[locale]/layout.tsx, tức ngoài cả provider
               của next-intl. <Link> ở đây sẽ thiếu ngữ cảnh locale; <a> nạp lại trang từ đầu và
               để middleware quyết định locale — chắc chắn đúng trong mọi trường hợp. */}
           <a
-            href="/vi"
+            href={`/${lang}`}
             style={{
               display: 'inline-block',
               marginTop: 24,
@@ -52,7 +58,7 @@ export default function NotFound() {
               background: '#f9dd0e',
             }}
           >
-            Về trang chính
+            {c.ve}
           </a>
         </div>
       </body>

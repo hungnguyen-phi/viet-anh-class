@@ -2,6 +2,7 @@
 
 import {useEffect, useState} from 'react';
 import {AlertTriangle, CheckCircle2, X} from 'lucide-react';
+import {useTranslations} from 'next-intl';
 
 // Bao lâu thì tự tắt. 7 giây: đủ đọc hết một câu tiếng Việt, đủ ngắn để không che nội dung.
 // Báo HỎNG thì KHÔNG tự tắt: đó là việc chưa xong, người dùng phải làm gì đó, và một câu biến
@@ -21,6 +22,7 @@ const TU_TAT_MS = 7_000;
 // Vị trí đo lúc chạy từ khối [data-appnav] thay vì đóng cứng một con số: thanh menu cao khác
 // nhau giữa điện thoại và máy tính, đóng cứng là sai một trong hai.
 export function FlashToast({message, kind = 'ok'}: {message: string; kind?: 'ok' | 'err'}) {
+  const t = useTranslations('common');
   const [hien, setHien] = useState(true);
   const [top, setTop] = useState<number | null>(null);
 
@@ -91,8 +93,8 @@ export function FlashToast({message, kind = 'ok'}: {message: string; kind?: 'ok'
         <button
           type="button"
           onClick={() => setHien(false)}
-          aria-label="Đóng thông báo"
-          className="-mr-1 -mt-0.5 grid h-6 w-6 shrink-0 cursor-pointer place-items-center rounded-[8px] text-grey-mid transition-colors hover:bg-navy/[0.06] hover:text-navy"
+          aria-label={t('dongThongBao')}
+          className="-mr-2 -mt-2 grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-[8px] text-grey-mid transition-colors hover:bg-navy/[0.06] hover:text-navy"
         >
           <X size={14} strokeWidth={2.5} />
         </button>

@@ -210,7 +210,7 @@ export async function FamilyReport({
             </h1>
             {chon?.classes?.name && (
               <p className="mt-1 text-than font-bold text-txt">
-                Lớp <b className="text-navy">{chon.classes.name}</b>
+                {t('lopNhan')} <b className="text-navy">{chon.classes.name}</b>
                 {chon.assessment_terms?.school_year && (
                   <span className="text-grey-mid"> · {chon.assessment_terms.school_year}</span>
                 )}
@@ -267,7 +267,7 @@ export async function FamilyReport({
         <div className="glass rounded-[20px] p-8 text-center">
           <p className="text-sm text-grey-mid">
             {t('nothingPublished')}
-            hiện ở đây.
+            {t('hienODay')}
           </p>
         </div>
       ) : (
@@ -327,7 +327,7 @@ export async function FamilyReport({
               </div>
             )}
             <p className="mt-2 text-chu-thich italic text-grey-mid">
-              Trung bình đã tính theo hệ số của từng loại điểm (×2, ×3 ghi ngay cạnh con điểm).
+              {t('trungBinhHeSo')}
             </p>
           </section>
 
@@ -347,7 +347,7 @@ export async function FamilyReport({
                 )}
                 {chon.conduct_score !== null && (
                   <p className="mt-2.5 text-than font-semibold text-grey-mid">
-                    Điểm rèn luyện:{' '}
+                    {t('diemRenLuyen')}{' '}
                     <b className="font-display text-doc text-navy">{chon.conduct_score}</b>
                     /100
                   </p>
