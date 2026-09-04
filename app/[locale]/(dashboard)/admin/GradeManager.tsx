@@ -11,13 +11,13 @@ type Grade = {id: string; name: string; sort_order: number};
 
 // Style gọn — nhất quán với admin/page.tsx (glass on gradient v3).
 const inp =
-  'min-w-0 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
+  'min-w-0 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-than font-semibold text-navy outline-none transition-all focus:border-navy';
 const navyBtn =
-  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700';
+  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[8px] bg-navy px-2.5 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700';
 const ghost =
-  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/20 bg-white px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
+  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2.5 text-chu-thich font-extrabold text-navy transition-all hover:border-navy';
 const danger =
-  'grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]';
+  'grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-[8px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]';
 
 // Quản lý Khối trong 1 cơ sở.
 //
@@ -43,11 +43,11 @@ export function GradeManager({
   return (
     <div className="mt-2.5 border-t border-navy/[0.08] pt-2.5">
       <div className="mb-1.5 flex flex-wrap items-center gap-2">
-        <span className="text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+        <span className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
           {t('grades')} ({grades.length})
         </span>
         {auto && (
-          <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10px] font-bold text-grey-mid">
+          <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-bold text-grey-mid">
             {t('gradesAuto')}
           </span>
         )}
@@ -78,10 +78,10 @@ export function GradeManager({
             </form>
           ) : (
             <div key={g.id} className="flex items-center gap-1.5">
-              <span className="grid h-5 min-w-5 place-items-center rounded-md bg-navy/[0.06] px-1 text-[10px] font-extrabold text-grey-mid">
+              <span className="grid h-5 min-w-5 place-items-center rounded-[8px] bg-navy/[0.06] px-1 text-chu-thich font-extrabold text-grey-mid">
                 {g.sort_order}
               </span>
-              <span className="flex-1 truncate text-[13px] font-bold text-navy">{g.name}</span>
+              <span className="flex-1 truncate text-than font-bold text-navy">{g.name}</span>
               {/* Tên đọc được KÈM TÊN KHỐI. Một cơ sở có bốn, năm khối, nên nếu cả bốn nút cùng
                   mang tên "Xoá khối" thì người dùng trình đọc màn hình nghe đúng một câu ấy bốn
                   lần và phải đoán mình đang xoá khối nào. Mắt thường phân biệt được nhờ nút nằm
@@ -121,7 +121,7 @@ export function GradeManager({
           ),
         )}
         {grades.length === 0 && (
-          <div className="text-[12px] font-semibold text-grey-mid">
+          <div className="text-chu-thich font-semibold text-grey-mid">
             {levels && levels.length > 0 ? t('noGrade') : t('pickLevelFirst')}
           </div>
         )}

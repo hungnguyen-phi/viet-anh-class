@@ -21,7 +21,7 @@ import {AlertCircle} from 'lucide-react';
 // dưới 16px — 700 em dùng điện thoại, mọi form đều bị. Từ 640px trở lên giữ 14px như cũ.
 // Không còn `outline-none`: vòng focus bàn phím do luật :focus-visible toàn cục (globals.css) vẽ.
 const CTL_BASE =
-  'ctl-h min-w-0 rounded-[10px] border-[1.5px] bg-white px-3 text-base sm:text-sm font-semibold text-navy transition-colors';
+  'ctl-h min-w-0 rounded-[12px] border-[1.5px] bg-white px-3 text-base sm:text-sm font-semibold text-navy transition-colors';
 
 export const BORDER_OK = 'border-navy/15 focus:border-navy';
 export const BORDER_ERR = 'border-status-bad focus:border-status-bad';
@@ -46,7 +46,7 @@ export const ctlWithBorder = (hasError: boolean) =>
 // Cùng `ctl-h` với ô nhập → đứng cùng hàng là thẳng. `shrink-0` để nút không bị bóp méo khi
 // hàng chật; nếu hết chỗ thì cả nút xuống dòng nguyên vẹn thay vì co lại thành hình chữ nhật dẹt.
 const BTN_BASE =
-  'ctl-h inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] px-4 text-[13px] font-extrabold transition-all disabled:cursor-not-allowed disabled:opacity-60';
+  'ctl-h inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] px-4 text-than font-extrabold transition-all disabled:cursor-not-allowed disabled:opacity-60';
 
 export const btnGold = `btn-gold ${BTN_BASE}`;
 export const btnNavy = `${BTN_BASE} bg-navy text-white hover:bg-navy-700`;
@@ -61,7 +61,7 @@ export const btnGhost = `${BTN_BASE} border-[1.5px] border-navy/20 bg-white text
 // Ở đây: cho phép ngắt dòng, `max-w-full` để không vượt thẻ, và đổi chiều cao cứng thành
 // `min-h-11` (vẫn đủ 44px vùng chạm) để hai dòng chữ có chỗ.
 export const btnGhostDai =
-  'inline-flex min-h-11 max-w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-4 py-2.5 text-[13px] font-extrabold text-navy transition-all hover:border-navy';
+  'inline-flex min-h-11 max-w-full cursor-pointer items-center justify-center gap-1.5 rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 py-2.5 text-than font-extrabold text-navy transition-all hover:border-navy';
 export const btnDanger = `${BTN_BASE} border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-3 text-status-bad hover:bg-status-bad/[0.16]`;
 
 // Nút XOÁ chỉ có icon, dùng ở đầu mỗi thẻ (biên bản họp, WIG…).
@@ -77,11 +77,11 @@ export const btnDanger = `${BTN_BASE} border-[1.5px] border-status-bad/30 bg-sta
 // ngay sát liên kết "Sửa"; lớp phủ trong suốt tràn 8px sang trái sẽ nằm ĐÈ lên liên kết đó, và
 // người dùng bấm "Sửa" lại ra hộp thoại xoá. Đổi một lỗi nhỏ lấy một lỗi lớn hơn.
 export const btnIconDanger =
-  'grid h-7 w-7 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]';
+  'grid h-7 w-7 cursor-pointer place-items-center rounded-[8px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]';
 
 // Nhãn: hoa nhỏ, đậm — giữ đúng kiểu nhãn đã dùng ở WigCreateForm.
 export const labelCls =
-  'mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
+  'mb-1 block text-nhan font-extrabold uppercase tracking-wide text-grey-mid';
 
 /**
  * Một ô nhập kèm NHÃN THẬT.
@@ -116,12 +116,12 @@ export function Field({
       </label>
       {children}
       {error ? (
-        <p className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-status-bad">
+        <p className="mt-1 inline-flex items-center gap-1 text-chu-thich font-bold text-status-bad">
           <AlertCircle size={12} strokeWidth={2.5} />
           {error}
         </p>
       ) : hint ? (
-        <p className="mt-1 text-[11px] font-semibold text-grey-mid">{hint}</p>
+        <p className="mt-1 text-chu-thich font-semibold text-grey-mid">{hint}</p>
       ) : null}
     </div>
   );

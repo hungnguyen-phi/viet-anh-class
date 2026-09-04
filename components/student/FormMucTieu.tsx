@@ -275,7 +275,7 @@ export function FormMucTieu3Buoc({
 
   const tenBuoc = [t('phanLaGi'), t('phanDoTheNao'), tf('docLai')];
   const nutPhu =
-    'inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-1 rounded-[12px] border-2 border-navy bg-white px-4 text-[13px] font-extrabold text-navy transition-colors hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold';
+    'inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-1 rounded-[12px] border-2 border-navy bg-white px-4 text-than font-extrabold text-navy transition-colors hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold';
 
   return (
     <Popup title={tieuDe} onClose={onClose} width="max-w-[640px]">
@@ -291,12 +291,12 @@ export function FormMucTieu3Buoc({
                 type="button"
                 onClick={() => nhayToi(so)}
                 aria-current={dangO ? 'step' : undefined}
-                className={`flex min-h-[44px] w-full items-center gap-1.5 rounded-[10px] border-[1.5px] px-2 text-left text-[11.5px] font-extrabold leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+                className={`flex min-h-[44px] w-full items-center gap-1.5 rounded-[12px] border-[1.5px] px-2 text-left text-chu-thich font-extrabold leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
                   dangO ? 'border-navy bg-navy text-white' : daQua ? 'border-success/40 bg-success/[0.10] text-success-dark' : 'border-navy/15 bg-white text-grey-mid'
                 }`}
               >
-                <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10.5px] ${dangO ? 'bg-white/20' : daQua ? 'bg-success text-white' : 'bg-navy/10'}`}>
-                  {daQua ? <Check size={11} strokeWidth={3} /> : so}
+                <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-chu-thich ${dangO ? 'bg-white/20' : daQua ? 'bg-success text-white' : 'bg-navy/10'}`}>
+                  {daQua ? <Check size={12} strokeWidth={2.5} /> : so}
                 </span>
                 <span className="min-w-0 truncate">{nhan}</span>
               </button>
@@ -350,8 +350,8 @@ export function FormMucTieu3Buoc({
         {hoTroBatBuoc && <input type="hidden" name="ho_tro_bat_buoc" value="1" />}
 
         {state.error && !state.fieldError && (
-          <p data-kiem="mt-loi" role="alert" className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
-            <AlertCircle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+          <p data-kiem="mt-loi" role="alert" className="inline-flex items-start gap-1.5 rounded-[12px] bg-status-bad/[0.08] px-2.5 py-2 text-chu-thich font-bold text-status-bad">
+            <AlertCircle size={14} strokeWidth={2.5} className="mt-px shrink-0" />
             {state.error}
           </p>
         )}
@@ -361,17 +361,17 @@ export function FormMucTieu3Buoc({
           <div className="flex flex-col gap-3">
             {mauCuaLop.length > 0 && !dangSua && (
               <div className="rounded-[12px] bg-gold/[0.10] p-2.5">
-                <button type="button" data-kiem="mt-chon-mau" onClick={() => setMoMau((v) => !v)} className="min-h-[32px] text-[12.5px] font-extrabold text-gold-text underline">
+                <button type="button" data-kiem="mt-chon-mau" onClick={() => setMoMau((v) => !v)} className="min-h-[32px] text-than font-extrabold text-gold-text underline">
                   {t('themTuMau')}
                 </button>
                 {moMau && (
                   <div className="mt-2 flex flex-col gap-1.5">
                     {mauCuaLop.map((m) => (
-                      <button key={m.id} type="button" data-kiem="mt-mau" data-id={m.id} onClick={() => chonMau(m)} className="min-h-[44px] rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-left text-[12.5px] font-bold text-navy hover:border-navy">
+                      <button key={m.id} type="button" data-kiem="mt-mau" data-id={m.id} onClick={() => chonMau(m)} className="min-h-[44px] rounded-[12px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-left text-than font-bold text-navy hover:border-navy">
                         {m.ten}
                       </button>
                     ))}
-                    <p className="text-[11px] font-semibold text-grey-mid">{t('mauKhoa')}</p>
+                    <p className="text-chu-thich font-semibold text-grey-mid">{t('mauKhoa')}</p>
                   </div>
                 )}
               </div>
@@ -379,9 +379,9 @@ export function FormMucTieu3Buoc({
 
             {/* NHÓM — 4 chip; mở từ (+) của một ô lĩnh vực thì KHOÁ nhóm ấy. */}
             <div>
-              <p className="mb-1.5 text-[12px] font-bold text-grey-mid">{t('linhVuc')}</p>
+              <p className="mb-1.5 text-chu-thich font-bold text-grey-mid">{t('linhVuc')}</p>
               {khoaLinhVuc && !dangSua ? (
-                <span data-kiem="mt-buoc-1" className="inline-flex items-center rounded-full bg-navy/[0.06] px-3 py-1 text-[12.5px] font-extrabold text-navy">
+                <span data-kiem="mt-buoc-1" className="inline-flex items-center rounded-full bg-navy/[0.06] px-3 py-1 text-than font-extrabold text-navy">
                   {nhanTheoArea[linhVuc] ?? linhVuc}
                 </span>
               ) : (
@@ -403,13 +403,13 @@ export function FormMucTieu3Buoc({
             {/* TÊN — kèm đèn gợi ý SMART. */}
             <div>
               <div className="mb-1 flex items-center gap-1.5">
-                <label htmlFor="mt-ten" className="text-[12px] font-bold text-grey-mid">{t('nhapMucTieu')}</label>
+                <label htmlFor="mt-ten" className="text-chu-thich font-bold text-grey-mid">{t('nhapMucTieu')}</label>
                 <button type="button" data-kiem="mt-smart" onClick={() => setMoSmart((v) => !v)} aria-label={t('smartTitle')} aria-expanded={moSmart} className="cham-44 grid h-8 w-8 cursor-pointer place-items-center rounded-full text-gold-deep hover:bg-gold/20 hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
-                  <Lightbulb size={15} strokeWidth={2.5} />
+                  <Lightbulb size={16} strokeWidth={2.5} />
                 </button>
               </div>
               {moSmart && (
-                <div className="mb-2 rounded-[10px] bg-gold/[0.12] p-2.5 text-[11.5px] font-semibold leading-relaxed text-navy">
+                <div className="mb-2 rounded-[12px] bg-gold/[0.12] p-2.5 text-chu-thich font-semibold leading-relaxed text-navy">
                   <p className="mb-1 font-extrabold">{t('smartTitle')}</p>
                   <ul className="ml-3.5 list-disc space-y-0.5">
                     <li>{t('smartS')}</li>
@@ -423,7 +423,7 @@ export function FormMucTieu3Buoc({
                 </div>
               )}
               <input id="mt-ten" data-kiem="mt-ten" name="ten" value={ten} onChange={(e) => setTen(e.target.value)} placeholder={t('tenPh')} maxLength={200} className={ctlWithBorder(state.fieldError === 'ten')} autoFocus />
-              {err('ten') && <p className="mt-1 text-[12px] font-bold text-status-bad">{err('ten')}</p>}
+              {err('ten') && <p className="mt-1 text-chu-thich font-bold text-status-bad">{err('ten')}</p>}
             </div>
 
             <Field label={t('moTa')} htmlFor="mt-mo-ta">
@@ -435,7 +435,7 @@ export function FormMucTieu3Buoc({
               <Field label={cap === 'lop' ? t('huongTruongCho') : t('hoTroCho')} htmlFor="mt-ho-tro" error={err('ho_tro_cho')}>
                 <ChonCuon id="mt-ho-tro" name="_ho_tro_ui" value={hoTroCho} onChange={setHoTroCho} danhSach={mucTieuLop.map((m) => ({ma: m.id, nhan: m.ten}))} chuaChon={cap === 'lop' ? t('huongTruongChon') : t('hoTroChon')} loi={state.fieldError === 'ho_tro_cho'} />
                 <span data-kiem="mt-ho-tro" className="hidden" />
-                {cap !== 'lop' && <p className="mt-1 text-[11px] font-semibold text-grey-mid">{t(laToi ? 'hoTroGiaiThichToi' : 'hoTroGiaiThich')}</p>}
+                {cap !== 'lop' && <p className="mt-1 text-chu-thich font-semibold text-grey-mid">{t(laToi ? 'hoTroGiaiThichToi' : 'hoTroGiaiThich')}</p>}
               </Field>
             )}
           </div>
@@ -445,7 +445,7 @@ export function FormMucTieu3Buoc({
         {buoc === 2 && (
           <div className="flex flex-col gap-3">
             <div>
-              <p className="mb-1.5 text-[12px] font-bold text-grey-mid">{t('loaiMocLabel')}</p>
+              <p className="mb-1.5 text-chu-thich font-bold text-grey-mid">{t('loaiMocLabel')}</p>
               <div data-kiem="mt-loai-moc" className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
                 {[
                   {ma: 'do_luong', nhan: t('mocDoLuong'), kiem: 'mt-moc-do-luong'},
@@ -455,50 +455,50 @@ export function FormMucTieu3Buoc({
                   <div key={o.ma} className="relative">
                     <OChon chon={loaiMoc === o.ma} onClick={() => setLoaiMoc(o.ma)} nhan={o.nhan} kiem={o.kiem} />
                     <button type="button" data-kiem={`${o.kiem}-help`} onClick={() => setMoHelp((v) => (v === o.ma ? null : o.ma))} aria-label={t('giaiThichLoai', {loai: o.nhan})} aria-expanded={moHelp === o.ma} className="cham-44 absolute right-0.5 top-0.5 grid h-8 w-8 cursor-pointer place-items-center rounded-full text-grey-mid transition-colors hover:bg-navy/10 hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
-                      <HelpCircle size={15} strokeWidth={2.5} />
+                      <HelpCircle size={16} strokeWidth={2.5} />
                     </button>
                   </div>
                 ))}
               </div>
               {moHelp ? (
-                <p data-kiem="mt-loai-giai" className="mt-1.5 rounded-[10px] bg-gold/[0.12] px-2.5 py-2 text-[12px] font-semibold leading-relaxed text-navy">
+                <p data-kiem="mt-loai-giai" className="mt-1.5 rounded-[12px] bg-gold/[0.12] px-2.5 py-2 text-chu-thich font-semibold leading-relaxed text-navy">
                   {moHelp === 'do_luong' ? t(kNL('mocDoLuongGiai')) : moHelp === 'hanh_dong' ? t(kNL('mocHanhDongGiai')) : t(kNL('mocKeHoachGiai'))}
                 </p>
               ) : (
-                <p className="mt-1 text-[11px] font-semibold text-grey-mid">
+                <p className="mt-1 text-chu-thich font-semibold text-grey-mid">
                   {loaiMoc === 'do_luong' ? t('mocDoLuongGt') : loaiMoc === 'hanh_dong' ? t('mocHanhDongGt') : t('mocKeHoachGt')}
                 </p>
               )}
             </div>
 
             {loaiMoc === 'hanh_dong' && (
-              <p className="rounded-[10px] bg-navy/[0.05] px-2.5 py-2 text-[12px] font-semibold text-grey-mid">{t('mocHanhDongNote')}</p>
+              <p className="rounded-[12px] bg-navy/[0.05] px-2.5 py-2 text-chu-thich font-semibold text-grey-mid">{t('mocHanhDongNote')}</p>
             )}
 
             {loaiMoc === 'ke_hoach' && (
-              <div data-kiem="mt-cac-buoc" className="rounded-[14px] border-[1.5px] border-navy/10 p-3">
+              <div data-kiem="mt-cac-buoc" className="rounded-[16px] border-[1.5px] border-navy/10 p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-[12px] font-bold text-grey-mid">{t('cacBuoc')}</p>
-                  <span className={`text-[12px] font-extrabold ${tongBuoc === 100 ? 'text-success' : 'text-status-bad'}`}>{tongBuoc}%</span>
+                  <p className="text-chu-thich font-bold text-grey-mid">{t('cacBuoc')}</p>
+                  <span className={`text-chu-thich font-extrabold ${tongBuoc === 100 ? 'text-success' : 'text-status-bad'}`}>{tongBuoc}%</span>
                 </div>
                 <div className="flex flex-col gap-2">
                   {buocList.map((b, i) => (
-                    <div key={i} className="rounded-[10px] border-[1.5px] border-navy/10 p-2">
+                    <div key={i} className="rounded-[12px] border-[1.5px] border-navy/10 p-2">
                       <div className="flex items-center gap-1.5">
                         <input value={b.tieu_de} onChange={(e) => setBuocList((l) => l.map((s, j) => (j === i ? {...s, tieu_de: e.target.value} : s)))} placeholder={t('buocTieuDePh')} maxLength={200} data-kiem="mt-buoc-ten" className={`${inputInline} min-w-0 flex-1`} />
                         <input value={b.phan_tram} onChange={(e) => setBuocList((l) => l.map((s, j) => (j === i ? {...s, phan_tram: e.target.value} : s)))} type="number" min="0" max="100" inputMode="numeric" placeholder="%" aria-label={t('buocPhanTram')} className={`${inputInline} w-16`} />
-                        <span className="text-[12px] font-bold text-grey-mid">%</span>
+                        <span className="text-chu-thich font-bold text-grey-mid">%</span>
                         <button type="button" onClick={() => setBuocList((l) => l.filter((_, j) => j !== i))} aria-label={t('buocXoa')} className="cham-44 grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-[8px] text-status-bad hover:bg-status-bad/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
-                          <Trash2 size={13} strokeWidth={2.5} />
+                          <Trash2 size={14} strokeWidth={2.5} />
                         </button>
                       </div>
                     </div>
                   ))}
                 </div>
-                <button type="button" data-kiem="mt-them-buoc" onClick={() => setBuocList((l) => [...l, buocRong()])} className="mt-2 inline-flex min-h-[40px] cursor-pointer items-center gap-1 rounded-[10px] border-[1.5px] border-dashed border-navy/25 px-3 text-[12px] font-extrabold text-navy hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
+                <button type="button" data-kiem="mt-them-buoc" onClick={() => setBuocList((l) => [...l, buocRong()])} className="mt-2 inline-flex min-h-[40px] cursor-pointer items-center gap-1 rounded-[12px] border-[1.5px] border-dashed border-navy/25 px-3 text-chu-thich font-extrabold text-navy hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
                   + {t('themBuoc')}
                 </button>
-                {err('buoc') && <p className="mt-1.5 text-[12px] font-bold text-status-bad">{err('buoc')}</p>}
+                {err('buoc') && <p className="mt-1.5 text-chu-thich font-bold text-status-bad">{err('buoc')}</p>}
               </div>
             )}
 
@@ -532,12 +532,12 @@ export function FormMucTieu3Buoc({
         {buoc === 3 && (
           <div className="flex flex-col gap-3">
             <div data-kiem="mt-buoc-3">
-              <p className="mb-1.5 text-[13px] font-extrabold text-navy">{t(kNL('buoc3'))}</p>
-              <div data-kiem="mt-cau-rap-lai" className={`rounded-[14px] px-3.5 py-3 text-[13px] font-bold leading-relaxed ${cauRap ? 'bg-gold/[0.14] text-navy' : 'bg-navy/[0.04] italic text-grey-mid'}`}>
+              <p className="mb-1.5 text-than font-extrabold text-navy">{t(kNL('buoc3'))}</p>
+              <div data-kiem="mt-cau-rap-lai" className={`rounded-[16px] px-3.5 py-3 text-than font-bold leading-relaxed ${cauRap ? 'bg-gold/[0.14] text-navy' : 'bg-navy/[0.04] italic text-grey-mid'}`}>
                 {cauRap ?? t(kNL('cauChotTrong'))}
               </div>
               {/* Tóm tắt những gì đã chọn — nhìn là biết, không phải lùi bước. */}
-              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]">
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-chu-thich">
                 <dt className="font-extrabold text-grey-mid">{t('linhVuc')}</dt>
                 <dd className="font-bold text-navy">{nhanTheoArea[linhVuc] ?? linhVuc}</dd>
                 <dt className="font-extrabold text-grey-mid">{t('nhapMucTieu')}</dt>
@@ -558,16 +558,16 @@ export function FormMucTieu3Buoc({
                     <span key={i} className={`h-2 w-4 rounded-full ${c.dat ? 'bg-success' : 'bg-navy/15'}`} />
                   ))}
                 </span>
-                <span className="text-[12.5px] font-extrabold text-navy">{t('chatLuong')} · {phanTram}%</span>
-                <Info size={13} strokeWidth={2.5} className="ml-auto text-grey-mid" />
+                <span className="text-than font-extrabold text-navy">{t('chatLuong')} · {phanTram}%</span>
+                <Info size={14} strokeWidth={2.5} className="ml-auto text-grey-mid" />
               </button>
               {moChatLuong && (
                 <div className="mt-2 flex flex-col gap-1.5 border-t border-navy/10 pt-2">
-                  <p className="text-[11.5px] font-semibold text-grey-mid">{t('chatLuongMo')}</p>
+                  <p className="text-chu-thich font-semibold text-grey-mid">{t('chatLuongMo')}</p>
                   {tieuChi.map((c) => (
-                    <div key={c.key} className="flex items-start gap-1.5 text-[12px] font-semibold">
+                    <div key={c.key} className="flex items-start gap-1.5 text-chu-thich font-semibold">
                       <span className={`mt-px grid h-4 w-4 shrink-0 place-items-center rounded-full ${c.dat ? 'bg-success text-white' : 'border-[1.5px] border-navy/25 text-transparent'}`}>
-                        <Check size={10} strokeWidth={3} />
+                        <Check size={12} strokeWidth={2.5} />
                       </span>
                       <span className={c.dat ? 'text-grey-mid line-through' : 'text-navy'}>{t(c.key)}</span>
                     </div>
@@ -579,8 +579,8 @@ export function FormMucTieu3Buoc({
         )}
 
         {loiBuoc && (
-          <p role="alert" className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
-            <AlertCircle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+          <p role="alert" className="inline-flex items-start gap-1.5 rounded-[12px] bg-status-bad/[0.08] px-2.5 py-2 text-chu-thich font-bold text-status-bad">
+            <AlertCircle size={14} strokeWidth={2.5} className="mt-px shrink-0" />
             {loiBuoc}
           </p>
         )}
@@ -593,13 +593,13 @@ export function FormMucTieu3Buoc({
               {tf('quayLai')}
             </button>
           ) : (
-            <button type="button" onClick={onClose} className="inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-[12px] border-2 border-grey-mid/40 bg-white px-4 text-[13px] font-extrabold text-grey-mid transition-colors hover:bg-navy/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
+            <button type="button" onClick={onClose} className="inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-[12px] border-2 border-grey-mid/40 bg-white px-4 text-than font-extrabold text-grey-mid transition-colors hover:bg-navy/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
               {t('thoi')}
             </button>
           )}
-          <span className={`${buoc < 3 ? 'ml-auto' : ''} text-[11px] font-extrabold text-grey-mid`}>{tf('buocCua', {n: buoc})}</span>
+          <span className={`${buoc < 3 ? 'ml-auto' : ''} text-chu-thich font-extrabold text-grey-mid`}>{tf('buocCua', {n: buoc})}</span>
           {buoc < 3 ? (
-            <button type="button" data-kiem="mt-tiep" onClick={tiep} className="btn-gold inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-1 rounded-[12px] px-4 text-[13px] font-extrabold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy">
+            <button type="button" data-kiem="mt-tiep" onClick={tiep} className="btn-gold inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-1 rounded-[12px] px-4 text-than font-extrabold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy">
               {tf('tiep')}
               <ChevronRight size={14} strokeWidth={2.5} />
             </button>
@@ -610,7 +610,7 @@ export function FormMucTieu3Buoc({
               <button type="submit" name="action" value="nhap" className={nutPhu}>
                 {t('luuNhap')}
               </button>
-              <SubmitButton className="btn-gold min-h-[44px] rounded-[12px] px-4 text-[13px] font-extrabold" name="action" value="gui" wrapClass="contents">
+              <SubmitButton className="btn-gold min-h-[44px] rounded-[12px] px-4 text-than font-extrabold" name="action" value="gui" wrapClass="contents">
                 <span data-kiem="mt-gui">{laChinhEm ? t('gui') : t('luu')}</span>
               </SubmitButton>
             </span>
@@ -624,7 +624,7 @@ export function FormMucTieu3Buoc({
           <FormTaiCho action={cap === 'lop' ? xoaMucTieuLop : xoaMucTieu} xacNhan={t('xoaHoi')} nhanXacNhan={t('xoa')} nguyHiem anThanhCong onOk={() => onClose()} className="flex flex-col items-end gap-1">
             <input type="hidden" name="muc_tieu_id" value={dangSua.id ?? ''} />
             {cap === 'lop' ? <input type="hidden" name="class_id" value={classId} /> : <input type="hidden" name="student_id" value={studentId} />}
-            <NutGui className="inline-flex cursor-pointer items-center gap-1 rounded-[10px] px-3 text-[12px] font-extrabold text-status-bad hover:bg-status-bad/[0.08] focus-visible:ring-2 focus-visible:ring-gold">
+            <NutGui className="inline-flex cursor-pointer items-center gap-1 rounded-[12px] px-3 text-chu-thich font-extrabold text-status-bad hover:bg-status-bad/[0.08] focus-visible:ring-2 focus-visible:ring-gold">
               <Trash2 size={12} strokeWidth={2.5} />
               {t('xoa')}
             </NutGui>
@@ -643,7 +643,7 @@ function OChon({chon, onClick, nhan, kiem}: {chon: boolean; onClick: () => void;
       data-kiem={kiem}
       onClick={onClick}
       aria-pressed={chon}
-      className={`min-h-[44px] w-full cursor-pointer rounded-[10px] border-[1.5px] px-2.5 py-2 text-[12.5px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+      className={`min-h-[44px] w-full cursor-pointer rounded-[12px] border-[1.5px] px-2.5 py-2 text-than font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
         chon ? 'border-navy bg-navy/[0.06] text-navy' : 'border-navy/15 bg-white text-grey-mid hover:border-navy/40'
       }`}
     >

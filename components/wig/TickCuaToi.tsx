@@ -85,7 +85,7 @@ export function TickCuaToi({
             disabled={!moKhoa || sau || bay}
             aria-pressed={on}
             aria-label={`${thu} ${d.slice(8, 10)}/${d.slice(5, 7)}`}
-            className={`grid h-11 w-11 place-items-center rounded-[9px] border-[1.5px] text-[11.5px] font-extrabold transition-all disabled:cursor-not-allowed ${
+            className={`grid h-11 w-11 place-items-center rounded-[8px] border-[1.5px] text-chu-thich font-extrabold transition-all disabled:cursor-not-allowed ${
               on
                 ? 'border-transparent bg-gold text-navy shadow-[var(--shadow-gold)]'
                 : sau || !moKhoa

@@ -88,24 +88,24 @@ export function FormTaiCho({
       <form ref={formRef} action={formAction} onSubmit={onSubmit} className={className}>
         <NguCanh.Provider value={state}>{typeof children === 'function' ? children(state) : children}</NguCanh.Provider>
         {state.error && !state.fieldError && (
-          <p role="alert" className="w-full text-[12px] font-bold text-status-bad">
+          <p role="alert" className="w-full text-chu-thich font-bold text-status-bad">
             {state.error}
           </p>
         )}
         {hienOk && state.message && (
-          <p role="status" className="w-full text-[11.5px] font-semibold text-success-dark">
+          <p role="status" className="w-full text-chu-thich font-semibold text-success-dark">
             {state.message}
           </p>
         )}
       </form>
       {hoi && xacNhan && (
         <Popup title={nhanXacNhan ?? tc('xacNhan')} onClose={() => setHoi(false)} width="max-w-[400px]">
-          <p className="text-[14px] font-semibold leading-relaxed text-navy">{xacNhan}</p>
+          <p className="text-noi-dung font-semibold leading-relaxed text-navy">{xacNhan}</p>
           <div className="mt-4 flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setHoi(false)}
-              className="min-h-[44px] cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-[13px] font-extrabold text-navy transition-colors hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+              className="min-h-[44px] cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-than font-extrabold text-navy transition-colors hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
             >
               {tc('thoi')}
             </button>
@@ -113,7 +113,7 @@ export function FormTaiCho({
               type="button"
               onClick={dongY}
               autoFocus
-              className={`min-h-[44px] cursor-pointer rounded-[12px] px-4 text-[13px] font-extrabold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+              className={`min-h-[44px] cursor-pointer rounded-[12px] px-4 text-than font-extrabold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
                 nguyHiem ? 'bg-status-bad text-white hover:bg-status-bad/90' : 'bg-navy text-white hover:bg-navy/90'
               }`}
             >
@@ -173,7 +173,7 @@ export function ONhap({
 }
 
 /** Dòng lỗi của một ô (fieldError === ten) — đặt ngay dưới ô trong thẻ server. */
-export function LoiO({ten, className = 'w-full text-[12px] font-bold text-status-bad'}: {ten: string; className?: string}) {
+export function LoiO({ten, className = 'w-full text-chu-thich font-bold text-status-bad'}: {ten: string; className?: string}) {
   const st = useTrangThaiForm();
   if (st.fieldError !== ten || !st.error) return null;
   return <p role="alert" className={className}>{st.error}</p>;

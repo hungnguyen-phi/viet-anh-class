@@ -63,11 +63,11 @@ export function SuaCamKetToi({
                   <Field label={t('soHuaLabel')} htmlFor="sct-so" error={state.fieldError === 'so_hua' ? state.error : null}>
                     <span className="inline-flex items-center gap-2">
                       <input id="sct-so" type="number" name="so_hua" step="any" min="0" value={so} onChange={(e) => setSo(e.target.value)} className={`${ctlWithBorder(state.fieldError === 'so_hua')} max-w-[160px]`} />
-                      <span className="text-[13px] font-bold text-grey-mid">{tenDonVi ?? ''}</span>
+                      <span className="text-than font-bold text-grey-mid">{tenDonVi ?? ''}</span>
                     </span>
                   </Field>
                 )}
-                <NutGui className="mt-1 self-start rounded-[12px] bg-navy px-4 text-[13px] font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
+                <NutGui className="mt-1 self-start rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
                   {t('luuSua')}
                 </NutGui>
               </>
@@ -76,8 +76,8 @@ export function SuaCamKetToi({
           <div className="mt-3 flex items-center justify-end gap-2 border-t border-navy/10 pt-3">
             <FormTaiCho action={xoaCamKetToi} xacNhan={t('xoaHoi')} nhanXacNhan={t('xoaCamKet')} nguyHiem onOk={() => setMo(false)} anThanhCong className="flex flex-col items-end gap-1">
               {ctx}
-              <NutGui className="inline-flex cursor-pointer items-center gap-1 rounded-[10px] px-3 text-[12.5px] font-extrabold text-status-bad hover:bg-status-bad/[0.08] focus-visible:ring-2 focus-visible:ring-gold">
-                <Trash2 size={13} strokeWidth={2.5} />
+              <NutGui className="inline-flex cursor-pointer items-center gap-1 rounded-[12px] px-3 text-than font-extrabold text-status-bad hover:bg-status-bad/[0.08] focus-visible:ring-2 focus-visible:ring-gold">
+                <Trash2 size={14} strokeWidth={2.5} />
                 {t('xoaCamKet')}
               </NutGui>
             </FormTaiCho>

@@ -86,16 +86,16 @@ function MoodCard({
       role="dialog"
       aria-modal="true"
       aria-labelledby="mood-title"
-      className="w-[440px] max-w-full rounded-[26px] bg-white p-6 pb-5 shadow-pop outline-none ring-1 ring-navy/10"
+      className="w-[440px] max-w-full rounded-[20px] bg-white p-6 pb-5 shadow-pop outline-none ring-1 ring-navy/10"
       onClick={(e) => e.stopPropagation()}
     >
-      <div id="mood-title" className="text-center font-display text-[21px] font-bold text-navy">{t('mood')}</div>
-      <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[14px] font-extrabold text-navy">
+      <div id="mood-title" className="text-center font-display text-dau font-bold text-navy">{t('mood')}</div>
+      <div className="mt-1.5 flex items-center justify-center gap-1.5 text-noi-dung font-extrabold text-navy">
         <Clock size={14} strokeWidth={2.5} />
         {now}
       </div>
       {required && (
-        <div className="mt-2 text-center text-[12.5px] font-bold text-gold-text">{t('moodRequired')}</div>
+        <div className="mt-2 text-center text-than font-bold text-gold-text">{t('moodRequired')}</div>
       )}
       <div className="mt-4 flex justify-center gap-2.5">
         {DISPLAY.map((k) => {
@@ -108,14 +108,14 @@ function MoodCard({
               title={t(`levels.${k}`)}
               aria-label={t(`levels.${k}`)}
               onClick={() => onPick(k)}
-              className="grid h-[70px] w-[60px] cursor-pointer place-items-center rounded-[18px] transition-all"
+              className="grid h-[70px] w-[60px] cursor-pointer place-items-center rounded-[20px] transition-all"
               style={{
                 background: m.bg,
                 color: m.fg,
                 opacity: draft === null || active ? 1 : 0.4,
                 transform: active ? 'scale(1.12)' : 'scale(1)',
                 boxShadow: active
-                  ? '0 0 0 3px #26275d, 0 8px 20px rgba(38,39,93,0.3)'
+                  ? '0 0 0 3px var(--color-navy), 0 8px 20px rgba(38,39,93,0.3)'
                   : '0 4px 12px rgba(38,39,93,0.18)',
               }}
             >
@@ -128,7 +128,7 @@ function MoodCard({
         <div className="mt-3 text-center text-sm font-bold text-navy">{t(`levels.${draft}`)}</div>
       )}
       {err && (
-        <div className="mt-3 flex items-center justify-center gap-1.5 rounded-[12px] border border-status-bad/30 bg-status-bad/[0.08] px-3 py-2 text-center text-[12.5px] font-bold text-status-bad">
+        <div className="mt-3 flex items-center justify-center gap-1.5 rounded-[12px] border border-status-bad/30 bg-status-bad/[0.08] px-3 py-2 text-center text-than font-bold text-status-bad">
           <WifiOff size={14} strokeWidth={2.5} className="shrink-0" />
           {err}
         </div>
@@ -137,9 +137,9 @@ function MoodCard({
         type="button"
         onClick={onSend}
         disabled={!draft || saving}
-        className="btn-gold mx-auto mt-4 flex h-11 cursor-pointer items-center gap-2 rounded-xl px-8 font-display text-[14px] font-bold disabled:opacity-45"
+        className="btn-gold mx-auto mt-4 flex h-11 cursor-pointer items-center gap-2 rounded-[12px] px-8 font-display text-noi-dung font-bold disabled:opacity-45"
       >
-        {saving && <Loader2 size={15} className="animate-spin" />}
+        {saving && <Loader2 size={16} className="animate-spin" />}
         {draft ? t('moodSend') : t('moodPickFirst')}
       </button>
     </div>
@@ -390,11 +390,11 @@ export function MoodCheckin({
       {/* Inline trong hero */}
       <div className="flex flex-col justify-center gap-2.5">
         <div className="flex items-center gap-2">
-          <span className="whitespace-nowrap text-[13px] font-extrabold text-gold-text">
+          <span className="whitespace-nowrap text-than font-extrabold text-gold-text">
             {t('mood')}
           </span>
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-navy/[0.07] px-2.5 py-1 text-[11px] font-extrabold text-navy">
-            <Clock size={11} strokeWidth={2.5} />
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-navy/[0.07] px-2.5 py-1 text-chu-thich font-extrabold text-navy">
+            <Clock size={12} strokeWidth={2.5} />
             {now}
           </span>
           {suaDuoc && (
@@ -404,9 +404,9 @@ export function MoodCheckin({
                 setDraft(mood);
                 setOpen(true);
               }}
-              className="inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-navy/20 bg-white/50 px-3 text-[12px] font-extrabold text-navy transition-colors hover:border-navy hover:bg-white"
+              className="inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-navy/20 bg-white/50 px-3 text-chu-thich font-extrabold text-navy transition-colors hover:border-navy hover:bg-white"
             >
-              <Pencil size={11} strokeWidth={2.5} />
+              <Pencil size={12} strokeWidth={2.5} />
               {t('moodEdit')}
             </button>
           )}
@@ -436,7 +436,7 @@ export function MoodCheckin({
                   background: m.bg,
                   color: m.fg,
                   opacity: active ? 1 : suaDuoc ? 0.4 : 0.25,
-                  boxShadow: active ? '0 0 0 2.5px #26275d' : 'none',
+                  boxShadow: active ? '0 0 0 2.5px var(--color-navy)' : 'none',
                 }}
               >
                 <Face paths={m.paths} size={24} />
@@ -449,11 +449,11 @@ export function MoodCheckin({
             thay điểm danh thì giờ bấm CHÍNH LÀ bằng chứng em có mặt. Em phải nhìn thấy nó, và
             giáo viên hỏi lại thì em có cái để chỉ. */}
         {gioBamVN && (
-          <div className="flex items-center justify-center gap-1.5 text-[11.5px] font-bold">
-            <Clock size={11} strokeWidth={2.6} className="text-grey-mid" />
+          <div className="flex items-center justify-center gap-1.5 text-chu-thich font-bold">
+            <Clock size={12} strokeWidth={2.5} className="text-grey-mid" />
             <span className="text-grey-mid">{t('moodAt', {time: gioBamVN})}</span>
             {trangThaiCua.muon && (
-              <span className="rounded-full bg-warn/[0.16] px-2 py-0.5 text-[10.5px] font-extrabold text-navy">
+              <span className="rounded-full bg-warn/[0.16] px-2 py-0.5 text-chu-thich font-extrabold text-navy">
                 {t('moodLate')}
               </span>
             )}
@@ -461,13 +461,13 @@ export function MoodCheckin({
         )}
         {/* Cửa đã đóng và em chưa bấm: nói giờ, đừng để một hàng icon bấm không ăn. */}
         {!trangThaiCua.mo && mood === null && (
-          <p className="text-center text-[11.5px] font-semibold italic text-grey-mid">
+          <p className="text-center text-chu-thich font-semibold italic text-grey-mid">
             {cauDongCua}
           </p>
         )}
         {/* Đã bấm và đã khoá: nói rõ vì sao không sửa được nữa. */}
         {mood !== null && trangThaiCua.khoaCamXuc && canEdit && (
-          <p className="text-center text-[11px] font-semibold italic text-grey-mid">
+          <p className="text-center text-chu-thich font-semibold italic text-grey-mid">
             {t('moodLocked')}
           </p>
         )}

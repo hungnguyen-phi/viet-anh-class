@@ -40,13 +40,13 @@ export function WeekdayPicker({
               defaultChecked={on.has(d)}
               className="peer sr-only"
             />
-            <span className="grid h-9 w-11 select-none place-items-center rounded-[10px] border-[1.5px] border-navy/15 bg-white text-[11.5px] font-extrabold text-grey-mid transition-all hover:border-navy peer-checked:border-transparent peer-checked:bg-gold peer-checked:text-navy peer-focus-visible:ring-2 peer-focus-visible:ring-navy/40">
+            <span className="grid h-9 w-11 select-none place-items-center rounded-[12px] border-[1.5px] border-navy/15 bg-white text-chu-thich font-extrabold text-grey-mid transition-all hover:border-navy peer-checked:border-transparent peer-checked:bg-gold peer-checked:text-navy peer-focus-visible:ring-2 peer-focus-visible:ring-navy/40">
               {dayLabels[i]}
             </span>
           </label>
         ))}
       </div>
-      {hint && <p className="mt-1 text-[11px] font-semibold text-grey-mid">{hint}</p>}
+      {hint && <p className="mt-1 text-chu-thich font-semibold text-grey-mid">{hint}</p>}
     </div>
   );
 }

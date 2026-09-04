@@ -82,7 +82,7 @@ export async function PendingGrants() {
 
       {/* Nói thẳng giới hạn, ngay dưới bảng. Không nói thì người khai ngồi đợi một email mà hệ
           thống chưa bao giờ gửi — đúng thứ đã xảy ra. */}
-      <p className="mt-2.5 rounded-[10px] bg-warn/[0.10] px-3 py-2 text-[12px] font-semibold leading-relaxed text-navy">
+      <p className="mt-2.5 rounded-[12px] bg-warn/[0.10] px-3 py-2 text-chu-thich font-semibold leading-relaxed text-navy">
         {t('grantsNoMailWarning')}
       </p>
     </Disclosure>

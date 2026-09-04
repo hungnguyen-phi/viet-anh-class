@@ -53,12 +53,12 @@ export function XacNhanForm({
       </form>
       {mo && (
         <Popup title={nhanDongY ?? t('xacNhan')} onClose={() => setMo(false)} width="max-w-[400px]">
-          <p className="text-[14px] font-semibold leading-relaxed text-navy">{hoi}</p>
+          <p className="text-noi-dung font-semibold leading-relaxed text-navy">{hoi}</p>
           <div className="mt-4 flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setMo(false)}
-              className="min-h-[44px] cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-[13px] font-extrabold text-navy transition-colors hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+              className="min-h-[44px] cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-than font-extrabold text-navy transition-colors hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
             >
               {t('thoi')}
             </button>
@@ -66,7 +66,7 @@ export function XacNhanForm({
               type="button"
               onClick={dongY}
               autoFocus
-              className={`min-h-[44px] cursor-pointer rounded-[12px] px-4 text-[13px] font-extrabold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+              className={`min-h-[44px] cursor-pointer rounded-[12px] px-4 text-than font-extrabold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
                 nguyHiem ? 'bg-status-bad text-white hover:bg-status-bad/90' : 'bg-navy text-white hover:bg-navy/90'
               }`}
             >

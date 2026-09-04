@@ -22,10 +22,10 @@ const SEL =
 function O({label, children, htmlFor}: {label: string; children: React.ReactNode; htmlFor: string}) {
   return (
     <label htmlFor={htmlFor} className="flex min-w-0 flex-col gap-0.5">
-      <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid">{label}</span>
+      <span className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{label}</span>
       <span className="relative block">
         {children}
-        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-navy/60">▼</span>
+        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-chu-thich text-navy/60">▼</span>
       </span>
     </label>
   );

@@ -154,11 +154,11 @@ export function HangViec({
   return (
     <div className={`px-3.5 py-3 ${vien ? 'border-t border-navy/10' : ''}`}>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="min-w-0 flex-1 text-[14px] font-extrabold text-navy">{v.ten}</span>
+        <span className="min-w-0 flex-1 text-noi-dung font-extrabold text-navy">{v.ten}</span>
         {v.chi_xem && (
-          <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10px] font-bold text-grey-mid">{tv('chipLop')}</span>
+          <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-bold text-grey-mid">{tv('chipLop')}</span>
         )}
-        {ttNhan && <span className={`text-[11.5px] font-extrabold ${ttMau}`}>{ttNhan}</span>}
+        {ttNhan && <span className={`text-chu-thich font-extrabold ${ttMau}`}>{ttNhan}</span>}
         {laChinhEm && !v.chi_xem && studentId && (
           <SuaViecEm
             studentId={studentId}
@@ -174,7 +174,7 @@ export function HangViec({
           />
         )}
       </div>
-      <div className="mt-0.5 text-[11.5px] font-semibold text-grey-mid">
+      <div className="mt-0.5 text-chu-thich font-semibold text-grey-mid">
         {kieng
           ? `${tv('chiTieuKhongQua', {n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay'), ky: kyNhan})} · ${tv('tuanNayDuoc', {so: so(v.gia), n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay')})}`
           : tv('tuanNayDuoc', {so: so(v.gia), n: so(v.chi_tieu), dv: v.ten_don_vi || tv('donViNgay')})}
@@ -182,7 +182,7 @@ export function HangViec({
 
       {/* 12 ô tuần */}
       <div className="mt-2">
-        <div className="text-[10px] font-bold text-grey-mid/70">{tv('doThi')}</div>
+        <div className="text-chu-thich font-bold text-grey-mid/70">{tv('doThi')}</div>
         <div className="mt-1 flex gap-[3px]">
           {v.muoiHaiTuan.map((w) => {
             let bg = 'bg-navy/[0.06]';
@@ -193,7 +193,7 @@ export function HangViec({
             return (
               <span
                 key={w.tuan}
-                className={`h-3.5 flex-1 rounded-[2px] ${bg}`}
+                className={`h-3.5 flex-1 rounded-[8px] ${bg}`}
                 title={`${w.tuan}: ${so(w.gia)}/${so(w.chi_tieu)}`}
               />
             );
@@ -213,8 +213,8 @@ export function HangViec({
           if (!ap) {
             return (
               <div key={d} className="flex flex-col items-center">
-                <span className="text-[9.5px] font-bold text-grey-mid/70">{dayShort[i]}</span>
-                <span className="mt-0.5 grid h-11 w-full place-items-center rounded-[8px] bg-navy/[0.02] text-[10px] text-grey-mid/40">
+                <span className="text-chu-thich font-bold text-grey-mid/70">{dayShort[i]}</span>
+                <span className="mt-0.5 grid h-11 w-full place-items-center rounded-[8px] bg-navy/[0.02] text-chu-thich text-grey-mid/40">
                   ·
                 </span>
               </div>
@@ -233,7 +233,7 @@ export function HangViec({
 
           return (
             <div key={d} className="flex flex-col items-center">
-              <span className="text-[9.5px] font-bold text-grey-mid">{dayShort[i]}</span>
+              <span className="text-chu-thich font-bold text-grey-mid">{dayShort[i]}</span>
               <button
                 type="button"
                 disabled={!moChinhNgay}
@@ -251,7 +251,7 @@ export function HangViec({
                           ? undefined
                           : tv('ngayChua')
                 }
-                className={`mt-0.5 grid h-11 w-full place-items-center rounded-[8px] text-[12px] font-extrabold transition ${
+                className={`mt-0.5 grid h-11 w-full place-items-center rounded-[8px] text-chu-thich font-extrabold transition ${
                   coSo
                     ? kieng
                       ? 'bg-status-bad/70 text-white'
@@ -263,7 +263,7 @@ export function HangViec({
               >
                 {coSo ? (
                   v.cach_ghi === 'cham' ? (
-                    <Check size={14} strokeWidth={3} />
+                    <Check size={14} strokeWidth={2.5} />
                   ) : (
                     so(giaNgay)
                   )
@@ -279,24 +279,24 @@ export function HangViec({
       {/* Khung điền số (controlled) cho ngày đang mở */}
       {oDien && (
         <div className="mt-2 rounded-[12px] border border-navy/10 bg-white/80 p-2.5">
-          <label className="block text-[12px] font-bold text-navy">
+          <label className="block text-chu-thich font-bold text-navy">
             {kieng ? tv('kiengHoi', {ngay: ddmm(oDien)}) : tv('dienHoi', {ngay: ddmm(oDien), dv: v.ten_don_vi ?? ''})}
           </label>
-          <p className="mt-0.5 text-[11px] italic text-grey-mid">{kieng ? tv('kiengNhac') : tv('dienKhong')}</p>
+          <p className="mt-0.5 text-chu-thich italic text-grey-mid">{kieng ? tv('kiengNhac') : tv('dienKhong')}</p>
           <div className="mt-1.5 flex items-center gap-2">
             <input
               inputMode="decimal"
               value={soDien}
               onChange={(e) => datSoDien(e.target.value)}
-              className="w-24 rounded-[9px] border-[1.5px] border-navy/15 px-2 py-1 text-[13px]"
+              className="w-24 rounded-[8px] border-[1.5px] border-navy/15 px-2 py-1 text-than"
             />
-            <span className="text-[12px] font-semibold text-grey-mid">{v.ten_don_vi}</span>
+            <span className="text-chu-thich font-semibold text-grey-mid">{v.ten_don_vi}</span>
             <button
               type="button"
               onClick={() => datODien(null)}
-              className="ml-auto cursor-pointer rounded-[9px] px-2 py-1 text-[12px] font-bold text-grey-mid"
+              className="ml-auto cursor-pointer rounded-[8px] px-2 py-1 text-chu-thich font-bold text-grey-mid"
             >
-              <X size={14} strokeWidth={3} />
+              <X size={14} strokeWidth={2.5} />
             </button>
             <button
               type="button"
@@ -306,9 +306,9 @@ export function HangViec({
                 napNgay(ngay, Number(soDien));
                 datODien(null);
               }}
-              className="cursor-pointer rounded-[9px] bg-navy px-3 py-1 text-[12px] font-extrabold text-white disabled:opacity-50"
+              className="cursor-pointer rounded-[8px] bg-navy px-3 py-1 text-chu-thich font-extrabold text-white disabled:opacity-50"
             >
-              <Check size={14} strokeWidth={3} />
+              <Check size={14} strokeWidth={2.5} />
             </button>
           </div>
         </div>
@@ -349,41 +349,41 @@ export function TheCamKet({
     <div className="glass rounded-[16px] border-l-[3px] border-gold-mid p-3.5">
       {/* Hàng 1: lời hứa trọn hàng + bút. Hàng 2: các chip — hết cảnh "Tuần / này em / đọc 3 / quyển". */}
       <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0 flex-1 text-[14px] font-extrabold leading-snug text-navy">{c.noi_dung}</span>
+        <span className="min-w-0 flex-1 text-noi-dung font-extrabold leading-snug text-navy">{c.noi_dung}</span>
         {laChinhEm && !daCham && (
           <SuaCamKetEm studentId={studentId} camKetId={c.id} noiDung={c.noi_dung} soHua={c.so_hua} tenDonVi={c.ten_don_vi} />
         )}
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
         {c.so_hua != null && (
-          <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-bold text-navy">
+          <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-bold text-navy">
             {tc('chipSo', {dat: so(c.so_dat ?? 0), hua: so(c.so_hua), dv: c.ten_don_vi ?? ''})}
           </span>
         )}
         {daCham ? (
           <span
-            className={`rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${
+            className={`rounded-full px-2 py-0.5 text-chu-thich font-extrabold ${
               c.ket_qua === 'thang' ? 'bg-success/15 text-success-dark' : 'bg-status-bad/[0.1] text-status-bad'
             }`}
           >
             {c.ket_qua === 'thang' ? tc('thang') : tc('thua')}
           </span>
         ) : (
-          <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-bold text-grey-mid">
+          <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-bold text-grey-mid">
             {tc('chuaCham')}
           </span>
         )}
       </div>
 
       {c.tenViec && !anGiup ? (
-        <p className="mt-1 text-[11px] font-semibold text-grey-mid">{tc('giupViec', {ten: c.tenViec})}</p>
+        <p className="mt-1 text-chu-thich font-semibold text-grey-mid">{tc('giupViec', {ten: c.tenViec})}</p>
       ) : c.tenMucTieu && !anGiup ? (
-        <p className="mt-1 text-[11px] font-semibold text-grey-mid">{tc('giupMucTieu', {ten: c.tenMucTieu})}</p>
+        <p className="mt-1 text-chu-thich font-semibold text-grey-mid">{tc('giupMucTieu', {ten: c.tenMucTieu})}</p>
       ) : c.lac_muc_tieu ? (
-        <p className="mt-1 text-[11px] font-semibold italic text-grey-mid">{tc('lac')}</p>
+        <p className="mt-1 text-chu-thich font-semibold italic text-grey-mid">{tc('lac')}</p>
       ) : null}
 
-      {tuanNghi && <p className="mt-1 text-[11.5px] font-semibold italic text-grey-mid">{tc('nghi')}</p>}
+      {tuanNghi && <p className="mt-1 text-chu-thich font-semibold italic text-grey-mid">{tc('nghi')}</p>}
 
       {laChinhEm && !daCham && !tuanNghi && (
         <div className="mt-2">
@@ -400,7 +400,7 @@ export function TheCamKet({
                   onChange={(e) => datSoDat(e.target.value)}
                   aria-label={tc('soDatHoi', {dv: c.ten_don_vi ?? ''})}
                   placeholder={tc('soDatHoi', {dv: c.ten_don_vi ?? ''})}
-                  className="min-h-[44px] w-[4.75rem] rounded-[9px] border-[1.5px] border-navy/15 px-2 text-base text-navy sm:text-sm"
+                  className="min-h-[44px] w-[4.75rem] rounded-[8px] border-[1.5px] border-navy/15 px-2 text-base text-navy sm:text-sm"
                 />
               )}
               <button
@@ -408,7 +408,7 @@ export function TheCamKet({
                 name="ket_qua"
                 value="thang"
                 disabled={dangCham}
-                className="min-h-[44px] cursor-pointer rounded-[10px] bg-success px-3.5 text-[13px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="min-h-[44px] cursor-pointer rounded-[12px] bg-success px-3.5 text-than font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {tc('thang')}
               </button>
@@ -417,12 +417,12 @@ export function TheCamKet({
                 name="ket_qua"
                 value="thua"
                 disabled={dangCham}
-                className="min-h-[44px] cursor-pointer rounded-[10px] border-[1.5px] border-status-bad/40 px-3.5 text-[13px] font-extrabold text-status-bad disabled:cursor-not-allowed disabled:opacity-40"
+                className="min-h-[44px] cursor-pointer rounded-[12px] border-[1.5px] border-status-bad/40 px-3.5 text-than font-extrabold text-status-bad disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {tc('thua')}
               </button>
             </div>
-            {chamState.error && <p className="text-[11px] font-semibold text-status-bad">{chamState.error}</p>}
+            {chamState.error && <p className="text-chu-thich font-semibold text-status-bad">{chamState.error}</p>}
           </form>
         </div>
       )}
@@ -435,11 +435,11 @@ export function TheCamKet({
             name="ket_qua"
             value=""
             disabled={dangCham}
-            className="min-h-[44px] cursor-pointer rounded-[8px] px-2 text-[12px] font-extrabold text-grey-mid underline transition-colors hover:text-navy disabled:opacity-50"
+            className="min-h-[44px] cursor-pointer rounded-[8px] px-2 text-chu-thich font-extrabold text-grey-mid underline transition-colors hover:text-navy disabled:opacity-50"
           >
             {tc('boCham')}
           </button>
-          {chamState.error && <p className="text-[11px] font-semibold text-status-bad">{chamState.error}</p>}
+          {chamState.error && <p className="text-chu-thich font-semibold text-status-bad">{chamState.error}</p>}
         </form>
       )}
       {/* XÓA CAM KẾT — bỏ cam kết này KÈM lead measure của nó (doiCamKet: đánh dấu 'huy' để cam kết
@@ -450,7 +450,7 @@ export function TheCamKet({
           <input type="hidden" name="cam_ket_id" value={c.id} />
           <button
             type="submit"
-            className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 px-2 text-[12px] font-bold text-grey-mid underline hover:text-status-bad"
+            className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 px-2 text-chu-thich font-bold text-grey-mid underline hover:text-status-bad"
           >
             {tc('xoaCamKet')}
           </button>

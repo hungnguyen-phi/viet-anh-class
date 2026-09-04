@@ -18,7 +18,7 @@ export function ChonNgayTuan({daChon = [1, 2, 3, 4, 5]}: {daChon?: number[]}) {
       {NGAY.map((n) => (
         <label
           key={n.v}
-          className="inline-flex cursor-pointer items-center gap-1 rounded-[8px] border-[1.5px] border-navy/15 px-2 py-1 text-[12px] font-bold text-navy has-[:checked]:border-navy has-[:checked]:bg-navy has-[:checked]:text-white"
+          className="inline-flex cursor-pointer items-center gap-1 rounded-[8px] border-[1.5px] border-navy/15 px-2 py-1 text-chu-thich font-bold text-navy has-[:checked]:border-navy has-[:checked]:bg-navy has-[:checked]:text-white"
         >
           <input type="checkbox" name="ngay" value={n.v} defaultChecked={daChon.includes(n.v)} className="sr-only" />
           {n.nhan}

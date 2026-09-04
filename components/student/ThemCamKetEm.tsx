@@ -55,7 +55,7 @@ export function ThemCamKetEm({
         title={t('themCuaEm')}
         className="cham-44 grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full bg-gold text-navy shadow-sm transition-transform hover:scale-105 active:scale-95"
       >
-        <Plus size={16} strokeWidth={3} />
+        <Plus size={16} strokeWidth={2.5} />
       </button>
       {mo && (
         <Popup title={t('themCuaEm')} onClose={() => setMo(false)} width="max-w-[460px]">
@@ -69,11 +69,11 @@ export function ThemCamKetEm({
               onChange={(e) => setNoiDung(e.target.value)}
               maxLength={300}
               placeholder={t('noiDungEm')}
-              className="rounded-[9px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-[13px] text-navy"
+              className="rounded-[8px] border-[1.5px] border-navy/20 px-2.5 py-1.5 text-than text-navy"
               autoFocus
             />
             {state.fieldError === 'noi_dung' && state.error && (
-              <p className="text-[11.5px] font-semibold text-status-bad">{state.error}</p>
+              <p className="text-chu-thich font-semibold text-status-bad">{state.error}</p>
             )}
             {/* Đơn vị lấy TỪ mục tiêu được chọn — có số phải có đơn vị (ck_don_vi_ck). */}
             <input type="hidden" name="don_vi_id" value={donViId ? donViId : ''} />
@@ -84,7 +84,7 @@ export function ThemCamKetEm({
                   value={mt}
                   onChange={(e) => setMt(e.target.value)}
                   required={batBuoc}
-                  className="min-w-0 flex-1 rounded-[9px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
+                  className="min-w-0 flex-1 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-than text-navy"
                 >
                   <option value="">{batBuoc ? t('chonMucTieu') : t('giupKhongCo')}</option>
                   {mucTieuLop.map((m) => (
@@ -104,18 +104,18 @@ export function ThemCamKetEm({
                     step="any"
                     min="0"
                     placeholder={t('soHua')}
-                    className="w-20 rounded-[9px] border-[1.5px] border-navy/20 px-2 py-1 text-[12.5px] text-navy"
+                    className="w-20 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-than text-navy"
                   />
-                  <span className="text-[12px] font-semibold text-grey-mid">{donViNhan}</span>
+                  <span className="text-chu-thich font-semibold text-grey-mid">{donViNhan}</span>
                 </span>
               ) : null}
             </div>
-            {mucTieuLop.length > 0 && <p className="text-[11px] italic text-grey-mid">{t('huongNhac')}</p>}
+            {mucTieuLop.length > 0 && <p className="text-chu-thich italic text-grey-mid">{t('huongNhac')}</p>}
             {state.error && state.fieldError !== 'noi_dung' && (
-              <p className="text-[11.5px] font-semibold text-status-bad">{state.error}</p>
+              <p className="text-chu-thich font-semibold text-status-bad">{state.error}</p>
             )}
             <SubmitButton
-              className="mt-1 self-start rounded-[12px] bg-navy px-4 py-2.5 text-[13px] font-extrabold text-white transition-all hover:bg-navy/90"
+              className="mt-1 self-start rounded-[12px] bg-navy px-4 py-2.5 text-than font-extrabold text-white transition-all hover:bg-navy/90"
               wrapClass="contents"
             >
               {t('luu')}

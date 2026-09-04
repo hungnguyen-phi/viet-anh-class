@@ -48,13 +48,13 @@ export function CreateMenu({
   const revisionOnOpen = useRef(revision);
 
   const items: {key: Key; label: string; icon: ReactNode; body: ReactNode}[] = [
-    {key: 'campus', label: t('createCampus'), icon: <Building2 size={15} strokeWidth={2.2} />, body: campusForm},
-    {key: 'class', label: t('createClass'), icon: <GraduationCap size={15} strokeWidth={2.2} />, body: classForm},
-    {key: 'invite', label: t('inviteUser'), icon: <UserPlus size={15} strokeWidth={2.2} />, body: inviteForm},
-    {key: 'assign', label: t('assignGvcn'), icon: <Users size={15} strokeWidth={2.2} />, body: assignForm},
+    {key: 'campus', label: t('createCampus'), icon: <Building2 size={16} strokeWidth={2} />, body: campusForm},
+    {key: 'class', label: t('createClass'), icon: <GraduationCap size={16} strokeWidth={2} />, body: classForm},
+    {key: 'invite', label: t('inviteUser'), icon: <UserPlus size={16} strokeWidth={2} />, body: inviteForm},
+    {key: 'assign', label: t('assignGvcn'), icon: <Users size={16} strokeWidth={2} />, body: assignForm},
     // PRD v3 #10: Giai đoạn 1 chưa có phụ huynh — cờ PARENT_PORTAL tắt thì tab này biến mất.
     ...(parentForm
-      ? [{key: 'parent' as Key, label: t('inviteParent'), icon: <UserPlus size={15} strokeWidth={2.2} />, body: parentForm}]
+      ? [{key: 'parent' as Key, label: t('inviteParent'), icon: <UserPlus size={16} strokeWidth={2} />, body: parentForm}]
       : []),
   ];
   const current = items.find((i) => i.key === open);
@@ -159,9 +159,9 @@ export function CreateMenu({
         onClick={() => setMenu((v) => !v)}
         aria-expanded={menu}
         aria-haspopup="menu"
-        className="btn-gold inline-flex h-11 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[12px] px-4 text-[12.5px] font-extrabold transition-all"
+        className="btn-gold inline-flex h-11 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[12px] px-4 text-than font-extrabold transition-all"
       >
-        <Plus size={15} strokeWidth={2.6} />
+        <Plus size={16} strokeWidth={2.5} />
         {t('createNew')}
       </button>
 
@@ -171,7 +171,7 @@ export function CreateMenu({
           role="menu"
           aria-label={t('createNew')}
           onKeyDown={onMenuKey}
-          className="glass absolute right-0 z-30 mt-1.5 w-[248px] overflow-hidden rounded-[14px] p-1.5 shadow-lg"
+          className="glass absolute right-0 z-30 mt-1.5 w-[248px] overflow-hidden rounded-[16px] p-1.5 shadow-lg"
         >
           {items.map((i) => (
             <button
@@ -182,7 +182,7 @@ export function CreateMenu({
                 setOpen(i.key);
                 setMenu(false);
               }}
-              className="flex w-full cursor-pointer items-center gap-2 rounded-[10px] px-2.5 py-2.5 text-left text-[12.5px] font-extrabold text-navy transition-colors hover:bg-navy/[0.06]"
+              className="flex w-full cursor-pointer items-center gap-2 rounded-[12px] px-2.5 py-2.5 text-left text-than font-extrabold text-navy transition-colors hover:bg-navy/[0.06]"
             >
               {/* gold-text (5.32:1) chứ không phải gold-deep (3.19:1): icon này nằm cùng dòng với
                   chữ 12.5px và thừa hưởng cỡ đó, mà nấc sáng chỉ đủ chuẩn cho chữ ≥18px.
@@ -211,15 +211,15 @@ export function CreateMenu({
             className="glass my-auto w-full max-w-[520px] rounded-[20px] p-[18px]"
           >
             <div className="mb-3 flex items-center gap-2">
-              <span className="font-display text-[15px] font-bold text-navy">{current.label}</span>
+              <span className="font-display text-doc font-bold text-navy">{current.label}</span>
               <button
                 type="button"
                 data-close
                 onClick={closeDialog}
                 aria-label={t('cancel')}
-                className="ml-auto grid h-10 w-10 cursor-pointer place-items-center rounded-[10px] border-[1.5px] border-navy/15 bg-white/70 text-navy transition-all hover:border-navy"
+                className="ml-auto grid h-10 w-10 cursor-pointer place-items-center rounded-[12px] border-[1.5px] border-navy/15 bg-white/70 text-navy transition-all hover:border-navy"
               >
-                <X size={14} strokeWidth={2.6} />
+                <X size={14} strokeWidth={2.5} />
               </button>
             </div>
             {current.body}

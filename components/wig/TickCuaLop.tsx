@@ -107,7 +107,7 @@ export function TickCuaLop({
             disabled={!moKhoa || sau || bay}
             aria-pressed={on}
             aria-label={`${thu} ${d.slice(8, 10)}/${d.slice(5, 7)}`}
-            className={`grid h-11 w-11 place-items-center rounded-[9px] border-[1.5px] text-[11.5px] font-extrabold transition-all disabled:cursor-not-allowed ${
+            className={`grid h-11 w-11 place-items-center rounded-[8px] border-[1.5px] text-chu-thich font-extrabold transition-all disabled:cursor-not-allowed ${
               on
                 // Ô ĐÃ TICK DÙNG ĐÚNG KIỂU CỦA MÀN EM: nền vàng, chữ navy. Bản đầu tôi chọn nền
                 // xanh chữ trắng — nhìn thì hợp lý, nhưng đo ra 4.34:1, dưới ngưỡng 4.5 của chính
@@ -119,7 +119,7 @@ export function TickCuaLop({
                   : 'cursor-pointer border-navy/15 bg-white text-grey-mid hover:border-navy'
             }`}
           >
-            {bay ? <Loader2 size={13} strokeWidth={2.5} className="animate-spin" /> : thu}
+            {bay ? <Loader2 size={14} strokeWidth={2.5} className="animate-spin" /> : thu}
           </button>
         );
       })}

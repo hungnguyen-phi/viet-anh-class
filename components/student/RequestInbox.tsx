@@ -30,11 +30,11 @@ export async function RequestInbox({
   if (requests.length === 0) return null;
 
   const btn =
-    'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] px-2.5 text-[11.5px] font-extrabold transition-all';
+    'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[8px] px-2.5 text-chu-thich font-extrabold transition-all';
 
   return (
     <section className="glass rounded-[20px] border border-gold/40 p-[18px]">
-      <div className="flex items-center gap-2 font-display text-[15px] font-bold text-navy">
+      <div className="flex items-center gap-2 font-display text-doc font-bold text-navy">
         <Inbox size={16} strokeWidth={2.5} className="text-gold-deep" />
         {t('requestInbox')} ({requests.length})
       </div>
@@ -42,11 +42,11 @@ export async function RequestInbox({
         {requests.map((r) => (
           <div key={r.id} className="flex flex-wrap items-center gap-2 rounded-[12px] border-[1.5px] border-navy/10 bg-white/50 p-2.5">
             <div className="min-w-0 flex-1">
-              <div className="text-[12.5px] font-bold text-navy">
+              <div className="text-than font-bold text-navy">
                 {r.requesterName ?? '—'}
                 {/* Nhãn theo loại yêu cầu (0045 có 5 loại). undo_tick tô đỏ vì nó XOÁ dữ liệu. */}
                 <span
-                  className={`ml-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${
+                  className={`ml-1.5 rounded-full px-2 py-0.5 text-chu-thich font-extrabold ${
                     r.kind === 'undo_tick'
                       ? 'bg-status-bad/[0.12] text-status-bad'
                       : 'bg-navy/[0.08] text-navy'
@@ -57,7 +57,7 @@ export async function RequestInbox({
               </div>
               {/* Với rename_lead thì message là TÊN MỚI → hiện có mũi tên cho GVCN thấy rõ đang duyệt gì */}
               {r.message && (
-                <div className="truncate text-[12px] font-semibold text-grey-mid">
+                <div className="truncate text-chu-thich font-semibold text-grey-mid">
                   {r.kind === 'rename_lead' ? `→ ${r.message}` : r.message}
                 </div>
               )}

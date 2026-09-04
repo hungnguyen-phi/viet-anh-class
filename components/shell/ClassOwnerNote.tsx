@@ -40,8 +40,8 @@ export async function ClassOwnerNote({
   const ten = row.gvcn?.full_name ?? row.gvcn?.email ?? null;
 
   return (
-    <p className="inline-flex items-center gap-1.5 rounded-full bg-navy/[0.06] px-3 py-1 text-[11.5px] font-bold text-grey-mid">
-      <Eye size={12} strokeWidth={2.4} />
+    <p className="inline-flex items-center gap-1.5 rounded-full bg-navy/[0.06] px-3 py-1 text-chu-thich font-bold text-grey-mid">
+      <Eye size={12} strokeWidth={2.5} />
       {ten ? t('viewingOthersClass', {name: ten}) : t('viewingClassNoOwner')}
     </p>
   );

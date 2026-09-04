@@ -43,8 +43,8 @@ export function NutDuyet({
 
   if (state.ok)
     return (
-      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/[0.12] px-2.5 py-0.5 text-[10.5px] font-extrabold text-success-dark">
-        <CheckCircle2 size={11} strokeWidth={2.5} />
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/[0.12] px-2.5 py-0.5 text-chu-thich font-extrabold text-success-dark">
+        <CheckCircle2 size={12} strokeWidth={2.5} />
         {t('approved')}
       </span>
     );
@@ -57,14 +57,14 @@ export function NutDuyet({
       <SubmitButton
         label={label}
         wrapClass="inline-flex items-center gap-1"
-        className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-2.5 py-0.5 text-[10.5px] font-extrabold text-gold-text transition-all hover:bg-gold/30"
+        className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-2.5 py-0.5 text-chu-thich font-extrabold text-gold-text transition-all hover:bg-gold/30"
       >
-        <Check size={11} strokeWidth={3} />
+        <Check size={12} strokeWidth={2.5} />
         {t('approveShort')}
       </SubmitButton>
       {state.error && (
-        <span className="inline-flex items-center gap-1 text-[10.5px] font-extrabold text-status-bad">
-          <AlertCircle size={11} strokeWidth={2.5} />
+        <span className="inline-flex items-center gap-1 text-chu-thich font-extrabold text-status-bad">
+          <AlertCircle size={12} strokeWidth={2.5} />
           {state.error}
         </span>
       )}

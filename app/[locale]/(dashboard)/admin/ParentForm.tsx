@@ -10,11 +10,11 @@ type Student = {id: string; full_name: string | null; email: string};
 
 // Lớp copy nguyên từ admin/page.tsx (goldBtn, email input, student select) — tách phần màu viền để tô đỏ.
 const goldBtn =
-  'btn-gold inline-flex h-11 cursor-pointer items-center self-start whitespace-nowrap rounded-[12px] px-3.5 text-[12.5px] font-extrabold transition-all';
+  'btn-gold inline-flex h-11 cursor-pointer items-center self-start whitespace-nowrap rounded-[12px] px-3.5 text-than font-extrabold transition-all';
 const emailBase =
-  'min-w-[160px] flex-1 rounded-[10px] border-[1.5px] bg-white px-3 py-2 text-sm font-semibold text-navy outline-none transition-all';
+  'min-w-[160px] flex-1 rounded-[12px] border-[1.5px] bg-white px-3 py-2 text-sm font-semibold text-navy outline-none transition-all';
 const studentCls =
-  'w-[170px] cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy';
+  'w-[170px] cursor-pointer rounded-[12px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy';
 
 // Mời phụ huynh — validation INLINE (useActionState): lỗi cạnh field, giữ email, báo thành công ngay.
 export function ParentForm({students}: {students: Student[]}) {
@@ -79,21 +79,21 @@ export function ParentForm({students}: {students: Student[]}) {
 
       {/* Lỗi field (email) — chiếm trọn dòng dưới hàng input */}
       {state.error && state.fieldError && (
-        <p className="w-full inline-flex items-center gap-1 text-[12px] font-bold text-status-bad">
+        <p className="w-full inline-flex items-center gap-1 text-chu-thich font-bold text-status-bad">
           <AlertCircle size={12} strokeWidth={2.5} />
           {state.error}
         </p>
       )}
       {/* Lỗi chung (thiếu học sinh / server / DB) */}
       {state.error && !state.fieldError && (
-        <p className="w-full inline-flex items-center gap-1.5 text-[13px] font-bold text-status-bad">
+        <p className="w-full inline-flex items-center gap-1.5 text-than font-bold text-status-bad">
           <AlertCircle size={14} strokeWidth={2.5} />
           {state.error}
         </p>
       )}
       {/* Báo thành công */}
       {state.ok && state.message && (
-        <p className="w-full inline-flex items-center gap-1.5 text-[13px] font-bold text-success-dark">
+        <p className="w-full inline-flex items-center gap-1.5 text-than font-bold text-success-dark">
           <CheckCircle2 size={14} strokeWidth={2.5} />
           {state.message}
         </p>

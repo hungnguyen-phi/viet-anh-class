@@ -14,9 +14,9 @@ import {PARENT_PORTAL} from '@/lib/flags';
 const INVITE_ROLES = ['teacher', 'principal', 'admin', 'student'] as const;
 
 const inputCls =
-  'w-full rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy';
+  'w-full rounded-[12px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-sm font-semibold text-navy outline-none transition-all focus:border-navy';
 const goldBtn =
-  'btn-gold inline-flex h-11 cursor-pointer items-center self-start whitespace-nowrap rounded-[12px] px-3.5 text-[12.5px] font-extrabold transition-all';
+  'btn-gold inline-flex h-11 cursor-pointer items-center self-start whitespace-nowrap rounded-[12px] px-3.5 text-than font-extrabold transition-all';
 
 // Nút "Tạo mới" + năm form bên trong nó.
 //
@@ -104,7 +104,7 @@ export async function CreateMenuLoader({revision}: {revision: string}) {
           <SubmitButton className={goldBtn} wrapClass="contents">
             + {t('inviteUser')}
           </SubmitButton>
-          <div className="text-[10.5px] font-semibold italic text-grey-mid">{t('applyNote')}</div>
+          <div className="text-chu-thich font-semibold italic text-grey-mid">{t('applyNote')}</div>
         </form>
       }
       assignForm={
@@ -149,7 +149,7 @@ export async function CreateMenuLoader({revision}: {revision: string}) {
       parentForm={
         PARENT_PORTAL ? <Suspense
           fallback={
-            <div className="py-4 text-center text-[12.5px] font-semibold text-grey-mid">
+            <div className="py-4 text-center text-than font-semibold text-grey-mid">
               {tcommon('loading')}
             </div>
           }

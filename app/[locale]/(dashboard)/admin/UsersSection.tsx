@@ -12,7 +12,7 @@ import {USER_TABS, type UserTab, type Role} from './user-tabs';
 // khi phần tử là <button> (trình duyệt căn sẵn nội dung nút). Trên <a> và <span> — hai nút phân
 // trang bên dưới — chữ bám mép trên, lệch 6px so với nhãn "Trang 1/5" ở giữa. Đã đo trên production.
 const outlineBtnSm =
-  'inline-flex h-8 cursor-pointer items-center justify-center whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white/60 px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
+  'inline-flex h-8 cursor-pointer items-center justify-center whitespace-nowrap rounded-[12px] border-[1.5px] border-navy/20 bg-white/60 px-2.5 text-chu-thich font-extrabold text-navy transition-all hover:border-navy';
 
 // BỘ LỌC THEO NƠI HỌC: cơ sở → khối → lớp. Chỉ có nghĩa với HỌC SINH (nơi học = enrollments).
 // Giáo viên/BGH không "thuộc" một lớp theo cách ấy, nên khi bật bộ lọc này trang ép tab về Học sinh.
@@ -183,7 +183,7 @@ export async function UsersSection({
 
       {/* Phân trang — giữ nguyên tab, bộ lọc và cỡ trang khi sang trang khác. */}
       {totalPages > 1 && (
-        <div className="mt-3 flex items-center justify-center gap-2 text-[12.5px] font-bold text-navy">
+        <div className="mt-3 flex items-center justify-center gap-2 text-than font-bold text-navy">
           {upage > 1 ? (
             <Link href={trang(upage - 1)} className={outlineBtnSm}>
               ← {t('prev')}
@@ -219,8 +219,8 @@ export function UsersSectionSkeleton({rows = 10}: {rows?: number}) {
           <div key={i} className="h-10 w-24 rounded-full bg-navy/[0.06]" />
         ))}
       </div>
-      <div className="mb-3 h-10 w-[280px] rounded-[10px] bg-navy/[0.06]" />
-      <div className="overflow-hidden rounded-[14px] border-[1.5px] border-navy/10">
+      <div className="mb-3 h-10 w-[280px] rounded-[12px] bg-navy/[0.06]" />
+      <div className="overflow-hidden rounded-[16px] border-[1.5px] border-navy/10">
         <div className="h-9 bg-navy/[0.04]" />
         {Array.from({length: rows}, (_, i) => (
           <div key={i} className="flex items-center gap-3 border-t border-navy/[0.08] px-[14px] py-3">
@@ -228,8 +228,8 @@ export function UsersSectionSkeleton({rows = 10}: {rows?: number}) {
             <div className="h-3.5 flex-[1.2] rounded bg-navy/[0.08]" />
             <div className="h-3 flex-[1.4] rounded bg-navy/[0.05]" />
             <div className="h-3 flex-1 rounded bg-navy/[0.05]" />
-            <div className="h-8 flex-[1.6] rounded-[10px] bg-navy/[0.05]" />
-            <div className="h-8 w-[130px] rounded-[10px] bg-navy/[0.05]" />
+            <div className="h-8 flex-[1.6] rounded-[12px] bg-navy/[0.05]" />
+            <div className="h-8 w-[130px] rounded-[12px] bg-navy/[0.05]" />
           </div>
         ))}
       </div>

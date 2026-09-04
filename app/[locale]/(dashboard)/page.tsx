@@ -82,7 +82,7 @@ export default async function ClassPage({
 
   if (!myClass) {
     return (
-      <div className="glass rounded-[26px] p-10 text-center">
+      <div className="glass rounded-[20px] p-10 text-center">
         <h1 className="font-display text-xl font-bold text-navy">
           {t('class.noClass')}
         </h1>
@@ -176,13 +176,13 @@ export default async function ClassPage({
       {/* Một dòng trạng thái trung tính (audit 04/09) — thay băng-rôn "ĐANG THẮNG / CẦN BỨT PHÁ" cao
           230px ở 360px: người đọc chỉ cần biết lớp đang đúng nhịp hay chậm và bao nhiêu mục tiêu. */}
       {isWinning !== null && (
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-bold text-navy">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-than font-bold text-navy">
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${
               isWinning ? 'bg-success/[0.12] text-success-dark' : 'bg-status-bad/[0.10] text-status-bad'
             }`}
           >
-            {isWinning ? <Check size={13} strokeWidth={3} /> : <Minus size={13} strokeWidth={3} />}
+            {isWinning ? <Check size={14} strokeWidth={2.5} /> : <Minus size={14} strokeWidth={2.5} />}
             {isWinning ? t('class.nhipDung') : t('class.nhipCham')}
           </span>
           <span className="text-grey-mid">{t('class.yearOnTrack', {n: onCount, total: goals.length})}</span>
@@ -190,27 +190,27 @@ export default async function ClassPage({
       )}
 
       {/* Hero lớp — thẻ kính (glass on gradient v3) */}
-      <div className="animate-rise glass rounded-[26px] p-6 sm:px-7 sm:py-6">
+      <div className="animate-rise glass rounded-[20px] p-6 sm:px-7 sm:py-6">
         <div className="flex flex-wrap items-center gap-2.5">
-          <h1 className="font-display text-[28px] font-bold leading-none text-navy">
+          <h1 className="font-display text-hien-thi font-bold leading-none text-navy">
             {myClass.name}
           </h1>
-          <span className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/10 px-3 py-1 text-[11.5px] font-extrabold text-gold-text">
+          <span className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/10 px-3 py-1 text-chu-thich font-extrabold text-gold-text">
             {myClass.school_year}
           </span>
         </div>
 
         {(gradeName || campusName || gvcnName || rosterCount !== null) && (
-          <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-[13px] font-bold text-txt">
+          <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-than font-bold text-txt">
             {gradeName && (
               <span className="inline-flex items-center gap-1.5">
-                <Layers size={15} strokeWidth={2} className="text-gold-deep" />
+                <Layers size={16} strokeWidth={2} className="text-gold-deep" />
                 {t('class.grade')}: <b className="text-navy">{gradeName}</b>
               </span>
             )}
             {campusName && (
               <span className="inline-flex items-center gap-1.5">
-                <Building2 size={15} strokeWidth={2} className="text-gold-deep" />
+                <Building2 size={16} strokeWidth={2} className="text-gold-deep" />
                 {t('class.campus')}: <b className="text-navy">{campusName}</b>
               </span>
             )}
@@ -222,7 +222,7 @@ export default async function ClassPage({
             )}
             {rosterCount !== null && (
               <span className="inline-flex items-center gap-1.5">
-                <Users size={15} strokeWidth={2} className="text-gold-deep" />
+                <Users size={16} strokeWidth={2} className="text-gold-deep" />
                 {t('class.students')}: <b className="text-navy">{rosterCount}</b>
               </span>
             )}
@@ -232,7 +232,7 @@ export default async function ClassPage({
 
       {/* Ba số thi đua TÁCH nhau — không cộng thành một điểm (thi_dua_lop, 30 §4.2) */}
       {td && (
-        <div className="glass rounded-[22px] p-5 sm:px-6">
+        <div className="glass rounded-[20px] p-5 sm:px-6">
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               {label: t('class.diemMucTieu'), value: td.diem_muc_tieu},
@@ -243,10 +243,10 @@ export default async function ClassPage({
                 key={s.label}
                 className="rounded-[16px] bg-navy/[0.04] px-4 py-3.5 text-center"
               >
-                <div className="font-display text-[26px] font-bold leading-none text-navy">
+                <div className="font-display text-hien-thi font-bold leading-none text-navy">
                   {fmtDiem(s.value)}
                 </div>
-                <div className="mt-1.5 text-[12px] font-extrabold text-grey-mid">
+                <div className="mt-1.5 text-chu-thich font-extrabold text-grey-mid">
                   {s.label}
                 </div>
               </div>
@@ -257,7 +257,7 @@ export default async function ClassPage({
 
       {/* Mục tiêu năm của lớp — 4 lĩnh vực */}
       <section>
-        <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
+        <h2 className="mb-3 font-display text-tieu-de font-bold text-navy">
           {t('lopMucTieu.khuMucTieu')}
         </h2>
         <div
@@ -272,12 +272,12 @@ export default async function ClassPage({
             const Icon = areaIcon(am);
             return (
               <div key={a} className="glass glass-hover rounded-[20px] p-4 text-center">
-                <div className="flex items-center justify-center gap-2 text-[13.5px] font-extrabold text-navy">
+                <div className="flex items-center justify-center gap-2 text-noi-dung font-extrabold text-navy">
                   <span
-                    className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg"
+                    className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-[8px]"
                     style={{background: am.soft, color: am.hex}}
                   >
-                    <Icon size={15} strokeWidth={2.5} />
+                    <Icon size={16} strokeWidth={2.5} />
                   </span>
                   {areaLabel(am, locale)}
                 </div>
@@ -288,7 +288,7 @@ export default async function ClassPage({
                     </div>
                     {meta && nhip && (
                       <span
-                        className="mt-3 inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-extrabold"
+                        className="mt-3 inline-flex items-center rounded-full px-2.5 py-1 text-chu-thich font-extrabold"
                         style={{background: meta.bg, color: meta.color}}
                       >
                         {statusLabel[nhip] ?? ''}

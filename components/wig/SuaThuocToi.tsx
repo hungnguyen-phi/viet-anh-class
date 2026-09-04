@@ -59,7 +59,7 @@ export function SuaThuocToi({
         title={t('suaThuoc')}
         className="cham-44 relative grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-[8px] text-grey-mid transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:bg-navy/[0.06] hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
       >
-        <Pencil size={13} strokeWidth={2.5} />
+        <Pencil size={14} strokeWidth={2.5} />
       </button>
       {mo && (
         <Popup title={t('suaThuoc')} onClose={() => setMo(false)} width="max-w-[460px]">
@@ -73,9 +73,9 @@ export function SuaThuocToi({
                 </Field>
 
                 {coLuot ? (
-                  <p className="text-[12px] font-semibold italic text-grey-mid">{t('khoaCachDo')}</p>
+                  <p className="text-chu-thich font-semibold italic text-grey-mid">{t('khoaCachDo')}</p>
                 ) : (
-                  <div className="inline-flex w-fit rounded-[10px] border-[1.5px] border-navy/20 p-0.5 text-[12.5px] font-extrabold">
+                  <div className="inline-flex w-fit rounded-[12px] border-[1.5px] border-navy/20 p-0.5 text-than font-extrabold">
                     {(['cham', 'dien_so'] as const).map((c) => (
                       <button
                         key={c}
@@ -113,7 +113,7 @@ export function SuaThuocToi({
                     </Field>
                   </div>
                 )}
-                <NutGui className="mt-1 self-start rounded-[12px] bg-navy px-4 text-[13px] font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
+                <NutGui className="mt-1 self-start rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
                   {t('luuSua')}
                 </NutGui>
               </>
@@ -123,8 +123,8 @@ export function SuaThuocToi({
           <div className="mt-3 flex justify-end border-t border-navy/[0.08] pt-3">
             <FormTaiCho action={xoaThuocToi} xacNhan={t('xoaThuocHoi')} nhanXacNhan={t('xoaThuoc')} nguyHiem onOk={() => setMo(false)} anThanhCong className="flex flex-col items-end gap-1">
               {ctx}
-              <NutGui className="inline-flex cursor-pointer items-center gap-1 rounded-[10px] px-3 text-[12.5px] font-extrabold text-status-bad hover:bg-status-bad/[0.08] focus-visible:ring-2 focus-visible:ring-gold">
-                <Trash2 size={13} strokeWidth={2.5} />
+              <NutGui className="inline-flex cursor-pointer items-center gap-1 rounded-[12px] px-3 text-than font-extrabold text-status-bad hover:bg-status-bad/[0.08] focus-visible:ring-2 focus-visible:ring-gold">
+                <Trash2 size={14} strokeWidth={2.5} />
                 {t('xoaThuoc')}
               </NutGui>
             </FormTaiCho>

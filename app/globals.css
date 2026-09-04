@@ -150,6 +150,25 @@
   --color-mood-bad: #e0483a;
 
   /* Bo góc */
+  /* THANG CHỮ (04/09/2026, audit token lẻ: 26 cỡ text-[Npx] → 8). Tên tiếng Việt để đọc là hiểu vai:
+     nhan = nhãn uppercase có tracking (duy nhất được dưới 12px) · chu-thich = chú thích/chip ·
+     than = chữ phụ trong thẻ · noi-dung = thân bài · doc = ô nhập/đoạn đọc · tieu-de/dau/hien-thi = tiêu đề. */
+  --text-nhan: 11px;
+  --text-nhan--line-height: 1.3;
+  --text-chu-thich: 12px;
+  --text-chu-thich--line-height: 1.4;
+  --text-than: 13px;
+  --text-than--line-height: 1.45;
+  --text-noi-dung: 14px;
+  --text-noi-dung--line-height: 1.5;
+  --text-doc: 16px;
+  --text-doc--line-height: 1.5;
+  --text-tieu-de: 18px;
+  --text-tieu-de--line-height: 1.25;
+  --text-dau: 22px;
+  --text-dau--line-height: 1.15;
+  --text-hien-thi: 28px;
+  --text-hien-thi--line-height: 1.1;
   --radius-sm: 8px;
   --radius-md: 10px;
   --radius-lg: 12px;

@@ -71,7 +71,7 @@ export function FlashToast({message, kind = 'ok'}: {message: string; kind?: 'ok'
       role={loi ? 'alert' : 'status'}
       aria-live={loi ? 'assertive' : 'polite'}
       style={{top}}
-      className={`fixed left-1/2 z-30 w-[calc(100%-2rem)] max-w-[520px] -translate-x-1/2 rounded-[14px] border bg-white px-4 py-2.5 shadow-pop ${
+      className={`fixed left-1/2 z-30 w-[calc(100%-2rem)] max-w-[520px] -translate-x-1/2 rounded-[16px] border bg-white px-4 py-2.5 shadow-pop ${
         loi ? 'border-status-bad/40' : 'border-success/30'
       }`}
     >
@@ -82,7 +82,7 @@ export function FlashToast({message, kind = 'ok'}: {message: string; kind?: 'ok'
           className={`mt-0.5 shrink-0 ${loi ? 'text-status-bad' : 'text-success-dark'}`}
         />
         <p
-          className={`min-w-0 flex-1 text-[13px] font-bold leading-[1.5] ${
+          className={`min-w-0 flex-1 text-than font-bold leading-[1.5] ${
             loi ? 'text-status-bad' : 'text-success-dark'
           }`}
         >

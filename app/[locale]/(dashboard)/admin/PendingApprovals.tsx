@@ -11,13 +11,13 @@ type Waiting = {id: string; full_name: string | null; email: string; created_at:
 const GRANTABLE = ['teacher', 'principal', 'admin', 'student', 'parent'] as const;
 
 const selectCls =
-  'h-10 cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy';
+  'h-10 cursor-pointer rounded-[12px] border-[1.5px] border-navy/15 bg-white px-2.5 text-than font-semibold text-navy outline-none focus:border-navy';
 const navyBtn =
-  'h-10 cursor-pointer whitespace-nowrap rounded-[10px] bg-navy px-3 text-[12px] font-extrabold text-white transition-all hover:bg-navy-700';
+  'h-10 cursor-pointer whitespace-nowrap rounded-[12px] bg-navy px-3 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700';
 const dangerBtn =
-  'h-10 cursor-pointer whitespace-nowrap rounded-[10px] bg-[color-mix(in_srgb,var(--color-status-bad)_12%,transparent)] px-3 text-[12px] font-extrabold text-status-bad transition-all hover:bg-[color-mix(in_srgb,var(--color-status-bad)_22%,transparent)]';
+  'h-10 cursor-pointer whitespace-nowrap rounded-[12px] bg-[color-mix(in_srgb,var(--color-status-bad)_12%,transparent)] px-3 text-chu-thich font-extrabold text-status-bad transition-all hover:bg-[color-mix(in_srgb,var(--color-status-bad)_22%,transparent)]';
 const ghostBtn =
-  'h-8 cursor-pointer whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white/70 px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
+  'h-8 cursor-pointer whitespace-nowrap rounded-[12px] border-[1.5px] border-navy/20 bg-white/70 px-2.5 text-chu-thich font-extrabold text-navy transition-all hover:border-navy';
 
 // AI ĐANG CHỜ BẠN — nay duyệt được cả mẻ.
 //
@@ -48,16 +48,16 @@ export function PendingApprovals({users}: {users: Waiting[]}) {
 
   return (
     <section className="rounded-[20px] border-[1.5px] border-gold-deep/40 bg-gold/[0.10] p-[18px]">
-      <div className="mb-2.5 font-display text-[15px] font-bold text-navy">
+      <div className="mb-2.5 font-display text-doc font-bold text-navy">
         {t('waitingOnYou', {n: users.length})}
       </div>
-      <p className="mb-3 text-[12px] font-semibold leading-relaxed text-navy/70">
+      <p className="mb-3 text-chu-thich font-semibold leading-relaxed text-navy/70">
         {t('waitingOnYouHint')}
       </p>
 
       {/* Thanh chọn nhiều */}
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <label className="inline-flex cursor-pointer items-center gap-2 text-[12.5px] font-extrabold text-navy">
+        <label className="inline-flex cursor-pointer items-center gap-2 text-than font-extrabold text-navy">
           <input
             ref={allRef}
             type="checkbox"
@@ -69,7 +69,7 @@ export function PendingApprovals({users}: {users: Waiting[]}) {
         </label>
         {sel.length > 0 && (
           <>
-            <span className="text-[12px] font-bold text-grey-mid">
+            <span className="text-chu-thich font-bold text-grey-mid">
               {t('selectedCount', {n: sel.length})}
             </span>
             {/* Cấp quyền cả mẻ */}
@@ -120,10 +120,10 @@ export function PendingApprovals({users}: {users: Waiting[]}) {
               className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--color-navy)]"
             />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-extrabold text-navy">
+              <span className="block truncate text-than font-extrabold text-navy">
                 {u.full_name ?? u.email}
               </span>
-              <span className="block truncate text-[11.5px] font-semibold text-grey-mid">
+              <span className="block truncate text-chu-thich font-semibold text-grey-mid">
                 {u.email} · {t('waitingSince', {date: String(u.created_at).slice(0, 10)})}
               </span>
             </span>

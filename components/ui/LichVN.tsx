@@ -105,11 +105,11 @@ export function LichVN({
         aria-expanded={mo}
         aria-label={nhan}
         onClick={() => setMo((v) => !v)}
-        className={`inline-flex h-11 min-w-[150px] cursor-pointer items-center gap-2 rounded-[10px] border-[1.5px] bg-white px-3 text-[13.5px] font-bold text-navy outline-none transition-colors focus:border-navy ${
+        className={`inline-flex h-11 min-w-[150px] cursor-pointer items-center gap-2 rounded-[12px] border-[1.5px] bg-white px-3 text-noi-dung font-bold text-navy outline-none transition-colors focus:border-navy ${
           loi ? 'border-status-bad' : 'border-navy/15'
         }`}
       >
-        <CalendarDays size={15} strokeWidth={2.4} className="shrink-0 text-grey-mid" />
+        <CalendarDays size={16} strokeWidth={2.5} className="shrink-0 text-grey-mid" />
         {value ? ngayVN(value) : <span className="font-semibold text-grey-soft">{goiY}</span>}
       </button>
 
@@ -135,7 +135,7 @@ export function LichVN({
               aria-label={tl('lich.thang')}
               value={thang.m}
               onChange={(e) => setThang({...thang, m: Number(e.target.value)})}
-              className="h-8 flex-1 cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-1.5 text-[12.5px] font-bold text-navy outline-none focus:border-navy"
+              className="h-8 flex-1 cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-1.5 text-than font-bold text-navy outline-none focus:border-navy"
             >
               {THANG.map((n, i) => (
                 <option key={n} value={i + 1}>
@@ -147,7 +147,7 @@ export function LichVN({
               aria-label={tl('lich.nam')}
               value={thang.y}
               onChange={(e) => setThang({...thang, y: Number(e.target.value)})}
-              className="h-8 flex-1 cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-1.5 text-[12.5px] font-bold text-navy outline-none focus:border-navy"
+              className="h-8 flex-1 cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-1.5 text-than font-bold text-navy outline-none focus:border-navy"
             >
               {cacNam.map((y) => (
                 <option key={y} value={y}>
@@ -167,7 +167,7 @@ export function LichVN({
 
           <div className="grid grid-cols-7 gap-0.5">
             {THU.map((t) => (
-              <span key={t} className="py-1 text-center text-[10.5px] font-extrabold uppercase text-grey-mid">
+              <span key={t} className="py-1 text-center text-nhan font-extrabold uppercase text-grey-mid">
                 {t}
               </span>
             ))}
@@ -187,7 +187,7 @@ export function LichVN({
                     onChange(isoNgay);
                     setMo(false);
                   }}
-                  className={`h-9 rounded-[8px] text-[13px] font-bold tabular-nums transition-colors ${
+                  className={`h-9 rounded-[8px] text-than font-bold tabular-nums transition-colors ${
                     chon
                       ? 'bg-navy text-white'
                       : duoc

@@ -21,16 +21,16 @@ type Grade = {id: string; name: string; campus_id: string; is_active: boolean};
 type Teacher = {id: string; full_name: string | null; email: string};
 
 const inp =
-  'min-w-0 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
+  'min-w-0 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-than font-semibold text-navy outline-none transition-all focus:border-navy';
 const navyBtn =
-  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700';
+  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[8px] bg-navy px-2.5 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700';
 const ghost =
-  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/20 bg-white px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
+  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2.5 text-chu-thich font-extrabold text-navy transition-all hover:border-navy';
 const gold =
-  'btn-gold h-8 shrink-0 inline-flex items-center cursor-pointer whitespace-nowrap rounded-[9px] px-2.5 text-[11.5px] font-extrabold transition-all';
+  'btn-gold h-8 shrink-0 inline-flex items-center cursor-pointer whitespace-nowrap rounded-[8px] px-2.5 text-chu-thich font-extrabold transition-all';
 const danger =
-  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-[color-mix(in_srgb,var(--color-status-bad)_12%,transparent)] px-2.5 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-[color-mix(in_srgb,var(--color-status-bad)_22%,transparent)]';
-const th = 'text-[11px] font-extrabold uppercase tracking-wide text-grey-mid';
+  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[8px] bg-[color-mix(in_srgb,var(--color-status-bad)_12%,transparent)] px-2.5 text-chu-thich font-extrabold text-status-bad transition-all hover:bg-[color-mix(in_srgb,var(--color-status-bad)_22%,transparent)]';
+const th = 'text-nhan font-extrabold uppercase tracking-wide text-grey-mid';
 
 export function ClassManager({
   classes,
@@ -57,7 +57,7 @@ export function ClassManager({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="font-display text-[15px] font-bold text-navy">
+        <div className="font-display text-doc font-bold text-navy">
           {t('classes')} ({classes.length})
         </div>
         <select
@@ -75,7 +75,7 @@ export function ClassManager({
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
+      <div className="overflow-x-auto rounded-[16px] border-[1.5px] border-navy/10">
         <div className="box-border flex min-w-[720px] items-center gap-2 bg-navy/[0.03] px-[14px] py-[9px]">
           <span className={`flex-1 ${th}`}>{t('name')}</span>
           <span className={`w-[90px] flex-none ${th}`}>{t('grade')}</span>
@@ -87,14 +87,14 @@ export function ClassManager({
         {shown.map((c) => (
           <div key={c.id} className="border-t border-navy/[0.08]">
             <div className="box-border flex min-w-[720px] items-center gap-2 px-[14px] py-2 transition-colors hover:bg-navy/[0.03]">
-              <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-navy">{c.name}</span>
-              <span className="w-[90px] flex-none truncate text-[12px] font-semibold text-grey-mid">
+              <span className="min-w-0 flex-1 truncate text-than font-bold text-navy">{c.name}</span>
+              <span className="w-[90px] flex-none truncate text-chu-thich font-semibold text-grey-mid">
                 {c.grade ?? t('noGrade')}
               </span>
-              <span className="w-[90px] flex-none text-[12px] font-semibold text-grey-mid">
+              <span className="w-[90px] flex-none text-chu-thich font-semibold text-grey-mid">
                 {c.school_year}
               </span>
-              <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-grey-mid">
+              <span className="min-w-0 flex-1 truncate text-chu-thich font-semibold text-grey-mid">
                 {c.homeroom_teacher_id
                   ? teacherName.get(c.homeroom_teacher_id) ?? t('gvcnRoleChanged')
                   : t('notAssigned')}
@@ -139,7 +139,7 @@ export function ClassManager({
         ))}
 
         {shown.length === 0 && (
-          <div className="border-t border-navy/[0.08] px-[14px] py-3 text-[13px] text-grey-mid">
+          <div className="border-t border-navy/[0.08] px-[14px] py-3 text-than text-grey-mid">
             {t('none')}
           </div>
         )}
@@ -177,17 +177,17 @@ function ClassEditRow({
       className="box-border grid min-w-[720px] gap-2 border-t border-dashed border-navy/15 bg-navy/[0.02] px-[14px] py-3 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]"
     >
       <input type="hidden" name="id" value={row.id} />
-      <label className="flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+      <label className="flex flex-col gap-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
         {t('name')}
         <input name="name"
                 aria-label={t('name')} defaultValue={row.name} className={inp} required />
       </label>
-      <label className="flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+      <label className="flex flex-col gap-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
         {t('schoolYear')}
         <input name="school_year"
                 aria-label={t('schoolYear')} defaultValue={row.school_year} className={inp} required />
       </label>
-      <label className="flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+      <label className="flex flex-col gap-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
         {t('campus')}
         <select
           name="campus_id"
@@ -206,7 +206,7 @@ function ClassEditRow({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+      <label className="flex flex-col gap-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
         {t('grade')}
         <select
           name="grade_id"
@@ -224,7 +224,7 @@ function ClassEditRow({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+      <label className="flex flex-col gap-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
         {t('gvcn')}
         <select
           name="homeroom_teacher_id"

@@ -29,7 +29,7 @@ export function NutTaoMucTieuToi({
   return (
     <>
       <button type="button" onClick={() => setMo(true)} className={btnGold}>
-        <Plus size={15} strokeWidth={2.8} />
+        <Plus size={16} strokeWidth={2.5} />
         {t('taoMucTieuToi')}
       </button>
       {mo && (

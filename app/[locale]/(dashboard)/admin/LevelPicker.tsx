@@ -37,7 +37,7 @@ export function LevelPicker({
         role="group"
         aria-label={t('level')}
         aria-describedby={invalid ? 'level-loi' : undefined}
-        className={`flex flex-wrap gap-1.5 rounded-[10px] border-[1.5px] p-1.5 transition-all ${
+        className={`flex flex-wrap gap-1.5 rounded-[12px] border-[1.5px] p-1.5 transition-all ${
           invalid ? 'border-status-bad' : 'border-navy/15'
         }`}
       >
@@ -46,7 +46,7 @@ export function LevelPicker({
           return (
             <label
               key={lv}
-              className={`inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[9px] px-2.5 text-[12.5px] font-extrabold transition-all ${
+              className={`inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[8px] px-2.5 text-than font-extrabold transition-all ${
                 on ? 'bg-navy text-white' : 'bg-white text-navy hover:bg-navy/[0.06]'
               }`}
             >
@@ -65,7 +65,7 @@ export function LevelPicker({
       </div>
 
       {invalid && (
-        <p id="level-loi" className="mt-1.5 text-[12px] font-bold text-status-bad">
+        <p id="level-loi" className="mt-1.5 text-chu-thich font-bold text-status-bad">
           {t('pickLevelFirst')}
         </p>
       )}
@@ -73,7 +73,7 @@ export function LevelPicker({
       {/* Cho thấy TRƯỚC sẽ sinh ra khối nào — bớt cảm giác "chọn xong không biết chuyện gì xảy ra".
           Chọn nhiều cấp thì đây là hợp của các dải, đúng thứ hàm sinh khối dưới CSDL sẽ làm. */}
       {value.length > 0 && (
-        <p className="mt-1.5 text-[11.5px] font-semibold text-grey-mid">
+        <p className="mt-1.5 text-chu-thich font-semibold text-grey-mid">
           {nums
             ? `${t('willSeed')}: ${nums.map((n) => `Khối ${n}`).join(' · ')}`
             : t('manualGradeHint')}

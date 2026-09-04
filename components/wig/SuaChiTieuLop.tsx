@@ -32,14 +32,14 @@ export function SuaChiTieuLop({
 
   return (
     <details ref={chiTiet} className="relative">
-      <summary className="cursor-pointer list-none text-[11px] font-bold text-grey-mid hover:text-navy">
+      <summary className="cursor-pointer list-none text-chu-thich font-bold text-grey-mid hover:text-navy">
         {t('suaChiTieu')}
       </summary>
       <form action={action} className="mt-1 flex flex-col gap-1">
         <input type="hidden" name="class_id" value={classId} />
         <input type="hidden" name="week" value={weekQ} />
         <input type="hidden" name="thuoc_id" value={thuocId} />
-        <label className="flex items-center gap-1.5 text-[11.5px] font-bold text-grey-mid">
+        <label className="flex items-center gap-1.5 text-chu-thich font-bold text-grey-mid">
           {t('suaChiTieuMoi', {dv: donVi})}
           <input
             type="number"
@@ -47,18 +47,18 @@ export function SuaChiTieuLop({
             min="0"
             step="any"
             defaultValue={chiTieuHienTai ?? undefined}
-            className="w-24 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-[12px] text-navy"
+            className="w-24 rounded-[8px] border-[1.5px] border-navy/20 px-2 py-1 text-chu-thich text-navy"
           />
         </label>
-        <p className="text-[10.5px] font-semibold italic text-grey-mid">{t('suaChiTieuGhiChu')}</p>
+        <p className="text-chu-thich font-semibold italic text-grey-mid">{t('suaChiTieuGhiChu')}</p>
         {state.error && (
-          <span className="inline-flex items-center gap-1 text-[10.5px] font-extrabold text-status-bad">
-            <AlertCircle size={11} strokeWidth={2.5} />
+          <span className="inline-flex items-center gap-1 text-chu-thich font-extrabold text-status-bad">
+            <AlertCircle size={12} strokeWidth={2.5} />
             {state.error}
           </span>
         )}
         <SubmitButton
-          className="self-start rounded-[8px] bg-navy px-2.5 py-1 text-[11px] font-extrabold text-white"
+          className="self-start rounded-[8px] bg-navy px-2.5 py-1 text-chu-thich font-extrabold text-white"
           wrapClass="contents"
         >
           {t('suaChiTieuLuu')}

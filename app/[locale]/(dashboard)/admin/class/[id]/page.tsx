@@ -80,23 +80,23 @@ export default async function ClassDetailPage({
     {href: '/', label: tn('compete'), desc: t('linkScoreboard'), Icon: Trophy, hex: 'var(--color-warn)', soft: softOf('var(--color-warn)')},
   ];
 
-  const metaChip = 'inline-flex items-center gap-1.5 rounded-full bg-navy/[0.06] px-3 py-1 text-[12px] font-bold text-txt';
+  const metaChip = 'inline-flex items-center gap-1.5 rounded-full bg-navy/[0.06] px-3 py-1 text-chu-thich font-bold text-txt';
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href="/admin" className="inline-flex min-h-[24px] items-center text-[12.5px] font-extrabold text-gold-text hover:underline">
+      <Link href="/admin" className="inline-flex min-h-[24px] items-center text-than font-extrabold text-gold-text hover:underline">
         {t('backToAdmin')}
       </Link>
 
       {/* Hero lớp */}
-      <section className="glass rounded-[22px] p-6">
+      <section className="glass rounded-[20px] p-6">
         <div className="flex flex-wrap items-center gap-2.5">
-          <h1 className="font-display text-[26px] font-bold leading-none text-navy">{cls.name}</h1>
-          <span className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/10 px-3 py-1 text-[11.5px] font-extrabold text-gold-text">
+          <h1 className="font-display text-hien-thi font-bold leading-none text-navy">{cls.name}</h1>
+          <span className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/10 px-3 py-1 text-chu-thich font-extrabold text-gold-text">
             {cls.school_year}
           </span>
           {!cls.is_active && (
-            <span className="rounded-full bg-status-bad/[0.12] px-3 py-1 text-[11.5px] font-extrabold text-status-bad">
+            <span className="rounded-full bg-status-bad/[0.12] px-3 py-1 text-chu-thich font-extrabold text-status-bad">
               {t('archived')}
             </span>
           )}
@@ -127,23 +127,23 @@ export default async function ClassDetailPage({
 
       {/* Liên kết nhanh sang các màn hình của lớp */}
       <section>
-        <h2 className="mb-2.5 font-display text-[16px] font-bold text-navy">{t('linkTitle')}</h2>
+        <h2 className="mb-2.5 font-display text-doc font-bold text-navy">{t('linkTitle')}</h2>
         <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
           {links.map(({href, label, desc, Icon, hex, soft}) => (
             <Link
               key={href}
               href={{pathname: href, query: {class: cls.id}}}
-              className="glass glass-hover flex items-start gap-3 rounded-[18px] p-4"
+              className="glass glass-hover flex items-start gap-3 rounded-[20px] p-4"
             >
               <span
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px]"
                 style={{background: soft, color: hex}}
               >
-                <Icon size={19} strokeWidth={2.2} />
+                <Icon size={20} strokeWidth={2} />
               </span>
               <span className="min-w-0">
-                <span className="block font-display text-[15px] font-bold text-navy">{label}</span>
-                <span className="mt-0.5 block text-[12px] font-semibold text-grey-mid">{desc}</span>
+                <span className="block font-display text-doc font-bold text-navy">{label}</span>
+                <span className="mt-0.5 block text-chu-thich font-semibold text-grey-mid">{desc}</span>
               </span>
             </Link>
           ))}
@@ -152,7 +152,7 @@ export default async function ClassDetailPage({
 
       {/* Sửa lớp */}
       <section className="glass rounded-[20px] p-[18px]">
-        <h2 className="mb-3 font-display text-[15px] font-bold text-navy">{t('editClass')}</h2>
+        <h2 className="mb-3 font-display text-doc font-bold text-navy">{t('editClass')}</h2>
         <ClassEditForm
           row={{
             id: cls.id,

@@ -30,7 +30,7 @@ export function NutTaoMucTieuLop({
   return (
     <>
       <button type="button" data-kiem="nut-tao-muc-tieu-lop" onClick={() => setMo(true)} className={btnGold}>
-        <Plus size={15} strokeWidth={2.8} />
+        <Plus size={16} strokeWidth={2.5} />
         {t('taoMucTieuLop')}
       </button>
       {mo && (

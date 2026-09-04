@@ -40,20 +40,20 @@ export function BulkDeleteDialog({
         aria-labelledby="xoa-nhieu-tieu-de"
         className="glass w-full max-w-[440px] rounded-[20px] p-[18px]"
       >
-        <div id="xoa-nhieu-tieu-de" className="font-display text-[16px] font-bold text-navy">
+        <div id="xoa-nhieu-tieu-de" className="font-display text-doc font-bold text-navy">
           {t('confirmDeleteManyTitle', {n: selected.length})}
         </div>
-        <p className="mt-1.5 text-[12.5px] font-semibold leading-relaxed text-status-bad-dark">
+        <p className="mt-1.5 text-than font-semibold leading-relaxed text-status-bad-dark">
           {t('confirmDeleteManyBody')}
         </p>
         <ul className="mt-3 max-h-[180px] overflow-y-auto rounded-[12px] border-[1.5px] border-navy/10 bg-white/70 px-3 py-2">
           {selected.slice(0, 12).map((u) => (
-            <li key={u.id} className="truncate py-0.5 text-[12.5px] font-bold text-navy">
+            <li key={u.id} className="truncate py-0.5 text-than font-bold text-navy">
               {u.full_name ?? u.email}
             </li>
           ))}
           {selected.length > 12 && (
-            <li className="py-0.5 text-[12px] font-semibold italic text-grey-mid">
+            <li className="py-0.5 text-chu-thich font-semibold italic text-grey-mid">
               {t('andMore', {n: selected.length - 12})}
             </li>
           )}

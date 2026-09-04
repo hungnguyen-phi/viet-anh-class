@@ -98,8 +98,8 @@ export function MucTieuCuaCon({
   return (
     <div className="flex min-w-0 flex-col gap-3">
       {bao && (
-        <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-success/[0.10] px-2.5 py-2 text-[12px] font-bold text-success-dark">
-          <CheckCircle2 size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+        <p className="inline-flex items-start gap-1.5 rounded-[12px] bg-success/[0.10] px-2.5 py-2 text-chu-thich font-bold text-success-dark">
+          <CheckCircle2 size={14} strokeWidth={2.5} className="mt-px shrink-0" />
           {bao}
         </p>
       )}
@@ -141,10 +141,10 @@ export function MucTieuCuaCon({
               className="flex min-h-[112px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[16px] border-[1.5px] border-dashed p-4 text-navy transition-colors hover:bg-white/70"
             >
               <span style={{background: mau.hex}} className="cham-44 grid h-9 w-9 place-items-center rounded-full text-white">
-                <Plus size={18} strokeWidth={2.8} />
+                <Plus size={20} strokeWidth={2.5} />
               </span>
-              <span className="text-[13px] font-extrabold">{nhan}</span>
-              {namHoc && <span className="text-[11px] font-semibold text-grey-mid">{namHoc}</span>}
+              <span className="text-than font-extrabold">{nhan}</span>
+              {namHoc && <span className="text-chu-thich font-semibold text-grey-mid">{namHoc}</span>}
             </button>
           ) : (
             <div
@@ -155,8 +155,8 @@ export function MucTieuCuaCon({
               }}
               className="flex min-h-[112px] flex-col items-center justify-center gap-1 rounded-[16px] border-[1.5px] border-dashed p-4"
             >
-              <span className="text-[13px] font-extrabold text-navy">{nhan}</span>
-              <span className="text-[11.5px] font-semibold italic text-grey-mid">{t('trong')}</span>
+              <span className="text-than font-extrabold text-navy">{nhan}</span>
+              <span className="text-chu-thich font-semibold italic text-grey-mid">{t('trong')}</span>
             </div>
           );
         })}
@@ -169,7 +169,7 @@ export function MucTieuCuaCon({
           onClick={() => setMoForm({area: theoArea.has('knowledge') ? 'leadership_skills' : 'knowledge'})}
           className={`${btnGhost} self-start`}
         >
-          <Plus size={14} strokeWidth={2.8} />
+          <Plus size={14} strokeWidth={2.5} />
           {t('them')}
         </button>
       )}
@@ -251,7 +251,7 @@ function TheMucTieu({
           <DonutRing pct={mt.pct ?? 0} color={mau.hex} size={60} />
         ) : (
           <span
-            className={`grid h-[60px] w-[60px] shrink-0 place-items-center rounded-full text-center text-[10.5px] font-extrabold leading-tight ${
+            className={`grid h-[60px] w-[60px] shrink-0 place-items-center rounded-full text-center text-chu-thich font-extrabold leading-tight ${
               mt.dat ? 'bg-success/15 text-success-dark' : 'bg-navy/[0.07] text-grey-mid'
             }`}
           >
@@ -263,26 +263,26 @@ function TheMucTieu({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span
               style={{background: `color-mix(in srgb, ${mau.hex} 16%, white)`}}
-              className="rounded-full px-2 py-0.5 text-[10.5px] font-extrabold text-navy"
+              className="rounded-full px-2 py-0.5 text-chu-thich font-extrabold text-navy"
             >
               {nhanLinhVuc}
             </span>
-            <span className="font-display text-[16px] font-bold leading-tight text-navy">{mt.ten}</span>
+            <span className="font-display text-doc font-bold leading-tight text-navy">{mt.ten}</span>
             <ChipTrangThai mt={mt} />
           </div>
 
           {/* Số: gộp MỘT dòng "1/10 Sách · trước 03/02/2027" như thẻ của thầy cô (góp ý 03/09) —
               hai dòng "Từ 0 lên…" + "Đang ở…" nói cùng một chuyện. Kiểu khác (giữ, trần…) giữ cauDich. */}
           {mt.so != null && mt.y_so != null && (mt.kieu_dich ?? 'toi') === 'toi' ? (
-            <p className="mt-1 text-[13px] font-bold tabular-nums text-navy">
+            <p className="mt-1 text-than font-bold tabular-nums text-navy">
               {dinhSo(mt.so)}
               <span className="font-semibold text-grey-mid">/{dinhSo(mt.y_so)} {mt.ten_don_vi ?? ''}{mt.ket_thuc ? ` · ${t('truocNgay', {ngay: ngayVN(mt.ket_thuc)})}` : ''}</span>
             </p>
           ) : (
             <>
-              <p className="mt-1 text-[12.5px] font-semibold tabular-nums text-grey-mid">{cauDich(mt, t)}</p>
+              <p className="mt-1 text-than font-semibold tabular-nums text-grey-mid">{cauDich(mt, t)}</p>
               {mt.so != null && (
-                <p className="mt-1 text-[12.5px] font-bold text-navy">{t('dangO', {so: dinhSo(mt.so), dv: mt.ten_don_vi ?? ''})}</p>
+                <p className="mt-1 text-than font-bold text-navy">{t('dangO', {so: dinhSo(mt.so), dv: mt.ten_don_vi ?? ''})}</p>
               )}
             </>
           )}
@@ -291,9 +291,9 @@ function TheMucTieu({
           {noi.map((n) => (
             <span
               key={n.id}
-              className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded-full bg-gold/[0.16] px-2 py-0.5 text-[11px] font-extrabold text-gold-text"
+              className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded-full bg-gold/[0.16] px-2 py-0.5 text-chu-thich font-extrabold text-gold-text"
             >
-              <CornerDownRight size={11} strokeWidth={2.5} className="shrink-0" aria-hidden />
+              <CornerDownRight size={12} strokeWidth={2.5} className="shrink-0" aria-hidden />
               <span className="truncate">
                 {t(n.lop_khac ? 'gopVaoLopCu' : n.vai === 'gop_so' ? 'gopVao' : 'huongVao', {ten: n.cha_ten})}
               </span>
@@ -304,7 +304,7 @@ function TheMucTieu({
 
       {/* NHẬN XÉT TRẢ LẠI — hiện ngay trên thẻ để em biết sửa gì. */}
       {mt.trang_thai === 'tra_lai' && mt.ly_do_tra_lai && (
-        <p className="rounded-[10px] bg-status-bad/[0.07] px-2.5 py-2 text-[12px] font-semibold leading-relaxed text-navy">
+        <p className="rounded-[12px] bg-status-bad/[0.07] px-2.5 py-2 text-chu-thich font-semibold leading-relaxed text-navy">
           {t('lyDoTraLai', {note: mt.ly_do_tra_lai})}
         </p>
       )}
@@ -313,8 +313,8 @@ function TheMucTieu({
       {/* KẾ HOẠCH — checklist các bước: tick 1 bước → % tự nhảy (buoc.xong_at → trigger). */}
       {laKeHoach && buoc.length > 0 && mt.trang_thai !== 'dong' && (
         <div className="flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
-          <p className="flex items-center gap-1.5 text-[11.5px] font-extrabold uppercase tracking-wide text-grey-mid">
-            <ListChecks size={13} strokeWidth={2.5} />
+          <p className="flex items-center gap-1.5 text-chu-thich font-extrabold uppercase tracking-wide text-grey-mid">
+            <ListChecks size={14} strokeWidth={2.5} />
             {t('cacBuoc')}
           </p>
           {buoc.map((b) => {
@@ -323,16 +323,16 @@ function TheMucTieu({
                 <span className="grid h-[22px] w-[22px] shrink-0 place-items-center">
                   {b.xong ? (
                     <span style={{background: mau.hex}} className="grid h-[22px] w-[22px] place-items-center rounded-full text-white">
-                      <Check size={13} strokeWidth={3.5} />
+                      <Check size={14} strokeWidth={2.5} />
                     </span>
                   ) : (
                     <Circle size={20} strokeWidth={2} className="text-navy/25" />
                   )}
                 </span>
-                <span className={`min-w-0 flex-1 text-[13px] font-semibold leading-snug ${b.xong ? 'text-grey-mid line-through' : 'text-navy'}`}>
+                <span className={`min-w-0 flex-1 text-than font-semibold leading-snug ${b.xong ? 'text-grey-mid line-through' : 'text-navy'}`}>
                   {b.tieu_de}
                 </span>
-                <span className="shrink-0 text-[11px] font-extrabold tabular-nums text-grey-mid">{Math.round(b.phan_tram)}%</span>
+                <span className="shrink-0 text-chu-thich font-extrabold tabular-nums text-grey-mid">{Math.round(b.phan_tram)}%</span>
               </>
             );
             return canGhi ? (
@@ -340,7 +340,7 @@ function TheMucTieu({
                 <input type="hidden" name="buoc_id" value={b.id} />
                 <input type="hidden" name="xong" value={b.xong ? '' : '1'} />
                 <SubmitButton
-                  className="flex min-h-[44px] w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-1.5 text-left transition-colors hover:bg-navy/[0.04]"
+                  className="flex min-h-[44px] w-full cursor-pointer items-center gap-2.5 rounded-[12px] px-1.5 text-left transition-colors hover:bg-navy/[0.04]"
                   wrapClass="contents"
                 >
                   {noiDungBuoc}
@@ -363,19 +363,19 @@ function TheMucTieu({
           <SubmitButton
             className={
               mt.dat
-                ? 'inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[12px] border-[1.5px] border-success/40 bg-success/[0.12] px-3.5 text-[13px] font-extrabold text-success-dark transition-colors hover:bg-success/20'
+                ? 'inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[12px] border-[1.5px] border-success/40 bg-success/[0.12] px-3.5 text-than font-extrabold text-success-dark transition-colors hover:bg-success/20'
                 : `${btnGold} min-h-[44px]`
             }
             wrapClass="contents"
           >
             {mt.dat ? (
               <>
-                <CheckCircle2 size={15} strokeWidth={2.5} />
+                <CheckCircle2 size={16} strokeWidth={2.5} />
                 {t('daXong')}
               </>
             ) : (
               <>
-                <Check size={15} strokeWidth={3} />
+                <Check size={16} strokeWidth={2.5} />
                 {t('danhDauDat')}
               </>
             )}
@@ -394,7 +394,7 @@ function TheMucTieu({
               <input type="hidden" name="muc_tieu_id" value={mt.id ?? ''} />
               <input type="hidden" name="student_id" value={studentId} />
               <SubmitButton className={btnGold} wrapClass="contents">
-                <Check size={13} strokeWidth={3} />
+                <Check size={14} strokeWidth={2.5} />
                 {t('duyet')}
               </SubmitButton>
             </form>
@@ -411,7 +411,7 @@ function TheMucTieu({
               title={t('sua')}
               className="cham-44 grid h-7 w-7 cursor-pointer place-items-center rounded-[8px] text-navy transition-colors hover:bg-navy/[0.06]"
             >
-              <Pencil size={13} strokeWidth={2.5} />
+              <Pencil size={14} strokeWidth={2.5} />
             </button>
           </>
         )}
@@ -435,10 +435,10 @@ function ChipTrangThai({mt}: {mt: MucTieuV}) {
   return (
     <>
       {mt.trang_thai !== 'dong' && ttKey && (
-        <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-extrabold text-navy">{t(ttKey)}</span>
+        <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-extrabold text-navy">{t(ttKey)}</span>
       )}
       {chips.map((c) => (
-        <span key={c.key} className={`rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${c.cls}`}>
+        <span key={c.key} className={`rounded-full px-2 py-0.5 text-chu-thich font-extrabold ${c.cls}`}>
           {t(c.key)}
         </span>
       ))}
@@ -467,7 +467,7 @@ function GhiSo({mtId, dv, onDone}: {mtId: string; dv: string; onDone: (msg: stri
         type="button"
         data-kiem="nut-ghi"
         onClick={() => setMo(true)}
-        className="cham-44 shrink-0 cursor-pointer rounded-[9px] border-[1.5px] border-navy/20 bg-white/80 px-2.5 py-1 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy"
+        className="cham-44 shrink-0 cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white/80 px-2.5 py-1 text-chu-thich font-extrabold text-navy transition-all hover:border-navy"
       >
         {t('ghiSo')}
       </button>
@@ -495,12 +495,12 @@ function GhiSo({mtId, dv, onDone}: {mtId: string; dv: string; onDone: (msg: stri
           <ONgayVN name="ngay" nhan={t('ghiSoNgay')} value={ngay} onChange={setNgay} />
         </Field>
       </div>
-      {state.error && !state.fieldError && <p className="text-[12px] font-bold text-status-bad">{state.error}</p>}
+      {state.error && !state.fieldError && <p className="text-chu-thich font-bold text-status-bad">{state.error}</p>}
       <div className="flex items-center gap-3">
         <SubmitButton className={btnGold} wrapClass="contents">
           {t('ghiSoLuu')}
         </SubmitButton>
-        <button type="button" onClick={() => setMo(false)} className="text-[12px] font-extrabold text-grey-mid underline">
+        <button type="button" onClick={() => setMo(false)} className="text-chu-thich font-extrabold text-grey-mid underline">
           {t('thoi')}
         </button>
       </div>
@@ -520,7 +520,7 @@ function NutDong({mtId, studentId}: {mtId: string; studentId: string}) {
       <button
         type="button"
         onClick={() => setMo(true)}
-        className="inline-flex min-h-[24px] cursor-pointer items-center text-[12px] font-extrabold text-grey-mid underline"
+        className="inline-flex min-h-[24px] cursor-pointer items-center text-chu-thich font-extrabold text-grey-mid underline"
       >
         {t('dong')}
       </button>
@@ -529,10 +529,10 @@ function NutDong({mtId, studentId}: {mtId: string; studentId: string}) {
           <form action={dongMucTieu} className="flex flex-col gap-3">
             <input type="hidden" name="muc_tieu_id" value={mtId} />
             <input type="hidden" name="student_id" value={studentId} />
-            <p className="text-[13px] font-bold text-navy">{t('dongVi')}</p>
+            <p className="text-than font-bold text-navy">{t('dongVi')}</p>
             <div className="flex flex-col gap-1.5">
               {(['dat', 'doi', 'bo'] as const).map((ld, i) => (
-                <label key={ld} className="flex cursor-pointer items-center gap-2 text-[13px] font-semibold text-navy">
+                <label key={ld} className="flex cursor-pointer items-center gap-2 text-than font-semibold text-navy">
                   <input type="radio" name="ly_do_dong" value={ld} defaultChecked={i === 0} className="h-4 w-4" />
                   {t(ld === 'dat' ? 'dongDat' : ld === 'doi' ? 'dongDoi' : 'dongBo')}
                 </label>
@@ -542,7 +542,7 @@ function NutDong({mtId, studentId}: {mtId: string; studentId: string}) {
               <SubmitButton className={btnGold} wrapClass="contents">
                 {t('dong')}
               </SubmitButton>
-              <button type="button" onClick={() => setMo(false)} className="text-[12px] font-extrabold text-grey-mid underline">
+              <button type="button" onClick={() => setMo(false)} className="text-chu-thich font-extrabold text-grey-mid underline">
                 {t('thoi')}
               </button>
             </div>
@@ -562,7 +562,7 @@ function NutTraLai({mtId, studentId, ten}: {mtId: string; studentId: string; ten
       <button
         type="button"
         onClick={() => setMo(true)}
-        className="inline-flex min-h-[24px] cursor-pointer items-center text-[12px] font-extrabold text-status-bad underline"
+        className="inline-flex min-h-[24px] cursor-pointer items-center text-chu-thich font-extrabold text-status-bad underline"
       >
         {t('traLaiNut')}
       </button>
@@ -571,19 +571,19 @@ function NutTraLai({mtId, studentId, ten}: {mtId: string; studentId: string; ten
           <form action={traLaiMucTieu} className="flex flex-col gap-3">
             <input type="hidden" name="muc_tieu_id" value={mtId} />
             <input type="hidden" name="student_id" value={studentId} />
-            <p className="text-[13px] font-bold text-navy">{ten}</p>
+            <p className="text-than font-bold text-navy">{ten}</p>
             <textarea
               name="note"
               required
               maxLength={300}
               rows={3}
-              className="w-full rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2.5 text-[13px] font-semibold text-navy outline-none focus:border-navy"
+              className="w-full rounded-[12px] border-[1.5px] border-navy/15 bg-white px-3 py-2.5 text-than font-semibold text-navy outline-none focus:border-navy"
             />
             <div className="flex items-center gap-3">
               <SubmitButton className={btnGold} wrapClass="contents">
                 {t('traLaiNut')}
               </SubmitButton>
-              <button type="button" onClick={() => setMo(false)} className="text-[12px] font-extrabold text-grey-mid underline">
+              <button type="button" onClick={() => setMo(false)} className="text-chu-thich font-extrabold text-grey-mid underline">
                 {t('thoi')}
               </button>
             </div>

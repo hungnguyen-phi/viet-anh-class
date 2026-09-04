@@ -48,7 +48,7 @@ export function PopupLopTruong({
       <button
         type="button"
         onClick={() => setMo(true)}
-        className={`inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[10px] px-3 text-[12.5px] font-extrabold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+        className={`inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[12px] px-3 text-than font-extrabold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
           giong === 'vang'
             ? 'bg-gold text-navy shadow-sm hover:brightness-95'
             : 'border-[1.5px] border-navy/20 bg-white text-navy hover:border-navy'

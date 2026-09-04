@@ -10,7 +10,7 @@ import {USER_TABS, PAGE_SIZES, type UserTab} from './user-tabs';
 import type {LocNoiHoc} from './UsersSection';
 
 const selectCls =
-  'h-10 max-w-[180px] cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 text-[12.5px] font-semibold text-navy focus-visible:border-navy focus-visible:outline-none';
+  'h-10 max-w-[180px] cursor-pointer rounded-[12px] border-[1.5px] border-navy/15 bg-white px-2.5 text-than font-semibold text-navy focus-visible:border-navy focus-visible:outline-none';
 
 export type DanhMucLoc = {
   campuses: {id: string; name: string}[];
@@ -126,7 +126,7 @@ export function UsersToolbar({
               key={k}
               href={duong({vai: k === 'all' ? '' : k})}
               aria-current={on ? 'page' : undefined}
-              className={`inline-flex h-10 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-extrabold transition-all ${
+              className={`inline-flex h-10 items-center gap-1.5 rounded-full px-3.5 text-chu-thich font-extrabold transition-all ${
                 on
                   ? 'bg-navy text-white'
                   : 'border-[1.5px] border-navy/15 bg-white/60 text-navy hover:border-navy'
@@ -150,7 +150,7 @@ export function UsersToolbar({
         <span className="relative">
           <Search
             size={14}
-            strokeWidth={2.4}
+            strokeWidth={2.5}
             className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-grey-mid"
           />
           <input
@@ -158,7 +158,7 @@ export function UsersToolbar({
             onChange={(e) => setGoi(e.target.value)}
             placeholder={t('searchUser')}
             aria-label={t('searchUser')}
-            className="h-10 w-[230px] rounded-[10px] border-[1.5px] border-navy/15 bg-white pl-8 pr-8 text-[16px] font-semibold text-navy focus-visible:border-navy focus-visible:outline-none sm:text-[12.5px]"
+            className="h-10 w-[230px] rounded-[12px] border-[1.5px] border-navy/15 bg-white pl-8 pr-8 text-doc font-semibold text-navy focus-visible:border-navy focus-visible:outline-none sm:text-than"
           />
           {dangTim ? (
             <Loader2
@@ -173,7 +173,7 @@ export function UsersToolbar({
                 aria-label={t('clear')}
                 className="absolute right-0 top-0 grid h-10 w-10 cursor-pointer place-items-center text-grey-mid hover:text-navy"
               >
-                <X size={14} strokeWidth={2.6} />
+                <X size={14} strokeWidth={2.5} />
               </button>
             )
           )}
@@ -226,16 +226,16 @@ export function UsersToolbar({
               <button
                 type="button"
                 onClick={() => chonLoc({cs: '', khoi: '', lop: ''})}
-                className="inline-flex h-10 cursor-pointer items-center gap-1 rounded-[10px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-[12px] font-extrabold text-navy hover:border-navy"
+                className="inline-flex h-10 cursor-pointer items-center gap-1 rounded-[12px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-chu-thich font-extrabold text-navy hover:border-navy"
               >
-                <X size={13} strokeWidth={2.6} />
+                <X size={14} strokeWidth={2.5} />
                 {t('filterClear')}
               </button>
             )}
           </span>
         )}
 
-        <label className="ml-auto flex items-center gap-1.5 text-[12px] font-bold text-grey-mid">
+        <label className="ml-auto flex items-center gap-1.5 text-chu-thich font-bold text-grey-mid">
           {t('perPage')}
           <select
             value={size}

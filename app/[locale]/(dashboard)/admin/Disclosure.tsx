@@ -35,11 +35,11 @@ export function Disclosure({
       <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-2.5 gap-y-2 p-[18px] [&::-webkit-details-marker]:hidden">
         <ChevronRight
           size={16}
-          strokeWidth={2.6}
+          strokeWidth={2.5}
           className="shrink-0 text-grey-mid transition-transform group-open:rotate-90"
         />
         <span className="min-w-0">
-          <span className="font-display text-[15px] font-bold text-navy">
+          <span className="font-display text-doc font-bold text-navy">
             {title}
             {count != null && <span className="ml-1.5 font-semibold text-grey-mid">({count})</span>}
           </span>

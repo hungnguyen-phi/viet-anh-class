@@ -62,16 +62,16 @@ export async function SchoolRollup({rows}: {rows: RollupRow[]}) {
     <div className="glass overflow-x-auto rounded-[20px]">
       {/* Header */}
       <div className={`${luoi} bg-navy/[0.03] py-2.5`} style={cot}>
-        <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
+        <span className="min-w-0 truncate text-nhan font-extrabold uppercase text-grey-mid">
           {t('class')}
         </span>
-        <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid">
+        <span className="text-center text-nhan font-extrabold uppercase text-grey-mid">
           {t('students')}
         </span>
-        <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid">
+        <span className="text-center text-nhan font-extrabold uppercase text-grey-mid">
           {t('score')}
         </span>
-        <span className="text-center text-[11px] font-extrabold uppercase text-grey-mid">
+        <span className="text-center text-nhan font-extrabold uppercase text-grey-mid">
           {t('attToday')}
         </span>
       </div>
@@ -80,19 +80,19 @@ export async function SchoolRollup({rows}: {rows: RollupRow[]}) {
         <div key={gradeName}>
           {/* Dòng khối */}
           <div className={`${luoi} border-t-[1.5px] border-navy/12 bg-navy/[0.05] py-2`} style={cot}>
-            <span className="min-w-0 truncate font-display text-[13.5px] font-bold text-navy">
+            <span className="min-w-0 truncate font-display text-noi-dung font-bold text-navy">
               {gradeName}
-              <span className="ml-1.5 text-[11px] font-semibold text-grey-mid">
+              <span className="ml-1.5 text-chu-thich font-semibold text-grey-mid">
                 · {list.length} {t('classesShort')}
               </span>
             </span>
-            <span className="text-center text-[12.5px] font-bold text-navy">
+            <span className="text-center text-than font-bold text-navy">
               {sum(list, (r) => Number(r.student_count))}
             </span>
-            <span className="text-center font-display text-[14px] font-bold text-navy">
+            <span className="text-center font-display text-noi-dung font-bold text-navy">
               {avgScore(list)}
             </span>
-            <span className="text-center text-[12.5px] font-bold text-navy">
+            <span className="text-center text-than font-bold text-navy">
               {sum(list, (r) => Number(r.att_today))}
             </span>
           </div>
@@ -105,10 +105,10 @@ export async function SchoolRollup({rows}: {rows: RollupRow[]}) {
               className={`${luoi} border-t border-navy/[0.08] py-2.5 transition-colors hover:bg-navy/[0.03]`}
               style={cot}
             >
-              <span className="min-w-0 truncate pl-3 text-[13.5px] font-bold text-navy">
+              <span className="min-w-0 truncate pl-3 text-noi-dung font-bold text-navy">
                 {r.class_name}
               </span>
-              <span className="text-center text-[12.5px] font-semibold text-grey-mid">
+              <span className="text-center text-than font-semibold text-grey-mid">
                 {r.student_count}
               </span>
               {/* CHƯA ĐẶT MỤC TIÊU ≠ ĐẶT RỒI MÀ ĐIỂM 0.
@@ -117,18 +117,18 @@ export async function SchoolRollup({rows}: {rows: RollupRow[]}) {
                   Bảng WIG ngay bên dưới trên cùng trang này đã phân biệt được bằng dấu "—";
                   bảng trên thì chưa — đúng kiểu chẩn đúng ở một chỗ rồi quên chỗ còn lại. */}
               <span
-                className="text-center font-display text-[15px] text-navy"
+                className="text-center font-display text-doc text-navy"
                 title={Number(r.wig_count) === 0 ? t('noWigYet') : undefined}
               >
                 {Number(r.wig_count) === 0 ? (
-                  <span className="text-[12.5px] font-semibold text-grey-soft">—</span>
+                  <span className="text-than font-semibold text-grey-soft">—</span>
                 ) : (
                   Number(r.score)
                 )}
               </span>
               {/* "0/24" đọc thành "cả lớp nghỉ học", trong khi sự thật là chưa ai mở điểm danh.
                   Nói thẳng bằng chữ thì không đọc nhầm được. */}
-              <span className="text-center text-[12.5px] font-semibold text-grey-mid">
+              <span className="text-center text-than font-semibold text-grey-mid">
                 {Number(r.att_today) === 0 ? (
                   <span className="text-grey-soft">{t('attNotYet')}</span>
                 ) : (
@@ -142,19 +142,19 @@ export async function SchoolRollup({rows}: {rows: RollupRow[]}) {
 
       {/* Dòng toàn trường */}
       <div className={`${luoi} border-t-[1.5px] border-navy/20 bg-gold/[0.10] py-2.5`} style={cot}>
-        <span className="min-w-0 truncate font-display text-[13.5px] font-extrabold text-navy">
+        <span className="min-w-0 truncate font-display text-noi-dung font-extrabold text-navy">
           {t('wholeSchool')}
-          <span className="ml-1.5 text-[11px] font-semibold text-grey-mid">
+          <span className="ml-1.5 text-chu-thich font-semibold text-grey-mid">
             · {rows.length} {t('classesShort')}
           </span>
         </span>
-        <span className="text-center text-[13px] font-extrabold text-navy">
+        <span className="text-center text-than font-extrabold text-navy">
           {sum(rows, (r) => Number(r.student_count))}
         </span>
-        <span className="text-center font-display text-[15px] font-extrabold text-navy">
+        <span className="text-center font-display text-doc font-extrabold text-navy">
           {avgScore(rows)}
         </span>
-        <span className="text-center text-[13px] font-extrabold text-navy">
+        <span className="text-center text-than font-extrabold text-navy">
           {sum(rows, (r) => Number(r.att_today))}/{sum(rows, (r) => Number(r.student_count))}
         </span>
       </div>
