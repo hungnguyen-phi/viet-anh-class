@@ -1,15 +1,22 @@
 'use client';
 
-import {useEffect, useState, useTransition, type ReactNode} from 'react';
+import {useEffect, useMemo, useState, useTransition, type ReactNode} from 'react';
 import {useTranslations} from 'next-intl';
 import {Loader2, Search, X} from 'lucide-react';
 import {useLinkStatus} from 'next/link';
 import {Link, useRouter} from '@/i18n/navigation';
 // Hằng số nằm ở file trung lập, KHÔNG khai báo lại ở đây — xem ghi chú trong user-tabs.ts.
 import {USER_TABS, PAGE_SIZES, type UserTab} from './user-tabs';
+import type {LocNoiHoc} from './UsersSection';
 
 const selectCls =
-  'h-10 cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy';
+  'h-10 max-w-[180px] cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 text-[12.5px] font-semibold text-navy focus-visible:border-navy focus-visible:outline-none';
+
+export type DanhMucLoc = {
+  campuses: {id: string; name: string}[];
+  grades: {id: string; name: string; campus_id: string}[];
+  classes: {id: string; name: string; campus_id: string; grade_id: string | null}[];
+};
 
 // Chấm quay hiện NGAY TRONG tab vừa bấm.
 //
@@ -21,7 +28,7 @@ function TabPending({children}: {children: ReactNode}) {
   return pending ? <Loader2 size={12} className="animate-spin" /> : <>{children}</>;
 }
 
-// Thanh điều khiển bảng người dùng: TÁCH VAI THÀNH TAB + tìm kiếm + số dòng mỗi trang.
+// Thanh điều khiển bảng người dùng: TÁCH VAI THÀNH TAB + tìm kiếm + lọc nơi học + số dòng mỗi trang.
 //
 // Bản cũ trộn học sinh, giáo viên, BGH, quản trị, phụ huynh và người chờ vào MỘT bảng xếp theo
 // email — muốn xem "có bao nhiêu giáo viên" thì phải tự đọc cột vai trò qua từng trang. Tab kèm
@@ -34,11 +41,15 @@ export function UsersToolbar({
   tab,
   size,
   counts,
+  loc,
+  danhMuc,
 }: {
   q: string;
   tab: UserTab;
   size: number;
   counts: Record<UserTab, number>;
+  loc: LocNoiHoc;
+  danhMuc: DanhMucLoc;
 }) {
   const t = useTranslations('admin');
   const tr = useTranslations('roles');
@@ -46,28 +57,63 @@ export function UsersToolbar({
 
   const label = (k: UserTab) => (k === 'all' ? t('tabAll') : tr(k));
 
+  // MỌI đường dẫn của thanh này dựng từ MỘT chỗ, để tab / tìm / lọc / cỡ trang không đánh rơi nhau:
+  // bản cũ ba chỗ tự ghép query riêng, thêm một tham số là phải nhớ sửa cả ba.
+  const duong = (them: Partial<{q: string; vai: string; cs: string; khoi: string; lop: string; size: number}>) => {
+    const goc = {q, vai: tab === 'all' ? '' : tab, cs: loc.cs, khoi: loc.khoi, lop: loc.lop, size, ...them};
+    const query: Record<string, string | number> = {};
+    if (goc.q) query.q = goc.q;
+    if (goc.vai) query.vai = goc.vai;
+    if (goc.cs) query.cs = goc.cs;
+    if (goc.khoi) query.khoi = goc.khoi;
+    if (goc.lop) query.lop = goc.lop;
+    query.size = goc.size;
+    return {pathname: '/admin' as const, query};
+  };
+
   const [goi, setGoi] = useState(q);
   const [dangTim, batDauTim] = useTransition();
-  // Ô gõ theo người dùng; đường dẫn theo ô gõ, trễ 300 ms. Chỉ đẩy khi khác với ?q= hiện tại —
+  // Ô gõ theo người dùng; đường dẫn theo ô gõ, trễ 250 ms. Chỉ đẩy khi khác với ?q= hiện tại —
   // nếu không, lần dựng đầu tiên (goi === q) cũng đẩy một lần vô ích.
   useEffect(() => {
     const sach = goi.replace(/[,()*%]/g, '').trim();
     if (sach === q) return;
     const hen = setTimeout(() => {
-      batDauTim(() =>
-        router.replace({
-          pathname: '/admin',
-          query: {...(sach ? {q: sach} : {}), ...(tab !== 'all' ? {vai: tab} : {}), size},
-        }),
-      );
-    }, 300);
+      batDauTim(() => router.replace(duong({q: sach})));
+    }, 250);
     return () => clearTimeout(hen);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [goi]);
   // Đổi số dòng/trang thì luôn về TRANG 1: đang ở trang 7 với 10 dòng mà chuyển sang 100 dòng
   // thì trang 7 không còn tồn tại, và một bảng rỗng trông hệt như "không có ai".
-  const goSize = (n: number) =>
-    router.push({pathname: '/admin', query: {...(q ? {q} : {}), ...(tab !== 'all' ? {vai: tab} : {}), size: n}});
+  const goSize = (n: number) => router.push(duong({size: n}));
+
+  // Bộ lọc nơi học: cơ sở → khối → lớp, ô sau chỉ liệt kê những gì thuộc ô trước. Đổi ô trước thì
+  // ô sau về trống (khối của cơ sở A không có nghĩa ở cơ sở B). Bộ lọc này chỉ áp cho học sinh
+  // (trang ép tab 'student' khi có lọc) nên tab hiện tại không cần giữ.
+  const [dangLoc, batDauLoc] = useTransition();
+  const khoiCuaCs = useMemo(
+    () => danhMuc.grades.filter((g) => !loc.cs || g.campus_id === loc.cs),
+    [danhMuc.grades, loc.cs],
+  );
+  const lopCuaKhoi = useMemo(
+    () =>
+      danhMuc.classes.filter(
+        (c) => (!loc.cs || c.campus_id === loc.cs) && (!loc.khoi || c.grade_id === loc.khoi),
+      ),
+    [danhMuc.classes, loc.cs, loc.khoi],
+  );
+  const chonLoc = (phan: Partial<LocNoiHoc>) => {
+    const moi: LocNoiHoc = {...loc, ...phan};
+    if (phan.cs !== undefined) {
+      moi.khoi = '';
+      moi.lop = '';
+    }
+    if (phan.khoi !== undefined) moi.lop = '';
+    const coLoc = !!(moi.cs || moi.khoi || moi.lop);
+    batDauLoc(() => router.push(duong({...moi, vai: coLoc ? 'student' : tab === 'all' ? '' : tab})));
+  };
+  const coLoc = !!(loc.cs || loc.khoi || loc.lop);
 
   return (
     <div className="mb-3 flex flex-col gap-2.5">
@@ -78,10 +124,7 @@ export function UsersToolbar({
           return (
             <Link
               key={k}
-              href={{
-                pathname: '/admin',
-                query: {...(q ? {q} : {}), ...(k !== 'all' ? {vai: k} : {}), size},
-              }}
+              href={duong({vai: k === 'all' ? '' : k})}
               aria-current={on ? 'page' : undefined}
               className={`inline-flex h-10 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-extrabold transition-all ${
                 on
@@ -98,13 +141,12 @@ export function UsersToolbar({
         })}
       </div>
 
-      {/* Tìm kiếm + số dòng mỗi trang */}
+      {/* Tìm kiếm + lọc nơi học + số dòng mỗi trang */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* TÌM NGAY KHI GÕ. Bản trước là <form method="get"> với nút "Tìm": gõ xong còn phải bấm
-            thêm một cái, và người quản trị hỏi thẳng "code gì lạc hậu vậy". Nay gõ tới đâu lọc tới
-            đó — chờ 300 ms sau phím cuối rồi mới hỏi máy chủ, để mười ký tự không thành mười vòng
-            đi-về; chấm quay hiện trong ô lúc đang chờ kết quả. Kết quả vẫn đi qua đường dẫn (?q=)
-            nên tải lại trang hay gửi link cho người khác vẫn ra đúng danh sách ấy. */}
+        {/* TÌM NGAY KHI GÕ, KHÔNG CẦN DẤU. Gõ tới đâu lọc tới đó — chờ 250 ms sau phím cuối rồi
+            mới hỏi máy chủ, để mười ký tự không thành mười vòng đi-về; chấm quay hiện trong ô lúc
+            đang chờ kết quả. Kết quả vẫn đi qua đường dẫn (?q=) nên tải lại trang hay gửi link cho
+            người khác vẫn ra đúng danh sách ấy. */}
         <span className="relative">
           <Search
             size={14}
@@ -116,7 +158,7 @@ export function UsersToolbar({
             onChange={(e) => setGoi(e.target.value)}
             placeholder={t('searchUser')}
             aria-label={t('searchUser')}
-            className="h-10 w-[230px] rounded-[10px] border-[1.5px] border-navy/15 bg-white pl-8 pr-8 text-[12.5px] font-semibold text-navy outline-none focus:border-navy"
+            className="h-10 w-[230px] rounded-[10px] border-[1.5px] border-navy/15 bg-white pl-8 pr-8 text-[16px] font-semibold text-navy focus-visible:border-navy focus-visible:outline-none sm:text-[12.5px]"
           />
           {dangTim ? (
             <Loader2
@@ -129,13 +171,70 @@ export function UsersToolbar({
                 type="button"
                 onClick={() => setGoi('')}
                 aria-label={t('clear')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-grey-mid hover:text-navy"
+                className="absolute right-0 top-0 grid h-10 w-10 cursor-pointer place-items-center text-grey-mid hover:text-navy"
               >
                 <X size={14} strokeWidth={2.6} />
               </button>
             )
           )}
         </span>
+
+        {/* Lọc nơi học. Ba ô nối nhau; một ô có giá trị là cả bộ lọc "đang bật" và có nút xoá. */}
+        {danhMuc.campuses.length > 0 && (
+          <span className="flex flex-wrap items-center gap-1.5">
+            <select
+              value={loc.cs}
+              onChange={(e) => chonLoc({cs: e.target.value})}
+              aria-label={t('filterCampus')}
+              className={selectCls}
+            >
+              <option value="">{t('filterCampus')}</option>
+              {danhMuc.campuses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={loc.khoi}
+              onChange={(e) => chonLoc({khoi: e.target.value})}
+              aria-label={t('filterGrade')}
+              className={selectCls}
+            >
+              <option value="">{t('filterGrade')}</option>
+              {khoiCuaCs.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={loc.lop}
+              onChange={(e) => chonLoc({lop: e.target.value})}
+              aria-label={t('filterClass')}
+              className={selectCls}
+            >
+              <option value="">{t('filterClass')}</option>
+              {lopCuaKhoi.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            {dangLoc && <Loader2 size={14} className="animate-spin text-grey-mid" />}
+            {coLoc && !dangLoc && (
+              <button
+                type="button"
+                onClick={() => chonLoc({cs: '', khoi: '', lop: ''})}
+                className="inline-flex h-10 cursor-pointer items-center gap-1 rounded-[10px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-[12px] font-extrabold text-navy hover:border-navy"
+              >
+                <X size={13} strokeWidth={2.6} />
+                {t('filterClear')}
+              </button>
+            )}
+          </span>
+        )}
+
         <label className="ml-auto flex items-center gap-1.5 text-[12px] font-bold text-grey-mid">
           {t('perPage')}
           <select

@@ -2,6 +2,7 @@
 
 import {redirect} from 'next/navigation';
 import {revalidatePath} from 'next/cache';
+import {getTranslations} from 'next-intl/server';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 // Mọi action ở đây đều có thể đụng `profiles`/`classes` — hai bảng đang được nhớ trong RAM
@@ -19,6 +20,11 @@ function flash(msg: string): never {
   const g = tachLoi(msg);
   redirect(`/admin?${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
 }
+
+// MỌI CÂU BÁO ĐI QUA messages/loiAdmin.* (audit 04/09/2026: 74 chuỗi Việt cứng trong file này →
+// màn tiếng Anh vẫn hiện tiếng Việt). getTranslations trong server action đọc đúng locale của
+// request đang chạy.
+const tl = () => getTranslations('loiAdmin');
 
 // Vì sao các action dưới đây KHÔNG gọi supabase.auth.getUser() nữa:
 // requireRole() vừa trả về đúng hồ sơ của người đang thao tác (có sẵn .id), trong khi getUser()
@@ -44,12 +50,11 @@ async function thoiChuNhiemNeuKhongConLaGiaoVien(
 
 export async function setUserRole(formData: FormData) {
   const me = await requireRole(['admin']);
+  const t = await tl();
   const userId = String(formData.get('userId'));
   const role = String(formData.get('role')) as Role;
   // Chặn admin tự đổi vai trò của chính mình (tránh tự khoá quyền admin).
-  if (me.id === userId) {
-    flash('Không thể tự đổi vai trò của chính mình (tránh tự khoá quyền admin). Hãy nhờ một admin khác.');
-  }
+  if (me.id === userId) flash(loi(t('roleSelf')));
   const supabase = await createClient();
   const {error} = await supabase.from('profiles').update({role}).eq('id', userId);
   if (!error) {
@@ -61,7 +66,7 @@ export async function setUserRole(formData: FormData) {
   }
   quen();
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? loi(friendlyError(error)) : 'Đã đổi vai trò');
+  flash(error ? loi(friendlyError(error)) : t('roleChanged'));
 }
 
 // ---------- DUYỆT / XOÁ NHIỀU NGƯỜI CÙNG LÚC ----------
@@ -74,13 +79,13 @@ export async function setUserRole(formData: FormData) {
 // chặn cả mẻ: người bấm "chọn tất cả" không nên bị cả thao tác hỏng chỉ vì dòng của họ lọt vào.
 export async function bulkSetUserRole(formData: FormData) {
   const me = await requireRole(['admin']);
+  const t = await tl();
   const role = String(formData.get('role') ?? '') as Role;
   const ids = formData.getAll('userId').map(String).filter(Boolean);
   const targets = ids.filter((id) => id !== me.id);
   const skippedSelf = ids.length - targets.length;
-  if (!role) flash(loi('Chưa chọn vai trò để cấp.'));
-  if (targets.length === 0)
-    flash(loi(skippedSelf > 0 ? 'Không thể tự đổi vai trò của chính mình.' : 'Chưa chọn người nào.'));
+  if (!role) flash(loi(t('bulkNoRole')));
+  if (targets.length === 0) flash(loi(skippedSelf > 0 ? t('bulkSelfOnly') : t('bulkNone')));
 
   const supabase = await createClient();
   const {error} = await supabase.from('profiles').update({role}).in('id', targets);
@@ -96,17 +101,17 @@ export async function bulkSetUserRole(formData: FormData) {
   flash(
     error
       ? loi(friendlyError(error))
-      : `Đã cấp quyền cho ${targets.length} người${skippedSelf > 0 ? ' (bỏ qua chính bạn)' : ''}`,
+      : t('bulkGranted', {n: targets.length}) + (skippedSelf > 0 ? t('bulkSkippedSelf') : ''),
   );
 }
 
 export async function bulkDeleteUsers(formData: FormData) {
   const me = await requireRole(['admin']);
+  const t = await tl();
   const ids = formData.getAll('userId').map(String).filter(Boolean);
   const targets = ids.filter((id) => id !== me.id);
   const skippedSelf = ids.length - targets.length;
-  if (targets.length === 0)
-    flash(loi(skippedSelf > 0 ? 'Không thể xoá chính mình.' : 'Chưa chọn người nào.'));
+  if (targets.length === 0) flash(loi(skippedSelf > 0 ? t('deleteSelfOnly') : t('bulkNone')));
 
   const supabase = await createClient();
   // admin_delete_user nhận MỘT người mỗi lần (nó dọn cả dữ liệu liên quan), nên phải gọi lần
@@ -124,34 +129,34 @@ export async function bulkDeleteUsers(formData: FormData) {
   // Báo CẢ hai con số: xoá 8/10 mà chỉ nói "đã xoá" thì hai người còn lại biến mất khỏi nhận thức
   // của người quản trị chứ không biến mất khỏi cơ sở dữ liệu.
   flash(
-    failed.length > 0
-      ? loi(`Đã xoá ${ok} người, ${failed.length} người lỗi: ${failed[0]}`)
-      : `Đã xoá ${ok} người`,
+    failed.length > 0 ? loi(t('deletedSome', {ok, fail: failed.length, err: failed[0]})) : t('deletedN', {n: ok}),
   );
 }
 
 export async function disableUser(formData: FormData) {
   const me = await requireRole(['admin']);
+  const t = await tl();
   const userId = String(formData.get('userId') ?? '');
-  if (me.id === userId) flash('Không thể tự vô hiệu chính mình.');
+  if (me.id === userId) flash(loi(t('disableSelf')));
   const supabase = await createClient();
   const {error} = await supabase.from('profiles').update({role: 'pending'}).eq('id', userId);
   if (!error) await supabase.rpc('log_audit', {p_action: 'disable_user', p_detail: {target_user: userId}});
   quen();
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? loi(friendlyError(error)) : 'Đã vô hiệu (chuyển về "chờ cấp quyền")');
+  flash(error ? loi(friendlyError(error)) : t('disabled'));
 }
 
 export async function deleteUser(formData: FormData) {
   const me = await requireRole(['admin']);
+  const t = await tl();
   const userId = String(formData.get('userId') ?? '');
-  if (me.id === userId) flash('Không thể xoá chính mình.');
+  if (me.id === userId) flash(loi(t('deleteSelfOnly')));
   const supabase = await createClient();
   const {error} = await supabase.rpc('admin_delete_user', {p_user: userId});
   if (!error) await supabase.rpc('log_audit', {p_action: 'delete_user', p_detail: {target_user: userId}});
   quen();
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? loi(friendlyError(error)) : 'Đã xoá người dùng');
+  flash(error ? loi(friendlyError(error)) : t('deleted'));
 }
 
 // State trả về cho useActionState → hiện lỗi/thành công INLINE (không redirect, giữ input).
@@ -167,6 +172,7 @@ export type CampusState = {
 
 export async function createCampus(_prev: CampusState, formData: FormData): Promise<CampusState> {
   await requireRole(['admin']);
+  const t = await tl();
   const name = String(formData.get('name') ?? '').trim();
   const code = String(formData.get('code') ?? '').trim();
   // Nhiều ô tick cùng name="level" → getAll. Trường liên cấp chọn được cả THCS lẫn THPT.
@@ -176,16 +182,15 @@ export async function createCampus(_prev: CampusState, formData: FormData): Prom
   // Giữ lại input để trả về khi có lỗi (không mất nội dung đã gõ).
   const values = {name, code};
 
-  if (!name) return {ok: false, fieldError: 'name', error: 'Thiếu tên hoặc mã cơ sở', values};
-  if (!code) return {ok: false, fieldError: 'code', error: 'Thiếu tên hoặc mã cơ sở', values};
+  if (!name) return {ok: false, fieldError: 'name', error: t('campusMissing'), values};
+  if (!code) return {ok: false, fieldError: 'code', error: t('campusMissing'), values};
   // Bắt buộc chọn cấp học: thiếu nó thì cơ sở không sinh được khối nào, và người dùng lại rơi
   // vào cảnh gõ tay tên khối — đúng thứ đang đi sửa.
-  if (levels.length === 0)
-    return {ok: false, fieldError: 'level', error: 'Hãy chọn ít nhất một cấp học của cơ sở', values};
+  if (levels.length === 0) return {ok: false, fieldError: 'level', error: t('campusLevel'), values};
 
   const supabase = await createClient();
   const {error} = await supabase.from('campuses').insert({name, code, levels});
-  if (error) return {ok: false, error: (friendlyError(error)), values};
+  if (error) return {ok: false, error: friendlyError(error), values};
 
   // Trigger campus_seed_grades đã sinh khối chuẩn theo cấp — báo luôn để khỏi đi tìm.
   const nums = gradeNumbersFor(levels);
@@ -194,8 +199,8 @@ export async function createCampus(_prev: CampusState, formData: FormData): Prom
   return {
     ok: true,
     message: nums
-      ? `Đã tạo cơ sở "${name}" và ${nums.length} khối (${nums.map((n) => `Khối ${n}`).join(', ')})`
-      : `Đã tạo cơ sở "${name}". Cấp mầm non: hãy thêm khối bằng tay.`,
+      ? t('campusCreated', {name, n: nums.length, list: nums.map((n) => t('gradeLabel', {n})).join(', ')})
+      : t('campusCreatedManual', {name}),
   };
 }
 
@@ -211,6 +216,7 @@ export type ClassState = {
 
 export async function createClass(_prev: ClassState, formData: FormData): Promise<ClassState> {
   await requireRole(['admin', 'principal']); // RLS class_principal_insert giới hạn campus
+  const t = await tl();
   const name = String(formData.get('name') ?? '').trim();
   const grade_id = String(formData.get('grade_id') ?? '');
   const school_year = String(formData.get('school_year') ?? '').trim();
@@ -218,11 +224,9 @@ export async function createClass(_prev: ClassState, formData: FormData): Promis
   const teacher = String(formData.get('homeroom_teacher_id') ?? '');
   const values = {name, grade_id, school_year, campus_id, homeroom_teacher_id: teacher};
 
-  if (!name) return {ok: false, fieldError: 'name', error: 'Thiếu thông tin lớp (tên / năm học / cơ sở)', values};
-  if (!school_year)
-    return {ok: false, fieldError: 'school_year', error: 'Thiếu thông tin lớp (tên / năm học / cơ sở)', values};
-  if (!campus_id)
-    return {ok: false, fieldError: 'campus_id', error: 'Thiếu thông tin lớp (tên / năm học / cơ sở)', values};
+  if (!name) return {ok: false, fieldError: 'name', error: t('classMissing'), values};
+  if (!school_year) return {ok: false, fieldError: 'school_year', error: t('classMissing'), values};
+  if (!campus_id) return {ok: false, fieldError: 'campus_id', error: t('classMissing'), values};
 
   const supabase = await createClient();
   // Khối là thực thể (grade_id); vẫn ghi cột text 'grade' = tên khối để tương thích hiển thị cũ.
@@ -231,18 +235,13 @@ export async function createClass(_prev: ClassState, formData: FormData): Promis
   if (grade_id) {
     const g = await gradeInfo(supabase, grade_id);
     if (!g || g.campus_id !== campus_id)
-      return {ok: false, fieldError: 'grade_id', error: 'Khối không thuộc cơ sở đã chọn.', values};
+      return {ok: false, fieldError: 'grade_id', error: t('gradeNotInCampus'), values};
     grade = g.name;
     // PRD v3 Giai đoạn 1 = KHỐI 1–9 (changelog #9). Chỉ chặn TẠO MỚI: các lớp 10–12 đang chạy
     // (Marketing, 11A1…) giữ nguyên — khoá hồi tố là giết dữ liệu thật đang dùng (18/08/2026).
     const soKhoi = Number((grade.match(/\d+/) ?? [])[0]);
     if (Number.isFinite(soKhoi) && (soKhoi < 1 || soKhoi > 9))
-      return {
-        ok: false,
-        fieldError: 'grade_id',
-        error: 'Giai đoạn 1 chỉ mở khối 1–9 (PRD v3). Khối 10–12 mở ở giai đoạn sau.',
-        values,
-      };
+      return {ok: false, fieldError: 'grade_id', error: t('gradeRange'), values};
   }
   const {error} = await supabase.from('classes').insert({
     name,
@@ -252,7 +251,7 @@ export async function createClass(_prev: ClassState, formData: FormData): Promis
     campus_id,
     homeroom_teacher_id: teacher || null,
   });
-  if (error) return {ok: false, error: (friendlyError(error)), values};
+  if (error) return {ok: false, error: friendlyError(error), values};
 
   // Giao chủ nhiệm cho người còn ở vai 'chờ cấp quyền' thì NÂNG VAI luôn.
   // Danh sách chọn GVCN nay có cả người vừa đăng nhập lần đầu (còn 'pending') — trước đây họ bị
@@ -264,7 +263,7 @@ export async function createClass(_prev: ClassState, formData: FormData): Promis
   quen();
   revalidatePath('/[locale]/admin', 'page');
   revalidatePath('/[locale]/campus', 'page');
-  return {ok: true, message: `Đã tạo lớp "${name}"`};
+  return {ok: true, message: t('classCreated', {name})};
 }
 
 // Nâng 'pending' → 'teacher'. Chỉ đụng đúng người đang ở vai 'pending' (điều kiện .eq('role',...)),
@@ -282,6 +281,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // (+ lớp cho GVCN/HS). Áp dụng khi họ đăng nhập lần đầu.
 export async function inviteUser(formData: FormData) {
   const me = await requireRole(['admin']);
+  const t = await tl();
   const raw = String(formData.get('email') ?? '');
   const role = String(formData.get('role') ?? '') as Role;
   const classId = String(formData.get('class_id') ?? '') || null;
@@ -294,10 +294,10 @@ export async function inviteUser(formData: FormData) {
         .filter(Boolean),
     ),
   );
-  if (all.length === 0 || !role) flash('Thiếu email hoặc vai trò');
+  if (all.length === 0 || !role) flash(loi(t('inviteMissing')));
   const valid = all.filter((e) => EMAIL_RE.test(e));
   const invalidCount = all.length - valid.length;
-  if (valid.length === 0) flash('Không có email hợp lệ (định dạng: ten@example.com).');
+  if (valid.length === 0) flash(loi(t('inviteNoValid')));
 
   const supabase = await createClient();
   const class_id = role === 'teacher' || role === 'student' ? classId : null;
@@ -322,11 +322,8 @@ export async function inviteUser(formData: FormData) {
   }
   quen();
   revalidatePath('/[locale]/admin', 'page');
-  const okMsg =
-    valid.length === 1
-      ? `Đã mời ${valid[0]}. Vai trò sẽ được gán khi họ đăng nhập lần đầu.`
-      : `Đã mời ${valid.length} người. Vai trò sẽ được gán khi họ đăng nhập lần đầu.`;
-  const suffix = invalidCount > 0 ? ` (bỏ qua ${invalidCount} email không hợp lệ)` : '';
+  const okMsg = valid.length === 1 ? t('invitedOne', {email: valid[0]}) : t('invitedMany', {n: valid.length});
+  const suffix = invalidCount > 0 ? t('inviteSkipped', {n: invalidCount}) : '';
   flash(error ? loi(friendlyError(error)) : okMsg + suffix);
 }
 
@@ -340,9 +337,10 @@ export async function inviteUser(formData: FormData) {
 // vào cùng một bảng là hai cơ hội trôi khỏi nhau.
 export async function xepLopChoHocSinh(formData: FormData) {
   await requireRole(['admin', 'principal']);
+  const t = await tl();
   const email = String(formData.get('email') ?? '').trim();
   const classId = String(formData.get('class_id') ?? '');
-  if (!email || !classId) flash(loi('Thiếu học sinh hoặc lớp'));
+  if (!email || !classId) flash(loi(t('xepLopMissing')));
 
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('enroll_student_by_email', {p_class: classId, p_email: email});
@@ -353,19 +351,16 @@ export async function xepLopChoHocSinh(formData: FormData) {
   // 'not_found' ở đây KHÁC với ở màn ghi danh: bên đó email lạ thì tạo lời mời, còn ở đây danh
   // sách chỉ gồm em ĐÃ có tài khoản — trả về not_found nghĩa là hồ sơ vừa bị đổi vai hoặc bị xoá
   // giữa chừng, và nói thẳng ra vẫn hơn là báo "đã xếp lớp" cho một việc không xảy ra.
-  flash(
-    data === 'ok'
-      ? `Đã xếp ${email} vào lớp`
-      : loi(`Không xếp được ${email} — em này không còn ở vai học sinh nữa.`),
-  );
+  flash(data === 'ok' ? t('xepLopDone', {email}) : loi(t('xepLopFail', {email})));
 }
 
 // Phân công GVCN: đặt 1 người làm giáo viên chủ nhiệm của lớp.
 export async function assignGvcn(formData: FormData) {
   const me = await requireRole(['admin']);
+  const t = await tl();
   const userId = String(formData.get('userId') ?? '');
   const classId = String(formData.get('class_id') ?? '');
-  if (!userId || !classId) flash('Thiếu giáo viên hoặc lớp');
+  if (!userId || !classId) flash(loi(t('assignMissing')));
   const supabase = await createClient();
 
   // KHÔNG HẠ VAI BỪA (audit 18/08/2026). Bản cũ `update({role:'teacher'})` KHÔNG lọc — chọn một
@@ -374,10 +369,9 @@ export async function assignGvcn(formData: FormData) {
   // pending thì nâng lên teacher (promoteToTeacher đã lọc .eq('role','pending')); teacher thì
   // để nguyên.
   const {data: nguoi} = await supabase.from('profiles').select('role').eq('id', userId).maybeSingle();
-  if (!nguoi) flash(loi('Không tìm thấy người này.'));
-  if (userId === me.id) flash(loi('Bạn là quản trị — không tự phân công mình làm GVCN.'));
-  if (nguoi!.role === 'admin' || nguoi!.role === 'principal')
-    flash(loi('Người này đang là quản trị/BGH — không hạ xuống GVCN. Chọn một giáo viên.'));
+  if (!nguoi) flash(loi(t('assignNotFound')));
+  if (userId === me.id) flash(loi(t('assignSelf')));
+  if (nguoi!.role === 'admin' || nguoi!.role === 'principal') flash(loi(t('assignNotTeacher')));
   if (nguoi!.role === 'pending') await promoteToTeacher(supabase, userId);
 
   const {error: e2} = await supabase
@@ -386,7 +380,7 @@ export async function assignGvcn(formData: FormData) {
     .eq('id', classId);
   quen();
   revalidatePath('/[locale]/admin', 'page');
-  flash(e2 ? loi(friendlyError(e2)) : 'Đã phân công GVCN');
+  flash(e2 ? loi(friendlyError(e2)) : t('assignDone'));
 }
 
 export type ParentState = {
@@ -401,18 +395,19 @@ export type ParentState = {
 
 export async function inviteParent(_prev: ParentState, formData: FormData): Promise<ParentState> {
   await requireRole(['admin']);
+  const t = await tl();
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   const student_id = String(formData.get('student_id') ?? '');
   const values = {email, student_id};
 
-  if (!EMAIL_RE.test(email)) return {ok: false, fieldError: 'email', error: 'Thiếu email hoặc học sinh', values};
-  if (!student_id) return {ok: false, error: 'Thiếu email hoặc học sinh', values};
+  if (!EMAIL_RE.test(email)) return {ok: false, fieldError: 'email', error: t('parentMissing'), values};
+  if (!student_id) return {ok: false, error: t('parentMissing'), values};
 
   const supabase = await createClient();
   const {error} = await supabase
     .from('parent_invitations')
     .upsert({email, student_id, status: 'pending'}, {onConflict: 'email,student_id'});
-  if (error) return {ok: false, error: (friendlyError(error)), values};
+  if (error) return {ok: false, error: friendlyError(error), values};
   try {
     await supabase.functions.invoke('invite-parent', {body: {email, student_id}});
   } catch {
@@ -420,7 +415,7 @@ export async function inviteParent(_prev: ParentState, formData: FormData): Prom
   }
   quen();
   revalidatePath('/[locale]/admin', 'page');
-  return {ok: true, message: `Đã mời phụ huynh ${email}`};
+  return {ok: true, message: t('parentInvited', {email})};
 }
 
 // ============================================================
@@ -441,15 +436,16 @@ async function gradeInfo(
 // ---------- CƠ SỞ ----------
 export async function updateCampus(formData: FormData) {
   await requireRole(['admin']);
+  const t = await tl();
   const id = String(formData.get('id') ?? '');
   const name = String(formData.get('name') ?? '').trim();
   const code = String(formData.get('code') ?? '').trim();
   const levels = [...new Set(formData.getAll('level').map(String))].filter((lv) =>
     SCHOOL_LEVELS.includes(lv as SchoolLevel),
   ) as SchoolLevel[];
-  if (!id) flash('Thiếu cơ sở cần sửa');
-  if (!name || !code) flash('Thiếu tên hoặc mã cơ sở');
-  if (levels.length === 0) flash('Hãy chọn ít nhất một cấp học của cơ sở');
+  if (!id) flash(loi(t('campusEditMissing')));
+  if (!name || !code) flash(loi(t('campusMissing')));
+  if (levels.length === 0) flash(loi(t('campusLevel')));
   const supabase = await createClient();
   // Thêm cấp → trigger campus_seed_grades sinh thêm khối chuẩn của cấp mới. BỎ một cấp thì KHÔNG
   // xoá khối cũ (lớp có thể đang trỏ vào) — dọn là việc có ý thức của người quản trị.
@@ -459,68 +455,71 @@ export async function updateCampus(formData: FormData) {
   quen();
   revalidatePath('/[locale]/admin', 'page');
   revalidatePath('/[locale]/campus', 'page');
-  flash(error ? loi(friendlyError(error)) : `Đã cập nhật cơ sở "${name}"`);
+  flash(error ? loi(friendlyError(error)) : t('campusUpdated', {name}));
 }
 
 export async function setCampusActive(formData: FormData) {
   await requireRole(['admin']);
+  const t = await tl();
   const id = String(formData.get('id') ?? '');
   const active = String(formData.get('active') ?? '') === 'true'; // true = khôi phục
-  if (!id) flash('Thiếu cơ sở');
+  if (!id) flash(loi(t('campusIdMissing')));
   const supabase = await createClient();
   const {error} = await supabase.from('campuses').update({is_active: active}).eq('id', id);
   if (!error)
     await supabase.rpc('log_audit', {p_action: active ? 'restore_campus' : 'archive_campus', p_detail: {campus: id}});
   quen();
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? loi(friendlyError(error)) : active ? 'Đã khôi phục cơ sở' : 'Đã lưu trữ cơ sở');
+  flash(error ? loi(friendlyError(error)) : active ? t('campusRestored') : t('campusArchived'));
 }
 
 export async function deleteCampus(formData: FormData) {
   await requireRole(['admin']);
+  const t = await tl();
   const id = String(formData.get('id') ?? '');
-  if (!id) flash('Thiếu cơ sở');
+  if (!id) flash(loi(t('campusIdMissing')));
   const supabase = await createClient();
   const {count} = await supabase
     .from('classes')
     .select('id', {count: 'exact', head: true})
     .eq('campus_id', id);
-  if ((count ?? 0) > 0) flash('Không thể xoá: cơ sở còn lớp. Hãy chuyển/lưu-trữ lớp trước, hoặc dùng Lưu trữ.');
+  if ((count ?? 0) > 0) flash(loi(t('campusHasClasses')));
   const {error} = await supabase.from('campuses').delete().eq('id', id); // grades cascade
   if (!error) await supabase.rpc('log_audit', {p_action: 'delete_campus', p_detail: {campus: id}});
   quen();
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? loi(friendlyError(error)) : 'Đã xoá cơ sở (rỗng)');
+  flash(error ? loi(friendlyError(error)) : t('campusDeleted'));
 }
 
 // ---------- KHỐI ----------
 export async function createGrade(formData: FormData) {
   await requireRole(['admin', 'principal']); // RLS grade_principal_manage giới hạn campus
+  const t = await tl();
   const campus_id = String(formData.get('campus_id') ?? '');
   const name = String(formData.get('name') ?? '').trim();
   const sort_order = Number(formData.get('sort_order') ?? 0) || 0;
-  if (!campus_id || !name) flash('Thiếu cơ sở hoặc tên khối');
+  if (!campus_id || !name) flash(loi(t('gradeMissing')));
   const supabase = await createClient();
   // Chặn ở SERVER chứ không chỉ giấu nút: cấp phổ thông có bộ khối cố định do DB sinh, thêm tay
   // là cách dữ liệu rác ("7", "k", "Khối"…) lọt vào lần trước.
   const {data: campus} = await supabase.from('campuses').select('levels').eq('id', campus_id).maybeSingle();
   // Chỉ khoá khi MỌI cấp của cơ sở đều đánh số khối. Cơ sở có mầm non thì phải gõ tay được
   // (Nhà trẻ, Mầm, Chồi, Lá…) — khoá cứng theo một cấp sẽ chặn luôn phần ấy.
-  if (hasNumberedGrades(campus?.levels))
-    flash('Các cấp của cơ sở này đều có bộ khối chuẩn do hệ thống sinh — không thêm khối bằng tay.');
+  if (hasNumberedGrades(campus?.levels)) flash(loi(t('gradeManual')));
   const {error} = await supabase.from('grades').insert({campus_id, name, sort_order});
   if (!error) await supabase.rpc('log_audit', {p_action: 'create_grade', p_detail: {campus: campus_id, name}});
   quen();
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? loi(friendlyError(error)) : `Đã tạo khối "${name}"`);
+  flash(error ? loi(friendlyError(error)) : t('gradeCreated', {name}));
 }
 
 export async function updateGrade(formData: FormData) {
   await requireRole(['admin', 'principal']);
+  const t = await tl();
   const id = String(formData.get('id') ?? '');
   const name = String(formData.get('name') ?? '').trim();
   const sort_order = Number(formData.get('sort_order') ?? 0) || 0;
-  if (!id || !name) flash('Thiếu khối hoặc tên khối');
+  if (!id || !name) flash(loi(t('gradeEditMissing')));
   const supabase = await createClient();
   // Đồng bộ cột text 'grade' của các lớp thuộc khối (giữ hiển thị cũ đúng).
   const {data: old} = await supabase.from('grades').select('name, campus_id').eq('id', id).maybeSingle();
@@ -530,55 +529,58 @@ export async function updateGrade(formData: FormData) {
   }
   quen();
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? loi(friendlyError(error)) : 'Đã cập nhật khối');
+  flash(error ? loi(friendlyError(error)) : t('gradeUpdated'));
 }
 
 export async function setGradeActive(formData: FormData) {
   await requireRole(['admin', 'principal']);
+  const t = await tl();
   const id = String(formData.get('id') ?? '');
   const active = String(formData.get('active') ?? '') === 'true';
-  if (!id) flash('Thiếu khối');
+  if (!id) flash(loi(t('gradeIdMissing')));
   const supabase = await createClient();
   const {error} = await supabase.from('grades').update({is_active: active}).eq('id', id);
   quen();
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? loi(friendlyError(error)) : active ? 'Đã khôi phục khối' : 'Đã lưu trữ khối');
+  flash(error ? loi(friendlyError(error)) : active ? t('gradeRestored') : t('gradeArchived'));
 }
 
 export async function deleteGrade(formData: FormData) {
   await requireRole(['admin', 'principal']);
+  const t = await tl();
   const id = String(formData.get('id') ?? '');
-  if (!id) flash('Thiếu khối');
+  if (!id) flash(loi(t('gradeIdMissing')));
   const supabase = await createClient();
   const {count} = await supabase
     .from('classes')
     .select('id', {count: 'exact', head: true})
     .eq('grade_id', id);
-  if ((count ?? 0) > 0) flash('Không thể xoá: còn lớp thuộc khối. Hãy đổi khối cho các lớp trước, hoặc dùng Lưu trữ.');
+  if ((count ?? 0) > 0) flash(loi(t('gradeHasClasses')));
   const {error} = await supabase.from('grades').delete().eq('id', id);
   if (!error) await supabase.rpc('log_audit', {p_action: 'delete_grade', p_detail: {grade: id}});
   quen();
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? loi(friendlyError(error)) : 'Đã xoá khối (rỗng)');
+  flash(error ? loi(friendlyError(error)) : t('gradeDeleted'));
 }
 
 // ---------- LỚP ----------
 export async function updateClass(formData: FormData) {
   await requireRole(['admin', 'principal']);
+  const t = await tl();
   const id = String(formData.get('id') ?? '');
   const name = String(formData.get('name') ?? '').trim();
   const school_year = String(formData.get('school_year') ?? '').trim();
   const campus_id = String(formData.get('campus_id') ?? '');
   const grade_id = String(formData.get('grade_id') ?? '') || null;
   const teacher = String(formData.get('homeroom_teacher_id') ?? '') || null;
-  if (!id) flash('Thiếu lớp cần sửa');
-  if (!name || !school_year || !campus_id) flash('Thiếu thông tin lớp (tên / năm học / cơ sở)');
+  if (!id) flash(loi(t('classEditMissing')));
+  if (!name || !school_year || !campus_id) flash(loi(t('classMissing')));
   const supabase = await createClient();
   // Audit #6: khối phải thuộc đúng cơ sở đã chọn.
   let grade: string | null = null;
   if (grade_id) {
     const g = await gradeInfo(supabase, grade_id);
-    if (!g || g.campus_id !== campus_id) flash('Khối không thuộc cơ sở đã chọn.');
+    if (!g || g.campus_id !== campus_id) flash(loi(t('gradeNotInCampus')));
     grade = g!.name;
   }
   const {error} = await supabase
@@ -592,14 +594,15 @@ export async function updateClass(formData: FormData) {
   revalidatePath('/[locale]/admin', 'page');
   revalidatePath('/[locale]/campus', 'page');
   revalidatePath('/[locale]', 'page');
-  flash(error ? loi(friendlyError(error)) : `Đã cập nhật lớp "${name}"`);
+  flash(error ? loi(friendlyError(error)) : t('classUpdated', {name}));
 }
 
 export async function setClassActive(formData: FormData) {
   await requireRole(['admin', 'principal']);
+  const t = await tl();
   const id = String(formData.get('id') ?? '');
   const active = String(formData.get('active') ?? '') === 'true';
-  if (!id) flash('Thiếu lớp');
+  if (!id) flash(loi(t('classIdMissing')));
   const supabase = await createClient();
   const {error} = await supabase.from('classes').update({is_active: active}).eq('id', id);
   if (!error)
@@ -607,26 +610,26 @@ export async function setClassActive(formData: FormData) {
   quen();
   revalidatePath('/[locale]/admin', 'page');
   revalidatePath('/[locale]', 'page');
-  flash(error ? loi(friendlyError(error)) : active ? 'Đã khôi phục lớp' : 'Đã lưu trữ lớp');
+  flash(error ? loi(friendlyError(error)) : active ? t('classRestored') : t('classArchived'));
 }
 
 export async function deleteClass(formData: FormData) {
   await requireRole(['admin', 'principal']);
+  const t = await tl();
   const id = String(formData.get('id') ?? '');
-  if (!id) flash('Thiếu lớp');
+  if (!id) flash(loi(t('classIdMissing')));
   const supabase = await createClient();
   const [{count: enr}, {count: wig}] = await Promise.all([
     supabase.from('enrollments').select('id', {count: 'exact', head: true}).eq('class_id', id),
     supabase.from('muc_tieu').select('id', {count: 'exact', head: true}).eq('class_id', id),
   ]);
-  if ((enr ?? 0) > 0 || (wig ?? 0) > 0)
-    flash('Không thể xoá: lớp còn học sinh hoặc mục tiêu. Hãy dùng Lưu trữ để giữ dữ liệu.');
+  if ((enr ?? 0) > 0 || (wig ?? 0) > 0) flash(loi(t('classHasData')));
   const {error} = await supabase.from('classes').delete().eq('id', id);
   if (!error) await supabase.rpc('log_audit', {p_action: 'delete_class', p_detail: {class: id}});
   quen();
   revalidatePath('/[locale]/admin', 'page');
   revalidatePath('/[locale]', 'page');
-  flash(error ? loi(friendlyError(error)) : 'Đã xoá lớp (rỗng)');
+  flash(error ? loi(friendlyError(error)) : t('classDeleted'));
 }
 
 // Huỷ một khai báo đang chờ (người đó chưa đăng nhập lần đầu).
@@ -636,8 +639,9 @@ export async function deleteClass(formData: FormData) {
 // dòng chờ chỉ có ý nghĩa cho lần đăng nhập ĐẦU TIÊN.
 export async function cancelUserGrant(formData: FormData) {
   await requireRole(['admin']);
+  const t = await tl();
   const email = String(formData.get('email') ?? '').trim();
-  if (!email) flash(loi('Thiếu email'));
+  if (!email) flash(loi(t('emailMissing')));
   const supabase = await createClient();
   // .select() để phân biệt "RLS chặn / không còn dòng nào" với "đã xoá xong" — không báo thành
   // công giả.
@@ -649,18 +653,15 @@ export async function cancelUserGrant(formData: FormData) {
   quen();
   revalidatePath('/[locale]/admin', 'page');
   if (error) flash(loi(friendlyError(error)));
-  flash(
-    (data ?? []).length > 0
-      ? `Đã huỷ khai báo cho ${email}`
-      : loi('Không huỷ được — khai báo không còn, hoặc bạn không có quyền.'),
-  );
+  flash((data ?? []).length > 0 ? t('grantCancelled', {email}) : loi(t('grantCancelFail')));
 }
 
 // Huỷ một lời mời phụ huynh đang chờ.
 export async function cancelParentInvite(formData: FormData) {
   await requireRole(['admin']);
+  const t = await tl();
   const email = String(formData.get('email') ?? '').trim();
-  if (!email) flash(loi('Thiếu email'));
+  if (!email) flash(loi(t('emailMissing')));
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('parent_invitations')
@@ -671,11 +672,7 @@ export async function cancelParentInvite(formData: FormData) {
   quen();
   revalidatePath('/[locale]/admin', 'page');
   if (error) flash(loi(friendlyError(error)));
-  flash(
-    (data ?? []).length > 0
-      ? `Đã huỷ lời mời phụ huynh ${email}`
-      : loi('Không huỷ được — lời mời không còn, hoặc bạn không có quyền.'),
-  );
+  flash((data ?? []).length > 0 ? t('parentCancelled', {email}) : loi(t('parentCancelFail')));
 }
 
 // LƯU CẢ MỘT ĐỢT SỬA KHAI BÁO BẰNG MỘT LẦN BẤM.
@@ -693,18 +690,18 @@ export async function cancelParentInvite(formData: FormData) {
 // người thật sự bị sửa, không phải cả trang.
 export async function updateUserGrants(formData: FormData) {
   await requireRole(['admin']);
+  const t = await tl();
   const emails = formData.getAll('email').map((v) => String(v).trim());
   const roles = formData.getAll('role').map(String);
   const classIds = formData.getAll('class_id').map(String);
 
-  if (emails.length === 0) flash(loi('Không có thay đổi nào để lưu.'));
-  if (roles.length !== emails.length || classIds.length !== emails.length)
-    flash(loi('Dữ liệu gửi lên không khớp. Hãy tải lại trang rồi sửa lại.'));
-  if (emails.some((e) => !e)) flash(loi('Có dòng thiếu email. Hãy tải lại trang rồi sửa lại.'));
+  if (emails.length === 0) flash(loi(t('grantsNoChange')));
+  if (roles.length !== emails.length || classIds.length !== emails.length) flash(loi(t('grantsMismatch')));
+  if (emails.some((e) => !e)) flash(loi(t('grantsMissingEmail')));
   // Chỉ nhận đúng những vai khai sẵn được. Thiếu bước này thì một request nặn tay có thể đẩy người
   // ta thẳng lên 'admin' — hoặc về 'pending', tức là đăng nhập vào chỉ còn màn hình đỏ.
   const VAI_KHAI_DUOC: Role[] = ['teacher', 'principal', 'admin', 'student', 'parent'];
-  if (roles.some((r) => !VAI_KHAI_DUOC.includes(r as Role))) flash(loi('Vai trò không hợp lệ.'));
+  if (roles.some((r) => !VAI_KHAI_DUOC.includes(r as Role))) flash(loi(t('grantsBadRole')));
 
   // Gom theo cặp (vai, lớp): năm trăm học sinh cùng vào 10A1 chỉ tốn MỘT câu UPDATE, không phải
   // năm trăm.
@@ -732,7 +729,7 @@ export async function updateUserGrants(formData: FormData) {
     if (error) {
       quen();
       revalidatePath('/[locale]/admin', 'page');
-      flash(loi(`${friendlyError(error)} — đã lưu ${xong} dòng trước đó.`));
+      flash(loi(t('grantsPartialError', {err: friendlyError(error), n: xong})));
     }
     xong += (data ?? []).length;
   }
@@ -746,10 +743,10 @@ export async function updateUserGrants(formData: FormData) {
   revalidatePath('/[locale]/admin', 'page');
   flash(
     xong === emails.length
-      ? `Đã lưu ${xong} khai báo`
+      ? t('grantsSaved', {n: xong})
       : xong === 0
-        ? loi('Không lưu được dòng nào — khai báo không còn, hoặc bạn không có quyền.')
-        : loi(`Chỉ lưu được ${xong}/${emails.length} khai báo. Số còn lại không còn trong danh sách chờ.`),
+        ? loi(t('grantsNone'))
+        : loi(t('grantsPartial', {ok: xong, n: emails.length})),
   );
 }
 

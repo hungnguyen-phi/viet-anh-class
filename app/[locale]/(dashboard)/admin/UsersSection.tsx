@@ -1,16 +1,26 @@
 import {getTranslations} from 'next-intl/server';
 import {Link} from '@/i18n/navigation';
 import {createClient} from '@/lib/supabase/server';
+import {boDau} from '@/lib/don-vi';
 import {Disclosure} from './Disclosure';
 import {UsersToolbar} from './UsersToolbar';
 import {UsersTable} from './UsersTable';
-import {USER_TABS, type UserTab} from './user-tabs';
+import {layDanhMuc} from './admin-data';
+import {USER_TABS, type UserTab, type Role} from './user-tabs';
 
 // inline-flex items-center KHÔNG phải thừa: h-8 dựng hộp cao 32px, nhưng chữ chỉ tự nằm giữa hộp
 // khi phần tử là <button> (trình duyệt căn sẵn nội dung nút). Trên <a> và <span> — hai nút phân
 // trang bên dưới — chữ bám mép trên, lệch 6px so với nhãn "Trang 1/5" ở giữa. Đã đo trên production.
 const outlineBtnSm =
   'inline-flex h-8 cursor-pointer items-center justify-center whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white/60 px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
+
+// BỘ LỌC THEO NƠI HỌC: cơ sở → khối → lớp. Chỉ có nghĩa với HỌC SINH (nơi học = enrollments).
+// Giáo viên/BGH không "thuộc" một lớp theo cách ấy, nên khi bật bộ lọc này trang ép tab về Học sinh.
+export type LocNoiHoc = {cs: string; khoi: string; lop: string};
+
+// Cột tìm không dấu (0187: profiles.full_name_khong_dau, generated). Trước khi migration chạy, cột
+// chưa có → PostgREST trả 42703; khi ấy rơi về ilike có dấu như cũ. Gỡ nhánh fallback sau 0187.
+const COT_KHONG_DAU = 'full_name_khong_dau';
 
 // BẢNG NGƯỜI DÙNG — MẢNH RIÊNG, CHẢY RIÊNG.
 //
@@ -27,40 +37,85 @@ export async function UsersSection({
   page,
   upage,
   meId,
+  loc,
 }: {
   q: string;
   tab: UserTab;
   page: number;
   upage: number;
   meId: string;
+  loc: LocNoiHoc;
 }) {
   const t = await getTranslations('admin');
   const supabase = await createClient();
   const fromIdx = (upage - 1) * page;
+  const coLoc = !!(loc.cs || loc.khoi || loc.lop);
 
-  let usersQuery = supabase
-    .from('profiles')
-    .select('id, full_name, email, role', {count: 'exact'})
-    .order('email')
-    .range(fromIdx, fromIdx + page - 1);
-  // Phải khớp ĐÚNG phép so của hàm admin_user_counts (ilike hai cột), nếu không con số trên tab và
-  // số dòng trong bảng sẽ lệch nhau — kiểu lỗi người dùng không báo được thành lời, họ chỉ thấy
-  // "ghi 3 mà bấm vào có 1" rồi thôi tin cả màn hình.
-  if (q) usersQuery = usersQuery.or(`email.ilike.%${q}%,full_name.ilike.%${q}%`);
-  if (tab !== 'all') usersQuery = usersQuery.eq('role', tab);
+  // Lọc theo nơi học đi qua enrollments!inner → chỉ ra người CÓ ghi danh khớp. Chọn cột gọn nhất
+  // đủ để lọc; PostgREST lồng bảng trong CÙNG một truy vấn nên không thêm vòng đi-về.
+  const cotChon = coLoc
+    ? 'id, full_name, email, role, enrollments!inner(class_id, is_active, classes!inner(campus_id, grade_id))'
+    : 'id, full_name, email, role';
 
-  // Số đếm cho bảy tab bằng MỘT lượt đi-về (hàm admin_user_counts, migration 0085) thay vì bảy.
-  const [{data: pageUsers, count: usersTotal}, {data: roleCounts}] = await Promise.all([
-    usersQuery,
-    supabase.rpc('admin_user_counts', q ? {p_q: q} : {}),
-  ]);
+  // Điều kiện tìm: KHÔNG DẤU. "Hung" phải ra "Hùng" — người quản trị gõ nhanh trên bàn phím không
+  // bật Telex, và tên học sinh có dấu là chuyện cả trường. So trên cột đã bỏ dấu (CSDL) với từ khoá
+  // đã bỏ dấu (cùng luật boDau ở lib/don-vi.ts). Email thì so thẳng.
+  const qKhongDau = q ? boDau(q) : '';
+  const dungLoc = (khongDau: boolean) => {
+    let x = supabase.from('profiles').select(cotChon, {count: 'exact'}).order('email');
+    if (q) {
+      x = khongDau
+        ? x.or(`email.ilike.%${q}%,${COT_KHONG_DAU}.ilike.%${qKhongDau}%`)
+        : x.or(`email.ilike.%${q}%,full_name.ilike.%${q}%`);
+    }
+    if (tab !== 'all') x = x.eq('role', tab);
+    if (loc.lop) x = x.eq('enrollments.class_id', loc.lop);
+    if (loc.khoi) x = x.eq('enrollments.classes.grade_id', loc.khoi);
+    if (loc.cs) x = x.eq('enrollments.classes.campus_id', loc.cs);
+    if (coLoc) x = x.eq('enrollments.is_active', true);
+    return x;
+  };
 
-  const rows = pageUsers ?? [];
-  const total = usersTotal ?? 0;
+  // Hai truy vấn song song: dòng của trang + số đếm cho tab.
+  //
+  // Số đếm PHẢI khớp đúng phép lọc của bảng, nếu không tab ghi "3" mà bấm vào có 1 — kiểu lỗi
+  // người dùng không báo được thành lời, họ chỉ thôi tin cả màn hình. Không tìm/không lọc thì hàm
+  // admin_user_counts (0085) đếm bằng một vòng; có tìm hoặc lọc thì đếm từ chính danh sách khớp
+  // (chỉ kéo cột role, tối đa 5000 dòng — đủ cho trường 1000 người).
+  const hoiTrang = (khongDau: boolean) => dungLoc(khongDau).range(fromIdx, fromIdx + page - 1);
+  const hoiDem = (khongDau: boolean) =>
+    q || coLoc
+      ? dungLoc(khongDau).select(coLoc ? 'role, enrollments!inner(class_id, is_active, classes!inner(campus_id, grade_id))' : 'role').limit(5000)
+      : supabase.rpc('admin_user_counts', {});
+
+  let [trangRes, demRes] = await Promise.all([hoiTrang(true), hoiDem(true)]);
+  // Fallback trước 0187: cột không dấu chưa tồn tại → thử lại có dấu (chỉ khi có từ khoá).
+  if (q && (trangRes.error?.code === '42703' || demRes.error?.code === '42703')) {
+    [trangRes, demRes] = await Promise.all([hoiTrang(false), hoiDem(false)]);
+  }
+
+  type Dong = {id: string; full_name: string | null; email: string; role: Role};
+  const rows = ((trangRes.data ?? []) as unknown as Dong[]).map(({id, full_name, email, role}) => ({
+    id,
+    full_name,
+    email,
+    role,
+  }));
+  const total = trangRes.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / page));
-  // Hàm chỉ trả về những vai CÓ người; vai rỗng không có dòng nào. Dựng đủ bảy khoá với mặc định 0
-  // để tab "Phụ huynh (0)" vẫn hiện số thay vì hiện `undefined`.
-  const byRole = new Map((roleCounts ?? []).map((r) => [r.role, Number(r.n)]));
+
+  // Đếm theo vai. Hàm chỉ trả về những vai CÓ người; vai rỗng không có dòng nào. Dựng đủ bảy khoá
+  // với mặc định 0 để tab "Phụ huynh (0)" vẫn hiện số thay vì `undefined`. Khi tìm/lọc, số đếm của
+  // tab đang chọn là chính `total` (đã lọc theo vai), còn các tab khác đếm từ danh sách chưa lọc vai
+  // — nên hoiDem KHÔNG lọc theo tab: đếm lại tại đây.
+  const byRole = new Map<string, number>();
+  if (q || coLoc) {
+    for (const r of (demRes.data ?? []) as unknown as {role: string}[]) {
+      byRole.set(r.role, (byRole.get(r.role) ?? 0) + 1);
+    }
+  } else {
+    for (const r of (demRes.data ?? []) as unknown as {role: string; n: number}[]) byRole.set(r.role, Number(r.n));
+  }
   const counts = Object.fromEntries(
     USER_TABS.map((k) => [
       k,
@@ -68,18 +123,40 @@ export async function UsersSection({
     ]),
   ) as Record<UserTab, number>;
 
-  const trang = (n: number) => ({
-    pathname: '/admin' as const,
-    query: {...(q ? {q} : {}), ...(tab !== 'all' ? {vai: tab} : {}), size: page, upage: n},
-  });
+  // Danh mục cho bộ lọc nơi học — layDanhMuc đã được các mảnh khác gọi và bọc cache(), không thêm
+  // vòng đi-về nào.
+  const {allCampuses, allGrades, allClasses} = await layDanhMuc();
+  const danhMuc = {
+    campuses: allCampuses.filter((c) => c.is_active).map((c) => ({id: c.id, name: c.name})),
+    grades: allGrades.filter((g) => g.is_active).map((g) => ({id: g.id, name: g.name, campus_id: g.campus_id})),
+    classes: allClasses
+      .filter((c) => c.is_active)
+      .map((c) => ({id: c.id, name: c.name, campus_id: c.campus_id, grade_id: c.grade_id})),
+  };
+
+  const thamSo = (them: Record<string, string | number | undefined>) => {
+    const ra: Record<string, string | number> = {};
+    for (const [k, v] of Object.entries({
+      q: q || undefined,
+      vai: tab !== 'all' ? tab : undefined,
+      cs: loc.cs || undefined,
+      khoi: loc.khoi || undefined,
+      lop: loc.lop || undefined,
+      size: page,
+      ...them,
+    }))
+      if (v !== undefined && v !== '') ra[k] = v;
+    return ra;
+  };
+  const trang = (n: number) => ({pathname: '/admin' as const, query: thamSo({upage: n})});
 
   return (
     <Disclosure title={t('users')} count={counts.all} defaultOpen>
-      <UsersToolbar q={q} tab={tab} size={page} counts={counts} />
+      <UsersToolbar q={q} tab={tab} size={page} counts={counts} loc={loc} danhMuc={danhMuc} />
 
       <UsersTable rows={rows} meId={meId} q={q} />
 
-      {/* Phân trang — giữ nguyên tab và cỡ trang khi sang trang khác. */}
+      {/* Phân trang — giữ nguyên tab, bộ lọc và cỡ trang khi sang trang khác. */}
       {totalPages > 1 && (
         <div className="mt-3 flex items-center justify-center gap-2 text-[12.5px] font-bold text-navy">
           {upage > 1 ? (

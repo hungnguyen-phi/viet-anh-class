@@ -5,6 +5,7 @@ import {useTranslations} from 'next-intl';
 import {useRouter} from '@/i18n/navigation';
 import {Star, Search, Loader2, X, Check} from 'lucide-react';
 import {assignAttendanceLeader} from '@/app/[locale]/(dashboard)/roster/actions';
+import {boDau} from '@/lib/don-vi';
 
 export type LeaderCandidate = {id: string; name: string; email: string | null};
 
@@ -31,12 +32,11 @@ export function AttendanceLeaderPicker({
   const current = students.find((s) => s.id === currentLeaderId) ?? null;
 
   const matches = useMemo(() => {
-    const needle = q.trim().toLowerCase();
+    // Bỏ dấu cả hai phía: gõ "hung" phải ra "Hùng" — trên điện thoại gõ dấu chậm gấp đôi.
+    const needle = boDau(q);
     const list = needle
       ? students.filter(
-          (s) =>
-            s.name.toLowerCase().includes(needle) ||
-            (s.email ?? '').toLowerCase().includes(needle),
+          (s) => boDau(s.name).includes(needle) || boDau(s.email ?? '').includes(needle),
         )
       : students;
     // Cắt 8 dòng cho danh sách khỏi dài; gõ thêm để lọc tiếp.

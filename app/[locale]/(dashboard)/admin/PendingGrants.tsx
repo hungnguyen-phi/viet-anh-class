@@ -28,7 +28,10 @@ export async function PendingGrants() {
 
   // layPhuTro/layDanhMuc đã được các mảnh khác của trang gọi và bọc cache() — dùng lại đúng kết
   // quả ấy, không thêm vòng đi-về nào ra Supabase.
-  const [{grants, invites}, {allClasses}] = await Promise.all([layPhuTro(), layDanhMuc()]);
+  const [{grants, invites}, {allClasses, allCampuses, allGrades}] = await Promise.all([
+    layPhuTro(),
+    layDanhMuc(),
+  ]);
 
   // Tên học sinh cho lời mời phụ huynh: chỉ hỏi khi THẬT SỰ có lời mời đang chờ.
   const dangCho = invites.filter((i) => i.status === 'pending');
@@ -40,7 +43,10 @@ export async function PendingGrants() {
   }
 
   const classNames = Object.fromEntries(allClasses.map((c) => [c.id, c.name]));
-  const lopDangDung = allClasses.filter((c) => c.is_active).map((c) => ({id: c.id, name: c.name}));
+  // Kèm cơ sở + khối để bộ lọc nơi học của panel lọc được mà không hỏi thêm gì.
+  const lopDangDung = allClasses
+    .filter((c) => c.is_active)
+    .map((c) => ({id: c.id, name: c.name, campus_id: c.campus_id, grade_id: c.grade_id}));
   const tong = grants.length + dangCho.length;
   if (tong === 0) return null;
 
@@ -68,6 +74,10 @@ export async function PendingGrants() {
         }))}
         classes={lopDangDung}
         classNames={classNames}
+        campuses={allCampuses.filter((c) => c.is_active).map((c) => ({id: c.id, name: c.name}))}
+        grades={allGrades
+          .filter((g) => g.is_active)
+          .map((g) => ({id: g.id, name: g.name, campus_id: g.campus_id}))}
       />
 
       {/* Nói thẳng giới hạn, ngay dưới bảng. Không nói thì người khai ngồi đợi một email mà hệ

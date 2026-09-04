@@ -13,6 +13,9 @@ import {OverrideForm} from './OverrideForm';
 import {deleteSlot, deleteOverride, seedSubjects} from './actions';
 import {KhuCLBCoSo} from '@/components/timetable/KhuCLBCoSo';
 import {GioTietForm, type GioTiet} from '@/components/timetable/GioTietForm';
+import {NhapHangLoat} from '@/components/timetable/NhapHangLoat';
+import {SaoChepTkb} from '@/components/timetable/SaoChepTkb';
+import {TkbHomNay, type NgayTkb} from '@/components/timetable/TkbHomNay';
 import {Flash} from '@/components/ui/Flash';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 
@@ -213,111 +216,8 @@ export default async function TimetablePage({
       : null,
   });
 
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-display text-[22px] font-bold text-navy">
-          {t('title')} · {myClass.name}
-        </h1>
-        {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
-      </div>
-
-      <Flash />
-
-      {/* Cùng kiểu chip với /báo bài và /báo cáo — phụ huynh không phải học lại một thao tác mới
-          ở mỗi trang. Chỉ hiện khi thật sự có nhiều hơn một con để chọn. */}
-      {laPhuHuynh && children.length > 1 && (
-        <div className="flex flex-wrap gap-1.5">
-          {children.map((c) => (
-            <Link
-              key={c.id}
-              href={{pathname: '/timetable', query: {child: c.id}}}
-              className={`rounded-full border px-2.5 py-1 text-[11.5px] font-bold transition-colors ${
-                c.id === con?.id
-                  ? 'border-navy bg-navy text-white'
-                  : 'border-navy/15 bg-navy/[0.02] text-navy hover:border-navy'
-              }`}
-            >
-              {c.name}
-              {c.className ? ` · ${c.className}` : ''}
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* Nói rõ đây là MẪU TUẦN LẶP.
-          Ban giám hiệu hiểu nhầm là phải lập lại mỗi tuần ("kì trước mình đóng vai trò GV thì
-          thấy cần tạo từng tuần. Việc này rất mất thời gian") và đề nghị làm một TKB cố định.
-          Thực ra app đã cố định sẵn từ đầu — lưới này lặp cho mọi tuần, ô chọn tuần chỉ để đánh
-          dấu huỷ/dời/dạy thay cho một ngày cụ thể. Đây là lỗi diễn đạt của màn hình chứ không
-          thiếu tính năng, nên sửa chữ. */}
-
-      {/* Điều hướng tuần + chú thích màu */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-navy">
-          <CalendarDays size={14} strokeWidth={2.2} className="text-grey-mid" />
-          {rangeLabel}
-        </span>
-        <span className="flex items-center gap-1.5">
-          {[
-            {d: -7, label: t('prevWeek')},
-            {d: 0, label: t('thisWeek')},
-            {d: 7, label: t('nextWeek')},
-          ].map(({d, label}) => (
-            <Link
-              key={d}
-              href={{
-                pathname: '/timetable',
-                query: {
-                  ...(classParam ? {class: classParam} : {}),
-                  ...(childParam ? {child: childParam} : {}),
-                  ...(d === 0 ? {} : {week: shiftWeek(d)}),
-                },
-              }}
-              className="inline-flex h-8 items-center rounded-[9px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-[11.5px] font-extrabold text-navy transition-colors hover:border-navy"
-            >
-              {label}
-            </Link>
-          ))}
-        </span>
-        <span className="ml-auto flex flex-wrap items-center gap-2.5">
-          {canManage && (
-            <GioTietForm
-              classId={myClass.id}
-              gio={gioTiet}
-              soTiet={PERIODS.length}
-              nhan={{
-                moNut: t('periodTimes'),
-                tieuDe: t('periodTimesTitle'),
-                tiet: t('period'),
-                tu: t('clubFrom'),
-                den: t('clubTo'),
-                tuDien: t('autofill'),
-                batDau1: t('firstStart'),
-                doDai: t('periodLen'),
-                nghi: t('periodGap'),
-                luu: t('save'),
-                huy: t('cancel'),
-              }}
-            />
-          )}
-          {(['regular', 'practice', 'exam'] as const).map((k) => (
-            <span key={k} className="inline-flex items-center gap-1.5 text-[11px] font-bold text-grey-mid">
-              <span className={`h-2.5 w-2.5 rounded-full ${KIND_STYLE[k].dot}`} />
-              {t(`kind_${k}`)}
-            </span>
-          ))}
-        </span>
-      </div>
-
-      {/* Lưới TKB: hàng = tiết, cột = thứ (kèm ngày thật của tuần đang xem).
-          Bọc trong TietProvider: mỗi ô là một nút mở hộp thoại sửa đúng ô ấy. */}
-      <TietProvider
-        classId={myClass.id}
-        monHoc={monChon}
-        nhan={nhanTiet}
-        batDuoc={canManage && monChon.length > 0}
-      >
+  // LƯỚI TUẦN dựng MỘT lần, dùng ở hai chỗ: màn rộng, và trong "Cả tuần" của máy hẹp.
+  const luoi = (
       <div className="glass overflow-x-auto rounded-[20px] p-2">
         <div className="min-w-[1000px]">
           <div className="flex">
@@ -446,11 +346,10 @@ export default async function TimetablePage({
                                 period: p,
                               })}
                               label={t('delete')}
-                              // 24px chứ không phải 16px: WCAG 2.5.8 (AA) đòi vùng chạm tối thiểu
-                              // 24×24, và đây là nút XOÁ không hoàn tác được. Không nới tới 44px
-                              // vì ô lịch chật và ngay bên dưới là liên kết sửa tiết — nút to hơn
-                              // nữa sẽ đè lên tên môn.
-                              className="grid h-6 w-6 cursor-pointer place-items-center rounded text-status-bad"
+                              // Hiện 24px (ô lịch chật, dưới là nút sửa tiết) nhưng VÙNG CHẠM 44px
+                              // qua ::before nới ra 10px mỗi bên — audit 04/09: nút xoá không hoàn
+                              // tác mà chạm 24px trên điện thoại là chạm hụt / chạm nhầm.
+                              className="relative grid h-6 w-6 cursor-pointer place-items-center rounded text-status-bad before:absolute before:-inset-2.5 before:content-['']"
                             >
                               ✕
                             </ConfirmButton>
@@ -476,6 +375,240 @@ export default async function TimetablePage({
             </div>
           ))}
         </div>
+      </div>
+  );
+
+  // Dữ liệu cho máy hẹp: mỗi ngày một danh sách tiết (xem TkbHomNay).
+  const ngayTkb: NgayTkb[] = DAYS.map((d, i) => ({
+    d,
+    nhan: dayLabel(d),
+    ngay: weekDates[i].slice(5),
+    laHomNay: weekDates[i] === today,
+    tiet: PERIODS.map((p) => {
+      const s = byKey.get(`${d}-${p}`);
+      const ov = s ? overByKey.get(`${s.id}|${weekDates[i]}`) : undefined;
+      return {
+        p,
+        gio: gioTiet[p],
+        ten: s ? tenMon(s) : null,
+        phong: s?.room ?? null,
+        giaoVien: s?.teacher_name ?? null,
+        kind: s?.kind ?? 'regular',
+        ov: ov
+          ? {status: ov.status, new_date: ov.new_date, new_period_no: ov.new_period_no, substitute_name: ov.substitute_name}
+          : null,
+        o: oCua(d, p, s),
+      };
+    }),
+  }));
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="font-display text-[22px] font-bold text-navy">
+          {t('title')} · {myClass.name}
+        </h1>
+        {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
+      </div>
+
+      <Flash />
+
+      {/* Cùng kiểu chip với /báo bài và /báo cáo — phụ huynh không phải học lại một thao tác mới
+          ở mỗi trang. Chỉ hiện khi thật sự có nhiều hơn một con để chọn. */}
+      {laPhuHuynh && children.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
+          {children.map((c) => (
+            <Link
+              key={c.id}
+              href={{pathname: '/timetable', query: {child: c.id}}}
+              className={`rounded-full border px-2.5 py-1 text-[11.5px] font-bold transition-colors ${
+                c.id === con?.id
+                  ? 'border-navy bg-navy text-white'
+                  : 'border-navy/15 bg-navy/[0.02] text-navy hover:border-navy'
+              }`}
+            >
+              {c.name}
+              {c.className ? ` · ${c.className}` : ''}
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Nói rõ đây là MẪU TUẦN LẶP.
+          Ban giám hiệu hiểu nhầm là phải lập lại mỗi tuần ("kì trước mình đóng vai trò GV thì
+          thấy cần tạo từng tuần. Việc này rất mất thời gian") và đề nghị làm một TKB cố định.
+          Thực ra app đã cố định sẵn từ đầu — lưới này lặp cho mọi tuần, ô chọn tuần chỉ để đánh
+          dấu huỷ/dời/dạy thay cho một ngày cụ thể. Đây là lỗi diễn đạt của màn hình chứ không
+          thiếu tính năng, nên sửa chữ. */}
+
+      {/* Điều hướng tuần + chú thích màu */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-navy">
+          <CalendarDays size={14} strokeWidth={2.2} className="text-grey-mid" />
+          {rangeLabel}
+        </span>
+        <span className="flex items-center gap-1.5">
+          {[
+            {d: -7, label: t('prevWeek')},
+            {d: 0, label: t('thisWeek')},
+            {d: 7, label: t('nextWeek')},
+          ].map(({d, label}) => (
+            <Link
+              key={d}
+              href={{
+                pathname: '/timetable',
+                query: {
+                  ...(classParam ? {class: classParam} : {}),
+                  ...(childParam ? {child: childParam} : {}),
+                  ...(d === 0 ? {} : {week: shiftWeek(d)}),
+                },
+              }}
+              className="inline-flex min-h-[44px] items-center rounded-[9px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-[11.5px] font-extrabold text-navy transition-colors hover:border-navy sm:min-h-0 sm:h-8"
+            >
+              {label}
+            </Link>
+          ))}
+        </span>
+        <span className="ml-auto flex flex-wrap items-center gap-2.5">
+          {/* NHẬP HÀNG LOẠT + SAO CHÉP (audit 04/09/2026): 28 lớp × 40 ô mà chỉ có cách bấm từng
+              ô thì không ai nhập — lớp thật trống trơn. Dán từ bảng tính hoặc chép từ lớp cùng
+              khối là hai đường mà phòng đào tạo vẫn làm trên giấy. */}
+          {canManage && (
+            <NhapHangLoat
+              classId={myClass.id}
+              monHoc={monLop.map((m) => ({id: m.id, name: m.name, ngan: m.short_name}))}
+              cacThu={nhanTiet.cacThu}
+              soTiet={PERIODS.length}
+              nhan={{
+                nut: t('bulkBtn'),
+                tieuDe: t('bulkTitle'),
+                huongDan: t('bulkHint'),
+                oDan: t('bulkPaste'),
+                xemTruoc: t('bulkPreview'),
+                ghiDe: t('bulkOverwrite'),
+                ghiDeHint: t('bulkOverwriteHint'),
+                khongKhop: t('bulkNoMatch'),
+                chonMon: t('bulkPick'),
+                boQua: t('bulkSkip'),
+                // t.raw: chuỗi có {n}/{m} do component tự điền — gọi t() thường là FORMATTING_ERROR.
+                tomTat: t.raw('bulkSummary'),
+                luu: t('save'),
+                huy: t('cancel'),
+                tiet: t('period'),
+                khongCoMon: t('bulkNoSubjects'),
+              }}
+            />
+          )}
+          {canManage && (
+            <SaoChepTkb
+              classId={myClass.id}
+              lopKhac={accessible.filter((c) => c.id !== myClass.id).map((c) => ({id: c.id, name: c.name}))}
+              nhan={{
+                nut: t('copyBtn'),
+                tieuDe: t('copyTitle'),
+                huongDan: t('copyHint'),
+                lopNguon: t('copySource'),
+                chonLop: t('copyPick'),
+                ghiDe: t('copyOverwrite'),
+                ghiDeHint: t('bulkOverwriteHint'),
+                hoi: t.raw('copyAsk'),
+                dongY: t('copyGo'),
+                luu: t('copyGo'),
+                huy: t('cancel'),
+                khongCoLop: t('copyNoClasses'),
+              }}
+            />
+          )}
+          {canManage && (
+            <GioTietForm
+              classId={myClass.id}
+              gio={gioTiet}
+              soTiet={PERIODS.length}
+              nhan={{
+                moNut: t('periodTimes'),
+                tieuDe: t('periodTimesTitle'),
+                tiet: t('period'),
+                tu: t('clubFrom'),
+                den: t('clubTo'),
+                tuDien: t('autofill'),
+                batDau1: t('firstStart'),
+                doDai: t('periodLen'),
+                nghi: t('periodGap'),
+                luu: t('save'),
+                huy: t('cancel'),
+              }}
+            />
+          )}
+          {(['regular', 'practice', 'exam'] as const).map((k) => (
+            <span key={k} className="inline-flex items-center gap-1.5 text-[11px] font-bold text-grey-mid">
+              <span className={`h-2.5 w-2.5 rounded-full ${KIND_STYLE[k].dot}`} />
+              {t(`kind_${k}`)}
+            </span>
+          ))}
+        </span>
+      </div>
+
+      {/* KHUNG GIỜ CHƯA KHAI: cột Tiết chỉ có số, không có giờ — người xem không biết "tiết 3" là
+          mấy giờ (10A1 trên production đúng cảnh này, audit 04/09). Nhắc ngay chỗ cần, kèm nút. */}
+      {canManage && Object.keys(gioTiet).length === 0 && (
+        <div className="glass flex flex-wrap items-center gap-2.5 rounded-[16px] px-4 py-3">
+          <p className="min-w-[220px] flex-1 text-[12.5px] font-semibold leading-relaxed text-navy">{t('timesMissing')}</p>
+          <GioTietForm
+            classId={myClass.id}
+            gio={gioTiet}
+            soTiet={PERIODS.length}
+            nhan={{
+              moNut: t('periodTimes'),
+              tieuDe: t('periodTimesTitle'),
+              tiet: t('period'),
+              tu: t('clubFrom'),
+              den: t('clubTo'),
+              tuDien: t('autofill'),
+              batDau1: t('firstStart'),
+              doDai: t('periodLen'),
+              nghi: t('periodGap'),
+              luu: t('save'),
+              huy: t('cancel'),
+            }}
+          />
+        </div>
+      )}
+
+      {/* EM/PHỤ HUYNH mở lớp chưa có tiết nào: nói thẳng, không bày một bảng câm 56 ô trống. */}
+      {!canManage && slots.length === 0 && (
+        <p className="glass hidden rounded-[16px] px-4 py-6 text-center text-[13px] font-semibold leading-relaxed text-grey-mid sm:block">
+          {t('emptyForStudent')}
+        </p>
+      )}
+
+      {/* Lưới TKB: hàng = tiết, cột = thứ (kèm ngày thật của tuần đang xem).
+          Bọc trong TietProvider: mỗi ô là một nút mở hộp thoại sửa đúng ô ấy. */}
+      <TietProvider
+        classId={myClass.id}
+        monHoc={monChon}
+        nhan={nhanTiet}
+        batDuoc={canManage && monChon.length > 0}
+      >
+      {/* Màn rộng: lưới 7 ngày. Máy hẹp: một ngày một cột (TkbHomNay), bấm "Cả tuần" mới bung lưới
+          — audit 04/09: ở 360px lưới 1000px chỉ lộ 2/7 ngày mà không có dấu hiệu cuộn. */}
+      <div className="hidden sm:block">{luoi}</div>
+      <div className="sm:hidden">
+        <TkbHomNay
+          ngay={ngayTkb}
+          batDuoc={canManage && monChon.length > 0}
+          trong={!canManage && slots.length === 0 ? t('emptyForStudent') : null}
+          nhan={{
+            caTuan: t('fullWeek'),
+            homNay: t('today'),
+            tiet: t('period'),
+            trongNgay: t('emptyForStudent'),
+            ovCancelled: t('ovCancelled'),
+            ovSubstituted: t('ovSubstituted'),
+            them: t('addCell'),
+          }}
+        >
+          {luoi}
+        </TkbHomNay>
       </div>
       </TietProvider>
 

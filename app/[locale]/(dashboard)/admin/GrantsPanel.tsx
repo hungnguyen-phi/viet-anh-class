@@ -2,15 +2,26 @@
 
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTranslations} from 'next-intl';
+import {useSearchParams} from 'next/navigation';
 import {Pencil, Search, X} from 'lucide-react';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {SubmitButton} from '@/components/ui/SubmitButton';
+import {Popup} from '@/components/ui/Popup';
+import {boDau} from '@/lib/don-vi';
 import {cancelParentInvite, cancelUserGrant, updateUserGrants} from './actions';
 import {PAGE_SIZES} from './user-tabs';
 
 export type GrantRow = {email: string; role: string; class_id: string | null; created_at: string | null};
 export type InviteRow = {email: string; childName: string | null};
-export type LopChon = {id: string; name: string};
+export type LopChon = {id: string; name: string; campus_id: string; grade_id: string | null};
+export type CoSoChon = {id: string; name: string};
+export type KhoiChon = {id: string; name: string; campus_id: string};
+
+// BỘ LỌC ĐI THEO ĐƯỜNG DẪN (?gvai=&gcs=&gkhoi=&glop=&gq=), ghi bằng history.replaceState — KHÔNG
+// qua router: mỗi cú router.replace là một lần máy chủ dựng lại cả trang quản trị (đường truyền
+// mất gói, 1–3 giây), mà dữ liệu đã nằm sẵn trên máy. Ghi thẳng vào thanh địa chỉ thì tải lại
+// trang hay gửi link cho người khác vẫn ra đúng bộ lọc, còn bấm thì tức thì.
+const THAM_SO = ['gvai', 'gcs', 'gkhoi', 'glop', 'gq'] as const;
 
 // Vai trò khai sẵn được. 'parent' nằm cuối vì lời mời phụ huynh đi bằng đường khác (bảng
 // parent_invitations, gắn với CON chứ không gắn lớp) nhưng vẫn phải xem chung một chỗ.
@@ -118,6 +129,8 @@ export function GrantsPanel({
   invites,
   classes,
   classNames,
+  campuses,
+  grades,
 }: {
   grants: GrantRow[];
   invites: InviteRow[];
@@ -125,23 +138,59 @@ export function GrantsPanel({
   classes: LopChon[];
   /** id lớp → tên, KỂ CẢ lớp đã lưu trữ, để dòng cũ không hiện ra một ô trống. */
   classNames: Record<string, string>;
+  campuses: CoSoChon[];
+  grades: KhoiChon[];
 }) {
   const t = useTranslations('admin');
   const tr = useTranslations('roles');
+  const sp = useSearchParams();
 
   const [sua, setSua] = useState(false);
   const [edits, setEdits] = useState<Record<string, {role: string; class_id: string}>>({});
-  const [tab, setTab] = useState<Tab>('all');
-  const [lop, setLop] = useState('');
-  const [q, setQ] = useState('');
+  const vaiBanDau = sp.get('gvai') ?? 'all';
+  const [tab, setTab] = useState<Tab>(
+    (TABS as readonly string[]).includes(vaiBanDau) ? (vaiBanDau as Tab) : 'all',
+  );
+  const [cs, setCs] = useState(sp.get('gcs') ?? '');
+  const [khoi, setKhoi] = useState(sp.get('gkhoi') ?? '');
+  const [lop, setLop] = useState(sp.get('glop') ?? '');
+  const [q, setQ] = useState(sp.get('gq') ?? '');
   const [size, setSize] = useState<number>(25);
   const [trang, setTrang] = useState(1);
+  const [hoiThoat, setHoiThoat] = useState(false);
 
   // Đổi bộ lọc thì về trang 1: đang ở trang 7 của "Tất cả" mà bấm sang "Giáo viên" (chỉ có 2 trang)
-  // là rơi vào một trang rỗng — trông hệt như "không có giáo viên nào".
+  // là rơi vào một trang rỗng — trông hệt như "không có giáo viên nào". Đồng thời ghi bộ lọc lên
+  // thanh địa chỉ (xem THAM_SO).
   useEffect(() => {
     setTrang(1);
-  }, [tab, lop, q, size]);
+    if (typeof window === 'undefined') return;
+    const u = new URL(window.location.href);
+    const gia: Record<(typeof THAM_SO)[number], string> = {
+      gvai: tab === 'all' ? '' : tab,
+      gcs: cs,
+      gkhoi: khoi,
+      glop: lop,
+      gq: q,
+    };
+    for (const k of THAM_SO) {
+      if (gia[k]) u.searchParams.set(k, gia[k]);
+      else u.searchParams.delete(k);
+    }
+    window.history.replaceState(window.history.state, '', u.toString());
+  }, [tab, cs, khoi, lop, q, size]);
+
+  // Cơ sở → khối → lớp: ô sau chỉ liệt kê những gì thuộc ô trước; đổi ô trước thì ô sau về trống.
+  const lopTheoId = useMemo(() => new Map(classes.map((c) => [c.id, c])), [classes]);
+  const chonCs = (v: string) => {
+    setCs(v);
+    setKhoi('');
+    setLop('');
+  };
+  const chonKhoi = (v: string) => {
+    setKhoi(v);
+    setLop('');
+  };
 
   const canhCua = (g: GrantRow) => edits[g.email] ?? {role: g.role, class_id: g.class_id ?? ''};
   const daDoi = (g: GrantRow) => {
@@ -187,20 +236,32 @@ export function GrantsPanel({
     return m;
   }, [tatCa]);
 
-  const tuKhoa = q.trim().toLowerCase();
+  // Từ khoá bỏ dấu, so với email VÀ tên lớp (gõ "10a1" ra cả lớp). Bảng khai sẵn không có cột tên
+  // người — chỉ email — nên chưa tìm theo tên được (xem ghi chú ở PendingGrants).
+  const tuKhoa = boDau(q);
   const locDuoc = useMemo(
     () =>
       tatCa.filter((d) => {
         if (tab !== 'all' && d.role !== tab) return false;
-        // Lọc theo lớp chỉ có nghĩa với dòng khai sẵn; lời mời phụ huynh gắn với CON, không gắn lớp.
-        if (lop) {
+        // Lọc theo nơi học chỉ có nghĩa với dòng khai sẵn; lời mời phụ huynh gắn với CON, không gắn lớp.
+        if (lop || cs || khoi) {
           if (d.kind !== 'grant') return false;
-          if (lop === 'none' ? d.g.class_id != null : d.g.class_id !== lop) return false;
+          if (lop === 'none') {
+            if (d.g.class_id != null) return false;
+          } else {
+            const c = d.g.class_id ? lopTheoId.get(d.g.class_id) : undefined;
+            if (lop && d.g.class_id !== lop) return false;
+            if (cs && c?.campus_id !== cs) return false;
+            if (khoi && c?.grade_id !== khoi) return false;
+          }
         }
-        if (tuKhoa && !d.email.toLowerCase().includes(tuKhoa)) return false;
+        if (tuKhoa) {
+          const tenLop = d.kind === 'grant' && d.g.class_id ? (classNames[d.g.class_id] ?? '') : '';
+          if (!boDau(d.email).includes(tuKhoa) && !boDau(tenLop).includes(tuKhoa)) return false;
+        }
         return true;
       }),
-    [tatCa, tab, lop, tuKhoa],
+    [tatCa, tab, lop, cs, khoi, tuKhoa, lopTheoId, classNames],
   );
 
   const daXep = useMemo(() => {
@@ -223,12 +284,36 @@ export function GrantsPanel({
   // lớp lọc ra rỗng là bốn mươi lần thử vô ích.
   const lopCoNguoi = useMemo(() => {
     const co = new Set(grants.map((g) => g.class_id).filter(Boolean) as string[]);
-    return classes.filter((c) => co.has(c.id));
-  }, [grants, classes]);
+    return classes.filter(
+      (c) => co.has(c.id) && (!cs || c.campus_id === cs) && (!khoi || c.grade_id === khoi),
+    );
+  }, [grants, classes, cs, khoi]);
+  const csCoNguoi = useMemo(() => {
+    const co = new Set(
+      grants.map((g) => (g.class_id ? lopTheoId.get(g.class_id)?.campus_id : null)).filter(Boolean),
+    );
+    return campuses.filter((c) => co.has(c.id));
+  }, [grants, campuses, lopTheoId]);
+  const khoiCoNguoi = useMemo(() => {
+    const co = new Set(
+      grants.map((g) => (g.class_id ? lopTheoId.get(g.class_id)?.grade_id : null)).filter(Boolean),
+    );
+    return grades.filter((g) => co.has(g.id) && (!cs || g.campus_id === cs));
+  }, [grants, grades, lopTheoId, cs]);
   const coDongKhongLop = grants.some((g) => !g.class_id);
 
+  // Thoát sửa khi còn dòng chưa lưu → HỎI bằng hộp của app, không phải window.confirm (hộp hệ
+  // thống lệch bản sắc, nút OK/Cancel không dịch).
   const thoatSua = () => {
-    if (daSua.length > 0 && !window.confirm(t('grantsConfirmLeave', {n: daSua.length}))) return;
+    if (daSua.length > 0) {
+      setHoiThoat(true);
+      return;
+    }
+    setEdits({});
+    setSua(false);
+  };
+  const thoatHan = () => {
+    setHoiThoat(false);
     setEdits({});
     setSua(false);
   };
@@ -275,7 +360,7 @@ export function GrantsPanel({
               onChange={(e) => setQ(e.target.value)}
               placeholder={t('grantsSearch')}
               aria-label={t('grantsSearch')}
-              className="h-10 w-[230px] rounded-[10px] border-[1.5px] border-navy/15 bg-white pl-8 pr-3 text-[12.5px] font-semibold text-navy outline-none focus:border-navy"
+              className="h-10 w-[230px] rounded-[10px] border-[1.5px] border-navy/15 bg-white pl-8 pr-3 text-[16px] font-semibold text-navy focus-visible:border-navy focus-visible:outline-none sm:text-[12.5px]"
             />
           </span>
           {q && (
@@ -285,6 +370,26 @@ export function GrantsPanel({
             </button>
           )}
 
+          {csCoNguoi.length > 1 && (
+            <select value={cs} onChange={(e) => chonCs(e.target.value)} aria-label={t('filterCampus')} className={selectCls}>
+              <option value="">{t('filterCampus')}</option>
+              {csCoNguoi.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
+          {khoiCoNguoi.length > 1 && (
+            <select value={khoi} onChange={(e) => chonKhoi(e.target.value)} aria-label={t('filterGrade')} className={selectCls}>
+              <option value="">{t('filterGrade')}</option>
+              {khoiCoNguoi.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          )}
           {(lopCoNguoi.length > 0 || coDongKhongLop) && (
             <select
               value={lop}
@@ -300,6 +405,12 @@ export function GrantsPanel({
               ))}
               {coDongKhongLop && <option value="none">{t('classNone')}</option>}
             </select>
+          )}
+          {(cs || khoi || lop) && (
+            <button type="button" onClick={() => chonCs('')} className={ghostBtnLg}>
+              <X size={13} strokeWidth={2.6} />
+              {t('filterClear')}
+            </button>
           )}
 
           {/* Nút sửa / lưu. Đây là chỗ DUY NHẤT lưu được — không còn nút Lưu rải trên từng dòng. */}
@@ -339,6 +450,22 @@ export function GrantsPanel({
         </div>
 
       </div>
+
+      {hoiThoat && (
+        <Popup title={t('grantsExitEdit')} onClose={() => setHoiThoat(false)} width="max-w-[400px]">
+          <p className="text-[14px] font-semibold leading-relaxed text-navy">
+            {t('grantsConfirmLeave', {n: daSua.length})}
+          </p>
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <button type="button" onClick={() => setHoiThoat(false)} className={`${ghostBtnLg} min-h-[44px]`}>
+              {t('grantsKeepEditing')}
+            </button>
+            <button type="button" onClick={thoatHan} autoFocus className={`${navyBtn} min-h-[44px]`}>
+              {t('grantsDiscard')}
+            </button>
+          </div>
+        </Popup>
+      )}
 
       {/* role="row" phải nằm TRONG một role="table"/"grid" thì trình đọc màn hình mới hiểu; đứng
           trơ một mình là ARIA không hợp lệ và bị bỏ qua. Khai đủ bộ như bảng người dùng. */}

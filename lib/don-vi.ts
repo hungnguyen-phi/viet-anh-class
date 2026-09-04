@@ -58,6 +58,10 @@ export const DON_VI: DonVi[] = [
 const BO_DAU = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase().trim();
 
+/** Bỏ dấu + thường hoá để so/tìm tên tiếng Việt ("Hung" khớp "Hùng"). Cùng luật với cột
+ *  `full_name_khong_dau` trên CSDL (0187) — hai bên phải cho ra cùng một chuỗi. */
+export const boDau = BO_DAU;
+
 // Bảng tra đã bỏ dấu, để đơn vị gõ tay ("tiet", "GIỜ", "Bài ") vẫn về đúng kiểu.
 const THEO_MA = new Map(DON_VI.map((d) => [BO_DAU(d.ma), d.kieu]));
 

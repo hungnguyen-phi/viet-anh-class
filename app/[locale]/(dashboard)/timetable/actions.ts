@@ -2,6 +2,7 @@
 
 import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
+import {getTranslations} from 'next-intl/server';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole, getCurrentProfile} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
@@ -11,10 +12,15 @@ function flash(classId: string, msg: string): never {
   redirect(`/timetable?class=${encodeURIComponent(classId)}&${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
 }
 
+// MỌI CÂU BÁO ĐI QUA messages/timetable.* (audit 04/09: chuỗi Việt cứng trong action → màn tiếng
+// Anh hiện tiếng Việt). getTranslations trong server action đọc đúng locale của request.
+const tb = () => getTranslations('timetable');
+
 // Hiệu trưởng nằm trong danh sách: ở trường thật, THỜI KHOÁ BIỂU do ban giám hiệu xếp, giáo
 // viên chỉ đổi ngoại lệ (thi, thực hành, dạy thay). RLS ở migration 0057 giới hạn họ đúng các
 // lớp trong cơ sở mình.
 const KINDS = ['regular', 'practice', 'exam'] as const;
+const QUAN_TKB = ['teacher', 'admin', 'principal'] as const;
 
 // Ô môn giờ gửi lên id của danh mục. Kiểm dạng uuid ngay tại đây để câu lỗi là tiếng Việt dễ
 // hiểu, thay vì để Postgres trả 22P02 rồi friendlyError chỉ nói được "Đã xảy ra lỗi".
@@ -29,7 +35,8 @@ export type LuuOState = {ok: boolean; error?: string; message?: string};
 // lỗi hiện ở chỗ cách xa nơi vừa bấm. Trả state thì lỗi hiện ngay trong hộp, còn lưu xong thì
 // hộp tự đóng (cùng lối đã dùng cho form sửa mục tiêu ở /wig).
 export async function luuOTiet(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
-  await requireRole(['teacher', 'admin', 'principal']);
+  await requireRole([...QUAN_TKB]);
+  const t = await tb();
   const class_id = String(formData.get('class_id') ?? '');
   const day_of_week = Number(formData.get('day_of_week') ?? 0);
   const period_no = Number(formData.get('period_no') ?? 0);
@@ -39,9 +46,8 @@ export async function luuOTiet(_prev: LuuOState, formData: FormData): Promise<Lu
   const kindRaw = String(formData.get('kind') ?? 'regular');
   // Giá trị lạ từ form → về 'regular' cho khỏi dính CHECK ở DB rồi báo lỗi khó hiểu.
   const kind = (KINDS as readonly string[]).includes(kindRaw) ? kindRaw : 'regular';
-  if (!class_id || !day_of_week || !period_no)
-    return {ok: false, error: 'Thiếu thông tin ô thời khoá biểu'};
-  if (!UUID.test(subject_id)) return {ok: false, error: 'Hãy chọn môn cho ô này'};
+  if (!class_id || !day_of_week || !period_no) return {ok: false, error: t('errMissingCell')};
+  if (!UUID.test(subject_id)) return {ok: false, error: t('errPickSubject')};
 
   // ÁP CHO NHIỀU THỨ MỘT LẦN (18/08/2026 — "trình quản lý chuyên nghiệp"): môn học chính khoá
   // thường lặp 2–3 buổi/tuần, mà bản cũ bắt mở hộp thoại từng ô khai lại y hệt. Các checkbox
@@ -92,11 +98,147 @@ export async function luuOTiet(_prev: LuuOState, formData: FormData): Promise<Lu
     ok: true,
     message:
       seGhi.length > 1
-        ? `Đã lưu tiết này cho ${seGhi.length} ngày${boQua > 0 ? `, bỏ qua ${boQua} ngày đã có tiết` : ''}`
+        ? t('savedDays', {n: seGhi.length}) + (boQua > 0 ? t('skippedDays', {n: boQua}) : '')
         : boQua > 0
-          ? `Đã lưu; bỏ qua ${boQua} ngày đã có tiết khác`
-          : 'Đã lưu ô thời khoá biểu',
+          ? t('savedOne') + t('skippedDays', {n: boQua})
+          : t('savedOne'),
   };
+}
+
+// ============================================================
+// NHẬP HÀNG LOẠT (audit 04/09/2026): dán cả bảng từ Excel/Sheets, xem trước, lưu MỘT lần.
+// 28 lớp × 40 ô mà nhập từng ô một thì không ai nhập — lớp thật trống trơn suốt năm.
+// Trình duyệt đã đối chiếu tên môn → subject_id và dựng danh sách ô; ở đây chỉ kiểm lại từng ô
+// (dải thứ/tiết, uuid) và tôn trọng luật "không ghi đè lặng lẽ": chỉ đè khi người bấm tick rõ.
+// ============================================================
+type ODan = {d: number; p: number; s: string};
+
+function docCacO(raw: string): ODan[] | null {
+  try {
+    const arr = JSON.parse(raw) as unknown;
+    if (!Array.isArray(arr)) return null;
+    const ra: ODan[] = [];
+    for (const o of arr) {
+      if (!o || typeof o !== 'object') return null;
+      const {d, p, s} = o as {d: unknown; p: unknown; s: unknown};
+      if (!Number.isInteger(d) || (d as number) < 2 || (d as number) > 8) return null;
+      if (!Number.isInteger(p) || (p as number) < 1 || (p as number) > 12) return null;
+      if (typeof s !== 'string' || !UUID.test(s)) return null;
+      ra.push({d: d as number, p: p as number, s});
+    }
+    return ra;
+  } catch {
+    return null;
+  }
+}
+
+export async function nhapHangLoat(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
+  await requireRole([...QUAN_TKB]);
+  const t = await tb();
+  const class_id = String(formData.get('class_id') ?? '');
+  const ghiDe = String(formData.get('ghi_de') ?? '') === '1';
+  if (!UUID.test(class_id)) return {ok: false, error: t('errMissingClass')};
+  const cacO = docCacO(String(formData.get('cac_o') ?? '[]'));
+  if (!cacO) return {ok: false, error: t('bulkErrBad')};
+  if (cacO.length === 0) return {ok: false, error: t('bulkErrEmpty')};
+  // Hai ô cùng toạ độ trong một lần dán → giữ ô sau (như người ta sửa đè trên bảng tính).
+  const theoKhoa = new Map(cacO.map((o) => [`${o.d}-${o.p}`, o]));
+
+  const supabase = await createClient();
+  let boQua = 0;
+  if (!ghiDe) {
+    const {data: daCo, error} = await supabase
+      .from('timetable_slots')
+      .select('day_of_week, period_no')
+      .eq('class_id', class_id);
+    if (error) return {ok: false, error: friendlyError(error)};
+    for (const r of daCo ?? []) {
+      if (theoKhoa.delete(`${r.day_of_week}-${r.period_no}`)) boQua++;
+    }
+  }
+  const rows = [...theoKhoa.values()].map((o) => ({
+    class_id,
+    day_of_week: o.d,
+    period_no: o.p,
+    subject_id: o.s,
+    kind: 'regular',
+  }));
+  if (rows.length === 0) return {ok: false, error: t('bulkAllExist', {n: boQua})};
+  const {error} = await supabase
+    .from('timetable_slots')
+    .upsert(rows, {onConflict: 'class_id,day_of_week,period_no'});
+  if (error) return {ok: false, error: friendlyError(error)};
+  revalidatePath('/[locale]/timetable', 'page');
+  return {ok: true, message: t('bulkSaved', {n: rows.length}) + (boQua > 0 ? t('skippedDays', {n: boQua}) : '')};
+}
+
+// ============================================================
+// SAO CHÉP THỜI KHOÁ BIỂU TỪ LỚP KHÁC (audit 04/09/2026): các lớp cùng khối thường học cùng
+// một khung; xếp một lớp rồi nhân ra là xong cả khối. Môn của lớp nguồn chưa có trong chương
+// trình lớp đích thì thêm vào class_subjects trước (không thì trigger subject_fits_class chặn
+// từng ô một, người dùng không hiểu vì sao "lỗi").
+// ============================================================
+export async function saoChepTuLop(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
+  await requireRole([...QUAN_TKB]);
+  const t = await tb();
+  const class_id = String(formData.get('class_id') ?? '');
+  const nguon_id = String(formData.get('nguon_id') ?? '');
+  const ghiDe = String(formData.get('ghi_de') ?? '') === '1';
+  if (!UUID.test(class_id)) return {ok: false, error: t('errMissingClass')};
+  if (!UUID.test(nguon_id)) return {ok: false, error: t('copyErrNoSource')};
+  if (nguon_id === class_id) return {ok: false, error: t('copyErrSameClass')};
+
+  const supabase = await createClient();
+  const [{data: nguon, error: e1}, {data: daCoRes, error: e2}, {data: monDich, error: e3}] = await Promise.all([
+    supabase
+      .from('timetable_slots')
+      .select('day_of_week, period_no, subject_id, room, teacher_name, kind')
+      .eq('class_id', nguon_id)
+      .not('subject_id', 'is', null),
+    supabase.from('timetable_slots').select('day_of_week, period_no').eq('class_id', class_id),
+    supabase.from('class_subjects').select('subject_id').eq('class_id', class_id),
+  ]);
+  if (e1 || e2 || e3) return {ok: false, error: friendlyError((e1 ?? e2 ?? e3)!)};
+  if (!nguon || nguon.length === 0) return {ok: false, error: t('copyErrSourceEmpty')};
+
+  // Môn lớp nguồn có mà lớp đích chưa khai → khai thêm (cùng cơ sở thì subject_fits_class cho qua;
+  // khác cơ sở thì DB từ chối và câu báo nói thẳng).
+  const daKhai = new Set((monDich ?? []).map((m) => m.subject_id));
+  const thieu = [...new Set(nguon.map((s) => s.subject_id as string))].filter((id) => !daKhai.has(id));
+  if (thieu.length > 0) {
+    const {error} = await supabase
+      .from('class_subjects')
+      .upsert(thieu.map((subject_id) => ({class_id, subject_id, is_active: true})), {
+        onConflict: 'class_id,subject_id',
+        ignoreDuplicates: true,
+      });
+    if (error) return {ok: false, error: t('copyErrSubjects', {n: thieu.length}) + ' ' + friendlyError(error)};
+  }
+
+  const daCo = new Set((daCoRes ?? []).map((r) => `${r.day_of_week}-${r.period_no}`));
+  let boQua = 0;
+  const rows = nguon
+    .filter((s) => {
+      if (ghiDe || !daCo.has(`${s.day_of_week}-${s.period_no}`)) return true;
+      boQua++;
+      return false;
+    })
+    .map((s) => ({
+      class_id,
+      day_of_week: s.day_of_week,
+      period_no: s.period_no,
+      subject_id: s.subject_id,
+      room: s.room,
+      teacher_name: s.teacher_name,
+      kind: s.kind,
+    }));
+  if (rows.length === 0) return {ok: false, error: t('bulkAllExist', {n: boQua})};
+  const {error} = await supabase
+    .from('timetable_slots')
+    .upsert(rows, {onConflict: 'class_id,day_of_week,period_no'});
+  if (error) return {ok: false, error: friendlyError(error)};
+  revalidatePath('/[locale]/timetable', 'page');
+  return {ok: true, message: t('copySaved', {n: rows.length}) + (boQua > 0 ? t('skippedDays', {n: boQua}) : '')};
 }
 
 // ============================================================
@@ -104,9 +246,10 @@ export async function luuOTiet(_prev: LuuOState, formData: FormData): Promise<Lu
 // Form gửi 12 cặp tu_N / den_N; cặp bỏ trống = tiết đó không khai (xoá dòng nếu có).
 // ============================================================
 export async function luuGioTiet(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
-  const me = await requireRole(['teacher', 'admin', 'principal']);
+  const me = await requireRole([...QUAN_TKB]);
+  const t = await tb();
   const class_id = String(formData.get('class_id') ?? '');
-  if (!class_id) return {ok: false, error: 'Thiếu thông tin lớp'};
+  if (!class_id) return {ok: false, error: t('errMissingClass')};
 
   const ghi: {class_id: string; period_no: number; start_time: string; end_time: string; updated_by: string}[] = [];
   const xoa: number[] = [];
@@ -117,15 +260,15 @@ export async function luuGioTiet(_prev: LuuOState, formData: FormData): Promise<
       xoa.push(p);
       continue;
     }
-    if (!tu || !den) return {ok: false, error: `Tiết ${p}: điền cả giờ bắt đầu và kết thúc, hoặc bỏ trống cả hai.`};
-    if (den <= tu) return {ok: false, error: `Tiết ${p}: giờ kết thúc phải sau giờ bắt đầu.`};
+    if (!tu || !den) return {ok: false, error: t('errPeriodBoth', {p})};
+    if (den <= tu) return {ok: false, error: t('errPeriodOrder', {p})};
     ghi.push({class_id, period_no: p, start_time: tu, end_time: den, updated_by: me.id});
   }
   // Tiết sau không được BẮT ĐẦU trước khi tiết trước KẾT THÚC — khung giờ chồng nhau là lưới
   // nói dối hai kiểu cùng lúc.
   for (let i = 1; i < ghi.length; i++) {
     if (ghi[i].start_time < ghi[i - 1].end_time)
-      return {ok: false, error: `Tiết ${ghi[i].period_no} bắt đầu trước khi tiết ${ghi[i - 1].period_no} kết thúc.`};
+      return {ok: false, error: t('errPeriodOverlap', {p: ghi[i].period_no, q: ghi[i - 1].period_no})};
   }
 
   const supabase = await createClient();
@@ -144,7 +287,7 @@ export async function luuGioTiet(_prev: LuuOState, formData: FormData): Promise<
     if (error) return {ok: false, error: friendlyError(error)};
   }
   revalidatePath('/[locale]/timetable', 'page');
-  return {ok: true, message: 'Đã lưu khung giờ tiết học'};
+  return {ok: true, message: t('savedTimes')};
 }
 
 // Gieo cả bộ môn của cơ sở vào chương trình lớp (class_subjects), để ô chọn môn thôi rỗng.
@@ -153,16 +296,14 @@ export async function luuGioTiet(_prev: LuuOState, formData: FormData): Promise<
 // nhiệm về chương trình của lớp. RPC tự kiểm quyền (GVCN lớp / hiệu trưởng cùng cơ sở / admin) và
 // tự bỏ qua môn đã có, nên bấm nhầm hai lần cũng không sao.
 export async function seedSubjects(formData: FormData) {
-  await requireRole(['teacher', 'admin', 'principal']);
+  await requireRole([...QUAN_TKB]);
+  const t = await tb();
   const class_id = String(formData.get('class_id') ?? '');
-  if (!class_id) flash(class_id, 'Thiếu thông tin lớp');
+  if (!class_id) flash(class_id, loi(t('errMissingClass')));
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('seed_class_subjects', {p_class: class_id});
   revalidatePath('/[locale]/timetable', 'page');
-  flash(
-    class_id,
-    error ? loi(friendlyError(error)) : `Đã thêm ${data ?? 0} môn vào chương trình của lớp`,
-  );
+  flash(class_id, error ? loi(friendlyError(error)) : t('seededSubjects', {n: data ?? 0}));
 }
 
 // ============================================================
@@ -171,7 +312,8 @@ export async function seedSubjects(formData: FormData) {
 // phải ghi riêng theo ngày, nếu không sẽ phá cả các tuần khác.
 // ============================================================
 export async function saveOverride(formData: FormData) {
-  await requireRole(['teacher', 'admin', 'principal']);
+  await requireRole([...QUAN_TKB]);
+  const t = await tb();
   const class_id = String(formData.get('class_id') ?? '');
   const slot_id = String(formData.get('slot_id') ?? '');
   const date = String(formData.get('date') ?? '');
@@ -182,14 +324,12 @@ export async function saveOverride(formData: FormData) {
   const newPeriodRaw = String(formData.get('new_period_no') ?? '').trim();
   const new_period_no = newPeriodRaw ? Number(newPeriodRaw) : null;
 
-  if (!slot_id || !date) flash(class_id, 'Thiếu tiết hoặc ngày');
-  if (!['cancelled', 'moved', 'substituted'].includes(status)) flash(class_id, 'Trạng thái không hợp lệ');
+  if (!slot_id || !date) flash(class_id, loi(t('errMissingSlotDate')));
+  if (!['cancelled', 'moved', 'substituted'].includes(status)) flash(class_id, loi(t('errBadStatus')));
   // Kiểm ở đây để báo câu dễ hiểu; DB vẫn có CHECK tto_moved_needs_target / tto_sub_needs_name
   // làm chốt cuối (không tin form).
-  if (status === 'moved' && (!new_date || !new_period_no))
-    flash(class_id, 'Dời tiết thì phải chọn ngày và tiết đích.');
-  if (status === 'substituted' && !substitute_name)
-    flash(class_id, 'Dạy thay thì phải ghi tên người dạy thay.');
+  if (status === 'moved' && (!new_date || !new_period_no)) flash(class_id, loi(t('errMovedNeedsTarget')));
+  if (status === 'substituted' && !substitute_name) flash(class_id, loi(t('errSubNeedsName')));
 
   const supabase = await createClient();
 
@@ -202,17 +342,12 @@ export async function saveOverride(formData: FormData) {
     .select('day_of_week')
     .eq('id', slot_id)
     .maybeSingle();
-  if (!slot) flash(class_id, 'Tiết này không còn nữa.');
+  if (!slot) flash(class_id, loi(t('errSlotGone')));
   const dowCuaNgay = (() => {
     const d = new Date(`${date}T00:00:00Z`).getUTCDay();
     return d === 0 ? 8 : d + 1;
   })();
-  if (slot!.day_of_week !== dowCuaNgay)
-    flash(class_id, 'Ngày em chọn không rơi vào đúng thứ của tiết này — chọn lại ngày cho khớp.');
-  if (status === 'moved' && new_date) {
-    const dnew = new Date(`${new_date}T00:00:00Z`).getUTCDay();
-    void dnew; // ngày đích tự do (dời sang thứ khác được) — chỉ ngày GỐC phải khớp thứ của tiết.
-  }
+  if (slot!.day_of_week !== dowCuaNgay) flash(class_id, loi(t('errDateMismatch')));
 
   // 1 ngoại lệ / (tiết, ngày) — ghi lại thì thay cái cũ, không chồng nhiều trạng thái lên nhau.
   const {error} = await supabase.from('timetable_overrides').upsert(
@@ -228,29 +363,28 @@ export async function saveOverride(formData: FormData) {
     {onConflict: 'slot_id,date'},
   );
   revalidatePath('/[locale]/timetable', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : 'Đã lưu thay đổi lịch');
+  flash(class_id, error ? loi(friendlyError(error)) : t('savedOverride'));
 }
 
 export async function deleteOverride(formData: FormData) {
-  await requireRole(['teacher', 'admin', 'principal']);
+  await requireRole([...QUAN_TKB]);
+  const t = await tb();
   const class_id = String(formData.get('class_id') ?? '');
   const id = String(formData.get('id') ?? '');
   const supabase = await createClient();
   const {error} = await supabase.from('timetable_overrides').delete().eq('id', id);
   revalidatePath('/[locale]/timetable', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : 'Đã gỡ thay đổi, tiết trở lại bình thường');
+  flash(class_id, error ? loi(friendlyError(error)) : t('removedOverride'));
 }
 
-// ============================================================
-// CLB (PRD v3 #14): mục theo GIỜ, nằm ở dải period_no 13–18 dưới lưới tiết (xem migration 0144).
-// Tên CLB ghi vào cột `subject` dạng chữ: CLB không phải MÔN nên không có chỗ trong danh mục
-// subjects — quyết định E của 0069 ("chỉ ghi subject_id") là nói về tiết chính khoá.
 // ============================================================
 // TKB CLB THEO CƠ SỞ (0152, chủ dự án 18/08/2026): CLB là LIÊN LỚP nên KHÔNG treo theo lớp nữa —
 // một lịch dùng chung của cơ sở, BGH/Admin điều phối, cả cơ sở xem. RLS cc_manage là chốt thật
 // (Admin / BGH cơ sở mình); ở đây trả state để lỗi hiện ngay dưới nút (form nằm cuối trang).
+// ============================================================
 export async function luuCLBCoSo(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
   await requireRole(['admin', 'principal']);
+  const t = await tb();
   const campus_id = String(formData.get('campus_id') ?? '');
   const weekday = Number(formData.get('weekday') ?? 0);
   const name = String(formData.get('name') ?? '').trim();
@@ -258,11 +392,11 @@ export async function luuCLBCoSo(_prev: LuuOState, formData: FormData): Promise<
   const end_time = String(formData.get('end_time') ?? '').trim();
   const room = String(formData.get('room') ?? '').trim() || null;
   const note = String(formData.get('note') ?? '').trim() || null;
-  if (!campus_id || weekday < 2 || weekday > 8) return {ok: false, error: 'Thiếu thông tin ngày'};
-  if (!name) return {ok: false, error: 'Hãy ghi tên CLB'};
-  if (name.length > 120) return {ok: false, error: 'Tên CLB tối đa 120 ký tự'};
-  if (!start_time || !end_time) return {ok: false, error: 'Hãy chọn giờ bắt đầu và kết thúc'};
-  if (end_time <= start_time) return {ok: false, error: 'Giờ kết thúc phải sau giờ bắt đầu'};
+  if (!campus_id || weekday < 2 || weekday > 8) return {ok: false, error: t('errClubDay')};
+  if (!name) return {ok: false, error: t('errClubName')};
+  if (name.length > 120) return {ok: false, error: t('errClubNameLong')};
+  if (!start_time || !end_time) return {ok: false, error: t('errClubTime')};
+  if (end_time <= start_time) return {ok: false, error: t('errClubTimeOrder')};
 
   const me = await getCurrentProfile();
   const supabase = await createClient();
@@ -271,25 +405,27 @@ export async function luuCLBCoSo(_prev: LuuOState, formData: FormData): Promise<
     .insert({campus_id, weekday, name, start_time, end_time, room, note, created_by: me?.id ?? null});
   if (error) return {ok: false, error: friendlyError(error)};
   revalidatePath('/[locale]/timetable', 'page');
-  return {ok: true, message: 'Đã thêm CLB'};
+  return {ok: true, message: t('savedClub')};
 }
 
 export async function xoaCLBCoSo(formData: FormData) {
   await requireRole(['admin', 'principal']);
+  const t = await tb();
   const id = String(formData.get('id') ?? '');
   const supabase = await createClient();
   const {error} = await supabase.from('campus_clubs').delete().eq('id', id);
   revalidatePath('/[locale]/timetable', 'page');
-  const g = tachLoi(error ? friendlyError(error) : 'Đã xoá CLB');
+  const g = tachLoi(error ? loi(friendlyError(error)) : t('deletedClub'));
   redirect(`/timetable?${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
 }
 
 export async function deleteSlot(formData: FormData) {
-  await requireRole(['teacher', 'admin', 'principal']);
+  await requireRole([...QUAN_TKB]);
+  const t = await tb();
   const class_id = String(formData.get('class_id') ?? '');
   const id = String(formData.get('id') ?? '');
   const supabase = await createClient();
   const {error} = await supabase.from('timetable_slots').delete().eq('id', id);
   revalidatePath('/[locale]/timetable', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : 'Đã xoá ô');
+  flash(class_id, error ? loi(friendlyError(error)) : t('deletedSlot'));
 }
