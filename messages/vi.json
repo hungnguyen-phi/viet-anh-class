@@ -168,7 +168,24 @@
     "locCoSo": "Cơ sở",
     "locKhoi": "Khối",
     "locLop": "Lớp",
-    "locTatCa": "Tất cả"
+    "locTatCa": "Tất cả",
+    "thanhDuoi": "Điều hướng chính",
+    "chonLopSheet": "Chọn lớp",
+    "lopHienTai": "Lớp",
+    "duoi": {
+      "myScoreboard": "Bảng điểm",
+      "schedule": "Lịch học",
+      "notifications": "Thông báo",
+      "menu": "Thực đơn",
+      "wig": "Mục tiêu",
+      "attendance": "Điểm danh",
+      "roster": "Danh sách",
+      "admin": "Quản trị",
+      "scoreboard": "Bảng điểm",
+      "campus": "Cơ sở",
+      "timetable": "Lịch học",
+      "report": "Báo cáo"
+    }
   },
   "class": {
     "gvcn": "GVCN",

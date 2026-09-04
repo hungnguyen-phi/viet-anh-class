@@ -59,7 +59,7 @@ export function PopupLopTruong({
       </button>
       {mo && (
         <Popup title={tieuDe} onClose={dong} width="max-w-[760px]">
-          <div className="flex max-h-[75vh] flex-col gap-4 overflow-y-auto pr-1">{children}</div>
+          <div className="flex max-h-[75dvh] flex-col gap-4 overflow-y-auto pr-1">{children}</div>
         </Popup>
       )}
     </>

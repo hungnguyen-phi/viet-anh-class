@@ -214,6 +214,7 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh; /* trình duyệt điện thoại: thanh địa chỉ co giãn, dvh mới đúng; 100vh giữ làm fallback */
   font-family: var(--font-body);
   line-height: 1.6;
   color: var(--color-navy);
@@ -572,6 +573,20 @@ input[type="number"] {
    py-1.5 (~31px) — ba chiều cao khác nhau cạnh nhau, nên hàng nào cũng trông lệch. Dùng chiều
    cao TƯỜNG MINH thay vì để padding + cỡ chữ quyết định thì mọi thứ tự thẳng hàng.
    44px = ngưỡng vùng chạm WCAG 2.5.5. */
+/* SAFE-AREA (điện thoại có tai thỏ / thanh home): viewport-fit=cover ở app/[locale]/layout.tsx
+   nên phải tự chừa. Trên: thanh menu; dưới: thanh điều hướng đáy (ThanhDuoi) — mobile-first,
+   700 em dùng điện thoại. */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+/* Chiều cao thanh đáy 56px + phần chìm — dùng để chừa nội dung và đặt sticky bên trên nó. */
+@utility pb-thanh-duoi {
+  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+}
+
 @utility ctl-h {
   height: 2.75rem; /* 44px */
 }

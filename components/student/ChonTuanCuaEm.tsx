@@ -40,7 +40,7 @@ export function ChonTuanCuaEm({
   const khi = monday === thisMonday ? 'now' : monday < thisMonday ? 'past' : 'future';
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="sticky top-[var(--h-nav,76px)] z-10 -mx-4 flex items-center gap-2 bg-[rgba(247,247,251,0.92)] px-4 py-1.5 backdrop-blur-md sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
       <button
         type="button"
         onClick={() => di(shiftWeeks(monday, -1))}
@@ -62,7 +62,7 @@ export function ChonTuanCuaEm({
             type="button"
             onClick={() => di(thisMonday)}
             disabled={dangTai}
-            className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-navy/15 px-2 text-nhan font-extrabold uppercase tracking-wide text-grey-mid hover:border-navy"
+            className="cham-44 inline-flex min-h-[28px] cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-navy/15 px-2.5 text-nhan font-extrabold uppercase tracking-wide text-grey-mid hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
           >
             <RotateCcw size={12} strokeWidth={2.5} />
             {khi === 'past' ? t('weekPast') : t('weekFuture')} · {t('weekNow')}

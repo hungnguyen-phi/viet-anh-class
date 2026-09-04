@@ -45,25 +45,45 @@ export function Popup({
   }
   useFocusTrap(daGan, hopRef, nutMoRef);
 
+  // onClose đọc qua ref: caller hay truyền inline arrow (đổi tham chiếu mỗi render) — nếu effect
+  // dưới phụ thuộc [onClose] thì nó chạy lại liên tục, mà cleanup lại history.back() → popstate
+  // → đóng hộp ngay khi vừa mở (đã dính 04/09). Effect chỉ gắn/gỡ theo vòng đời mount.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
     window.addEventListener('keydown', onKey);
     // Khoá cuộn nền: mở hộp thoại rồi lăn chuột mà trang sau lưng cuộn theo là mất phương hướng.
     const cu = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    // NÚT BACK trên điện thoại đóng hộp thay vì rời trang (ui-ux-pro-max: back phải đoán được).
+    // Đẩy một mục lịch sử "ảo" lúc mở; back → popstate → đóng. Đóng bằng nút/ESC thì tự rút
+    // mục ảo (history.back) để lịch sử không thừa một bước.
+    // React StrictMode (dev) gắn→gỡ→gắn effect tức thì: nếu cleanup gọi history.back() ngay thì
+    // popstate bắn → hộp tự đóng khi vừa mở. Nên chỉ rút mục ảo khi hộp đã sống quá 300 ms (đóng thật).
+    let dongBangBack = false;
+    const luc = Date.now();
+    const onPop = () => {
+      dongBangBack = true;
+      onCloseRef.current();
+    };
+    window.history.pushState({popup: true}, '');
+    window.addEventListener('popstate', onPop);
     return () => {
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('popstate', onPop);
       document.body.style.overflow = cu;
+      if (!dongBangBack && window.history.state?.popup && Date.now() - luc > 300) window.history.back();
     };
-  }, [onClose]);
+  }, []);
 
   if (!daGan) return null;
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-navy/35 p-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-navy/35 p-4 pb-safe pt-safe backdrop-blur-[2px]"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -74,7 +94,7 @@ export function Popup({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`glass w-full ${width} rounded-[20px] p-[18px] outline-none`}
+        className={`glass w-full ${width} max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[20px] p-[18px] outline-none`}
       >
         <div className="mb-3 flex items-start gap-2">
           <h2 className="min-w-0 flex-1 font-display text-doc font-bold text-navy">{title}</h2>

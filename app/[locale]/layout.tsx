@@ -1,4 +1,4 @@
-import type {Metadata} from 'next';
+import type {Metadata, Viewport} from 'next';
 import {Suspense} from 'react';
 import Script from 'next/script';
 import {TopProgress} from '@/components/shell/TopProgress';
@@ -82,6 +82,16 @@ export const metadata: Metadata = {
   // Sau đăng nhập là dữ liệu trẻ em → không mời bot. robots.ts chặn theo đường dẫn, còn đây là
   // lớp thứ hai ở cấp thẻ meta.
   robots: {index: true, follow: true},
+};
+
+// viewport-fit=cover: trang tràn ra sát mép trên iPhone có tai thỏ; chỗ nào cần tránh thì
+// dùng env(safe-area-inset-*) (thanh menu trên, thanh điều hướng dưới — xem globals.css).
+// Không khoá zoom (WCAG 1.4.4).
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#26275d',
 };
 
 export function generateStaticParams() {

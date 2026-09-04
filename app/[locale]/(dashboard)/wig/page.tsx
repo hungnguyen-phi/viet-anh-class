@@ -392,7 +392,10 @@ export default async function WigPage({
       <Flash />
 
       {/* ── Thanh tuần — một hàng, giữ ?class= ─────────────────────────────────────────── */}
-      <ThanhTuanWig monday={monday} thisMonday={thisMonday} label={wk.label} start={wk.start} end={wk.end} classParam={classParam} />
+      {/* Dính đầu khi cuộn (điện thoại): tuần đang xem luôn trong tầm mắt; z dưới header (z-20). */}
+      <div className="sticky top-[var(--h-nav,76px)] z-10 -mx-4 bg-[rgba(247,247,251,0.92)] px-4 py-1.5 backdrop-blur-md sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+        <ThanhTuanWig monday={monday} thisMonday={thisMonday} label={wk.label} start={wk.start} end={wk.end} classParam={classParam} />
+      </div>
 
       {/* ── BA SỐ CỦA CÁC EM — 4 tuần đã khép (thi_dua_lop). Nói rõ nguồn, đừng để ai tưởng là "tuần này". */}
       <section className="glass flex flex-col gap-2 rounded-[20px] p-[18px]">

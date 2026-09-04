@@ -168,7 +168,24 @@
     "locCoSo": "Campus",
     "locKhoi": "Grade",
     "locLop": "Class",
-    "locTatCa": "All"
+    "locTatCa": "All",
+    "thanhDuoi": "Main navigation",
+    "chonLopSheet": "Choose a class",
+    "lopHienTai": "Class",
+    "duoi": {
+      "myScoreboard": "Scoreboard",
+      "schedule": "Timetable",
+      "notifications": "Alerts",
+      "menu": "Menu",
+      "wig": "Goals",
+      "attendance": "Attendance",
+      "roster": "Roster",
+      "admin": "Admin",
+      "scoreboard": "Scoreboard",
+      "campus": "Campus",
+      "timetable": "Timetable",
+      "report": "Report"
+    }
   },
   "class": {
     "gvcn": "Homeroom teacher",

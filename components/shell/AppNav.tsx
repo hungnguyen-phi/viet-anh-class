@@ -15,6 +15,7 @@ import {useLinkStatus} from 'next/link';
 import {useSearchParams} from 'next/navigation';
 import {Link, usePathname, useRouter} from '@/i18n/navigation';
 import {signOut} from '@/lib/auth-actions';
+import {ThanhDuoi, type MucThanhDuoi} from '@/components/shell/ThanhDuoi';
 import type {Profile} from '@/lib/auth';
 import {tenHienThi} from '@/lib/ten-hien-thi';
 import {
@@ -143,6 +144,16 @@ const UU_TIEN_NAP_TRUOC: Record<string, string[]> = {
   parent: ['/report'],
 };
 
+// BỐN MỤC Ở THANH ĐÁY (điện thoại) theo vai — chỗ người ta bấm hằng ngày, dưới ngón cái.
+// Thông báo (badge) là mục thứ tư của em; GV/admin/BGH lấy 4 mục việc chính. Mục còn lại ở ☰.
+const THANH_DUOI: Record<string, string[]> = {
+  student: ['/student', '/timetable', '/menu', '/notifications'],
+  teacher: ['/wig', '/attendance', '/roster', '/'],
+  admin: ['/wig', '/attendance', '/roster', '/admin'],
+  principal: ['/campus', '/roster', '/timetable', '/notifications'],
+  parent: ['/report', '/timetable', '/notifications'],
+};
+
 // Logo dẫn về ĐÂU. Trước đây luôn là '/' — mà '/' là bảng điểm lớp của giáo viên. Phụ huynh bấm
 // vào cái nút to nhất màn hình là rơi thẳng vào tám ô trống kèm câu bảo chị đi thiết lập WIG cho
 // lớp; học sinh cũng vậy. Phải khớp với homeRouteForRole() trong lib/auth.ts — không import được
@@ -206,6 +217,15 @@ export function AppNav({
       ? [...baseLinks, {href: '/attendance', key: 'attendance', Icon: ClipboardCheck}]
       : baseLinks;
 
+  // Mục ở thanh đáy: theo bảng THANH_DUOI, chỉ giữ mục vai này thật sự có (links) hoặc Thông báo.
+  const mucDuoi: MucThanhDuoi[] = (THANH_DUOI[role] ?? [])
+    .map((href): MucThanhDuoi | null => {
+      if (href === '/notifications') return {href, key: 'notifications', Icon: Bell, badge: unreadCount};
+      const l = links.find((x) => x.href === href);
+      return l ? {href: l.href, key: l.key, Icon: l.Icon} : null;
+    })
+    .filter((x): x is MucThanhDuoi => x !== null);
+
   const displayName = tenHienThi(profile.full_name, profile.email);
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
@@ -232,12 +252,25 @@ export function AppNav({
     setOpen(false);
   }, [pathname]);
 
+  // Chiều cao thanh menu THẬT (đổi theo safe-area/cỡ chữ) → --h-nav trên :root, để thanh tuần
+  // dính ngay dưới nó (sticky top-[var(--h-nav)]) thay vì đoán một số cố định.
+  useEffect(() => {
+    const el = document.querySelector('[data-appnav]');
+    if (!el) return;
+    const dat = () => document.documentElement.style.setProperty('--h-nav', `${Math.round(el.getBoundingClientRect().height)}px`);
+    dat();
+    const ro = new ResizeObserver(dat);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // data-appnav trên khối dưới đây: FlashToast đo chiều cao nó lúc chạy để nổi ngay DƯỚI thanh
   // menu, thay vì đoán một con số cố định (khối này cao khác nhau giữa điện thoại và máy tính).
   return (
     <div
       data-appnav
-      className="sticky top-0 z-20 px-4 pb-2.5 pt-3.5 sm:px-6 [background:linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.85)_70%,rgba(255,255,255,0)_100%)]"
+      style={{paddingTop: "calc(0.875rem + env(safe-area-inset-top, 0px))"}}
+      className="sticky top-0 z-20 px-4 pb-2.5 sm:px-6 [background:linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.85)_70%,rgba(255,255,255,0)_100%)]"
     >
       <NapTruoc duong={duongNapTruoc} />
       {/* Bar full-width navy. Desktop (lg+): logo | tabs | cụm phải. Mobile (<lg): logo | tên trang | hamburger. */}
@@ -424,6 +457,7 @@ export function AppNav({
           </div>
         </div>
       )}
+      <ThanhDuoi muc={mucDuoi} giuLai={giuLai} />
     </div>
   );
 }

@@ -85,7 +85,7 @@ export default async function DashboardLayout({
   // giữ nguyên) thấy một lời hẹn thay vì báo cáo — bật lại bằng PARENT_PORTAL=true, không sửa mã.
   if (profile.role === 'parent' && !PARENT_PORTAL) {
     return (
-      <div className="grid min-h-screen place-items-center px-6">
+      <div className="grid min-h-dvh place-items-center px-6">
         <div className="glass flex max-w-[420px] flex-col items-center gap-4 rounded-[20px] p-6 text-center">
           <p className="text-[14px] font-semibold leading-relaxed text-navy">{tc('parentPaused')}</p>
           {/* Không có nút này thì phụ huynh dùng chung máy với con bị kẹt (audit 04/09/2026). */}
@@ -103,7 +103,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       {/* ĐƯỜNG TẮT XUỐNG NỘI DUNG (WCAG 2.4.1).
           Thanh nav của giáo viên chủ nhiệm có 8 tab cộng chuông, phong bì và menu cài đặt. Người
           dùng bàn phím — và người dùng trình đọc màn hình — phải đi qua toàn bộ chừng ấy ở MỌI
@@ -124,7 +124,7 @@ export default async function DashboardLayout({
         unreadMessages={unreadMessages}
       />
       {/* Nội dung căn giữa dưới top-nav; nền gradient nằm ở <body>. */}
-      <main id="noi-dung" className="mx-auto max-w-[1160px] px-4 pb-10 pt-2 sm:px-6">
+      <main id="noi-dung" className="pb-thanh-duoi mx-auto max-w-[1160px] px-4 pt-2 sm:px-6 lg:pb-10">
         {children}
       </main>
       {/* Hướng dẫn onboarding — tự hiện lần đầu, mở lại từ nút Hướng dẫn trên nav. */}
