@@ -97,7 +97,7 @@ function MoodCard({
       {required && (
         <div className="mt-2 text-center text-than font-bold text-gold-text">{t('moodRequired')}</div>
       )}
-      <div className="mt-4 flex justify-center gap-2.5">
+      <div className="mt-4 flex justify-center gap-1.5">
         {DISPLAY.map((k) => {
           const m = byKey.get(k)!;
           const active = draft === k;
@@ -108,7 +108,7 @@ function MoodCard({
               title={t(`levels.${k}`)}
               aria-label={t(`levels.${k}`)}
               onClick={() => onPick(k)}
-              className="grid h-[70px] w-[60px] cursor-pointer place-items-center rounded-[20px] transition-all"
+              className="grid h-[70px] w-[52px] shrink-0 cursor-pointer place-items-center rounded-[20px] transition-all"
               style={{
                 background: m.bg,
                 color: m.fg,
@@ -411,7 +411,7 @@ export function MoodCheckin({
             </button>
           )}
         </div>
-        <div className="flex items-center justify-center gap-2.5">
+        <div className="flex items-center justify-center gap-1.5">
           {DISPLAY.map((k) => {
             const m = byKey.get(k)!;
             const active = mood === k;
@@ -429,7 +429,7 @@ export function MoodCheckin({
                   setDraft(mood);
                   setOpen(true);
                 }}
-                className={`grid h-11 w-11 place-items-center rounded-full transition-all ${
+                className={`grid h-11 w-11 shrink-0 place-items-center rounded-full transition-all ${
                   suaDuoc ? 'cursor-pointer' : 'cursor-not-allowed'
                 }`}
                 style={{

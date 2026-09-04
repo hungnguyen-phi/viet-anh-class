@@ -409,7 +409,7 @@ function TheMucTieu({
               onClick={onSua}
               aria-label={t('sua')}
               title={t('sua')}
-              className="cham-44 grid h-7 w-7 cursor-pointer place-items-center rounded-[8px] text-navy transition-colors hover:bg-navy/[0.06]"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-[12px] text-navy transition-colors hover:bg-navy/[0.06]"
             >
               <Pencil size={14} strokeWidth={2.5} />
             </button>
@@ -467,7 +467,7 @@ function GhiSo({mtId, dv, onDone}: {mtId: string; dv: string; onDone: (msg: stri
         type="button"
         data-kiem="nut-ghi"
         onClick={() => setMo(true)}
-        className="cham-44 shrink-0 cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white/80 px-2.5 py-1 text-chu-thich font-extrabold text-navy transition-all hover:border-navy"
+        className="min-h-[44px] shrink-0 cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white/80 px-3 text-chu-thich font-extrabold text-navy transition-all hover:border-navy"
       >
         {t('ghiSo')}
       </button>
@@ -500,7 +500,7 @@ function GhiSo({mtId, dv, onDone}: {mtId: string; dv: string; onDone: (msg: stri
         <SubmitButton className={btnGold} wrapClass="contents">
           {t('ghiSoLuu')}
         </SubmitButton>
-        <button type="button" onClick={() => setMo(false)} className="text-chu-thich font-extrabold text-grey-mid underline">
+        <button type="button" onClick={() => setMo(false)} className="min-h-[44px] cursor-pointer px-3 text-chu-thich font-extrabold text-grey-mid underline">
           {t('thoi')}
         </button>
       </div>
@@ -542,7 +542,7 @@ function NutDong({mtId, studentId}: {mtId: string; studentId: string}) {
               <SubmitButton className={btnGold} wrapClass="contents">
                 {t('dong')}
               </SubmitButton>
-              <button type="button" onClick={() => setMo(false)} className="text-chu-thich font-extrabold text-grey-mid underline">
+              <button type="button" onClick={() => setMo(false)} className="min-h-[44px] cursor-pointer px-3 text-chu-thich font-extrabold text-grey-mid underline">
                 {t('thoi')}
               </button>
             </div>
@@ -583,7 +583,7 @@ function NutTraLai({mtId, studentId, ten}: {mtId: string; studentId: string; ten
               <SubmitButton className={btnGold} wrapClass="contents">
                 {t('traLaiNut')}
               </SubmitButton>
-              <button type="button" onClick={() => setMo(false)} className="text-chu-thich font-extrabold text-grey-mid underline">
+              <button type="button" onClick={() => setMo(false)} className="min-h-[44px] cursor-pointer px-3 text-chu-thich font-extrabold text-grey-mid underline">
                 {t('thoi')}
               </button>
             </div>

@@ -44,7 +44,7 @@ export function ChonTuanCuaEm({
       <button
         type="button"
         onClick={() => di(shiftWeeks(monday, -1))}
-        className={`${btnGhost} h-10 w-10 shrink-0 !px-0 ${dangTai ? 'cursor-wait opacity-60' : ''}`}
+        className={`${btnGhost} h-11 w-11 shrink-0 !px-0 ${dangTai ? 'cursor-wait opacity-60' : ''}`}
         aria-label={t('weekPrev')}
         disabled={dangTai}
       >
@@ -73,7 +73,7 @@ export function ChonTuanCuaEm({
       <button
         type="button"
         onClick={() => di(shiftWeeks(monday, 1))}
-        className={`${btnGhost} h-10 w-10 shrink-0 !px-0 ${dangTai ? 'cursor-wait opacity-60' : ''}`}
+        className={`${btnGhost} h-11 w-11 shrink-0 !px-0 ${dangTai ? 'cursor-wait opacity-60' : ''}`}
         aria-label={t('weekNext')}
         disabled={dangTai}
       >

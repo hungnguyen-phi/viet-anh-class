@@ -43,7 +43,7 @@ export function NutThemCamKetToi({
         onClick={() => setMo(true)}
         aria-label={t('themCamKetToi')}
         title={t('themCamKetToi')}
-        className="cham-44 relative grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-full bg-gold text-navy shadow-sm transition-transform after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
+        className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-gold text-navy shadow-sm transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
       >
         <Plus size={20} strokeWidth={2.5} />
       </button>
