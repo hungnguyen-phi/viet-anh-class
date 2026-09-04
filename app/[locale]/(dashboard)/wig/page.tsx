@@ -11,6 +11,7 @@ import {isValidDayVN, mondayOf, todayInVN, weekFromMonday, weekDaysVN} from '@/l
 import {AREAS, areaLabel, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
 import {lichSuTuanNhieu} from '@/lib/rpc-nhieu';
+import {layTrangWig, type TrangWig} from '@/lib/trang-gop';
 import {Flash} from '@/components/ui/Flash';
 import {FormTaiCho, LoiO, NutGui, ONhap} from '@/components/ui/FormTaiCho';
 import {PopupLopTruong} from '@/components/wig/PopupLopTruong';
@@ -93,20 +94,31 @@ export default async function WigPage({
     </>
   );
 
-  // ── T2: mọi thứ chỉ cần class_id / profile.id ──────────────────────────────────────────
-  const [
-    {data: thiDua},
-    {data: mtRows},
-    {data: mtToiRows},
-    {data: truongRows},
-    {data: thuocRows},
-    {data: ckRows},
-    {data: enrolled},
-    {data: mtCho},
-    {data: haCho},
-    {data: thuocToiRows},
-    {data: luotRows},
-  ] = await Promise.all([
+  // ── T2 + T3: MỘT lượt RPC trang_wig (0189) — 14 câu → 1; fallback đường cũ khi CSDL chưa có hàm ──
+  const gop: TrangWig | null = await layTrangWig(supabase, {classId: myClass.id, monday, toiId: laGvcn ? profile.id : null, campusId, soTuan: 8});
+  // Kiểu theo đúng cách phần dưới dùng (nhánh gộp cast từ jsonb, nhánh cũ là kiểu Supabase → cast chung).
+  type ThiDuaRow = {diem_muc_tieu: number | null; diem_thuoc: number | null; diem_cam_ket: number | null};
+  type ThuocLopRow = {thuoc_id: string; ten: string | null; chu_the: string | null; gia_lop: number | null; so_em_ghi: number | null; so_em_dat: number | null; si_so: number | null; le_ra: number | null; trang_thai: string | null; mien: boolean | null};
+  type MtChoRow = {id: string; ten: string | null; linh_vuc: string | null; student_id: string | null; x_so: number | null; y_so: number | null; ten_don_vi: string | null; ket_thuc: string | null};
+  type HaChoRow = {id: string; thuoc_id: string; chi_tieu_ky: number | null; la_ha: boolean | null; thuoc: unknown};
+  type EnrolledRow = {student_id: string | null; profiles: unknown};
+  type LuotRow = {thuoc_id: string; ngay: string; gia_tri: number | null};
+  let thiDua: ThiDuaRow[] | null, mtRows: unknown, mtToiRows: unknown, truongRows: unknown, thuocRows: ThuocLopRow[] | null, ckRows: unknown,
+    enrolled: EnrolledRow[] | null, mtCho: MtChoRow[] | null, haCho: HaChoRow[] | null, thuocToiRows: unknown, luotRows: LuotRow[] | null;
+  if (gop) {
+    thiDua = gop.thiDua as ThiDuaRow[];
+    mtRows = gop.mtRows;
+    mtToiRows = gop.mtToiRows;
+    truongRows = gop.truongRows;
+    thuocRows = gop.thuocRows as ThuocLopRow[];
+    ckRows = gop.ckRows;
+    enrolled = gop.enrolled as EnrolledRow[];
+    mtCho = gop.mtCho as MtChoRow[];
+    haCho = gop.haCho as HaChoRow[];
+    thuocToiRows = gop.thuocToiRows;
+    luotRows = gop.luotRows as LuotRow[] | null;
+  } else {
+    const cu = await Promise.all([
     supabase.rpc('thi_dua_lop', {p_class: myClass.id}),
     supabase.from('muc_tieu_v').select(MT_COLS).eq('class_id', myClass.id).eq('cap', 'lop').neq('trang_thai', 'dong'),
     laGvcn
@@ -146,7 +158,19 @@ export default async function WigPage({
     laGvcn
       ? supabase.from('luot').select('thuoc_id, ngay, gia_tri').eq('student_id', profile.id).gte('ngay', wk.start).lte('ngay', wk.end)
       : Promise.resolve({data: null}),
-  ]);
+    ]);
+    thiDua = cu[0].data as ThiDuaRow[] | null;
+    mtRows = cu[1].data;
+    mtToiRows = cu[2].data;
+    truongRows = cu[3].data;
+    thuocRows = cu[4].data as ThuocLopRow[] | null;
+    ckRows = cu[5].data;
+    enrolled = cu[6].data as EnrolledRow[] | null;
+    mtCho = cu[7].data as MtChoRow[] | null;
+    haCho = cu[8].data as HaChoRow[] | null;
+    thuocToiRows = cu[9].data;
+    luotRows = cu[10].data as LuotRow[] | null;
+  }
 
   const tenEm = new Map<string, string>();
   for (const e of enrolled ?? []) {
@@ -165,8 +189,19 @@ export default async function WigPage({
   const truongIds = truongWigs.map((m) => m.id);
   const keIds = mucTieuLop.filter((m) => m.loai_moc === 'ke_hoach').map((m) => m.id);
 
-  // ── T3: cần id của T2 — bước, dây, lịch sử (một RPC mảng) ──────────────────────────────
-  const [{data: buocRows}, {data: noiRows}, {data: noiToiRows}, {data: noiTruongRows}, lichSuTheoWig] = await Promise.all([
+  // ── T3: bước, dây, lịch sử — đã nằm trong trang_wig; fallback gọi riêng ──
+  let buocRows: unknown, noiRows: unknown, noiToiRows: unknown, noiTruongRows: unknown;
+  let lichSuTheoWig: Map<string, {tuan_ket: string; so: number | null}[]>;
+  if (gop) {
+    buocRows = gop.buocRows; noiRows = gop.noiRows; noiToiRows = gop.noiToiRows; noiTruongRows = gop.noiTruongRows;
+    lichSuTheoWig = new Map();
+    for (const r of gop.lichSu) {
+      const arr = lichSuTheoWig.get(r.muc_tieu_id) ?? [];
+      arr.push({tuan_ket: r.tuan_ket, so: r.so});
+      lichSuTheoWig.set(r.muc_tieu_id, arr);
+    }
+  } else {
+    const cu3 = await Promise.all([
     keIds.length ? supabase.from('buoc').select('id, muc_tieu_id, tieu_de, phan_tram, xong_at').in('muc_tieu_id', keIds).order('thu_tu') : Promise.resolve({data: null}),
     wigIds.length ? supabase.from('noi').select('cha_id, con_thuoc_id').in('cha_id', wigIds).eq('vai', 'gop_so').not('con_thuoc_id', 'is', null) : Promise.resolve({data: null}),
     mtToiIds.length ? supabase.from('noi').select('cha_id, con_muc_tieu_id, vai').in('con_muc_tieu_id', mtToiIds) : Promise.resolve({data: null}),
@@ -176,7 +211,9 @@ export default async function WigPage({
       [...mucTieuLop, ...mucTieuToi].filter((m) => m.pct != null || m.so != null).map((m) => m.id),
       8,
     ),
-  ]);
+    ]);
+    buocRows = cu3[0].data; noiRows = cu3[1].data; noiToiRows = cu3[2].data; noiTruongRows = cu3[3].data; lichSuTheoWig = cu3[4];
+  }
 
   const buocTheoMt = new Map<string, {id: string; tieu_de: string; phan_tram: number; xong: boolean}[]>();
   for (const b of (buocRows ?? []) as {id: string; muc_tieu_id: string; tieu_de: string; phan_tram: number; xong_at: string | null}[]) {
