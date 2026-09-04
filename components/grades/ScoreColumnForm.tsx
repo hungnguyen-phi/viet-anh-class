@@ -50,10 +50,10 @@ export async function ScoreColumnForm({
 
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-display text-[15px] font-bold text-navy">
+          <h2 className="font-display text-noi-dung font-bold text-navy">
             {t('enterForClass', {column: tenCot(subjectName, kind, ordinal, t)})}
           </h2>
-          <p className="mt-0.5 text-[11px] italic text-grey-mid">
+          <p className="mt-0.5 text-chu-thich italic text-grey-mid">
             {t('columnFormHint')}
           </p>
         </div>
@@ -84,10 +84,10 @@ export async function ScoreColumnForm({
             key={r.reviewId}
             className="flex items-center gap-2 rounded-[12px] border-[1.5px] border-navy/[0.08] bg-white/60 px-2.5 py-1.5"
           >
-            <span className="w-[20px] flex-none text-[11px] font-bold text-grey-mid">{i + 1}</span>
+            <span className="w-[20px] flex-none text-chu-thich font-bold text-grey-mid">{i + 1}</span>
             <label
               htmlFor={`s-${r.reviewId}`}
-              className="min-w-0 flex-1 cursor-pointer truncate text-[12.5px] font-bold text-navy"
+              className="min-w-0 flex-1 cursor-pointer truncate text-than font-bold text-navy"
             >
               {r.name}
             </label>

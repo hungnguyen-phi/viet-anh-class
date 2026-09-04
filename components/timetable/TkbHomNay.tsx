@@ -71,19 +71,19 @@ export function TkbHomNay({
               setCaTuan(false);
             }}
             aria-pressed={!caTuan && x.d === chon}
-            className={`flex min-h-[44px] min-w-[44px] shrink-0 cursor-pointer flex-col items-center justify-center rounded-[10px] px-2 text-[12px] font-extrabold leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+            className={`flex min-h-[44px] min-w-[44px] shrink-0 cursor-pointer flex-col items-center justify-center rounded-[8px] px-2 text-chu-thich font-extrabold leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
               !caTuan && x.d === chon ? 'bg-navy text-white' : x.laHomNay ? 'bg-gold/[0.25] text-navy' : 'bg-white/70 text-navy'
             }`}
           >
             {x.nhan}
-            <span className={`text-[9.5px] font-bold ${!caTuan && x.d === chon ? 'text-white/70' : 'text-grey-mid'}`}>{x.ngay}</span>
+            <span className={`text-chu-thich font-bold ${!caTuan && x.d === chon ? 'text-white/70' : 'text-grey-mid'}`}>{x.ngay}</span>
           </button>
         ))}
         <button
           type="button"
           onClick={() => setCaTuan((v) => !v)}
           aria-pressed={caTuan}
-          className={`ml-auto min-h-[44px] shrink-0 cursor-pointer rounded-[10px] px-3 text-[12px] font-extrabold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+          className={`ml-auto min-h-[44px] shrink-0 cursor-pointer rounded-[8px] px-3 text-chu-thich font-extrabold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
             caTuan ? 'bg-navy text-white' : 'border-[1.5px] border-navy/15 bg-white/70 text-navy'
           }`}
         >
@@ -94,37 +94,37 @@ export function TkbHomNay({
       {caTuan ? (
         children
       ) : trong ? (
-        <p className="glass rounded-[16px] px-4 py-6 text-center text-[13px] font-semibold leading-relaxed text-grey-mid">{trong}</p>
+        <p className="glass rounded-[16px] px-4 py-6 text-center text-than font-semibold leading-relaxed text-grey-mid">{trong}</p>
       ) : (
         <div className="glass flex flex-col gap-1.5 rounded-[16px] p-2.5">
           {n?.tiet.map((tt) => {
             const co = tt.ten != null;
             const noiDung = co ? (
-              <div className={`rounded-[10px] border-[1.5px] px-2.5 py-2 ${KIND[tt.kind] ?? KIND.regular} ${tt.ov?.status === 'cancelled' ? 'opacity-55' : ''}`}>
-                <span className={`block text-[13.5px] font-bold text-navy ${tt.ov?.status === 'cancelled' ? 'line-through' : ''}`}>{tt.ten}</span>
+              <div className={`rounded-[8px] border-[1.5px] px-2.5 py-2 ${KIND[tt.kind] ?? KIND.regular} ${tt.ov?.status === 'cancelled' ? 'opacity-55' : ''}`}>
+                <span className={`block text-noi-dung font-bold text-navy ${tt.ov?.status === 'cancelled' ? 'line-through' : ''}`}>{tt.ten}</span>
                 {(tt.phong || tt.giaoVien) && (
-                  <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] font-semibold text-grey-mid">
+                  <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-chu-thich font-semibold text-grey-mid">
                     {tt.phong && (
                       <span className="inline-flex items-center gap-0.5">
-                        <MapPin size={10} strokeWidth={2.5} />
+                        <MapPin size={12} strokeWidth={2.5} />
                         {tt.phong}
                       </span>
                     )}
                     {tt.giaoVien && (
                       <span className="inline-flex items-center gap-0.5">
-                        <UserRound size={10} strokeWidth={2.5} />
+                        <UserRound size={12} strokeWidth={2.5} />
                         {tt.giaoVien}
                       </span>
                     )}
                   </span>
                 )}
                 {tt.ov && (
-                  <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-navy/[0.10] px-1.5 py-0.5 text-[10px] font-extrabold text-navy">
+                  <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-navy/[0.10] px-1.5 py-0.5 text-chu-thich font-extrabold text-navy">
                     {tt.ov.status === 'cancelled' && nhan.ovCancelled}
                     {tt.ov.status === 'substituted' && `${nhan.ovSubstituted}: ${tt.ov.substitute_name}`}
                     {tt.ov.status === 'moved' && (
                       <>
-                        <ArrowRight size={9} strokeWidth={3} />
+                        <ArrowRight size={12} strokeWidth={2.5} />
                         {tt.ov.new_date?.slice(5)} · {nhan.tiet} {tt.ov.new_period_no}
                       </>
                     )}
@@ -132,18 +132,18 @@ export function TkbHomNay({
                 )}
               </div>
             ) : batDuoc ? (
-              <span className="grid min-h-[44px] w-full place-items-center rounded-[10px] border-[1.5px] border-dashed border-navy/15 text-[12px] font-bold text-navy/40">
+              <span className="grid min-h-[44px] w-full place-items-center rounded-[8px] border-[1.5px] border-dashed border-navy/15 text-chu-thich font-bold text-navy/40">
                 {nhan.them}
               </span>
             ) : (
-              <span className="block min-h-[36px] rounded-[10px] bg-navy/[0.02]" />
+              <span className="block min-h-[36px] rounded-[8px] bg-navy/[0.02]" />
             );
             return (
               <div key={tt.p} className="grid grid-cols-[44px_1fr] items-stretch gap-2">
-                <div className="flex flex-col items-center justify-center rounded-[10px] bg-navy/[0.04] leading-tight">
-                  <span className="text-[13px] font-extrabold text-navy">{tt.p}</span>
+                <div className="flex flex-col items-center justify-center rounded-[8px] bg-navy/[0.04] leading-tight">
+                  <span className="text-than font-extrabold text-navy">{tt.p}</span>
                   {tt.gio && (
-                    <span className="text-[9px] font-bold tabular-nums text-grey-mid">
+                    <span className="text-chu-thich font-bold tabular-nums text-grey-mid">
                       {tt.gio.tu}
                       <br />
                       {tt.gio.den}

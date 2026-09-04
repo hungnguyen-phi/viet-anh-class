@@ -108,7 +108,7 @@ export function MucTieuCuaCon({
         {AREAS.map((a) => {
           const mt = theoArea.get(a);
           const nhan = nhanTheoArea[a] ?? a;
-          const mau = mauTheoArea[a] ?? {hex: '#26275d', soft: 'rgba(38,39,93,0.06)'};
+          const mau = mauTheoArea[a] ?? {hex: 'var(--color-navy)', soft: 'rgba(38,39,93,0.06)'};
           if (mt)
             return (
               <TheMucTieu

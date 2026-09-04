@@ -22,11 +22,11 @@ import {saveMenu, deleteMenu} from './actions';
 // Ô nhập nhiều dòng: KHÔNG dùng được `ctl-h` (cao cứng 44px) vì thực đơn một bữa thường 3–5 món.
 // Giữ nguyên ngôn ngữ hình ảnh của các ô khác (bo 10px, viền 1.5px navy/15, chữ navy đậm).
 const textareaCls =
-  'w-full rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2.5 text-sm font-semibold leading-[1.55] text-navy outline-none transition-colors focus:border-navy';
+  'w-full rounded-[8px] border-[1.5px] border-navy/15 bg-white px-3 py-2.5 text-sm font-semibold leading-[1.55] text-navy outline-none transition-colors focus:border-navy';
 
 // Nút "Sửa" nhỏ trong ô lưới — y hệt editLinkCls của /wig.
 const suaCls =
-  'cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-[11px] font-extrabold text-navy transition-all hover:border-navy';
+  'cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-nhan font-extrabold text-navy transition-all hover:border-navy';
 
 export default async function MenuPage({
   params,
@@ -142,7 +142,7 @@ export default async function MenuPage({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-display text-[22px] font-bold text-navy">
+        <h1 className="font-display text-dau font-bold text-navy">
           {campusName ? t('titleAt', {campus: campusName}) : t('title')}
         </h1>
         {isAdmin && <CampusPicker campuses={campuses} current={campusId} />}
@@ -150,7 +150,7 @@ export default async function MenuPage({
 
       <Flash />
 
-      <p className="text-[12px] font-semibold leading-[1.55] text-grey-mid">
+      <p className="text-chu-thich font-semibold leading-[1.55] text-grey-mid">
         {t('intro')}
         {canManage
           ? t('introManage')
@@ -159,8 +159,8 @@ export default async function MenuPage({
 
       {/* Điều hướng tuần — dùng lại lối làm của /timetable để hai trang thao tác giống nhau */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-navy">
-          <CalendarDays size={14} strokeWidth={2.2} className="text-grey-mid" />
+        <span className="inline-flex items-center gap-1.5 text-than font-bold text-navy">
+          <CalendarDays size={14} strokeWidth={2} className="text-grey-mid" />
           {rangeLabel}
         </span>
         <span className="flex items-center gap-1.5">
@@ -178,7 +178,7 @@ export default async function MenuPage({
                   ...(d === 0 ? {} : {week: dichNgay(d)}),
                 },
               }}
-              className="inline-flex h-8 items-center rounded-[9px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-[11.5px] font-extrabold text-navy transition-colors hover:border-navy"
+              className="inline-flex h-8 items-center rounded-[8px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-chu-thich font-extrabold text-navy transition-colors hover:border-navy"
             >
               {label}
             </Link>
@@ -188,7 +188,7 @@ export default async function MenuPage({
 
       {/* Tuần chưa có thực đơn → nói thẳng, không bày lưới trống (audit 04/09: em thấy bảng câm). */}
       {(rows ?? []).length === 0 && !canManage && (
-        <p className="glass rounded-[16px] px-4 py-3 text-[13px] font-semibold text-grey-mid">{t('trongEm')}</p>
+        <p className="glass rounded-[16px] px-4 py-3 text-than font-semibold text-grey-mid">{t('trongEm')}</p>
       )}
 
       {/* < 640px: xem theo NGÀY — lưới 7 cột chỉ hiện 2 cột trên điện thoại mà không có dấu hiệu cuộn.
@@ -200,12 +200,12 @@ export default async function MenuPage({
               key={d}
               href={{pathname: '/menu', query: q({day: d})}}
               aria-current={d === ngayXem ? 'date' : undefined}
-              className={`inline-flex min-h-[44px] shrink-0 flex-col items-center justify-center rounded-[12px] border-[1.5px] px-3 text-[12px] font-extrabold ${
+              className={`inline-flex min-h-[44px] shrink-0 flex-col items-center justify-center rounded-[12px] border-[1.5px] px-3 text-chu-thich font-extrabold ${
                 d === ngayXem ? 'border-navy bg-navy text-white' : 'border-navy/15 bg-white/60 text-navy'
               }`}
             >
               {t(`days.${DAY_KEYS[i]}`)}
-              <span className={`text-[10.5px] font-bold ${d === ngayXem ? 'text-white/80' : d === today ? 'text-gold-text' : 'text-grey-mid'}`}>
+              <span className={`text-chu-thich font-bold ${d === ngayXem ? 'text-white/80' : d === today ? 'text-gold-text' : 'text-grey-mid'}`}>
                 {d.slice(5)}
               </span>
             </Link>
@@ -217,11 +217,11 @@ export default async function MenuPage({
             return (
               <div key={meal} className="rounded-[12px] border-[1.5px] border-navy/10 bg-white/60 px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t(`meals.${meal}`)}</span>
+                  <span className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{t(`meals.${meal}`)}</span>
                   {canManage && (
                     <Link
                       href={{pathname: '/menu', query: q({date: ngayXem, meal})}}
-                      className="inline-flex min-h-[36px] items-center text-[12px] font-extrabold text-navy underline"
+                      className="inline-flex min-h-[36px] items-center text-chu-thich font-extrabold text-navy underline"
                     >
                       {m ? t('edit') : t('them')}
                     </Link>
@@ -229,11 +229,11 @@ export default async function MenuPage({
                 </div>
                 {m ? (
                   <>
-                    <p className="mt-1 whitespace-pre-line break-words text-[13px] font-semibold leading-[1.5] text-navy">{m.items}</p>
-                    {m.note && <p className="mt-1 text-[11.5px] font-semibold italic text-grey-mid">{m.note}</p>}
+                    <p className="mt-1 whitespace-pre-line break-words text-than font-semibold leading-[1.5] text-navy">{m.items}</p>
+                    {m.note && <p className="mt-1 text-chu-thich font-semibold italic text-grey-mid">{m.note}</p>}
                   </>
                 ) : (
-                  <p className="mt-1 text-[12px] font-semibold italic text-grey-mid">{t('ngayTrong')}</p>
+                  <p className="mt-1 text-chu-thich font-semibold italic text-grey-mid">{t('ngayTrong')}</p>
                 )}
               </div>
             );
@@ -245,14 +245,14 @@ export default async function MenuPage({
       <div className="glass hidden overflow-x-auto rounded-[20px] p-2 sm:block">
         <div className="min-w-[980px]">
           <div className="flex">
-            <div className="w-[92px] shrink-0 px-2 py-2 text-[11px] font-extrabold uppercase text-grey-mid">
+            <div className="w-[92px] shrink-0 px-2 py-2 text-nhan font-extrabold uppercase text-grey-mid">
               {t('colMeal')}
             </div>
             {DAY_KEYS.map((dk, i) => (
               <div key={dk} className="flex-1 px-2 py-2 text-center">
-                <div className="text-[12px] font-extrabold text-navy">{t(`days.${dk}`)}</div>
+                <div className="text-chu-thich font-extrabold text-navy">{t(`days.${dk}`)}</div>
                 <div
-                  className={`text-[10.5px] font-bold ${
+                  className={`text-chu-thich font-bold ${
                     weekDates[i] === today ? 'text-gold-text' : 'text-grey-mid'
                   }`}
                 >
@@ -264,7 +264,7 @@ export default async function MenuPage({
 
           {MEAL_SLOTS.map((meal) => (
             <div key={meal} className="flex border-t border-navy/[0.08]">
-              <div className="flex w-[92px] shrink-0 items-center px-2 text-[12px] font-bold text-grey-mid">
+              <div className="flex w-[92px] shrink-0 items-center px-2 text-chu-thich font-bold text-grey-mid">
                 {t(`meals.${meal}`)}
               </div>
               {weekDates.map((d) => {
@@ -272,13 +272,13 @@ export default async function MenuPage({
                 return (
                   <div key={d} className="min-w-0 flex-1 p-1.5">
                     {m ? (
-                      <div className="rounded-[10px] border-[1.5px] border-navy/15 bg-white/50 px-2 py-1.5">
+                      <div className="rounded-[8px] border-[1.5px] border-navy/15 bg-white/50 px-2 py-1.5">
                         {/* items lưu văn bản thô, mỗi món một dòng (0062) → giữ nguyên xuống dòng */}
-                        <p className="whitespace-pre-line break-words text-[11.5px] font-semibold leading-[1.5] text-navy">
+                        <p className="whitespace-pre-line break-words text-chu-thich font-semibold leading-[1.5] text-navy">
                           {m.items}
                         </p>
                         {m.note && (
-                          <p className="mt-1 break-words text-[10.5px] font-semibold italic text-grey-mid">
+                          <p className="mt-1 break-words text-chu-thich font-semibold italic text-grey-mid">
                             {m.note}
                           </p>
                         )}
@@ -297,7 +297,7 @@ export default async function MenuPage({
                               <input type="hidden" name="meal" value={meal} />
                               <ConfirmButton
                                 message={t('confirmDelete', {meal: t(`meals.${meal}`).toLowerCase(), date: ngayVN(d)})}
-                                className="cursor-pointer rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-2 py-1 text-[11px] font-extrabold text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                                className="cursor-pointer rounded-[8px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-2 py-1 text-chu-thich font-extrabold text-status-bad transition-all hover:bg-status-bad/[0.16]"
                               >
                                 {t('delete')}
                               </ConfirmButton>
@@ -309,12 +309,12 @@ export default async function MenuPage({
                       <Link
                         href={{pathname: '/menu', query: q({date: d, meal})}}
                         aria-label={t('addAria', {meal: t(`meals.${meal}`).toLowerCase(), date: ngayVN(d)})}
-                        className="block rounded-[10px] border-[1.5px] border-dashed border-navy/15 py-2 text-center text-[11px] font-extrabold text-navy/40 transition-colors hover:border-navy hover:text-navy"
+                        className="block rounded-[8px] border-[1.5px] border-dashed border-navy/15 py-2 text-center text-chu-thich font-extrabold text-navy/40 transition-colors hover:border-navy hover:text-navy"
                       >
                         {t('them')}
                       </Link>
                     ) : (
-                      <div className="rounded-[10px] py-2 text-center text-[11px] text-navy/15">·</div>
+                      <div className="rounded-[8px] py-2 text-center text-chu-thich text-navy/15">·</div>
                     )}
                   </div>
                 );
@@ -328,8 +328,8 @@ export default async function MenuPage({
       {canManage && (
         <div className="glass rounded-[20px] p-4">
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 font-display text-[15px] font-bold text-navy">
-              <UtensilsCrossed size={15} strokeWidth={2.2} className="text-grey-mid" />
+            <span className="inline-flex items-center gap-1.5 font-display text-noi-dung font-bold text-navy">
+              <UtensilsCrossed size={14} strokeWidth={2} className="text-grey-mid" />
               {editing
                 ? t('editTitle', {meal: t(`meals.${formMeal}`).toLowerCase(), date: ngayVN(formDate)})
                 : t('composeTitle')}
@@ -337,7 +337,7 @@ export default async function MenuPage({
             {editingDate && (
               <Link
                 href={{pathname: '/menu', query: q()}}
-                className="inline-flex min-h-[24px] items-center text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
+                className="inline-flex min-h-[24px] items-center text-chu-thich font-extrabold text-gold-text underline underline-offset-2"
               >
                 {t('clearPick')}
               </Link>
@@ -417,7 +417,7 @@ export default async function MenuPage({
             </div>
           </form>
 
-          <p className="mt-1.5 text-[11px] italic text-grey-mid">
+          <p className="mt-1.5 text-chu-thich italic text-grey-mid">
             {t('saveHint')}
           </p>
         </div>

@@ -20,16 +20,16 @@ export async function ClassOverview({
 
   return (
     <section>
-      <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('conductTitle')}</h2>
+      <h2 className="mb-3 font-display text-tieu-de font-bold text-navy">{t('conductTitle')}</h2>
       <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
         {CONDUCTS.map((c) => (
           <div key={c} className="glass glass-hover rounded-[20px] p-4 text-center">
-            <div className={`font-display text-[26px] font-bold ${CONDUCT_TEXT[c]}`}>{dem(c)}</div>
+            <div className={`font-display text-hien-thi font-bold ${CONDUCT_TEXT[c]}`}>{dem(c)}</div>
             <div className="mt-1 text-xs font-extrabold text-txt">{t(`conducts.${c}`)}</div>
           </div>
         ))}
       </div>
-      <p className="mt-2 text-[12px] font-semibold text-grey-mid">
+      <p className="mt-2 text-chu-thich font-semibold text-grey-mid">
         Đã công bố <b className="text-navy">{daCongBo}</b>/{rows.length} phiếu
         {chuaXep > 0 && <> · còn {chuaXep} em chưa xếp hạnh kiểm</>}
       </p>

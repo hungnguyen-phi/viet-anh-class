@@ -39,7 +39,7 @@ export function MucTieuLopChoEm({
     <div className="flex flex-col gap-2">
       {mucTieu.map((m) => {
         const area = m.linh_vuc ?? 'knowledge';
-        const mau = mauTheoArea[area] ?? {hex: '#26275d', soft: '#ecedf5'};
+        const mau = mauTheoArea[area] ?? {hex: 'var(--color-navy)', soft: '#ecedf5'};
         const dv = m.ten_don_vi ?? '';
         return (
           <div

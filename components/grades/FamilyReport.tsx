@@ -88,7 +88,7 @@ export async function FamilyReport({
 
   if (!childId) {
     return (
-      <div className="glass rounded-[26px] p-10 text-center">
+      <div className="glass rounded-[20px] p-10 text-center">
         <h1 className="font-display text-xl font-bold text-navy">{t('reportTitle')}</h1>
         <p className="mt-2 text-sm text-grey-mid">
           {t('noChildLinked')}
@@ -199,17 +199,17 @@ export async function FamilyReport({
   return (
     <div className="space-y-6">
       {/* Hero: em nào, lớp nào, đợt nào */}
-      <div className="glass animate-rise rounded-[26px] p-6 sm:p-7">
+      <div className="glass animate-rise rounded-[20px] p-6 sm:p-7">
         <div className="flex flex-wrap items-start gap-4">
           <div className="min-w-0">
-            <div className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-gold-text">
+            <div className="text-nhan font-extrabold uppercase tracking-[0.1em] text-gold-text">
               {t('reportTitle')}
             </div>
-            <h1 className="mt-0.5 font-display text-[27px] font-bold leading-tight text-navy">
+            <h1 className="mt-0.5 font-display text-hien-thi font-bold leading-tight text-navy">
               {children.find((c) => c.id === childId)?.name ?? t('aStudent')}
             </h1>
             {chon?.classes?.name && (
-              <p className="mt-1 text-[13px] font-bold text-txt">
+              <p className="mt-1 text-than font-bold text-txt">
                 Lớp <b className="text-navy">{chon.classes.name}</b>
                 {chon.assessment_terms?.school_year && (
                   <span className="text-grey-mid"> · {chon.assessment_terms.school_year}</span>
@@ -224,7 +224,7 @@ export async function FamilyReport({
                   <Link
                     key={c.id}
                     href={{pathname: '/grades', query: {child: c.id}}}
-                    className={`rounded-full border px-2.5 py-1 text-[11.5px] font-bold transition-colors ${
+                    className={`rounded-full border px-2.5 py-1 text-chu-thich font-bold transition-colors ${
                       c.id === childId
                         ? 'border-navy bg-navy text-white'
                         : 'border-navy/15 bg-navy/[0.02] text-navy hover:border-navy'
@@ -237,7 +237,7 @@ export async function FamilyReport({
             )}
             {phieu.length > 1 && (
               <div className="flex flex-col items-end gap-1.5">
-                <span className="text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+                <span className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
                   {t('termPickerLabel')}
                 </span>
                 <div className="flex flex-wrap justify-end gap-1.5">
@@ -245,7 +245,7 @@ export async function FamilyReport({
                     <Link
                       key={p.id}
                       href={linkDot(p.term_id)}
-                      className={`inline-flex h-8 items-center rounded-[10px] px-3 text-xs font-extrabold whitespace-nowrap text-navy transition-all ${
+                      className={`inline-flex h-8 items-center rounded-[8px] px-3 text-xs font-extrabold whitespace-nowrap text-navy transition-all ${
                         p.id === chon?.id
                           ? 'btn-gold border border-transparent'
                           : 'border-[1.5px] border-navy/20 bg-white/60 hover:border-navy'
@@ -258,7 +258,7 @@ export async function FamilyReport({
                 </div>
               </div>
             )}
-            <span className="text-[10.5px] font-semibold italic text-grey-mid">{t('viewOnly')}</span>
+            <span className="text-chu-thich font-semibold italic text-grey-mid">{t('viewOnly')}</span>
           </div>
         </div>
       </div>
@@ -274,7 +274,7 @@ export async function FamilyReport({
         <>
           {/* Điểm từng môn */}
           <section>
-            <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
+            <h2 className="mb-3 font-display text-tieu-de font-bold text-navy">
               {t('scoresTitle')}
               {chon.assessment_terms?.name ? ` · ${chon.assessment_terms.name}` : ''}
             </h2>
@@ -285,13 +285,13 @@ export async function FamilyReport({
             ) : (
               <div className="glass overflow-x-auto rounded-[20px]">
                 <div className="flex min-w-[640px] items-center gap-2 bg-navy/[0.03] px-[18px] py-[10px]">
-                  <span className="w-[140px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
+                  <span className="w-[140px] flex-none text-nhan font-extrabold uppercase text-grey-mid">
                     {t('thSubject')}
                   </span>
-                  <span className="flex-1 text-[11px] font-extrabold uppercase text-grey-mid">
+                  <span className="flex-1 text-nhan font-extrabold uppercase text-grey-mid">
                     {t('thScores')}
                   </span>
-                  <span className="w-[90px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid">
+                  <span className="w-[90px] flex-none text-center text-nhan font-extrabold uppercase text-grey-mid">
                     {t('thAverage')}
                   </span>
                 </div>
@@ -302,7 +302,7 @@ export async function FamilyReport({
                   >
                     <span
                       title={mon.ten}
-                      className="w-[140px] flex-none truncate text-[13.5px] font-bold text-navy"
+                      className="w-[140px] flex-none truncate text-noi-dung font-bold text-navy"
                     >
                       {mon.ten}
                     </span>
@@ -311,7 +311,7 @@ export async function FamilyReport({
                         <span
                           key={`${d.kind}-${d.ordinal}`}
                           title={t('scoreTitle', {kind: t(`scoreKinds.${d.kind}`), ordinal: d.ordinal, weight: d.weight})}
-                          className="inline-flex items-center gap-1 rounded-full border-[1.5px] border-navy/15 bg-white/70 px-2 py-0.5 text-[11px] font-extrabold text-navy"
+                          className="inline-flex items-center gap-1 rounded-full border-[1.5px] border-navy/15 bg-white/70 px-2 py-0.5 text-chu-thich font-extrabold text-navy"
                         >
                           <span className="text-grey-mid">{t(`scoreKinds.${d.kind}`)}</span>
                           {soVN(d.score)}
@@ -319,14 +319,14 @@ export async function FamilyReport({
                         </span>
                       ))}
                     </span>
-                    <span className="w-[90px] flex-none text-center font-display text-[16px] font-bold text-navy">
+                    <span className="w-[90px] flex-none text-center font-display text-doc font-bold text-navy">
                       {soVN(tbMon.get(mon.khoa))}
                     </span>
                   </div>
                 ))}
               </div>
             )}
-            <p className="mt-2 text-[11px] italic text-grey-mid">
+            <p className="mt-2 text-chu-thich italic text-grey-mid">
               Trung bình đã tính theo hệ số của từng loại điểm (×2, ×3 ghi ngay cạnh con điểm).
             </p>
           </section>
@@ -334,11 +334,11 @@ export async function FamilyReport({
           {/* Hạnh kiểm + nhận xét của cô */}
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_1.6fr]">
             <section>
-              <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('conductSection')}</h2>
+              <h2 className="mb-3 font-display text-tieu-de font-bold text-navy">{t('conductSection')}</h2>
               <div className="glass rounded-[20px] p-[18px] text-center">
                 {chon.conduct ? (
                   <span
-                    className={`inline-flex items-center rounded-full border px-3 py-1 text-[13px] font-extrabold ${CONDUCT_CHIP[chon.conduct]}`}
+                    className={`inline-flex items-center rounded-full border px-3 py-1 text-than font-extrabold ${CONDUCT_CHIP[chon.conduct]}`}
                   >
                     {t(`conducts.${chon.conduct}`)}
                   </span>
@@ -346,9 +346,9 @@ export async function FamilyReport({
                   <p className="text-xs italic text-grey-mid">{t('noConductInTerm')}</p>
                 )}
                 {chon.conduct_score !== null && (
-                  <p className="mt-2.5 text-[12.5px] font-semibold text-grey-mid">
+                  <p className="mt-2.5 text-than font-semibold text-grey-mid">
                     Điểm rèn luyện:{' '}
-                    <b className="font-display text-[16px] text-navy">{chon.conduct_score}</b>
+                    <b className="font-display text-doc text-navy">{chon.conduct_score}</b>
                     /100
                   </p>
                 )}
@@ -356,12 +356,12 @@ export async function FamilyReport({
             </section>
 
             <section>
-              <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
+              <h2 className="mb-3 font-display text-tieu-de font-bold text-navy">
                 {t('teacherComment')}
               </h2>
               <div className="glass rounded-[20px] p-[18px]">
                 {chon.comment ? (
-                  <p className="text-[13px] leading-[1.7] font-semibold whitespace-pre-line text-txt">
+                  <p className="text-than leading-[1.7] font-semibold whitespace-pre-line text-txt">
                     {chon.comment}
                   </p>
                 ) : (

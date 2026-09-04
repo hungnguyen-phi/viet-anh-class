@@ -12,7 +12,7 @@ export type DeNghiDen = {
 };
 
 const nut =
-  'inline-flex h-9 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[10px] px-3 text-[12px] font-extrabold transition-all';
+  'inline-flex h-9 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[8px] px-3 text-chu-thich font-extrabold transition-all';
 
 // ĐỀ NGHỊ CHUYỂN ĐẾN LỚP NÀY — chờ chủ nhiệm lớp này quyết.
 //
@@ -32,11 +32,11 @@ export async function IncomingTransfers({
 
   return (
     <section className="rounded-[20px] border-[1.5px] border-gold-deep/40 bg-gold/[0.10] p-[18px]">
-      <div className="mb-1 flex items-center gap-2 font-display text-[15px] font-bold text-navy">
-        <ArrowRightLeft size={16} strokeWidth={2.4} />
+      <div className="mb-1 flex items-center gap-2 font-display text-noi-dung font-bold text-navy">
+        <ArrowRightLeft size={16} strokeWidth={2.5} />
         {t('incomingTitle', {n: requests.length})}
       </div>
-      <p className="mb-3 text-[12px] font-semibold leading-relaxed text-navy/70">
+      <p className="mb-3 text-chu-thich font-semibold leading-relaxed text-navy/70">
         {t('incomingHint')}
       </p>
 
@@ -47,10 +47,10 @@ export async function IncomingTransfers({
             className="flex flex-wrap items-center gap-2 rounded-[12px] bg-white/70 px-3 py-2.5"
           >
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-extrabold text-navy">
+              <span className="block truncate text-than font-extrabold text-navy">
                 {r.studentName}
               </span>
-              <span className="block truncate text-[11.5px] font-semibold text-grey-mid">
+              <span className="block truncate text-chu-thich font-semibold text-grey-mid">
                 {t('incomingFrom', {class: r.fromClassName, date: r.createdAt.slice(0, 10)})}
                 {r.note ? ` · ${r.note}` : ''}
               </span>

@@ -164,12 +164,12 @@ export default async function SubjectsPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="font-display text-[22px] font-bold text-navy">{t('title')}</h1>
+      <h1 className="font-display text-dau font-bold text-navy">{t('title')}</h1>
 
       <Flash />
 
       {profile.role === 'principal' && !profile.campus_id ? (
-        <p className="text-[11px] italic text-grey-mid">{t('noCampus')}</p>
+        <p className="text-chu-thich italic text-grey-mid">{t('noCampus')}</p>
       ) : (
         <SubjectCreateForm
           scope={isAdmin ? 'chung' : 'rieng'}

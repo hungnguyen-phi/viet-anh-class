@@ -172,23 +172,23 @@ export function NhapHangLoat({
   const nhanThu = (d: number) => cacThu.find((x) => x.value === d)?.label ?? `T${d}`;
   const tenMon = (id: string) => monHoc.find((m) => m.id === id)?.name ?? '';
   const oInput =
-    'w-full rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-1 text-[16px] font-semibold text-navy focus-visible:border-navy focus-visible:outline-none sm:text-[12.5px]';
+    'w-full rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-1 text-doc font-semibold text-navy focus-visible:border-navy focus-visible:outline-none sm:text-than';
 
   return (
     <>
       <button
         type="button"
         onClick={() => setMo(true)}
-        className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[9px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-[11.5px] font-extrabold text-navy transition-colors hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:min-h-0 sm:h-8"
+        className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[8px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-chu-thich font-extrabold text-navy transition-colors hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:min-h-0 sm:h-8"
       >
-        <ClipboardPaste size={13} strokeWidth={2.4} />
+        <ClipboardPaste size={12} strokeWidth={2.5} />
         {nhan.nut}
       </button>
 
       {mo && (
         <Popup title={nhan.tieuDe} onClose={() => setMo(false)} width="max-w-[720px]">
           {monHoc.length === 0 ? (
-            <p className="rounded-[10px] bg-warn/[0.12] px-3 py-2 text-[13px] font-semibold text-navy">{nhan.khongCoMon}</p>
+            <p className="rounded-[8px] bg-warn/[0.12] px-3 py-2 text-than font-semibold text-navy">{nhan.khongCoMon}</p>
           ) : (
             <form action={formAction} className="flex flex-col gap-3">
               <input type="hidden" name="class_id" value={classId} />
@@ -198,31 +198,31 @@ export function NhapHangLoat({
                 name="cac_o"
                 value={JSON.stringify(seLuu.map((c) => ({d: c.d, p: c.p, s: c.monId})))}
               />
-              <p className="text-[12.5px] font-semibold leading-relaxed text-grey-mid">{nhan.huongDan}</p>
+              <p className="text-than font-semibold leading-relaxed text-grey-mid">{nhan.huongDan}</p>
               <label className="flex flex-col gap-1">
-                <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid">{nhan.oDan}</span>
+                <span className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{nhan.oDan}</span>
                 <textarea
                   value={raw}
                   onChange={(e) => setRaw(e.target.value)}
                   rows={6}
                   autoFocus
                   spellCheck={false}
-                  className="w-full rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 py-2 font-mono text-[16px] text-navy focus-visible:border-navy focus-visible:outline-none sm:text-[12.5px]"
+                  className="w-full rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-2 font-mono text-doc text-navy focus-visible:border-navy focus-visible:outline-none sm:text-than"
                 />
               </label>
 
               {cells.length > 0 && (
                 <div className="flex flex-col gap-2">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-bold text-navy">
-                    <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid">{nhan.xemTruoc}</span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-chu-thich font-bold text-navy">
+                    <span className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{nhan.xemTruoc}</span>
                     <span>{nhan.tomTat.replace('{n}', String(seLuu.length)).replace('{m}', String(chuaRo.length))}</span>
                     {lat && <span className="text-grey-mid">↻</span>}
                   </div>
                   {/* Lưới xem trước: hàng = tiết, cột = thứ có dữ liệu. Cuộn ngang trong hộp ở máy hẹp. */}
                   <div className="overflow-x-auto rounded-[12px] border-[1.5px] border-navy/10">
-                    <table className="w-full min-w-[520px] border-collapse text-[12px]">
+                    <table className="w-full min-w-[520px] border-collapse text-chu-thich">
                       <thead>
-                        <tr className="bg-navy/[0.04] text-[10.5px] font-extrabold uppercase text-grey-mid">
+                        <tr className="bg-navy/[0.04] text-nhan font-extrabold uppercase text-grey-mid">
                           <th className="px-2 py-1.5 text-left">{nhan.tiet}</th>
                           {cacThu
                             .filter((t) => cells.some((c) => c.d === t.value))
@@ -252,7 +252,7 @@ export function NhapHangLoat({
                                         </span>
                                       ) : (
                                         <span className="flex flex-col gap-1">
-                                          <span className="text-[11px] font-bold text-status-bad" title={nhan.khongKhop}>
+                                          <span className="text-chu-thich font-bold text-status-bad" title={nhan.khongKhop}>
                                             “{c.goc}”
                                           </span>
                                           <select
@@ -283,16 +283,16 @@ export function NhapHangLoat({
                 </div>
               )}
 
-              <label className="flex cursor-pointer items-start gap-2 text-[12.5px] font-semibold text-navy">
+              <label className="flex cursor-pointer items-start gap-2 text-than font-semibold text-navy">
                 <input type="checkbox" checked={ghiDe} onChange={(e) => setGhiDe(e.target.checked)} className="mt-1 h-4 w-4 accent-[var(--color-navy)]" />
                 <span>
                   {nhan.ghiDe}
-                  <span className="block text-[11.5px] font-semibold text-grey-mid">{nhan.ghiDeHint}</span>
+                  <span className="block text-chu-thich font-semibold text-grey-mid">{nhan.ghiDeHint}</span>
                 </span>
               </label>
 
               {state.error && (
-                <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12.5px] font-bold text-status-bad">
+                <p className="inline-flex items-start gap-1.5 rounded-[8px] bg-status-bad/[0.08] px-2.5 py-2 text-than font-bold text-status-bad">
                   <AlertCircle size={14} strokeWidth={2.5} className="mt-px shrink-0" />
                   {state.error}
                 </p>

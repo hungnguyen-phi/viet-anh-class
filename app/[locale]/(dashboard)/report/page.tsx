@@ -139,7 +139,7 @@ export default async function ReportPage({
 
   if (!childId) {
     return (
-      <div className="glass rounded-[26px] p-10 text-center">
+      <div className="glass rounded-[20px] p-10 text-center">
         <h1 className="font-display text-xl font-bold text-navy">{t('title')}</h1>
         <p className="mt-2 text-sm text-grey-mid">{t('noChild')}</p>
       </div>
@@ -285,14 +285,14 @@ export default async function ReportPage({
   return (
     <div className="space-y-6">
       {/* Hero + chọn con + thanh tuần */}
-      <div className="glass animate-rise rounded-[26px] p-6 sm:p-7">
+      <div className="glass animate-rise rounded-[20px] p-6 sm:p-7">
         <div className="flex flex-wrap items-start gap-4">
           <div className="min-w-0">
-            <h1 className="font-display text-[27px] font-bold leading-tight text-navy">
+            <h1 className="font-display text-hien-thi font-bold leading-tight text-navy">
               {child?.full_name ?? t('child')}
             </h1>
             {cls && (
-              <p className="mt-1 text-[13px] font-bold text-txt">
+              <p className="mt-1 text-than font-bold text-txt">
                 {t('class')}: <b className="text-navy">{cls.name}</b>{' '}
                 <span className="text-grey-mid">· {cls.school_year}</span>
               </p>
@@ -304,7 +304,7 @@ export default async function ReportPage({
                 <Link
                   key={c.id}
                   href={{pathname: '/report', query: c.id === childId ? {} : {child: c.id}}}
-                  className={`rounded-full border px-2.5 py-1 text-[11.5px] font-bold transition-colors ${
+                  className={`rounded-full border px-2.5 py-1 text-chu-thich font-bold transition-colors ${
                     c.id === childId
                       ? 'border-navy bg-navy text-white'
                       : 'border-navy/15 bg-navy/[0.02] text-navy hover:border-navy'
@@ -330,26 +330,26 @@ export default async function ReportPage({
 
       {/* Điểm danh — cộng dồn cả năm (không đổi theo tuần) */}
       <section>
-        <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{t('attendance')}</h2>
+        <h2 className="mb-3 font-display text-tieu-de font-bold text-navy">{t('attendance')}</h2>
         <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
           {statuses.map((s) => (
             <div key={s} className="glass glass-hover rounded-[20px] p-4 text-center">
-              <div className={`font-display text-[26px] font-bold ${statusColor[s]}`}>{counts[s] ?? 0}</div>
+              <div className={`font-display text-hien-thi font-bold ${statusColor[s]}`}>{counts[s] ?? 0}</div>
               <div className="mt-1 text-xs font-extrabold text-txt">{t(s)}</div>
             </div>
           ))}
         </div>
-        <p className="mt-2 text-[11.5px] font-semibold italic leading-relaxed text-grey-mid">{t('attendanceNote')}</p>
+        <p className="mt-2 text-chu-thich font-semibold italic leading-relaxed text-grey-mid">{t('attendanceNote')}</p>
       </section>
 
       {/* ① Mục tiêu của con năm nay — ≤4 thẻ chỉ đọc */}
       <section>
-        <h2 className="mb-3 flex items-center gap-2 font-display text-[17px] font-bold text-navy">
-          <Target size={18} strokeWidth={2.5} className="text-gold-deep" />
+        <h2 className="mb-3 flex items-center gap-2 font-display text-tieu-de font-bold text-navy">
+          <Target size={16} strokeWidth={2.5} className="text-gold-deep" />
           {t('wigProgress')}
         </h2>
         {mtRows.length === 0 ? (
-          <p className="glass rounded-[16px] p-5 text-[13px] italic text-grey-mid">{tm('trong')}</p>
+          <p className="glass rounded-[16px] p-5 text-than italic text-grey-mid">{tm('trong')}</p>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {mtRows.map((mt) => {
@@ -369,20 +369,20 @@ export default async function ReportPage({
                   style={{borderLeftColor: mau.hex, background: mau.soft}}
                 >
                   <div className="flex items-start gap-2">
-                    <span className="min-w-0 flex-1 text-[14.5px] font-extrabold leading-snug text-navy">{mt.ten}</span>
+                    <span className="min-w-0 flex-1 text-noi-dung font-extrabold leading-snug text-navy">{mt.ten}</span>
                     {mt.dang_tap_trung && !dong && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gold/25 px-2 py-0.5 text-[10px] font-extrabold text-gold-text">
-                        <Star size={11} strokeWidth={3} /> {tm('dangTapTrung')}
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gold/25 px-2 py-0.5 text-chu-thich font-extrabold text-gold-text">
+                        <Star size={12} strokeWidth={2.5} /> {tm('dangTapTrung')}
                       </span>
                     )}
                   </div>
 
                   {mt.nguon_so !== 'khong_so' && (
                     <div className="mt-1.5">
-                      <div className="text-[13px] font-bold text-txt">
+                      <div className="text-than font-bold text-txt">
                         {mt.so == null ? tm('chuaCoSo') : tm('dangO', {so: so(mt.so), dv: mt.ten_don_vi ?? ''})}
                       </div>
-                      {nguonDong && <div className="text-[11px] font-semibold text-grey-mid">{nguonDong}</div>}
+                      {nguonDong && <div className="text-chu-thich font-semibold text-grey-mid">{nguonDong}</div>}
                     </div>
                   )}
 
@@ -395,7 +395,7 @@ export default async function ReportPage({
                         />
                       </div>
                       {mt.le_ra != null && mt.y_so != null && mt.y_so !== 0 && (
-                        <div className="mt-1 text-[11px] font-semibold text-grey-mid">
+                        <div className="mt-1 text-chu-thich font-semibold text-grey-mid">
                           {tm('leRaHomNay', {so: so(mt.le_ra), dv: mt.ten_don_vi ?? ''})}
                         </div>
                       )}
@@ -404,25 +404,25 @@ export default async function ReportPage({
 
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     {ttDo && !dong && (
-                      <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-extrabold text-navy">{ttDo}</span>
+                      <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-extrabold text-navy">{ttDo}</span>
                     )}
                     {dong && (
-                      <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-extrabold text-grey-mid">
+                      <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-extrabold text-grey-mid">
                         {tm('daDong')}
                       </span>
                     )}
                     {mt.trang_thai === 'gui' && (
-                      <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text">
+                      <span className="rounded-full bg-gold/20 px-2 py-0.5 text-chu-thich font-extrabold text-gold-text">
                         {tm('choDuyet')}
                       </span>
                     )}
                     {mt.trang_thai === 'nhap' && (
-                      <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-extrabold text-grey-mid">
+                      <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-extrabold text-grey-mid">
                         {tm('nhap')}
                       </span>
                     )}
                     {mt.trang_thai === 'tra_lai' && (
-                      <span className="rounded-full bg-status-bad/[0.1] px-2 py-0.5 text-[10.5px] font-extrabold text-status-bad">
+                      <span className="rounded-full bg-status-bad/[0.1] px-2 py-0.5 text-chu-thich font-extrabold text-status-bad">
                         {tm('traLai')}
                       </span>
                     )}
@@ -436,14 +436,14 @@ export default async function ReportPage({
 
       {/* ② Việc con làm tuần này — hàng chỉ đọc (12 ô tuần + 7 ô ngày, không nút) */}
       <section>
-        <h2 className="mb-3 flex items-center gap-2 font-display text-[17px] font-bold text-navy">
-          <ListChecks size={18} strokeWidth={2.5} className="text-gold-deep" />
+        <h2 className="mb-3 flex items-center gap-2 font-display text-tieu-de font-bold text-navy">
+          <ListChecks size={16} strokeWidth={2.5} className="text-gold-deep" />
           {t('viecTuan')}
         </h2>
         {viec.length === 0 ? (
-          <p className="glass rounded-[16px] p-5 text-[13px] italic text-grey-mid">{t('noWeekData')}</p>
+          <p className="glass rounded-[16px] p-5 text-than italic text-grey-mid">{t('noWeekData')}</p>
         ) : (
-          <div className="glass flex flex-col overflow-hidden rounded-[18px]">
+          <div className="glass flex flex-col overflow-hidden rounded-[16px]">
             {viec.map((v, i) => {
               const kieng = v.chieu_dich === 'nhieu_nhat';
               let ttNhan = tv('dangChay');
@@ -462,10 +462,10 @@ export default async function ReportPage({
               return (
                 <div key={v.thuoc_id} className={`px-3.5 py-3 ${i > 0 ? 'border-t border-navy/10' : ''}`}>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="min-w-0 flex-1 text-[14px] font-extrabold text-navy">{v.ten}</span>
-                    <span className={`text-[11.5px] font-extrabold ${ttMau}`}>{ttNhan}</span>
+                    <span className="min-w-0 flex-1 text-noi-dung font-extrabold text-navy">{v.ten}</span>
+                    <span className={`text-chu-thich font-extrabold ${ttMau}`}>{ttNhan}</span>
                   </div>
-                  <div className="mt-0.5 text-[11.5px] font-semibold text-grey-mid">
+                  <div className="mt-0.5 text-chu-thich font-semibold text-grey-mid">
                     {kieng
                       ? tv('chiTieuKhongQua', {n: so(v.chi_tieu), dv: v.ten_don_vi ?? '', ky: kyNhan})
                       : tv('chiTieu', {n: so(v.chi_tieu), dv: v.ten_don_vi ?? '', ky: kyNhan})}
@@ -475,7 +475,7 @@ export default async function ReportPage({
 
                   {/* 12 ô tuần */}
                   <div className="mt-2">
-                    <div className="text-[10px] font-bold uppercase tracking-wide text-grey-mid">{tv('muoiHaiTuan')}</div>
+                    <div className="text-nhan font-bold uppercase tracking-wide text-grey-mid">{tv('muoiHaiTuan')}</div>
                     <div className="mt-1 flex gap-[3px]">
                       {v.muoiHaiTuan.map((w) => {
                         let bg = 'bg-navy/[0.06]';
@@ -486,7 +486,7 @@ export default async function ReportPage({
                         return (
                           <span
                             key={w.tuan}
-                            className={`h-3.5 flex-1 rounded-[2px] ${bg}`}
+                            className={`h-3.5 flex-1 rounded-[8px] ${bg}`}
                             title={`${w.tuan}: ${so(w.gia)}/${so(w.chi_tieu)}`}
                           />
                         );
@@ -503,8 +503,8 @@ export default async function ReportPage({
                       if (!ap) {
                         return (
                           <div key={d} className="flex flex-col items-center">
-                            <span className="text-[9.5px] font-bold text-grey-mid/70">{dayShort[di]}</span>
-                            <span className="mt-0.5 grid h-8 w-full place-items-center rounded-[7px] bg-navy/[0.02] text-[10px] text-grey-mid/40">
+                            <span className="text-chu-thich font-bold text-grey-mid/70">{dayShort[di]}</span>
+                            <span className="mt-0.5 grid h-8 w-full place-items-center rounded-[8px] bg-navy/[0.02] text-chu-thich text-grey-mid/40">
                               ·
                             </span>
                           </div>
@@ -512,9 +512,9 @@ export default async function ReportPage({
                       }
                       return (
                         <div key={d} className="flex flex-col items-center">
-                          <span className="text-[9.5px] font-bold text-grey-mid">{dayShort[di]}</span>
+                          <span className="text-chu-thich font-bold text-grey-mid">{dayShort[di]}</span>
                           <span
-                            className={`mt-0.5 grid h-8 w-full place-items-center rounded-[7px] text-[12px] font-extrabold ${
+                            className={`mt-0.5 grid h-8 w-full place-items-center rounded-[8px] text-chu-thich font-extrabold ${
                               coSo
                                 ? kieng
                                   ? 'bg-status-bad/70 text-white'
@@ -537,12 +537,12 @@ export default async function ReportPage({
 
       {/* ③ Cam kết tuần này — thẻ chỉ đọc (nút xác nhận để sau, H-28) */}
       <section>
-        <h2 className="mb-3 flex items-center gap-2 font-display text-[17px] font-bold text-navy">
-          <Flag size={18} strokeWidth={2.5} className="text-gold-deep" />
+        <h2 className="mb-3 flex items-center gap-2 font-display text-tieu-de font-bold text-navy">
+          <Flag size={16} strokeWidth={2.5} className="text-gold-deep" />
           {t('camKetTuan')}
         </h2>
         {camKet.length === 0 ? (
-          <p className="glass rounded-[16px] p-5 text-[13px] italic text-grey-mid">{t('noWeekData')}</p>
+          <p className="glass rounded-[16px] p-5 text-than italic text-grey-mid">{t('noWeekData')}</p>
         ) : (
           <div className="flex flex-col gap-3">
             {camKet.map((c) => {
@@ -550,34 +550,34 @@ export default async function ReportPage({
               return (
                 <div key={c.id} className="glass rounded-[16px] border-l-[3px] border-gold-mid p-3.5">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="min-w-0 flex-1 text-[14px] font-extrabold text-navy">{c.noi_dung}</span>
+                    <span className="min-w-0 flex-1 text-noi-dung font-extrabold text-navy">{c.noi_dung}</span>
                     {c.so_hua != null && (
-                      <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-bold text-navy">
+                      <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-bold text-navy">
                         {tc('chipSo', {dat: so(c.so_dat ?? 0), hua: so(c.so_hua), dv: c.ten_don_vi ?? ''})}
                       </span>
                     )}
                     {daCham ? (
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${
+                        className={`rounded-full px-2 py-0.5 text-chu-thich font-extrabold ${
                           c.ket_qua === 'thang' ? 'bg-success/15 text-success-dark' : 'bg-status-bad/[0.1] text-status-bad'
                         }`}
                       >
                         {c.ket_qua === 'thang' ? tc('thang') : tc('thua')}
                       </span>
                     ) : (
-                      <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-bold text-grey-mid">
+                      <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-bold text-grey-mid">
                         {c.so_tuan > 1 ? tc('tuanN', {n: 1, tong: c.so_tuan}) : tc('chuaCham')}
                       </span>
                     )}
                   </div>
                   {c.tenViec ? (
-                    <p className="mt-1 text-[11px] font-semibold text-grey-mid">{tc('giupViec', {ten: c.tenViec})}</p>
+                    <p className="mt-1 text-chu-thich font-semibold text-grey-mid">{tc('giupViec', {ten: c.tenViec})}</p>
                   ) : c.tenMucTieu ? (
-                    <p className="mt-1 text-[11px] font-semibold text-grey-mid">{tc('giupMucTieu', {ten: c.tenMucTieu})}</p>
+                    <p className="mt-1 text-chu-thich font-semibold text-grey-mid">{tc('giupMucTieu', {ten: c.tenMucTieu})}</p>
                   ) : c.lac_muc_tieu ? (
-                    <p className="mt-1 text-[11px] font-semibold italic text-grey-mid">{tc('lac')}</p>
+                    <p className="mt-1 text-chu-thich font-semibold italic text-grey-mid">{tc('lac')}</p>
                   ) : null}
-                  {tuanNghi && <p className="mt-1 text-[11.5px] font-semibold italic text-grey-mid">{tc('nghi')}</p>}
+                  {tuanNghi && <p className="mt-1 text-chu-thich font-semibold italic text-grey-mid">{tc('nghi')}</p>}
                 </div>
               );
             })}
@@ -599,12 +599,12 @@ export default async function ReportPage({
               color: daKyHop ? 'var(--color-success-dark)' : 'var(--color-grey-mid)',
             }}
           >
-            {daKyHop ? <Check size={18} strokeWidth={2.6} /> : <Users size={18} strokeWidth={2.2} />}
+            {daKyHop ? <Check size={16} strokeWidth={2.5} /> : <Users size={16} strokeWidth={2} />}
           </span>
-          <span className="min-w-0 flex-1 text-[14px] font-bold text-navy">
+          <span className="min-w-0 flex-1 text-noi-dung font-bold text-navy">
             {daKyHop ? t('hopBan') : t('hopChua')}
           </span>
-          {!daKyHop && <X size={16} strokeWidth={2.2} className="shrink-0 text-grey-mid" />}
+          {!daKyHop && <X size={16} strokeWidth={2} className="shrink-0 text-grey-mid" />}
         </div>
       </section>
 
@@ -617,15 +617,15 @@ export default async function ReportPage({
         className="glass glass-hover flex items-center gap-3 rounded-[20px] p-[18px] transition-all"
       >
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold/20 text-gold-deep">
-          <Images size={18} strokeWidth={2.2} />
+          <Images size={16} strokeWidth={2} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-display text-[15px] font-bold text-navy">Hình ảnh lớp</span>
-          <span className="block text-[12.5px] font-semibold text-grey-mid">
+          <span className="block font-display text-noi-dung font-bold text-navy">Hình ảnh lớp</span>
+          <span className="block text-than font-semibold text-grey-mid">
             Ảnh học tập và sự kiện do giáo viên chủ nhiệm đăng
           </span>
         </span>
-        <ChevronRight size={18} strokeWidth={2.2} className="shrink-0 text-grey-mid" />
+        <ChevronRight size={16} strokeWidth={2} className="shrink-0 text-grey-mid" />
       </Link>
       )}
     </div>

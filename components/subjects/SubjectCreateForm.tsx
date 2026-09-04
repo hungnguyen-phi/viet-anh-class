@@ -48,7 +48,7 @@ export function SubjectCreateForm({
 
   return (
     <form action={formAction} onKeyDown={onKeyDown} className="glass rounded-[16px] p-3" noValidate>
-      <div className="mb-2 font-display text-[15px] font-bold text-navy">
+      <div className="mb-2 font-display text-noi-dung font-bold text-navy">
         {scope === 'chung'
           ? t('createSharedTitle')
           : campusName
@@ -131,7 +131,7 @@ export function SubjectCreateForm({
 
       <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
         {/* Nhãn bọc luôn ô tick → bấm vào chữ cũng ăn, và không cần htmlFor rời. */}
-        <label className="inline-flex cursor-pointer items-center gap-2 text-[12.5px] font-bold text-navy">
+        <label className="inline-flex cursor-pointer items-center gap-2 text-than font-bold text-navy">
           <input
             type="checkbox"
             name="is_scored"
@@ -146,19 +146,19 @@ export function SubjectCreateForm({
         </SubmitButton>
       </div>
 
-      <p className="mt-2 text-[11px] italic text-grey-mid">
+      <p className="mt-2 text-chu-thich italic text-grey-mid">
         {t('createHint')}
         {scope === 'rieng' && t('createHintOwn')}
       </p>
 
       {state.error && !state.fieldError && (
-        <p className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-bold text-status-bad">
+        <p className="mt-2 inline-flex items-center gap-1.5 text-than font-bold text-status-bad">
           <AlertCircle size={14} strokeWidth={2.5} />
           {state.error}
         </p>
       )}
       {state.ok && state.message && (
-        <p className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-bold text-success-dark">
+        <p className="mt-2 inline-flex items-center gap-1.5 text-than font-bold text-success-dark">
           <CheckCircle2 size={14} strokeWidth={2.5} />
           {state.message}
         </p>

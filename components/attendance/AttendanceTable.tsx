@@ -67,11 +67,11 @@ function O({m, t, nhan}: {m?: string | null; t?: string | null; nhan?: string}) 
   return (
     <span className="inline-flex items-center gap-1.5">
       {emoji && (
-        <span title={nhan} aria-label={nhan} className="text-[17px] leading-none">
+        <span title={nhan} aria-label={nhan} className="text-tieu-de leading-none">
           {emoji}
         </span>
       )}
-      {t && <span className="text-[12px] font-bold tabular-nums text-grey-mid">{t}</span>}
+      {t && <span className="text-chu-thich font-bold tabular-nums text-grey-mid">{t}</span>}
     </span>
   );
 }
@@ -141,7 +141,7 @@ export function AttendanceTable({
   return (
     <div className="space-y-3">
       <div className="glass overflow-x-auto rounded-[20px]">
-        <div className="flex items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
+        <div className="flex items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
           <span className="flex-1">{t('student')}</span>
           <span className="w-[78px] flex-none">{t('morning')}</span>
           <span className="w-[78px] flex-none">{t('afternoon')}</span>
@@ -154,7 +154,7 @@ export function AttendanceTable({
               i > 0 ? 'border-t border-navy/[0.06]' : ''
             }`}
           >
-            <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-navy">
+            <span className="min-w-0 flex-1 truncate text-noi-dung font-bold text-navy">
               {st.name}
             </span>
             <span className="w-[78px] flex-none">
@@ -167,7 +167,7 @@ export function AttendanceTable({
         ))}
       </div>
 
-      <p className="text-[12px] font-bold text-grey-mid">
+      <p className="text-chu-thich font-bold text-grey-mid">
         {t('checkedInCount', {n: coMat, total: rows.length})}
       </p>
     </div>

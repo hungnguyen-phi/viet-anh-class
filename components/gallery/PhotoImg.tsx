@@ -37,7 +37,7 @@ export function PhotoImg({
         aria-label={t('imgFailed', {alt})}
         className={`grid place-items-center bg-navy/[0.06] text-navy/40 ${className}`}
       >
-        <ImageOff size={18} strokeWidth={2.2} />
+        <ImageOff size={16} strokeWidth={2} />
       </div>
     );
   }

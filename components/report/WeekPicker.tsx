@@ -51,7 +51,7 @@ export function WeekPicker({
 
   return (
     <div className="flex flex-col items-end gap-2">
-      <span className="text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+      <span className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
         {label}
       </span>
       <div className="flex flex-wrap justify-end gap-1.5">
@@ -63,7 +63,7 @@ export function WeekPicker({
               type="button"
               onClick={() => goWeek(w.label)}
               title={w.label}
-              className={`inline-flex h-8 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[10px] px-3 text-xs font-extrabold text-navy transition-all ${
+              className={`inline-flex h-8 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[8px] px-3 text-xs font-extrabold text-navy transition-all ${
                 active
                   ? 'btn-gold border border-transparent'
                   : 'border-[1.5px] border-navy/20 bg-white/60 hover:border-navy'
@@ -72,7 +72,7 @@ export function WeekPicker({
               {dm(w.start)} – {dm(w.end)}
               {w.laTuanNay && (
                 <span
-                  className={`rounded-full px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide ${
+                  className={`rounded-full px-1.5 py-0.5 text-chu-thich font-extrabold tracking-wide ${
                     active ? 'bg-navy/15 text-navy' : 'bg-gold/25 text-gold-text'
                   }`}
                 >

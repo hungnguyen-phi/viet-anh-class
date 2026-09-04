@@ -19,7 +19,7 @@ export type ThreadItem = {
 };
 
 const chipBase =
-  'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-extrabold';
+  'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-nhan font-extrabold';
 
 /**
  * Xếp thứ tự hộp thư.
@@ -72,13 +72,13 @@ export async function ThreadList({
               {chuaDoc && (
                 <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-gold-deep" />
               )}
-              <span className="truncate text-[14px] font-bold text-navy">
+              <span className="truncate text-noi-dung font-bold text-navy">
                 {it.student_name ?? t('aStudentCap')}
               </span>
               {it.class_name && (
                 <span className={`${chipBase} bg-navy/[0.08] text-navy/70`}>{it.class_name}</span>
               )}
-              <span className="ml-auto shrink-0 text-[11px] font-semibold text-grey-mid">
+              <span className="ml-auto shrink-0 text-chu-thich font-semibold text-grey-mid">
                 {it.last_message_at ? khiNao(it.last_message_at, t) : t('noMessagesYet')}
               </span>
             </div>

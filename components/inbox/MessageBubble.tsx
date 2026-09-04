@@ -41,13 +41,13 @@ export async function MessageBubble({m, toiLaAi}: {m: MessageRow; toiLaAi: strin
   return (
     <div className={`flex ${cuaToi ? 'justify-end' : 'justify-start'}`}>
       <div className={`min-w-0 max-w-[85%] ${cuaToi ? 'text-right' : 'text-left'}`}>
-        <div className="mb-1 px-1 text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid">
+        <div className="mb-1 px-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
           {tenNguoiGui(m, toiLaAi, t)} · {khiNao(m.created_at, t)}
         </div>
         {/* whitespace-pre-line: giữ lại các dòng người ta cố ý xuống hàng (danh sách, ký tên).
             break-words: một đường link dài không được kéo giãn khung trên điện thoại. */}
         <div
-          className={`whitespace-pre-line break-words rounded-[16px] px-3.5 py-2.5 text-[13.5px] font-semibold leading-[1.55] ${
+          className={`whitespace-pre-line break-words rounded-[16px] px-3.5 py-2.5 text-noi-dung font-semibold leading-[1.55] ${
             cuaToi
               ? 'bg-navy text-white'
               : 'border-[1.5px] border-navy/15 bg-white text-navy'

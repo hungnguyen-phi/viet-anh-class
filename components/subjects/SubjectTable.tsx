@@ -41,7 +41,7 @@ export function moTaLop(nums: number[]): string {
   return doan.join(', ');
 }
 
-const chipXam = 'rounded-full bg-navy/[0.08] px-2 py-0.5 text-[10.5px] font-extrabold text-navy/70';
+const chipXam = 'rounded-full bg-navy/[0.08] px-2 py-0.5 text-nhan font-extrabold text-navy/70';
 
 export function SubjectTable({
   rows,
@@ -70,7 +70,7 @@ export function SubjectTable({
           WIG (không cần client state cho 12 ô tick). */}
       {isAdmin && editing && (
         <section className="glass animate-rise rounded-[20px] p-[18px] ring-2 ring-gold/60">
-          <h2 className="mb-2.5 font-display text-[15px] font-bold text-navy">
+          <h2 className="mb-2.5 font-display text-noi-dung font-bold text-navy">
             {t('editPanelTitle', {name: editing.name})}
           </h2>
           <form action={saveSubjectGrades} className="flex flex-col gap-3">
@@ -82,7 +82,7 @@ export function SubjectTable({
                 {LOP.map((n) => (
                   <label
                     key={n}
-                    className="flex cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 py-2 text-[12.5px] font-bold text-navy transition-colors hover:border-navy"
+                    className="flex cursor-pointer items-center gap-1.5 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-2 text-than font-bold text-navy transition-colors hover:border-navy"
                   >
                     <input
                       type="checkbox"
@@ -96,7 +96,7 @@ export function SubjectTable({
                 ))}
               </div>
             </fieldset>
-            <p className="text-[11px] italic text-grey-mid">{t('gradesHint')}</p>
+            <p className="text-chu-thich italic text-grey-mid">{t('gradesHint')}</p>
             <div className="flex flex-wrap justify-end gap-2">
               <Link href={veDanhSach} className={btnGhost}>
                 {tCommon('cancel')}
@@ -110,23 +110,23 @@ export function SubjectTable({
       <div className="glass overflow-x-auto rounded-[20px]">
         {/* Header */}
         <div className="flex min-w-[980px] items-center gap-2 bg-navy/[0.03] px-[18px] py-[10px]">
-          <span className="w-[22px] flex-none text-[11px] font-extrabold text-grey-mid">#</span>
-          <span className="w-[86px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
+          <span className="w-[22px] flex-none text-chu-thich font-extrabold text-grey-mid">#</span>
+          <span className="w-[86px] flex-none text-nhan font-extrabold uppercase text-grey-mid">
             {t('thCode')}
           </span>
-          <span className="flex-[1.6] text-[11px] font-extrabold uppercase text-grey-mid">
+          <span className="flex-[1.6] text-nhan font-extrabold uppercase text-grey-mid">
             {t('thName')}
           </span>
-          <span className="w-[96px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
+          <span className="w-[96px] flex-none text-nhan font-extrabold uppercase text-grey-mid">
             {t('thShort')}
           </span>
-          <span className="flex-[1.6] text-[11px] font-extrabold uppercase text-grey-mid">
+          <span className="flex-[1.6] text-nhan font-extrabold uppercase text-grey-mid">
             {t('thGrades')}
           </span>
-          <span className="w-[92px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
+          <span className="w-[92px] flex-none text-nhan font-extrabold uppercase text-grey-mid">
             {t('thStatus')}
           </span>
-          <span className="w-[160px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid" />
+          <span className="w-[160px] flex-none text-center text-nhan font-extrabold uppercase text-grey-mid" />
         </div>
 
         {/* Rows */}
@@ -137,12 +137,12 @@ export function SubjectTable({
               s.is_active ? '' : 'opacity-70'
             }`}
           >
-            <span className="w-[22px] flex-none text-[12px] font-bold text-grey-mid">{i + 1}</span>
-            <span className="w-[86px] flex-none truncate text-[12.5px] font-bold text-navy/70">
+            <span className="w-[22px] flex-none text-chu-thich font-bold text-grey-mid">{i + 1}</span>
+            <span className="w-[86px] flex-none truncate text-than font-bold text-navy/70">
               {s.code}
             </span>
             <span className="flex min-w-0 flex-[1.6] items-center gap-1.5">
-              <span className="truncate text-[13.5px] font-bold text-navy">{s.name}</span>
+              <span className="truncate text-noi-dung font-bold text-navy">{s.name}</span>
               {/* Môn riêng của cơ sở: phải nhìn ra ngay, vì chỉ lớp của cơ sở đó chọn được. */}
               {s.campus_id && (
                 <span className={`${chipXam} shrink-0`} title={t('chipOwnTitle')}>
@@ -156,28 +156,28 @@ export function SubjectTable({
                 </span>
               )}
             </span>
-            <span className="w-[96px] flex-none truncate text-[12.5px] font-semibold text-grey-mid">
+            <span className="w-[96px] flex-none truncate text-than font-semibold text-grey-mid">
               {s.short_name}
             </span>
-            <span className="min-w-0 flex-[1.6] text-[12.5px] font-semibold text-grey-mid">
+            <span className="min-w-0 flex-[1.6] text-than font-semibold text-grey-mid">
               {s.grades.length > 0 ? (
                 t('gradesRange', {list: moTaLop(s.grades)})
               ) : (
                 // KHÔNG ẩn cho gọn: bốn môn đang ở tình trạng này và nhà trường CẦN thấy để bổ
                 // sung. Chưa khai = chọn được cho mọi lớp, tức là ô chọn môn của lớp 6 vẫn hiện
                 // "Giáo dục kinh tế và pháp luật" — dễ nhập nhầm.
-                <span className="inline-flex items-center gap-1 rounded-full border-[1.5px] border-warn/40 bg-warn/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-warn-text">
+                <span className="inline-flex items-center gap-1 rounded-full border-[1.5px] border-warn/40 bg-warn/[0.12] px-2 py-0.5 text-chu-thich font-extrabold text-warn-text">
                   {t('gradesUndeclared')}
                 </span>
               )}
             </span>
             <span className="w-[92px] flex-none">
               {s.is_active ? (
-                <span className="rounded-full bg-success/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
+                <span className="rounded-full bg-success/[0.12] px-2 py-0.5 text-chu-thich font-extrabold text-success-dark">
                   {t('statusActive')}
                 </span>
               ) : (
-                <span className="rounded-full bg-status-bad/[0.08] px-2 py-0.5 text-[10.5px] font-extrabold text-status-bad">
+                <span className="rounded-full bg-status-bad/[0.08] px-2 py-0.5 text-chu-thich font-extrabold text-status-bad">
                   {t('statusOff')}
                 </span>
               )}
@@ -186,7 +186,7 @@ export function SubjectTable({
               {isAdmin && (
                 <Link
                   href={`/subjects?edit=${encodeURIComponent(s.id)}${keo}`}
-                  className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-[11px] font-extrabold text-navy transition-all hover:border-navy"
+                  className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-chu-thich font-extrabold text-navy transition-all hover:border-navy"
                 >
                   {t('editGrades')}
                 </Link>
@@ -199,7 +199,7 @@ export function SubjectTable({
                     {classParam && <input type="hidden" name="class_id" value={classParam} />}
                     <ConfirmButton
                       message={t('confirmOff', {name: s.name})}
-                      className="cursor-pointer rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-2 py-1 text-[11px] font-extrabold text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                      className="cursor-pointer rounded-[8px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-2 py-1 text-chu-thich font-extrabold text-status-bad transition-all hover:bg-status-bad/[0.16]"
                     >
                       {t('turnOff')}
                     </ConfirmButton>
@@ -210,7 +210,7 @@ export function SubjectTable({
                     <input type="hidden" name="active" value="true" />
                     {classParam && <input type="hidden" name="class_id" value={classParam} />}
                     <SubmitButton
-                      className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-[11px] font-extrabold text-navy transition-all hover:border-navy"
+                      className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-chu-thich font-extrabold text-navy transition-all hover:border-navy"
                       wrapClass="contents"
                     >
                       {t('reuse')}
@@ -228,7 +228,7 @@ export function SubjectTable({
       </div>
 
       {/* Nói thẳng vì sao không có nút xoá — nếu không, người dùng sẽ đi tìm và tưởng thiếu tính năng. */}
-      <p className="text-[11px] italic text-grey-mid">
+      <p className="text-chu-thich italic text-grey-mid">
         {t('noDeleteHint')}
         {!isAdmin && t('noDeleteHintPrincipal')}
       </p>

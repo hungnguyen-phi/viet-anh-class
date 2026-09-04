@@ -17,7 +17,7 @@ export type ReviewRow = {
 // Giữ nguyên ngôn ngữ hình ảnh của ô nhập (bo 10px, viền 1.5px navy/15, chữ navy đậm), chỉ đổi
 // cách quyết định chiều cao.
 const taCls =
-  'min-w-0 w-full rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-sm font-semibold leading-[1.5] text-navy outline-none transition-colors focus:border-navy';
+  'min-w-0 w-full rounded-[8px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-sm font-semibold leading-[1.5] text-navy outline-none transition-colors focus:border-navy';
 
 /**
  * Nhận xét của GVCN + hạnh kiểm — cả lớp trong MỘT form, một nút Lưu.
@@ -50,16 +50,16 @@ export async function ReviewListForm({
 
       <div className="flex flex-wrap items-start justify-between gap-2 px-[18px] py-3">
         <div className="min-w-0">
-          <h2 className="font-display text-[15px] font-bold text-navy">{t('reviewTitle')}</h2>
+          <h2 className="font-display text-noi-dung font-bold text-navy">{t('reviewTitle')}</h2>
           {/* Cảnh báo này nằm ngay trên ô nhập vì đúng chỗ đó mới đọc. Cột comment của phiếu là ô
               GỬI GIA ĐÌNH — migration 0064 ghi rõ: sau khi công bố, phụ huynh và chính em đó đọc
               được nguyên văn. */}
-          <p className="mt-0.5 text-[11px] italic text-grey-mid">
+          <p className="mt-0.5 text-chu-thich italic text-grey-mid">
             {t('reviewHint')}
             được nguyên văn. Ghi chú nội bộ thì đừng viết vào đây.
           </p>
         </div>
-        <span className="rounded-full bg-navy/[0.08] px-2 py-0.5 text-[10.5px] font-extrabold text-navy">
+        <span className="rounded-full bg-navy/[0.08] px-2 py-0.5 text-chu-thich font-extrabold text-navy">
           Đã có nhận xét {daDien}/{rows.length}
         </span>
       </div>
@@ -70,12 +70,12 @@ export async function ReviewListForm({
           className="flex flex-col gap-2 border-t border-navy/[0.08] px-[18px] py-3 sm:flex-row sm:items-start"
         >
           <div className="flex items-center gap-1.5 sm:w-[186px] sm:flex-none sm:pt-2">
-            <span className="w-[20px] flex-none text-[12px] font-bold text-grey-mid">{i + 1}</span>
-            <span className="min-w-0 truncate text-[13.5px] font-bold text-navy">{r.name}</span>
+            <span className="w-[20px] flex-none text-chu-thich font-bold text-grey-mid">{i + 1}</span>
+            <span className="min-w-0 truncate text-noi-dung font-bold text-navy">{r.name}</span>
             {r.published && (
               <span
                 title={t('publishedTitle')}
-                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gold/20 px-2 py-0.5 text-[10.5px] font-extrabold text-navy"
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gold/20 px-2 py-0.5 text-chu-thich font-extrabold text-navy"
               >
                 {t('sentChip')}
               </span>

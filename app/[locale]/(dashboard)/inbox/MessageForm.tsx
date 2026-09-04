@@ -7,9 +7,9 @@ import {SubmitButton} from '@/components/ui/SubmitButton';
 import {GIOI_HAN_KY_TU} from '@/components/inbox/format';
 import {sendMessage} from './actions';
 
-const labelCls = 'mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
+const labelCls = 'mb-1 block text-nhan font-extrabold uppercase tracking-wide text-grey-mid';
 const areaBase =
-  'w-full min-h-[92px] resize-y rounded-[10px] border-[1.5px] bg-white px-3 py-2.5 text-sm font-semibold text-navy outline-none transition-colors';
+  'w-full min-h-[92px] resize-y rounded-[8px] border-[1.5px] bg-white px-3 py-2.5 text-sm font-semibold text-navy outline-none transition-colors';
 
 /**
  * Ô soạn tin.
@@ -72,7 +72,7 @@ export function MessageForm({threadId, laPhuHuynh}: {threadId: string; laPhuHuyn
         }`}
       />
 
-      <p id="pt-body-hint" className="mt-1 text-[11px] font-semibold text-grey-mid">
+      <p id="pt-body-hint" className="mt-1 text-chu-thich font-semibold text-grey-mid">
         {t('sentIsFinal')}{' '}
         <span className={qua ? 'font-extrabold text-status-bad' : undefined}>
           {qua ? t('charsOver', {n: -conLai}) : t('charsLeft', {n: conLai})}
@@ -80,7 +80,7 @@ export function MessageForm({threadId, laPhuHuynh}: {threadId: string; laPhuHuyn
       </p>
 
       {state.error && (
-        <p className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-bold text-status-bad">
+        <p className="mt-2 inline-flex items-center gap-1.5 text-than font-bold text-status-bad">
           <AlertCircle size={14} strokeWidth={2.5} />
           {state.error}
         </p>
@@ -88,13 +88,13 @@ export function MessageForm({threadId, laPhuHuynh}: {threadId: string; laPhuHuyn
 
       <div className="mt-2.5 flex items-center gap-3">
         <SubmitButton
-          className="btn-gold ctl-h inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] px-4 text-[13px] font-extrabold transition-all disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn-gold ctl-h inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[8px] px-4 text-than font-extrabold transition-all disabled:cursor-not-allowed disabled:opacity-60"
           wrapClass="inline-flex items-center gap-1.5"
         >
-          <Send size={15} strokeWidth={2.5} />
+          <Send size={14} strokeWidth={2.5} />
           {t('send')}
         </SubmitButton>
-        <span className="text-[11px] font-semibold text-grey-mid">Ctrl/⌘ + Enter</span>
+        <span className="text-chu-thich font-semibold text-grey-mid">Ctrl/⌘ + Enter</span>
       </div>
     </form>
   );

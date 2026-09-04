@@ -47,11 +47,11 @@ export default async function NotificationsPage({params}: {params: Promise<{loca
           đậm những cái vừa-chưa-đọc: em vẫn nhận ra cái nào là mới trong chính lần mở này. */}
       <DaXem soChuaDoc={unread} />
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="inline-flex items-center gap-2 font-display text-[22px] font-bold text-navy">
-          <Bell size={20} strokeWidth={2.2} />
+        <h1 className="inline-flex items-center gap-2 font-display text-dau font-bold text-navy">
+          <Bell size={20} strokeWidth={2} />
           {t('title')}
           {unread > 0 && (
-            <span className="rounded-full bg-gold px-2 py-0.5 text-[12px] font-black text-navy">{unread}</span>
+            <span className="rounded-full bg-gold px-2 py-0.5 text-chu-thich font-black text-navy">{unread}</span>
           )}
         </h1>
         {unread > 0 && (

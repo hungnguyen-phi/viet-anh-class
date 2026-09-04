@@ -37,7 +37,7 @@ export function OpenThreadForm({
       {motNguoi ? (
         <>
           <input type="hidden" name="student_id" value={motNguoi.id} />
-          <p className="mb-2 text-[13px] font-bold text-navy">{label}</p>
+          <p className="mb-2 text-than font-bold text-navy">{label}</p>
           <SubmitButton className={btnGold} wrapClass="contents">
             {nutMotLuaChon(motNguoi.name)}
           </SubmitButton>
@@ -72,7 +72,7 @@ export function OpenThreadForm({
           </SubmitButton>
         </div>
       )}
-      {hint && <p className="mt-2 text-[11px] italic text-grey-mid">{hint}</p>}
+      {hint && <p className="mt-2 text-chu-thich italic text-grey-mid">{hint}</p>}
     </form>
   );
 }

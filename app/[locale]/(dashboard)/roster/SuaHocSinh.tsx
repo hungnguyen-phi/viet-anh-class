@@ -90,9 +90,9 @@ export function SuaHocSinh({
         onClick={() => setMo((x) => !x)}
         aria-expanded={mo}
         title={tr('suaThongTinCua', {ten})}
-        className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-navy/20 bg-white text-navy/70 transition-all hover:border-navy hover:text-navy"
+        className="grid h-8 w-8 cursor-pointer place-items-center rounded-[8px] border-[1.5px] border-navy/20 bg-white text-navy/70 transition-all hover:border-navy hover:text-navy"
       >
-        <Pencil size={13} strokeWidth={2.5} />
+        <Pencil size={12} strokeWidth={2.5} />
         <span className="sr-only">{tr('suaThongTinCua', {ten})}</span>
       </button>
 
@@ -101,9 +101,9 @@ export function SuaHocSinh({
         <div className="absolute right-0 z-30 mt-1.5 w-[300px] rounded-[16px] border-[1.5px] border-gold/60 bg-white p-3 shadow-[0_18px_40px_rgba(11,31,59,0.18)]">
           <div className="mb-2 flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <h2 className="font-display text-[13.5px] font-bold text-navy">{tr('suaThongTinHs')}</h2>
+              <h2 className="font-display text-noi-dung font-bold text-navy">{tr('suaThongTinHs')}</h2>
               {/* Email hiện ra nhưng KHÔNG sửa được — người dùng phải biết mình đang sửa hồ sơ của ai. */}
-              <p className="truncate text-[11.5px] font-semibold text-grey-mid" title={email}>
+              <p className="truncate text-chu-thich font-semibold text-grey-mid" title={email}>
                 {email}
               </p>
             </div>
@@ -111,9 +111,9 @@ export function SuaHocSinh({
               type="button"
               onClick={() => setMo(false)}
               aria-label={tr('close')}
-              className="grid h-7 w-7 flex-none cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-navy/15 bg-white text-grey-mid transition-all hover:border-navy hover:text-navy"
+              className="grid h-7 w-7 flex-none cursor-pointer place-items-center rounded-[8px] border-[1.5px] border-navy/15 bg-white text-grey-mid transition-all hover:border-navy hover:text-navy"
             >
-              <X size={13} strokeWidth={2.5} />
+              <X size={12} strokeWidth={2.5} />
             </button>
           </div>
 
@@ -130,14 +130,14 @@ export function SuaHocSinh({
             />
 
             {state.error && !state.fieldError && (
-              <p className="inline-flex items-start gap-1.5 text-[12.5px] font-bold text-status-bad">
-                <AlertCircle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+              <p className="inline-flex items-start gap-1.5 text-than font-bold text-status-bad">
+                <AlertCircle size={12} strokeWidth={2.5} className="mt-px shrink-0" />
                 {state.error}
               </p>
             )}
             {state.ok && state.message && (
-              <p className="inline-flex items-start gap-1.5 text-[12.5px] font-bold text-success-dark">
-                <CheckCircle2 size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+              <p className="inline-flex items-start gap-1.5 text-than font-bold text-success-dark">
+                <CheckCircle2 size={12} strokeWidth={2.5} className="mt-px shrink-0" />
                 {state.message}
               </p>
             )}
@@ -147,12 +147,12 @@ export function SuaHocSinh({
               <button
                 type="button"
                 onClick={() => setMo(false)}
-                className="cursor-pointer rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 py-1.5 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy"
+                className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white px-3 py-1.5 text-than font-extrabold text-navy transition-all hover:border-navy"
               >
                 {tr('cancel')}
               </button>
               <SubmitButton
-                className="btn-gold cursor-pointer rounded-[10px] px-3 py-1.5 text-[12.5px] font-extrabold"
+                className="btn-gold cursor-pointer rounded-[8px] px-3 py-1.5 text-than font-extrabold"
                 wrapClass="contents"
               >
                 {tr('save')}

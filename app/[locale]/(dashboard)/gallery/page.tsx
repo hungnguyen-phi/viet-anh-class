@@ -86,7 +86,7 @@ export default async function GalleryPage({
 
   const tieuDe = (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <h1 className="font-display text-[22px] font-bold text-navy">{t('title', {class: myClass.name})}</h1>
+      <h1 className="font-display text-dau font-bold text-navy">{t('title', {class: myClass.name})}</h1>
       {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
     </div>
   );
@@ -117,19 +117,19 @@ export default async function GalleryPage({
         <div className="glass rounded-[20px] p-4">
           <Link
             href={{pathname: '/gallery', query: classParam ? {class: classParam} : {}}}
-            className="mb-2 inline-flex min-h-[24px] items-center gap-1 text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
+            className="mb-2 inline-flex min-h-[24px] items-center gap-1 text-chu-thich font-extrabold text-gold-text underline underline-offset-2"
           >
-            <ArrowLeft size={12} strokeWidth={3} />
+            <ArrowLeft size={12} strokeWidth={2.5} />
             {t('allAlbums')}
           </Link>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-display text-[17px] font-bold text-navy">{openAlbum.title}</span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-navy/[0.08] px-2 py-0.5 text-[10.5px] font-extrabold">
-              <CalendarDays size={11} strokeWidth={2.5} />
+            <span className="font-display text-tieu-de font-bold text-navy">{openAlbum.title}</span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-navy/[0.08] px-2 py-0.5 text-chu-thich font-extrabold">
+              <CalendarDays size={12} strokeWidth={2.5} />
               {ngayVN(openAlbum.event_date)}
             </span>
-            <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[10.5px] font-extrabold text-navy">
+            <span className="rounded-full bg-gold/20 px-2 py-0.5 text-chu-thich font-extrabold text-navy">
               {t('photoCount', {n: photos.length})}
             </span>
             {canManage && (
@@ -138,7 +138,7 @@ export default async function GalleryPage({
                 <input type="hidden" name="album_id" value={openAlbum.id} />
                 <ConfirmButton
                   message={t('confirmDeleteAlbum', {title: openAlbum.title, n: photos.length})}
-                  className="cursor-pointer rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-2 py-1 text-[11px] font-extrabold text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                  className="cursor-pointer rounded-[8px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-2 py-1 text-chu-thich font-extrabold text-status-bad transition-all hover:bg-status-bad/[0.16]"
                 >
                   {t('deleteAlbum')}
                 </ConfirmButton>
@@ -147,7 +147,7 @@ export default async function GalleryPage({
           </div>
 
           {openAlbum.description && (
-            <p className="mt-1.5 text-[12.5px] font-semibold leading-[1.55] text-grey-mid">
+            <p className="mt-1.5 text-than font-semibold leading-[1.55] text-grey-mid">
               {openAlbum.description}
             </p>
           )}
@@ -182,7 +182,7 @@ export default async function GalleryPage({
               return (
                 <figure
                   key={p.id}
-                  className="glass glass-hover overflow-hidden rounded-[18px] p-2"
+                  className="glass glass-hover overflow-hidden rounded-[16px] p-2"
                 >
                   {url ? (
                     <PhotoImg
@@ -191,12 +191,12 @@ export default async function GalleryPage({
                       className="aspect-square w-full rounded-[12px] object-cover"
                     />
                   ) : (
-                    <div className="grid aspect-square w-full place-items-center rounded-[12px] bg-navy/[0.06] text-[11px] font-bold text-grey-mid">
+                    <div className="grid aspect-square w-full place-items-center rounded-[12px] bg-navy/[0.06] text-chu-thich font-bold text-grey-mid">
                       {t('photoBroken')}
                     </div>
                   )}
                   {p.caption && (
-                    <figcaption className="mt-1.5 line-clamp-2 px-0.5 text-[11.5px] font-semibold text-grey-mid">
+                    <figcaption className="mt-1.5 line-clamp-2 px-0.5 text-chu-thich font-semibold text-grey-mid">
                       {p.caption}
                     </figcaption>
                   )}
@@ -208,7 +208,7 @@ export default async function GalleryPage({
                       <ConfirmButton
                         message={t('confirmDeletePhoto')}
                         label={t('deletePhoto')}
-                        className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                        className="grid h-8 w-8 cursor-pointer place-items-center rounded-[8px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
                       >
                         ✕
                       </ConfirmButton>
@@ -251,7 +251,7 @@ export default async function GalleryPage({
       {tieuDe}
       <Flash />
 
-      <p className="text-[12px] font-semibold leading-[1.55] text-grey-mid">
+      <p className="text-chu-thich font-semibold leading-[1.55] text-grey-mid">
         {canManage
           ? t('privacyManage')
           : chiXem
@@ -282,7 +282,7 @@ export default async function GalleryPage({
                   pathname: '/gallery',
                   query: {...(classParam ? {class: classParam} : {}), album: a.id},
                 }}
-                className="glass glass-hover overflow-hidden rounded-[18px] p-3"
+                className="glass glass-hover overflow-hidden rounded-[16px] p-3"
               >
                 {url ? (
                   <PhotoImg
@@ -296,19 +296,19 @@ export default async function GalleryPage({
                   </div>
                 )}
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <span className="min-w-0 flex-1 truncate font-display text-[15px] font-bold text-navy">
+                  <span className="min-w-0 flex-1 truncate font-display text-noi-dung font-bold text-navy">
                     {a.title}
                   </span>
-                  <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[10.5px] font-extrabold text-navy">
+                  <span className="rounded-full bg-gold/20 px-2 py-0.5 text-chu-thich font-extrabold text-navy">
                     {t('photoCount', {n})}
                   </span>
                 </div>
-                <div className="mt-0.5 inline-flex items-center gap-1 text-[11.5px] font-bold text-grey-mid">
-                  <CalendarDays size={11} strokeWidth={2.5} />
+                <div className="mt-0.5 inline-flex items-center gap-1 text-chu-thich font-bold text-grey-mid">
+                  <CalendarDays size={12} strokeWidth={2.5} />
                   {ngayVN(a.event_date)}
                 </div>
                 {a.description && (
-                  <p className="mt-1 line-clamp-2 text-[12px] font-semibold leading-[1.5] text-grey-mid">
+                  <p className="mt-1 line-clamp-2 text-chu-thich font-semibold leading-[1.5] text-grey-mid">
                     {a.description}
                   </p>
                 )}
