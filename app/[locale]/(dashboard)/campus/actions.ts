@@ -2,6 +2,7 @@
 
 import {redirect} from 'next/navigation';
 import {revalidatePath} from 'next/cache';
+import {getTranslations} from 'next-intl/server';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
@@ -45,6 +46,7 @@ async function myCampus() {
 // Mời giáo viên: tạo lời mời theo email; vai trò + cơ sở được áp khi họ đăng nhập lần đầu
 // (handle_new_user). Nhận nhiều email một lượt cho đỡ nhọc đầu năm học.
 export async function inviteTeachers(formData: FormData) {
+  const t = await getTranslations('loi');
   const me = await myCampus();
   const campus_id = me.campus_id;
   const raw = String(formData.get('email') ?? '');
@@ -56,10 +58,10 @@ export async function inviteTeachers(formData: FormData) {
         .filter(Boolean),
     ),
   );
-  if (all.length === 0) flash('Chưa nhập email nào');
+  if (all.length === 0) flash(t('chuaNhapEmailNao'));
   const valid = all.filter((e) => EMAIL_RE.test(e));
   const skipped = all.length - valid.length;
-  if (valid.length === 0) flash('Không có email hợp lệ (định dạng: ten@example.com).');
+  if (valid.length === 0) flash(t('khongCoEmailHopLeDinh'));
 
   const supabase = await createClient();
   const rows = valid.map((email) => ({
@@ -84,9 +86,10 @@ export async function inviteTeachers(formData: FormData) {
 }
 
 export async function cancelInvite(formData: FormData) {
+  const t = await getTranslations('loi');
   await myCampus();
   const email = String(formData.get('email') ?? '');
-  if (!email) flash('Thiếu email');
+  if (!email) flash(t('thieuEmail'));
   const supabase = await createClient();
   // RLS giới hạn đúng cơ sở HT → không cần (và không nên) tự lọc campus ở đây.
   const {error} = await supabase.from('pending_user_grants').delete().eq('email', email);
@@ -97,11 +100,12 @@ export async function cancelInvite(formData: FormData) {
 // Vô hiệu / khôi phục giáo viên. 'pending' = còn tài khoản nhưng không vào được gì —
 // giữ nguyên lịch sử điểm danh, WIG… nên KHÔNG dùng xoá.
 export async function setTeacherActive(formData: FormData) {
+  const t = await getTranslations('loi');
   const me = await myCampus();
   const userId = String(formData.get('userId') ?? '');
   const active = String(formData.get('active') ?? '') === 'true';
-  if (!userId) flash('Thiếu giáo viên');
-  if (me.id === userId) flash('Không thể tự vô hiệu chính mình.');
+  if (!userId) flash(t('thieuGiaoVien'));
+  if (me.id === userId) flash(t('khongTheTuVoHieuChinh'));
 
   const supabase = await createClient();
   const {error} = await supabase
@@ -119,8 +123,8 @@ export async function setTeacherActive(formData: FormData) {
     error
       ? loi(friendlyError(error))
       : active
-        ? 'Đã khôi phục quyền giáo viên'
-        : 'Đã vô hiệu (chuyển về "chờ cấp quyền")',
+        ? t('daKhoiPhucQuyenGv')
+        : t('daVoHieuChoCapQuyen'),
   );
 }
 
@@ -128,12 +132,13 @@ export async function setTeacherActive(formData: FormData) {
 // Đi qua RPC set_my_campus_levels (SECURITY DEFINER) chứ không UPDATE thẳng bảng campuses: HT chỉ
 // được đổi đúng cột `levels` của đúng cơ sở mình, không đụng tên/mã/trạng thái lưu-trữ.
 export async function setCampusLevel(formData: FormData) {
+  const t = await getTranslations('loi');
   await myCampus();
   // Nhiều ô tick cùng name="level" → getAll. Trường liên cấp khai được cả THCS lẫn THPT.
   const levels = [...new Set(formData.getAll('level').map(String))].filter((lv) =>
     SCHOOL_LEVELS.includes(lv as SchoolLevel),
   ) as SchoolLevel[];
-  if (levels.length === 0) flash('Hãy chọn ít nhất một cấp học');
+  if (levels.length === 0) flash(t('hayChonItNhatMotCap'));
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('set_my_campus_levels', {p_levels: levels});
   revalidatePath('/[locale]/campus', 'page');
@@ -141,17 +146,18 @@ export async function setCampusLevel(formData: FormData) {
   const nums = gradeNumbersFor(levels);
   flash(
     nums
-      ? `Đã đặt cấp học và tạo ${data ?? nums.length} khối: ${nums.map((n) => `Khối ${n}`).join(', ')}`
-      : 'Đã đặt cấp học mầm non — hãy thêm khối bằng tay.',
+      ? t('daDatCapHocTaoKhoi', {n: data ?? nums.length, ds: nums.map((n) => t('khoiN', {n})).join(', ')})
+      : t('daDatCapHocMamNon'),
   );
 }
 
 // Phân công GVCN cho lớp trong cơ sở mình.
 export async function assignHomeroom(formData: FormData) {
+  const t = await getTranslations('loi');
   await myCampus();
   const classId = String(formData.get('class_id') ?? '');
   const userId = String(formData.get('userId') ?? '') || null;
-  if (!classId) flash('Thiếu lớp');
+  if (!classId) flash(t('thieuLop'));
   const supabase = await createClient();
   const {error} = await supabase
     .from('classes')
@@ -164,7 +170,7 @@ export async function assignHomeroom(formData: FormData) {
     });
   }
   revalidatePath('/[locale]/campus', 'page');
-  flash(error ? loi(friendlyError(error)) : userId ? 'Đã phân công GVCN' : 'Đã bỏ phân công GVCN');
+  flash(error ? loi(friendlyError(error)) : userId ? t('daPhanCongGvcn') : t('daBoPhanCongGvcn'));
 }
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
@@ -186,9 +192,10 @@ type TuanHocState = {ok: boolean; loai?: string; error?: string};
 // là cái nút. RLS giới hạn đúng cơ sở của hiệu trưởng, nên .select() trả 0 dòng = không còn chờ
 // duyệt (chứ không phải lỗi).
 export async function duyetMucTieuLop(_prev: DuyetState, formData: FormData): Promise<DuyetState> {
+  const t = await getTranslations('loi');
   await requireRole(['principal', 'admin']);
   const id = String(formData.get('muc_tieu_id') ?? '');
-  if (!id) return {ok: false, error: 'Thiếu mục tiêu cần duyệt.'};
+  if (!id) return {ok: false, error: t('thieuMucTieuCanDuyet')};
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('muc_tieu')
@@ -198,7 +205,7 @@ export async function duyetMucTieuLop(_prev: DuyetState, formData: FormData): Pr
     .eq('trang_thai', 'gui')
     .select('id');
   if (error) return {ok: false, error: friendlyError(error)};
-  if ((data ?? []).length === 0) return {ok: false, error: 'Mục tiêu này không còn chờ duyệt.'};
+  if ((data ?? []).length === 0) return {ok: false, error: t('mucTieuNayKhongConCho')};
   revalidatePath('/[locale]/campus', 'page');
   revalidatePath('/[locale]/wig', 'page');
   return {ok: true};
@@ -207,12 +214,13 @@ export async function duyetMucTieuLop(_prev: DuyetState, formData: FormData): Pr
 // BGH TRẢ LẠI mục tiêu của lớp kèm lý do (gui → tra_lai). Trigger đòi ly_do_tra_lai không rỗng
 // (23514) — chặn sớm ở đây cho câu đẹp rồi để trigger là luật.
 export async function traLaiMucTieuLop(_prev: DuyetState, formData: FormData): Promise<DuyetState> {
+  const t = await getTranslations('loi');
   await requireRole(['principal', 'admin']);
   const id = String(formData.get('muc_tieu_id') ?? '');
   const note = String(formData.get('note') ?? '').trim();
-  if (!id) return {ok: false, error: 'Thiếu mục tiêu.'};
-  if (!note) return {ok: false, error: 'Trả lại thì ghi cho lớp một câu vì sao nhé.'};
-  if (note.length > 300) return {ok: false, error: 'Nhận xét tối đa 300 ký tự.'};
+  if (!id) return {ok: false, error: t('thieuMucTieu')};
+  if (!note) return {ok: false, error: t('traLaiThiGhiChoLop')};
+  if (note.length > 300) return {ok: false, error: t('nhanXetToiDa300Ky')};
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('muc_tieu')
@@ -222,7 +230,7 @@ export async function traLaiMucTieuLop(_prev: DuyetState, formData: FormData): P
     .eq('trang_thai', 'gui')
     .select('id');
   if (error) return {ok: false, error: friendlyError(error)};
-  if ((data ?? []).length === 0) return {ok: false, error: 'Mục tiêu này không còn chờ duyệt.'};
+  if ((data ?? []).length === 0) return {ok: false, error: t('mucTieuNayKhongConCho')};
   revalidatePath('/[locale]/campus', 'page');
   revalidatePath('/[locale]/wig', 'page');
   return {ok: true};
@@ -240,12 +248,13 @@ export async function traLaiMucTieuLop(_prev: DuyetState, formData: FormData): P
 // qua action riêng (noiNguon / thành_phan) như phía em; ở đây chỉ đặt cấu hình của mục tiêu.
 // Mọi CHECK (mt_nguon_ck, mt_ti_le_ck, mt_don_vi_ck…) là luật thật — action lo câu đẹp, DB bắt nốt.
 export async function taoMucTieuTruong(formData: FormData) {
+  const t = await getTranslations('loi');
   const me = await myCampus();
   const campus_id = me.campus_id as string;
 
   const ten = String(formData.get('ten') ?? '').trim();
-  if (!ten) flash('Đặt tên cho mục tiêu của cơ sở đã nhé.');
-  if (ten.length > 200) flash('Tối đa 200 ký tự.');
+  if (!ten) flash(t('datTenChoMucTieuCua'));
+  if (ten.length > 200) flash(t('toiDa200KyTu'));
 
   const linhVucRaw = String(formData.get('linh_vuc') ?? 'knowledge');
   const linh_vuc = ([...AREAS, 'khac'] as string[]).includes(linhVucRaw)
@@ -271,16 +280,16 @@ export async function taoMucTieuTruong(formData: FormData) {
 
   const ket_thuc = String(formData.get('ket_thuc') ?? '').trim();
   const bat_dau = String(formData.get('bat_dau') ?? '').trim();
-  if (!isValidDayVN(ket_thuc)) flash('Chọn ngày cơ sở cần đạt.');
-  if (bat_dau && isValidDayVN(bat_dau) && bat_dau > ket_thuc) flash('Ngày bắt đầu phải trước ngày đạt.');
+  if (!isValidDayVN(ket_thuc)) flash(t('chonNgayCoSoCanDat'));
+  if (bat_dau && isValidDayVN(bat_dau) && bat_dau > ket_thuc) flash(t('ngayBatDauPhaiTruocNgay'));
 
   // Đích bằng lời cần y_chu; đích bằng số (kể cả tỉ lệ %) cần y_so. Đơn vị bắt buộc trừ
   // chu/ti_le_dat (CHECK mt_don_vi_ck).
   if (kieu_dich === 'chu') {
-    if (!y_chu) flash('Cơ sở sẽ đạt được gì? Viết bằng lời.');
+    if (!y_chu) flash(t('coSoSeDatDuocGi'));
   } else {
-    if (y_so === null || y_so <= 0) flash('Đích phải là số lớn hơn 0.');
-    if (kieu_dich !== 'ti_le_dat' && !don_vi_id) flash('Chọn đơn vị (lớp, %, buổi…).');
+    if (y_so === null || y_so <= 0) flash(t('dichPhaiLaSoLonHon'));
+    if (kieu_dich !== 'ti_le_dat' && !don_vi_id) flash(t('chonDonViLopBuoi'));
   }
 
   // Nguồn số + phần phụ thuộc. Chỉ giữ giá trị khi đúng nhánh để không đá CHECK (mt_gop_tp_ck…).
@@ -343,7 +352,7 @@ export async function taoMucTieuTruong(formData: FormData) {
     .maybeSingle();
   revalidatePath('/[locale]/campus', 'page');
   if (error) flash(loi(friendlyError(error)));
-  flash(data ? 'Đã tạo mục tiêu của cơ sở' : loi('Không tạo được — bạn không có quyền với cơ sở này.'));
+  flash(data ? t('daTaoMucTieuCoSo') : loi(t('khongTaoMucTieuCoSo')));
 }
 
 // GỠ một mục tiêu của cơ sở. Mục tiêu trường BGH tạo luôn ở 'duyet', mà policy XOÁ chỉ mở cho
@@ -351,9 +360,10 @@ export async function taoMucTieuTruong(formData: FormData) {
 // (ly_do_dong='bo') để giữ lịch sử cuộn của các lớp đã góp vào. Cả hai đường đều qua RLS cấp
 // trường, id của cơ sở khác bắn vào cũng ra 0 dòng.
 export async function xoaMucTieuTruong(formData: FormData) {
+  const t = await getTranslations('loi');
   await myCampus();
   const id = String(formData.get('muc_tieu_id') ?? '').trim();
-  if (!id) flash('Thiếu mục tiêu cần gỡ');
+  if (!id) flash(t('thieuMucTieuCanGo'));
   const supabase = await createClient();
   const {data: xoa, error: eXoa} = await supabase
     .from('muc_tieu')
@@ -367,7 +377,7 @@ export async function xoaMucTieuTruong(formData: FormData) {
   }
   if (xoa && xoa.length > 0) {
     revalidatePath('/[locale]/campus', 'page');
-    flash('Đã gỡ mục tiêu của cơ sở');
+    flash(t('daGoMucTieuCuaCo'));
   }
   // Không xoá được (đã duyệt / có dữ liệu cuộn) → đóng lại thay vì để nguyên.
   const {data: dong, error: eDong} = await supabase
@@ -381,8 +391,8 @@ export async function xoaMucTieuTruong(formData: FormData) {
   if (eDong) flash(loi(friendlyError(eDong)));
   flash(
     dong && dong.length > 0
-      ? 'Đã đóng mục tiêu của cơ sở'
-      : loi('Không gỡ được — bạn không có quyền với mục tiêu này.'),
+      ? t('daDongMucTieuCoSo')
+      : loi(t('khongGoMucTieuCoSo')),
   );
 }
 
@@ -396,21 +406,22 @@ export async function xoaMucTieuTruong(formData: FormData) {
 // mỗi lần nhảy trang là hỏng. Đổi một tuần ĐÃ QUA sẽ tính lại thắng/thua của mọi lớp trong cơ sở
 // — client đã hỏi lại bằng Popup (coSoMucTieu.lichQuaKhu) trước khi gọi; ở đây ghi vết kiểm toán.
 export async function datTuanHoc(formData: FormData): Promise<TuanHocState> {
+  const t = await getTranslations('loi');
   const me = await requireRole(['principal', 'admin']);
   const campus_id = me.campus_id;
-  if (!campus_id) return {ok: false, error: 'Tài khoản của bạn chưa được gán cơ sở.'};
+  if (!campus_id) return {ok: false, error: t('taiKhoanCuaBanChuaDuoc')};
   const raw = String(formData.get('week_start') ?? '').trim();
   const loai = String(formData.get('loai') ?? '').trim();
   const daQua = String(formData.get('da_qua') ?? '') === 'true';
-  if (!isValidDayVN(raw)) return {ok: false, error: 'Thiếu tuần cần đặt.'};
-  if (!['hoc', 'nghi', 'thi'].includes(loai)) return {ok: false, error: 'Loại tuần không hợp lệ.'};
+  if (!isValidDayVN(raw)) return {ok: false, error: t('thieuTuanCanDat')};
+  if (!['hoc', 'nghi', 'thi'].includes(loai)) return {ok: false, error: t('loaiTuanKhongHopLe')};
   const week_start = mondayOf(raw);
 
   // Chặn tuần ngoài năm học (40-G). Neo mốc dưới về thứ Hai của tuần chứa ngày đầu năm học, để
   // tuần đầu tiên (thứ Hai có thể rơi vào cuối tháng 6) không bị loại nhầm.
   const nam = schoolYearRangeVN();
   if (week_start < mondayOf(nam.start) || week_start > nam.end)
-    return {ok: false, error: 'Tuần này không thuộc năm học đang mở.'};
+    return {ok: false, error: t('tuanNayKhongThuocNamHoc')};
 
   const supabase = await createClient();
   const {error} =
@@ -438,10 +449,11 @@ export async function datTuanHoc(formData: FormData): Promise<TuanHocState> {
 // cho BGH cùng cơ sở + admin [H-15] — RLS là thứ chặn thật, đây chỉ là cái công tắc, và ghi vết
 // vì đây là quyền được nới ("ai bật").
 export async function toggleNhapHo(formData: FormData) {
+  const t = await getTranslations('loi');
   await myCampus();
   const class_id = String(formData.get('class_id') ?? '').trim();
   const bat = String(formData.get('bat') ?? '') === 'true';
-  if (!class_id) flash('Thiếu lớp');
+  if (!class_id) flash(t('thieuLop'));
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('classes')
@@ -456,6 +468,6 @@ export async function toggleNhapHo(formData: FormData) {
   }
   revalidatePath('/[locale]/campus', 'page');
   if (error) flash(loi(friendlyError(error)));
-  if (!data || data.length === 0) flash(loi('Không đổi được — bạn không có quyền với lớp này.'));
-  flash(bat ? 'Đã bật nhập hộ cho lớp' : 'Đã tắt nhập hộ');
+  if (!data || data.length === 0) flash(loi(t('khongDoiDuocBanKhongCo')));
+  flash(bat ? t('daBatNhapHo') : t('daTatNhapHo'));
 }

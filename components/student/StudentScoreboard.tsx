@@ -26,6 +26,7 @@ import {MucTieuLopChoEm, type MucTieuLopThe} from '@/components/student/MucTieuL
 import {MucTieuCuaCon} from '@/components/student/MucTieuCuaCon';
 import {LoTrinhEm} from '@/components/student/LoTrinhEm';
 import type {DonViChon, MucTieuLopChon, MauMucTieu, BuocThe} from '@/components/student/FormMucTieu';
+import {thuoc12TuanNhieu} from '@/lib/rpc-nhieu';
 import {TheCamKet, type ViecEm, type ViecTuan, type CamKetEm} from '@/components/student/BangEmPA2';
 import type {Database} from '@/lib/database.types';
 
@@ -229,7 +230,7 @@ export async function StudentScoreboard({
     tenBuddyRes,
     lichBuddyRes,
     buocRes,
-    ...tuan12Res
+    tuan12Map,
   ] = await Promise.all([
     thuocIds.length > 0
       ? supabase
@@ -300,8 +301,11 @@ export async function StudentScoreboard({
             .order('thu_tu')
         : Promise.resolve({data: null});
     })(),
-    ...thuocIds.map((id) => supabase.rpc('thuoc_12_tuan', {p_thuoc: id, p_chu_the: studentId, p_tuan_cuoi: monday})),
+    // 12 tuần của MỌI thước trong MỘT lượt RPC (0187 thuoc_12_tuan_nhieu; tự lùi về từng cái khi
+    // CSDL chưa có hàm) — hết N request song song dính đuôi trễ trên đường mạng rớt gói.
+    thuoc12TuanNhieu(supabase, thuocIds, studentId, monday),
   ]);
+  const tuan12Res = thuocIds.map((id) => ({data: tuan12Map.get(id) ?? []}));
 
   // Gộp bước theo mục tiêu → vừa cho form sửa (khỏi nhập lại), vừa cho checklist trên thẻ (tick).
   const buocTheoMt: Record<string, BuocThe[]> = {};

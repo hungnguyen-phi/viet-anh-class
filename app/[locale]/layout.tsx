@@ -27,6 +27,7 @@ const NAMESPACE_CHO_CLIENT = [
   'common',
   'coSoMucTieu',
   'duyet',
+  'formChung',
   'gallery',
   'grades',
   'inbox',

@@ -8,6 +8,7 @@ import {Link} from '@/i18n/navigation';
 import {ChonTuanCuaEm} from '@/components/student/ChonTuanCuaEm';
 import {getAreaMeta} from '@/lib/area-config';
 import {AREAS, type Area} from '@/lib/areas';
+import {thuoc12TuanNhieu} from '@/lib/rpc-nhieu';
 import {todayInVN, mondayOf, isValidDayVN, weekDaysVN, isoWeekLabel, vnNoon, isoDowVN} from '@/lib/dates';
 
 // ── BÁO CÁO PHỤ HUYNH (PA2) — CHỈ ĐỌC ────────────────────────────────────────────────────────
@@ -192,7 +193,9 @@ export default async function ReportPage({
   const thuocIds = viecRows.map((v) => v.thuoc_id);
 
   // ── ĐỢT HAI: cần thuocIds / campusId ────────────────────────────────────────────────────────
-  const [luotRes, tuanHocRes, ...tuan12Res] = await Promise.all([
+  // 12 tuần của MỌI thước trong MỘT lượt RPC (0187 thuoc_12_tuan_nhieu; tự lùi về từng cái nếu
+  // CSDL chưa có hàm) — thay vì N request song song dính đuôi trễ trên đường mạng rớt gói.
+  const [luotRes, tuanHocRes, tuan12Map] = await Promise.all([
     thuocIds.length > 0
       ? supabase
           .from('luot')
@@ -205,8 +208,9 @@ export default async function ReportPage({
     campusId
       ? supabase.from('tuan_hoc').select('loai').eq('campus_id', campusId).eq('week_start', monday).maybeSingle()
       : Promise.resolve({data: null}),
-    ...thuocIds.map((id) => supabase.rpc('thuoc_12_tuan', {p_thuoc: id, p_chu_the: childId, p_tuan_cuoi: monday})),
+    thuoc12TuanNhieu(supabase, thuocIds, childId, monday),
   ]);
+  const tuan12Res = thuocIds.map((id) => ({data: tuan12Map.get(id) ?? []}));
 
   const luotTheoThuoc: Record<string, Record<string, number>> = {};
   for (const r of (luotRes.data ?? []) as {thuoc_id: string; ngay: string; gia_tri: number}[]) {
