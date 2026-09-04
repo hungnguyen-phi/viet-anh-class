@@ -78,6 +78,34 @@ export type TrangStudent = {
   tuan12: ({thuoc_id: string} & Record<string, unknown>)[];
 };
 
+/** Kết quả trang_campus (0190) — khoá đúng tên biến /campus đang dùng. */
+export type TrangCampus = {
+  rows: unknown[];
+  coSoTatCa: unknown[];
+  lopRows: unknown[];
+  mtTruong: unknown[];
+  tuanHoc: {week_start: string; loai: string}[];
+  gr: unknown[];
+  cls: unknown[];
+  staffRows: unknown[];
+  cp: {name: string; levels: unknown} | null;
+  inv: {email: string; created_at: string}[];
+  namChon: string | null;
+};
+
+export async function layTrangCampus(
+  supabase: SupabaseClient,
+  a: {campusId: string | null; nam: string | null; khoi: string | null},
+): Promise<TrangCampus | null> {
+  const sb = supabase as unknown as RpcTho;
+  const {data, error} = await sb.rpc('trang_campus', {p_campus: a.campusId, p_nam: a.nam, p_khoi: a.khoi});
+  if (error) {
+    if (chuaCoHam(error)) return null;
+    throw new Error(error.message ?? 'trang_campus');
+  }
+  return (data ?? null) as TrangCampus | null;
+}
+
 export async function layTrangStudent(
   supabase: SupabaseClient,
   a: {studentId: string; monday: string; today: string; nhanTuan: string},
