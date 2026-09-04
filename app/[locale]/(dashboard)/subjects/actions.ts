@@ -1,6 +1,7 @@
 'use server';
 
 import {revalidatePath} from 'next/cache';
+import {getTranslations} from 'next-intl/server';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
@@ -56,6 +57,7 @@ export async function createSubject(
   formData: FormData,
 ): Promise<SubjectFormState> {
   const me = await requireRole(['admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const s = (k: string) => String(formData.get(k) ?? '').trim();
   const code = s('code').toUpperCase();
   const name = s('name');
@@ -66,28 +68,28 @@ export async function createSubject(
   const values: SubjectFormValues = {code, name, short_name, sort_order, is_scored};
 
   if (!code)
-    return {ok: false, fieldError: 'code', error: 'Hãy nhập mã môn (chữ IN HOA không dấu, vd TOAN).', values};
+    return {ok: false, fieldError: 'code', error: t('sNhapMa'), values};
   if (!CODE_RE.test(code))
     return {
       ok: false,
       fieldError: 'code',
-      error: 'Mã môn chỉ gồm A–Z, 0–9 và dấu gạch dưới, dài 2–12 ký tự (vd TOAN, OXENG).',
+      error: t('sMaSai'),
       values,
     };
-  if (!name) return {ok: false, fieldError: 'name', error: 'Hãy nhập tên môn.', values};
+  if (!name) return {ok: false, fieldError: 'name', error: t('sNhapTen'), values};
   if (name.length > 80)
-    return {ok: false, fieldError: 'name', error: 'Tên môn dài quá 80 ký tự.', values};
+    return {ok: false, fieldError: 'name', error: t('sTenDai'), values};
   if (short_name.length > 16)
     return {
       ok: false,
       fieldError: 'short_name',
-      error: 'Mã ngắn tối đa 16 ký tự — nó phải vừa một ô của lưới thời khoá biểu.',
+      error: t('sMaNganDai'),
       values,
     };
 
   const order = sort_order ? Number(sort_order) : 500;
   if (!Number.isInteger(order) || order < 0 || order > 32000)
-    return {ok: false, fieldError: 'sort_order', error: 'Thứ tự phải là số nguyên từ 0 đến 32000.', values};
+    return {ok: false, fieldError: 'sort_order', error: t('sThuTu'), values};
 
   // AI TẠO ĐƯỢC MÔN GÌ — đọc thẳng từ hai policy của bảng subjects:
   //   • rls_admin_subjects: quản trị viên làm gì cũng được → tạo môn DÙNG CHUNG (campus_id NULL).
@@ -98,7 +100,7 @@ export async function createSubject(
   if (me.role === 'principal' && !campus_id)
     return {
       ok: false,
-      error: 'Tài khoản của bạn chưa được gán cơ sở nên chưa tạo được môn riêng. Nhờ quản trị viên gán cơ sở trước.',
+      error: t('sChuaCoCoSo'),
       values,
     };
 
@@ -125,7 +127,7 @@ export async function createSubject(
       return {
         ok: false,
         fieldError: 'code',
-        error: `Đã có môn mang mã "${code}" hoặc tên "${name}" trong danh mục này.`,
+        error: t('sTrung', {ma: code, ten: name}),
         values,
       };
     // P0001 = trigger subject_guard: "Môn ... đã có trong danh mục dùng chung...". friendlyError
@@ -133,14 +135,14 @@ export async function createSubject(
     return {ok: false, error: (friendlyError(error)), values};
   }
   if (!data || data.length === 0)
-    return {ok: false, error: 'Không tạo được môn — bạn không có quyền tạo môn ở phạm vi này.', values};
+    return {ok: false, error: t('sKhongTao'), values};
 
   revalidatePath('/[locale]/subjects', 'page');
   return {
     ok: true,
     message: campus_id
-      ? `Đã thêm môn riêng "${name}" cho cơ sở của bạn`
-      : `Đã thêm môn dùng chung "${name}" — cả bốn cơ sở đều chọn được`,
+      ? t('sDaThemRieng', {ten: name})
+      : t('sDaThemChung', {ten: name}),
   };
 }
 
@@ -150,10 +152,11 @@ export async function createSubject(
 // dữ liệu cũ nguyên vẹn.
 export async function setSubjectActive(formData: FormData) {
   await requireRole(['admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const subjectId = String(formData.get('subject_id') ?? '');
   const active = String(formData.get('active') ?? '') === 'true';
   const classId = String(formData.get('class_id') ?? '') || null;
-  if (!subjectId) subjectsFlash('Thiếu môn', classId);
+  if (!subjectId) subjectsFlash(t('sThieuMon'), classId);
 
   const supabase = await createClient();
   const {data, error} = await supabase
@@ -165,13 +168,13 @@ export async function setSubjectActive(formData: FormData) {
   if (error) subjectsFlash(loi(friendlyError(error)), classId);
   if (!data || data.length === 0)
     subjectsFlash(
-      'Không đổi được — môn dùng chung của cả trường chỉ quản trị viên mới sửa được.',
+      t('sKhongDoiChung'),
       classId,
     );
   subjectsFlash(
     active
-      ? `Đã dùng lại môn ${data[0].name}`
-      : `Đã tắt môn ${data[0].name}. Điểm cũ vẫn đọc được; môn chỉ biến khỏi các ô chọn từ giờ.`,
+      ? t('sDungLai', {ten: data[0].name})
+      : t('sDaTat', {ten: data[0].name}),
     classId,
   );
 }
@@ -182,9 +185,10 @@ export async function setSubjectActive(formData: FormData) {
 // KHÔNG vẽ nút này cho họ (nút bấm không được còn tệ hơn không có nút).
 export async function saveSubjectGrades(formData: FormData) {
   await requireRole(['admin']);
+  const t = await getTranslations('loiPhu');
   const subjectId = String(formData.get('subject_id') ?? '');
   const classId = String(formData.get('class_id') ?? '') || null;
-  if (!subjectId) subjectsFlash('Thiếu môn', classId);
+  if (!subjectId) subjectsFlash(t('sThieuMon'), classId);
 
   // 12 ô tick cùng name="grade" → getAll. Lọc lại ở đây vì FormData là thứ người dùng gửi lên,
   // không phải thứ mình vẽ ra (ràng buộc grade_no between 1 and 12 vẫn chốt ở DB).
@@ -211,12 +215,12 @@ export async function saveSubjectGrades(formData: FormData) {
       .insert(chosen.map((n) => ({subject_id: subjectId, grade_no: n})));
     revalidatePath('/[locale]/subjects', 'page');
     if (error) subjectsFlash(loi(friendlyError(error)), classId);
-    subjectsFlash(`Đã lưu: môn này dạy lớp ${chosen.join(', ')}`, classId);
+    subjectsFlash(t('sDaLuuKhoi', {khoi: chosen.join(', ')}), classId);
   }
 
   revalidatePath('/[locale]/subjects', 'page');
   subjectsFlash(
-    'Đã xoá hết lớp của môn này. Môn CHƯA KHAI LỚP sẽ chọn được cho MỌI lớp — hãy tick lại nếu đó không phải ý bạn.',
+    t('sXoaKhoi'),
     classId,
   );
 }
@@ -226,8 +230,9 @@ export async function saveSubjectGrades(formData: FormData) {
 // và gọi lại bao nhiêu lần cũng an toàn (on conflict do nothing).
 export async function seedClassSubjects(formData: FormData) {
   await requireRole(['admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const classId = String(formData.get('class_id') ?? '');
-  if (!classId) subjectsFlash('Thiếu lớp');
+  if (!classId) subjectsFlash(t('sThieuLop'));
 
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('seed_class_subjects', {p_class: classId});
@@ -236,8 +241,8 @@ export async function seedClassSubjects(formData: FormData) {
   const n = Number(data ?? 0);
   subjectsFlash(
     n > 0
-      ? `Đã thêm ${n} môn vào chương trình của lớp`
-      : 'Lớp đã có đủ các môn trong danh mục — không thêm gì mới.',
+      ? t('sThemMon', {n: n})
+      : t('sDuMon'),
     classId,
   );
 }
@@ -249,11 +254,12 @@ export async function seedClassSubjects(formData: FormData) {
 // gốc). requireRole ở đây khớp đúng policy đó, không nới thêm một ly.
 export async function assignTeacher(formData: FormData) {
   const me = await requireRole(['admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const classId = String(formData.get('class_id') ?? '');
   const subjectId = String(formData.get('subject_id') ?? '');
   const teacherId = String(formData.get('teacher_id') ?? '');
-  if (!classId || !subjectId) subjectsFlash('Thiếu lớp hoặc môn', classId || null);
-  if (!teacherId) subjectsFlash('Hãy chọn giáo viên trước khi bấm thêm', classId);
+  if (!classId || !subjectId) subjectsFlash(t('sThieuLopMon'), classId || null);
+  if (!teacherId) subjectsFlash(t('sChonGV'), classId);
 
   const supabase = await createClient();
   const row = {class_id: classId, subject_id: subjectId, teacher_id: teacherId, created_by: me.id};
@@ -274,9 +280,9 @@ export async function assignTeacher(formData: FormData) {
     revalidatePath('/[locale]/grades', 'page');
     if (error) subjectsFlash(loi(friendlyError(error)), classId);
     if (!data || data.length === 0)
-      subjectsFlash('Không phân công được — bạn không có quyền với lớp này.', classId);
+      subjectsFlash(t('sKhongPhanCong'), classId);
     subjectsFlash(
-      'Đã phân công lại. Giáo viên này nhập được điểm môn đó ở lớp này ngay bây giờ.',
+      t('sPhanCongLai'),
       classId,
     );
   }
@@ -287,9 +293,9 @@ export async function assignTeacher(formData: FormData) {
   // teaching_assignment_guard). friendlyError giữ nguyên câu đó.
   if (ins.error) subjectsFlash(loi(friendlyError(ins.error)), classId);
   if (!ins.data || ins.data.length === 0)
-    subjectsFlash('Không phân công được — bạn không có quyền với lớp này.', classId);
+    subjectsFlash(t('sKhongPhanCong'), classId);
   subjectsFlash(
-    'Đã phân công. Giáo viên này nhập được điểm môn đó ở lớp này ngay bây giờ.',
+    t('sDaPhanCong'),
     classId,
   );
 }
@@ -300,9 +306,10 @@ export async function assignTeacher(formData: FormData) {
 // khi phải hỏi lại nguồn gốc một con điểm cũ.
 export async function unassignTeacher(formData: FormData) {
   await requireRole(['admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const assignmentId = String(formData.get('assignment_id') ?? '');
   const classId = String(formData.get('class_id') ?? '') || null;
-  if (!assignmentId) subjectsFlash('Thiếu phân công', classId);
+  if (!assignmentId) subjectsFlash(t('sThieuPhanCong'), classId);
 
   const supabase = await createClient();
   const {data, error} = await supabase
@@ -314,9 +321,9 @@ export async function unassignTeacher(formData: FormData) {
   revalidatePath('/[locale]/grades', 'page');
   if (error) subjectsFlash(loi(friendlyError(error)), classId);
   if (!data || data.length === 0)
-    subjectsFlash('Không gỡ được — bạn không có quyền với lớp này.', classId);
+    subjectsFlash(t('sKhongGo'), classId);
   subjectsFlash(
-    'Đã gỡ phân công. Giáo viên đó mất quyền nhập điểm môn này ngay lập tức; dòng cũ vẫn được giữ để tra lại ai từng dạy.',
+    t('sDaGo'),
     classId,
   );
 }

@@ -110,7 +110,7 @@ export function SuaHocSinh({
             <button
               type="button"
               onClick={() => setMo(false)}
-              aria-label="Đóng"
+              aria-label={tr('close')}
               className="grid h-7 w-7 flex-none cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-navy/15 bg-white text-grey-mid transition-all hover:border-navy hover:text-navy"
             >
               <X size={13} strokeWidth={2.5} />
@@ -149,13 +149,13 @@ export function SuaHocSinh({
                 onClick={() => setMo(false)}
                 className="cursor-pointer rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 py-1.5 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy"
               >
-                Huỷ
+                {tr('cancel')}
               </button>
               <SubmitButton
                 className="btn-gold cursor-pointer rounded-[10px] px-3 py-1.5 text-[12.5px] font-extrabold"
                 wrapClass="contents"
               >
-                Lưu
+                {tr('save')}
               </SubmitButton>
             </div>
           </form>

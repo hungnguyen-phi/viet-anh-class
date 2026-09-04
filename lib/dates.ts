@@ -293,7 +293,7 @@ export function ngayCuaKy(
 
 // KHOẢNG NGÀY CHỌN ĐƯỢC KHI ĐÃ CÓ MỤC TIÊU CHA.
 //
-// Không phải cứ ngày nằm trong cha là chọn được. Luật của server (lib/wig-tao.ts) đòi CẢ KỲ nằm
+// Không phải cứ ngày nằm trong cha là chọn được. Luật của server (trigger mt_truoc_them, 0163) đòi CẢ KỲ nằm
 // trong cha: `ky.start < cha.start_date || ky.end > cha.end_date` là từ chối. Mà tuần chứa ngày
 // 01/09 là 31/08 → 06/09 — bắt đầu từ tháng 8. Nên chặn ô lịch đúng bằng khoảng của cha vẫn để
 // lọt: người dùng chọn ngày đầu tháng, bấm Lưu, và lại nhận đúng câu "kỳ nằm ngoài mục tiêu cha"

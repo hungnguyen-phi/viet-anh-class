@@ -1,6 +1,7 @@
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {labelCls, selectCls, btnGold} from '@/components/ui/Field';
 import {openThread} from './actions';
+import {useTranslations} from 'next-intl';
 
 export type OpenOption = {id: string; name: string};
 
@@ -27,6 +28,7 @@ export function OpenThreadForm({
   nutMotLuaChon: (ten: string) => string;
   nutNhieuLuaChon: string;
 }) {
+  const t = useTranslations('inbox');
   if (options.length === 0) return null;
   const motNguoi = options.length === 1 ? options[0] : null;
 
@@ -56,7 +58,7 @@ export function OpenThreadForm({
               required
             >
               <option value="" disabled>
-                Chọn học sinh
+                {t('chooseStudent')}
               </option>
               {options.map((o) => (
                 <option key={o.id} value={o.id}>

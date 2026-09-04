@@ -1,6 +1,7 @@
 'use server';
 
 import {revalidatePath} from 'next/cache';
+import {getTranslations} from 'next-intl/server';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
@@ -33,27 +34,28 @@ const tachIds = (raw: string) =>
 
 export async function taoBuddyNhom(formData: FormData) {
   await requireRole(['teacher', 'admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const class_id = String(formData.get('class_id') ?? '');
   const ve = String(formData.get('ve') ?? 'roster');
   // Em thứ ba là TUỲ CHỌN — bỏ trống là nhóm 2.
   const thanhVien = ['em_a', 'em_b', 'em_c']
     .map((k) => String(formData.get(k) ?? '').trim())
     .filter(Boolean);
-  if (!class_id || thanhVien.length < 2) flash(class_id, loi('Chọn ít nhất hai học sinh.'), ve);
+  if (!class_id || thanhVien.length < 2) flash(class_id, loi(t('bChonHai')), ve);
   if (new Set(thanhVien).size !== thanhVien.length)
-    flash(class_id, loi('Các em trong nhóm phải là những người khác nhau.'), ve);
+    flash(class_id, loi(t('bKhacNhau')), ve);
 
   const supabase = await createClient();
   const {error} = await supabase.rpc('tao_buddy_nhom', {p_class: class_id, p_members: thanhVien});
   revalidatePath('/[locale]/roster', 'page');
   if (error) {
     if (/gỡ nhóm cũ/.test(error.message))
-      flash(class_id, loi('Có em đã ở một nhóm buddy khác — gỡ nhóm cũ trước.'), ve);
+      flash(class_id, loi(t('bDaCoNhom')), ve);
     if (/cùng lớp/.test(error.message))
-      flash(class_id, loi('Các em trong nhóm phải đang học cùng lớp này.'), ve);
+      flash(class_id, loi(t('bCungLop')), ve);
     flash(class_id, loi(friendlyError(error)), ve);
   }
-  flash(class_id, thanhVien.length === 3 ? 'Đã tạo nhóm buddy 3 em' : 'Đã tạo nhóm buddy', ve);
+  flash(class_id, thanhVien.length === 3 ? t('bTaoNhom3') : t('bTaoNhom'), ve);
 }
 
 // CHIA NGẪU NHIÊN — cho các em CHƯA có nhóm (19/08/2026: "random tự chọn nhóm, hoặc thủ công").
@@ -64,9 +66,10 @@ export async function taoBuddyNhom(formData: FormData) {
 // thì không tự tiện phá nhóm nào — báo để cô tự xếp em ấy vào một nhóm 2 thành nhóm 3.
 export async function chiaNhomNgauNhien(formData: FormData) {
   await requireRole(['teacher', 'admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const class_id = String(formData.get('class_id') ?? '');
   const ve = String(formData.get('ve') ?? 'roster');
-  if (!class_id) flash(class_id, loi('Không rõ lớp nào.'), ve);
+  if (!class_id) flash(class_id, loi(t('bKhongRoLop')), ve);
 
   const supabase = await createClient();
   const [{data: emLop}, {data: capCo}] = await Promise.all([
@@ -83,9 +86,9 @@ export async function chiaNhomNgauNhien(formData: FormData) {
     .map((e) => e.student_id)
     .filter((id) => !daCoNhom.has(id));
 
-  if (conTrong.length === 0) flash(class_id, loi('Cả lớp đã có nhóm hết rồi.'), ve);
+  if (conTrong.length === 0) flash(class_id, loi(t('bDuNhom')), ve);
   if (conTrong.length === 1)
-    flash(class_id, loi('Chỉ còn 1 em chưa có nhóm — gỡ một nhóm 2 rồi ghép tay em ấy vào thành nhóm 3.'), ve);
+    flash(class_id, loi(t('bConMot')), ve);
 
   // Fisher–Yates: mỗi hoán vị cùng xác suất — sort(random) thì không.
   for (let i = conTrong.length - 1; i > 0; i--) {
@@ -110,7 +113,7 @@ export async function chiaNhomNgauNhien(formData: FormData) {
   revalidatePath('/[locale]/roster', 'page');
   flash(
     class_id,
-    `Đã chia ngẫu nhiên ${nhom.length} nhóm` + (chan < conTrong.length ? ' (nhóm cuối 3 em)' : ''),
+    t('bDaChia', {n: nhom.length, cuoi: chan < conTrong.length ? ` ${t('bNhomCuoi3')}` : ''}),
   );
 }
 
@@ -118,16 +121,17 @@ export async function chiaNhomNgauNhien(formData: FormData) {
 // chiếu được (quyết định 18/08/2026: cho đổi buddy giữa năm, giữ lịch sử). Lịch tắt theo.
 export async function goBuddyNhom(formData: FormData) {
   await requireRole(['teacher', 'admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const class_id = String(formData.get('class_id') ?? '');
   const ve = String(formData.get('ve') ?? 'roster');
   const ids = tachIds(String(formData.get('pair_ids') ?? ''));
-  if (ids.length === 0) flash(class_id, loi('Không rõ nhóm nào.'), ve);
+  if (ids.length === 0) flash(class_id, loi(t('bKhongRoNhom')), ve);
   const supabase = await createClient();
   const {error} = await supabase.from('buddy_pairs').update({is_active: false}).in('id', ids);
   if (!error)
     await supabase.from('pdr_schedules').update({is_active: false}).in('buddy_pair_id', ids);
   revalidatePath('/[locale]/roster', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : 'Đã gỡ nhóm buddy (lịch sử họp giữ nguyên)', ve);
+  flash(class_id, error ? loi(friendlyError(error)) : t('bDaGo'), ve);
 }
 
 // Chỉ nhận đúng bốn giá trị CSDL cho phép (CHECK ở 0159). Giá trị lạ → 'sang_hom_do' thay vì
@@ -140,6 +144,7 @@ function docNhac(formData: FormData): string {
 
 export async function luuLichBuddy(formData: FormData) {
   const me = await requireRole(['teacher', 'admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const class_id = String(formData.get('class_id') ?? '');
   const ve = String(formData.get('ve') ?? 'roster');
   // Lịch là CỦA CẢ NHÓM nhưng bảng treo lịch vào từng cặp (0146) — nên ghi CÙNG một thứ+giờ
@@ -150,7 +155,7 @@ export async function luuLichBuddy(formData: FormData) {
   const weekday = Number(formData.get('weekday') ?? 0);
   const time_slot = String(formData.get('time_slot') ?? '').trim() || null;
   const nhac_khi = docNhac(formData);
-  if (pairIds.length === 0 || weekday < 2 || weekday > 8) flash(class_id, loi('Chọn thứ trong tuần.'), ve);
+  if (pairIds.length === 0 || weekday < 2 || weekday > 8) flash(class_id, loi(t('bChonThu')), ve);
 
   const supabase = await createClient();
   // Mỗi cặp một lịch active (pdr_schedules_buddy_uidx): có rồi thì SỬA, chưa có thì thêm.
@@ -178,11 +183,12 @@ export async function luuLichBuddy(formData: FormData) {
   );
   const error = ketQua.find((r) => r.error)?.error ?? null;
   revalidatePath('/[locale]/roster', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : 'Đã lưu lịch họp buddy', ve);
+  flash(class_id, error ? loi(friendlyError(error)) : t('bDaLuuLich'), ve);
 }
 
 export async function luuLichCoach(formData: FormData) {
   const me = await requireRole(['teacher', 'admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const class_id = String(formData.get('class_id') ?? '');
   const ve = String(formData.get('ve') ?? 'roster');
   const student_id = String(formData.get('student_id') ?? '');
@@ -190,7 +196,7 @@ export async function luuLichCoach(formData: FormData) {
   const nhac_khi = docNhac(formData);
   // 1–28 để lịch không tự trượt ở tháng thiếu ngày (CHECK ở 0146 cũng chặn).
   if (!student_id || monthly_day < 1 || monthly_day > 28)
-    flash(class_id, loi('Chọn học sinh và một ngày từ 1 đến 28.'), ve);
+    flash(class_id, loi(t('bChonNgay')), ve);
 
   const supabase = await createClient();
   const {data: daCo} = await supabase
@@ -211,5 +217,5 @@ export async function luuLichCoach(formData: FormData) {
         created_by: me.id,
       });
   revalidatePath('/[locale]/roster', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : 'Đã lưu lịch PDR với giáo viên', ve);
+  flash(class_id, error ? loi(friendlyError(error)) : t('bDaLuuCoach'), ve);
 }

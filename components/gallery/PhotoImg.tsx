@@ -3,6 +3,7 @@
 import {useState} from 'react';
 import {ImageOff} from 'lucide-react';
 import {useRouter} from '@/i18n/navigation';
+import {useTranslations} from 'next-intl';
 
 // Một tấm ảnh trong album, đọc qua SIGNED URL của bucket riêng tư 'class-photos'.
 //
@@ -25,6 +26,7 @@ export function PhotoImg({
   className?: string;
 }) {
   const router = useRouter();
+  const t = useTranslations('gallery');
   const [daThuLai, setDaThuLai] = useState(false);
   const [hong, setHong] = useState(false);
 
@@ -32,7 +34,7 @@ export function PhotoImg({
     return (
       <div
         role="img"
-        aria-label={`${alt} — không tải được`}
+        aria-label={t('imgFailed', {alt})}
         className={`grid place-items-center bg-navy/[0.06] text-navy/40 ${className}`}
       >
         <ImageOff size={18} strokeWidth={2.2} />

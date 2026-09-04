@@ -1,6 +1,7 @@
 'use server';
 
 import {revalidatePath} from 'next/cache';
+import {getTranslations} from 'next-intl/server';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
@@ -33,6 +34,7 @@ export type AlbumState = {
 // (staff_can_read_class) nhưng người chụp và người chịu trách nhiệm về ảnh trẻ là GVCN.
 export async function createAlbum(_prev: AlbumState, formData: FormData): Promise<AlbumState> {
   const me = await requireRole(['teacher', 'admin']);
+  const t = await getTranslations('loiPhu');
   const classId = String(formData.get('class_id') ?? '');
   const title = String(formData.get('title') ?? '').trim();
   const eventDate = String(formData.get('event_date') ?? '').trim();
@@ -41,12 +43,12 @@ export async function createAlbum(_prev: AlbumState, formData: FormData): Promis
 
   if (!classId) return {ok: false, error: (friendlyError(null)), values};
   if (!title)
-    return {ok: false, fieldError: 'title', error: 'Hãy đặt tên cho album.', values};
+    return {ok: false, fieldError: 'title', error: t('aTen'), values};
   if (!ISO_DATE.test(eventDate))
     return {
       ok: false,
       fieldError: 'event_date',
-      error: 'Ngày sự kiện chưa hợp lệ.',
+      error: t('aNgay'),
       values,
     };
 
@@ -68,12 +70,12 @@ export async function createAlbum(_prev: AlbumState, formData: FormData): Promis
   if (!data || data.length === 0)
     return {
       ok: false,
-      error: 'Không tạo được album — bạn không phải giáo viên chủ nhiệm của lớp này.',
+      error: t('aKhongTao'),
       values,
     };
 
   revalidatePath('/[locale]/gallery', 'page');
-  return {ok: true, message: `Đã tạo album “${title}”. Bấm vào album để tải ảnh lên.`};
+  return {ok: true, message: t('aDaTao', {ten: title})};
 }
 
 // Xoá MỘT ảnh.
@@ -84,10 +86,11 @@ export async function createAlbum(_prev: AlbumState, formData: FormData): Promis
 // tệp đã mất nhưng hàng còn, ảnh vỡ mà quyền vẫn mở. Hỏng theo hướng ĐÓNG, đúng tinh thần 0063.
 export async function deletePhoto(formData: FormData) {
   await requireRole(['teacher', 'admin']);
+  const t = await getTranslations('loiPhu');
   const classId = String(formData.get('class_id') ?? '');
   const albumId = String(formData.get('album_id') ?? '');
   const photoId = String(formData.get('photo_id') ?? '');
-  if (!classId || !albumId || !photoId) galleryFlash(classId, albumId || null, 'Thiếu thông tin');
+  if (!classId || !albumId || !photoId) galleryFlash(classId, albumId || null, t('aThieuTT'));
 
   const supabase = await createClient();
   const {data, error} = await supabase
@@ -105,7 +108,7 @@ export async function deletePhoto(formData: FormData) {
     galleryFlash(
       classId,
       albumId,
-      'Không xoá được — ảnh không còn, hoặc bạn không có quyền với lớp này.',
+      t('aKhongXoaAnh'),
     );
   }
 
@@ -113,7 +116,7 @@ export async function deletePhoto(formData: FormData) {
   // chỉ là chỗ trống trong bucket.
   await supabase.storage.from('class-photos').remove([data[0].storage_path]);
   revalidatePath('/[locale]/gallery', 'page');
-  galleryFlash(classId, albumId, 'Đã xoá ảnh');
+  galleryFlash(classId, albumId, t('aDaXoaAnh'));
 }
 
 // Xoá cả album. class_photos có `on delete cascade` nên các HÀNG ảnh tự đi theo — nhưng TỆP trong
@@ -121,9 +124,10 @@ export async function deletePhoto(formData: FormData) {
 // album, nếu không là mất dấu vĩnh viễn và bucket đầy ảnh mồ côi không ai gỡ được.
 export async function deleteAlbum(formData: FormData) {
   await requireRole(['teacher', 'admin']);
+  const t = await getTranslations('loiPhu');
   const classId = String(formData.get('class_id') ?? '');
   const albumId = String(formData.get('album_id') ?? '');
-  if (!classId || !albumId) galleryFlash(classId, null, 'Thiếu thông tin');
+  if (!classId || !albumId) galleryFlash(classId, null, t('aThieuTT'));
 
   const supabase = await createClient();
   const {data: photos} = await supabase
@@ -146,7 +150,7 @@ export async function deleteAlbum(formData: FormData) {
     galleryFlash(
       classId,
       albumId,
-      'Không xoá được — album không còn, hoặc bạn không phải giáo viên chủ nhiệm của lớp này.',
+      t('aKhongXoaAlbum'),
     );
   }
 
@@ -155,5 +159,5 @@ export async function deleteAlbum(formData: FormData) {
 
   revalidatePath('/[locale]/gallery', 'page');
   // Về danh sách album (album vừa xoá không còn để mở).
-  galleryFlash(classId, null, `Đã xoá album “${data[0].title}” cùng ${paths.length} ảnh`);
+  galleryFlash(classId, null, t('aDaXoaAlbum', {ten: data[0].title, n: paths.length}));
 }

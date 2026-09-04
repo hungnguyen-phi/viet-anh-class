@@ -146,8 +146,7 @@ export default async function InboxPage({
             </h1>
             {tenLop && (
               <p className="mt-0.5 text-[12.5px] font-bold text-grey-mid">
-                Lớp {tenLop} ·{' '}
-                {laPhuHuynh ? t('withTeacher') : t('withParents')}
+                {t('classLine', {cls: tenLop})} · {laPhuHuynh ? t('withTeacher') : t('withParents')}
               </p>
             )}
           </div>
@@ -168,7 +167,7 @@ export default async function InboxPage({
             <>
               {messages.length === SO_TIN_TOI_DA && (
                 <p className="text-center text-[11px] italic text-grey-mid">
-                  Đang hiện {SO_TIN_TOI_DA} tin gần nhất của cuộc trao đổi này.
+                  {t('showingLatest', {n: SO_TIN_TOI_DA})}
                 </p>
               )}
               {messages.map((m) => (
@@ -185,7 +184,6 @@ export default async function InboxPage({
             <p className="inline-flex items-start gap-1.5 text-[13px] font-bold text-grey-mid">
               <Lock size={14} strokeWidth={2.5} className="mt-0.5 shrink-0" />
               {t('lockedLeftClass')}
-              nội dung cũ.
             </p>
           </div>
         )}
@@ -194,7 +192,6 @@ export default async function InboxPage({
           <p className="inline-flex items-start gap-1.5 text-[11px] italic text-grey-mid">
             <ShieldCheck size={13} strokeWidth={2.5} className="mt-px shrink-0" />
             {t('privacyThread')}
-            không xem được.
           </p>
         )}
 
@@ -231,8 +228,7 @@ export default async function InboxPage({
             {t('noLinkTitle')}
           </h1>
           <p className="mt-2 text-sm text-grey-mid">
-            {t('noLinkHint')}
-            mở. Nhờ giáo viên chủ nhiệm hoặc quản trị viên liên kết giúp bạn với con.
+            {t('noLinkHint')} {t('noLinkAsk')}
           </p>
         </div>
       );
@@ -278,7 +274,7 @@ export default async function InboxPage({
         </h1>
         {!laPhuHuynh && soCuocDangCho > 0 && (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-status-bad/[0.08] px-2.5 py-1 text-[11.5px] font-extrabold text-status-bad">
-            {soCuocDangCho} gia đình đang chờ bạn trả lời
+            {t('waitingFamilies', {n: soCuocDangCho})}
           </span>
         )}
       </div>

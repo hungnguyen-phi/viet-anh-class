@@ -1,6 +1,7 @@
 'use server';
 
 import {revalidatePath} from 'next/cache';
+import {getTranslations} from 'next-intl/server';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
@@ -73,8 +74,9 @@ function gradesFlash(ctx: Ctx, msg: string): never {
 // mất gói thì gần như chắc chắn có lượt rơi giữa chừng, để lại lớp nhập dở một nửa.
 export async function openTermForClass(formData: FormData) {
   await requireRole(['teacher', 'admin']);
+  const t = await getTranslations('loiPhu');
   const ctx = readCtx(formData);
-  if (!ctx.class || !ctx.term) gradesFlash(ctx, 'Thiếu lớp hoặc đợt đánh giá');
+  if (!ctx.class || !ctx.term) gradesFlash(ctx, t('gThieuLopDot'));
 
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('open_term_for_class', {
@@ -86,8 +88,8 @@ export async function openTermForClass(formData: FormData) {
   gradesFlash(
     ctx,
     data && data > 0
-      ? `Đã mở đợt và tạo phiếu cho ${data} em`
-      : 'Mọi em đang học lớp này đều đã có phiếu của đợt này',
+      ? t('gMoDot', {n: data})
+      : t('gMoDotDu'),
   );
 }
 
@@ -104,23 +106,24 @@ export async function openTermForClass(formData: FormData) {
 // người không có việc gì ở màn hình này.
 export async function saveScoreColumn(formData: FormData) {
   const me = await requireRole(['teacher', 'admin']);
+  const t = await getTranslations('loiPhu');
   const ctx = readCtx(formData);
-  if (!ctx.class || !ctx.term) gradesFlash(ctx, 'Thiếu lớp hoặc đợt đánh giá');
+  if (!ctx.class || !ctx.term) gradesFlash(ctx, t('gThieuLopDot'));
 
   const subjectId = ctx.subject ?? '';
   const kind = (ctx.kind ?? '') as ScoreKind;
   const ordinal = Number(ctx.ordinal ?? 1);
-  if (!subjectId) gradesFlash(ctx, 'Hãy chọn môn trước khi nhập điểm');
+  if (!subjectId) gradesFlash(ctx, t('gChonMon'));
   if (!LA_UUID.test(subjectId))
-    gradesFlash(ctx, 'Môn học không hợp lệ — hãy chọn lại trong ô Môn học');
-  if (!SCORE_KINDS.includes(kind)) gradesFlash(ctx, 'Loại điểm không hợp lệ');
+    gradesFlash(ctx, t('gMonKhongHopLe'));
+  if (!SCORE_KINDS.includes(kind)) gradesFlash(ctx, t('gLoaiDiem'));
   if (!Number.isInteger(ordinal) || ordinal < 1 || ordinal > 20)
-    gradesFlash(ctx, 'Cột điểm phải từ 1 đến 20');
+    gradesFlash(ctx, t('gCotDiem'));
 
   const ids = String(formData.get('ids') ?? '')
     .split(',')
     .filter(Boolean);
-  if (ids.length === 0) gradesFlash(ctx, 'Lớp chưa có phiếu nào của đợt này — hãy mở đợt trước.');
+  if (ids.length === 0) gradesFlash(ctx, t('gChuaCoPhieu'));
 
   const supabase = await createClient();
 
@@ -144,7 +147,7 @@ export async function saveScoreColumn(formData: FormData) {
       .maybeSingle()
       .then((r) => r.data?.name ?? null),
   ]);
-  const nhanMon = tenMon ? ` môn ${tenMon}` : '';
+  const nhanMon = tenMon ? ` ${t('gMonNhan', {ten: tenMon})}` : '';
 
   const rows: {
     review_id: string;
@@ -191,7 +194,7 @@ export async function saveScoreColumn(formData: FormData) {
   // Không lưu một nửa: sai một ô là dừng hẳn. Lưu phần đúng rồi báo lỗi phần sai sẽ khiến giáo
   // viên tưởng đã lưu hết, và con số sai nằm im tới lúc công bố.
   if (soLoi > 0)
-    gradesFlash(ctx, `Có ${soLoi} ô điểm không hợp lệ (điểm phải từ 0 đến 10). Chưa lưu gì cả.`);
+    gradesFlash(ctx, t('gOLoi', {n: soLoi}));
 
   if (rows.length > 0) {
     // onConflict PHẢI đi cùng khoá unique thật của bảng. 0069 đã đổi khoá đó sang
@@ -208,7 +211,7 @@ export async function saveScoreColumn(formData: FormData) {
     if ((data ?? []).length === 0)
       gradesFlash(
         ctx,
-        'Không lưu được — đợt có thể đã chốt sổ, hoặc bạn không phụ trách môn này ở lớp này.',
+        t('gKhongLuuMon'),
       );
   }
 
@@ -232,8 +235,8 @@ export async function saveScoreColumn(formData: FormData) {
   gradesFlash(
     ctx,
     rows.length > 0
-      ? `Đã lưu ${rows.length} con điểm${nhanMon}`
-      : `Đã xoá điểm${nhanMon} của cột này`,
+      ? t('gDaLuuDiem', {n: rows.length, mon: nhanMon})
+      : t('gDaXoaDiem', {mon: nhanMon}),
   );
 }
 
@@ -247,8 +250,9 @@ export async function saveScoreColumn(formData: FormData) {
 // vẽ ra cái nút bấm vào chỉ để nhận thông báo bị từ chối.
 export async function seedClassSubjects(formData: FormData) {
   await requireRole(['teacher', 'principal', 'admin']);
+  const t = await getTranslations('loiPhu');
   const ctx = readCtx(formData);
-  if (!ctx.class) gradesFlash(ctx, 'Thiếu lớp');
+  if (!ctx.class) gradesFlash(ctx, t('gThieuLop'));
 
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('seed_class_subjects', {p_class: ctx.class});
@@ -257,8 +261,8 @@ export async function seedClassSubjects(formData: FormData) {
   gradesFlash(
     ctx,
     data && data > 0
-      ? `Đã thêm ${data} môn vào chương trình của lớp`
-      : 'Lớp đã có đủ các môn đang dùng của cơ sở',
+      ? t('gThemMon', {n: data})
+      : t('gDuMon'),
   );
 }
 
@@ -267,13 +271,14 @@ export async function seedClassSubjects(formData: FormData) {
 // — ràng buộc unique có sẵn trong 0064 — nên không cần mang theo id của phiếu.
 export async function saveClassReviews(formData: FormData) {
   await requireRole(['teacher', 'admin']);
+  const t = await getTranslations('loiPhu');
   const ctx = readCtx(formData);
-  if (!ctx.class || !ctx.term) gradesFlash(ctx, 'Thiếu lớp hoặc đợt đánh giá');
+  if (!ctx.class || !ctx.term) gradesFlash(ctx, t('gThieuLopDot'));
 
   const ids = String(formData.get('ids') ?? '')
     .split(',')
     .filter(Boolean);
-  if (ids.length === 0) gradesFlash(ctx, 'Lớp chưa có phiếu nào của đợt này — hãy mở đợt trước.');
+  if (ids.length === 0) gradesFlash(ctx, t('gChuaCoPhieu'));
 
   const rows: {
     term_id: string;
@@ -288,7 +293,7 @@ export async function saveClassReviews(formData: FormData) {
     const nhanXet = String(formData.get(`comment_${sid}`) ?? '').trim();
     // Chặn ở đây thay vì cắt cụt: cắt cụt là im lặng làm mất chữ cô vừa viết.
     if (nhanXet.length > 2000)
-      gradesFlash(ctx, 'Có nhận xét dài quá 2000 ký tự — hãy rút ngắn rồi lưu lại.');
+      gradesFlash(ctx, t('gNhanXetDai'));
 
     const hk = String(formData.get(`conduct_${sid}`) ?? '');
     const diemRL = String(formData.get(`cscore_${sid}`) ?? '').trim();
@@ -296,7 +301,7 @@ export async function saveClassReviews(formData: FormData) {
     if (diemRL) {
       const n = Number(diemRL);
       if (!Number.isFinite(n) || n < 0 || n > 100)
-        gradesFlash(ctx, 'Điểm rèn luyện phải từ 0 đến 100. Chưa lưu gì cả.');
+        gradesFlash(ctx, t('gDiemRenLuyen'));
       diem = Math.round(n);
     }
 
@@ -318,8 +323,8 @@ export async function saveClassReviews(formData: FormData) {
   revalidatePath('/[locale]/grades', 'page');
   if (error) gradesFlash(ctx, loi(friendlyError(error)));
   if ((data ?? []).length === 0)
-    gradesFlash(ctx, 'Không lưu được — đợt có thể đã chốt sổ, hoặc bạn không chủ nhiệm lớp này.');
-  gradesFlash(ctx, `Đã lưu nhận xét và hạnh kiểm cho ${(data ?? []).length} em`);
+    gradesFlash(ctx, t('gKhongLuuCN'));
+  gradesFlash(ctx, t('gDaLuuNhanXet', {n: (data ?? []).length}));
 }
 
 // ── Công bố / gỡ công bố cho cả lớp ──────────────────────────────────────────
@@ -328,8 +333,9 @@ export async function saveClassReviews(formData: FormData) {
 // cho GVCN sửa phiếu đã công bố, và trigger audit_review_publish ghi lại việc sửa-sau-công-bố.
 export async function publishTerm(formData: FormData) {
   await requireRole(['teacher', 'admin']);
+  const t = await getTranslations('loiPhu');
   const ctx = readCtx(formData);
-  if (!ctx.class || !ctx.term) gradesFlash(ctx, 'Thiếu lớp hoặc đợt đánh giá');
+  if (!ctx.class || !ctx.term) gradesFlash(ctx, t('gThieuLopDot'));
   const congBo = String(formData.get('mode') ?? 'publish') === 'publish';
 
   // Trang gửi kèm ĐÚNG danh sách phiếu được phép ghi (em còn học lớp). Không nhận danh sách này
@@ -339,7 +345,7 @@ export async function publishTerm(formData: FormData) {
   const ids = String(formData.get('ids') ?? '')
     .split(',')
     .filter(Boolean);
-  if (ids.length === 0) gradesFlash(ctx, 'Không có phiếu nào để công bố');
+  if (ids.length === 0) gradesFlash(ctx, t('gKhongCoPhieu'));
 
   const supabase = await createClient();
   // published_at là một MỐC THỜI ĐIỂM (timestamptz), không phải "ngày hôm nay" — nên lấy giờ máy
@@ -368,11 +374,11 @@ export async function publishTerm(formData: FormData) {
     ctx,
     congBo
       ? n > 0
-        ? `Đã công bố ${n} phiếu — gia đình xem được ngay bây giờ`
-        : 'Mọi phiếu của đợt này đã được công bố từ trước'
+        ? t('gDaCongBo', {n: n})
+        : t('gDaCongBoTruoc')
       : n > 0
-        ? `Đã gỡ công bố ${n} phiếu — gia đình không còn xem được`
-        : 'Không có phiếu nào đang được công bố',
+        ? t('gDaGoCongBo', {n: n})
+        : t('gKhongCongBo'),
   );
 }
 
@@ -383,6 +389,7 @@ export async function publishTerm(formData: FormData) {
 // Không có màn này thì không ai tạo được đợt, và toàn bộ tính năng đứng im.
 export async function createTerm(formData: FormData) {
   const me = await requireRole(['principal', 'admin']);
+  const t = await getTranslations('loiPhu');
   const ctx = readCtx(formData);
   const campusId = String(formData.get('campus_id') ?? '').trim();
   const schoolYear = String(formData.get('school_year') ?? '').trim();
@@ -390,15 +397,15 @@ export async function createTerm(formData: FormData) {
   const start = String(formData.get('start_date') ?? '').trim();
   const end = String(formData.get('end_date') ?? '').trim();
 
-  if (!campusId || !schoolYear) gradesFlash(ctx, 'Thiếu cơ sở hoặc năm học');
-  if (!TERM_KINDS.includes(kind)) gradesFlash(ctx, 'Hãy chọn loại đợt đánh giá');
+  if (!campusId || !schoolYear) gradesFlash(ctx, t('gThieuCoSoNam'));
+  if (!TERM_KINDS.includes(kind)) gradesFlash(ctx, t('gChonLoaiDot'));
 
   // Bỏ trống tên thì lấy đúng tên loại đợt. 0064 tách `kind` (máy so sánh) khỏi `name` (người
   // đọc) để trường tự đặt tên riêng được, nhưng phần lớn trường gọi y như loại — bắt gõ lại một
   // lần nữa chỉ tổ tạo ra 'HK1', 'Học kì 1', 'Học kỳ I' nằm lẫn trong cùng một cột.
   const name = String(formData.get('name') ?? '').trim() || TEN_DOT_MAC_DINH[kind];
-  if (name.length > 80) gradesFlash(ctx, 'Tên đợt dài quá 80 ký tự');
-  if (start && end && end < start) gradesFlash(ctx, 'Ngày kết thúc phải sau ngày bắt đầu');
+  if (name.length > 80) gradesFlash(ctx, t('gTenDotDai'));
+  if (start && end && end < start) gradesFlash(ctx, t('gNgayKetThuc'));
 
   const supabase = await createClient();
   const {data, error} = await supabase
@@ -418,7 +425,7 @@ export async function createTerm(formData: FormData) {
   revalidatePath('/[locale]/grades', 'page');
   if (error) gradesFlash(ctx, loi(friendlyError(error)));
   // Nhảy thẳng vào đợt vừa tạo — vừa khai báo xong là mở được ngay, không phải đi tìm trong ô chọn.
-  gradesFlash({...ctx, term: data?.id ?? ctx.term}, `Đã tạo đợt đánh giá "${name}"`);
+  gradesFlash({...ctx, term: data?.id ?? ctx.term}, t('gDaTaoDot', {ten: name}));
 }
 
 // ── Chốt sổ / mở lại đợt ─────────────────────────────────────────────────────
@@ -426,8 +433,9 @@ export async function createTerm(formData: FormData) {
 // điểm không bị đổi lặng lẽ SAU khi phiếu đã về tay phụ huynh.
 export async function setTermLock(formData: FormData) {
   await requireRole(['principal', 'admin']);
+  const t = await getTranslations('loiPhu');
   const ctx = readCtx(formData);
-  if (!ctx.term) gradesFlash(ctx, 'Thiếu đợt đánh giá');
+  if (!ctx.term) gradesFlash(ctx, t('gThieuDot'));
   const khoa = String(formData.get('lock') ?? '') === '1';
 
   const supabase = await createClient();
@@ -440,11 +448,11 @@ export async function setTermLock(formData: FormData) {
   revalidatePath('/[locale]/grades', 'page');
   if (error) gradesFlash(ctx, loi(friendlyError(error)));
   if ((data ?? []).length === 0)
-    gradesFlash(ctx, 'Không đổi được — bạn không có quyền với đợt đánh giá của cơ sở này.');
+    gradesFlash(ctx, t('gKhongDoiDot'));
   gradesFlash(
     ctx,
     khoa
-      ? 'Đã chốt sổ đợt này — giáo viên không sửa được điểm và nhận xét nữa'
-      : 'Đã mở lại đợt này cho giáo viên nhập tiếp',
+      ? t('gDaChotSo')
+      : t('gDaMoLai'),
   );
 }

@@ -278,7 +278,7 @@ export default async function RosterPage({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={myClass.cover_image_url}
-            alt={`Ảnh bìa lớp ${myClass.name}`}
+            alt={t('coverAlt', {cls: myClass.name})}
             className="h-[160px] w-full object-cover sm:h-[200px]"
           />
         </div>
@@ -311,7 +311,7 @@ export default async function RosterPage({
 
       {tongChoDuyet > 0 && (
         <p className="rounded-[12px] border-[1.5px] border-gold-deep/30 bg-gold/[0.12] px-3.5 py-2.5 text-[12.5px] font-bold text-navy">
-          Có {tongChoDuyet} yêu cầu của học sinh đang chờ duyệt — bấm tên em có nhãn vàng để xem và duyệt.
+          {t('pendingBanner', {n: tongChoDuyet})}
         </p>
       )}
 
@@ -390,18 +390,18 @@ export default async function RosterPage({
               )}
               {r.studentId && (choDuyet.get(r.studentId) ?? 0) > 0 && (
                 <span
-                  title="Em này có yêu cầu đang chờ duyệt — bấm vào tên để xem và duyệt."
+                  title={t('pendingTitle')}
                   className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text"
                 >
-                  {choDuyet.get(r.studentId)} chờ duyệt
+                  {t('pendingChip', {n: choDuyet.get(r.studentId) ?? 0})}
                 </span>
               )}
               {!r.studentId && (
                 <span
-                  title="Đã ghi danh nhưng em chưa đăng nhập lần nào. Em sẽ tự vào lớp ở lần đăng nhập đầu tiên."
+                  title={t('notSignedInTitle')}
                   className="inline-flex shrink-0 items-center gap-1 rounded-full bg-navy/[0.07] px-2 py-0.5 text-[10.5px] font-extrabold text-navy/70"
                 >
-                  ○ chưa đăng nhập
+                  ○ {t('notSignedIn')}
                 </span>
               )}
             </span>
@@ -477,7 +477,7 @@ export default async function RosterPage({
                   <input type="hidden" name="classId" value={myClass.id} />
                   <input type="hidden" name="email" value={r.email} />
                   <ConfirmButton
-                    message={`Huỷ lời mời ${r.email}?`}
+                    message={t('cancelInviteConfirm', {email: r.email})}
                     className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-navy/20 bg-white text-navy/70 transition-all hover:border-navy"
                   >
                     ✕

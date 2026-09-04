@@ -83,9 +83,9 @@ export default async function AttendancePage({
   let dateNotice: string | null = null;
   if (dateParam) {
     if (!isValidDayVN(dateParam)) {
-      dateNotice = 'Ngày không hợp lệ — đang hiển thị hôm nay.';
+      dateNotice = t('dateInvalid');
     } else if (dateParam > realToday) {
-      dateNotice = 'Chưa tới ngày ấy — đang hiển thị hôm nay.';
+      dateNotice = t('dateFuture');
     } else if (xemDuocNgayKhac) {
       today = dateParam;
     }

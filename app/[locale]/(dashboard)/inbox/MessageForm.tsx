@@ -73,7 +73,7 @@ export function MessageForm({threadId, laPhuHuynh}: {threadId: string; laPhuHuyn
       />
 
       <p id="pt-body-hint" className="mt-1 text-[11px] font-semibold text-grey-mid">
-        Tin đã gửi thì không sửa hay xoá được — cả hai bên đều xem lại được về sau.{' '}
+        {t('sentIsFinal')}{' '}
         <span className={qua ? 'font-extrabold text-status-bad' : undefined}>
           {qua ? t('charsOver', {n: -conLai}) : t('charsLeft', {n: conLai})}
         </span>

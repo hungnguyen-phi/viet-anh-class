@@ -1,6 +1,7 @@
 'use server';
 
 import {revalidatePath} from 'next/cache';
+import {getTranslations} from 'next-intl/server';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
@@ -43,18 +44,19 @@ export type SendState = {
  */
 export async function sendMessage(_prev: SendState, formData: FormData): Promise<SendState> {
   const me = await requireRole([...VAI_DUOC_VAO]);
+  const t = await getTranslations('loiPhu');
   const threadId = String(formData.get('thread_id') ?? '');
   const body = String(formData.get('body') ?? '').trim();
   const value = body;
 
-  if (!threadId) return {ok: false, error: 'Thiếu cuộc trao đổi.', value};
+  if (!threadId) return {ok: false, error: t('iThieuCuoc'), value};
   if (!body)
-    return {ok: false, fieldError: 'body', error: 'Hãy nhập nội dung tin nhắn.', value};
+    return {ok: false, fieldError: 'body', error: t('iNhapNoiDung'), value};
   if (body.length > GIOI_HAN_KY_TU)
     return {
       ok: false,
       fieldError: 'body',
-      error: `Tin nhắn dài ${body.length} ký tự, quá mức cho phép (${GIOI_HAN_KY_TU}). Bạn tách làm hai tin giúp nhé.`,
+      error: t('iQuaDai', {n: body.length, max: GIOI_HAN_KY_TU}),
       value,
     };
 
@@ -78,19 +80,19 @@ export async function sendMessage(_prev: SendState, formData: FormData): Promise
     // cần hiểu ngay để khỏi bấm lại mười lần.
     const msg =
       error.code === '42501'
-        ? 'Không gửi được: cuộc trao đổi này đã khoá vì em không còn học lớp đó nữa. Hai bên vẫn xem lại được toàn bộ nội dung cũ.'
+        ? t('iKhoa')
         : loi(friendlyError(error));
     return {ok: false, error: msg, value};
   }
   if (!data || data.length === 0)
     return {
       ok: false,
-      error: 'Không gửi được — cuộc trao đổi không còn hiệu lực, hoặc bạn không còn quyền nhắn ở đây.',
+      error: t('iKhongGui'),
       value,
     };
 
   revalidatePath('/[locale]/inbox', 'page');
-  return {ok: true, message: 'Đã gửi'};
+  return {ok: true, message: t('iDaGui')};
 }
 
 /**
@@ -105,16 +107,17 @@ export async function sendMessage(_prev: SendState, formData: FormData): Promise
  */
 export async function openThread(formData: FormData) {
   await requireRole([...VAI_DUOC_VAO]);
+  const t = await getTranslations('loiPhu');
   const studentId = String(formData.get('student_id') ?? '');
-  if (!studentId) inboxFlash(null, 'Chưa chọn học sinh');
+  if (!studentId) inboxFlash(null, t('iChuaChon'));
 
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('pt_open_thread', {p_student: studentId});
   revalidatePath('/[locale]/inbox', 'page');
   if (error) inboxFlash(null, loi(friendlyError(error)));
   if (!data)
-    inboxFlash(null, 'Không mở được cuộc trao đổi. Em này có thể chưa thuộc lớp nào đang hoạt động.');
+    inboxFlash(null, t('iKhongMo'));
 
   // Vào thẳng cuộc vừa mở: mở xong mà còn phải tự tìm trong danh sách thì thừa một bước.
-  inboxFlash(data, 'Đã mở cuộc trao đổi — bạn viết lời đầu tiên nhé');
+  inboxFlash(data, t('iDaMo'));
 }

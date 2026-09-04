@@ -103,8 +103,6 @@ export function ColumnPicker({
       {/* Nói trước đường đi khi thiếu môn, để không ai đi tìm ô gõ tay đã bỏ. */}
       <p className="text-[11px] italic text-grey-mid">
         {t('columnHint')}
-        mục môn của trường rồi gắn cho lớp — cố ý không cho gõ tay tên môn, vì mỗi người gõ một
-        kiểu là điểm của cùng một môn nằm rời ra hai chỗ.
       </p>
     </div>
   );

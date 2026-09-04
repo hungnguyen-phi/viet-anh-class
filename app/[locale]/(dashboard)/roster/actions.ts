@@ -1,6 +1,7 @@
 'use server';
 
 import {revalidatePath} from 'next/cache';
+import {getTranslations} from 'next-intl/server';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
@@ -25,7 +26,8 @@ export async function assignAttendanceLeader(
   // chọn — và luật dưới CSDL cũng chỉ cho GVCN ghi vào cột này. Mở ở đây mà dưới vẫn chặn thì
   // BGH bấm xong nhận đúng một câu "không có quyền", tệ hơn là không thấy nút.
   await requireRole(['teacher', 'admin']);
-  if (!classId) return {ok: false, error: 'Thiếu lớp'};
+  const t = await getTranslations('loiPhu');
+  if (!classId) return {ok: false, error: t('rThieuLop')};
   const supabase = await createClient();
 
   // Gỡ mọi người đang giữ cờ trong lớp trước. Không atomic với bước sau, nhưng cờ này chỉ ảnh
@@ -49,7 +51,7 @@ export async function assignAttendanceLeader(
       .select('student_id');
     if (error) return {ok: false, error: (friendlyError(error))};
     if (!data || data.length === 0)
-      return {ok: false, error: 'Không đặt được — học sinh này không còn trong lớp, hoặc bạn không có quyền.'};
+      return {ok: false, error: t('rKhongDatTruong')};
   }
 
   revalidatePath('/[locale]/roster', 'page');
@@ -133,6 +135,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // INLINE validation (useActionState): lỗi hiện cạnh field, giữ nguyên email, báo thành công ngay.
 export async function enrollStudent(_prev: EnrollState, formData: FormData): Promise<EnrollState> {
   const me = await requireRole(['teacher', 'admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const classId = String(formData.get('class_id') ?? '');
   const fields = readStudentFields(formData);
   const email = fields.email;
@@ -140,9 +143,9 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
   const values = fields;
 
   if (!classId) return {ok: false, error: (friendlyError(null)), values};
-  if (!email) return {ok: false, fieldError: 'email', error: 'Hãy nhập email học sinh.', values};
+  if (!email) return {ok: false, fieldError: 'email', error: t('rNhapEmail'), values};
   if (!EMAIL_RE.test(email))
-    return {ok: false, fieldError: 'email', error: 'Email không hợp lệ (vd hs01@student.truongvietanh.com).', values};
+    return {ok: false, fieldError: 'email', error: t('rEmailSai'), values};
 
   // Chặn ngày sinh sai TRƯỚC khi ghi danh: nếu để lọt xuống dưới thì em vẫn vào lớp nhưng ngày
   // sinh bị bỏ trắng lặng lẽ, giáo viên không biết mà điền lại.
@@ -172,33 +175,33 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
       revalidatePath('/[locale]/roster', 'page');
       return {
         ok: true,
-        message: `${email} chưa có tài khoản — đã lưu lời mời${fields.full_name ? ` cho ${fields.full_name}` : ''} vào lớp này. Em sẽ có tên trong danh sách ngay bây giờ, và tự vào lớp khi đăng nhập lần đầu.`,
+        message: t('rDaMoi', {email: email, ten: fields.full_name ? ` ${t('rChoTen', {ten: fields.full_name})}` : ''}),
       };
     }
     if (inv === 'other_role')
       return {
         ok: false,
         fieldError: 'email',
-        error: `${email} đang được mời với một vai khác (giáo viên/phụ huynh…). Nhờ quản trị viên xử lý trước để tránh gán nhầm vai.`,
+        error: t('rVaiKhac', {email: email}),
         values,
       };
     if (inv === 'forbidden')
       return {
         ok: false,
-        error: 'Bạn không phải giáo viên chủ nhiệm của lớp này nên không mời được học sinh vào đây.',
+        error: t('rKhongPhaiCN'),
         values,
       };
     return {
       ok: false,
       fieldError: 'email',
-      error: `Email ${email} không hợp lệ.`,
+      error: t('rEmailKhongHopLe', {email: email}),
       values,
     };
   }
 
   await saveStudentDetails(supabase, fields, dob.iso, me.id);
   revalidatePath('/[locale]/roster', 'page');
-  return {ok: true, message: `Đã ghi danh ${fields.full_name || email} vào lớp`};
+  return {ok: true, message: t('rDaGhiDanh', {ten: fields.full_name || email})};
 }
 
 // ── SỬA THÔNG TIN MỘT EM ĐÃ CÓ TRONG DANH SÁCH ────────────────────────────────────────────
@@ -223,12 +226,13 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
 // vừa sửa; không có bản sao thứ hai để hai bên lệch nhau.
 export async function capNhatHocSinh(_prev: EnrollState, formData: FormData): Promise<EnrollState> {
   await requireRole(['teacher', 'admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const classId = String(formData.get('class_id') ?? '');
   const fields = readStudentFields(formData);
   const email = fields.email.toLowerCase();
   const values = fields;
 
-  if (!email) return {ok: false, error: 'Thiếu email học sinh.', values};
+  if (!email) return {ok: false, error: t('rThieuEmail'), values};
 
   const dob = parseDob({day: fields.dob_day, month: fields.dob_month, year: fields.dob_year});
   if (dob.error) return {ok: false, fieldError: 'date_of_birth', error: dob.error, values};
@@ -255,13 +259,13 @@ export async function capNhatHocSinh(_prev: EnrollState, formData: FormData): Pr
   if (error) return {ok: false, error: friendlyError(error), values};
   // RLS chặn thì upsert trả 0 dòng mà error vẫn null — không kiểm là báo thành công giả.
   if (!data || data.length === 0)
-    return {ok: false, error: 'Không sửa được — học sinh này không thuộc lớp bạn chủ nhiệm.', values};
+    return {ok: false, error: t('rKhongSua'), values};
 
   revalidatePath('/[locale]/roster', 'page');
   // Quản trị viên nhìn cùng một hàng dữ liệu ấy; không gọi thì trang họ đang mở còn bản cũ.
   revalidatePath('/[locale]/admin', 'page');
   if (classId) revalidatePath('/[locale]/attendance', 'page');
-  return {ok: true, message: `Đã lưu thông tin ${fields.full_name || email}`};
+  return {ok: true, message: t('rDaLuuTT', {ten: fields.full_name || email})};
 }
 
 // Huỷ lời mời của em CHƯA đăng nhập lần nào.
@@ -274,9 +278,10 @@ export async function capNhatHocSinh(_prev: EnrollState, formData: FormData): Pr
 // lại đúng lớp, giáo viên không phải điền lại 5 trường.
 export async function cancelStudentInvite(formData: FormData) {
   await requireRole(['teacher', 'admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const classId = String(formData.get('classId') ?? '');
   const email = String(formData.get('email') ?? '').trim();
-  if (!classId || !email) rosterFlash(classId, 'Thiếu thông tin');
+  if (!classId || !email) rosterFlash(classId, t('rThieuTT'));
   const supabase = await createClient();
   // .select() để phân biệt "RLS chặn / không có dòng nào" với "đã xoá xong" — không báo
   // thành công giả.
@@ -291,21 +296,22 @@ export async function cancelStudentInvite(formData: FormData) {
   rosterFlash(
     classId,
     (data ?? []).length > 0
-      ? `Đã huỷ lời mời ${email}`
-      : 'Không huỷ được — lời mời không còn, hoặc bạn không có quyền với lớp này.',
+      ? t('rDaHuyMoi', {email: email})
+      : t('rKhongHuyMoi'),
   );
 }
 
 // Cho học sinh rời lớp (is_active=false) — không xoá dữ liệu.
 export async function removeStudent(formData: FormData) {
   await requireRole(['teacher', 'admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const classId = String(formData.get('classId') ?? '');
   const studentId = String(formData.get('studentId') ?? '');
-  if (!classId || !studentId) rosterFlash(classId, 'Thiếu thông tin');
+  if (!classId || !studentId) rosterFlash(classId, t('rThieuTT'));
   const supabase = await createClient();
   const {error} = await supabase.rpc('unenroll_student', {p_class: classId, p_student: studentId});
   revalidatePath('/[locale]/roster', 'page');
-  rosterFlash(classId, error ? loi(friendlyError(error)) : 'Đã cho học sinh rời lớp');
+  rosterFlash(classId, error ? loi(friendlyError(error)) : t('rDaRoiLop'));
 }
 
 // ── DỜI HỌC SINH SANG LỚP KHÁC ────────────────────────────────────────────────────────────
@@ -316,11 +322,12 @@ export async function removeStudent(formData: FormData) {
 
 export async function requestTransfer(formData: FormData) {
   await requireRole(['teacher', 'admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const classId = String(formData.get('classId') ?? '');
   const studentId = String(formData.get('studentId') ?? '');
   const toClass = String(formData.get('toClassId') ?? '');
   const note = String(formData.get('note') ?? '').trim() || undefined;
-  if (!classId || !studentId || !toClass) rosterFlash(classId, loi('Thiếu thông tin'));
+  if (!classId || !studentId || !toClass) rosterFlash(classId, loi(t('rThieuTT')));
 
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('request_class_transfer', {
@@ -333,19 +340,20 @@ export async function requestTransfer(formData: FormData) {
   rosterFlash(
     classId,
     data === 'moved'
-      ? 'Đã chuyển em sang lớp mới.'
+      ? t('rDaChuyen')
       : data === 'exists'
-        ? loi('Học sinh này đã có một đề nghị dời lớp đang chờ duyệt.')
-        : 'Đã gửi đề nghị. Em vẫn ở lớp này cho tới khi lớp bên kia duyệt.',
+        ? loi(t('rDaCoDeNghi'))
+        : t('rDaGuiDeNghi'),
   );
 }
 
 export async function decideTransfer(formData: FormData) {
   await requireRole(['teacher', 'admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const classId = String(formData.get('classId') ?? '');
   const requestId = String(formData.get('requestId') ?? '');
   const approve = String(formData.get('approve') ?? '') === 'true';
-  if (!requestId) rosterFlash(classId, loi('Thiếu đề nghị'));
+  if (!requestId) rosterFlash(classId, loi(t('rThieuDeNghi')));
 
   const supabase = await createClient();
   const {error} = await supabase.rpc('decide_class_transfer', {
@@ -358,18 +366,19 @@ export async function decideTransfer(formData: FormData) {
     error
       ? loi(friendlyError(error))
       : approve
-        ? 'Đã duyệt — em đã vào lớp này.'
-        : 'Đã từ chối đề nghị.',
+        ? t('rDaDuyet')
+        : t('rDaTuChoi'),
   );
 }
 
 export async function cancelTransfer(formData: FormData) {
   await requireRole(['teacher', 'admin', 'principal']);
+  const t = await getTranslations('loiPhu');
   const classId = String(formData.get('classId') ?? '');
   const requestId = String(formData.get('requestId') ?? '');
-  if (!requestId) rosterFlash(classId, loi('Thiếu đề nghị'));
+  if (!requestId) rosterFlash(classId, loi(t('rThieuDeNghi')));
   const supabase = await createClient();
   const {error} = await supabase.rpc('cancel_class_transfer', {p_request: requestId});
   revalidatePath('/[locale]/roster', 'page');
-  rosterFlash(classId, error ? loi(friendlyError(error)) : 'Đã rút lại đề nghị.');
+  rosterFlash(classId, error ? loi(friendlyError(error)) : t('rDaRut'));
 }

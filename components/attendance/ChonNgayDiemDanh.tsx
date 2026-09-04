@@ -4,6 +4,7 @@ import {useState, useTransition} from 'react';
 import {Loader2} from 'lucide-react';
 import {useRouter} from '@/i18n/navigation';
 import {ONgayVN} from '@/components/ui/ONgayVN';
+import {useTranslations} from 'next-intl';
 
 // Ô CHỌN NGÀY RIÊNG — gõ đủ ngày/tháng/năm là đi, không có nút "Xem".
 //
@@ -21,13 +22,14 @@ export function ChonNgayDiemDanh({
   classParam?: string;
 }) {
   const router = useRouter();
+  const t = useTranslations('attendance');
   const [dangTai, batDau] = useTransition();
   const [gt, setGt] = useState(ngay);
   return (
     <span className="inline-flex items-center gap-2">
       <ONgayVN
         name="date"
-        nhan="Chọn ngày"
+        nhan={t('pickDate')}
         value={gt}
         max={toiDa}
         onChange={(iso) => {

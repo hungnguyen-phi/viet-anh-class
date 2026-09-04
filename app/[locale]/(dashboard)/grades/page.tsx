@@ -239,7 +239,7 @@ export default async function GradesPage({
 
   const tieuDe = (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <h1 className="font-display text-[22px] font-bold text-navy">Học bạ · {myClass.name}</h1>
+      <h1 className="font-display text-[22px] font-bold text-navy">{t('pageTitle', {cls: myClass.name})}</h1>
       {/* Quản trị/BGH thấy bộ chọn KỂ CẢ khi chỉ có một lớp: nó là chỗ duy nhất trên màn hình
             nói rõ mình đang đứng ở lớp nào. Giáo viên chỉ có lớp mình thì giấu đi cho gọn. */}
         {(accessible.length > 1 || profile.role === 'admin' || profile.role === 'principal') && (
@@ -564,7 +564,7 @@ export default async function GradesPage({
                 bịa một con số 0 ra cho họ đọc. */}
             {!laGVBM && (
               <span className="text-[12px] font-semibold text-grey-mid">
-                Đã công bố <b className="text-navy">{daCongBo}</b>/{coPhieu.length} phiếu
+                {t.rich('publishedCount', {n: daCongBo, total: coPhieu.length, b: (c) => <b className="text-navy">{c}</b>})}
               </span>
             )}
           </div>
@@ -575,7 +575,7 @@ export default async function GradesPage({
                 <input type="hidden" name="class_id" value={myClass.id} />
                 <input type="hidden" name="term_id" value={term.id} />
                 <SubmitButton className={btnGold} wrapClass="contents">
-                  Mở đợt cho cả lớp ({thieuPhieu} em)
+                  {t('openTermFor', {n: thieuPhieu})}
                 </SubmitButton>
               </form>
             )}
@@ -633,17 +633,11 @@ export default async function GradesPage({
           <p className="mt-1 text-[12px] font-semibold leading-[1.55] text-grey-mid">
             {monToiDay.length > 0 ? (
               <>
-                Bạn được phân công {monToiDay.length} môn ở lớp này:{' '}
-                <b className="text-navy">{monToiDay.map((m) => m.name).join(', ')}</b>. Màn hình
-                này chỉ hiện đúng phần của bạn — điểm các môn khác, nhận xét và hạnh kiểm thuộc
-                giáo viên chủ nhiệm, không phải app thiếu dữ liệu. Cần thêm môn thì nhờ ban giám
-                hiệu phân công.
+                {t.rich('subjectTeacherScope', {n: monToiDay.length, list: monToiDay.map((m) => m.name).join(', '), b: (c) => <b className="text-navy">{c}</b>})}
               </>
             ) : (
               <>
                 {t('askAssignment')}
-                Chỉ ban giám hiệu và quản trị viên phân công được — giáo viên chủ nhiệm cũng không
-                tự mở quyền cho ai vào học bạ lớp mình.
               </>
             )}
           </p>
@@ -658,12 +652,10 @@ export default async function GradesPage({
       {monHienCo.length === 0 && (canEdit || canTerm) && (
         <div className="glass rounded-[20px] p-4">
           <div className="font-display text-[15px] font-bold text-navy">
-            Lớp {myClass.name} chưa khai môn học nào
+            {t('noSubjectsTitle', {cls: myClass.name})}
           </div>
           <p className="mt-1 text-[12px] font-semibold leading-[1.55] text-grey-mid">
             {t('seedHint')}
-            để gắn cả bộ môn đang dùng của cơ sở cho lớp — thừa môn nào thì nhờ quản trị viên gỡ
-            bớt, còn hơn là không nhập được điểm.
           </p>
           <form action={seedClassSubjects} className="mt-2.5">
             <input type="hidden" name="class_id" value={myClass.id} />
@@ -742,9 +734,7 @@ export default async function GradesPage({
               <ReviewListForm classId={myClass.id} termId={term.id} rows={reviewRows} />
               {daRoiLop > 0 && (
                 <p className="text-[11px] italic text-grey-mid">
-                  Có {daRoiLop} em đã rời lớp giữa đợt: phiếu cũ vẫn giữ nguyên trong bảng bên dưới,
-                  nhưng không sửa được nhận xét/hạnh kiểm và không công bố thêm được nữa. Cần xử lý
-                  thì nhờ quản trị viên.
+                  {t('leftMidTerm', {n: daRoiLop})}
                 </p>
               )}
             </>
@@ -758,8 +748,6 @@ export default async function GradesPage({
               </div>
               <p className="mt-1 text-[12px] font-semibold leading-[1.55] text-grey-mid">
                 {t('publishHint')}
-                thấy. Khi công bố, phụ huynh và chính các em thấy ngay điểm, nhận xét và hạnh kiểm
-                của đợt này.
               </p>
               <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 {coTheCongBo > 0 && (
@@ -774,7 +762,7 @@ export default async function GradesPage({
                       message={t('confirmPublish', {n: coTheCongBo, name: term.name})}
                       className={btnGold}
                     >
-                      Công bố {coTheCongBo} phiếu
+                      {t('publishN', {n: coTheCongBo})}
                     </ConfirmButton>
                   </form>
                 )}
@@ -790,7 +778,7 @@ export default async function GradesPage({
                       // đứng cạnh nút vàng 44px trong cùng hàng là lệch (đúng lỗi đã phải vá bằng ctl-h).
                       className={btnDanger}
                     >
-                      Gỡ công bố {coTheGoCongBo} phiếu
+                      {t('unpublishN', {n: coTheGoCongBo})}
                     </ConfirmButton>
                   </form>
                 )}
@@ -811,7 +799,7 @@ export default async function GradesPage({
             <>
               <section>
                 <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
-                  Bảng điểm cả lớp · {term.name}
+                  {t('classTableTitle', {term: term.name})}
                 </h2>
                 <ClassScoreTable
                   subjects={monHienCo.filter((m) => monCoDiem.has(m.id))}
@@ -820,7 +808,6 @@ export default async function GradesPage({
                 {monCoDiem.size === 0 && (
                   <p className="mt-2 text-[11px] italic text-grey-mid">
                     {t('noScoresYet')}
-                    đầu tiên.
                   </p>
                 )}
                 {nhapDiem && subjectName && (
@@ -840,7 +827,7 @@ export default async function GradesPage({
 
       {thieuPhieu > 0 && coPhieu.length > 0 && (
         <p className="text-[11px] italic text-grey-mid">
-          Còn {thieuPhieu} em trong lớp chưa có phiếu của đợt này
+          {t('missingCount', {n: thieuPhieu})}
           {canEdit
             ? t('missingSheetsManage')
             : t('missingSheets')}

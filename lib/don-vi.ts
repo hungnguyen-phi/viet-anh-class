@@ -1,6 +1,6 @@
 // ĐƠN VỊ ĐO KIỂU GÌ — tệp riêng, KHÔNG phụ thuộc gì.
 //
-// Để rời khỏi lib/wig-tao.ts vì tệp ấy dùng alias `@/` nên bộ kiểm không nạp thẳng được bằng
+// Tách riêng (không dùng alias `@/`) để bộ kiểm nạp thẳng được bằng
 // `node --experimental-strip-types`. Đây là một khái niệm độc lập (một danh sách và một phép so),
 // nên đứng riêng vừa kiểm được vừa đúng chỗ hơn.
 
