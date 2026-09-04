@@ -18,6 +18,7 @@ import {Flash} from '@/components/ui/Flash';
 import {MessageHealthCard} from '@/components/inbox/MessageHealthCard';
 import {Link} from '@/i18n/navigation';
 import {BookMarked} from 'lucide-react';
+import {BoLocCoSo} from '@/components/campus/BoLocCoSo';
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
 // /campus — MÀN HÌNH CẤP CƠ SỞ CỦA BAN GIÁM HIỆU (viết lại cho mô hình mục tiêu PA2, 40-C)
@@ -36,10 +37,13 @@ import {BookMarked} from 'lucide-react';
 
 export default async function CampusPage({
   params,
+  searchParams,
 }: {
   params: Promise<{locale: string}>;
+  searchParams: Promise<{nam?: string; khoi?: string}>;
 }) {
   const {locale} = await params;
+  const sp = await searchParams;
   setRequestLocale(locale);
   const profile = await requireRole(['principal', 'admin']);
   const t = await getTranslations('campusReport');
@@ -172,7 +176,26 @@ export default async function CampusPage({
     };
   }
 
-  const [rows, coSo, areaMeta] = await Promise.all([rollupPromise, coSoPromise, areaMetaPromise]);
+  const [rows, coSoTatCa, areaMeta] = await Promise.all([rollupPromise, coSoPromise, areaMetaPromise]);
+
+  // BỘ LỌC Năm học → Khối (04/09/2026): "Lớp nào đi chậm" liệt kê mọi lớp một bảng — BGH cần lọc
+  // được khối. Lớp lấy theo cơ sở của BGH (admin: mọi lớp); RLS tự giới hạn.
+  const lopQ = supabase.from('classes').select('id, school_year, grade_id, grades(name, sort_order)').eq('is_active', true);
+  const {data: lopRows} = await (laBgh ? lopQ.eq('campus_id', profile.campus_id as string) : lopQ);
+  type LopLoc = {id: string; school_year: string; grade_id: string | null; grades: {name: string; sort_order: number} | null};
+  const lopLoc = (lopRows ?? []) as unknown as LopLoc[];
+  const namList = [...new Set(lopLoc.map((l) => l.school_year))].sort().reverse();
+  const namChon = sp.nam && namList.includes(sp.nam) ? sp.nam : (namList[0] ?? '');
+  const khoiMap = new Map<string, {id: string; name: string; sort: number}>();
+  for (const l of lopLoc) {
+    if (l.grade_id && l.school_year === namChon && !khoiMap.has(l.grade_id)) {
+      khoiMap.set(l.grade_id, {id: l.grade_id, name: l.grades?.name ?? '', sort: l.grades?.sort_order ?? 9999});
+    }
+  }
+  const khoiList = [...khoiMap.values()].sort((a, b) => a.sort - b.sort);
+  const khoiChon = sp.khoi && khoiMap.has(sp.khoi) ? sp.khoi : '';
+  const lopHopLe = new Set(lopLoc.filter((l) => l.school_year === namChon && (!khoiChon || l.grade_id === khoiChon)).map((l) => l.id));
+  const coSo = (coSoTatCa as CoSoRow[]).filter((r) => lopHopLe.has(r.class_id));
 
   // C1 — mục tiêu của CHÍNH cơ sở. Chỉ hiệu trưởng của cơ sở này quản; admin xem qua /admin.
   const mtTruong = laBgh
@@ -249,6 +272,9 @@ export default async function CampusPage({
 
       {/* C3 — LỚP NÀO ĐI CHẬM. Bảng từ co_so_tong_hop, sắp theo trung bình các % có số (tính ở
           app, không lưu). Tô nền cảnh báo khi có ≥1 số < 50%. */}
+      {(namList.length > 1 || khoiList.length > 1) && (
+        <BoLocCoSo namList={namList} khoiList={khoiList.map((k) => ({id: k.id, name: k.name}))} nam={namChon} khoi={khoiChon} />
+      )}
       <LopDiCham rows={coSo} t={tCo} tc={tc} />
 
       {/* C1 — MỤC TIÊU CỦA CƠ SỞ. Tầng trên cùng: trường đếm lớp, lớp đếm em. Số của nó do máy
