@@ -18,10 +18,13 @@ import {taoBuddyNhom, goBuddyNhom, chiaNhomNgauNhien, luuLichBuddy, luuLichCoach
 const THU = [2, 3, 4, 5, 6, 7, 8];
 
 export async function KhuBuddyPdr({
+  ve = 'roster',
   classId,
   hocSinh,
 }: {
   classId: string;
+  /** Sau action quay về đâu: 'roster' (mặc định) hay 'wig' (popup Lịch họp trên /wig). */
+  ve?: 'roster' | 'wig';
   /** Danh sách em đang học của lớp (id + tên hiển thị) — trang roster đã có sẵn. */
   hocSinh: {id: string; name: string}[];
 }) {
@@ -97,6 +100,7 @@ export async function KhuBuddyPdr({
               )}
               <form action={luuLichBuddy} className="ml-auto flex items-center gap-1.5">
                 <input type="hidden" name="class_id" value={classId} />
+                <input type="hidden" name="ve" value={ve} />
                 <input type="hidden" name="pair_ids" value={g.pairIds.join(',')} />
                 {/* CHƯA CÓ LỊCH THÌ Ô PHẢI TỰ TỐ CÁO (audit 19/08/2026): mặc định "T6" làm nhóm
                     chưa đặt lịch nhìn y hệt nhóm đã lưu lịch T6 — sau một cú "Chia ngẫu nhiên"
@@ -141,6 +145,7 @@ export async function KhuBuddyPdr({
               </form>
               <form action={goBuddyNhom}>
                 <input type="hidden" name="class_id" value={classId} />
+                <input type="hidden" name="ve" value={ve} />
                 <input type="hidden" name="pair_ids" value={g.pairIds.join(',')} />
                 <ConfirmButton
                   message={t('confirmUnpair', {names: tenNhom})}
@@ -158,6 +163,7 @@ export async function KhuBuddyPdr({
       {/* Tạo nhóm mới — 2 em, em thứ ba tuỳ chọn (lớp lẻ thì một nhóm 3) */}
       <form action={taoBuddyNhom} className="mt-3 flex flex-wrap items-center gap-2 border-t border-navy/[0.08] pt-3">
         <input type="hidden" name="class_id" value={classId} />
+                <input type="hidden" name="ve" value={ve} />
         <select name="em_a" defaultValue="" required className={`${oNho} min-w-[150px] cursor-pointer`} aria-label={t('studentA')}>
           <option value="" disabled>
             {t('studentA')}
@@ -202,6 +208,7 @@ export async function KhuBuddyPdr({
         return (
           <form action={chiaNhomNgauNhien} className="mt-2">
             <input type="hidden" name="class_id" value={classId} />
+                <input type="hidden" name="ve" value={ve} />
             <ConfirmButton
               message={t('confirmRandom', {n: conTrong.length})}
               label={t('randomize', {n: conTrong.length})}
@@ -231,6 +238,7 @@ export async function KhuBuddyPdr({
         )}
         <form action={luuLichCoach} className="flex flex-wrap items-center gap-2">
           <input type="hidden" name="class_id" value={classId} />
+                <input type="hidden" name="ve" value={ve} />
           <select name="student_id" defaultValue="" required className={`${oNho} min-w-[150px] cursor-pointer`} aria-label={t('student')}>
             <option value="" disabled>
               {t('student')}

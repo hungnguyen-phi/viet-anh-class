@@ -65,7 +65,7 @@ export async function BangCacEm({
     );
 
   const th = 'px-3 py-2 text-left text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid';
-  const num = 'px-3 py-2.5 text-right text-[13px] font-extrabold tabular-nums text-navy';
+  const num = 'w-[110px] px-3 py-2.5 text-center text-[13px] font-extrabold tabular-nums text-navy';
 
   return (
     <section className="glass rounded-[20px] p-[18px]">
@@ -109,10 +109,10 @@ export async function BangCacEm({
               <thead>
                 <tr className="bg-navy/[0.03]">
                   <th className={th}>{t('cotEm')}</th>
-                  <th className={`${th} text-right`}>{t('cotMucTieu')}</th>
-                  <th className={`${th} text-right`}>{t('cotViec')}</th>
-                  <th className={`${th} text-right`}>{t('cotCamKet')}</th>
-                  <th className={`${th} text-center`}>{t('cotHop')}</th>
+                  <th className={`${th} w-[110px] text-center`}>{t('cotMucTieu')}</th>
+                  <th className={`${th} w-[110px] text-center`}>{t('cotViec')}</th>
+                  <th className={`${th} w-[110px] text-center`}>{t('cotCamKet')}</th>
+                  <th className={`${th} w-[96px] text-center`}>{t('cotHop')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -129,7 +129,7 @@ export async function BangCacEm({
                     <td className={num}>{soMt(e) ?? trong}</td>
                     <td className={num}>{soThuoc(e) ?? trong}</td>
                     <td className={num}>{soCk(e) ?? trong}</td>
-                    <td className="px-3 py-2.5 text-center">{chipHop(e.pdr_da_ky)}</td>
+                    <td className="w-[96px] px-3 py-2.5 text-center">{chipHop(e.pdr_da_ky)}</td>
                   </tr>
                 ))}
               </tbody>

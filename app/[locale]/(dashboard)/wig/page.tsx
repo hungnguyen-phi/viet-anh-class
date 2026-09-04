@@ -1,5 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
-import {CalendarDays, Trash2} from 'lucide-react';
+import {Trash2} from 'lucide-react';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
@@ -14,6 +14,7 @@ import {lichSuTuanNhieu} from '@/lib/rpc-nhieu';
 import {Flash} from '@/components/ui/Flash';
 import {FormTaiCho, LoiO, NutGui, ONhap} from '@/components/ui/FormTaiCho';
 import {PopupLopTruong} from '@/components/wig/PopupLopTruong';
+import {KhuBuddyPdr} from '@/components/roster/KhuBuddyPdr';
 import {KhuMucTieuTruong} from '@/components/wig/KhuMucTieuTruong';
 import {BangCacEm} from '@/components/wig/BangCacEm';
 import {NutTaoMucTieuLop} from '@/components/wig/NutTaoMucTieuLop';
@@ -341,13 +342,12 @@ export default async function WigPage({
             </div>
           )}
         </PopupLopTruong>
-        <Link
-          href={{pathname: '/roster', query: classParam ? {class: classParam} : {}}}
-          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-        >
-          <CalendarDays size={14} strokeWidth={2.5} />
-          {t('lichHop')}
-        </Link>
+        {/* Lịch họp: popup ngay tại đây (04/09: thôi nhảy sang /roster), nút VÀNG để khác nút lớp·trường. */}
+        {!chiDoc && (
+          <PopupLopTruong nhan={t('lichHop')} tieuDe={t('lichHop')} icon="hop" giong="vang" tenBang="hop" moBanDau={bangParam === 'hop'}>
+            <KhuBuddyPdr classId={myClass.id} hocSinh={[...tenEm].map(([id, name]) => ({id, name}))} ve="wig" />
+          </PopupLopTruong>
+        )}
         {(accessible.length > 1 || laQuanTri) && <ClassPicker classes={accessible} current={myClass.id} />}
         <ClassOwnerNote classId={myClass.id} viewerId={profile.id} viewerRole={profile.role} />
       </div>
