@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect, useId, useRef, useState} from 'react';
+import {useTranslations} from 'next-intl';
 import {CalendarDays, ChevronLeft, ChevronRight} from 'lucide-react';
 import {ngayVN} from '@/lib/dates';
 
@@ -26,7 +27,7 @@ export function LichVN({
   min,
   max,
   loi = false,
-  placeholder = 'Chọn ngày',
+  placeholder,
   className = '',
 }: {
   /** ISO yyyy-mm-dd hoặc '' */
@@ -41,6 +42,8 @@ export function LichVN({
   placeholder?: string;
   className?: string;
 }) {
+  const tl = useTranslations('common');
+  const goiY = placeholder ?? tl('lich.chonNgay');
   const id = useId();
   const [mo, setMo] = useState(false);
   const goc = useRef<HTMLDivElement>(null);
@@ -107,7 +110,7 @@ export function LichVN({
         }`}
       >
         <CalendarDays size={15} strokeWidth={2.4} className="shrink-0 text-grey-mid" />
-        {value ? ngayVN(value) : <span className="font-semibold text-grey-soft">{placeholder}</span>}
+        {value ? ngayVN(value) : <span className="font-semibold text-grey-soft">{goiY}</span>}
       </button>
 
       {mo && (
@@ -120,7 +123,7 @@ export function LichVN({
             <button
               type="button"
               onClick={() => doiThang(-1)}
-              aria-label="Tháng trước"
+              aria-label={tl('lich.thangTruoc')}
               className="grid h-8 w-8 cursor-pointer place-items-center rounded-[8px] text-navy hover:bg-navy/[0.06]"
             >
               <ChevronLeft size={16} strokeWidth={2.5} />
@@ -129,7 +132,7 @@ export function LichVN({
               {nhan}
             </span>
             <select
-              aria-label="Tháng"
+              aria-label={tl('lich.thang')}
               value={thang.m}
               onChange={(e) => setThang({...thang, m: Number(e.target.value)})}
               className="h-8 flex-1 cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-1.5 text-[12.5px] font-bold text-navy outline-none focus:border-navy"
@@ -141,7 +144,7 @@ export function LichVN({
               ))}
             </select>
             <select
-              aria-label="Năm"
+              aria-label={tl('lich.nam')}
               value={thang.y}
               onChange={(e) => setThang({...thang, y: Number(e.target.value)})}
               className="h-8 flex-1 cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-1.5 text-[12.5px] font-bold text-navy outline-none focus:border-navy"
@@ -155,7 +158,7 @@ export function LichVN({
             <button
               type="button"
               onClick={() => doiThang(1)}
-              aria-label="Tháng sau"
+              aria-label={tl('lich.thangSau')}
               className="grid h-8 w-8 cursor-pointer place-items-center rounded-[8px] text-navy hover:bg-navy/[0.06]"
             >
               <ChevronRight size={16} strokeWidth={2.5} />

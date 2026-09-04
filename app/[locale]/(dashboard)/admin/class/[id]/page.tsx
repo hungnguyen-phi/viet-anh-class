@@ -15,6 +15,7 @@ import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {Link} from '@/i18n/navigation';
 import {ClassEditForm} from '../../ClassEditForm';
+import {tenHienThi} from '@/lib/ten-hien-thi';
 
 export default async function ClassDetailPage({
   params,
@@ -43,7 +44,7 @@ export default async function ClassDetailPage({
     {count: wigCount},
     {data: campuses},
     {data: grades},
-    {data: teachers},
+    {data: teachersRaw},
   ] = await Promise.all([
     supabase.from('campuses').select('name').eq('id', cls.campus_id).maybeSingle(),
     cls.homeroom_teacher_id
@@ -56,12 +57,16 @@ export default async function ClassDetailPage({
     supabase
       .from('profiles')
       .select('id, full_name, email')
-      .in('role', ['teacher', 'principal', 'admin'])
-      .order('email')
+      .in('role', ['teacher', 'admin'])       // GVCN là giáo viên (admin kiêm nhiệm được); BGH không chủ nhiệm
+      .order('full_name')
       .limit(500),
   ]);
 
-  const gvcn = teacher ? teacher.full_name ?? teacher.email : null;
+  const gvcn = teacher ? tenHienThi(teacher.full_name, teacher.email) : null;
+  // Ô chọn GVCN hiện TÊN, không email trần; xếp theo tên tiếng Việt.
+  const teachers = (teachersRaw ?? [])
+    .map((p) => ({...p, full_name: tenHienThi(p.full_name, p.email)}))
+    .sort((a, b) => a.full_name.localeCompare(b.full_name, 'vi'));
 
   // Thẻ liên kết sang các màn hình của lớp (mang theo ?class=id).
   const softOf = (c: string) => `color-mix(in srgb, ${c} 12%, transparent)`;
@@ -115,7 +120,7 @@ export default async function ClassDetailPage({
           </span>
           <span className={metaChip}>
             <CalendarRange size={14} strokeWidth={2} className="text-gold-deep" />
-            WIG: {wigCount ?? 0}
+            {t('mucTieuCount', {n: wigCount ?? 0})}
           </span>
         </div>
       </section>
@@ -159,7 +164,7 @@ export default async function ClassDetailPage({
           }}
           campuses={campuses ?? []}
           grades={grades ?? []}
-          teachers={teachers ?? []}
+          teachers={teachers}
         />
       </section>
     </div>

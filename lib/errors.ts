@@ -35,25 +35,40 @@ export function tachLoi(msg: string): {msg: string; laLoi: boolean} {
 
 type PgError = {code?: string | null; message?: string | null} | null | undefined;
 
-export function friendlyError(error: PgError): string {
-  if (!error) return 'Đã xảy ra lỗi. Vui lòng thử lại.';
+// Tám câu lỗi chung nằm ở messages/*.json (`common.loi*`) — bản tiếng Việt dưới đây là mặc định khi
+// nơi gọi không đưa hàm dịch (action cũ). Action mới truyền `t` của namespace `common`
+// (getTranslations('common')) để người dùng bản EN không đọc lỗi tiếng Việt (audit 04/09).
+export type DichLoi = (key: string, vars?: Record<string, string | number>) => string;
+
+const MAC_DINH_VI: Record<string, string> = {
+  loiChung: 'Đã xảy ra lỗi. Vui lòng thử lại.',
+  loiTrung: 'Dữ liệu này đã có rồi (bị trùng).',
+  loiLienQuan: 'Không thực hiện được vì còn dữ liệu liên quan.',
+  loiKhongHopLe: 'Giá trị nhập không hợp lệ.',
+  loiThieu: 'Thiếu thông tin bắt buộc.',
+  loiQuyen: 'Bạn không có quyền thực hiện thao tác này.',
+  loiTuChoi: 'Thao tác bị từ chối.',
+  loiMa: 'Đã xảy ra lỗi (mã {ma}). Thử lại, và đọc mã này cho bộ phận kỹ thuật.',
+};
+
+export function friendlyError(error: PgError, t?: DichLoi): string {
+  const d: DichLoi = t ?? ((key, vars) => MAC_DINH_VI[key].replace('{ma}', String(vars?.ma ?? '')));
+  if (!error) return d('loiChung');
   switch (error.code) {
     case '23505': // unique_violation
-      return 'Dữ liệu này đã tồn tại (bị trùng).';
+      return d('loiTrung');
     case '23503': // foreign_key_violation
-      return 'Không thực hiện được vì còn dữ liệu liên quan.';
+      return d('loiLienQuan');
     case '23514': // check_violation — CÓ THỂ là trigger tự raise câu tiếng Việt (dùng errcode 23514,
       // ví dụ "Ngày của mục tiêu phải nằm trong năm học…"). Đừng nuốt câu ấy bằng câu chung chung:
       // chỉ generic khi là lỗi CHECK gốc của Postgres (câu tiếng Anh "violates check constraint").
-      return error.message && !/check constraint/i.test(error.message)
-        ? error.message
-        : 'Giá trị nhập không hợp lệ.';
+      return error.message && !/check constraint/i.test(error.message) ? error.message : d('loiKhongHopLe');
     case '23502': // not_null_violation
-      return 'Thiếu thông tin bắt buộc.';
+      return d('loiThieu');
     case '42501': // insufficient_privilege
-      return 'Bạn không có quyền thực hiện thao tác này.';
+      return d('loiQuyen');
     case 'P0001': // raise_exception — guard nội bộ đã đặt thông báo tiếng Việt thân thiện
-      return error.message || 'Thao tác bị từ chối.';
+      return error.message || d('loiTuChoi');
     default:
       // KÈM MÃ LỖI cho những trường hợp chưa dịch.
       //
@@ -62,8 +77,6 @@ export function friendlyError(error: PgError): string {
       // nhưng người dùng chỉ đọc được đúng câu vô nghĩa ấy, còn người sửa thì không có gì để lần.
       // Mã lỗi Postgres không phải bí mật và không phải PII; nó là thứ duy nhất trong câu này dẫn
       // được về đúng dòng code. Ai không quan tâm thì bỏ qua phần trong ngoặc.
-      return error.code
-        ? `Đã xảy ra lỗi (mã ${error.code}). Vui lòng thử lại, và đọc mã này cho bộ phận kỹ thuật.`
-        : 'Đã xảy ra lỗi. Vui lòng thử lại.';
+      return error.code ? d('loiMa', {ma: error.code}) : d('loiChung');
   }
 }

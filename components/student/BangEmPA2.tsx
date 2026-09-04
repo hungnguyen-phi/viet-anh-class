@@ -17,6 +17,7 @@
 import {useActionState, useState, useTransition, useEffect} from 'react';
 import {useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
+import {XacNhanForm} from '@/components/ui/PopupXacNhan';
 import {Check, X} from 'lucide-react';
 import {isoDowVN} from '@/lib/dates';
 import {ghiLuot, chamCamKetTaiCho, doiCamKet, type ChamEmState, type LuotResult} from '@/app/[locale]/(dashboard)/student/actions';
@@ -210,7 +211,7 @@ export function HangViec({
             return (
               <div key={d} className="flex flex-col items-center">
                 <span className="text-[9.5px] font-bold text-grey-mid/70">{dayShort[i]}</span>
-                <span className="mt-0.5 grid h-8 w-full place-items-center rounded-[7px] bg-navy/[0.02] text-[10px] text-grey-mid/40">
+                <span className="mt-0.5 grid h-11 w-full place-items-center rounded-[8px] bg-navy/[0.02] text-[10px] text-grey-mid/40">
                   ·
                 </span>
               </div>
@@ -245,7 +246,7 @@ export function HangViec({
                           ? undefined
                           : tv('ngayChua')
                 }
-                className={`mt-0.5 grid h-8 w-full place-items-center rounded-[7px] text-[12px] font-extrabold transition ${
+                className={`mt-0.5 grid h-11 w-full place-items-center rounded-[8px] text-[12px] font-extrabold transition ${
                   coSo
                     ? kieng
                       ? 'bg-status-bad/70 text-white'
@@ -341,11 +342,14 @@ export function TheCamKet({
 
   return (
     <div className="glass rounded-[16px] border-l-[3px] border-gold-mid p-3.5">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="min-w-0 flex-1 text-[14px] font-extrabold text-navy">{c.noi_dung}</span>
+      {/* Hàng 1: lời hứa trọn hàng + bút. Hàng 2: các chip — hết cảnh "Tuần / này em / đọc 3 / quyển". */}
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 flex-1 text-[14px] font-extrabold leading-snug text-navy">{c.noi_dung}</span>
         {laChinhEm && !daCham && (
           <SuaCamKetEm studentId={studentId} camKetId={c.id} noiDung={c.noi_dung} soHua={c.so_hua} tenDonVi={c.ten_don_vi} />
         )}
+      </div>
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
         {c.so_hua != null && (
           <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-bold text-navy">
             {tc('chipSo', {dat: so(c.so_dat ?? 0), hua: so(c.so_hua), dv: c.ten_don_vi ?? ''})}
@@ -381,24 +385,27 @@ export function TheCamKet({
           <form action={chamAction} className="flex flex-col gap-1.5">
             <input type="hidden" name="cam_ket_id" value={c.id} />
             {c.so_hua != null && (
-              <div className="flex items-center gap-2">
-                <label className="text-[11.5px] font-bold text-navy">{tc('soDatHoi', {dv: c.ten_don_vi ?? ''})}</label>
+              <div className="flex flex-wrap items-center gap-2">
+                <label htmlFor={`so-dat-${c.id}`} className="text-[12px] font-bold text-navy">
+                  {tc('soDatHoi', {dv: c.ten_don_vi ?? ''})}
+                </label>
                 <input
+                  id={`so-dat-${c.id}`}
                   name="so_dat"
                   inputMode="decimal"
                   value={soDat}
                   onChange={(e) => datSoDat(e.target.value)}
-                  className="w-20 rounded-[9px] border-[1.5px] border-navy/15 px-2 py-1 text-[13px]"
+                  className="min-h-[44px] w-24 rounded-[9px] border-[1.5px] border-navy/15 px-2 text-base text-navy sm:text-sm"
                 />
               </div>
             )}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="submit"
                 name="ket_qua"
                 value="thang"
                 disabled={dangCham}
-                className="cursor-pointer rounded-[9px] bg-success px-3 py-1 text-[12px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="min-h-[44px] cursor-pointer rounded-[10px] bg-success px-4 text-[13px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {tc('thang')}
               </button>
@@ -407,7 +414,7 @@ export function TheCamKet({
                 name="ket_qua"
                 value="thua"
                 disabled={dangCham}
-                className="cursor-pointer rounded-[9px] border-[1.5px] border-status-bad/40 px-3 py-1 text-[12px] font-extrabold text-status-bad disabled:cursor-not-allowed disabled:opacity-40"
+                className="min-h-[44px] cursor-pointer rounded-[10px] border-[1.5px] border-status-bad/40 px-4 text-[13px] font-extrabold text-status-bad disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {tc('thua')}
               </button>
@@ -432,7 +439,7 @@ export function TheCamKet({
             name="ket_qua"
             value=""
             disabled={dangCham}
-            className="cursor-pointer rounded-[7px] px-1 py-0.5 text-[11.5px] font-extrabold text-grey-mid underline transition-colors hover:text-navy disabled:opacity-50"
+            className="min-h-[44px] cursor-pointer rounded-[8px] px-2 text-[12px] font-extrabold text-grey-mid underline transition-colors hover:text-navy disabled:opacity-50"
           >
             {tc('boCham')}
           </button>
@@ -442,22 +449,16 @@ export function TheCamKet({
       {/* XÓA CAM KẾT — bỏ cam kết này KÈM lead measure của nó (doiCamKet: đánh dấu 'huy' để cam kết
           tự-lăn NGỪNG lăn dòng này + xoá thước đo dẫn dắt gắn nó). */}
       {laChinhEm && !daCham && (
-        <form
-          action={doiCamKet}
-          onSubmit={(e) => {
-            if (!window.confirm(tc('xoaHoi'))) e.preventDefault();
-          }}
-          className="mt-2 flex justify-end"
-        >
+        <XacNhanForm action={doiCamKet} hoi={tc('xoaHoi')} nhanDongY={tc('xoaCamKet')} nguyHiem className="mt-1 flex justify-end">
           <input type="hidden" name="student_id" value={studentId} />
           <input type="hidden" name="cam_ket_id" value={c.id} />
           <button
             type="submit"
-            className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-bold text-grey-mid underline hover:text-status-bad"
+            className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 px-2 text-[12px] font-bold text-grey-mid underline hover:text-status-bad"
           >
             {tc('xoaCamKet')}
           </button>
-        </form>
+        </XacNhanForm>
       )}
     </div>
   );

@@ -2,7 +2,7 @@
 
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {useLocale} from 'next-intl';
+import {useTranslations} from 'next-intl';
 import {createClient} from '@/lib/supabase/client';
 import {useFocusTrap} from '@/lib/useFocusTrap';
 import type {Role} from '@/lib/auth';
@@ -21,145 +21,44 @@ import {
 } from 'lucide-react';
 
 type Step = {Icon: LucideIcon; title: string; bullets: string[]};
+type T = ReturnType<typeof useTranslations<'common'>>;
 
-// Nội dung onboarding song ngữ. Mỗi vai trò: chào mừng → cách lớp làm việc → phần của vai trò → xong.
+// Nội dung onboarding — chuỗi nằm ở messages `common.intro.*` (audit 04/09: 39 chuỗi cứng làm bản
+// EN lộ tiếng Việt). Mỗi vai: chào mừng → cách lớp làm việc → phần của vai → xong.
 //
-// VIẾT LẠI 13/08/2026. Bản cũ sai hai chuyện, và cả hai đều nằm ở thứ đầu tiên người mới đọc:
-//
-//   · Nó chỉ đường tới hai cái nút KHÔNG CÓ THẬT ở chỗ nó nói — "nút EN/VI góc trên bên phải" và
-//     'nút "Hướng dẫn" trên góc phải'. Góc phải chỉ có chuông và bánh răng; cả hai thứ ấy nằm
-//     TRONG menu bánh răng. Người mới lần đầu vào app đi tìm và không thấy.
-//     (Bản cũ còn bảo giáo viên bấm "Ghi +" để cộng tiến độ — nút ấy đã bỏ từ 0073, nay các em
-//     tự tick.)
-//   · Nó là trang thuyết trình tư vấn đặt nhầm chỗ: "lãnh đạo việc học tập theo khung 4DX",
-//     "WIG", "Lead measure", "Scoreboard", "buổi tutor", "hành vi văn hoá" — cho học sinh lớp 6.
-//     Thuật ngữ nào giữ lại thì phải giải thích ngay bằng tiếng Việt thường.
-//
-// Xưng hô: chỉ "bạn", thống nhất với toàn bộ màn hình học sinh (chủ dự án chốt 13/08/2026).
-function buildSteps(role: Role, locale: string): Step[] {
-  const vi = locale !== 'en';
+// XƯNG HÔ theo luật chốt 04/09: học sinh là "em"; app nói với mọi người lớn là "bạn". Bản cũ gọi
+// học sinh là "bạn" và bảo giáo viên "bạn theo dõi việc mình làm mỗi ngày" (câu của học sinh).
+function buildSteps(role: Role, t: T): Step[] {
+  const em = role === 'student';
   const welcome: Step = {
     Icon: Sparkles,
-    title: vi ? 'Chào mừng đến Việt Anh Class!' : 'Welcome to Viet Anh Class!',
-    bullets: vi
-      ? [
-          'Đây là chỗ cả lớp cùng theo dõi mục tiêu của năm, và bạn theo dõi việc mình làm mỗi ngày.',
-          'Muốn đọc bằng tiếng Anh: bấm hình bánh răng ở góc trên bên phải, chọn "Ngôn ngữ".',
-        ]
-      : [
-          'This is where your class tracks its goals for the year, and you track what you do each day.',
-          'To read in Vietnamese: press the gear icon at the top right and pick "Language".',
-        ],
+    title: t('intro.chaoTitle'),
+    bullets: [em ? t('intro.chaoEm') : t('intro.chaoNguoiLon'), t('intro.chaoNgonNgu')],
   };
   const dx: Step = {
     Icon: Target,
-    title: vi ? 'Lớp mình làm việc thế nào?' : 'How your class works',
-    bullets: vi
-      ? [
-          'Mục tiêu — điều quan trọng nhất lớp muốn đạt trong năm, ở 4 mảng: Kiến thức, Kỹ năng lãnh đạo, Phẩm chất, Sức khoẻ thể chất.',
-          'Việc làm đều — việc nhỏ bạn làm hằng ngày để đi tới mục tiêu, ví dụ làm bài tập mỗi tối. Làm xong thì tick vào ô của ngày hôm đó.',
-          'Bảng tiến độ — vòng tròn phần trăm cho biết bạn đang đi đúng nhịp, giữa nhịp hay chậm so với kế hoạch.',
-          'Họp với bạn — mỗi tuần em ngồi với bạn cùng nhóm nhìn lại tuần vừa rồi, rút ra điều gì, rồi hứa việc tuần tới.',
-        ]
-      : [
-          'Goals (WIGs) — the most important things your class wants to reach this year, in 4 domains: Knowledge, Leadership skills, Character, Physical Well-being.',
-          'Daily habits — the small things you do every day to get there, like homework each evening. Tick the box for the day once you have done it.',
-          'Progress ring — a percentage that tells you whether you are on track, mid-pace, or behind.',
-          'Class meeting — each week the class looks back at the numbers, says what it learned, and promises what comes next.',
-        ],
+    title: t('intro.cachTitle'),
+    bullets: em
+      ? [t('intro.cach1'), t('intro.cach2Em'), t('intro.cach3Em'), t('intro.cach4Em'), t('intro.cach5Em')]
+      : [t('intro.cach1'), t('intro.cach2NguoiLon'), t('intro.cach3NguoiLon'), t('intro.cach4NguoiLon')],
   };
-  const roleStep: Record<Role, Step> = {
-    teacher: {
-      Icon: GraduationCap,
-      title: vi ? 'Bạn là Giáo viên chủ nhiệm' : "You're a Homeroom Teacher",
-      bullets: vi
-        ? [
-            'Trang lớp: bảng điểm, thứ hạng thi đua, vòng tròn mục tiêu 4 lĩnh vực.',
-            'Điểm danh: chọn nhanh cả lớp rồi chỉnh vài em, lưu realtime.',
-            'Mục tiêu 3 bước: ① Tạo mục tiêu năm → ② Cam kết tuần → ③ Thêm việc để các em tick. Tiến độ do chính các em tick mà thành, giáo viên không cộng tay.',
-            'Danh sách: bật "Trưởng điểm danh" cho 1 học sinh điểm danh thay (chỉ hôm nay).',
-          ]
-        : [
-            'Class page: scoreboard, competition rank, 4-area WIG donuts.',
-            'Attendance: tick the whole class fast, adjust a few, saves in realtime.',
-            'WIG in 3 steps: ① yearly goal → ② weekly goal → ③ add the work students tick. Progress comes from their own ticks — teachers do not add it by hand.',
-            'Roster: set an "Attendance leader" so a student can mark attendance (today only).',
-          ],
-    },
-    student: {
-      Icon: Star,
-      title: vi ? 'Bạn là Học sinh' : "You're a Student",
-      bullets: vi
-        ? [
-            'Mở "Bảng điểm của tôi" là thấy đủ: cảm xúc hôm nay, mục tiêu của bạn, và những việc cần tick.',
-            'Mỗi ngày chọn một mặt cười ở ô "Hôm nay bạn thế nào?" — đó cũng chính là điểm danh của bạn.',
-            'Nếu được giao "Trưởng điểm danh": bạn điểm danh giúp cả lớp (chỉ trong hôm nay).',
-          ]
-        : [
-            'Open "My board" to find everything: today\'s mood, your goals, and the work to tick.',
-            'Pick a face each day in "How are you today?" — that is also your attendance.',
-            'If you\'re the "Attendance leader": mark attendance for the class (today only).',
-          ],
-    },
-    parent: {
-      Icon: LineChart,
-      title: vi ? 'Bạn là Phụ huynh' : "You're a Parent",
-      bullets: vi
-        ? [
-            'Vào Báo cáo: chỉ xem dữ liệu con mình — điểm danh + tiến độ mục tiêu theo tuần.',
-            'Chọn tuần để xem kết quả từng lĩnh vực và chiêm nghiệm của con.',
-            'Bạn không xem được dữ liệu của học sinh khác.',
-          ]
-        : [
-            'Open Report: only your child\'s data — attendance + weekly WIG progress.',
-            'Pick a week to see per-area results and your child\'s reflection.',
-            'You cannot see other students\' data.',
-          ],
-    },
-    principal: {
-      Icon: Building2,
-      title: vi ? 'Bạn là Ban giám hiệu' : "You're School Leadership",
-      bullets: vi
-        ? [
-            'Báo cáo cơ sở: các lớp trong cơ sở mình — điểm thi đua + điểm danh hôm nay.',
-            'Bạn không xem được cơ sở khác.',
-          ]
-        : [
-            'Campus report: classes in your campus — competition score + today\'s attendance.',
-            'You cannot see other campuses.',
-          ],
-    },
-    admin: {
-      Icon: ShieldCheck,
-      title: vi ? 'Bạn là Quản trị viên' : "You're an Administrator",
-      bullets: vi
-        ? [
-            'Tạo cơ sở, tạo lớp, phân công GVCN.',
-            'Mời người dùng mới (chọn vai trò + lớp) — tự gán khi họ đăng nhập lần đầu.',
-            'Đổi vai trò, vô hiệu, hoặc xoá người dùng; mời phụ huynh và gán con.',
-          ]
-        : [
-            'Create campuses, classes, and assign homeroom teachers.',
-            'Invite new users (pick role + class) — auto-assigned on first login.',
-            'Change roles, disable, or delete users; invite parents and link children.',
-          ],
-    },
-    pending: {
-      Icon: Sparkles,
-      title: vi ? 'Tài khoản đang chờ cấp quyền' : 'Account pending access',
-      bullets: vi
-        ? ['Liên hệ quản trị viên của trường để được gán vai trò.']
-        : ['Contact your school administrator to be assigned a role.'],
-    },
+  const icon: Record<Role, LucideIcon> = {
+    teacher: GraduationCap,
+    student: Star,
+    parent: LineChart,
+    principal: Building2,
+    admin: ShieldCheck,
+    pending: Sparkles,
   };
-  const done: Step = {
-    Icon: PartyPopper,
-    title: vi ? 'Sẵn sàng rồi!' : "You're all set!",
-    bullets: vi
-      ? ['Muốn xem lại hướng dẫn này: bấm hình bánh răng ở góc trên bên phải, chọn "Hướng dẫn".']
-      : ['To replay this guide: press the gear icon at the top right and pick "Guide".'],
+  const soGach: Record<Role, number> = {teacher: 4, student: 3, parent: 3, principal: 2, admin: 3, pending: 1};
+  const vai = (role in icon ? role : 'pending') as Role;
+  const roleStep: Step = {
+    Icon: icon[vai],
+    title: t(`intro.vai.${vai}.title`),
+    bullets: Array.from({length: soGach[vai]}, (_, k) => t(`intro.vai.${vai}.b${k + 1}`)),
   };
-  return [welcome, dx, roleStep[role] ?? roleStep.pending, done];
+  const done: Step = {Icon: PartyPopper, title: t('intro.xongTitle'), bullets: [t('intro.xong1')]};
+  return [welcome, dx, roleStep, done];
 }
 
 export function IntroGuide({
@@ -171,7 +70,7 @@ export function IntroGuide({
   role: Role;
   introSeen: boolean;
 }) {
-  const locale = useLocale();
+  const t = useTranslations('common');
   const [open, setOpen] = useState(false);
   const [i, setI] = useState(0);
   const [mounted, setMounted] = useState(false);
@@ -179,8 +78,7 @@ export function IntroGuide({
   const seenRef = useRef(introSeen);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const steps = useMemo(() => buildSteps(role, locale), [role, locale]);
-  const vi = locale !== 'en';
+  const steps = useMemo(() => buildSteps(role, t), [role, t]);
 
   useEffect(() => setMounted(true), []);
   // Lần đầu (chưa xem) → tự mở.
@@ -247,7 +145,7 @@ export function IntroGuide({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Chấm tiến trình */}
-        <div className="flex justify-center gap-1.5">
+        <div className="flex justify-center gap-1.5" aria-label={t('intro.buoc', {i: i + 1, n: steps.length})}>
           {steps.map((_, idx) => (
             <span
               key={idx}
@@ -277,9 +175,9 @@ export function IntroGuide({
           <button
             type="button"
             onClick={finish}
-            className="cursor-pointer px-2 py-1 text-[13px] font-bold text-grey-mid transition-colors hover:text-navy"
+            className="min-h-[44px] cursor-pointer px-2 text-[13px] font-bold text-grey-mid transition-colors hover:text-navy"
           >
-            {vi ? 'Bỏ qua' : 'Skip'}
+            {t('intro.nutBo')}
           </button>
           <div className="flex items-center gap-2">
             {i > 0 && (
@@ -289,7 +187,7 @@ export function IntroGuide({
                 className="inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-xl border-[1.5px] border-navy/15 px-3.5 text-[13px] font-bold text-navy transition-colors hover:border-navy"
               >
                 <ArrowLeft size={15} strokeWidth={2.5} />
-                {vi ? 'Quay lại' : 'Back'}
+                {t('intro.nutQuayLai')}
               </button>
             )}
             <button
@@ -297,7 +195,7 @@ export function IntroGuide({
               onClick={() => (last ? finish() : setI((v) => v + 1))}
               className="btn-gold inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-xl px-5 font-display text-[13.5px] font-bold"
             >
-              {last ? (vi ? 'Bắt đầu' : 'Get started') : vi ? 'Tiếp tục' : 'Continue'}
+              {last ? t('intro.nutBatDau') : t('intro.nutTiep')}
               {!last && <ArrowRight size={15} strokeWidth={2.5} />}
             </button>
           </div>

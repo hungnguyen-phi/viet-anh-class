@@ -86,7 +86,7 @@ export async function ThreadList({
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               {chuaDoc && (
                 <span className={`${chipBase} bg-gold/20 text-navy`}>
-                  {it.unread_count} tin chưa đọc
+                  {t('tinChuaDoc', {n: it.unread_count})}
                 </span>
               )}
               {it.waiting_for_school &&
