@@ -40,15 +40,15 @@ type Tab = (typeof TABS)[number];
 const HANG_VAI: Record<string, number> = {teacher: 0, principal: 1, admin: 2, student: 3, parent: 4};
 
 const oChon =
-  'h-8 w-full min-w-0 cursor-pointer rounded-[9px] border-[1.5px] border-navy/15 bg-white px-1.5 text-[12px] font-semibold text-navy outline-none focus:border-navy';
+  'h-8 w-full min-w-0 cursor-pointer rounded-[9px] border-[1.5px] border-navy/15 bg-white px-1.5 text-base sm:text-[12px] font-semibold text-navy outline-none focus:border-navy';
 const selectCls =
-  'h-10 cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy';
+  'h-11 cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy';
 const navyBtn =
-  'inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] bg-navy px-3 text-[12px] font-extrabold text-white transition-all hover:bg-navy-700';
+  'inline-flex h-11 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] bg-navy px-3 text-[12px] font-extrabold text-white transition-all hover:bg-navy-700';
 const ghostBtn =
   'inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/20 bg-white/70 px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
 const ghostBtnLg =
-  'inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white/60 px-3 text-[12px] font-extrabold text-navy transition-all hover:border-navy';
+  'inline-flex h-11 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white/60 px-3 text-[12px] font-extrabold text-navy transition-all hover:border-navy';
 const th = 'text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
 
 // MỘT BỘ CỘT DÙNG CHUNG CHO CẢ TIÊU ĐỀ LẪN MỌI DÒNG.
@@ -335,7 +335,7 @@ export function GrantsPanel({
                 type="button"
                 onClick={() => setTab(k)}
                 aria-pressed={on}
-                className={`inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-[12px] font-extrabold transition-all ${
+                className={`inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-[12px] font-extrabold transition-all ${
                   on
                     ? 'bg-navy text-white'
                     : 'border-[1.5px] border-navy/15 bg-white/60 text-navy hover:border-navy'
@@ -360,7 +360,7 @@ export function GrantsPanel({
               onChange={(e) => setQ(e.target.value)}
               placeholder={t('grantsSearch')}
               aria-label={t('grantsSearch')}
-              className="h-10 w-[230px] rounded-[10px] border-[1.5px] border-navy/15 bg-white pl-8 pr-3 text-[16px] font-semibold text-navy focus-visible:border-navy focus-visible:outline-none sm:text-[12.5px]"
+              className="h-11 w-[230px] rounded-[10px] border-[1.5px] border-navy/15 bg-white pl-8 pr-3 text-[16px] font-semibold text-navy focus-visible:border-navy focus-visible:outline-none sm:text-[12.5px]"
             />
           </span>
           {q && (

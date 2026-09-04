@@ -233,7 +233,7 @@ export default async function ClassPage({
       {/* Ba số thi đua TÁCH nhau — không cộng thành một điểm (thi_dua_lop, 30 §4.2) */}
       {td && (
         <div className="glass rounded-[22px] p-5 sm:px-6">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {[
               {label: t('class.diemMucTieu'), value: td.diem_muc_tieu},
               {label: t('class.diemViec'), value: td.diem_thuoc},
@@ -241,7 +241,7 @@ export default async function ClassPage({
             ].map((s) => (
               <div
                 key={s.label}
-                className="rounded-[16px] bg-navy/[0.04] px-4 py-3.5 text-center"
+                className="rounded-[16px] bg-navy/[0.04] px-2 py-3 text-center sm:px-4 sm:py-3.5"
               >
                 <div className="font-display text-[26px] font-bold leading-none text-navy">
                   {fmtDiem(s.value)}

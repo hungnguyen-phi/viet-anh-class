@@ -21,7 +21,7 @@ type Grade = {id: string; name: string; campus_id: string; is_active: boolean};
 type Teacher = {id: string; full_name: string | null; email: string};
 
 const inp =
-  'min-w-0 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
+  'min-w-0 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-base sm:text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
 const navyBtn =
   'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700';
 const ghost =
@@ -75,7 +75,56 @@ export function ClassManager({
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
+      {/* ĐIỆN THOẠI: mỗi lớp một thẻ; thao tác dùng chung với bảng. */}
+      <ul className="flex flex-col gap-2 sm:hidden">
+        {shown.map((c) => (
+          <li key={c.id} className="rounded-[14px] border-[1.5px] border-navy/10 bg-white p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="truncate text-[14px] font-extrabold text-navy">{c.name}</div>
+                <div className="mt-0.5 text-[12px] font-semibold text-grey-mid">
+                  {c.grade ?? t('noGrade')} · {c.school_year}
+                </div>
+                <div className="mt-0.5 truncate text-[12px] font-semibold text-grey-mid">
+                  {c.homeroom_teacher_id ? teacherName.get(c.homeroom_teacher_id) ?? t('gvcnRoleChanged') : t('notAssigned')}
+                </div>
+              </div>
+              <Link href={`/admin/class/${c.id}`} className={`${gold} min-h-[44px] shrink-0`}>
+                {t('detail')}
+              </Link>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <button type="button" onClick={() => setEditId(editId === c.id ? null : c.id)} className={`${ghost} min-h-[44px]`}>
+                {t('edit')}
+              </button>
+              <form action={setClassActive}>
+                <input type="hidden" name="id" value={c.id} />
+                <input type="hidden" name="active" value="false" />
+                <SubmitButton className={`${ghost} min-h-[44px]`}>{t('archive')}</SubmitButton>
+              </form>
+              <form action={deleteClass}>
+                <input type="hidden" name="id" value={c.id} />
+                <ConfirmButton message={t('confirmDeleteClass')} label={t('deleteClass')} className={`${danger} min-h-[44px] min-w-[44px]`}>
+                  ✕
+                </ConfirmButton>
+              </form>
+            </div>
+            {editId === c.id && (
+              <div className="mt-2">
+                <ClassEditRow
+                row={c}
+                campuses={campuses}
+                grades={grades}
+                teachers={teachers}
+                onDone={() => setEditId(null)}
+              />
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10 sm:block">
         <div className="box-border flex min-w-[720px] items-center gap-2 bg-navy/[0.03] px-[14px] py-[9px]">
           <span className={`flex-1 ${th}`}>{t('name')}</span>
           <span className={`w-[90px] flex-none ${th}`}>{t('grade')}</span>
@@ -99,7 +148,7 @@ export function ClassManager({
                   ? teacherName.get(c.homeroom_teacher_id) ?? t('gvcnRoleChanged')
                   : t('notAssigned')}
               </span>
-              <span className="flex w-[240px] flex-none gap-1.5">
+              <span className="flex w-[240px] flex-none flex-wrap gap-1.5">
                 <Link href={`/admin/class/${c.id}`} className={gold}>
                   {t('detail')}
                 </Link>

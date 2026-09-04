@@ -336,7 +336,7 @@ export default async function CampusPage({
         <p className="mb-3 text-xs text-grey-mid">{t('subjectsCardHint')}</p>
         <Link
           href="/subjects"
-          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy"
+          className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy"
         >
           <BookMarked size={14} strokeWidth={2.2} />
           {t('openSubjects')}
@@ -478,7 +478,33 @@ function BangLop({
 }) {
   if (rows.length === 0) return null;
   return (
-        <div className="overflow-x-auto">
+    <>
+      {/* ĐIỆN THOẠI: mỗi lớp một thẻ + 5 ô số — bảng 7 cột không vừa 360px. */}
+      <ul className="flex flex-col gap-2 px-3 py-2 sm:hidden">
+        {rows.map((r) => (
+          <li key={r.class_id} className={`rounded-[12px] border-[1.5px] p-3 ${r.canhBao ? 'border-status-bad/30 bg-status-bad/[0.05]' : 'border-navy/10 bg-white'}`}>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-[14px] font-extrabold text-navy">{r.class_name}</span>
+              <span className="truncate text-[12px] font-semibold text-grey-mid">{r.gvcn_ten ?? '—'}</span>
+            </div>
+            <div className="mt-2 grid grid-cols-5 gap-1 text-center">
+              {[
+                [t('cotMucTieu'), so(r.mt_pct)],
+                [t('cotViec'), so(r.thuoc_dat_pct)],
+                [t('cotCamKet'), so(r.ck_giu_pct)],
+                [t('cotHop'), so(r.pdr_ky_pct)],
+                [t('cotChoDuyet'), r.cho_duyet > 0 ? String(r.cho_duyet) : '—'],
+              ].map(([nhan, gia]) => (
+                <div key={nhan} className="rounded-[8px] bg-navy/[0.04] px-1 py-1.5">
+                  <div className="text-[13px] font-extrabold tabular-nums text-navy">{gia}</div>
+                  <div className="text-[9.5px] font-extrabold uppercase tracking-wide text-grey-mid">{nhan}</div>
+                </div>
+              ))}
+            </div>
+          </li>
+        ))}
+      </ul>
+        <div className="hidden overflow-x-auto sm:block">
           <div className="min-w-[560px]">
             <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_repeat(5,minmax(0,1fr))] items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
               <span>{t('cotLop')}</span>
@@ -519,5 +545,6 @@ function BangLop({
             ))}
           </div>
         </div>
+    </>
   );
 }

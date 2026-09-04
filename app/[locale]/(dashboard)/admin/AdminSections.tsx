@@ -17,7 +17,7 @@ import {SchoolNetworkManager} from './SchoolNetworkManager';
 
 const cardTitle = 'mb-3 font-display text-[15px] font-bold text-navy';
 const openLink =
-  'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy';
+  'inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy';
 
 // PHẦN CÒN LẠI CỦA MÀN QUẢN TRỊ — cây cơ sở, wifi, lĩnh vực, kho lưu trữ, mục lục màn hình.
 //

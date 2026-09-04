@@ -11,7 +11,7 @@ import {AREA_ICON_MAP, AREA_ICON_NAMES, type AreaMeta, type Area} from '@/lib/ar
 const resetBtn =
   'h-8 cursor-pointer whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/15 bg-white/70 px-2.5 text-[11.5px] font-extrabold text-grey-mid transition-all hover:border-navy hover:text-navy';
 const inp =
-  'min-w-0 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
+  'min-w-0 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-base sm:text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
 const navyBtn =
   'h-9 shrink-0 cursor-pointer whitespace-nowrap rounded-[10px] bg-navy px-3 text-[12px] font-extrabold text-white transition-all hover:bg-navy-700';
 const lbl = 'flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';

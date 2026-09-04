@@ -64,14 +64,14 @@ export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: strin
       {/* Thanh thao tác hàng loạt. Chỉ hiện khi đã tick — một thanh luôn nằm đó với các nút mờ là
           một thanh người ta thôi đọc. */}
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <label className="inline-flex h-8 cursor-pointer items-center gap-2 text-[12.5px] font-extrabold text-navy">
+        <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 text-[12.5px] font-extrabold text-navy">
           <input
             ref={allRef}
             type="checkbox"
             checked={allChecked}
             onChange={() => setSel(allChecked ? [] : chonDuoc.map((r) => r.id))}
             disabled={chonDuoc.length === 0}
-            className="h-4 w-4 cursor-pointer accent-[var(--color-navy)]"
+            className="cham-44 h-4 w-4 cursor-pointer accent-[var(--color-navy)]"
           />
           {t('selectAll')}
         </label>
@@ -112,7 +112,55 @@ export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: strin
           được nhưng vụng hơn. Cái mất khi bỏ <table> là trình đọc màn hình không còn biết ô nào
           thuộc cột nào; role="table"/"row"/"columnheader"/"cell" trả lại đúng thông tin đó mà
           không đụng tới bố cục. */}
-      <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10">
+      {/* ĐIỆN THOẠI (<640): mỗi người một thẻ — bảng 6 cột không có chỗ, cuộn ngang là giấu dữ liệu. */}
+      <ul className="flex flex-col gap-2 sm:hidden" aria-label={t('usersTable')}>
+        {rows.map((p) => {
+          const who = p.full_name ?? p.email;
+          const laMinh = p.id === meId;
+          const dangChon = sel.includes(p.id);
+          return (
+            <li
+              key={p.id}
+              className={`flex items-start gap-2.5 rounded-[14px] border-[1.5px] p-3 ${dangChon ? 'border-navy/40 bg-navy/[0.05]' : 'border-navy/10 bg-white'}`}
+            >
+              <input
+                type="checkbox"
+                checked={dangChon}
+                onChange={() => toggle(p.id)}
+                disabled={laMinh}
+                aria-label={t('pickFor', {name: who})}
+                className="cham-44 mt-1 h-4 w-4 flex-none cursor-pointer accent-[var(--color-navy)] disabled:opacity-30"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13.5px] font-extrabold text-navy">
+                  {p.full_name ?? <span className="font-semibold italic text-grey-mid">{t('noName')}</span>}
+                </div>
+                <div className="truncate text-[12px] font-semibold text-grey-mid">{p.email}</div>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[11px] font-extrabold text-navy">{tr(p.role)}</span>
+                  {p.lop !== undefined && (
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${p.lop === null ? 'bg-gold/20 italic text-navy' : 'bg-navy/[0.06] text-navy'}`}>
+                      {p.lop ?? t('chuaCoLop')}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {!laMinh ? (
+                <SuaNguoiDung id={p.id} who={who} role={p.role} email={p.email} />
+              ) : (
+                <span className="text-[10.5px] font-bold text-grey-mid">{t('isYou')}</span>
+              )}
+            </li>
+          );
+        })}
+        {rows.length === 0 && (
+          <li className="rounded-[14px] border-[1.5px] border-navy/10 px-4 py-6 text-center text-[13px] font-extrabold text-navy">
+            {q ? t('noMatch', {q}) : t('noUsersFilter')}
+          </li>
+        )}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10 sm:block">
         <div role="table" aria-label={t('usersTable')}>
           <div
             role="row"

@@ -81,7 +81,7 @@ export function GioTietForm({
       <button
         type="button"
         onClick={() => setMo(true)}
-        className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[9px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-[11.5px] font-extrabold text-navy transition-colors hover:border-navy"
+        className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[9px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-[11.5px] font-extrabold text-navy transition-colors hover:border-navy sm:min-h-0 sm:h-8"
       >
         <Clock3 size={13} strokeWidth={2.4} />
         {nhan.moNut}

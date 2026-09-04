@@ -11,7 +11,7 @@ type Grade = {id: string; name: string; sort_order: number};
 
 // Style gọn — nhất quán với admin/page.tsx (glass on gradient v3).
 const inp =
-  'min-w-0 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
+  'min-w-0 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-base sm:text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
 const navyBtn =
   'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700';
 const ghost =
