@@ -1,9 +1,9 @@
 'use server';
 
 import {revalidatePath} from 'next/cache';
+import {getTranslations} from 'next-intl/server';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
-import {createAdminClient} from '@/lib/supabase/admin';
 import {timHoacTaoDonVi} from '@/lib/don-vi-server';
 import {getCurrentProfile, requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
@@ -64,8 +64,9 @@ export type LuotResult = {ok: boolean; error?: string};
 // ════════════════════════════════════════════════════════════════════════════════════════════
 
 export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promise<MucTieuState> {
+  const t = await getTranslations('loi');
   const me = await getCurrentProfile();
-  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
+  if (!me) return {ok: false, error: t('chuaDangNhap')};
 
   const muc_tieu_id = String(formData.get('muc_tieu_id') ?? '').trim();
   const student_id = String(formData.get('student_id') ?? '');
@@ -80,14 +81,14 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   const laNhanSu = me.role === 'teacher' || me.role === 'admin' || me.role === 'principal';
   // Thầy cô đặt mục tiêu CÁ NHÂN của chính mình (0181) — cũng cap='em', student_id = thầy cô.
   const laToiGv = cap === 'em' && me.id === student_id && laNhanSu;
-  if (laLop && !laNhanSu) return {ok: false, error: 'Chỉ thầy cô mới đặt mục tiêu cho lớp.'};
+  if (laLop && !laNhanSu) return {ok: false, error: t('chiThayCoMoiDatMuc')};
   if (laTruong && !(me.role === 'admin' || me.role === 'principal'))
-    return {ok: false, error: 'Chỉ ban giám hiệu mới đặt mục tiêu cho trường.'};
-  if (cap === 'em' && !laChinhEm && !laNhanSu) return {ok: false, error: 'Chỉ em mới ghi được phần này.'};
+    return {ok: false, error: t('chiBanGiamHieuMoiDat')};
+  if (cap === 'em' && !laChinhEm && !laNhanSu) return {ok: false, error: t('chiEmMoiGhiDuocPhan')};
 
   const ten = String(formData.get('ten') ?? '').trim();
-  if (!ten) return {ok: false, fieldError: 'ten', error: 'Em muốn tiến bộ ở việc gì? Viết một câu.'};
-  if (ten.length > 200) return {ok: false, fieldError: 'ten', error: 'Tối đa 200 ký tự.'};
+  if (!ten) return {ok: false, fieldError: 'ten', error: t('emMuonTienBoOViec')};
+  if (ten.length > 200) return {ok: false, fieldError: 'ten', error: t('toiDa200KyTu')};
 
   const linhVucRaw = String(formData.get('linh_vuc') ?? 'knowledge');
   const linh_vuc = ([...AREAS, 'khac'] as string[]).includes(linhVucRaw)
@@ -118,7 +119,7 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   // 04/09: người lớn (tôi/lớp) phải chọn hướng lên cấp trên khi cấp trên có mục tiêu — form gửi
   // cờ ho_tro_bat_buoc='1' đúng trong trường hợp ấy.
   if (String(formData.get('ho_tro_bat_buoc') ?? '') === '1' && !ho_tro_cho) {
-    return {ok: false, fieldError: 'ho_tro_cho', error: 'Chọn mục tiêu cấp trên để hướng vào đã nhé.'};
+    return {ok: false, fieldError: 'ho_tro_cho', error: t('chonMucTieuCapTrenDe')};
   }
 
   // LOẠI CỘT MỐC (0172): do_luong (X→Y, như cũ) · hanh_dong (0→100% một việc) · ke_hoach (các
@@ -146,7 +147,7 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
       cacBuoc = [];
     }
     if (cacBuoc.length < 1)
-      return {ok: false, fieldError: 'buoc', error: 'Thêm ít nhất một bước cho kế hoạch.'};
+      return {ok: false, fieldError: 'buoc', error: t('themItNhatMotBuocCho')};
     const tong = cacBuoc.reduce((s, b) => s + b.phan_tram, 0);
     if (Math.round(tong) !== 100)
       return {ok: false, fieldError: 'buoc', error: `Phần trăm các bước phải cộng đủ 100% (đang ${Math.round(tong)}%).`};
@@ -155,9 +156,9 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   const ket_thuc = String(formData.get('ket_thuc') ?? '').trim();
   const bat_dau = String(formData.get('bat_dau') ?? '').trim();
   if (!isValidDayVN(ket_thuc))
-    return {ok: false, fieldError: 'ket_thuc', error: 'Chọn ngày em muốn đạt được.'};
+    return {ok: false, fieldError: 'ket_thuc', error: t('chonNgayEmMuonDatDuoc')};
   if (bat_dau && isValidDayVN(bat_dau) && bat_dau > ket_thuc)
-    return {ok: false, fieldError: 'bat_dau', error: 'Ngày bắt đầu phải trước ngày đạt.'};
+    return {ok: false, fieldError: 'bat_dau', error: t('ngayBatDauPhaiTruocNgay')};
 
   // Giá trị đo hiệu lực: hành động/kế hoạch ép về 0→100%; đo lường giữ như form.
   const eff_kieu_dich = laPhanTram ? 'toi' : kieu_dich;
@@ -168,11 +169,11 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   // Đích bằng lời (kieu='chu') cần y_chu; đích bằng số cần y_so. Đơn vị bắt buộc trừ chu/ti_le_dat.
   if (!laPhanTram) {
     if (kieu_dich === 'chu') {
-      if (!y_chu) return {ok: false, fieldError: 'y_chu', error: 'Em sẽ đạt được gì? Viết bằng lời.'};
+      if (!y_chu) return {ok: false, fieldError: 'y_chu', error: t('emSeDatDuocGiViet')};
     } else {
       if (y_so === null || y_so <= 0)
-        return {ok: false, fieldError: 'y_so', error: 'Đích phải là số lớn hơn 0.'};
-      if (!don_vi_id) return {ok: false, fieldError: 'don_vi_id', error: 'Chọn đơn vị (điểm, bài, lần…).'};
+        return {ok: false, fieldError: 'y_so', error: t('dichPhaiLaSoLonHon')};
+      if (!don_vi_id) return {ok: false, fieldError: 'don_vi_id', error: t('chonDonViDiemBaiLan')};
     }
   }
 
@@ -193,9 +194,9 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   // "khác": em tự gõ đơn vị chưa có — tìm-hoặc-tạo trong don_vi (dedupe theo `ma` slug), dùng id thật.
   if (don_vi_id === '__khac__') {
     const tenDv = String(formData.get('don_vi_moi') ?? '').trim();
-    if (!tenDv) return {ok: false, fieldError: 'don_vi_id', error: 'Gõ tên đơn vị em muốn dùng.'};
+    if (!tenDv) return {ok: false, fieldError: 'don_vi_id', error: t('goTenDonViEmMuon')};
     const dv = await timHoacTaoDonVi(supabase, me.id, tenDv);
-    if (!dv.id) return {ok: false, fieldError: 'don_vi_id', error: dv.error ?? 'Không tạo được đơn vị mới.'};
+    if (!dv.id) return {ok: false, fieldError: 'don_vi_id', error: dv.error ?? t('khongTaoDonVi')};
     don_vi_id = dv.id;
   }
   const eff_don_vi = laPhanTram ? don_vi_pt : don_vi_id;
@@ -235,13 +236,13 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
       .select('id');
     if (error) return {ok: false, error: friendlyError(error)};
     if (!data || data.length === 0)
-      return {ok: false, error: 'Không lưu được — em không có quyền với lớp này.'};
+      return {ok: false, error: t('khongLuuDuocEmKhongCo')};
   } else {
     // Mục tiêu TRƯỜNG: campus gửi thẳng từ form (không có lớp); còn lại suy campus từ lớp.
     const campus_id = laTruong
       ? String(formData.get('campus_id') ?? '').trim() || null
       : await layCampus(supabase, class_id);
-    if (!campus_id) return {ok: false, error: laTruong ? 'Chọn cơ sở cho mục tiêu trường.' : 'Không rõ lớp nên chưa lưu được.'};
+    if (!campus_id) return {ok: false, error: laTruong ? t('chonCoSoChoTruong') : t('khongRoLopChuaLuu')};
     const {data, error} = await supabase
       .from('muc_tieu')
       .insert({
@@ -255,8 +256,11 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
       })
       .select('id')
       .maybeSingle();
+    // 0187: muc_tieu_lop_ten_nam_uidx — hai mục tiêu lớp cùng tên trong một năm (bấm Lưu hai lần
+    // lúc mạng chậm) → 23505, nói tiếng người thay vì "dữ liệu bị trùng".
+    if (error?.code === '23505' && laLop) return {ok: false, fieldError: 'ten', error: t('lopDaCoMucTieuTen')};
     if (error) return {ok: false, error: friendlyError(error)};
-    if (!data) return {ok: false, error: 'Không lưu được — em không có quyền với lớp này.'};
+    if (!data) return {ok: false, error: t('khongLuuDuocEmKhongCo')};
     mtId = data.id;
   }
 
@@ -318,30 +322,28 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   revalidatePath('/[locale]/wig', 'page');
   revalidatePath('/[locale]/campus', 'page');
   revalidatePath('/[locale]/truong', 'page');
-  if (trang_thai === 'nhap') return {ok: true, message: 'Đã lưu nháp.'};
-  if (laTruong) return {ok: true, message: 'Đã lưu mục tiêu của trường.'};
-  if (laToiGv) return {ok: true, message: 'Đã lưu mục tiêu của thầy cô.'};
+  if (trang_thai === 'nhap') return {ok: true, message: t('daLuuNhap')};
+  if (laTruong) return {ok: true, message: t('daLuuMucTieuCuaTruong')};
+  if (laToiGv) return {ok: true, message: t('daLuuMucTieuCuaThay')};
   if (laLop)
     return {
       ok: true,
-      message: muc_tieu_id ? 'Sửa xong, mục tiêu lớp chờ Ban giám hiệu duyệt.' : 'Đã gửi Ban giám hiệu duyệt mục tiêu lớp.',
+      // 0186: GVCN tạo/sửa mục tiêu lớp là hiệu lực ngay — không còn "chờ ban giám hiệu".
+      message: muc_tieu_id ? t('daSuaMucTieuLop') : t('daLuuMucTieuLop'),
     };
   return {
     ok: true,
-    message: laChinhEm
-      ? muc_tieu_id
-        ? 'Sửa xong, mục tiêu quay lại chờ thầy cô duyệt.'
-        : 'Đã gửi thầy cô.'
-      : 'Đã lưu mục tiêu cho em.',
+    message: laChinhEm ? (muc_tieu_id ? t('suaXongChoThayCo') : t('daGuiThayCo')) : t('daLuuMucTieuChoEm'),
   };
 }
 
 // Đóng mục tiêu (ly_do_dong: dat/doi/bo — trigger đòi đúng ba giá trị ấy).
 export async function dongMucTieu(formData: FormData) {
+  const t = await getTranslations('loi');
   const student_id = String(formData.get('student_id') ?? '');
   const id = String(formData.get('muc_tieu_id') ?? '');
   const ly_do_dong = String(formData.get('ly_do_dong') ?? '');
-  if (!id) veTrangEm(student_id, loi('Thiếu mục tiêu.'));
+  if (!id) veTrangEm(student_id, loi(t('thieuMucTieu')));
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('muc_tieu')
@@ -353,28 +355,29 @@ export async function dongMucTieu(formData: FormData) {
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) veTrangEm(student_id, loi('Không đóng được — không có quyền hoặc đã xoá.'));
-  veTrangEm(student_id, 'Đã đóng mục tiêu');
+  if (!data || data.length === 0) veTrangEm(student_id, loi(t('khongDongDuocKhongCoQuyen')));
+  veTrangEm(student_id, t('daDongMucTieu'));
 }
 
 // Xoá mục tiêu — RLS chỉ cho khi nhap/gui/tra_lai VÀ chưa có số đo/dây/cam kết hiệu lực dưới nó.
-export async function xoaMucTieu(formData: FormData) {
-  const student_id = String(formData.get('student_id') ?? '');
+// 04/09: trả state (trong hộp Sửa của FormMucTieu), không redirect.
+export async function xoaMucTieu(_prev: FormState, formData: FormData): Promise<FormState> {
+  const t = await getTranslations('loi');
   const id = String(formData.get('muc_tieu_id') ?? '');
-  if (!id) veTrangEm(student_id, loi('Thiếu mục tiêu.'));
+  if (!id) return {ok: false, error: t('thieuMucTieu')};
   const supabase = await createClient();
   const {data, error} = await supabase.from('muc_tieu').delete().eq('id', id).eq('cap', 'em').select('id');
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0)
-    veTrangEm(student_id, loi('Chỉ xoá được khi mục tiêu chưa có số nào ghi dưới nó.'));
-  veTrangEm(student_id, 'Đã xoá mục tiêu');
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data || data.length === 0) return {ok: false, error: t('chiXoaDuocKhiMucTieu')};
+  return {ok: true, message: t('daXoaMucTieu')};
 }
 
 // GVCN duyệt / trả lại mục tiêu của em (trigger mt_truoc_sua kiểm quyền + ký + kiểm trần).
 export async function duyetMucTieu(formData: FormData) {
+  const t = await getTranslations('loi');
   await requireRole(['teacher', 'admin']);
   const id = String(formData.get('muc_tieu_id') ?? '');
   const student_id = String(formData.get('student_id') ?? '');
@@ -389,17 +392,18 @@ export async function duyetMucTieu(formData: FormData) {
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if (!data) veTrangEm(student_id, loi('Mục tiêu này không còn nữa.'));
-  veTrangEm(student_id, 'Đã duyệt mục tiêu của em');
+  if (!data) veTrangEm(student_id, loi(t('mucTieuNayKhongConNua')));
+  veTrangEm(student_id, t('daDuyetMucTieuCuaEm'));
 }
 
 export async function traLaiMucTieu(formData: FormData) {
+  const t = await getTranslations('loi');
   await requireRole(['teacher', 'admin']);
   const id = String(formData.get('muc_tieu_id') ?? '');
   const student_id = String(formData.get('student_id') ?? '');
   const note = String(formData.get('note') ?? '').trim();
-  if (!note) veTrangEm(student_id, loi('Trả lại thì ghi cho em một câu vì sao nhé.'));
-  if (note.length > 300) veTrangEm(student_id, loi('Nhận xét tối đa 300 ký tự.'));
+  if (!note) veTrangEm(student_id, loi(t('traLaiThiGhiChoEm')));
+  if (note.length > 300) veTrangEm(student_id, loi(t('nhanXetToiDa300Ky')));
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('muc_tieu')
@@ -412,29 +416,8 @@ export async function traLaiMucTieu(formData: FormData) {
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if (!data) veTrangEm(student_id, loi('Mục tiêu này không còn chờ duyệt.'));
-  veTrangEm(student_id, 'Đã trả lại kèm nhận xét cho em');
-}
-
-// Duyệt mục tiêu KHÔNG nhảy trang (NutDuyet trên bảng /wig, useActionState).
-export async function duyetMucTieuTraVe(_prev: DuyetState, formData: FormData): Promise<DuyetState> {
-  await requireRole(['teacher', 'admin']);
-  const id = String(formData.get('muc_tieu_id') ?? '').trim();
-  if (!id) return {ok: false, error: 'Thiếu mục tiêu cần duyệt.'};
-  const supabase = await createClient();
-  const {data, error} = await supabase
-    .from('muc_tieu')
-    .update({trang_thai: 'duyet'})
-    .eq('id', id)
-    .eq('cap', 'em')
-    .select('id')
-    .maybeSingle();
-  if (error) return {ok: false, error: friendlyError(error)};
-  if (!data) return {ok: false, error: 'Mục tiêu này không còn nữa.'};
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  revalidatePath('/[locale]/wig', 'page');
-  return {ok: true};
+  if (!data) veTrangEm(student_id, loi(t('mucTieuNayKhongConCho')));
+  veTrangEm(student_id, t('daTraLaiKemNhanXet'));
 }
 
 // ── SỐ ĐO NGOÀI APP (so_do) ──────────────────────────────────────────────────────────────────
@@ -442,15 +425,16 @@ export async function duyetMucTieuTraVe(_prev: DuyetState, formData: FormData): 
 // dòng mới (lịch sử giữ lại, số MỚI NHẤT là số thật — private.so_hien_tai đọc 'moi_nhat'). Luật
 // ngày (không tương lai, không trước bat_dau) nằm ở trigger so_do_truoc_ghi.
 export async function ghiSoDo(_prev: MucTieuState, formData: FormData): Promise<MucTieuState> {
+  const t = await getTranslations('loi');
   const me = await getCurrentProfile();
-  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
+  if (!me) return {ok: false, error: t('chuaDangNhap')};
   const muc_tieu_id = String(formData.get('muc_tieu_id') ?? '');
-  if (!muc_tieu_id) return {ok: false, error: 'Không rõ đang ghi cho mục tiêu nào.'};
+  if (!muc_tieu_id) return {ok: false, error: t('khongRoDangGhiChoMuc')};
   const raw = String(formData.get('gia_tri') ?? '').trim();
-  if (raw === '') return {ok: false, fieldError: 'gia_tri', error: 'Em điền số đã nhé.'};
+  if (raw === '') return {ok: false, fieldError: 'gia_tri', error: t('emDienSoDaNhe')};
   const gia_tri = Number(raw);
   if (!Number.isFinite(gia_tri) || gia_tri < 0)
-    return {ok: false, fieldError: 'gia_tri', error: 'Số phải từ 0 trở lên.'};
+    return {ok: false, fieldError: 'gia_tri', error: t('soPhaiTu0TroLen')};
   const ngayGui = String(formData.get('ngay') ?? '').trim();
   const ngay = isValidDayVN(ngayGui) ? ngayGui : todayInVN();
 
@@ -471,12 +455,12 @@ export async function ghiSoDo(_prev: MucTieuState, formData: FormData): Promise<
     .select('id');
   if (error) return {ok: false, error: friendlyError(error)};
   if (!data || data.length === 0)
-    return {ok: false, error: 'Không ghi được — em không có quyền với mục tiêu này.'};
+    return {ok: false, error: t('khongGhiDuocEmKhongCo')};
 
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  return {ok: true, message: 'Đã ghi số.'};
+  return {ok: true, message: t('daGhiSo')};
 }
 
 // ── CỘT MỐC KẾ HOẠCH: đánh dấu MỘT BƯỚC xong/chưa xong ──────────────────────────────────────
@@ -531,20 +515,21 @@ export async function datHanhDong(formData: FormData) {
 // ════════════════════════════════════════════════════════════════════════════════════════════
 
 export async function luuViec(_prev: ViecState, formData: FormData): Promise<ViecState> {
+  const t = await getTranslations('loi');
   const me = await getCurrentProfile();
-  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
+  if (!me) return {ok: false, error: t('chuaDangNhap')};
   const student_id = String(formData.get('student_id') ?? '');
   const class_id = String(formData.get('class_id') ?? '');
   const laChinhEm = me.id === student_id && me.role === 'student';
   const laNhanSu = me.role === 'teacher' || me.role === 'admin' || me.role === 'principal';
-  if (!laChinhEm && !laNhanSu) return {ok: false, error: 'Chỉ em mới ghi được phần này.'};
+  if (!laChinhEm && !laNhanSu) return {ok: false, error: t('chiEmMoiGhiDuocPhan')};
 
   const ten = String(formData.get('ten') ?? '').trim();
-  if (!ten) return {ok: false, fieldError: 'ten', error: 'Em sẽ làm việc gì? Bắt đầu bằng một việc làm.'};
-  if (ten.length > 200) return {ok: false, fieldError: 'ten', error: 'Tối đa 200 ký tự.'};
+  if (!ten) return {ok: false, fieldError: 'ten', error: t('emSeLamViecGiBat')};
+  if (ten.length > 200) return {ok: false, fieldError: 'ten', error: t('toiDa200KyTu')};
 
   const don_vi_id = String(formData.get('don_vi_id') ?? '').trim();
-  if (!don_vi_id) return {ok: false, fieldError: 'don_vi_id', error: 'Chọn đơn vị em đong đếm việc này.'};
+  if (!don_vi_id) return {ok: false, fieldError: 'don_vi_id', error: t('chonDonViEmDongDem')};
 
   const cach_ghi = String(formData.get('cach_ghi') ?? 'cham'); // cham/dien_so/he_thong
   const chieu_dich = String(formData.get('chieu_dich') ?? 'it_nhat'); // it_nhat/nhieu_nhat
@@ -553,7 +538,7 @@ export async function luuViec(_prev: ViecState, formData: FormData): Promise<Vie
   const ky_tuan = [1, 2, 4].includes(kyTuanRaw) ? kyTuanRaw : 1;
   const chi_tieu_ky = Number(String(formData.get('chi_tieu_ky') ?? '').trim());
   if (!Number.isFinite(chi_tieu_ky) || chi_tieu_ky <= 0)
-    return {ok: false, fieldError: 'chi_tieu_ky', error: `Bao nhiêu là đủ mỗi ${ky_tuan === 1 ? 'tuần' : ky_tuan + ' tuần'}?`};
+    return {ok: false, fieldError: 'chi_tieu_ky', error: t('baoNhieuLaDuMoiKy', {ky: ky_tuan === 1 ? t('kyMotTuan') : t('kyNTuan', {n: ky_tuan})})};
 
   const moiLan = Number(String(formData.get('moi_lan') ?? '').trim());
   const moi_lan = cach_ghi === 'cham' ? (Number.isFinite(moiLan) && moiLan > 0 ? moiLan : 1) : null;
@@ -568,7 +553,7 @@ export async function luuViec(_prev: ViecState, formData: FormData): Promise<Vie
     .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
     .sort((a, b) => a - b);
   if (cach_ghi !== 'he_thong' && ngay_ap_dung.length === 0)
-    return {ok: false, fieldError: 'ngay', error: 'Em chọn ít nhất một ngày trong tuần cho việc ấy nhé.'};
+    return {ok: false, fieldError: 'ngay', error: t('emChonItNhatMotNgay')};
 
   const tuTuan = String(formData.get('tu_tuan') ?? 'nay');
   const tu_tuan = tuTuan === 'sau' ? nextWeekRangeVN().start : weekRangeVN().start;
@@ -597,7 +582,7 @@ export async function luuViec(_prev: ViecState, formData: FormData): Promise<Vie
     .select('id')
     .maybeSingle();
   if (error) return {ok: false, error: friendlyError(error)};
-  if (!data) return {ok: false, error: 'Không lưu được — em không có quyền với lớp này.'};
+  if (!data) return {ok: false, error: t('khongLuuDuocEmKhongCo')};
 
   // Nối việc vào một mục tiêu (không bắt buộc). Cùng đơn vị thì cộng số (gop_so); khác thì chỉ
   // hướng (chi_huong) — form quyết. Dây hỏng KHÔNG làm mất việc đã lưu.
@@ -619,19 +604,20 @@ export async function luuViec(_prev: ViecState, formData: FormData): Promise<Vie
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  return {ok: true, message: 'Đã gửi thầy cô. Em ghi được ngay từ hôm nay.'};
+  return {ok: true, message: t('daGuiThayCoEmGhi')};
 }
 
 // Đổi chỉ tiêu từ TUẦN SAU (thuoc_lich_su). Trigger thls_truoc_them quyết định hiệu lực ngay hay
 // về chờ duyệt (hạ >30% hoặc hạ lần hai trong năm → cho_duyet + thuoc.duyet='gui').
 export async function suaChiTieu(_prev: ViecState, formData: FormData): Promise<ViecState> {
+  const t = await getTranslations('loi');
   const me = await getCurrentProfile();
-  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
+  if (!me) return {ok: false, error: t('chuaDangNhap')};
   const thuoc_id = String(formData.get('thuoc_id') ?? '');
-  if (!thuoc_id) return {ok: false, error: 'Thiếu việc cần sửa.'};
+  if (!thuoc_id) return {ok: false, error: t('thieuViecCanSua')};
   const chi_tieu_ky = Number(String(formData.get('chi_tieu_ky') ?? '').trim());
   if (!Number.isFinite(chi_tieu_ky) || chi_tieu_ky <= 0)
-    return {ok: false, fieldError: 'chi_tieu_ky', error: 'Chỉ tiêu mới phải là số lớn hơn 0.'};
+    return {ok: false, fieldError: 'chi_tieu_ky', error: t('chiTieuMoiPhaiLaSo')};
   const ly_do = String(formData.get('ly_do') ?? '').trim() || null;
   const moiLan = Number(String(formData.get('moi_lan') ?? '').trim());
   const moi_lan = Number.isFinite(moiLan) && moiLan > 0 ? moiLan : null;
@@ -655,7 +641,7 @@ export async function suaChiTieu(_prev: ViecState, formData: FormData): Promise<
     .select('trang_thai')
     .maybeSingle();
   if (error) return {ok: false, error: friendlyError(error)};
-  if (!data) return {ok: false, error: 'Không lưu được — em không có quyền với việc này.'};
+  if (!data) return {ok: false, error: t('khongLuuDuocEmKhongCo2')};
 
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
@@ -664,45 +650,32 @@ export async function suaChiTieu(_prev: ViecState, formData: FormData): Promise<
     ok: true,
     message:
       data.trang_thai === 'cho_duyet'
-        ? 'Đã lưu, chờ duyệt lại vì hạ nhiều.'
-        : 'Đã lưu chỉ tiêu mới, áp dụng từ tuần sau.',
+        ? t('daLuuChoDuyetHaNhieu')
+        : t('daLuuChiTieuTuanSau'),
   };
 }
 
-// Tạm dừng / chạy lại / kết thúc việc (từ tuần sau). Trigger th_truoc_sua kiểm quyền.
-export async function doiTrangThaiViec(formData: FormData) {
-  const student_id = String(formData.get('student_id') ?? '');
+// Xoá thước tại chỗ (hộp Sửa của em) — RLS/trigger chỉ cho khi chưa có lượt ghi.
+export async function xoaViecTaiCho(_prev: FormState, formData: FormData): Promise<FormState> {
+  const t = await getTranslations('loi');
   const thuoc_id = String(formData.get('thuoc_id') ?? '');
-  const viec = String(formData.get('viec') ?? ''); // tam_dung | chay | ket_thuc
-  if (!thuoc_id) veTrangEm(student_id, loi('Thiếu việc.'));
+  if (!thuoc_id) return {ok: false, error: t('thieuViec')};
   const supabase = await createClient();
-  const patch =
-    viec === 'ket_thuc'
-      ? {den_tuan: nextWeekRangeVN().start}
-      : viec === 'tam_dung'
-        ? {trang_thai: 'tam_dung'}
-        : {trang_thai: 'chay'};
-  const {data, error} = await supabase.from('thuoc').update(patch).eq('id', thuoc_id).select('id');
+  const {data, error} = await supabase.from('thuoc').delete().eq('id', thuoc_id).select('id');
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) veTrangEm(student_id, loi('Không đổi được — không có quyền hoặc đã xoá.'));
-  veTrangEm(
-    student_id,
-    viec === 'ket_thuc'
-      ? 'Việc sẽ kết thúc từ tuần sau'
-      : viec === 'tam_dung'
-        ? 'Đã tạm dừng việc'
-        : 'Đã cho việc chạy lại',
-  );
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data || data.length === 0) return {ok: false, error: t('chiXoaDuocKhiViecChua')};
+  return {ok: true, message: t('daXoaViec')};
 }
 
 // Xoá việc — RLS chỉ cho khi chưa từng duyệt và chưa có lượt ghi.
 export async function xoaViec(formData: FormData) {
+  const t = await getTranslations('loi');
   const student_id = String(formData.get('student_id') ?? '');
   const thuoc_id = String(formData.get('thuoc_id') ?? '');
-  if (!thuoc_id) veTrangEm(student_id, loi('Thiếu việc.'));
+  if (!thuoc_id) veTrangEm(student_id, loi(t('thieuViec')));
   const supabase = await createClient();
   const {data, error} = await supabase.from('thuoc').delete().eq('id', thuoc_id).select('id');
   revalidatePath('/[locale]/student', 'page');
@@ -710,8 +683,8 @@ export async function xoaViec(formData: FormData) {
   revalidatePath('/[locale]/wig', 'page');
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
   if (!data || data.length === 0)
-    veTrangEm(student_id, loi('Chỉ xoá được khi việc chưa ghi lần nào.'));
-  veTrangEm(student_id, 'Đã xoá việc');
+    veTrangEm(student_id, loi(t('chiXoaDuocKhiViecChua')));
+  veTrangEm(student_id, t('daXoaViec'));
 }
 
 // ── GHI LƯỢT ─────────────────────────────────────────────────────────────────────────────────
@@ -748,37 +721,22 @@ async function ghiLuotChung(
 }
 
 export async function ghiLuot(thuocId: string, ngay: string, giaTri: number): Promise<LuotResult> {
+  const t = await getTranslations('loi');
   const me = await getCurrentProfile();
-  if (!me || me.role !== 'student') return {ok: false, error: 'Chỉ em mới ghi được phần này.'};
-  if (!thuocId || !isValidDayVN(ngay)) return {ok: false, error: 'Thiếu việc hoặc ngày.'};
+  if (!me || me.role !== 'student') return {ok: false, error: t('chiEmMoiGhiDuocPhan')};
+  if (!thuocId || !isValidDayVN(ngay)) return {ok: false, error: t('thieuViecHoacNgay')};
   // Cửa sổ 7 ngày (hôm nay lùi 6 ngày là ngày sớm nhất). Ngoài cửa sổ → nhờ thầy cô ghi giúp.
   const today = todayInVN();
   const cachNgay = Math.round(
     (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${ngay}T00:00:00Z`)) / 86_400_000,
   );
   if (cachNgay > 6 || cachNgay < 0)
-    return {ok: false, error: 'Chỉ ghi được trong 7 ngày gần nhất — nhờ thầy cô ghi giúp.'};
+    return {ok: false, error: t('chiGhiDuocTrong7Ngay')};
 
   const supabase = await createClient();
   const res = await ghiLuotChung(supabase, {thuocId, studentId: me.id, ngay, giaTri, nguoiGhi: me.id});
   // Trong cửa sổ mà vẫn bị chặn → gần như chắc là tuần đã ký (luot_bi_khoa).
-  if (!res.ok && res.error) return {ok: false, error: 'Ngày này đã khoá sau buổi họp với bạn.'};
-  return res;
-}
-
-// THẦY CÔ ghi bù cho em (mọi lớp — C25): không vướng cửa sổ 7 ngày, vẫn không vượt chữ ký.
-export async function ghiBuLuot(
-  thuocId: string,
-  studentId: string,
-  ngay: string,
-  giaTri: number,
-): Promise<LuotResult> {
-  const me = await requireRole(['teacher', 'admin']);
-  if (!thuocId || !studentId || !isValidDayVN(ngay)) return {ok: false, error: 'Thiếu việc, em hoặc ngày.'};
-  const supabase = await createClient();
-  const res = await ghiLuotChung(supabase, {thuocId, studentId, ngay, giaTri, nguoiGhi: me.id});
-  if (!res.ok && res.error)
-    return {ok: false, error: 'Tuần này em đã ghi nhận buổi họp — mở lại qua yêu cầu sửa có lưu vết.'};
+  if (!res.ok && res.error) return {ok: false, error: t('ngayNayDaKhoaSauBuoi')};
   return res;
 }
 
@@ -791,17 +749,18 @@ export async function ghiBuLuot(
 // ════════════════════════════════════════════════════════════════════════════════════════════
 
 export async function luuCamKet(_prev: CamKetState, formData: FormData): Promise<CamKetState> {
+  const t = await getTranslations('loi');
   const me = await getCurrentProfile();
-  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
+  if (!me) return {ok: false, error: t('chuaDangNhap')};
   const student_id = String(formData.get('student_id') ?? '');
   const class_id = String(formData.get('class_id') ?? '');
   const laChinhEm = me.id === student_id && me.role === 'student';
   const laNhanSu = me.role === 'teacher' || me.role === 'admin' || me.role === 'principal';
-  if (!laChinhEm && !laNhanSu) return {ok: false, error: 'Chỉ em mới ghi được phần này.'};
+  if (!laChinhEm && !laNhanSu) return {ok: false, error: t('chiEmMoiGhiDuocPhan')};
 
   const noi_dung = String(formData.get('noi_dung') ?? '').trim();
-  if (!noi_dung) return {ok: false, fieldError: 'noi_dung', error: 'Tuần này em hứa làm gì? Viết một câu.'};
-  if (noi_dung.length > 300) return {ok: false, fieldError: 'noi_dung', error: 'Tối đa 300 ký tự.'};
+  if (!noi_dung) return {ok: false, fieldError: 'noi_dung', error: t('tuanNayEmHuaLamGi')};
+  if (noi_dung.length > 300) return {ok: false, fieldError: 'noi_dung', error: t('toiDa300KyTu')};
 
   const soTuanRaw = Number(String(formData.get('so_tuan') ?? '1'));
   const so_tuan = [1, 2, 3, 4].includes(soTuanRaw) ? soTuanRaw : 1;
@@ -817,7 +776,7 @@ export async function luuCamKet(_prev: CamKetState, formData: FormData): Promise
   const soHuaRaw = String(formData.get('so_hua') ?? '').trim();
   let so_hua = soHuaRaw === '' ? null : Number(soHuaRaw);
   if (so_hua !== null && (!Number.isFinite(so_hua) || so_hua <= 0))
-    return {ok: false, fieldError: 'so_hua', error: 'Con số của cam kết phải lớn hơn 0.'};
+    return {ok: false, fieldError: 'so_hua', error: t('conSoCuaCamKetPhai')};
   let don_vi_id = String(formData.get('don_vi_id') ?? '').trim() || null;
   // ck_don_vi_ck: "có số hứa" ⟺ "có đơn vị". Thiếu một trong hai thì bỏ CẢ hai — đừng để em gặp
   // lỗi "Giá trị nhập không hợp lệ" chỉ vì để trống ô số. Không có số thì cam kết chấm Thắng/Thua tay.
@@ -849,28 +808,31 @@ export async function luuCamKet(_prev: CamKetState, formData: FormData): Promise
     .select('id')
     .maybeSingle();
   if (error) return {ok: false, error: friendlyError(error)};
-  if (!data) return {ok: false, error: 'Không lưu được — em không có quyền với lớp này.'};
+  if (!data) return {ok: false, error: t('khongLuuDuocEmKhongCo')};
 
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  return {ok: true, message: 'Đã lưu cam kết.'};
+  return {ok: true, message: t('daLuuCamKet')};
 }
 
 // THÊM THƯỚC ĐO DẪN DẮT cho một cam kết của EM (nút "+" riêng dưới cam kết). Tạo thuoc chu_the='em'
-// pham_vi='tung_em' rồi nối vào cam kết qua thuoc_id. Đo 'cham' (tick số ngày) hoặc 'dien_so' (đơn vị + đích).
-export async function themThuocChoCamKet(formData: FormData) {
+// pham_vi='tung_em' trỏ về cam kết qua cam_ket_id (0185). Đo 'cham' (tick những ngày chọn) hoặc
+// 'dien_so' (đơn vị + đích). 04/09: trả state — gửi rỗng thì lỗi hiện dưới ô (trước đây im lặng).
+export async function themThuocChoCamKet(_prev: FormState, formData: FormData): Promise<FormState> {
+  const t = await getTranslations('loi');
+  const me = await getCurrentProfile();
+  if (!me) return {ok: false, error: t('chuaDangNhap')};
   const student_id = String(formData.get('student_id') ?? '');
   const class_id = String(formData.get('class_id') ?? '');
   const cam_ket_id = String(formData.get('cam_ket_id') ?? '').trim();
-  if (!cam_ket_id) veTrangEm(student_id, loi('Thiếu cam kết.'));
+  if (!cam_ket_id) return {ok: false, error: t('thieuCamKet')};
   const ten = String(formData.get('ten') ?? '').trim();
-  if (!ten) veTrangEm(student_id, loi('Thước đo dẫn dắt là việc gì? Viết một câu.'));
-  if (ten.length > 160) veTrangEm(student_id, loi('Tối đa 160 ký tự.'));
+  if (!ten) return {ok: false, fieldError: 'ten', error: t('thuocDoDanDatLaViec')};
+  if (ten.length > 160) return {ok: false, fieldError: 'ten', error: t('toiDa160KyTu')};
   const tuanGui = String(formData.get('tuan_bat_dau') ?? '').trim();
   const tu_tuan = isValidDayVN(tuanGui) ? mondayOf(tuanGui) : weekRangeVN().start;
   const viecCach = String(formData.get('viec_cach') ?? 'cham') === 'dien_so' ? 'dien_so' : 'cham';
-  // Ngày ĐÍCH DANH (isodow 1..7) từ bộ chip — kiểu tick: chỉ tick được đúng những ngày này.
   const ngayChon = formData
     .getAll('ngay')
     .map((d) => Number(String(d)))
@@ -883,34 +845,34 @@ export async function themThuocChoCamKet(formData: FormData) {
     let vdv = String(formData.get('viec_don_vi') ?? '').trim();
     const vdich = Number(String(formData.get('viec_dich') ?? '').trim());
     if (!vdv || !Number.isFinite(vdich) || vdich <= 0)
-      veTrangEm(student_id, loi('Đo bằng số thì chọn đơn vị và nhập đích lớn hơn 0.'));
+      return {ok: false, fieldError: 'viec_dich', error: t('doBangSoThiChonDon')};
     if (vdv === '__khac__') {
       const tenDv = String(formData.get('don_vi_moi') ?? '').trim();
-      if (!tenDv) veTrangEm(student_id, loi('Gõ tên đơn vị em muốn dùng.'));
-      const me = await getCurrentProfile();
-      const dv = await timHoacTaoDonVi(supabase, me!.id, tenDv);
-      if (!dv.id) veTrangEm(student_id, loi(dv.error ?? 'Không tạo được đơn vị mới.'));
+      if (!tenDv) return {ok: false, fieldError: 'don_vi_moi', error: t('goTenDonViEmMuon')};
+      const dv = await timHoacTaoDonVi(supabase, me.id, tenDv);
+      if (!dv.id) return {ok: false, fieldError: 'don_vi_moi', error: dv.error ?? t('khongTaoDonVi')};
       vdv = dv.id as string;
     }
     payload = {cach_ghi: 'dien_so', don_vi_id: vdv, chi_tieu_ky: vdich, moi_lan: null, ngay_ap_dung: [1, 2, 3, 4, 5, 6, 7]};
   } else {
-    if (ngayChon.length === 0) veTrangEm(student_id, loi('Em chọn ít nhất một ngày để tick nhé.'));
+    if (ngayChon.length === 0) return {ok: false, fieldError: 'ngay', error: t('emChonItNhatMotNgay2')};
     const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
     const ngayId = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
-    if (!ngayId) veTrangEm(student_id, loi('Thiếu đơn vị hệ thống (ngày/lần).'));
-    payload = {cach_ghi: 'cham', don_vi_id: ngayId as string, chi_tieu_ky: ngayChon.length, moi_lan: 1, ngay_ap_dung: ngayChon};
+    if (!ngayId) return {ok: false, error: t('thieuDonViHeThongNgay')};
+    payload = {cach_ghi: 'cham', don_vi_id: ngayId, chi_tieu_ky: ngayChon.length, moi_lan: 1, ngay_ap_dung: ngayChon};
   }
 
-  // 0185: thước TRỎ VỀ cam kết (thuoc.cam_ket_id, n-1) — một cam kết treo nhiều thước.
-  // Trigger th_neo_cam_ket gác "cam kết của chính mình"; không đụng cam_ket nữa.
   const {data: vRow, error: vErr} = await supabase
     .from('thuoc')
     .insert({chu_the: 'em', class_id, student_id, ten, chieu_dich: 'it_nhat', gop: 'tong', ky_tuan: 1, pham_vi: 'tung_em', tu_tuan, duyet: 'duyet', trang_thai: 'chay', cam_ket_id, ...payload})
     .select('id')
     .maybeSingle();
-  if (vErr) veTrangEm(student_id, loi(friendlyError(vErr)));
-  if (!vRow) veTrangEm(student_id, loi('Không tạo được thước đo dẫn dắt.'));
-  veTrangEm(student_id, 'Đã thêm thước đo dẫn dắt');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  if (vErr) return {ok: false, error: friendlyError(vErr)};
+  if (!vRow) return {ok: false, error: t('khongTaoDuocThuocDoDan')};
+  return {ok: true, message: t('daThemThuocDoDanDat')};
 }
 
 // CHẤM TẠI CHỖ (Thắng/Thua/Bỏ chấm) — KHÔNG redirect: nút bé, trang phải đứng yên (cùng mẫu
@@ -918,14 +880,15 @@ export async function themThuocChoCamKet(formData: FormData) {
 // thật — câu báo của trigger hiện nguyên cạnh nút.
 export type ChamEmState = {ok: boolean; error?: string};
 export async function chamCamKetTaiCho(_prev: ChamEmState, formData: FormData): Promise<ChamEmState> {
+  const t = await getTranslations('loi');
   const id = String(formData.get('cam_ket_id') ?? '').trim();
-  if (!id) return {ok: false, error: 'Thiếu cam kết.'};
+  if (!id) return {ok: false, error: t('thieuCamKet')};
   const ketQuaRaw = String(formData.get('ket_qua') ?? '').trim();
   const ket_qua = ketQuaRaw === 'thang' || ketQuaRaw === 'thua' ? ketQuaRaw : null;
   const soDatRaw = String(formData.get('so_dat') ?? '').trim();
   const so_dat = soDatRaw === '' ? null : Number(soDatRaw);
   if (so_dat !== null && (!Number.isFinite(so_dat) || so_dat < 0))
-    return {ok: false, error: 'Số đạt được phải từ 0 trở lên.'};
+    return {ok: false, error: t('soDatDuocPhaiTu0')};
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('cam_ket')
@@ -936,15 +899,16 @@ export async function chamCamKetTaiCho(_prev: ChamEmState, formData: FormData): 
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
   if (error) return {ok: false, error: friendlyError(error)};
-  if (!data || data.length === 0) return {ok: false, error: 'Không chấm được — không có quyền hoặc đã xoá.'};
+  if (!data || data.length === 0) return {ok: false, error: t('khongChamDuocKhongCoQuyen')};
   return {ok: true};
 }
 
 // Huỷ cam kết — RLS chỉ cho khi chưa chấm, chưa kể lại trong họp, chưa ai xác nhận.
 export async function xoaCamKet(formData: FormData) {
+  const t = await getTranslations('loi');
   const student_id = String(formData.get('student_id') ?? '');
   const id = String(formData.get('cam_ket_id') ?? '');
-  if (!id) veTrangEm(student_id, loi('Thiếu cam kết.'));
+  if (!id) veTrangEm(student_id, loi(t('thieuCamKet')));
   const supabase = await createClient();
   const {data, error} = await supabase.from('cam_ket').delete().eq('id', id).select('id');
   revalidatePath('/[locale]/student', 'page');
@@ -952,48 +916,50 @@ export async function xoaCamKet(formData: FormData) {
   revalidatePath('/[locale]/wig', 'page');
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
   if (!data || data.length === 0)
-    veTrangEm(student_id, loi('Không huỷ được — cam kết đã chấm hoặc đã kể lại trong buổi họp.'));
-  veTrangEm(student_id, 'Đã huỷ cam kết');
+    veTrangEm(student_id, loi(t('khongHuyDuocCamKetDa')));
+  veTrangEm(student_id, t('daHuyCamKet'));
 }
 
 // ĐỔI CAM KẾT TUẦN — em muốn hứa việc khác: xoá cam kết HIỆN TẠI KÈM lead measure gắn với nó (việc
 // bổ trợ của cam kết cũ), rồi em set lại từ đầu qua form "+ Thêm cam kết". (Cam kết giữ nguyên thì
 // lead measure giữ nguyên; đổi thì bỏ luôn lead measure cũ — theo chủ dự án 03/09.)
 export async function doiCamKet(formData: FormData) {
+  const t = await getTranslations('loi');
   const student_id = String(formData.get('student_id') ?? '');
   const id = String(formData.get('cam_ket_id') ?? '');
-  if (!id) veTrangEm(student_id, loi('Thiếu cam kết.'));
+  if (!id) veTrangEm(student_id, loi(t('thieuCamKet')));
   const supabase = await createClient();
   // ĐÁNH DẤU 'huy' (không xoá): đây là tín hiệu để cam kết TỰ LĂN (0177) NGỪNG lăn dòng này — bản
   // mới nhất là 'huy' thì hàm lăn bỏ qua. Xoá thì tuần sau nó lại clone từ bản cũ hơn.
   const {data, error} = await supabase.from('cam_ket').update({trang_thai: 'huy'}).eq('id', id).select('id');
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
   if (!data || data.length === 0)
-    veTrangEm(student_id, loi('Không đổi được — cam kết đã chấm hoặc đã kể lại trong buổi họp.'));
+    veTrangEm(student_id, loi(t('khongDoiDuocCamKetDa')));
   // Xoá CẢ CHÙM thước của cam kết (0185: thuoc.cam_ket_id; RLS chặn nếu không phải của em).
   await supabase.from('thuoc').delete().eq('cam_ket_id', id).eq('chu_the', 'em');
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  veTrangEm(student_id, 'Đã bỏ cam kết cũ — em đặt cam kết mới nhé');
+  veTrangEm(student_id, t('daBoCamKetCuEm'));
 }
 
 // SỬA CAM KẾT — đổi LỜI HỨA (noi_dung) và SỐ HỨA (so_hua) khi CHƯA chấm. Trigger ck_truoc_sua chặn
 // sửa nội dung sau khi đã chấm (câu báo hiện nguyên). Giữ nguyên đơn vị (không đụng don_vi_id) → chỉ
 // đổi so_hua khi cam kết vốn có đơn vị; ck_don_vi_ck luôn thoả (cả hai vẫn non-null).
 export async function suaCamKet(formData: FormData) {
+  const t = await getTranslations('loi');
   const student_id = String(formData.get('student_id') ?? '');
   const id = String(formData.get('cam_ket_id') ?? '');
-  if (!id) veTrangEm(student_id, loi('Thiếu cam kết.'));
+  if (!id) veTrangEm(student_id, loi(t('thieuCamKet')));
   const noi_dung = String(formData.get('noi_dung') ?? '').trim();
-  if (!noi_dung) veTrangEm(student_id, loi('Tuần này em hứa làm gì? Viết một câu.'));
-  if (noi_dung.length > 300) veTrangEm(student_id, loi('Tối đa 300 ký tự.'));
+  if (!noi_dung) veTrangEm(student_id, loi(t('tuanNayEmHuaLamGi')));
+  if (noi_dung.length > 300) veTrangEm(student_id, loi(t('toiDa300KyTu')));
   const patch: {noi_dung: string; so_hua?: number} = {noi_dung};
   // Ô số hứa chỉ hiện khi cam kết có đơn vị; có gửi thì đổi (giữ đơn vị cũ trong DB).
   const soHuaRaw = formData.get('so_hua');
   if (soHuaRaw != null && String(soHuaRaw).trim() !== '') {
     const so_hua = Number(String(soHuaRaw).trim());
-    if (!Number.isFinite(so_hua) || so_hua <= 0) veTrangEm(student_id, loi('Con số của cam kết phải lớn hơn 0.'));
+    if (!Number.isFinite(so_hua) || so_hua <= 0) veTrangEm(student_id, loi(t('conSoCuaCamKetPhai')));
     patch.so_hua = so_hua;
   }
   const supabase = await createClient();
@@ -1002,21 +968,94 @@ export async function suaCamKet(formData: FormData) {
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) veTrangEm(student_id, loi('Không sửa được — cam kết đã chấm hoặc không có quyền.'));
-  veTrangEm(student_id, 'Đã sửa cam kết');
+  if (!data || data.length === 0) veTrangEm(student_id, loi(t('khongSuaDuocCamKetDa')));
+  veTrangEm(student_id, t('daSuaCamKet'));
+}
+
+// SỬA CAM KẾT TẠI CHỖ (hộp Sửa của em) — như suaCamKet nhưng trả state: gửi rỗng thì lỗi hiện
+// dưới ô và ô GIỮ chữ (trước đây redirect + mất nội dung đang sửa).
+export async function suaCamKetTaiCho(_prev: FormState, formData: FormData): Promise<FormState> {
+  const t = await getTranslations('loi');
+  const id = String(formData.get('cam_ket_id') ?? '');
+  if (!id) return {ok: false, error: t('thieuCamKet')};
+  const noi_dung = String(formData.get('noi_dung') ?? '').trim();
+  if (!noi_dung) return {ok: false, fieldError: 'noi_dung', error: t('tuanNayEmHuaLamGi')};
+  if (noi_dung.length > 300) return {ok: false, fieldError: 'noi_dung', error: t('toiDa300KyTu')};
+  const patch: {noi_dung: string; so_hua?: number} = {noi_dung};
+  const soHuaRaw = formData.get('so_hua');
+  if (soHuaRaw != null && String(soHuaRaw).trim() !== '') {
+    const so_hua = Number(String(soHuaRaw).trim());
+    if (!Number.isFinite(so_hua) || so_hua <= 0) return {ok: false, fieldError: 'so_hua', error: t('conSoCuaCamKetPhai')};
+    patch.so_hua = so_hua;
+  }
+  const supabase = await createClient();
+  const {data, error} = await supabase.from('cam_ket').update(patch).eq('id', id).select('id');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data || data.length === 0) return {ok: false, error: t('khongSuaDuocCamKetDa')};
+  return {ok: true, message: t('daSuaCamKet')};
+}
+
+// SỬA THƯỚC ĐO TẠI CHỖ (hộp Sửa của em) — cùng luật suaViec, trả state.
+export async function suaViecTaiCho(_prev: FormState, formData: FormData): Promise<FormState> {
+  const t = await getTranslations('loi');
+  const thuoc_id = String(formData.get('thuoc_id') ?? '');
+  if (!thuoc_id) return {ok: false, error: t('thieuViec')};
+  const ten = String(formData.get('ten') ?? '').trim();
+  if (!ten) return {ok: false, fieldError: 'ten', error: t('thuocDoDanDatLaViec')};
+  if (ten.length > 160) return {ok: false, fieldError: 'ten', error: t('toiDa160KyTu')};
+  const chi_tieu_ky = Number(String(formData.get('chi_tieu_ky') ?? '').trim());
+  if (!Number.isFinite(chi_tieu_ky) || chi_tieu_ky <= 0) return {ok: false, fieldError: 'chi_tieu_ky', error: t('dichPhaiLaSoLonHon')};
+  const ngay_ap_dung = formData
+    .getAll('ngay')
+    .map((d) => Number(String(d)))
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7)
+    .sort((a, b) => a - b);
+  const supabase = await createClient();
+  const viecCach = String(formData.get('viec_cach') ?? 'cham') === 'dien_so' ? 'dien_so' : 'cham';
+  let cach_ghi: string;
+  let don_vi_id: string;
+  let moi_lan: number | null;
+  if (viecCach === 'dien_so') {
+    const vdv = String(formData.get('viec_don_vi') ?? '').trim();
+    if (!vdv) return {ok: false, fieldError: 'viec_don_vi', error: t('doBangSoThiChonDon2')};
+    cach_ghi = 'dien_so';
+    don_vi_id = vdv;
+    moi_lan = null;
+  } else {
+    const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
+    const ngayId = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
+    if (!ngayId) return {ok: false, error: t('thieuDonViHeThongNgay')};
+    cach_ghi = 'cham';
+    don_vi_id = ngayId;
+    moi_lan = 1;
+  }
+  const patch: {ten: string; chi_tieu_ky: number; cach_ghi: string; don_vi_id: string; moi_lan: number | null; ngay_ap_dung?: number[]} =
+    {ten, chi_tieu_ky, cach_ghi, don_vi_id, moi_lan};
+  if (ngay_ap_dung.length) patch.ngay_ap_dung = ngay_ap_dung;
+  const {data, error} = await supabase.from('thuoc').update(patch).eq('id', thuoc_id).eq('chu_the', 'em').select('id');
+  revalidatePath('/[locale]/student', 'page');
+  revalidatePath('/[locale]/student/[id]', 'page');
+  revalidatePath('/[locale]/wig', 'page');
+  if (error) return {ok: false, error: friendlyError(error)};
+  if (!data || data.length === 0) return {ok: false, error: t('khongSuaDuocKhongCoQuyen')};
+  return {ok: true, message: t('daSuaThuocDoDanDat')};
 }
 
 // SỬA THƯỚC ĐO DẪN DẮT — đổi TÊN, ĐÍCH (chi_tieu_ky) và NGÀY áp dụng, có hiệu lực ngay (em sửa tuỳ
 // thích, không duyệt — khác suaChiTieu vốn qua thuoc_lich_su + duyệt). Trigger th_truoc_sua gác quyền.
 export async function suaViec(formData: FormData) {
+  const t = await getTranslations('loi');
   const student_id = String(formData.get('student_id') ?? '');
   const thuoc_id = String(formData.get('thuoc_id') ?? '');
-  if (!thuoc_id) veTrangEm(student_id, loi('Thiếu việc.'));
+  if (!thuoc_id) veTrangEm(student_id, loi(t('thieuViec')));
   const ten = String(formData.get('ten') ?? '').trim();
-  if (!ten) veTrangEm(student_id, loi('Thước đo dẫn dắt là việc gì? Viết một câu.'));
-  if (ten.length > 160) veTrangEm(student_id, loi('Tối đa 160 ký tự.'));
+  if (!ten) veTrangEm(student_id, loi(t('thuocDoDanDatLaViec')));
+  if (ten.length > 160) veTrangEm(student_id, loi(t('toiDa160KyTu')));
   const chi_tieu_ky = Number(String(formData.get('chi_tieu_ky') ?? '').trim());
-  if (!Number.isFinite(chi_tieu_ky) || chi_tieu_ky <= 0) veTrangEm(student_id, loi('Đích phải là số lớn hơn 0.'));
+  if (!Number.isFinite(chi_tieu_ky) || chi_tieu_ky <= 0) veTrangEm(student_id, loi(t('dichPhaiLaSoLonHon')));
   const ngay_ap_dung = formData
     .getAll('ngay')
     .map((d) => Number(String(d)))
@@ -1031,14 +1070,14 @@ export async function suaViec(formData: FormData) {
   let moi_lan: number | null;
   if (viecCach === 'dien_so') {
     const vdv = String(formData.get('viec_don_vi') ?? '').trim();
-    if (!vdv) veTrangEm(student_id, loi('Đo bằng số thì chọn đơn vị.'));
+    if (!vdv) veTrangEm(student_id, loi(t('doBangSoThiChonDon2')));
     cach_ghi = 'dien_so';
     don_vi_id = vdv;
     moi_lan = null;
   } else {
     const {data: dvRows} = await supabase.from('don_vi').select('id, ma').in('ma', ['ngay', 'lan']);
     const ngayId = dvRows?.find((d) => d.ma === 'ngay')?.id ?? dvRows?.find((d) => d.ma === 'lan')?.id ?? null;
-    if (!ngayId) veTrangEm(student_id, loi('Thiếu đơn vị hệ thống (ngày/lần).'));
+    if (!ngayId) veTrangEm(student_id, loi(t('thieuDonViHeThongNgay')));
     cach_ghi = 'cham';
     don_vi_id = ngayId as string;
     moi_lan = 1;
@@ -1051,26 +1090,7 @@ export async function suaViec(formData: FormData) {
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) veTrangEm(student_id, loi('Không sửa được — không có quyền với việc này.'));
-  veTrangEm(student_id, 'Đã sửa thước đo dẫn dắt');
+  if (!data || data.length === 0) veTrangEm(student_id, loi(t('khongSuaDuocKhongCoQuyen')));
+  veTrangEm(student_id, t('daSuaThuocDoDanDat'));
 }
 
-// Người chứng xác nhận cam kết (buddy / thầy cô / phụ huynh). Trigger ckxn_dung_vai đặt nguoi_id
-// = uid và SUY vai từ quan hệ — không tin cột `vai` gửi lên (đặt tạm 'buddy' để qua kiểu TS).
-export async function xacNhanCamKet(formData: FormData) {
-  const student_id = String(formData.get('student_id') ?? '');
-  const cam_ket_id = String(formData.get('cam_ket_id') ?? '');
-  const y_kien = String(formData.get('y_kien') ?? '').trim() || null;
-  const dong_y = String(formData.get('dong_y') ?? '1') !== '0';
-  if (!cam_ket_id) veTrangEm(student_id, loi('Thiếu cam kết.'));
-  const supabase = await createClient();
-  const {data, error} = await supabase
-    .from('cam_ket_xac_nhan')
-    .insert({cam_ket_id, y_kien, dong_y, vai: 'buddy'})
-    .select('id');
-  revalidatePath('/[locale]/student', 'page');
-  revalidatePath('/[locale]/student/[id]', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) veTrangEm(student_id, loi('Không xác nhận được — không có quyền.'));
-  veTrangEm(student_id, 'Đã xác nhận cam kết');
-}

@@ -5,20 +5,16 @@ import {ngayVN} from '@/lib/dates';
 import {areaLabel, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
 import {DonutRing} from '@/components/charts/DonutRing';
-import {SubmitButton} from '@/components/ui/SubmitButton';
+import {FormTaiCho, LoiO, NutGui, ONhap} from '@/components/ui/FormTaiCho';
 import {NutTaoMucTieuTruong} from '@/components/wig/NutTaoMucTieuTruong';
 import type {DonViChon} from '@/components/student/FormMucTieu';
-import {
-  dongMucTieuTruong,
-  ghiSoMucTieuTruong,
-  xoaMucTieuTruong,
-} from '@/app/[locale]/(dashboard)/truong/truong-actions';
+import {dongMucTieuTruong, ghiSoMucTieuTruong, xoaMucTieuTruong} from '@/app/[locale]/(dashboard)/truong/truong-actions';
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
 // KHU MỤC TIÊU CỦA TRƯỜNG — server component, sống TRONG popup "Mục tiêu của lớp và trường"
-// trên /wig (chốt 04/09: gỡ trang /truong riêng — hai khu này ít đụng tới, thu về một chỗ).
-// Chỉ hiện CƠ SỞ của lớp đang xem (GVCN vốn chỉ một lớp; admin đổi lớp là đổi cơ sở theo).
-// laQuanTri (admin/BGH) mới thấy nút tạo / ghi số / đóng / xoá — GVCN chỉ xem để nối hướng.
+// trên /wig (04/09). Chỉ hiện CƠ SỞ của lớp đang xem. laQuanTri (admin/BGH) mới thấy nút tạo /
+// ghi số / đóng / xoá — GVCN chỉ xem để nối hướng. Mọi nút đi đường state (FormTaiCho): popup
+// đứng yên, lỗi hiện tại chỗ, không redirect.
 // ════════════════════════════════════════════════════════════════════════════════════════════
 
 export async function KhuMucTieuTruong({
@@ -36,6 +32,7 @@ export async function KhuMucTieuTruong({
 }) {
   const t = await getTranslations('truongWig');
   const tMt = await getTranslations('mucTieu');
+  const tf = await getTranslations('formChung');
   const supabase = await createClient();
   const areaMeta = await getAreaMeta();
 
@@ -84,6 +81,7 @@ export async function KhuMucTieuTruong({
   }
 
   const dinhSo = (n: number) => (Math.round(n * 10) / 10).toString();
+  const nutPhu = 'rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy focus-visible:ring-2 focus-visible:ring-gold';
 
   return (
     <section className="flex flex-col gap-3 rounded-[16px] bg-navy/[0.03] p-3.5">
@@ -138,7 +136,7 @@ export async function KhuMucTieuTruong({
                   <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[12px] font-semibold text-grey-mid">
                     {m.y_so != null && (
                       <span className="text-[13.5px] font-extrabold tabular-nums text-navy">
-                        {m.so != null ? dinhSo(Number(m.so)) : '–'}
+                        {m.so != null ? dinhSo(Number(m.so)) : '—'}
                         <span className="font-bold text-grey-mid">
                           {' / '}
                           {dinhSo(Number(m.y_so))} {m.ten_don_vi ?? ''}
@@ -149,54 +147,44 @@ export async function KhuMucTieuTruong({
                   </p>
                 </div>
                 {laQuanTri && (
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <form action={dongMucTieuTruong}>
-                      <input type="hidden" name="campus" value={campusId} />
+                  <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                    <FormTaiCho action={dongMucTieuTruong} xacNhan={tf('dongMucTieuHoi')} nhanXacNhan={t('dong')} anThanhCong>
                       <input type="hidden" name="muc_tieu_id" value={m.id} />
                       <input type="hidden" name="ly_do_dong" value="bo" />
-                      <SubmitButton
-                        className="rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1 text-[11px] font-extrabold text-navy transition-all hover:border-navy"
-                        wrapClass="contents"
-                      >
-                        {t('dong')}
-                      </SubmitButton>
-                    </form>
-                    <form action={xoaMucTieuTruong}>
-                      <input type="hidden" name="campus" value={campusId} />
+                      <NutGui className={nutPhu}>{t('dong')}</NutGui>
+                    </FormTaiCho>
+                    <FormTaiCho action={xoaMucTieuTruong} xacNhan={tf('xoaMucTieuHoi')} nhanXacNhan={t('xoa')} nguyHiem anThanhCong>
                       <input type="hidden" name="muc_tieu_id" value={m.id} />
-                      <SubmitButton
+                      <NutGui
                         label={t('xoa')}
-                        className="grid h-7 w-7 place-items-center rounded-[8px] text-status-bad transition-colors hover:bg-status-bad/10"
-                        wrapClass="contents"
+                        className="relative grid h-9 w-9 place-items-center rounded-[10px] text-status-bad transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:bg-status-bad/10 focus-visible:ring-2 focus-visible:ring-gold"
                       >
-                        <Trash2 size={13} strokeWidth={2.5} />
-                      </SubmitButton>
-                    </form>
+                        <Trash2 size={14} strokeWidth={2.5} />
+                      </NutGui>
+                    </FormTaiCho>
                   </div>
                 )}
               </div>
 
               {/* Ghi số — trường đo theo cách riêng, ban giám hiệu điền lại con số mới nhất. */}
               {laQuanTri && m.trang_thai === 'duyet' && m.loai_moc === 'do_luong' && m.nguon_so === 'ghi_tay' && (
-                <form action={ghiSoMucTieuTruong} className="flex flex-wrap items-center gap-1.5">
-                  <input type="hidden" name="campus" value={campusId} />
+                <FormTaiCho action={ghiSoMucTieuTruong} className="flex flex-wrap items-end gap-2">
                   <input type="hidden" name="muc_tieu_id" value={m.id} />
-                  <span className="text-[11.5px] font-semibold text-grey-mid">{t('ghiSoNhan')}</span>
-                  <input
-                    type="number"
-                    name="gia_tri"
-                    step="any"
-                    min="0"
-                    placeholder={m.ten_don_vi ?? ''}
-                    className="w-24 rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-[12.5px] text-navy"
-                  />
-                  <SubmitButton
-                    className="rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy"
-                    wrapClass="contents"
-                  >
-                    {t('ghiSoLuu')}
-                  </SubmitButton>
-                </form>
+                  <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
+                    {t('ghiSoNhan')}
+                    <ONhap
+                      type="number"
+                      name="gia_tri"
+                      step="any"
+                      min="0"
+                      inputMode="decimal"
+                      placeholder={m.ten_don_vi ?? ''}
+                      className="ctl-h w-32 rounded-[10px] border-[1.5px] bg-white px-3 text-base font-semibold text-navy focus-visible:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm"
+                    />
+                  </label>
+                  <NutGui className={nutPhu}>{t('ghiSoLuu')}</NutGui>
+                  <LoiO ten="gia_tri" />
+                </FormTaiCho>
               )}
 
               {/* Các lớp đã hướng vào mục tiêu này. */}

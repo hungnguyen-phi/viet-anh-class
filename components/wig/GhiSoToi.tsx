@@ -37,9 +37,7 @@ export function GhiSoToi({
     if (!Number.isFinite(n) || n <= 0 || dangGhi) return;
     setDangGhi(true);
     setLoi(null);
-    const {error} = await supabase
-      .from('luot')
-      .insert({thuoc_id: leadId, student_id: studentId, ngay: today, gia_tri: n});
+    const {error} = await supabase.from('luot').insert({thuoc_id: leadId, student_id: studentId, ngay: today, gia_tri: n});
     setDangGhi(false);
     if (error) setLoi(t('ghiLoi'));
     else {
@@ -49,29 +47,37 @@ export function GhiSoToi({
   }
 
   return (
-    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-      <span className="text-[11.5px] font-bold tabular-nums text-grey-mid">
+    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+      <span className="text-[12px] font-bold tabular-nums text-grey-mid">
         {t('tongTuan', {so: Math.round(tongTuan * 10) / 10, dich: chiTieu, dv: donVi})}
       </span>
       <input
         type="number"
         value={so}
         onChange={(e) => setSo(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            void ghi();
+          }
+        }}
         step="any"
         min="0"
+        inputMode="decimal"
         placeholder={donVi}
-        className="w-20 rounded-[7px] border-[1.5px] border-navy/20 px-2 py-1 text-[11.5px] text-navy"
+        aria-label={t('ghiThem')}
+        className="ctl-h w-24 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-base font-semibold text-navy focus-visible:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm"
       />
       <button
         type="button"
         onClick={ghi}
         disabled={dangGhi || so.trim() === ''}
-        className="inline-flex cursor-pointer items-center gap-1 rounded-[7px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <Plus size={11} strokeWidth={3} />
+        <Plus size={12} strokeWidth={3} />
         {t('ghiThem')}
       </button>
-      {loi && <span className="text-[11px] font-semibold text-status-bad">{loi}</span>}
+      {loi && <span role="alert" className="text-[12px] font-bold text-status-bad">{loi}</span>}
     </div>
   );
 }
