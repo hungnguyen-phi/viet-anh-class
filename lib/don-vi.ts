@@ -35,6 +35,8 @@ export type DonVi = {
  * Vẫn cho gõ đơn vị KHÁC — danh sách này không thể phủ hết mọi môn, mọi trường. Đơn vị lạ rơi về
  * 'luong': hỏi "mỗi lần bao nhiêu" bao giờ cũng an toàn hơn là mặc định 1 rồi đếm sai.
  */
+// Mã đơn vị GIEO VÀO CSDL (don_vi.ma) — dữ liệu dùng chung, không phải nhãn; nhãn hiển thị đọc từ
+// don_vi.nhan_vi / nhan_en. Cố ý không qua messages (audit 04/09).
 export const DON_VI: DonVi[] = [
   {ma: 'buổi', kieu: 'luot'},
   {ma: 'lần', kieu: 'luot'},

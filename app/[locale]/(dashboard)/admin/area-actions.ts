@@ -4,6 +4,7 @@ import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
+import {getTranslations} from 'next-intl/server';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {AREAS} from '@/lib/areas';
 import type {Database} from '@/lib/database.types';
@@ -29,13 +30,14 @@ function softFromHex(hex: string): string {
 // Cập nhật 1 lĩnh vực 4DX (nhãn VN/EN, màu, icon, đơn vị mặc định).
 export async function updateArea(formData: FormData) {
   await requireRole(['admin']);
+  const t = await getTranslations('loiAdmin');
   const area = String(formData.get('area') ?? '') as Area;
   const label_vi = String(formData.get('label_vi') ?? '').trim();
   const label_en = String(formData.get('label_en') ?? '').trim();
   const color_hex = String(formData.get('color_hex') ?? '').trim();
   const icon_name = String(formData.get('icon_name') ?? '').trim();
   const default_unit = String(formData.get('default_unit') ?? '').trim() || null;
-  if (!area || !label_vi || !label_en || !color_hex || !icon_name) flash('Thiếu thông tin lĩnh vực');
+  if (!area || !label_vi || !label_en || !color_hex || !icon_name) flash(loi(t('lvThieuThongTin')));
 
   const supabase = await createClient();
   // UPSERT chứ không UPDATE: area_config được phép THIẾU dòng — lib/areas.ts có sẵn fallback và
@@ -60,7 +62,7 @@ export async function updateArea(formData: FormData) {
   revalidatePath('/[locale]/admin', 'page');
   revalidatePath('/[locale]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  flash(error ? loi(friendlyError(error)) : 'Đã cập nhật lĩnh vực');
+  flash(error ? loi(friendlyError(error)) : t('lvDaCapNhat'));
 }
 
 // Khôi phục 1 lĩnh vực về mặc định = XOÁ dòng cấu hình; lib/areas.ts tự rơi về AREA_FALLBACK.
@@ -71,8 +73,9 @@ export async function updateArea(formData: FormData) {
 // nút "Xoá" thật sự ở đây sẽ để lại những WIG trỏ vào lĩnh vực không còn nhãn.
 export async function resetArea(formData: FormData) {
   await requireRole(['admin']);
+  const t = await getTranslations('loiAdmin');
   const area = String(formData.get('area') ?? '') as Area;
-  if (!area) flash(loi('Thiếu lĩnh vực'));
+  if (!area) flash(loi(t('lvThieu')));
 
   const supabase = await createClient();
   const {error} = await supabase.from('area_config').delete().eq('area', area);
@@ -80,5 +83,5 @@ export async function resetArea(formData: FormData) {
   revalidatePath('/[locale]/admin', 'page');
   revalidatePath('/[locale]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  flash(error ? loi(friendlyError(error)) : 'Đã khôi phục lĩnh vực về mặc định');
+  flash(error ? loi(friendlyError(error)) : t('lvDaKhoiPhuc'));
 }

@@ -4,6 +4,7 @@ import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import {getCurrentProfile, requireRole} from '@/lib/auth';
+import {getTranslations} from 'next-intl/server';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {isValidDayVN, mondayOf} from '@/lib/dates';
 
@@ -26,6 +27,7 @@ const KIND_HOP_LE = ['doi_ten_thuoc', 'mo_tuan_da_ky', 'khac'] as const;
 
 // Học sinh (hoặc PH) gửi yêu cầu → GVCN duyệt. 23505 = đã có pending trùng (im lặng, coi như xong).
 export async function createEditRequest(formData: FormData) {
+  const t = await getTranslations('loi');
   const profile = await getCurrentProfile();
   if (!profile) redirect('/login');
   let student_id = String(formData.get('student_id') ?? '');
@@ -40,13 +42,13 @@ export async function createEditRequest(formData: FormData) {
   // student_id=uid. Ép student_id = chính em để em A không gửi yêu cầu mang tên em B.
   if (profile.role === 'student') student_id = profile.id;
   const back = (m: string): never => veTrangEm(student_id, m);
-  if (!student_id || !class_id) back('Thiếu thông tin yêu cầu');
+  if (!student_id || !class_id) back(loi(t('ycThieuThongTin')));
 
   // Mở tuần đã ký: cần đích danh thứ Hai của tuần xin mở (không suy từ biên bản — vá lỗ khoá
   // vĩnh viễn của biên bản rỗng, C14). Kind khác thì không mang tuần.
   const tuan = kind === 'mo_tuan_da_ky' && isValidDayVN(tuanRaw) ? mondayOf(tuanRaw) : null;
-  if (kind === 'mo_tuan_da_ky' && !tuan) back('Chưa rõ tuần nào cần mở lại.');
-  if (kind === 'doi_ten_thuoc' && (!ref_id || !message)) back('Đổi tên việc thì cho thầy cô biết việc nào và tên mới.');
+  if (kind === 'mo_tuan_da_ky' && !tuan) back(loi(t('ycChuaRoTuan')));
+  if (kind === 'doi_ten_thuoc' && (!ref_id || !message)) back(loi(t('ycDoiTenThieu')));
 
   const supabase = await createClient();
   const {error} = await supabase.from('edit_requests').insert({
@@ -60,19 +62,20 @@ export async function createEditRequest(formData: FormData) {
   });
   revalidatePath('/[locale]/student/[id]', 'page');
   if (error && error.code !== '23505') back(loi(friendlyError(error)));
-  back('Đã gửi yêu cầu cho thầy cô');
+  back(t('ycDaGui'));
 }
 
 // Học sinh/PH SỬA lời nhắn của yêu cầu MÌNH đã gửi, khi còn 'pending'. `.eq('status','pending')`
 // để phân biệt "thầy cô vừa xử lý xong" → báo cho em biết thay vì im lặng không đổi gì.
 export async function updateEditRequest(formData: FormData) {
+  const t = await getTranslations('loi');
   const profile = await getCurrentProfile();
   if (!profile) redirect('/login');
   const student_id = String(formData.get('student_id') ?? '');
   const id = String(formData.get('request_id') ?? '');
   const message = String(formData.get('message') ?? '').trim();
   const back = (m: string): never => veTrangEm(student_id, m);
-  if (!id) back('Thiếu yêu cầu');
+  if (!id) back(loi(t('ycThieu')));
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('edit_requests')
@@ -83,18 +86,19 @@ export async function updateEditRequest(formData: FormData) {
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/student', 'page');
   if (error) back(loi(friendlyError(error)));
-  back(data && data.length ? 'Đã cập nhật yêu cầu' : 'Không sửa được — thầy cô đã xử lý yêu cầu này rồi.');
+  back(data && data.length ? t('ycDaCapNhat') : loi(t('ycKhongSuaDaXuLy')));
 }
 
 // Học sinh/PH RÚT LẠI yêu cầu của mình khi chưa xử lý. Rút lại giải phóng luôn unique index
 // pending → gửi lại yêu cầu mới được ngay.
 export async function withdrawEditRequest(formData: FormData) {
+  const t = await getTranslations('loi');
   const profile = await getCurrentProfile();
   if (!profile) redirect('/login');
   const student_id = String(formData.get('student_id') ?? '');
   const id = String(formData.get('request_id') ?? '');
   const back = (m: string): never => veTrangEm(student_id, m);
-  if (!id) back('Thiếu yêu cầu');
+  if (!id) back(loi(t('ycThieu')));
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('edit_requests')
@@ -105,19 +109,20 @@ export async function withdrawEditRequest(formData: FormData) {
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/student', 'page');
   if (error) back(loi(friendlyError(error)));
-  back(data && data.length ? 'Đã rút lại yêu cầu' : 'Không rút được — thầy cô đã xử lý yêu cầu này rồi.');
+  back(data && data.length ? t('ycDaRut') : loi(t('ycKhongRutDaXuLy')));
 }
 
 // GVCN/Admin duyệt/từ chối. IDEMPOTENT: chỉ đổi khi đang 'pending'. Trigger er_truoc_sua tự điền
 // resolved_by/resolved_at; er_sau_duyet tự áp dụng doi_ten_thuoc (đổi tên thước) và mo_tuan_da_ky
 // (sinh luot_mo_khoa 48 giờ) — app KHÔNG tự làm hai việc ấy nữa (mô hình cũ tự áp rename_lead).
 export async function resolveEditRequest(formData: FormData) {
+  const t = await getTranslations('loi');
   await requireRole(['teacher', 'admin']);
   const student_id = String(formData.get('student_id') ?? '');
   const id = String(formData.get('request_id') ?? '');
   const decision = String(formData.get('decision') ?? '');
   if (!id || (decision !== 'approved' && decision !== 'rejected'))
-    veTrangEm(student_id, loi('Thiếu thông tin duyệt'));
+    veTrangEm(student_id, loi(t('ycThieuThongTinDuyet')));
   const supabase = await createClient();
   const {data, error} = await supabase
     .from('edit_requests')
@@ -128,6 +133,6 @@ export async function resolveEditRequest(formData: FormData) {
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
   if (error) veTrangEm(student_id, loi(friendlyError(error)));
-  if (!data || data.length === 0) veTrangEm(student_id, loi('Yêu cầu đã được xử lý trước đó.'));
-  veTrangEm(student_id, decision === 'approved' ? 'Đã duyệt yêu cầu' : 'Đã từ chối yêu cầu');
+  if (!data || data.length === 0) veTrangEm(student_id, loi(t('ycDaXuLyTruoc')));
+  veTrangEm(student_id, decision === 'approved' ? t('ycDaDuyet') : t('ycDaTuChoi'));
 }

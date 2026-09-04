@@ -252,7 +252,7 @@ export function AppNav({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo-viet-anh-128.webp"
-            alt="Logo Việt Anh"
+            alt={tc('logoAlt')}
             width={32}
             height={32}
             className="cham-44 h-8 w-8 shrink-0 rounded-full border-[1.5px] border-white/90 bg-white object-cover shadow-[0_2px_8px_rgba(38,39,93,0.15)]"
@@ -559,6 +559,7 @@ function MoHuongDan({className, onDone}: {className?: string; onDone?: () => voi
 }
 
 function LocaleToggle({className, withLabel}: {className?: string; withLabel?: boolean}) {
+  const tc = useTranslations('common');
   const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
@@ -568,7 +569,7 @@ function LocaleToggle({className, withLabel}: {className?: string; withLabel?: b
   return (
     <button
       type="button"
-      aria-label="Đổi ngôn ngữ"
+      aria-label={tc('doiNgonNgu')}
       disabled={isPending}
       onClick={() => startTransition(() => router.replace(pathname, {locale: other}))}
       className={
