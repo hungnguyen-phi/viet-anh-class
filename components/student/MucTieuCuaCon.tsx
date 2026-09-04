@@ -104,7 +104,7 @@ export function MucTieuCuaCon({
         </p>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid items-start gap-3 sm:grid-cols-2">
         {AREAS.map((a) => {
           const mt = theoArea.get(a);
           const nhan = nhanTheoArea[a] ?? a;
@@ -429,7 +429,7 @@ function ChipTrangThai({mt}: {mt: MucTieuV}) {
   else if (mt.trang_thai === 'nhap') chips.push({key: 'nhap', cls: 'bg-navy/[0.07] text-grey-mid'});
   else if (mt.trang_thai === 'dong') chips.push({key: 'daDong', cls: 'bg-navy/[0.07] text-grey-mid'});
   const ttDo = mt.trang_thai_do;
-  const ttKey = ttDo && ['dat', 'dang_thang', 'dang_giu', 'sat_nut', 'dang_lam', 'chua_biet', 'can_co', 'vuot', 'truot', 'mien', 'dong'].includes(ttDo)
+  const ttKey = ttDo && ['dat', 'dang_thang', 'dang_giu', 'dang_lam', 'chua_biet', 'can_co', 'vuot', 'truot', 'mien', 'dong'].includes(ttDo)
     ? `tt_${ttDo}`
     : null;
   return (

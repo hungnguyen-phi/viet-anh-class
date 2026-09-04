@@ -2,6 +2,7 @@
 
 import {useActionState, useEffect, useRef, useState} from 'react';
 import {AlertCircle, CheckCircle2, Pencil, X} from 'lucide-react';
+import {useTranslations} from 'next-intl';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {capNhatHocSinh} from './actions';
 import {OThongTinHocSinh, baOTuIso, type ThongTinHS} from './OThongTinHocSinh';
@@ -38,6 +39,7 @@ export function SuaHocSinh({
     note: string | null;
   };
 }) {
+  const tr = useTranslations('roster');
   const [mo, setMo] = useState(false);
   const hopRef = useRef<HTMLDivElement>(null);
   const [state, formAction] = useActionState(capNhatHocSinh, {ok: false});
@@ -87,11 +89,11 @@ export function SuaHocSinh({
         type="button"
         onClick={() => setMo((x) => !x)}
         aria-expanded={mo}
-        title={`Sửa thông tin ${ten}`}
+        title={tr('suaThongTinCua', {ten})}
         className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-navy/20 bg-white text-navy/70 transition-all hover:border-navy hover:text-navy"
       >
         <Pencil size={13} strokeWidth={2.5} />
-        <span className="sr-only">Sửa thông tin {ten}</span>
+        <span className="sr-only">{tr('suaThongTinCua', {ten})}</span>
       </button>
 
       {mo && (
@@ -99,7 +101,7 @@ export function SuaHocSinh({
         <div className="absolute right-0 z-30 mt-1.5 w-[300px] rounded-[16px] border-[1.5px] border-gold/60 bg-white p-3 shadow-[0_18px_40px_rgba(11,31,59,0.18)]">
           <div className="mb-2 flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <h2 className="font-display text-[13.5px] font-bold text-navy">Sửa thông tin học sinh</h2>
+              <h2 className="font-display text-[13.5px] font-bold text-navy">{tr('suaThongTinHs')}</h2>
               {/* Email hiện ra nhưng KHÔNG sửa được — người dùng phải biết mình đang sửa hồ sơ của ai. */}
               <p className="truncate text-[11.5px] font-semibold text-grey-mid" title={email}>
                 {email}

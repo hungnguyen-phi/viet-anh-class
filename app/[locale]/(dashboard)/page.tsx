@@ -3,18 +3,7 @@ import {redirect} from 'next/navigation';
 import {requireProfile} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {getClassContext} from '@/lib/queries';
-import {
-  Check,
-  X,
-  Minus,
-  Users,
-  GraduationCap,
-  Trophy,
-  TrendingUp,
-  Flame,
-  Layers,
-  Building2,
-} from 'lucide-react';
+import {Check, Minus, Users, GraduationCap, Layers, Building2} from 'lucide-react';
 import {ClassPicker} from '@/components/shell/ClassPicker';
 import {DonutRing} from '@/components/charts/DonutRing';
 import {AREAS, areaLabel, areaIcon} from '@/lib/areas';
@@ -175,7 +164,6 @@ export default async function ClassPage({
     off_track: t('class.offTrack'),
   };
 
-  const rank = ranksData?.[0];
 
   return (
     <div className="flex flex-col gap-[22px]">
@@ -185,43 +173,20 @@ export default async function ClassPage({
         </div>
       )}
 
-      {/* Banner trạng thái "nhìn 3 giây biết thắng/thua" (PRD §6.1.1) */}
+      {/* Một dòng trạng thái trung tính (audit 04/09) — thay băng-rôn "ĐANG THẮNG / CẦN BỨT PHÁ" cao
+          230px ở 360px: người đọc chỉ cần biết lớp đang đúng nhịp hay chậm và bao nhiêu mục tiêu. */}
       {isWinning !== null && (
-        <div
-          className="animate-rise flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-[20px] p-5 text-white"
-          style={{
-            background: isWinning
-              ? 'linear-gradient(120deg,var(--color-success) 0%,var(--color-success-dark) 100%)'
-              : 'linear-gradient(120deg,var(--color-status-bad) 0%,var(--color-status-bad-dark) 100%)',
-            boxShadow: isWinning
-              ? '0 10px 26px color-mix(in srgb, var(--color-success) 30%, transparent)'
-              : '0 10px 26px color-mix(in srgb, var(--color-status-bad) 30%, transparent)',
-          }}
-        >
-          <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full bg-white/15 ring-2 ring-white/30">
-            {isWinning ? (
-              <Check size={26} strokeWidth={3} />
-            ) : (
-              <X size={26} strokeWidth={3} />
-            )}
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-bold text-navy">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${
+              isWinning ? 'bg-success/[0.12] text-success-dark' : 'bg-status-bad/[0.10] text-status-bad'
+            }`}
+          >
+            {isWinning ? <Check size={13} strokeWidth={3} /> : <Minus size={13} strokeWidth={3} />}
+            {isWinning ? t('class.nhipDung') : t('class.nhipCham')}
           </span>
-          <div className="min-w-0">
-            <div className="font-display text-2xl font-bold tracking-tight">
-              {isWinning ? t('class.winning') : t('class.losing')}
-            </div>
-            <p className="mt-0.5 text-[13px] font-bold text-white/85">
-              {isWinning ? t('class.winningDesc') : ''}
-            </p>
-          </div>
-          <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-extrabold">
-            {isWinning ? (
-              <TrendingUp size={14} strokeWidth={2.5} />
-            ) : (
-              <Flame size={14} strokeWidth={2.5} />
-            )}
-            {t('class.yearOnTrack', {n: onCount, total: goals.length})}
-          </span>
-        </div>
+          <span className="text-grey-mid">{t('class.yearOnTrack', {n: onCount, total: goals.length})}</span>
+        </p>
       )}
 
       {/* Hero lớp — thẻ kính (glass on gradient v3) */}
@@ -233,15 +198,6 @@ export default async function ClassPage({
           <span className="rounded-full border-[1.5px] border-gold-deep/40 bg-gold/10 px-3 py-1 text-[11.5px] font-extrabold text-gold-text">
             {myClass.school_year}
           </span>
-          {rank && (
-            <span
-              className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-linear-to-b from-gold-soft to-gold px-3.5 py-1.5 text-[12px] font-extrabold text-navy shadow-[var(--shadow-gold)]"
-              title={t('class.scoreHint')}
-            >
-              <Trophy size={13} strokeWidth={2.5} />
-              {t('class.score')}: {Number(rank.score)}/100
-            </span>
-          )}
         </div>
 
         {(gradeName || campusName || gvcnName || rosterCount !== null) && (
@@ -350,70 +306,6 @@ export default async function ClassPage({
         </div>
       </section>
 
-      {/* Việc của lớp tuần này — mỗi thước "n/m bạn đủ" + thanh tiến độ */}
-      <section>
-        <div className="mb-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1.5">
-          <h2 className="font-display text-[17px] font-bold text-navy">
-            {t('lopMucTieu.khuViec')}
-          </h2>
-          {thuocs.length > 0 && (
-            <span className="rounded-full bg-navy px-2.5 py-1 text-[11px] font-extrabold text-white">
-              {thuocDone}/{thuocs.length} {t('class.leadDone')}
-            </span>
-          )}
-        </div>
-        {thuocs.length === 0 ? (
-          <p className="text-xs italic text-grey-mid">{t('lopMucTieu.viecTrong')}</p>
-        ) : (
-          <div className="glass overflow-x-auto rounded-[20px]">
-            {thuocs.map((r, i) => {
-              const pct = r.si > 0 ? Math.min(1, r.dat / r.si) : 0;
-              const barBg =
-                pct >= 1
-                  ? 'var(--color-success)'
-                  : pct >= 0.5
-                    ? 'var(--color-gold-mid)'
-                    : 'var(--color-status-bad)';
-              return (
-                <div
-                  key={r.id}
-                  className={`flex items-center gap-3 px-4 py-3 ${
-                    i < thuocs.length - 1 ? 'border-b border-navy/[0.08]' : ''
-                  }`}
-                >
-                  <span
-                    className="grid h-7 w-7 shrink-0 place-items-center rounded-full"
-                    style={{
-                      background: r.done ? 'var(--color-success)' : 'rgba(38,39,93,0.08)',
-                      color: r.done ? '#ffffff' : 'var(--color-grey-mid)',
-                    }}
-                  >
-                    {r.done ? (
-                      <Check size={14} strokeWidth={3} />
-                    ) : (
-                      <Minus size={14} strokeWidth={3} />
-                    )}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-extrabold text-navy">
-                      {r.ten}
-                    </div>
-                    <div className="mt-[7px] h-[9px] overflow-hidden rounded-[5px] bg-navy/[0.08]">
-                      <div
-                        className="h-full rounded-[5px]"
-                        style={{width: `${Math.round(pct * 100)}%`, background: barBg}}
-                      />
-                    </div>
-                  </div>
-                  <span className="shrink-0 text-right text-xs font-bold text-grey-mid">
-                    {t('viec.nEmDu', {n: r.dat, si: r.si})}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
     </div>
   );
 }

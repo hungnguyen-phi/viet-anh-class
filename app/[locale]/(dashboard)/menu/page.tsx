@@ -38,6 +38,7 @@ export default async function MenuPage({
     week?: string;
     date?: string;
     meal?: string;
+    day?: string;
   }>;
 }) {
   const {locale} = await params;
@@ -46,6 +47,7 @@ export default async function MenuPage({
     week: weekParam,
     date: dateParam,
     meal: mealParam,
+    day: dayParam,
   } = await searchParams;
   setRequestLocale(locale);
   // Mọi vai đăng nhập đều XEM được thực đơn cơ sở mình (policy rls_select_meal_menus) — kể cả
@@ -128,6 +130,7 @@ export default async function MenuPage({
   // ngày đầu tuần. Bữa trưa là bữa hầu như trường nào cũng có.
   const formDate = editingDate ?? (weekDates.includes(today) ? today : weekDates[0]);
   const formMeal: MealSlot = editingMeal ?? 'lunch';
+  const ngayXem = dayParam && weekDates.includes(dayParam) ? dayParam : weekDates.includes(today) ? today : weekDates[0];
 
   // Mọi link nội bộ phải bảo toàn cơ sở + tuần đang xem, nếu không bấm "Sửa" là nhảy về tuần này.
   const q = (extra: Record<string, string> = {}) => ({
@@ -183,8 +186,63 @@ export default async function MenuPage({
         </span>
       </div>
 
-      {/* Lưới: hàng = bữa, cột = thứ (kèm ngày thật của tuần đang xem) */}
-      <div className="glass overflow-x-auto rounded-[20px] p-2">
+      {/* Tuần chưa có thực đơn → nói thẳng, không bày lưới trống (audit 04/09: em thấy bảng câm). */}
+      {(rows ?? []).length === 0 && !canManage && (
+        <p className="glass rounded-[16px] px-4 py-3 text-[13px] font-semibold text-grey-mid">{t('trongEm')}</p>
+      )}
+
+      {/* < 640px: xem theo NGÀY — lưới 7 cột chỉ hiện 2 cột trên điện thoại mà không có dấu hiệu cuộn.
+          Mặc định hôm nay (nếu nằm trong tuần), đổi ngày bằng chip; ?day= để giữ khi bấm. */}
+      <div className="flex flex-col gap-2 sm:hidden">
+        <div className="flex gap-1.5 overflow-x-auto pb-1" aria-label={t('homNay')}>
+          {weekDates.map((d, i) => (
+            <Link
+              key={d}
+              href={{pathname: '/menu', query: q({day: d})}}
+              aria-current={d === ngayXem ? 'date' : undefined}
+              className={`inline-flex min-h-[44px] shrink-0 flex-col items-center justify-center rounded-[12px] border-[1.5px] px-3 text-[12px] font-extrabold ${
+                d === ngayXem ? 'border-navy bg-navy text-white' : 'border-navy/15 bg-white/60 text-navy'
+              }`}
+            >
+              {t(`days.${DAY_KEYS[i]}`)}
+              <span className={`text-[10.5px] font-bold ${d === ngayXem ? 'text-white/80' : d === today ? 'text-gold-text' : 'text-grey-mid'}`}>
+                {d.slice(5)}
+              </span>
+            </Link>
+          ))}
+        </div>
+        <div className="glass flex flex-col gap-2 rounded-[20px] p-3">
+          {MEAL_SLOTS.map((meal) => {
+            const m = byKey.get(`${ngayXem}|${meal}`);
+            return (
+              <div key={meal} className="rounded-[12px] border-[1.5px] border-navy/10 bg-white/60 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t(`meals.${meal}`)}</span>
+                  {canManage && (
+                    <Link
+                      href={{pathname: '/menu', query: q({date: ngayXem, meal})}}
+                      className="inline-flex min-h-[36px] items-center text-[12px] font-extrabold text-navy underline"
+                    >
+                      {m ? t('edit') : t('them')}
+                    </Link>
+                  )}
+                </div>
+                {m ? (
+                  <>
+                    <p className="mt-1 whitespace-pre-line break-words text-[13px] font-semibold leading-[1.5] text-navy">{m.items}</p>
+                    {m.note && <p className="mt-1 text-[11.5px] font-semibold italic text-grey-mid">{m.note}</p>}
+                  </>
+                ) : (
+                  <p className="mt-1 text-[12px] font-semibold italic text-grey-mid">{t('ngayTrong')}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ≥ 640px: lưới hàng = bữa, cột = thứ (kèm ngày thật của tuần đang xem) */}
+      <div className="glass hidden overflow-x-auto rounded-[20px] p-2 sm:block">
         <div className="min-w-[980px]">
           <div className="flex">
             <div className="w-[92px] shrink-0 px-2 py-2 text-[11px] font-extrabold uppercase text-grey-mid">
@@ -230,7 +288,7 @@ export default async function MenuPage({
                               href={{pathname: '/menu', query: q({date: d, meal})}}
                               className={suaCls}
                             >
-                              Sửa
+                              {t('edit')}
                             </Link>
                             <form action={deleteMenu}>
                               <input type="hidden" name="campus_id" value={campusId} />
@@ -241,7 +299,7 @@ export default async function MenuPage({
                                 message={t('confirmDelete', {meal: t(`meals.${meal}`).toLowerCase(), date: ngayVN(d)})}
                                 className="cursor-pointer rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-2 py-1 text-[11px] font-extrabold text-status-bad transition-all hover:bg-status-bad/[0.16]"
                               >
-                                Xoá
+                                {t('delete')}
                               </ConfirmButton>
                             </form>
                           </div>
@@ -253,7 +311,7 @@ export default async function MenuPage({
                         aria-label={t('addAria', {meal: t(`meals.${meal}`).toLowerCase(), date: ngayVN(d)})}
                         className="block rounded-[10px] border-[1.5px] border-dashed border-navy/15 py-2 text-center text-[11px] font-extrabold text-navy/40 transition-colors hover:border-navy hover:text-navy"
                       >
-                        + Thêm
+                        {t('them')}
                       </Link>
                     ) : (
                       <div className="rounded-[10px] py-2 text-center text-[11px] text-navy/15">·</div>

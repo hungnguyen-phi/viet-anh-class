@@ -68,7 +68,7 @@ export async function MessageHealthCard() {
         </h2>
         {tongCho > 0 && (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-status-bad/[0.08] px-2.5 py-1 text-[11.5px] font-extrabold text-status-bad">
-            {tongCho} cuộc chưa được trả lời
+            {t('cuocChuaTraLoi', {n: tongCho})}
           </span>
         )}
       </div>

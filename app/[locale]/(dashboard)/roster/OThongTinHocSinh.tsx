@@ -2,6 +2,7 @@
 
 import {useRef} from 'react';
 import {AlertCircle} from 'lucide-react';
+import {useTranslations} from 'next-intl';
 
 // ════════════════════════════════════════════════════════════════════════════
 // NĂM Ô THÔNG TIN HỌC SINH — MỘT BẢN, HAI NƠI DÙNG.
@@ -66,6 +67,7 @@ export function OThongTinHocSinh({
   loiNgaySinh?: string | null;
   ghiChuRong?: boolean;
 }) {
+  const tr = useTranslations('roster');
   const set = (k: keyof ThongTinHS) => (e: {target: {value: string}}) =>
     setV((p) => ({...p, [k]: e.target.value}));
 
@@ -99,21 +101,21 @@ export function OThongTinHocSinh({
     <>
       <div>
         <label className={lbl} htmlFor={`${idTien}-name`}>
-          Họ và tên
+          {tr('hoTen')}
         </label>
         <input
           id={`${idTien}-name`}
           name="full_name"
           value={v.full_name}
           onChange={set('full_name')}
-          placeholder="Nguyễn Văn An"
+          placeholder={tr('hoTenVd')}
           className={`${inp} ${plain}`}
         />
       </div>
 
       <div>
         <label className={lbl} htmlFor={`${idTien}-code`}>
-          Mã học sinh
+          {tr('maHs')}
         </label>
         <input
           id={`${idTien}-code`}
@@ -130,17 +132,17 @@ export function OThongTinHocSinh({
           tháng 9. Ba ô có nhãn thì không nhầm được, ở bất kỳ máy nào. */}
       <div role="group" aria-labelledby={`${idTien}-dob-label`}>
         <span className={lbl} id={`${idTien}-dob-label`}>
-          Ngày sinh
+          {tr('ngaySinh')}
         </span>
         <div className="flex items-center gap-1.5">
           <input
             id={`${idTien}-dob-day`}
             name="dob_day"
-            aria-label="Ngày sinh — ngày"
+            aria-label={tr('ngaySinhNgay')}
             aria-invalid={!!loiNgaySinh}
             inputMode="numeric"
             maxLength={2}
-            placeholder="Ngày"
+            placeholder={tr('ngay')}
             value={v.dob_day}
             onChange={onNgay}
             className={`${inpDob} ${dobBorder} w-20 flex-none text-center`}
@@ -152,11 +154,11 @@ export function OThongTinHocSinh({
             id={`${idTien}-dob-month`}
             name="dob_month"
             ref={oThang}
-            aria-label="Ngày sinh — tháng"
+            aria-label={tr('ngaySinhThang')}
             aria-invalid={!!loiNgaySinh}
             inputMode="numeric"
             maxLength={2}
-            placeholder="Tháng"
+            placeholder={tr('thang')}
             value={v.dob_month}
             onChange={onThang}
             className={`${inpDob} ${dobBorder} w-20 flex-none text-center`}
@@ -168,11 +170,11 @@ export function OThongTinHocSinh({
             id={`${idTien}-dob-year`}
             name="dob_year"
             ref={oNam}
-            aria-label="Ngày sinh — năm"
+            aria-label={tr('ngaySinhNam')}
             aria-invalid={!!loiNgaySinh}
             inputMode="numeric"
             maxLength={4}
-            placeholder="Năm"
+            placeholder={tr('nam')}
             value={v.dob_year}
             onChange={onNam}
             className={`${inpDob} ${dobBorder} min-w-0 flex-1 text-center`}
@@ -188,7 +190,7 @@ export function OThongTinHocSinh({
 
       <div>
         <label className={lbl} htmlFor={`${idTien}-phone`}>
-          SĐT phụ huynh
+          {tr('sdtPhuHuynh')}
         </label>
         <input
           id={`${idTien}-phone`}
@@ -204,14 +206,14 @@ export function OThongTinHocSinh({
 
       <div className={ghiChuRong ? 'lg:col-span-2' : undefined}>
         <label className={lbl} htmlFor={`${idTien}-note`}>
-          Ghi chú
+          {tr('ghiChu')}
         </label>
         <input
           id={`${idTien}-note`}
           name="note"
           value={v.note}
           onChange={set('note')}
-          placeholder="vd: dị ứng hải sản"
+          placeholder={tr('ghiChuVd')}
           className={`${inp} ${plain}`}
         />
       </div>
