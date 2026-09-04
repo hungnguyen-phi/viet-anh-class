@@ -38,6 +38,9 @@ export default async function AdminPage({
     upage?: string;
     vai?: string;
     size?: string;
+    cs?: string;
+    khoi?: string;
+    lop?: string;
     flash?: string;
     flash_err?: string;
   }>;
@@ -50,9 +53,17 @@ export default async function AdminPage({
 
   // Loại ký tự phá cú pháp filter PostgREST (,()*) để chống injection ở .or().
   const q = (sp.q ?? '').replace(/[,()*%]/g, '').trim();
-  const tab: UserTab = (USER_TABS as readonly string[]).includes(sp.vai ?? '')
-    ? (sp.vai as UserTab)
-    : 'all';
+  // Bộ lọc nơi học (cơ sở/khối/lớp) chỉ nhận uuid — tham số lạ bị bỏ, không lọt vào truy vấn.
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const uuidHoacRong = (v?: string) => (v && UUID.test(v) ? v : '');
+  const loc = {cs: uuidHoacRong(sp.cs), khoi: uuidHoacRong(sp.khoi), lop: uuidHoacRong(sp.lop)};
+  const coLoc = !!(loc.cs || loc.khoi || loc.lop);
+  // Lọc theo nơi học chỉ có nghĩa với học sinh (ghi danh) → ép tab về Học sinh khi bộ lọc bật.
+  const tab: UserTab = coLoc
+    ? 'student'
+    : (USER_TABS as readonly string[]).includes(sp.vai ?? '')
+      ? (sp.vai as UserTab)
+      : 'all';
   // Cỡ trang phải nằm trong danh sách cho phép: ?size=100000 là một cách vô tình (hoặc cố ý) kéo
   // toàn bộ PII của trường về trong một payload.
   const sizeNum = Number(sp.size);
@@ -65,7 +76,7 @@ export default async function AdminPage({
   // KHÔNG đưa q vào khoá: ô tìm nay lọc ngay khi gõ (UsersToolbar), mà đổi khoá là dựng lại cả
   // mảnh — ô gõ mất chữ, mất con trỏ giữa chừng. Lúc tìm, chấm quay nằm trong chính ô gõ; bảng cũ
   // đứng yên tới khi bảng mới về, không nhấp nháy khung xương sau mỗi phím.
-  const khoaBang = `${tab}|${page}|${upage}`;
+  const khoaBang = `${tab}|${page}|${upage}|${loc.cs}|${loc.khoi}|${loc.lop}`;
 
   // revision = dấu vân tay để hộp thoại "Tạo mới" tự đóng khi form bên trong vừa lưu xong. Mọi
   // server action ở đây kết thúc bằng redirect kèm ?flash=… nên đường dẫn luôn đổi sau khi lưu.
@@ -103,7 +114,7 @@ export default async function AdminPage({
               <PendingGrants />
             </Suspense>
             <Suspense key={khoaBang} fallback={<UsersSectionSkeleton rows={Math.min(page, 10)} />}>
-              <UsersSection q={q} tab={tab} page={page} upage={upage} meId={me.id} />
+              <UsersSection q={q} tab={tab} page={page} upage={upage} meId={me.id} loc={loc} />
             </Suspense>
             {/* Học sinh đã đăng nhập mà chưa thuộc lớp nào — chuyện của NGƯỜI, đứng ở đây. */}
             <Suspense fallback={null}>
