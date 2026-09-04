@@ -56,7 +56,7 @@ export function OpenThreadForm({
               required
             >
               <option value="" disabled>
-                — Chọn học sinh —
+                Chọn học sinh
               </option>
               {options.map((o) => (
                 <option key={o.id} value={o.id}>

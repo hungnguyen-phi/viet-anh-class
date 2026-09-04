@@ -9,12 +9,14 @@ import {requireRole} from '@/lib/auth';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {todayInVN} from '@/lib/dates';
 
-function veTruong(msg: string, campus?: string): never {
+// 04/09: trang /truong đã gỡ — khu mục tiêu trường sống trong popup trên /wig. Quay về đó
+// kèm ?bang=lop để popup tự bung lại sau redirect.
+function veTruong(msg: string, _campus?: string): never {
   const q = new URLSearchParams();
-  if (campus) q.set('campus', campus);
+  q.set('bang', 'lop');
   const g = tachLoi(msg);
   q.set(g.laLoi ? 'flash_err' : 'flash', g.msg);
-  redirect(`/truong?${q.toString()}`);
+  redirect(`/wig?${q.toString()}`);
 }
 
 export async function dongMucTieuTruong(formData: FormData) {

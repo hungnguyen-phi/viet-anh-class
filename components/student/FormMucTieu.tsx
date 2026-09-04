@@ -244,6 +244,9 @@ export function FormMucTieu3Buoc({
   }
 
   const mauCuaLop = mauList.filter((m) => m.linh_vuc === linhVuc || !linhVuc);
+  // NGƯỜI LỚN (thầy cô/BGH: form của tôi/lớp/trường) — không xưng "em" (góp ý 04/09).
+  const nguoiLon = laToi || cap !== 'em';
+  const kNL = (k: string) => (nguoiLon ? `${k}NguoiLon` : k);
   // CHỈ 4 LĨNH VỰC trên màn của em (chủ dự án 02/09) — không có "Khác". "Khác" chỉ dành cho lớp
   // ngoài khung 4 domain (Marketing/CLB), đặt ở màn của thầy cô, không bày cho học sinh.
   const suG: string[] = [...AREAS];
@@ -437,7 +440,7 @@ export function FormMucTieu3Buoc({
             data-kiem="mt-mo-ta"
             value={moTa}
             onChange={(e) => setMoTa(e.target.value)}
-            placeholder={t('moTaPh')}
+            placeholder={t(laToi ? 'moTaPhToi' : cap === 'lop' ? 'moTaPhLop' : cap === 'truong' ? 'moTaPhTruong' : 'moTaPh')}
             rows={2}
             maxLength={1000}
             className={ctlWithBorder(false)}
@@ -447,7 +450,11 @@ export function FormMucTieu3Buoc({
         {/* HỖ TRỢ CHO — nối mục tiêu vào CẤP TRÊN ngay lúc tạo: em/tôi → mục tiêu lớp;
             lớp → mục tiêu trường (danh sách truyền vào qua cùng prop mucTieuLop). */}
         {!dangSua && mucTieuLop.length > 0 && (
-          <Field label={cap === 'lop' ? t('huongTruongCho') : t('hoTroCho')} htmlFor="mt-ho-tro">
+          <Field
+            label={cap === 'lop' ? t('huongTruongCho') : t('hoTroCho')}
+            htmlFor="mt-ho-tro"
+            error={err('ho_tro_cho')}
+          >
             <ChonCuon
               id="mt-ho-tro"
               name="_ho_tro_ui"
@@ -455,12 +462,19 @@ export function FormMucTieu3Buoc({
               onChange={setHoTroCho}
               danhSach={mucTieuLop.map((m) => ({ma: m.id, nhan: m.ten}))}
               chuaChon={cap === 'lop' ? t('huongTruongChon') : t('hoTroChon')}
+              loi={state.fieldError === 'ho_tro_cho'}
             />
             <span data-kiem="mt-ho-tro" className="hidden" />
-            <p className="mt-1 text-[11px] font-semibold text-grey-mid">
-              {cap === 'lop' ? t('huongTruongGiaiThich') : t('hoTroGiaiThich')}
-            </p>
+            {cap !== 'lop' && (
+              <p className="mt-1 text-[11px] font-semibold text-grey-mid">
+                {t(laToi ? 'hoTroGiaiThichToi' : 'hoTroGiaiThich')}
+              </p>
+            )}
           </Field>
+        )}
+        {/* Người lớn: liên kết lên cấp trên là BẮT BUỘC khi cấp trên có mục tiêu (04/09). */}
+        {!dangSua && nguoiLon && mucTieuLop.length > 0 && (
+          <input type="hidden" name="ho_tro_bat_buoc" value="1" />
         )}
 
         {/* ── PHẦN 2 · ĐO THẾ NÀO? (loại cột mốc · số · hạn) ────────────────────────────── */}
@@ -475,9 +489,9 @@ export function FormMucTieu3Buoc({
           <p className="mb-1.5 text-[12px] font-bold text-grey-mid">{t('loaiMocLabel')}</p>
           <div data-kiem="mt-loai-moc" className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
             {[
-              {ma: 'do_luong', nhan: t('mocDoLuong'), kiem: 'mt-moc-do-luong', giai: t('mocDoLuongGiai')},
-              {ma: 'hanh_dong', nhan: t('mocHanhDong'), kiem: 'mt-moc-hanh-dong', giai: t('mocHanhDongGiai')},
-              {ma: 'ke_hoach', nhan: t('mocKeHoach'), kiem: 'mt-moc-ke-hoach', giai: t('mocKeHoachGiai')},
+              {ma: 'do_luong', nhan: t('mocDoLuong'), kiem: 'mt-moc-do-luong', giai: t(kNL('mocDoLuongGiai'))},
+              {ma: 'hanh_dong', nhan: t('mocHanhDong'), kiem: 'mt-moc-hanh-dong', giai: t(kNL('mocHanhDongGiai'))},
+              {ma: 'ke_hoach', nhan: t('mocKeHoach'), kiem: 'mt-moc-ke-hoach', giai: t(kNL('mocKeHoachGiai'))},
             ].map((o) => (
               <div key={o.ma} className="relative">
                 <OChon chon={loaiMoc === o.ma} onClick={() => setLoaiMoc(o.ma)} nhan={o.nhan} kiem={o.kiem} />
@@ -500,7 +514,7 @@ export function FormMucTieu3Buoc({
               data-kiem="mt-loai-giai"
               className="mt-1.5 rounded-[10px] bg-gold/[0.12] px-2.5 py-2 text-[12px] font-semibold leading-relaxed text-navy"
             >
-              {moHelp === 'do_luong' ? t('mocDoLuongGiai') : moHelp === 'hanh_dong' ? t('mocHanhDongGiai') : t('mocKeHoachGiai')}
+              {moHelp === 'do_luong' ? t(kNL('mocDoLuongGiai')) : moHelp === 'hanh_dong' ? t(kNL('mocHanhDongGiai')) : t(kNL('mocKeHoachGiai'))}
             </p>
           ) : (
             <p className="mt-1 text-[11px] font-semibold text-grey-mid">
@@ -664,14 +678,14 @@ export function FormMucTieu3Buoc({
 
         {/* ③ ĐỌC LẠI CÂU MỤC TIÊU — ráp từ chính chữ em gõ. */}
         <div data-kiem="mt-buoc-3">
-          <p className="mb-1.5 text-[13px] font-extrabold text-navy">{t('buoc3')}</p>
+          <p className="mb-1.5 text-[13px] font-extrabold text-navy">{t(kNL('buoc3'))}</p>
           <div
             data-kiem="mt-cau-rap-lai"
             className={`rounded-[14px] px-3.5 py-3 text-[13px] font-bold leading-relaxed ${
               cauRap ? 'bg-gold/[0.14] text-navy' : 'bg-navy/[0.04] italic text-grey-mid'
             }`}
           >
-            {cauRap ?? t('cauChotTrong')}
+            {cauRap ?? t(kNL('cauChotTrong'))}
           </div>
         </div>
 

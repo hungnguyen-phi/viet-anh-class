@@ -55,7 +55,7 @@ export function HocSinhChuaCoLop({
             )}
           </span>
           <select name="class_id" aria-label={`Chọn lớp cho ${h.full_name || h.email}`} required className={`${selectInline} w-[190px]`}>
-            <option value="">— Chọn lớp —</option>
+            <option value="">Chọn lớp</option>
             {lops.map((l) => (
               <option key={l.id} value={l.id}>
                 {l.name}

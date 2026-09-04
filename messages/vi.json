@@ -978,7 +978,7 @@
     "assignTitle": "Phân công giáo viên bộ môn · {class}",
     "allAssigned": "Mọi giáo viên đều đã được phân công môn này",
     "pickTeacherAria": "Chọn giáo viên dạy {subject} ở lớp {class}",
-    "chooseTeacher": "— chọn giáo viên —",
+    "chooseTeacher": "chọn giáo viên",
     "optSameCampus": "Giáo viên của cơ sở này",
     "optOtherCampus": "Cơ sở khác / chưa gán cơ sở",
     "addShort": "+ Thêm",
@@ -1660,7 +1660,7 @@
     "moTa": "Mô tả (nên có)",
     "moTaPh": "Viết vài câu: em sẽ làm gì để đạt được mục tiêu này?",
     "hoTroCho": "Hỗ trợ cho",
-    "hoTroChon": "— Chọn một mục tiêu của lớp —",
+    "hoTroChon": "Chọn một mục tiêu của lớp",
     "hoTroGiaiThich": "Mục tiêu của em góp phần vào mục tiêu chung của lớp.",
     "donViSao": "Đơn vị *",
     "giaTriBanDau": "Giá trị ban đầu",
@@ -1707,8 +1707,16 @@
     "phanDoTheNao": "Đo thế nào?",
     "formTitleToi": "Mục tiêu của tôi",
     "huongTruongCho": "Hướng tới mục tiêu trường",
-    "huongTruongGiaiThich": "Không bắt buộc — chọn để lớp cùng hướng với cả trường.",
-    "huongTruongChon": "— Chọn một mục tiêu của trường —"
+    "huongTruongChon": "Chọn một mục tiêu của trường",
+    "buoc3NguoiLon": "Đọc lại xem đúng ý chưa",
+    "cauChotTrongNguoiLon": "Điền các ô trên, câu mục tiêu sẽ hiện ở đây.",
+    "moTaPhToi": "Viết vài câu: tôi sẽ làm gì để đạt được mục tiêu này?",
+    "moTaPhLop": "Viết vài câu: lớp sẽ làm gì để đạt được mục tiêu này?",
+    "moTaPhTruong": "Viết vài câu: trường sẽ làm gì để đạt được mục tiêu này?",
+    "mocDoLuongGiaiNguoiLon": "Chọn khi muốn một con số đi lên hoặc đi xuống — như điểm, số bài, số phút. Mục tiêu này theo dõi bằng con số.",
+    "mocHanhDongGiaiNguoiLon": "Chọn khi chỉ cần làm xong một việc đơn giản (làm hay chưa làm). Mục tiêu nên đo được, nên chỉ dùng khi không đo bằng số hay chia bước được.",
+    "mocKeHoachGiaiNguoiLon": "Chọn khi việc gồm nhiều phần nối nhau, khó gói vào một con số. Chia nhỏ thành các bước rồi theo dõi từng bước một.",
+    "hoTroGiaiThichToi": "Mục tiêu của tôi góp phần vào mục tiêu chung của lớp."
   },
   "viec": {
     "chipLop": "Của lớp",
@@ -1929,7 +1937,7 @@
     "taoMucTieuLop": "Đặt mục tiêu cho lớp",
     "taoViecLop": "Thêm việc cho lớp",
     "viecDayMt": "Việc này đẩy mục tiêu nào? (không bắt buộc)",
-    "viecDayMtChon": "— Không gắn / để độc lập —",
+    "viecDayMtChon": "Không gắn / để độc lập",
     "xoaViec": "Xoá việc này",
     "suaChiTieu": "Sửa chỉ tiêu",
     "suaChiTieuMoi": "Mỗi tuần đủ:",
@@ -2019,7 +2027,9 @@
     "huongLop": "Hướng tới mục tiêu lớp: {ten}",
     "congVaoLop": "số cộng vào lớp",
     "camKetToiTuLan": "Tuần này chưa tới. Cam kết và thước đo đang có sẽ tự tiếp sang vào sáng thứ Hai.",
-    "hanhDongCachDo": "Làm xong việc này là đạt mục tiêu."
+    "hanhDongCachDo": "Làm xong việc này là đạt mục tiêu.",
+    "nutLopTruong": "Mục tiêu lớp · trường",
+    "popupLopTruong": "Mục tiêu của lớp và trường"
   },
   "truongWig": {
     "title": "Mục tiêu của trường",
@@ -2034,6 +2044,7 @@
     "dong": "Đóng",
     "xoa": "Xoá mục tiêu",
     "ghiSoNhan": "Ghi số mới nhất:",
-    "ghiSoLuu": "Lưu số"
+    "ghiSoLuu": "Lưu số",
+    "trongGvcn": "Trường chưa có mục tiêu nào. Ban giám hiệu sẽ đặt ở đây."
   }
 }

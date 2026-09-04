@@ -11,6 +11,8 @@ import {isValidDayVN, mondayOf, todayInVN, weekFromMonday, shiftWeeks, ngayVN, w
 import {AREAS, areaLabel, type Area} from '@/lib/areas';
 import {getAreaMeta} from '@/lib/area-config';
 import {Flash} from '@/components/ui/Flash';
+import {PopupLopTruong} from '@/components/wig/PopupLopTruong';
+import {KhuMucTieuTruong} from '@/components/wig/KhuMucTieuTruong';
 import {BangCacEm} from '@/components/wig/BangCacEm';
 import {NutTaoMucTieuLop} from '@/components/wig/NutTaoMucTieuLop';
 import {NutTaoMucTieuToi} from '@/components/wig/NutTaoMucTieuToi';
@@ -122,10 +124,10 @@ export default async function WigPage({
   searchParams,
 }: {
   params: Promise<{locale: string}>;
-  searchParams: Promise<{class?: string; week?: string}>;
+  searchParams: Promise<{class?: string; week?: string; bang?: string}>;
 }) {
   const {locale} = await params;
-  const {class: classParam, week: weekParam} = await searchParams;
+  const {class: classParam, week: weekParam, bang: bangParam} = await searchParams;
   setRequestLocale(locale);
   const profile = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('lopMucTieu');
@@ -433,53 +435,8 @@ export default async function WigPage({
         <h1 className="mr-auto font-display text-[22px] font-bold text-navy">
           {t('title')} · {myClass.name}
         </h1>
-        {/* Lối tới đặt LỊCH HỌP (buddy hằng tuần + PDR hằng tháng) — khu ấy ở /roster (Danh sách). */}
-        <Link
-          href={{pathname: '/roster', query: classParam ? {class: classParam} : {}}}
-          className="inline-flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[12px] font-extrabold text-navy transition-all hover:border-navy"
-        >
-          <CalendarDays size={14} strokeWidth={2.5} />
-          {t('lichHop')}
-        </Link>
-        {(accessible.length > 1 || profile.role === 'admin' || profile.role === 'principal') && (
-          <ClassPicker classes={accessible} current={myClass.id} />
-        )}
-        <ClassOwnerNote classId={myClass.id} viewerId={profile.id} viewerRole={profile.role} />
-      </div>
-
-      <Flash />
-
-      {/* ── Thanh tuần ────────────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Link
-          href={{pathname: '/wig', query: q({week: shiftWeeks(monday, -1)})}}
-          className="inline-flex items-center gap-1 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[12px] font-extrabold text-navy transition-all hover:border-navy"
-        >
-          <ArrowLeft size={13} strokeWidth={2.5} />
-          {tTuan('weekPrev')}
-        </Link>
-        <span className="rounded-[10px] bg-navy/[0.05] px-3 py-1.5 text-[12.5px] font-bold text-navy">
-          {wk.label} · {ngayVN(wk.start)} – {ngayVN(wk.end)}
-          {laTuanNay ? ` · ${tTuan('weekNow')}` : monday > thisMonday ? ` · ${tTuan('weekFuture')}` : ` · ${tTuan('weekPast')}`}
-        </span>
-        <Link
-          href={{pathname: '/wig', query: q({week: shiftWeeks(monday, 1)})}}
-          className="inline-flex items-center gap-1 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[12px] font-extrabold text-navy transition-all hover:border-navy"
-        >
-          {tTuan('weekNext')}
-          <ArrowRight size={13} strokeWidth={2.5} />
-        </Link>
-      </div>
-
-      {/* ── ① BA SỐ TÁCH (thi_dua_lop) ──────────────────────────────────────────────────────── */}
-      <section className="glass rounded-[20px] p-[18px]">
-        <div className="flex items-stretch gap-2.5">
-          {baSo(t('cotMucTieu'), td?.diem_muc_tieu)}
-          {baSo(t('cotViec'), td?.diem_thuoc)}
-          {baSo(t('cotCamKet'), td?.diem_cam_ket)}
-        </div>
-      </section>
-
+        {/* Mục tiêu LỚP + TRƯỜNG thu vào một popup (04/09) — ít đụng tới hằng ngày, đỡ chật trang. */}
+        <PopupLopTruong nhan={t('nutLopTruong')} tieuDe={t('popupLopTruong')} moBanDau={bangParam === 'lop'}>
       {/* Chưa có mục tiêu → gộp về MỘT tấm: mục tiêu là đích (bước ①), việc + cam kết khoá
           lại kèm lời "mở khi có mục tiêu" — cho thấy chúng phục vụ mục tiêu, không phải 3 ngã rẽ. */}
       {mucTieuLop.length === 0 ? (
@@ -604,9 +561,9 @@ export default async function WigPage({
                     )}
                   </div>
 
-                  {/* Chờ duyệt: hiện MÔ TẢ để người duyệt nhìn thẻ là biết mục tiêu nói gì. */}
-                  {m.trang_thai === 'gui' && m.mo_ta && (
-                    <p className="mt-1 rounded-[10px] bg-white/70 px-2.5 py-2 text-[12px] font-semibold leading-relaxed text-navy">
+                  {/* Mô tả — nhìn thẻ là biết mục tiêu nói gì (0186 tạo là duyệt luôn nên hiện mọi trạng thái). */}
+                  {m.mo_ta && (
+                    <p className="mt-1 rounded-[10px] bg-white/70 px-2.5 py-2 text-center text-[12px] font-semibold leading-relaxed text-navy">
                       {m.mo_ta}
                     </p>
                   )}
@@ -798,6 +755,61 @@ export default async function WigPage({
 
       </>
       )}
+          <KhuMucTieuTruong
+            campusId={myClass.campus_id}
+            locale={locale}
+            laQuanTri={profile.role === 'admin' || profile.role === 'principal'}
+            nhanTheoArea={nhanTheoArea}
+            donViList={donViList}
+          />
+        </PopupLopTruong>
+        {/* Lối tới đặt LỊCH HỌP (buddy hằng tuần + PDR hằng tháng) — khu ấy ở /roster (Danh sách). */}
+        <Link
+          href={{pathname: '/roster', query: classParam ? {class: classParam} : {}}}
+          className="inline-flex items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[12px] font-extrabold text-navy transition-all hover:border-navy"
+        >
+          <CalendarDays size={14} strokeWidth={2.5} />
+          {t('lichHop')}
+        </Link>
+        {(accessible.length > 1 || profile.role === 'admin' || profile.role === 'principal') && (
+          <ClassPicker classes={accessible} current={myClass.id} />
+        )}
+        <ClassOwnerNote classId={myClass.id} viewerId={profile.id} viewerRole={profile.role} />
+      </div>
+
+      <Flash />
+
+      {/* ── Thanh tuần ────────────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          href={{pathname: '/wig', query: q({week: shiftWeeks(monday, -1)})}}
+          className="inline-flex items-center gap-1 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[12px] font-extrabold text-navy transition-all hover:border-navy"
+        >
+          <ArrowLeft size={13} strokeWidth={2.5} />
+          {tTuan('weekPrev')}
+        </Link>
+        <span className="rounded-[10px] bg-navy/[0.05] px-3 py-1.5 text-[12.5px] font-bold text-navy">
+          {wk.label} · {ngayVN(wk.start)} – {ngayVN(wk.end)}
+          {laTuanNay ? ` · ${tTuan('weekNow')}` : monday > thisMonday ? ` · ${tTuan('weekFuture')}` : ` · ${tTuan('weekPast')}`}
+        </span>
+        <Link
+          href={{pathname: '/wig', query: q({week: shiftWeeks(monday, 1)})}}
+          className="inline-flex items-center gap-1 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-2.5 py-1.5 text-[12px] font-extrabold text-navy transition-all hover:border-navy"
+        >
+          {tTuan('weekNext')}
+          <ArrowRight size={13} strokeWidth={2.5} />
+        </Link>
+      </div>
+
+      {/* ── ① BA SỐ TÁCH (thi_dua_lop) ──────────────────────────────────────────────────────── */}
+      <section className="glass rounded-[20px] p-[18px]">
+        <div className="flex items-stretch gap-2.5">
+          {baSo(t('cotMucTieu'), td?.diem_muc_tieu)}
+          {baSo(t('cotViec'), td?.diem_thuoc)}
+          {baSo(t('cotCamKet'), td?.diem_cam_ket)}
+        </div>
+      </section>
+
 
       {/* ── MỤC TIÊU CỦA TÔI (0181) — thầy cô cũng có mục tiêu cá nhân như em, nối vào mục tiêu
           lớp; cam kết tuần + thước đo dẫn dắt của thầy cô treo Ở ĐÂY, không ở thẻ lớp nữa. ── */}

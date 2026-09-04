@@ -978,7 +978,7 @@
     "assignTitle": "Subject teachers · {class}",
     "allAssigned": "Every teacher is already assigned to this subject",
     "pickTeacherAria": "Pick a teacher for {subject} in class {class}",
-    "chooseTeacher": "— pick a teacher —",
+    "chooseTeacher": "pick a teacher",
     "optSameCampus": "Teachers of this campus",
     "optOtherCampus": "Other campus / no campus set",
     "addShort": "+ Add",
@@ -1660,7 +1660,7 @@
     "moTa": "Description",
     "moTaPh": "Write a few sentences: how will you reach this goal?",
     "hoTroCho": "Supports",
-    "hoTroChon": "— Choose a class goal —",
+    "hoTroChon": "Pick a class goal",
     "hoTroGiaiThich": "Your goal contributes to a class goal.",
     "donViSao": "Unit *",
     "giaTriBanDau": "Starting value",
@@ -1707,8 +1707,16 @@
     "phanDoTheNao": "How is it measured?",
     "formTitleToi": "My goal",
     "huongTruongCho": "Points to school goal",
-    "huongTruongGiaiThich": "Optional — pick one so the class pulls the school's direction.",
-    "huongTruongChon": "— Pick a school goal —"
+    "huongTruongChon": "Pick a school goal",
+    "buoc3NguoiLon": "Read it back — does it sound right?",
+    "cauChotTrongNguoiLon": "Fill the fields above and the goal sentence appears here.",
+    "moTaPhToi": "A few lines: what will I do to reach this goal?",
+    "moTaPhLop": "A few lines: what will the class do to reach this goal?",
+    "moTaPhTruong": "A few lines: what will the school do to reach this goal?",
+    "mocDoLuongGiaiNguoiLon": "Pick this for a number that should go up or down — points, books, minutes. The goal is tracked by that number.",
+    "mocHanhDongGiaiNguoiLon": "Pick this for a simple done/not-done task. Goals should be measurable, so use it only when numbers or steps don't fit.",
+    "mocKeHoachGiaiNguoiLon": "Pick this when the work has several connected parts. Split it into steps and track each one.",
+    "hoTroGiaiThichToi": "My goal feeds the class's shared goal."
   },
   "viec": {
     "chipLop": "Class",
@@ -1929,7 +1937,7 @@
     "taoMucTieuLop": "Set a class goal",
     "taoViecLop": "Add a class task",
     "viecDayMt": "Which WIG does this drive? (optional)",
-    "viecDayMtChon": "— None / standalone —",
+    "viecDayMtChon": "None / standalone",
     "xoaViec": "Delete this task",
     "suaChiTieu": "Edit target",
     "suaChiTieuMoi": "Enough per week:",
@@ -2019,7 +2027,9 @@
     "huongLop": "Aiming at class goal: {ten}",
     "congVaoLop": "numbers add to the class",
     "camKetToiTuLan": "This week hasn't started yet. Current promises and lead measures roll over automatically on Monday morning.",
-    "hanhDongCachDo": "Finishing this action completes the goal."
+    "hanhDongCachDo": "Finishing this action completes the goal.",
+    "nutLopTruong": "Class · school goals",
+    "popupLopTruong": "Class and school goals"
   },
   "truongWig": {
     "title": "School goals",
@@ -2034,6 +2044,7 @@
     "dong": "Close",
     "xoa": "Delete goal",
     "ghiSoNhan": "Latest number:",
-    "ghiSoLuu": "Save"
+    "ghiSoLuu": "Save",
+    "trongGvcn": "The school has no goal yet. School leaders will set one here."
   }
 }

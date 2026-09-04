@@ -115,6 +115,11 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   const mo_ta = String(formData.get('mo_ta') ?? '').trim() || null;
   // "Hỗ trợ cho": id một mục tiêu của LỚP mà mục tiêu này góp hướng vào (dây `noi` vai chi_huong).
   const ho_tro_cho = String(formData.get('ho_tro_cho') ?? '').trim() || null;
+  // 04/09: người lớn (tôi/lớp) phải chọn hướng lên cấp trên khi cấp trên có mục tiêu — form gửi
+  // cờ ho_tro_bat_buoc='1' đúng trong trường hợp ấy.
+  if (String(formData.get('ho_tro_bat_buoc') ?? '') === '1' && !ho_tro_cho) {
+    return {ok: false, fieldError: 'ho_tro_cho', error: 'Chọn mục tiêu cấp trên để hướng vào đã nhé.'};
+  }
 
   // LOẠI CỘT MỐC (0172): do_luong (X→Y, như cũ) · hanh_dong (0→100% một việc) · ke_hoach (các
   // bước cộng dồn 100%). Hai loại sau đo bằng % → ép về đích 0→100, đơn vị 'phan_tram', ghi tay
