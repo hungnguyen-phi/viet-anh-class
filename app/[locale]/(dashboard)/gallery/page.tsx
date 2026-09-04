@@ -2,6 +2,8 @@ import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {ArrowLeft, CalendarDays, Images} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {requireProfile} from '@/lib/auth';
+import {redirect} from 'next/navigation';
+import {BAT_ALBUM_ANH} from '@/lib/site';
 import {createClient} from '@/lib/supabase/server';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
 import {getClassContext} from '@/lib/queries';
@@ -48,6 +50,7 @@ export default async function GalleryPage({
   params: Promise<{locale: string}>;
   searchParams: Promise<{class?: string; album?: string; flash?: string}>;
 }) {
+  if (!BAT_ALBUM_ANH) redirect('/');   // tạm ẩn (lib/site.ts)
   const {locale} = await params;
   const {class: classParam, album: albumParam} = await searchParams;
   setRequestLocale(locale);

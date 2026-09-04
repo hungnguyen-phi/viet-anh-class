@@ -11,3 +11,7 @@ export const SCHOOL = {
   appName: 'Việt Anh Class',
   url: 'https://truongvietanh.com',
 } as const;
+
+// TÍNH NĂNG TẠM ẨN (chủ dự án 04/09/2026): album ảnh lớp chưa cần — giữ code, tắt cửa vào.
+// Bật lại: đổi thành true (route /gallery + hai nút dẫn vào tự hiện).
+export const BAT_ALBUM_ANH = false;

@@ -1,3 +1,4 @@
+import {BAT_ALBUM_ANH} from '@/lib/site';
 import {after} from 'next/server';
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {requireRole} from '@/lib/auth';
@@ -610,6 +611,7 @@ export default async function ReportPage({
       {/* Thực đơn hôm nay + ảnh lớp — thứ bố mẹ liếc một cái, không chiếm một tab (docs/NAV_IA.md). */}
       <TodayMenuCard />
 
+      {BAT_ALBUM_ANH && (
       <Link
         href="/gallery"
         className="glass glass-hover flex items-center gap-3 rounded-[20px] p-[18px] transition-all"
@@ -625,6 +627,7 @@ export default async function ReportPage({
         </span>
         <ChevronRight size={18} strokeWidth={2.2} className="shrink-0 text-grey-mid" />
       </Link>
+      )}
     </div>
   );
 }

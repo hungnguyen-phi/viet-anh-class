@@ -1,3 +1,4 @@
+import {BAT_ALBUM_ANH} from '@/lib/site';
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {Link} from '@/i18n/navigation';
 import {Images} from 'lucide-react';
@@ -292,11 +293,13 @@ export default async function RosterPage({
           {/* Album ảnh lớp vào đây thay vì thành một tab riêng: thanh menu chỉ còn chỗ cho khoảng
               hai tab nữa (docs/NAV_IA.md), mà xem ảnh là việc thỉnh thoảng. Đặt cạnh "Ảnh bìa
               lớp" vì cùng là việc với hình ảnh của lớp này. */}
+          {BAT_ALBUM_ANH && (
           <Link
             href={`/gallery?class=${myClass.id}`}
             className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy"
           >
             <Images size={14} strokeWidth={2.2} />{t('images')}</Link>
+          )}
           {canManage && <ClassCoverUpload classId={myClass.id} />}
           {/* Quản trị/BGH thấy bộ chọn KỂ CẢ khi chỉ có một lớp: nó là chỗ duy nhất trên màn hình
             nói rõ mình đang đứng ở lớp nào. Giáo viên chỉ có lớp mình thì giấu đi cho gọn. */}
