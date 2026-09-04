@@ -41,6 +41,7 @@ const ngayChonTu = (formData: FormData) =>
 // ── GHI SỐ cho mục tiêu LỚP đo tay (nguon_so='ghi_tay') ─────────────────────────────────────
 // Mỗi lần ghi là MỘT dòng so_do mới — số mới nhất là số thật, lịch sử giữ.
 export async function ghiSoMucTieuLop(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const muc_tieu_id = String(formData.get('muc_tieu_id') ?? '').trim();
@@ -56,13 +57,14 @@ export async function ghiSoMucTieuLop(_prev: S, formData: FormData): Promise<S> 
     .insert({muc_tieu_id, ngay, gia_tri, nguon: 'tay', nguoi_ghi: me.id, student_id: null})
     .select('id');
   lamMoi();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('khongGhiDuocQuyen')};
   return {ok: true, message: t('daGhiSoLop')};
 }
 
 // ── XOÁ MỤC TIÊU CỦA LỚP — RLS chỉ cho khi chưa có số đo/dây; đã có thì Đóng (trong hộp Sửa). ──
 export async function xoaMucTieuLop(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const id = String(formData.get('muc_tieu_id') ?? '').trim();
@@ -70,7 +72,7 @@ export async function xoaMucTieuLop(_prev: S, formData: FormData): Promise<S> {
   const supabase = await createClient();
   const {data, error} = await supabase.from('muc_tieu').delete().eq('id', id).eq('cap', 'lop').select('id');
   lamMoi();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('khongXoaMucTieuLop')};
   return {ok: true, message: t('daXoaMucTieuLop')};
 }
@@ -80,6 +82,7 @@ export async function xoaMucTieuLop(_prev: S, formData: FormData): Promise<S> {
 // ════════════════════════════════════════════════════════════════════════════════════════════
 
 export async function taoCamKetToi(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const class_id = String(formData.get('class_id') ?? '').trim();
@@ -110,7 +113,7 @@ export async function taoCamKetToi(_prev: S, formData: FormData): Promise<S> {
     .select('id')
     .maybeSingle();
   lamMoi();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data) return {ok: false, error: t('khongLuuQuyenLop')};
   return {ok: true, message: t('daLuuCamKet')};
 }
@@ -147,6 +150,7 @@ async function docCachDo(
 
 // THÊM THƯỚC ĐO DẪN DẮT cho một cam kết cá nhân (0185: thước trỏ về cam kết qua cam_ket_id).
 export async function themThuocChoCamKetToi(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const class_id = String(formData.get('class_id') ?? '').trim();
@@ -166,7 +170,7 @@ export async function themThuocChoCamKetToi(_prev: S, formData: FormData): Promi
     .select('id')
     .maybeSingle();
   lamMoi();
-  if (vErr) return {ok: false, error: friendlyError(vErr)};
+  if (vErr) return {ok: false, error: friendlyError(vErr, tLoi)};
   if (!vRow) return {ok: false, error: t('khongTaoThuoc')};
   return {ok: true, message: t('daThemThuoc')};
 }
@@ -174,6 +178,7 @@ export async function themThuocChoCamKetToi(_prev: S, formData: FormData): Promi
 // CHẤM TẠI CHỖ (Thắng/Thua/Bỏ chấm). ket_qua rỗng = bỏ chấm (trigger xoá sạch chữ ký).
 export type ChamState = S;
 export async function chamCamKetToiTaiCho(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const id = String(formData.get('cam_ket_id') ?? '').trim();
@@ -190,12 +195,13 @@ export async function chamCamKetToiTaiCho(_prev: S, formData: FormData): Promise
     .eq('student_id', me.id)
     .select('id');
   lamMoi();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('khongChamDuoc')};
   return {ok: true};
 }
 
 export async function suaCamKetToi(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const id = String(formData.get('cam_ket_id') ?? '').trim();
@@ -212,7 +218,7 @@ export async function suaCamKetToi(_prev: S, formData: FormData): Promise<S> {
   const supabase = await createClient();
   const {data, error} = await supabase.from('cam_ket').update(patch).eq('id', id).eq('student_id', me.id).select('id');
   lamMoi();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('khongSuaCamKet')};
   return {ok: true, message: t('daSuaCamKet')};
 }
@@ -220,6 +226,7 @@ export async function suaCamKetToi(_prev: S, formData: FormData): Promise<S> {
 // Xoá = đánh dấu 'huy' (như bản của em): biến khỏi màn, KHÔNG tự lăn sang tuần sau, không tính
 // trần 2/tuần. Xoá cứng thì con lăn tuần (0177) nhân bản lại từ bản cũ — thành cam kết ma.
 export async function xoaCamKetToi(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const id = String(formData.get('cam_ket_id') ?? '').trim();
@@ -228,7 +235,7 @@ export async function xoaCamKetToi(_prev: S, formData: FormData): Promise<S> {
   const {data: ck} = await supabase.from('cam_ket').select('ket_qua').eq('id', id).maybeSingle();
   if (ck?.ket_qua) return {ok: false, error: t('camKetDaChamKhongXoa')};
   const {data, error} = await supabase.from('cam_ket').update({trang_thai: 'huy'}).eq('id', id).eq('student_id', me.id).select('id');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('khongXoaCamKet')};
   await supabase.from('thuoc').delete().eq('cam_ket_id', id).eq('student_id', me.id);
   lamMoi();
@@ -238,6 +245,7 @@ export async function xoaCamKetToi(_prev: S, formData: FormData): Promise<S> {
 // SỬA thước cá nhân — tên/ngày/đích tuỳ thích; đổi CÁCH ĐO/ĐƠN VỊ khi đã có lượt thì trigger
 // th_truoc_sua chặn (câu báo hiện nguyên).
 export async function suaThuocToi(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const thuoc_id = String(formData.get('thuoc_id') ?? '').trim();
@@ -264,13 +272,14 @@ export async function suaThuocToi(_prev: S, formData: FormData): Promise<S> {
   }
   const {data, error} = await supabase.from('thuoc').update(patch).eq('id', thuoc_id).eq('student_id', me.id).select('id');
   lamMoi();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('khongSuaThuoc')};
   return {ok: true, message: t('daSuaThuoc')};
 }
 
 // XOÁ thước cá nhân — th_truoc_xoa chặn khi đã có lượt (câu báo hiện nguyên).
 export async function xoaThuocToi(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const thuoc_id = String(formData.get('thuoc_id') ?? '').trim();
@@ -278,13 +287,14 @@ export async function xoaThuocToi(_prev: S, formData: FormData): Promise<S> {
   const supabase = await createClient();
   const {data, error} = await supabase.from('thuoc').delete().eq('id', thuoc_id).eq('student_id', me.id).select('id');
   lamMoi();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('chiXoaThuocChuaGhi')};
   return {ok: true, message: t('daXoaThuoc')};
 }
 
 // ── NỐI / GỠ mục tiêu LỚP ↔ mục tiêu TRƯỜNG (hàm 0181/0182 gác quyền; lớp→trường chỉ giữ hướng) ──
 export async function noiWigTruong(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const con = String(formData.get('muc_tieu_id') ?? '').trim();
@@ -293,11 +303,12 @@ export async function noiWigTruong(_prev: S, formData: FormData): Promise<S> {
   const supabase = await createClient();
   const {error} = await supabase.rpc('noi_wig_len_tren', {p_con: con, p_cha: cha});
   lamMoi();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   return {ok: true, message: t('daNoiTruong')};
 }
 
 export async function goWigTruong(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const con = String(formData.get('muc_tieu_id') ?? '').trim();
@@ -306,12 +317,13 @@ export async function goWigTruong(_prev: S, formData: FormData): Promise<S> {
   const supabase = await createClient();
   const {error} = await supabase.rpc('go_wig_len_tren', {p_con: con, p_cha: cha});
   lamMoi();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   return {ok: true, message: t('daGoTruong')};
 }
 
 // ── DUYỆT / TRẢ LẠI mục tiêu của EM (chờ ở màn thầy cô) ────────────────────────────────────
 export async function duyetMucTieuEm(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const id = String(formData.get('muc_tieu_id') ?? '').trim();
@@ -327,12 +339,13 @@ export async function duyetMucTieuEm(_prev: S, formData: FormData): Promise<S> {
     .maybeSingle();
   lamMoi();
   revalidatePath('/[locale]/student/[id]', 'page');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data) return {ok: false, error: t('mucTieuKhongConCho')};
   return {ok: true, message: t('daDuyetMucTieuEm')};
 }
 
 export async function traLaiMucTieuEm(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const id = String(formData.get('muc_tieu_id') ?? '').trim();
@@ -351,13 +364,14 @@ export async function traLaiMucTieuEm(_prev: S, formData: FormData): Promise<S> 
     .maybeSingle();
   lamMoi();
   revalidatePath('/[locale]/student/[id]', 'page');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data) return {ok: false, error: t('mucTieuKhongConCho')};
   return {ok: true, message: t('daTraLaiEm')};
 }
 
 // ── DUYỆT / TRẢ LẠI thước của em (cột `duyet`, khác `trang_thai`) ────────────────────────────
 export async function duyetThuoc(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const id = String(formData.get('thuoc_id') ?? '').trim();
@@ -366,12 +380,13 @@ export async function duyetThuoc(_prev: S, formData: FormData): Promise<S> {
   const {data, error} = await supabase.from('thuoc').update({duyet: 'duyet'}).eq('id', id).eq('duyet', 'gui').select('id').maybeSingle();
   lamMoi();
   revalidatePath('/[locale]/student/[id]', 'page');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data) return {ok: false, error: t('thuocKhongConCho')};
   return {ok: true, message: t('daDuyetThuocEm')};
 }
 
 export async function traLaiThuoc(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const id = String(formData.get('thuoc_id') ?? '').trim();
@@ -389,13 +404,14 @@ export async function traLaiThuoc(_prev: S, formData: FormData): Promise<S> {
     .maybeSingle();
   lamMoi();
   revalidatePath('/[locale]/student/[id]', 'page');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data) return {ok: false, error: t('thuocKhongConCho')};
   return {ok: true, message: t('daTraLaiEm')};
 }
 
 // ── DUYỆT LẠI khi hạ chỉ tiêu nhiều (thuoc_lich_su 'cho_duyet' → 'hieu_luc') ────────────────
 export async function duyetHaChiTieu(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const id = String(formData.get('lich_su_id') ?? '').trim();
@@ -409,7 +425,7 @@ export async function duyetHaChiTieu(_prev: S, formData: FormData): Promise<S> {
     .select('id')
     .maybeSingle();
   lamMoi();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data) return {ok: false, error: t('dongKhongConCho')};
   return {ok: true, message: t('daDuyetChiTieuMoi')};
 }

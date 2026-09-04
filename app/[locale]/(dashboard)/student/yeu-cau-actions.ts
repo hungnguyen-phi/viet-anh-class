@@ -27,6 +27,7 @@ const KIND_HOP_LE = ['doi_ten_thuoc', 'mo_tuan_da_ky', 'khac'] as const;
 
 // Học sinh (hoặc PH) gửi yêu cầu → GVCN duyệt. 23505 = đã có pending trùng (im lặng, coi như xong).
 export async function createEditRequest(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const profile = await getCurrentProfile();
   if (!profile) redirect('/login');
@@ -61,13 +62,14 @@ export async function createEditRequest(formData: FormData) {
     tuan,
   });
   revalidatePath('/[locale]/student/[id]', 'page');
-  if (error && error.code !== '23505') back(loi(friendlyError(error)));
+  if (error && error.code !== '23505') back(loi(friendlyError(error, tLoi)));
   back(t('ycDaGui'));
 }
 
 // Học sinh/PH SỬA lời nhắn của yêu cầu MÌNH đã gửi, khi còn 'pending'. `.eq('status','pending')`
 // để phân biệt "thầy cô vừa xử lý xong" → báo cho em biết thay vì im lặng không đổi gì.
 export async function updateEditRequest(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const profile = await getCurrentProfile();
   if (!profile) redirect('/login');
@@ -85,13 +87,14 @@ export async function updateEditRequest(formData: FormData) {
     .select('id');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/student', 'page');
-  if (error) back(loi(friendlyError(error)));
+  if (error) back(loi(friendlyError(error, tLoi)));
   back(data && data.length ? t('ycDaCapNhat') : loi(t('ycKhongSuaDaXuLy')));
 }
 
 // Học sinh/PH RÚT LẠI yêu cầu của mình khi chưa xử lý. Rút lại giải phóng luôn unique index
 // pending → gửi lại yêu cầu mới được ngay.
 export async function withdrawEditRequest(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const profile = await getCurrentProfile();
   if (!profile) redirect('/login');
@@ -108,7 +111,7 @@ export async function withdrawEditRequest(formData: FormData) {
     .select('id');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/student', 'page');
-  if (error) back(loi(friendlyError(error)));
+  if (error) back(loi(friendlyError(error, tLoi)));
   back(data && data.length ? t('ycDaRut') : loi(t('ycKhongRutDaXuLy')));
 }
 
@@ -116,6 +119,7 @@ export async function withdrawEditRequest(formData: FormData) {
 // resolved_by/resolved_at; er_sau_duyet tự áp dụng doi_ten_thuoc (đổi tên thước) và mo_tuan_da_ky
 // (sinh luot_mo_khoa 48 giờ) — app KHÔNG tự làm hai việc ấy nữa (mô hình cũ tự áp rename_lead).
 export async function resolveEditRequest(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   await requireRole(['teacher', 'admin']);
   const student_id = String(formData.get('student_id') ?? '');
@@ -132,7 +136,7 @@ export async function resolveEditRequest(formData: FormData) {
     .select('id');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (error) veTrangEm(student_id, loi(friendlyError(error, tLoi)));
   if (!data || data.length === 0) veTrangEm(student_id, loi(t('ycDaXuLyTruoc')));
   veTrangEm(student_id, decision === 'approved' ? t('ycDaDuyet') : t('ycDaTuChoi'));
 }

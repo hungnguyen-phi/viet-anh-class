@@ -33,6 +33,7 @@ const tachIds = (raw: string) =>
   raw.split(',').map((s) => s.trim()).filter((s) => /^[0-9a-f-]{36}$/i.test(s));
 
 export async function taoBuddyNhom(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const class_id = String(formData.get('class_id') ?? '');
@@ -53,7 +54,7 @@ export async function taoBuddyNhom(formData: FormData) {
       flash(class_id, loi(t('bDaCoNhom')), ve);
     if (/cùng lớp/.test(error.message))
       flash(class_id, loi(t('bCungLop')), ve);
-    flash(class_id, loi(friendlyError(error)), ve);
+    flash(class_id, loi(friendlyError(error, tLoi)), ve);
   }
   flash(class_id, thanhVien.length === 3 ? t('bTaoNhom3') : t('bTaoNhom'), ve);
 }
@@ -65,6 +66,7 @@ export async function taoBuddyNhom(formData: FormData) {
 // đều 2 thì 1 nhóm 3". Còn đúng 1 em trơ trọi (ví dụ lớp chẵn nhưng đã ghép tay hết trừ 1 em)
 // thì không tự tiện phá nhóm nào — báo để cô tự xếp em ấy vào một nhóm 2 thành nhóm 3.
 export async function chiaNhomNgauNhien(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const class_id = String(formData.get('class_id') ?? '');
@@ -107,7 +109,7 @@ export async function chiaNhomNgauNhien(formData: FormData) {
     const {error} = await supabase.rpc('tao_buddy_nhom', {p_class: class_id, p_members: members});
     if (error) {
       revalidatePath('/[locale]/roster', 'page');
-      flash(class_id, loi(friendlyError(error)), ve);
+      flash(class_id, loi(friendlyError(error, tLoi)), ve);
     }
   }
   revalidatePath('/[locale]/roster', 'page');
@@ -120,6 +122,7 @@ export async function chiaNhomNgauNhien(formData: FormData) {
 // GỠ CẢ NHÓM = tắt is_active mọi cặp của nhóm, không xoá dòng: lịch sử họp PDR vẫn cần đối
 // chiếu được (quyết định 18/08/2026: cho đổi buddy giữa năm, giữ lịch sử). Lịch tắt theo.
 export async function goBuddyNhom(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const class_id = String(formData.get('class_id') ?? '');
@@ -131,7 +134,7 @@ export async function goBuddyNhom(formData: FormData) {
   if (!error)
     await supabase.from('pdr_schedules').update({is_active: false}).in('buddy_pair_id', ids);
   revalidatePath('/[locale]/roster', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : t('bDaGo'), ve);
+  flash(class_id, error ? loi(friendlyError(error, tLoi)) : t('bDaGo'), ve);
 }
 
 // Chỉ nhận đúng bốn giá trị CSDL cho phép (CHECK ở 0159). Giá trị lạ → 'sang_hom_do' thay vì
@@ -143,6 +146,7 @@ function docNhac(formData: FormData): string {
 }
 
 export async function luuLichBuddy(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['teacher', 'admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const class_id = String(formData.get('class_id') ?? '');
@@ -183,10 +187,11 @@ export async function luuLichBuddy(formData: FormData) {
   );
   const error = ketQua.find((r) => r.error)?.error ?? null;
   revalidatePath('/[locale]/roster', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : t('bDaLuuLich'), ve);
+  flash(class_id, error ? loi(friendlyError(error, tLoi)) : t('bDaLuuLich'), ve);
 }
 
 export async function luuLichCoach(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['teacher', 'admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const class_id = String(formData.get('class_id') ?? '');
@@ -217,5 +222,5 @@ export async function luuLichCoach(formData: FormData) {
         created_by: me.id,
       });
   revalidatePath('/[locale]/roster', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : t('bDaLuuCoach'), ve);
+  flash(class_id, error ? loi(friendlyError(error, tLoi)) : t('bDaLuuCoach'), ve);
 }

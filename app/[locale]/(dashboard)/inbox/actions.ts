@@ -43,6 +43,7 @@ export type SendState = {
  * lược đồ, bộ sinh kiểu không biết có trigger.
  */
 export async function sendMessage(_prev: SendState, formData: FormData): Promise<SendState> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole([...VAI_DUOC_VAO]);
   const t = await getTranslations('loiPhu');
   const threadId = String(formData.get('thread_id') ?? '');
@@ -81,7 +82,7 @@ export async function sendMessage(_prev: SendState, formData: FormData): Promise
     const msg =
       error.code === '42501'
         ? t('iKhoa')
-        : loi(friendlyError(error));
+        : loi(friendlyError(error, tLoi));
     return {ok: false, error: msg, value};
   }
   if (!data || data.length === 0)
@@ -106,6 +107,7 @@ export async function sendMessage(_prev: SendState, formData: FormData): Promise
  * một em trong lớp. 0065 cho phép cả hai, và WITH CHECK của bảng vẫn là chốt chặn cuối.
  */
 export async function openThread(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole([...VAI_DUOC_VAO]);
   const t = await getTranslations('loiPhu');
   const studentId = String(formData.get('student_id') ?? '');
@@ -114,7 +116,7 @@ export async function openThread(formData: FormData) {
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('pt_open_thread', {p_student: studentId});
   revalidatePath('/[locale]/inbox', 'page');
-  if (error) inboxFlash(null, loi(friendlyError(error)));
+  if (error) inboxFlash(null, loi(friendlyError(error, tLoi)));
   if (!data)
     inboxFlash(null, t('iKhongMo'));
 

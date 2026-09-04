@@ -35,6 +35,7 @@ export type LuuOState = {ok: boolean; error?: string; message?: string};
 // lỗi hiện ở chỗ cách xa nơi vừa bấm. Trả state thì lỗi hiện ngay trong hộp, còn lưu xong thì
 // hộp tự đóng (cùng lối đã dùng cho form sửa mục tiêu ở /wig).
 export async function luuOTiet(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
+  const tLoi = await getTranslations('common');
   await requireRole([...QUAN_TKB]);
   const t = await tb();
   const class_id = String(formData.get('class_id') ?? '');
@@ -91,7 +92,7 @@ export async function luuOTiet(_prev: LuuOState, formData: FormData): Promise<Lu
       seGhi.map((thu) => ({class_id, day_of_week: thu, period_no, subject_id, room, teacher_name, kind})),
       {onConflict: 'class_id,day_of_week,period_no'},
     );
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   revalidatePath('/[locale]/timetable', 'page');
   const boQua = biChiem.length;
   return {
@@ -133,6 +134,7 @@ function docCacO(raw: string): ODan[] | null {
 }
 
 export async function nhapHangLoat(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
+  const tLoi = await getTranslations('common');
   await requireRole([...QUAN_TKB]);
   const t = await tb();
   const class_id = String(formData.get('class_id') ?? '');
@@ -151,7 +153,7 @@ export async function nhapHangLoat(_prev: LuuOState, formData: FormData): Promis
       .from('timetable_slots')
       .select('day_of_week, period_no')
       .eq('class_id', class_id);
-    if (error) return {ok: false, error: friendlyError(error)};
+    if (error) return {ok: false, error: friendlyError(error, tLoi)};
     for (const r of daCo ?? []) {
       if (theoKhoa.delete(`${r.day_of_week}-${r.period_no}`)) boQua++;
     }
@@ -167,7 +169,7 @@ export async function nhapHangLoat(_prev: LuuOState, formData: FormData): Promis
   const {error} = await supabase
     .from('timetable_slots')
     .upsert(rows, {onConflict: 'class_id,day_of_week,period_no'});
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   revalidatePath('/[locale]/timetable', 'page');
   return {ok: true, message: t('bulkSaved', {n: rows.length}) + (boQua > 0 ? t('skippedDays', {n: boQua}) : '')};
 }
@@ -179,6 +181,7 @@ export async function nhapHangLoat(_prev: LuuOState, formData: FormData): Promis
 // từng ô một, người dùng không hiểu vì sao "lỗi").
 // ============================================================
 export async function saoChepTuLop(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
+  const tLoi = await getTranslations('common');
   await requireRole([...QUAN_TKB]);
   const t = await tb();
   const class_id = String(formData.get('class_id') ?? '');
@@ -212,7 +215,7 @@ export async function saoChepTuLop(_prev: LuuOState, formData: FormData): Promis
         onConflict: 'class_id,subject_id',
         ignoreDuplicates: true,
       });
-    if (error) return {ok: false, error: t('copyErrSubjects', {n: thieu.length}) + ' ' + friendlyError(error)};
+    if (error) return {ok: false, error: t('copyErrSubjects', {n: thieu.length}) + ' ' + friendlyError(error, tLoi)};
   }
 
   const daCo = new Set((daCoRes ?? []).map((r) => `${r.day_of_week}-${r.period_no}`));
@@ -236,7 +239,7 @@ export async function saoChepTuLop(_prev: LuuOState, formData: FormData): Promis
   const {error} = await supabase
     .from('timetable_slots')
     .upsert(rows, {onConflict: 'class_id,day_of_week,period_no'});
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   revalidatePath('/[locale]/timetable', 'page');
   return {ok: true, message: t('copySaved', {n: rows.length}) + (boQua > 0 ? t('skippedDays', {n: boQua}) : '')};
 }
@@ -246,6 +249,7 @@ export async function saoChepTuLop(_prev: LuuOState, formData: FormData): Promis
 // Form gửi 12 cặp tu_N / den_N; cặp bỏ trống = tiết đó không khai (xoá dòng nếu có).
 // ============================================================
 export async function luuGioTiet(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole([...QUAN_TKB]);
   const t = await tb();
   const class_id = String(formData.get('class_id') ?? '');
@@ -276,7 +280,7 @@ export async function luuGioTiet(_prev: LuuOState, formData: FormData): Promise<
     const {error} = await supabase
       .from('class_period_times')
       .upsert(ghi, {onConflict: 'class_id,period_no'});
-    if (error) return {ok: false, error: friendlyError(error)};
+    if (error) return {ok: false, error: friendlyError(error, tLoi)};
   }
   if (xoa.length > 0) {
     const {error} = await supabase
@@ -284,7 +288,7 @@ export async function luuGioTiet(_prev: LuuOState, formData: FormData): Promise<
       .delete()
       .eq('class_id', class_id)
       .in('period_no', xoa);
-    if (error) return {ok: false, error: friendlyError(error)};
+    if (error) return {ok: false, error: friendlyError(error, tLoi)};
   }
   revalidatePath('/[locale]/timetable', 'page');
   return {ok: true, message: t('savedTimes')};
@@ -296,6 +300,7 @@ export async function luuGioTiet(_prev: LuuOState, formData: FormData): Promise<
 // nhiệm về chương trình của lớp. RPC tự kiểm quyền (GVCN lớp / hiệu trưởng cùng cơ sở / admin) và
 // tự bỏ qua môn đã có, nên bấm nhầm hai lần cũng không sao.
 export async function seedSubjects(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole([...QUAN_TKB]);
   const t = await tb();
   const class_id = String(formData.get('class_id') ?? '');
@@ -303,7 +308,7 @@ export async function seedSubjects(formData: FormData) {
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('seed_class_subjects', {p_class: class_id});
   revalidatePath('/[locale]/timetable', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : t('seededSubjects', {n: data ?? 0}));
+  flash(class_id, error ? loi(friendlyError(error, tLoi)) : t('seededSubjects', {n: data ?? 0}));
 }
 
 // ============================================================
@@ -312,6 +317,7 @@ export async function seedSubjects(formData: FormData) {
 // phải ghi riêng theo ngày, nếu không sẽ phá cả các tuần khác.
 // ============================================================
 export async function saveOverride(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole([...QUAN_TKB]);
   const t = await tb();
   const class_id = String(formData.get('class_id') ?? '');
@@ -363,10 +369,11 @@ export async function saveOverride(formData: FormData) {
     {onConflict: 'slot_id,date'},
   );
   revalidatePath('/[locale]/timetable', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : t('savedOverride'));
+  flash(class_id, error ? loi(friendlyError(error, tLoi)) : t('savedOverride'));
 }
 
 export async function deleteOverride(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole([...QUAN_TKB]);
   const t = await tb();
   const class_id = String(formData.get('class_id') ?? '');
@@ -374,7 +381,7 @@ export async function deleteOverride(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.from('timetable_overrides').delete().eq('id', id);
   revalidatePath('/[locale]/timetable', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : t('removedOverride'));
+  flash(class_id, error ? loi(friendlyError(error, tLoi)) : t('removedOverride'));
 }
 
 // ============================================================
@@ -383,6 +390,7 @@ export async function deleteOverride(formData: FormData) {
 // (Admin / BGH cơ sở mình); ở đây trả state để lỗi hiện ngay dưới nút (form nằm cuối trang).
 // ============================================================
 export async function luuCLBCoSo(_prev: LuuOState, formData: FormData): Promise<LuuOState> {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin', 'principal']);
   const t = await tb();
   const campus_id = String(formData.get('campus_id') ?? '');
@@ -403,23 +411,25 @@ export async function luuCLBCoSo(_prev: LuuOState, formData: FormData): Promise<
   const {error} = await supabase
     .from('campus_clubs')
     .insert({campus_id, weekday, name, start_time, end_time, room, note, created_by: me?.id ?? null});
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   revalidatePath('/[locale]/timetable', 'page');
   return {ok: true, message: t('savedClub')};
 }
 
 export async function xoaCLBCoSo(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin', 'principal']);
   const t = await tb();
   const id = String(formData.get('id') ?? '');
   const supabase = await createClient();
   const {error} = await supabase.from('campus_clubs').delete().eq('id', id);
   revalidatePath('/[locale]/timetable', 'page');
-  const g = tachLoi(error ? loi(friendlyError(error)) : t('deletedClub'));
+  const g = tachLoi(error ? loi(friendlyError(error, tLoi)) : t('deletedClub'));
   redirect(`/timetable?${g.laLoi ? 'flash_err' : 'flash'}=${encodeURIComponent(g.msg)}`);
 }
 
 export async function deleteSlot(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole([...QUAN_TKB]);
   const t = await tb();
   const class_id = String(formData.get('class_id') ?? '');
@@ -427,5 +437,5 @@ export async function deleteSlot(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.from('timetable_slots').delete().eq('id', id);
   revalidatePath('/[locale]/timetable', 'page');
-  flash(class_id, error ? loi(friendlyError(error)) : t('deletedSlot'));
+  flash(class_id, error ? loi(friendlyError(error, tLoi)) : t('deletedSlot'));
 }

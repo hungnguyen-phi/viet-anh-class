@@ -33,6 +33,7 @@ export type PdrState = {ok: boolean; error?: string; fieldError?: string; messag
 const CAU = ['q1_plan', 'q2_result', 'q3_obstacle', 'q4_overcome', 'q5_better_way', 'q6_commitment'] as const;
 
 export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const tc = await getTranslations('common');
   const me = await getCurrentProfile();
@@ -115,7 +116,7 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
   let meetingId = daCo?.id ?? null;
   if (meetingId) {
     const {error} = await supabase.from('pdr_meetings').update(traLoi).eq('id', meetingId);
-    if (error) return {ok: false, error: friendlyError(error)};
+    if (error) return {ok: false, error: friendlyError(error, tLoi)};
   } else {
     const {data, error} = await supabase
       .from('pdr_meetings')
@@ -130,7 +131,7 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
       })
       .select('id')
       .maybeSingle();
-    if (error) return {ok: false, error: friendlyError(error)};
+    if (error) return {ok: false, error: friendlyError(error, tLoi)};
     if (!data) return {ok: false, error: t('pdrKhongQuyenLop')};
     meetingId = data.id;
   }
@@ -222,6 +223,7 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
 // dưới đây chỉ để câu báo lỗi nói tiếng người. Ghi nhận đóng cả tuần lượt ghi (luot_bi_khoa) nên
 // chặn khi còn cam kết TỚI HẠN chưa chấm ở câu 2.
 export async function ghiNhanPdr(_prev: PdrState, formData: FormData): Promise<PdrState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const me = await getCurrentProfile();
   if (!me) return {ok: false, error: t('chuaDangNhap')};
@@ -279,7 +281,7 @@ export async function ghiNhanPdr(_prev: PdrState, formData: FormData): Promise<P
     .is('acknowledged_at', null)
     .select('id')
     .maybeSingle();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data) return {ok: false, error: t('pdrDaGhiNhanHoacKhongThamGia')};
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');

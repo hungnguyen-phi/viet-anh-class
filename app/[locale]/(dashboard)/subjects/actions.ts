@@ -56,6 +56,7 @@ export async function createSubject(
   _prev: SubjectFormState,
   formData: FormData,
 ): Promise<SubjectFormState> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const s = (k: string) => String(formData.get(k) ?? '').trim();
@@ -132,7 +133,7 @@ export async function createSubject(
       };
     // P0001 = trigger subject_guard: "Môn ... đã có trong danh mục dùng chung...". friendlyError
     // giữ nguyên câu tiếng Việt đó, đúng thứ người dùng cần đọc.
-    return {ok: false, error: (friendlyError(error)), values};
+    return {ok: false, error: (friendlyError(error, tLoi)), values};
   }
   if (!data || data.length === 0)
     return {ok: false, error: t('sKhongTao'), values};
@@ -151,6 +152,7 @@ export async function createSubject(
 // cũ phải đọc được mãi (comment trên cột is_active của 0069). Tắt = môn biến khỏi mọi ô chọn,
 // dữ liệu cũ nguyên vẹn.
 export async function setSubjectActive(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const subjectId = String(formData.get('subject_id') ?? '');
@@ -165,7 +167,7 @@ export async function setSubjectActive(formData: FormData) {
     .eq('id', subjectId)
     .select('name');
   revalidatePath('/[locale]/subjects', 'page');
-  if (error) subjectsFlash(loi(friendlyError(error)), classId);
+  if (error) subjectsFlash(loi(friendlyError(error, tLoi)), classId);
   if (!data || data.length === 0)
     subjectsFlash(
       t('sKhongDoiChung'),
@@ -184,6 +186,7 @@ export async function setSubjectActive(formData: FormData) {
 // subject_grades — hiệu trưởng bị chặn kể cả với môn riêng của cơ sở mình. Vì thế màn hình
 // KHÔNG vẽ nút này cho họ (nút bấm không được còn tệ hơn không có nút).
 export async function saveSubjectGrades(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin']);
   const t = await getTranslations('loiPhu');
   const subjectId = String(formData.get('subject_id') ?? '');
@@ -214,7 +217,7 @@ export async function saveSubjectGrades(formData: FormData) {
       .from('subject_grades')
       .insert(chosen.map((n) => ({subject_id: subjectId, grade_no: n})));
     revalidatePath('/[locale]/subjects', 'page');
-    if (error) subjectsFlash(loi(friendlyError(error)), classId);
+    if (error) subjectsFlash(loi(friendlyError(error, tLoi)), classId);
     subjectsFlash(t('sDaLuuKhoi', {khoi: chosen.join(', ')}), classId);
   }
 
@@ -229,6 +232,7 @@ export async function saveSubjectGrades(formData: FormData) {
 // RPC seed_class_subjects tự kiểm quyền bên trong (GVCN lớp / BGH cùng cơ sở / quản trị viên)
 // và gọi lại bao nhiêu lần cũng an toàn (on conflict do nothing).
 export async function seedClassSubjects(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const classId = String(formData.get('class_id') ?? '');
@@ -237,7 +241,7 @@ export async function seedClassSubjects(formData: FormData) {
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('seed_class_subjects', {p_class: classId});
   revalidatePath('/[locale]/subjects', 'page');
-  if (error) subjectsFlash(loi(friendlyError(error)), classId);
+  if (error) subjectsFlash(loi(friendlyError(error, tLoi)), classId);
   const n = Number(data ?? 0);
   subjectsFlash(
     n > 0
@@ -253,6 +257,7 @@ export async function seedClassSubjects(formData: FormData) {
 // cơ sở của lớp. GVCN KHÔNG (họ là người hưởng lợi trực tiếp, để họ tự cấp là mô hình sai từ
 // gốc). requireRole ở đây khớp đúng policy đó, không nới thêm một ly.
 export async function assignTeacher(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const classId = String(formData.get('class_id') ?? '');
@@ -278,7 +283,7 @@ export async function assignTeacher(formData: FormData) {
       .select('id');
     revalidatePath('/[locale]/subjects', 'page');
     revalidatePath('/[locale]/grades', 'page');
-    if (error) subjectsFlash(loi(friendlyError(error)), classId);
+    if (error) subjectsFlash(loi(friendlyError(error, tLoi)), classId);
     if (!data || data.length === 0)
       subjectsFlash(t('sKhongPhanCong'), classId);
     subjectsFlash(
@@ -305,6 +310,7 @@ export async function assignTeacher(formData: FormData) {
 // đều lọc cờ này; (2) giữ dòng lại thì còn tra được ai từng dạy môn này ở lớp này — cần thiết
 // khi phải hỏi lại nguồn gốc một con điểm cũ.
 export async function unassignTeacher(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const assignmentId = String(formData.get('assignment_id') ?? '');
@@ -319,7 +325,7 @@ export async function unassignTeacher(formData: FormData) {
     .select('id');
   revalidatePath('/[locale]/subjects', 'page');
   revalidatePath('/[locale]/grades', 'page');
-  if (error) subjectsFlash(loi(friendlyError(error)), classId);
+  if (error) subjectsFlash(loi(friendlyError(error, tLoi)), classId);
   if (!data || data.length === 0)
     subjectsFlash(t('sKhongGo'), classId);
   subjectsFlash(

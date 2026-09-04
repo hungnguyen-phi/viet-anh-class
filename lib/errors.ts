@@ -52,6 +52,8 @@ const MAC_DINH_VI: Record<string, string> = {
 };
 
 export function friendlyError(error: PgError, t?: DichLoi): string {
+  // Không truyền t → fallback tiếng Việt. Mọi server action đã được rà (04/09) để truyền t của
+  // namespace 'common' (có loiChung…loiMa) nên đường fallback chỉ còn cho chỗ gọi ngoài request.
   const d: DichLoi = t ?? ((key, vars) => MAC_DINH_VI[key].replace('{ma}', String(vars?.ma ?? '')));
   if (!error) return d('loiChung');
   switch (error.code) {

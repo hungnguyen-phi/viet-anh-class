@@ -430,8 +430,8 @@ export function FormMucTieu3Buoc({
                 onChange={(e) => setTen(e.target.value)}
                 placeholder={t('tenPh')}
                 maxLength={200}
-                aria-invalid={err('ten') ? true : undefined}
-                aria-describedby={err('ten') ? 'mt-ten-loi' : undefined}
+                aria-invalid={err('ten') || (loiBuoc && !ten.trim()) ? true : undefined}
+                aria-describedby={err('ten') ? 'mt-ten-loi' : loiBuoc && !ten.trim() ? 'mt-loi-buoc' : undefined}
                 className={ctlWithBorder(state.fieldError === 'ten')}
                 autoFocus
               />
@@ -595,7 +595,7 @@ export function FormMucTieu3Buoc({
         )}
 
         {loiBuoc && (
-          <p role="alert" className="inline-flex items-start gap-1.5 rounded-[12px] bg-status-bad/[0.08] px-2.5 py-2 text-chu-thich font-bold text-status-bad">
+          <p id="mt-loi-buoc" role="alert" className="inline-flex items-start gap-1.5 rounded-[12px] bg-status-bad/[0.08] px-2.5 py-2 text-chu-thich font-bold text-status-bad">
             <AlertCircle size={14} strokeWidth={2.5} className="mt-px shrink-0" />
             {loiBuoc}
           </p>

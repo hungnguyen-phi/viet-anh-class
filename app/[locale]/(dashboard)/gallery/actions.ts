@@ -33,6 +33,7 @@ export type AlbumState = {
 // HIỆU TRƯỞNG CỐ Ý KHÔNG CÓ trong danh sách: BGH đọc được ảnh của lớp trong cơ sở mình
 // (staff_can_read_class) nhưng người chụp và người chịu trách nhiệm về ảnh trẻ là GVCN.
 export async function createAlbum(_prev: AlbumState, formData: FormData): Promise<AlbumState> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loiPhu');
   const classId = String(formData.get('class_id') ?? '');
@@ -41,7 +42,7 @@ export async function createAlbum(_prev: AlbumState, formData: FormData): Promis
   const description = String(formData.get('description') ?? '').trim();
   const values = {title, event_date: eventDate, description};
 
-  if (!classId) return {ok: false, error: (friendlyError(null)), values};
+  if (!classId) return {ok: false, error: (friendlyError(null, tLoi)), values};
   if (!title)
     return {ok: false, fieldError: 'title', error: t('aTen'), values};
   if (!ISO_DATE.test(eventDate))
@@ -66,7 +67,7 @@ export async function createAlbum(_prev: AlbumState, formData: FormData): Promis
     })
     .select('id');
 
-  if (error) return {ok: false, error: (friendlyError(error)), values};
+  if (error) return {ok: false, error: (friendlyError(error, tLoi)), values};
   if (!data || data.length === 0)
     return {
       ok: false,
@@ -85,6 +86,7 @@ export async function createAlbum(_prev: AlbumState, formData: FormData): Promis
 // NGAY, kể cả khi bước xoá tệp bên dưới hỏng giữa chừng. Làm ngược lại thì có một khoảng thời gian
 // tệp đã mất nhưng hàng còn, ảnh vỡ mà quyền vẫn mở. Hỏng theo hướng ĐÓNG, đúng tinh thần 0063.
 export async function deletePhoto(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loiPhu');
   const classId = String(formData.get('class_id') ?? '');
@@ -101,7 +103,7 @@ export async function deletePhoto(formData: FormData) {
 
   if (error) {
     revalidatePath('/[locale]/gallery', 'page');
-    galleryFlash(classId, albumId, loi(friendlyError(error)));
+    galleryFlash(classId, albumId, loi(friendlyError(error, tLoi)));
   }
   if (!data || data.length === 0) {
     revalidatePath('/[locale]/gallery', 'page');
@@ -123,6 +125,7 @@ export async function deletePhoto(formData: FormData) {
 // bucket thì không, Postgres không với tới Storage. Phải lấy danh sách đường dẫn TRƯỚC khi xoá
 // album, nếu không là mất dấu vĩnh viễn và bucket đầy ảnh mồ côi không ai gỡ được.
 export async function deleteAlbum(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loiPhu');
   const classId = String(formData.get('class_id') ?? '');
@@ -143,7 +146,7 @@ export async function deleteAlbum(formData: FormData) {
 
   if (error) {
     revalidatePath('/[locale]/gallery', 'page');
-    galleryFlash(classId, albumId, loi(friendlyError(error)));
+    galleryFlash(classId, albumId, loi(friendlyError(error, tLoi)));
   }
   if (!data || data.length === 0) {
     revalidatePath('/[locale]/gallery', 'page');

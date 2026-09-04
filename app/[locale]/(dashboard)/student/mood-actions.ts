@@ -1,4 +1,5 @@
 'use server';
+import {getTranslations} from 'next-intl/server';
 
 import {revalidatePath} from 'next/cache';
 import {headers} from 'next/headers';
@@ -31,6 +32,7 @@ export type CheckinResult = {
 // Đường ghi duy nhất: server đọc IP thật từ header → gọi hàm student_checkin bằng service_role.
 // Học sinh KHÔNG thể tự gọi hàm này (đã revoke) nên không lách được cổng IP.
 export async function checkinMood(mood: Mood, buoi: 'sang' | 'chieu' = 'sang'): Promise<CheckinResult> {
+  const tLoi = await getTranslations('common');
   const profile = await getCurrentProfile();
   if (!profile || profile.role !== 'student') return {ok: false, error: 'forbidden'};
 
@@ -43,7 +45,7 @@ export async function checkinMood(mood: Mood, buoi: 'sang' | 'chieu' = 'sang'): 
     p_ip: ip ?? '',
     p_buoi: buoi,
   });
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (data === 'blocked') return {ok: false, blocked: true};
   if (data === 'no_class') return {ok: false, noClass: true};
   if (data === 'closed') return {ok: false, closed: true};

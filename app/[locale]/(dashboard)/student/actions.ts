@@ -64,6 +64,7 @@ export type LuotResult = {ok: boolean; error?: string};
 // ════════════════════════════════════════════════════════════════════════════════════════════
 
 export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promise<MucTieuState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const me = await getCurrentProfile();
   if (!me) return {ok: false, error: t('chuaDangNhap')};
@@ -234,7 +235,7 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
       .eq('id', muc_tieu_id)
       .eq('cap', cap)
       .select('id');
-    if (error) return {ok: false, error: friendlyError(error)};
+    if (error) return {ok: false, error: friendlyError(error, tLoi)};
     if (!data || data.length === 0)
       return {ok: false, error: t('khongLuuDuocEmKhongCo')};
   } else {
@@ -259,7 +260,7 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
     // 0187: muc_tieu_lop_ten_nam_uidx — hai mục tiêu lớp cùng tên trong một năm (bấm Lưu hai lần
     // lúc mạng chậm) → 23505, nói tiếng người thay vì "dữ liệu bị trùng".
     if (error?.code === '23505' && laLop) return {ok: false, fieldError: 'ten', error: t('lopDaCoMucTieuTen')};
-    if (error) return {ok: false, error: friendlyError(error)};
+    if (error) return {ok: false, error: friendlyError(error, tLoi)};
     if (!data) return {ok: false, error: t('khongLuuDuocEmKhongCo')};
     mtId = data.id;
   }
@@ -339,6 +340,7 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
 
 // Đóng mục tiêu (ly_do_dong: dat/doi/bo — trigger đòi đúng ba giá trị ấy).
 export async function dongMucTieu(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const student_id = String(formData.get('student_id') ?? '');
   const id = String(formData.get('muc_tieu_id') ?? '');
@@ -354,7 +356,7 @@ export async function dongMucTieu(formData: FormData) {
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (error) veTrangEm(student_id, loi(friendlyError(error, tLoi)));
   if (!data || data.length === 0) veTrangEm(student_id, loi(t('khongDongDuocKhongCoQuyen')));
   veTrangEm(student_id, t('daDongMucTieu'));
 }
@@ -362,6 +364,7 @@ export async function dongMucTieu(formData: FormData) {
 // Xoá mục tiêu — RLS chỉ cho khi nhap/gui/tra_lai VÀ chưa có số đo/dây/cam kết hiệu lực dưới nó.
 // 04/09: trả state (trong hộp Sửa của FormMucTieu), không redirect.
 export async function xoaMucTieu(_prev: FormState, formData: FormData): Promise<FormState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const id = String(formData.get('muc_tieu_id') ?? '');
   if (!id) return {ok: false, error: t('thieuMucTieu')};
@@ -370,13 +373,14 @@ export async function xoaMucTieu(_prev: FormState, formData: FormData): Promise<
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('chiXoaDuocKhiMucTieu')};
   return {ok: true, message: t('daXoaMucTieu')};
 }
 
 // GVCN duyệt / trả lại mục tiêu của em (trigger mt_truoc_sua kiểm quyền + ký + kiểm trần).
 export async function duyetMucTieu(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   await requireRole(['teacher', 'admin']);
   const id = String(formData.get('muc_tieu_id') ?? '');
@@ -391,12 +395,13 @@ export async function duyetMucTieu(formData: FormData) {
     .maybeSingle();
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (error) veTrangEm(student_id, loi(friendlyError(error, tLoi)));
   if (!data) veTrangEm(student_id, loi(t('mucTieuNayKhongConNua')));
   veTrangEm(student_id, t('daDuyetMucTieuCuaEm'));
 }
 
 export async function traLaiMucTieu(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   await requireRole(['teacher', 'admin']);
   const id = String(formData.get('muc_tieu_id') ?? '');
@@ -415,7 +420,7 @@ export async function traLaiMucTieu(formData: FormData) {
     .maybeSingle();
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (error) veTrangEm(student_id, loi(friendlyError(error, tLoi)));
   if (!data) veTrangEm(student_id, loi(t('mucTieuNayKhongConCho')));
   veTrangEm(student_id, t('daTraLaiKemNhanXet'));
 }
@@ -425,6 +430,7 @@ export async function traLaiMucTieu(formData: FormData) {
 // dòng mới (lịch sử giữ lại, số MỚI NHẤT là số thật — private.so_hien_tai đọc 'moi_nhat'). Luật
 // ngày (không tương lai, không trước bat_dau) nằm ở trigger so_do_truoc_ghi.
 export async function ghiSoDo(_prev: MucTieuState, formData: FormData): Promise<MucTieuState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const me = await getCurrentProfile();
   if (!me) return {ok: false, error: t('chuaDangNhap')};
@@ -453,7 +459,7 @@ export async function ghiSoDo(_prev: MucTieuState, formData: FormData): Promise<
       student_id: mt?.student_id ?? null,
     })
     .select('id');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0)
     return {ok: false, error: t('khongGhiDuocEmKhongCo')};
 
@@ -515,6 +521,7 @@ export async function datHanhDong(formData: FormData) {
 // ════════════════════════════════════════════════════════════════════════════════════════════
 
 export async function luuViec(_prev: ViecState, formData: FormData): Promise<ViecState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const me = await getCurrentProfile();
   if (!me) return {ok: false, error: t('chuaDangNhap')};
@@ -581,7 +588,7 @@ export async function luuViec(_prev: ViecState, formData: FormData): Promise<Vie
     })
     .select('id')
     .maybeSingle();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data) return {ok: false, error: t('khongLuuDuocEmKhongCo')};
 
   // Nối việc vào một mục tiêu (không bắt buộc). Cùng đơn vị thì cộng số (gop_so); khác thì chỉ
@@ -598,7 +605,7 @@ export async function luuViec(_prev: ViecState, formData: FormData): Promise<Vie
       noi_tu_dong: false,
       created_by: me.id,
     });
-    if (eNoi) return {ok: false, error: t('daLuuChuaNoi', {loi: friendlyError(eNoi)})};
+    if (eNoi) return {ok: false, error: t('daLuuChuaNoi', {loi: friendlyError(eNoi, tLoi)})};
   }
 
   revalidatePath('/[locale]/student', 'page');
@@ -610,6 +617,7 @@ export async function luuViec(_prev: ViecState, formData: FormData): Promise<Vie
 // Đổi chỉ tiêu từ TUẦN SAU (thuoc_lich_su). Trigger thls_truoc_them quyết định hiệu lực ngay hay
 // về chờ duyệt (hạ >30% hoặc hạ lần hai trong năm → cho_duyet + thuoc.duyet='gui').
 export async function suaChiTieu(_prev: ViecState, formData: FormData): Promise<ViecState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const me = await getCurrentProfile();
   if (!me) return {ok: false, error: t('chuaDangNhap')};
@@ -640,7 +648,7 @@ export async function suaChiTieu(_prev: ViecState, formData: FormData): Promise<
     })
     .select('trang_thai')
     .maybeSingle();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data) return {ok: false, error: t('khongLuuDuocEmKhongCo2')};
 
   revalidatePath('/[locale]/student', 'page');
@@ -657,6 +665,7 @@ export async function suaChiTieu(_prev: ViecState, formData: FormData): Promise<
 
 // Xoá thước tại chỗ (hộp Sửa của em) — RLS/trigger chỉ cho khi chưa có lượt ghi.
 export async function xoaViecTaiCho(_prev: FormState, formData: FormData): Promise<FormState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const thuoc_id = String(formData.get('thuoc_id') ?? '');
   if (!thuoc_id) return {ok: false, error: t('thieuViec')};
@@ -665,13 +674,14 @@ export async function xoaViecTaiCho(_prev: FormState, formData: FormData): Promi
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('chiXoaDuocKhiViecChua')};
   return {ok: true, message: t('daXoaViec')};
 }
 
 // Xoá việc — RLS chỉ cho khi chưa từng duyệt và chưa có lượt ghi.
 export async function xoaViec(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const student_id = String(formData.get('student_id') ?? '');
   const thuoc_id = String(formData.get('thuoc_id') ?? '');
@@ -681,7 +691,7 @@ export async function xoaViec(formData: FormData) {
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (error) veTrangEm(student_id, loi(friendlyError(error, tLoi)));
   if (!data || data.length === 0)
     veTrangEm(student_id, loi(t('chiXoaDuocKhiViecChua')));
   veTrangEm(student_id, t('daXoaViec'));
@@ -696,6 +706,7 @@ async function ghiLuotChung(
   supabase: Awaited<ReturnType<typeof createClient>>,
   args: {thuocId: string; studentId: string; ngay: string; giaTri: number; nguoiGhi: string},
 ): Promise<LuotResult> {
+  const tLoi = await getTranslations('common');
   const {thuocId, studentId, ngay, giaTri, nguoiGhi} = args;
   await supabase
     .from('luot')
@@ -713,7 +724,7 @@ async function ghiLuotChung(
     .from('luot')
     .insert({thuoc_id: thuocId, student_id: studentId, ngay, gia_tri: giaTri, nguon: 'tay', nguoi_ghi: nguoiGhi})
     .select('id');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: 'Không ghi được — thử lại nhé.'};   // helper không export, không có t(); caller hiện qua viec.ghiLoi
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
@@ -749,6 +760,7 @@ export async function ghiLuot(thuocId: string, ngay: string, giaTri: number): Pr
 // ════════════════════════════════════════════════════════════════════════════════════════════
 
 export async function luuCamKet(_prev: CamKetState, formData: FormData): Promise<CamKetState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const me = await getCurrentProfile();
   if (!me) return {ok: false, error: t('chuaDangNhap')};
@@ -807,7 +819,7 @@ export async function luuCamKet(_prev: CamKetState, formData: FormData): Promise
     })
     .select('id')
     .maybeSingle();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data) return {ok: false, error: t('khongLuuDuocEmKhongCo')};
 
   revalidatePath('/[locale]/student', 'page');
@@ -820,6 +832,7 @@ export async function luuCamKet(_prev: CamKetState, formData: FormData): Promise
 // pham_vi='tung_em' trỏ về cam kết qua cam_ket_id (0185). Đo 'cham' (tick những ngày chọn) hoặc
 // 'dien_so' (đơn vị + đích). 04/09: trả state — gửi rỗng thì lỗi hiện dưới ô (trước đây im lặng).
 export async function themThuocChoCamKet(_prev: FormState, formData: FormData): Promise<FormState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const me = await getCurrentProfile();
   if (!me) return {ok: false, error: t('chuaDangNhap')};
@@ -870,7 +883,7 @@ export async function themThuocChoCamKet(_prev: FormState, formData: FormData): 
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (vErr) return {ok: false, error: friendlyError(vErr)};
+  if (vErr) return {ok: false, error: friendlyError(vErr, tLoi)};
   if (!vRow) return {ok: false, error: t('khongTaoDuocThuocDoDan')};
   return {ok: true, message: t('daThemThuocDoDanDat')};
 }
@@ -880,6 +893,7 @@ export async function themThuocChoCamKet(_prev: FormState, formData: FormData): 
 // thật — câu báo của trigger hiện nguyên cạnh nút.
 export type ChamEmState = {ok: boolean; error?: string};
 export async function chamCamKetTaiCho(_prev: ChamEmState, formData: FormData): Promise<ChamEmState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const id = String(formData.get('cam_ket_id') ?? '').trim();
   if (!id) return {ok: false, error: t('thieuCamKet')};
@@ -898,13 +912,14 @@ export async function chamCamKetTaiCho(_prev: ChamEmState, formData: FormData): 
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('khongChamDuocKhongCoQuyen')};
   return {ok: true};
 }
 
 // Huỷ cam kết — RLS chỉ cho khi chưa chấm, chưa kể lại trong họp, chưa ai xác nhận.
 export async function xoaCamKet(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const student_id = String(formData.get('student_id') ?? '');
   const id = String(formData.get('cam_ket_id') ?? '');
@@ -914,7 +929,7 @@ export async function xoaCamKet(formData: FormData) {
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (error) veTrangEm(student_id, loi(friendlyError(error, tLoi)));
   if (!data || data.length === 0)
     veTrangEm(student_id, loi(t('khongHuyDuocCamKetDa')));
   veTrangEm(student_id, t('daHuyCamKet'));
@@ -924,6 +939,7 @@ export async function xoaCamKet(formData: FormData) {
 // bổ trợ của cam kết cũ), rồi em set lại từ đầu qua form "+ Thêm cam kết". (Cam kết giữ nguyên thì
 // lead measure giữ nguyên; đổi thì bỏ luôn lead measure cũ — theo chủ dự án 03/09.)
 export async function doiCamKet(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const student_id = String(formData.get('student_id') ?? '');
   const id = String(formData.get('cam_ket_id') ?? '');
@@ -932,7 +948,7 @@ export async function doiCamKet(formData: FormData) {
   // ĐÁNH DẤU 'huy' (không xoá): đây là tín hiệu để cam kết TỰ LĂN (0177) NGỪNG lăn dòng này — bản
   // mới nhất là 'huy' thì hàm lăn bỏ qua. Xoá thì tuần sau nó lại clone từ bản cũ hơn.
   const {data, error} = await supabase.from('cam_ket').update({trang_thai: 'huy'}).eq('id', id).select('id');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (error) veTrangEm(student_id, loi(friendlyError(error, tLoi)));
   if (!data || data.length === 0)
     veTrangEm(student_id, loi(t('khongDoiDuocCamKetDa')));
   // Xoá CẢ CHÙM thước của cam kết (0185: thuoc.cam_ket_id; RLS chặn nếu không phải của em).
@@ -947,6 +963,7 @@ export async function doiCamKet(formData: FormData) {
 // sửa nội dung sau khi đã chấm (câu báo hiện nguyên). Giữ nguyên đơn vị (không đụng don_vi_id) → chỉ
 // đổi so_hua khi cam kết vốn có đơn vị; ck_don_vi_ck luôn thoả (cả hai vẫn non-null).
 export async function suaCamKet(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const student_id = String(formData.get('student_id') ?? '');
   const id = String(formData.get('cam_ket_id') ?? '');
@@ -967,7 +984,7 @@ export async function suaCamKet(formData: FormData) {
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (error) veTrangEm(student_id, loi(friendlyError(error, tLoi)));
   if (!data || data.length === 0) veTrangEm(student_id, loi(t('khongSuaDuocCamKetDa')));
   veTrangEm(student_id, t('daSuaCamKet'));
 }
@@ -975,6 +992,7 @@ export async function suaCamKet(formData: FormData) {
 // SỬA CAM KẾT TẠI CHỖ (hộp Sửa của em) — như suaCamKet nhưng trả state: gửi rỗng thì lỗi hiện
 // dưới ô và ô GIỮ chữ (trước đây redirect + mất nội dung đang sửa).
 export async function suaCamKetTaiCho(_prev: FormState, formData: FormData): Promise<FormState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const id = String(formData.get('cam_ket_id') ?? '');
   if (!id) return {ok: false, error: t('thieuCamKet')};
@@ -1003,13 +1021,14 @@ export async function suaCamKetTaiCho(_prev: FormState, formData: FormData): Pro
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('khongSuaDuocCamKetDa')};
   return {ok: true, message: t('daSuaCamKet')};
 }
 
 // SỬA THƯỚC ĐO TẠI CHỖ (hộp Sửa của em) — cùng luật suaViec, trả state.
 export async function suaViecTaiCho(_prev: FormState, formData: FormData): Promise<FormState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const thuoc_id = String(formData.get('thuoc_id') ?? '');
   if (!thuoc_id) return {ok: false, error: t('thieuViec')};
@@ -1049,7 +1068,7 @@ export async function suaViecTaiCho(_prev: FormState, formData: FormData): Promi
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('khongSuaDuocKhongCoQuyen')};
   return {ok: true, message: t('daSuaThuocDoDanDat')};
 }
@@ -1057,6 +1076,7 @@ export async function suaViecTaiCho(_prev: FormState, formData: FormData): Promi
 // SỬA THƯỚC ĐO DẪN DẮT — đổi TÊN, ĐÍCH (chi_tieu_ky) và NGÀY áp dụng, có hiệu lực ngay (em sửa tuỳ
 // thích, không duyệt — khác suaChiTieu vốn qua thuoc_lich_su + duyệt). Trigger th_truoc_sua gác quyền.
 export async function suaViec(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const student_id = String(formData.get('student_id') ?? '');
   const thuoc_id = String(formData.get('thuoc_id') ?? '');
@@ -1099,7 +1119,7 @@ export async function suaViec(formData: FormData) {
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) veTrangEm(student_id, loi(friendlyError(error)));
+  if (error) veTrangEm(student_id, loi(friendlyError(error, tLoi)));
   if (!data || data.length === 0) veTrangEm(student_id, loi(t('khongSuaDuocKhongCoQuyen')));
   veTrangEm(student_id, t('daSuaThuocDoDanDat'));
 }

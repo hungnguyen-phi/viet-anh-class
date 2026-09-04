@@ -85,7 +85,20 @@ export function BoLocLop({classes, current}: {classes: ClassOption[]; current?: 
     if (!id || id === current) return;
     const q = new URLSearchParams(searchParams.toString());
     q.set('class', id);
-    setMoSheet(false);
+    // Sheet đang mở đã đẩy một mục lịch sử "ảo" (Popup). Nếu push thêm URL lớp mới rồi sheet
+    // unmount → cleanup của Popup history.back() sẽ NUỐT đúng cú push ấy (regression 04/09: chọn
+    // lớp xong trang đứng nguyên). Đường chắc: đổi lớp bằng REPLACE — URL mới thế chỗ mục ảo,
+    // history.state.popup mất → cleanup không back nữa; lịch sử cũng không thừa một bước.
+    // KHÔNG đóng sheet bằng state trước khi điều hướng: Popup unmount → cleanup history.back() chạy
+    // trước cú push và nuốt nó (đo 04/09: đổi lớp xong trang đứng nguyên). Thứ tự đúng: rút mục
+    // lịch sử ảo của Popup TRƯỚC (đóng sheet qua cờ), rồi mới push URL lớp mới.
+    if (moSheet) {
+      setMoSheet(false);
+      // Popup rút mục ảo trong cleanup (history.back) → chờ popstate xong rồi push, không thì
+      // trình duyệt gộp hai thao tác lịch sử liền nhau và cú back thắng.
+      setTimeout(() => batDau(() => router.push(`${pathname}?${q.toString()}`)), 350);
+      return;
+    }
     batDau(() => {
       router.push(`${pathname}?${q.toString()}`);
     });

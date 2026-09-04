@@ -49,6 +49,7 @@ async function myCampus() {
 // Mời giáo viên: tạo lời mời theo email; vai trò + cơ sở được áp khi họ đăng nhập lần đầu
 // (handle_new_user). Nhận nhiều email một lượt cho đỡ nhọc đầu năm học.
 export async function inviteTeachers(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const me = await myCampus();
   const campus_id = me.campus_id;
@@ -85,10 +86,11 @@ export async function inviteTeachers(formData: FormData) {
     valid.length === 1
       ? t('csDaMoi1', {email: valid[0]})
       : t('csDaMoiN', {n: valid.length});
-  flash(error ? loi(friendlyError(error)) : msg + (skipped > 0 ? ' ' + t('csBoQuaEmail', {n: skipped}) : ''));
+  flash(error ? loi(friendlyError(error, tLoi)) : msg + (skipped > 0 ? ' ' + t('csBoQuaEmail', {n: skipped}) : ''));
 }
 
 export async function cancelInvite(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   await myCampus();
   const email = String(formData.get('email') ?? '');
@@ -97,12 +99,13 @@ export async function cancelInvite(formData: FormData) {
   // RLS giới hạn đúng cơ sở HT → không cần (và không nên) tự lọc campus ở đây.
   const {error} = await supabase.from('pending_user_grants').delete().eq('email', email);
   revalidatePath('/[locale]/campus', 'page');
-  flash(error ? loi(friendlyError(error)) : t('csDaHuyMoi', {email}));
+  flash(error ? loi(friendlyError(error, tLoi)) : t('csDaHuyMoi', {email}));
 }
 
 // Vô hiệu / khôi phục giáo viên. 'pending' = còn tài khoản nhưng không vào được gì —
 // giữ nguyên lịch sử điểm danh, WIG… nên KHÔNG dùng xoá.
 export async function setTeacherActive(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const me = await myCampus();
   const userId = String(formData.get('userId') ?? '');
@@ -124,7 +127,7 @@ export async function setTeacherActive(formData: FormData) {
   revalidatePath('/[locale]/campus', 'page');
   flash(
     error
-      ? loi(friendlyError(error))
+      ? loi(friendlyError(error, tLoi))
       : active
         ? t('daKhoiPhucQuyenGv')
         : t('daVoHieuChoCapQuyen'),
@@ -135,6 +138,7 @@ export async function setTeacherActive(formData: FormData) {
 // Đi qua RPC set_my_campus_levels (SECURITY DEFINER) chứ không UPDATE thẳng bảng campuses: HT chỉ
 // được đổi đúng cột `levels` của đúng cơ sở mình, không đụng tên/mã/trạng thái lưu-trữ.
 export async function setCampusLevel(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   await myCampus();
   // Nhiều ô tick cùng name="level" → getAll. Trường liên cấp khai được cả THCS lẫn THPT.
@@ -145,7 +149,7 @@ export async function setCampusLevel(formData: FormData) {
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('set_my_campus_levels', {p_levels: levels});
   revalidatePath('/[locale]/campus', 'page');
-  if (error) flash(loi(friendlyError(error)));
+  if (error) flash(loi(friendlyError(error, tLoi)));
   const nums = gradeNumbersFor(levels);
   flash(
     nums
@@ -156,6 +160,7 @@ export async function setCampusLevel(formData: FormData) {
 
 // Phân công GVCN cho lớp trong cơ sở mình.
 export async function assignHomeroom(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   await myCampus();
   const classId = String(formData.get('class_id') ?? '');
@@ -173,7 +178,7 @@ export async function assignHomeroom(formData: FormData) {
     });
   }
   revalidatePath('/[locale]/campus', 'page');
-  flash(error ? loi(friendlyError(error)) : userId ? t('daPhanCongGvcn') : t('daBoPhanCongGvcn'));
+  flash(error ? loi(friendlyError(error, tLoi)) : userId ? t('daPhanCongGvcn') : t('daBoPhanCongGvcn'));
 }
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
@@ -195,6 +200,7 @@ type TuanHocState = {ok: boolean; loai?: string; error?: string};
 // là cái nút. RLS giới hạn đúng cơ sở của hiệu trưởng, nên .select() trả 0 dòng = không còn chờ
 // duyệt (chứ không phải lỗi).
 export async function duyetMucTieuLop(_prev: DuyetState, formData: FormData): Promise<DuyetState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   await requireRole(['principal', 'admin']);
   const id = String(formData.get('muc_tieu_id') ?? '');
@@ -207,7 +213,7 @@ export async function duyetMucTieuLop(_prev: DuyetState, formData: FormData): Pr
     .eq('cap', 'lop')
     .eq('trang_thai', 'gui')
     .select('id');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if ((data ?? []).length === 0) return {ok: false, error: t('mucTieuNayKhongConCho')};
   revalidatePath('/[locale]/campus', 'page');
   revalidatePath('/[locale]/wig', 'page');
@@ -217,6 +223,7 @@ export async function duyetMucTieuLop(_prev: DuyetState, formData: FormData): Pr
 // BGH TRẢ LẠI mục tiêu của lớp kèm lý do (gui → tra_lai). Trigger đòi ly_do_tra_lai không rỗng
 // (23514) — chặn sớm ở đây cho câu đẹp rồi để trigger là luật.
 export async function traLaiMucTieuLop(_prev: DuyetState, formData: FormData): Promise<DuyetState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   await requireRole(['principal', 'admin']);
   const id = String(formData.get('muc_tieu_id') ?? '');
@@ -232,7 +239,7 @@ export async function traLaiMucTieuLop(_prev: DuyetState, formData: FormData): P
     .eq('cap', 'lop')
     .eq('trang_thai', 'gui')
     .select('id');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if ((data ?? []).length === 0) return {ok: false, error: t('mucTieuNayKhongConCho')};
   revalidatePath('/[locale]/campus', 'page');
   revalidatePath('/[locale]/wig', 'page');
@@ -251,6 +258,7 @@ export async function traLaiMucTieuLop(_prev: DuyetState, formData: FormData): P
 // qua action riêng (noiNguon / thành_phan) như phía em; ở đây chỉ đặt cấu hình của mục tiêu.
 // Mọi CHECK (mt_nguon_ck, mt_ti_le_ck, mt_don_vi_ck…) là luật thật — action lo câu đẹp, DB bắt nốt.
 export async function taoMucTieuTruong(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const me = await myCampus();
   const campus_id = me.campus_id as string;
@@ -354,7 +362,7 @@ export async function taoMucTieuTruong(formData: FormData) {
     .select('id')
     .maybeSingle();
   revalidatePath('/[locale]/campus', 'page');
-  if (error) flash(loi(friendlyError(error)));
+  if (error) flash(loi(friendlyError(error, tLoi)));
   flash(data ? t('daTaoMucTieuCoSo') : loi(t('khongTaoMucTieuCoSo')));
 }
 
@@ -363,6 +371,7 @@ export async function taoMucTieuTruong(formData: FormData) {
 // (ly_do_dong='bo') để giữ lịch sử cuộn của các lớp đã góp vào. Cả hai đường đều qua RLS cấp
 // trường, id của cơ sở khác bắn vào cũng ra 0 dòng.
 export async function xoaMucTieuTruong(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   await myCampus();
   const id = String(formData.get('muc_tieu_id') ?? '').trim();
@@ -376,7 +385,7 @@ export async function xoaMucTieuTruong(formData: FormData) {
     .select('id');
   if (eXoa) {
     revalidatePath('/[locale]/campus', 'page');
-    flash(loi(friendlyError(eXoa)));
+    flash(loi(friendlyError(eXoa, tLoi)));
   }
   if (xoa && xoa.length > 0) {
     revalidatePath('/[locale]/campus', 'page');
@@ -391,7 +400,7 @@ export async function xoaMucTieuTruong(formData: FormData) {
     .neq('trang_thai', 'dong')
     .select('id');
   revalidatePath('/[locale]/campus', 'page');
-  if (eDong) flash(loi(friendlyError(eDong)));
+  if (eDong) flash(loi(friendlyError(eDong, tLoi)));
   flash(
     dong && dong.length > 0
       ? t('daDongMucTieuCoSo')
@@ -409,6 +418,7 @@ export async function xoaMucTieuTruong(formData: FormData) {
 // mỗi lần nhảy trang là hỏng. Đổi một tuần ĐÃ QUA sẽ tính lại thắng/thua của mọi lớp trong cơ sở
 // — client đã hỏi lại bằng Popup (coSoMucTieu.lichQuaKhu) trước khi gọi; ở đây ghi vết kiểm toán.
 export async function datTuanHoc(formData: FormData): Promise<TuanHocState> {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   const me = await requireRole(['principal', 'admin']);
   const campus_id = me.campus_id;
@@ -433,7 +443,7 @@ export async function datTuanHoc(formData: FormData): Promise<TuanHocState> {
       : await supabase
           .from('tuan_hoc')
           .upsert({campus_id, week_start, loai}, {onConflict: 'campus_id,week_start'});
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
 
   if (daQua && week_start < weekRangeVN().start) {
     await supabase.rpc('log_audit', {
@@ -452,6 +462,7 @@ export async function datTuanHoc(formData: FormData): Promise<TuanHocState> {
 // cho BGH cùng cơ sở + admin [H-15] — RLS là thứ chặn thật, đây chỉ là cái công tắc, và ghi vết
 // vì đây là quyền được nới ("ai bật").
 export async function toggleNhapHo(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const t = await getTranslations('loi');
   await myCampus();
   const class_id = String(formData.get('class_id') ?? '').trim();
@@ -470,7 +481,7 @@ export async function toggleNhapHo(formData: FormData) {
     });
   }
   revalidatePath('/[locale]/campus', 'page');
-  if (error) flash(loi(friendlyError(error)));
+  if (error) flash(loi(friendlyError(error, tLoi)));
   if (!data || data.length === 0) flash(loi(t('khongDoiDuocBanKhongCo')));
   flash(bat ? t('daBatNhapHo') : t('daTatNhapHo'));
 }

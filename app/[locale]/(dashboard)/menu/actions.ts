@@ -35,6 +35,7 @@ function lamMoiCacTrang() {
 // của mình. GIÁO VIÊN KHÔNG có trong danh sách — cố ý: thực đơn do bếp/văn phòng quyết, để 30
 // GVCN cùng sửa một dòng thì không ai chịu trách nhiệm khi sai.
 export async function saveMenu(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const campusId = String(formData.get('campus_id') ?? '');
@@ -68,7 +69,7 @@ export async function saveMenu(formData: FormData) {
     .select('date');
 
   lamMoiCacTrang();
-  if (error) menuFlash(campusId, week, loi(friendlyError(error)));
+  if (error) menuFlash(campusId, week, loi(friendlyError(error, tLoi)));
   // .select() để phân biệt "RLS chặn" với "đã lưu xong" — không báo thành công giả.
   if (!data || data.length === 0)
     menuFlash(campusId, week, t('mKhongLuu'));
@@ -78,6 +79,7 @@ export async function saveMenu(formData: FormData) {
 // Xoá thực đơn của một bữa (dùng khi nhập nhầm ngày/bữa). Không có "xoá mềm": thực đơn quá hạn
 // không có giá trị lưu vết, mà để lại thì phụ huynh mở tuần cũ vẫn thấy món đã bị huỷ.
 export async function deleteMenu(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const campusId = String(formData.get('campus_id') ?? '');
@@ -98,7 +100,7 @@ export async function deleteMenu(formData: FormData) {
     .select('date');
 
   lamMoiCacTrang();
-  if (error) menuFlash(campusId, week, loi(friendlyError(error)));
+  if (error) menuFlash(campusId, week, loi(friendlyError(error, tLoi)));
   menuFlash(
     campusId,
     week,

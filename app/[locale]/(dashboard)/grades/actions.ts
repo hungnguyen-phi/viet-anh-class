@@ -73,6 +73,7 @@ function gradesFlash(ctx: Ctx, msg: string): never {
 // quyền một lần ở một chỗ (comment trong 0064 nói rõ vì sao), còn 30 lượt gọi qua mạng VPS đang
 // mất gói thì gần như chắc chắn có lượt rơi giữa chừng, để lại lớp nhập dở một nửa.
 export async function openTermForClass(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loiPhu');
   const ctx = readCtx(formData);
@@ -84,7 +85,7 @@ export async function openTermForClass(formData: FormData) {
     p_class: ctx.class,
   });
   revalidatePath('/[locale]/grades', 'page');
-  if (error) gradesFlash(ctx, loi(friendlyError(error)));
+  if (error) gradesFlash(ctx, loi(friendlyError(error, tLoi)));
   gradesFlash(
     ctx,
     data && data > 0
@@ -105,6 +106,7 @@ export async function openTermForClass(formData: FormData) {
 // can_write_subject_score(review, subject), hỏi QUAN HỆ chứ không hỏi vai trò. Ở đây chỉ chặn
 // người không có việc gì ở màn hình này.
 export async function saveScoreColumn(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loiPhu');
   const ctx = readCtx(formData);
@@ -207,7 +209,7 @@ export async function saveScoreColumn(formData: FormData) {
       .upsert(rows, {onConflict: 'review_id,subject_id,kind,ordinal'})
       .select('id');
     revalidatePath('/[locale]/grades', 'page');
-    if (error) gradesFlash(ctx, loi(friendlyError(error)));
+    if (error) gradesFlash(ctx, loi(friendlyError(error, tLoi)));
     if ((data ?? []).length === 0)
       gradesFlash(
         ctx,
@@ -227,7 +229,7 @@ export async function saveScoreColumn(formData: FormData) {
       .in('review_id', empty);
     if (error) {
       revalidatePath('/[locale]/grades', 'page');
-      gradesFlash(ctx, loi(friendlyError(error)));
+      gradesFlash(ctx, loi(friendlyError(error, tLoi)));
     }
   }
 
@@ -249,6 +251,7 @@ export async function saveScoreColumn(formData: FormData) {
 // đây không đoán lại: đoán sai theo hướng chặt là khoá nhầm người, đoán sai theo hướng lỏng là
 // vẽ ra cái nút bấm vào chỉ để nhận thông báo bị từ chối.
 export async function seedClassSubjects(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'principal', 'admin']);
   const t = await getTranslations('loiPhu');
   const ctx = readCtx(formData);
@@ -257,7 +260,7 @@ export async function seedClassSubjects(formData: FormData) {
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('seed_class_subjects', {p_class: ctx.class});
   revalidatePath('/[locale]/grades', 'page');
-  if (error) gradesFlash(ctx, loi(friendlyError(error)));
+  if (error) gradesFlash(ctx, loi(friendlyError(error, tLoi)));
   gradesFlash(
     ctx,
     data && data > 0
@@ -270,6 +273,7 @@ export async function seedClassSubjects(formData: FormData) {
 // Cũng một lượt cho cả lớp, vì cùng lý do với cột điểm. Khoá dùng ở đây là (term_id, student_id)
 // — ràng buộc unique có sẵn trong 0064 — nên không cần mang theo id của phiếu.
 export async function saveClassReviews(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loiPhu');
   const ctx = readCtx(formData);
@@ -321,7 +325,7 @@ export async function saveClassReviews(formData: FormData) {
     .upsert(rows, {onConflict: 'term_id,student_id'})
     .select('student_id');
   revalidatePath('/[locale]/grades', 'page');
-  if (error) gradesFlash(ctx, loi(friendlyError(error)));
+  if (error) gradesFlash(ctx, loi(friendlyError(error, tLoi)));
   if ((data ?? []).length === 0)
     gradesFlash(ctx, t('gKhongLuuCN'));
   gradesFlash(ctx, t('gDaLuuNhanXet', {n: (data ?? []).length}));
@@ -332,6 +336,7 @@ export async function saveClassReviews(formData: FormData) {
 // thể, đó mới là nhịp làm việc thật. Sửa một lỗi nhỏ sau khi công bố thì KHÔNG cần gỡ — RLS vẫn
 // cho GVCN sửa phiếu đã công bố, và trigger audit_review_publish ghi lại việc sửa-sau-công-bố.
 export async function publishTerm(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loiPhu');
   const ctx = readCtx(formData);
@@ -367,7 +372,7 @@ export async function publishTerm(formData: FormData) {
   // Gia đình đọc bảng điểm ở CHÍNH route này (/grades đổi màn hình theo vai), nên một lần
   // revalidate là đủ cho cả màn hình cô lẫn màn hình phụ huynh.
   revalidatePath('/[locale]/grades', 'page');
-  if (error) gradesFlash(ctx, loi(friendlyError(error)));
+  if (error) gradesFlash(ctx, loi(friendlyError(error, tLoi)));
 
   const n = (data ?? []).length;
   gradesFlash(
@@ -388,6 +393,7 @@ export async function publishTerm(formData: FormData) {
 // dữ liệu của một đứa trẻ. Hiệu trưởng vẫn không chạm được một con điểm nào.
 // Không có màn này thì không ai tạo được đợt, và toàn bộ tính năng đứng im.
 export async function createTerm(formData: FormData) {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['principal', 'admin']);
   const t = await getTranslations('loiPhu');
   const ctx = readCtx(formData);
@@ -423,7 +429,7 @@ export async function createTerm(formData: FormData) {
     .maybeSingle();
 
   revalidatePath('/[locale]/grades', 'page');
-  if (error) gradesFlash(ctx, loi(friendlyError(error)));
+  if (error) gradesFlash(ctx, loi(friendlyError(error, tLoi)));
   // Nhảy thẳng vào đợt vừa tạo — vừa khai báo xong là mở được ngay, không phải đi tìm trong ô chọn.
   gradesFlash({...ctx, term: data?.id ?? ctx.term}, t('gDaTaoDot', {ten: name}));
 }
@@ -432,6 +438,7 @@ export async function createTerm(formData: FormData) {
 // is_locked là chốt an toàn của 0064: khoá rồi thì giáo viên hết sửa được điểm và nhận xét, để
 // điểm không bị đổi lặng lẽ SAU khi phiếu đã về tay phụ huynh.
 export async function setTermLock(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['principal', 'admin']);
   const t = await getTranslations('loiPhu');
   const ctx = readCtx(formData);
@@ -446,7 +453,7 @@ export async function setTermLock(formData: FormData) {
     .select('id');
 
   revalidatePath('/[locale]/grades', 'page');
-  if (error) gradesFlash(ctx, loi(friendlyError(error)));
+  if (error) gradesFlash(ctx, loi(friendlyError(error, tLoi)));
   if ((data ?? []).length === 0)
     gradesFlash(ctx, t('gKhongDoiDot'));
   gradesFlash(

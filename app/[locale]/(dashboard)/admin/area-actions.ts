@@ -29,6 +29,7 @@ function softFromHex(hex: string): string {
 
 // Cập nhật 1 lĩnh vực 4DX (nhãn VN/EN, màu, icon, đơn vị mặc định).
 export async function updateArea(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin']);
   const t = await getTranslations('loiAdmin');
   const area = String(formData.get('area') ?? '') as Area;
@@ -62,7 +63,7 @@ export async function updateArea(formData: FormData) {
   revalidatePath('/[locale]/admin', 'page');
   revalidatePath('/[locale]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  flash(error ? loi(friendlyError(error)) : t('lvDaCapNhat'));
+  flash(error ? loi(friendlyError(error, tLoi)) : t('lvDaCapNhat'));
 }
 
 // Khôi phục 1 lĩnh vực về mặc định = XOÁ dòng cấu hình; lib/areas.ts tự rơi về AREA_FALLBACK.
@@ -72,6 +73,7 @@ export async function updateArea(formData: FormData) {
 // vực là một migration đụng cả tám hàm ấy chứ không phải một dòng chèn từ màn quản trị — và một
 // nút "Xoá" thật sự ở đây sẽ để lại những WIG trỏ vào lĩnh vực không còn nhãn.
 export async function resetArea(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin']);
   const t = await getTranslations('loiAdmin');
   const area = String(formData.get('area') ?? '') as Area;
@@ -83,5 +85,5 @@ export async function resetArea(formData: FormData) {
   revalidatePath('/[locale]/admin', 'page');
   revalidatePath('/[locale]', 'page');
   revalidatePath('/[locale]/wig', 'page');
-  flash(error ? loi(friendlyError(error)) : t('lvDaKhoiPhuc'));
+  flash(error ? loi(friendlyError(error, tLoi)) : t('lvDaKhoiPhuc'));
 }

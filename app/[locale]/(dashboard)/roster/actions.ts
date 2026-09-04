@@ -21,6 +21,7 @@ export async function assignAttendanceLeader(
   classId: string,
   studentId: string | null,
 ): Promise<{ok: boolean; error?: string}> {
+  const tLoi = await getTranslations('common');
   // KHÔNG mở cho ban giám hiệu, khác với mọi việc khác trong file này (0094 mở cho họ ghi danh,
   // sửa thông tin, cho rời lớp). Trưởng điểm danh là một vai TRONG LỚP, do người dạy lớp ấy
   // chọn — và luật dưới CSDL cũng chỉ cho GVCN ghi vào cột này. Mở ở đây mà dưới vẫn chặn thì
@@ -49,7 +50,7 @@ export async function assignAttendanceLeader(
       .eq('student_id', studentId)
       .eq('is_active', true)
       .select('student_id');
-    if (error) return {ok: false, error: (friendlyError(error))};
+    if (error) return {ok: false, error: (friendlyError(error, tLoi))};
     if (!data || data.length === 0)
       return {ok: false, error: t('rKhongDatTruong')};
   }
@@ -134,6 +135,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Ghi danh học sinh (theo email) vào lớp — cũng dùng để CHUYỂN LỚP (tắt lớp cũ).
 // INLINE validation (useActionState): lỗi hiện cạnh field, giữ nguyên email, báo thành công ngay.
 export async function enrollStudent(_prev: EnrollState, formData: FormData): Promise<EnrollState> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['teacher', 'admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const classId = String(formData.get('class_id') ?? '');
@@ -142,7 +144,7 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
   // Giữ lại MỌI ô đã gõ để trả về khi có lỗi (không mất công điền lại 6 trường).
   const values = fields;
 
-  if (!classId) return {ok: false, error: (friendlyError(null)), values};
+  if (!classId) return {ok: false, error: (friendlyError(null, tLoi)), values};
   if (!email) return {ok: false, fieldError: 'email', error: t('rNhapEmail'), values};
   if (!EMAIL_RE.test(email))
     return {ok: false, fieldError: 'email', error: t('rEmailSai'), values};
@@ -154,7 +156,7 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
 
   const supabase = await createClient();
   const {data, error} = await supabase.rpc('enroll_student_by_email', {p_class: classId, p_email: email});
-  if (error) return {ok: false, error: (friendlyError(error)), values};
+  if (error) return {ok: false, error: (friendlyError(error, tLoi)), values};
 
   // Chưa có tài khoản → KHÔNG còn là ngõ cụt.
   //
@@ -167,7 +169,7 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
       p_class: classId,
       p_email: email,
     });
-    if (invErr) return {ok: false, error: (friendlyError(invErr)), values};
+    if (invErr) return {ok: false, error: (friendlyError(invErr, tLoi)), values};
     if (inv === 'invited') {
       // Lưu thông tin SAU khi có lời mời: RLS của student_details cho phép GVCN ghi khi email đó
       // đã được mời vào lớp mình — nên thứ tự này bắt buộc, đảo lại là bị chặn.
@@ -225,6 +227,7 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
 // vừa mời. Một hàng dữ liệu duy nhất, khoá theo email, nên quản trị viên mở lên là thấy ngay bản
 // vừa sửa; không có bản sao thứ hai để hai bên lệch nhau.
 export async function capNhatHocSinh(_prev: EnrollState, formData: FormData): Promise<EnrollState> {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const classId = String(formData.get('class_id') ?? '');
@@ -256,7 +259,7 @@ export async function capNhatHocSinh(_prev: EnrollState, formData: FormData): Pr
       {onConflict: 'email'},
     )
     .select('email');
-  if (error) return {ok: false, error: friendlyError(error), values};
+  if (error) return {ok: false, error: friendlyError(error, tLoi), values};
   // RLS chặn thì upsert trả 0 dòng mà error vẫn null — không kiểm là báo thành công giả.
   if (!data || data.length === 0)
     return {ok: false, error: t('rKhongSua'), values};
@@ -277,6 +280,7 @@ export async function capNhatHocSinh(_prev: EnrollState, formData: FormData): Pr
 // Thông tin đã điền (student_details) thì GIỮ LẠI, không xoá theo: nếu chỉ gõ sai lớp rồi mời
 // lại đúng lớp, giáo viên không phải điền lại 5 trường.
 export async function cancelStudentInvite(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const classId = String(formData.get('classId') ?? '');
@@ -292,7 +296,7 @@ export async function cancelStudentInvite(formData: FormData) {
     .ilike('email', email)
     .select('email');
   revalidatePath('/[locale]/roster', 'page');
-  if (error) rosterFlash(classId, loi(friendlyError(error)));
+  if (error) rosterFlash(classId, loi(friendlyError(error, tLoi)));
   rosterFlash(
     classId,
     (data ?? []).length > 0
@@ -303,6 +307,7 @@ export async function cancelStudentInvite(formData: FormData) {
 
 // Cho học sinh rời lớp (is_active=false) — không xoá dữ liệu.
 export async function removeStudent(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const classId = String(formData.get('classId') ?? '');
@@ -311,7 +316,7 @@ export async function removeStudent(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.rpc('unenroll_student', {p_class: classId, p_student: studentId});
   revalidatePath('/[locale]/roster', 'page');
-  rosterFlash(classId, error ? loi(friendlyError(error)) : t('rDaRoiLop'));
+  rosterFlash(classId, error ? loi(friendlyError(error, tLoi)) : t('rDaRoiLop'));
 }
 
 // ── DỜI HỌC SINH SANG LỚP KHÁC ────────────────────────────────────────────────────────────
@@ -321,6 +326,7 @@ export async function removeStudent(formData: FormData) {
 // kiểm ở tầng giao diện thì ai gọi thẳng API là đi vòng qua được.
 
 export async function requestTransfer(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const classId = String(formData.get('classId') ?? '');
@@ -336,7 +342,7 @@ export async function requestTransfer(formData: FormData) {
     p_note: note,
   });
   revalidatePath('/[locale]/roster', 'page');
-  if (error) rosterFlash(classId, loi(friendlyError(error)));
+  if (error) rosterFlash(classId, loi(friendlyError(error, tLoi)));
   rosterFlash(
     classId,
     data === 'moved'
@@ -348,6 +354,7 @@ export async function requestTransfer(formData: FormData) {
 }
 
 export async function decideTransfer(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const classId = String(formData.get('classId') ?? '');
@@ -364,7 +371,7 @@ export async function decideTransfer(formData: FormData) {
   rosterFlash(
     classId,
     error
-      ? loi(friendlyError(error))
+      ? loi(friendlyError(error, tLoi))
       : approve
         ? t('rDaDuyet')
         : t('rDaTuChoi'),
@@ -372,6 +379,7 @@ export async function decideTransfer(formData: FormData) {
 }
 
 export async function cancelTransfer(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin', 'principal']);
   const t = await getTranslations('loiPhu');
   const classId = String(formData.get('classId') ?? '');
@@ -380,5 +388,5 @@ export async function cancelTransfer(formData: FormData) {
   const supabase = await createClient();
   const {error} = await supabase.rpc('cancel_class_transfer', {p_request: requestId});
   revalidatePath('/[locale]/roster', 'page');
-  rosterFlash(classId, error ? loi(friendlyError(error)) : t('rDaRut'));
+  rosterFlash(classId, error ? loi(friendlyError(error, tLoi)) : t('rDaRut'));
 }

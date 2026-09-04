@@ -25,6 +25,7 @@ function toCidr(raw: string): string | null {
 
 // Thêm dải/IP trường thủ công.
 export async function addSchoolNetwork(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin']);
   const t = await getTranslations('loiAdmin');
   const label = String(formData.get('label') ?? '').trim();
@@ -41,11 +42,12 @@ export async function addSchoolNetwork(formData: FormData) {
   if (!error) await supabase.rpc('log_audit', {p_action: 'add_school_network', p_detail: {label, cidr}});
   revalidatePath('/[locale]/admin', 'page');
   quen('congdanh:');   // đệm cửa sổ/IP/mạng ở màn em (StudentScoreboard) — sửa xong thấy ngay
-  flash(error ? loi(friendlyError(error)) : t('netDaThem', {label}));
+  flash(error ? loi(friendlyError(error, tLoi)) : t('netDaThem', {label}));
 }
 
 // Thêm nhanh IP HIỆN TẠI của admin (đứng ở trường bấm 1 nút) — server đọc IP thật từ header.
 export async function addCurrentSchoolIp(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin']);
   const t = await getTranslations('loiAdmin');
   const label = String(formData.get('label') ?? '').trim() || t('netIpHienTai');
@@ -60,10 +62,11 @@ export async function addCurrentSchoolIp(formData: FormData) {
   if (!error) await supabase.rpc('log_audit', {p_action: 'add_current_ip', p_detail: {cidr}});
   revalidatePath('/[locale]/admin', 'page');
   quen('congdanh:');   // đệm cửa sổ/IP/mạng ở màn em (StudentScoreboard) — sửa xong thấy ngay
-  flash(error ? loi(friendlyError(error)) : t('netDaThemIp', {ip}));
+  flash(error ? loi(friendlyError(error, tLoi)) : t('netDaThemIp', {ip}));
 }
 
 export async function setSchoolNetworkActive(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin']);
   const t = await getTranslations('loiAdmin');
   const id = String(formData.get('id') ?? '');
@@ -73,10 +76,11 @@ export async function setSchoolNetworkActive(formData: FormData) {
   const {error} = await supabase.from('school_networks').update({is_active: active}).eq('id', id);
   revalidatePath('/[locale]/admin', 'page');
   quen('congdanh:');   // đệm cửa sổ/IP/mạng ở màn em (StudentScoreboard) — sửa xong thấy ngay
-  flash(error ? loi(friendlyError(error)) : active ? t('netDaBat') : t('netDaTat'));
+  flash(error ? loi(friendlyError(error, tLoi)) : active ? t('netDaBat') : t('netDaTat'));
 }
 
 export async function deleteSchoolNetwork(formData: FormData) {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin']);
   const t = await getTranslations('loiAdmin');
   const id = String(formData.get('id') ?? '');
@@ -85,5 +89,5 @@ export async function deleteSchoolNetwork(formData: FormData) {
   const {error} = await supabase.from('school_networks').delete().eq('id', id);
   revalidatePath('/[locale]/admin', 'page');
   quen('congdanh:');   // đệm cửa sổ/IP/mạng ở màn em (StudentScoreboard) — sửa xong thấy ngay
-  flash(error ? loi(friendlyError(error)) : t('netDaXoa'));
+  flash(error ? loi(friendlyError(error, tLoi)) : t('netDaXoa'));
 }

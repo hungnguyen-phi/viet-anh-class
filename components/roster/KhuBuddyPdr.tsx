@@ -78,23 +78,23 @@ export async function KhuBuddyPdr({
 
   return (
     <section className="glass rounded-[20px] p-[18px]">
-      <h2 className="mb-1 inline-flex items-center gap-1.5 font-display text-[16px] font-bold text-navy">
+      <h2 className="mb-1 inline-flex items-center gap-1.5 font-display text-doc font-bold text-navy">
         <Users size={16} strokeWidth={2.2} className="text-gold-deep" />
         {t('title')}
       </h2>
 
       {/* Các nhóm hiện có + lịch tuần của từng nhóm */}
       <div className="mt-2 flex flex-col gap-2">
-        {nhom.size === 0 && <p className="text-[12.5px] italic text-grey-mid">{t('noPairs')}</p>}
+        {nhom.size === 0 && <p className="text-than italic text-grey-mid">{t('noPairs')}</p>}
         {[...nhom.values()].map((g) => {
           // Lịch của nhóm nằm trên MỌI cặp (luuLichBuddy ghi đủ); đọc thì cặp nào có là đủ.
           const l = g.pairIds.map((id) => lichCua.get(id)).find(Boolean);
           const tenNhom = g.emIds.map((id) => ten.get(id) ?? '—').join(' ↔ ');
           return (
             <div key={g.pairIds[0]} className="flex flex-wrap items-center gap-2 rounded-[12px] bg-navy/[0.035] p-2.5">
-              <span className="min-w-0 text-[13px] font-extrabold text-navy">{tenNhom}</span>
+              <span className="min-w-0 text-than font-extrabold text-navy">{tenNhom}</span>
               {g.emIds.length === 3 && (
-                <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-extrabold text-grey-mid">
+                <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-nhan font-extrabold text-grey-mid">
                   {t('groupOf3')}
                 </span>
               )}
@@ -174,7 +174,7 @@ export async function KhuBuddyPdr({
             </option>
           ))}
         </select>
-        <span aria-hidden className="text-[13px] font-extrabold text-grey-mid">↔</span>
+        <span aria-hidden className="text-than font-extrabold text-grey-mid">↔</span>
         <select name="em_b" defaultValue="" required className={`${oNho} min-w-[150px] cursor-pointer`} aria-label={t('studentB')}>
           <option value="" disabled>
             {t('studentB')}
@@ -185,7 +185,7 @@ export async function KhuBuddyPdr({
             </option>
           ))}
         </select>
-        <span aria-hidden className="text-[13px] font-extrabold text-grey-mid">↔</span>
+        <span aria-hidden className="text-than font-extrabold text-grey-mid">↔</span>
         <select name="em_c" defaultValue="" className={`${oNho} min-w-[150px] cursor-pointer`} aria-label={t('studentC')}>
           <option value="">{t('studentC')}</option>
           {hocSinh.map((h) => (
@@ -223,14 +223,14 @@ export async function KhuBuddyPdr({
 
       {/* Lịch PDR 1-1 với giáo viên — mỗi em một ngày cố định hằng tháng */}
       <div className="mt-4 border-t border-navy/[0.08] pt-3">
-        <h3 className="mb-2 inline-flex items-center gap-1.5 text-[13px] font-extrabold text-navy">
+        <h3 className="mb-2 inline-flex items-center gap-1.5 text-than font-extrabold text-navy">
           <CalendarClock size={14} strokeWidth={2.2} className="text-gold-deep" />
           {t('coachTitle')}
         </h3>
         {coachCua.size > 0 && (
           <p className="mb-2 flex flex-wrap gap-1.5">
             {[...coachCua.values()].map((l) => (
-              <span key={l.id} className="rounded-full bg-navy/[0.06] px-2.5 py-1 text-[11.5px] font-bold text-navy">
+              <span key={l.id} className="rounded-full bg-navy/[0.06] px-2.5 py-1 text-chu-thich font-bold text-navy">
                 {ten.get(l.student_id ?? '') ?? '—'} · {t('dayOfMonth', {d: l.monthly_day ?? 0})}
               </span>
             ))}

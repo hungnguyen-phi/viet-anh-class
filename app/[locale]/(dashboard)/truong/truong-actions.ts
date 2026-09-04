@@ -18,6 +18,7 @@ const lamMoi = () => {
 };
 
 export async function dongMucTieuTruong(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin', 'principal']);
   const t = await getTranslations('loi');
   const id = String(formData.get('muc_tieu_id') ?? '').trim();
@@ -26,12 +27,13 @@ export async function dongMucTieuTruong(_prev: S, formData: FormData): Promise<S
   const supabase = await createClient();
   const {data, error} = await supabase.from('muc_tieu').update({trang_thai: 'dong', ly_do_dong}).eq('id', id).eq('cap', 'truong').select('id');
   lamMoi();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('khongDongDuoc')};
   return {ok: true, message: t('daDongMucTieuTruong')};
 }
 
 export async function xoaMucTieuTruong(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   await requireRole(['admin', 'principal']);
   const t = await getTranslations('loi');
   const id = String(formData.get('muc_tieu_id') ?? '').trim();
@@ -39,13 +41,14 @@ export async function xoaMucTieuTruong(_prev: S, formData: FormData): Promise<S>
   const supabase = await createClient();
   const {data, error} = await supabase.from('muc_tieu').delete().eq('id', id).eq('cap', 'truong').select('id');
   lamMoi();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('khongXoaMucTieuTruong')};
   return {ok: true, message: t('daXoaMucTieuTruong')};
 }
 
 // GHI SỐ cho mục tiêu trường — trường đo theo cách riêng, ban giám hiệu điền lại con số.
 export async function ghiSoMucTieuTruong(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['admin', 'principal']);
   const t = await getTranslations('loi');
   const muc_tieu_id = String(formData.get('muc_tieu_id') ?? '').trim();
@@ -60,7 +63,7 @@ export async function ghiSoMucTieuTruong(_prev: S, formData: FormData): Promise<
     .insert({muc_tieu_id, ngay: todayInVN(), gia_tri, nguon: 'tay', nguoi_ghi: me.id, student_id: null})
     .select('id');
   lamMoi();
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('khongGhiDuocQuyen')};
   return {ok: true, message: t('daGhiSoTruong')};
 }

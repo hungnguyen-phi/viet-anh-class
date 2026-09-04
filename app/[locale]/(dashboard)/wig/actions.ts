@@ -47,6 +47,7 @@ function tuanSau(): string {
 // XOÁ VIỆC CỦA LỚP. RLS chỉ cho xoá việc chưa từng duyệt và chưa có lượt — việc đã duyệt thì
 // "Kết thúc từ tuần sau" chứ không xoá.
 export async function xoaViecLop(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const id = str(formData, 'thuoc_id') || str(formData, 'lead_id');
@@ -54,7 +55,7 @@ export async function xoaViecLop(_prev: S, formData: FormData): Promise<S> {
   const supabase = await createClient();
   const {data, error} = await supabase.from('thuoc').delete().eq('id', id).select('id');
   revalidatePath('/[locale]/wig', 'page');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if ((data ?? []).length === 0) return {ok: false, error: t('khongXoaViecLop')};
   return {ok: true, message: t('daXoaViec')};
 }
@@ -62,6 +63,7 @@ export async function xoaViecLop(_prev: S, formData: FormData): Promise<S> {
 // SỬA CHỈ TIÊU của một việc lớp (từ tuần sau) — đi qua thuoc_lich_su, KHÔNG sửa thẳng thuoc.
 // Trigger thls_truoc_them: GVCN duyệt được việc nên dòng vào 'hieu_luc' ngay, áp dụng từ tuần sau.
 export async function suaChiTieu(_prev: S, formData: FormData): Promise<S> {
+  const tLoi = await getTranslations('common');
   const me = await requireRole(['teacher', 'admin']);
   const t = await getTranslations('loi');
   const thuoc_id = str(formData, 'thuoc_id');
@@ -85,7 +87,7 @@ export async function suaChiTieu(_prev: S, formData: FormData): Promise<S> {
       nguoi_doi: me.id,
     })
     .select('trang_thai');
-  if (error) return {ok: false, error: friendlyError(error)};
+  if (error) return {ok: false, error: friendlyError(error, tLoi)};
   if (!data || data.length === 0) return {ok: false, error: t('khongLuuQuyenLop')};
 
   revalidatePath('/[locale]/wig', 'page');
