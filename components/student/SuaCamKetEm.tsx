@@ -53,11 +53,11 @@ export function SuaCamKetEm({
                   <Field label={t('soHuaLabel')} htmlFor="sce-so" error={state.fieldError === 'so_hua' ? state.error : null}>
                     <span className="inline-flex items-center gap-2">
                       <input id="sce-so" type="number" name="so_hua" value={so} onChange={(e) => setSo(e.target.value)} step="any" min="0" className={`${ctlWithBorder(state.fieldError === 'so_hua')} max-w-[140px]`} />
-                      <span className="text-[13px] font-bold text-grey-mid">{tenDonVi}</span>
+                      <span className="text-than font-bold text-grey-mid">{tenDonVi}</span>
                     </span>
                   </Field>
                 ) : null}
-                <NutGui className="mt-1 self-start rounded-[12px] bg-navy px-4 text-[13px] font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
+                <NutGui className="mt-1 self-start rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
                   {t('luuSua')}
                 </NutGui>
               </>

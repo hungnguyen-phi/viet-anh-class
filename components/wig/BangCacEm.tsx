@@ -54,34 +54,34 @@ export async function BangCacEm({
   const soCk = (e: (typeof em)[number]) => (e.ck_tong > 0 ? `${e.ck_thang}/${e.ck_tong}` : null);
   const chipHop = (daKy: boolean) =>
     daKy ? (
-      <span className="inline-flex min-h-[24px] items-center gap-1 rounded-full bg-success/[0.12] px-2 text-[10.5px] font-extrabold text-success-dark">
-        <Check size={11} strokeWidth={3} />
+      <span className="inline-flex min-h-[24px] items-center gap-1 rounded-full bg-success/[0.12] px-2 text-chu-thich font-extrabold text-success-dark">
+        <Check size={12} strokeWidth={2.5} />
         {t('hopDaKy')}
       </span>
     ) : (
-      <span className="inline-flex min-h-[24px] items-center rounded-full bg-navy/[0.06] px-2 text-[10.5px] font-extrabold text-grey-mid">
+      <span className="inline-flex min-h-[24px] items-center rounded-full bg-navy/[0.06] px-2 text-chu-thich font-extrabold text-grey-mid">
         {t('hopChua')}
       </span>
     );
 
-  const th = 'px-3 py-2 text-left text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid';
-  const num = 'w-[110px] px-3 py-2.5 text-center text-[13px] font-extrabold tabular-nums text-navy';
+  const th = 'px-3 py-2 text-left text-nhan font-extrabold uppercase tracking-wide text-grey-mid';
+  const num = 'w-[110px] px-3 py-2.5 text-center text-than font-extrabold tabular-nums text-navy';
 
   return (
     <section className="glass rounded-[20px] p-[18px]">
-      <h2 className="mb-3 font-display text-[15px] font-bold text-navy">{t('khuCacEm')}</h2>
+      <h2 className="mb-3 font-display text-doc font-bold text-navy">{t('khuCacEm')}</h2>
       {em.length === 0 ? (
-        <p className="text-[12.5px] font-semibold text-grey-mid">{t('cacEmTrong')}</p>
+        <p className="text-than font-semibold text-grey-mid">{t('cacEmTrong')}</p>
       ) : (
         <>
           {/* < 640px: mỗi em một thẻ, bốn chip có nhãn — không cột nào bị cắt. */}
           <ul className="flex flex-col gap-2 sm:hidden">
             {em.map((e) => (
-              <li key={e.student_id} className="rounded-[14px] border-[1.5px] border-navy/10 bg-white/70 p-3">
+              <li key={e.student_id} className="rounded-[16px] border-[1.5px] border-navy/10 bg-white/70 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <Link
                     href={emHref(e.student_id)}
-                    className="inline-flex min-h-[44px] min-w-0 flex-1 items-center text-[14px] font-extrabold text-navy hover:underline"
+                    className="inline-flex min-h-[44px] min-w-0 flex-1 items-center text-noi-dung font-extrabold text-navy hover:underline"
                   >
                     <span className="truncate">{e.ten}</span>
                   </Link>
@@ -93,9 +93,9 @@ export async function BangCacEm({
                     [t('cotViec'), soThuoc(e)],
                     [t('cotCamKet'), soCk(e)],
                   ].map(([nhan, so]) => (
-                    <div key={nhan as string} className="rounded-[10px] bg-navy/[0.04] px-2 py-1.5 text-center">
-                      <dt className="text-[9.5px] font-extrabold uppercase tracking-wide text-grey-mid">{nhan}</dt>
-                      <dd className="text-[14px] font-extrabold tabular-nums text-navy">{so ?? trong}</dd>
+                    <div key={nhan as string} className="rounded-[12px] bg-navy/[0.04] px-2 py-1.5 text-center">
+                      <dt className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{nhan}</dt>
+                      <dd className="text-noi-dung font-extrabold tabular-nums text-navy">{so ?? trong}</dd>
                     </div>
                   ))}
                 </dl>
@@ -104,7 +104,7 @@ export async function BangCacEm({
           </ul>
 
           {/* ≥ 640px: bảng như cũ. */}
-          <div className="hidden overflow-x-auto rounded-[14px] border-[1.5px] border-navy/10 sm:block">
+          <div className="hidden overflow-x-auto rounded-[16px] border-[1.5px] border-navy/10 sm:block">
             <table className="w-full min-w-[640px] border-collapse">
               <thead>
                 <tr className="bg-navy/[0.03]">
@@ -121,7 +121,7 @@ export async function BangCacEm({
                     <td className="px-3 py-2.5">
                       <Link
                         href={emHref(e.student_id)}
-                        className="inline-flex min-h-[24px] items-center text-[13px] font-bold text-navy hover:underline"
+                        className="inline-flex min-h-[24px] items-center text-than font-bold text-navy hover:underline"
                       >
                         {e.ten}
                       </Link>

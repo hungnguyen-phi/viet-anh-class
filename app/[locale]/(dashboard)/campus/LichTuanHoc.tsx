@@ -71,13 +71,13 @@ export function LichTuanHoc({nam, weeks}: {nam: string; weeks: Tuan[]}) {
 
   return (
     <section className="glass rounded-[20px] p-[18px]">
-      <div className="mb-1 font-display text-[15px] font-bold text-navy">{t('khuLich', {nam})}</div>
+      <div className="mb-1 font-display text-doc font-bold text-navy">{t('khuLich', {nam})}</div>
       <p className="mb-3 text-xs leading-relaxed text-grey-mid">{t('lichHint')}</p>
 
       <div className="flex flex-col gap-2.5">
         {theoThang.map(([thang, ds]) => (
           <div key={thang} className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-            <span className="w-[68px] shrink-0 text-[11.5px] font-extrabold uppercase tracking-wide text-grey-mid">
+            <span className="w-[68px] shrink-0 text-chu-thich font-extrabold uppercase tracking-wide text-grey-mid">
               {t('thang', {m: thang})}
             </span>
             <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
@@ -92,10 +92,10 @@ export function LichTuanHoc({nam, weeks}: {nam: string; weeks: Tuan[]}) {
                     disabled={pending}
                     aria-label={`${w.monday} — ${nhan}`}
                     title={w.monday}
-                    className={`grid h-9 w-9 place-items-center rounded-[9px] border-[1.5px] text-[10px] font-extrabold tabular-nums transition-all disabled:cursor-wait disabled:opacity-60 ${mauCls(loai)} ${w.quaKhu ? 'opacity-80' : ''}`}
+                    className={`grid h-9 w-9 place-items-center rounded-[8px] border-[1.5px] text-chu-thich font-extrabold tabular-nums transition-all disabled:cursor-wait disabled:opacity-60 ${mauCls(loai)} ${w.quaKhu ? 'opacity-80' : ''}`}
                   >
                     {Number(w.monday.slice(8, 10))}
-                    <span className="text-[7.5px] font-bold uppercase leading-none">{nhan}</span>
+                    <span className="text-nhan font-bold uppercase leading-none">{nhan}</span>
                   </button>
                 );
               })}
@@ -105,12 +105,12 @@ export function LichTuanHoc({nam, weeks}: {nam: string; weeks: Tuan[]}) {
       </div>
       {hoiTuan && (
         <Popup title={tc('xacNhan')} onClose={() => setHoiTuan(null)} width="max-w-[400px]">
-          <p className="text-[14px] font-semibold leading-relaxed text-navy">{t('lichQuaKhu')}</p>
+          <p className="text-noi-dung font-semibold leading-relaxed text-navy">{t('lichQuaKhu')}</p>
           <div className="mt-4 flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setHoiTuan(null)}
-              className="min-h-11 cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-[13px] font-extrabold text-navy transition-colors hover:border-navy"
+              className="min-h-11 cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-than font-extrabold text-navy transition-colors hover:border-navy"
             >
               {tc('thoi')}
             </button>
@@ -122,7 +122,7 @@ export function LichTuanHoc({nam, weeks}: {nam: string; weeks: Tuan[]}) {
                 setHoiTuan(null);
                 bam(w, true);
               }}
-              className="min-h-11 cursor-pointer rounded-[12px] bg-navy px-4 text-[13px] font-extrabold text-white transition-colors hover:bg-navy/90"
+              className="min-h-11 cursor-pointer rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-colors hover:bg-navy/90"
             >
               {tc('dongY')}
             </button>

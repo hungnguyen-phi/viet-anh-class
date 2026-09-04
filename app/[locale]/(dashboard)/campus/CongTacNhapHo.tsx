@@ -22,18 +22,18 @@ export function CongTacNhapHo({
 
   return (
     <section className="glass rounded-[20px] p-[18px]">
-      <div className="mb-1 font-display text-[15px] font-bold text-navy">{t('khuNhapHo')}</div>
+      <div className="mb-1 font-display text-doc font-bold text-navy">{t('khuNhapHo')}</div>
       <p className="mb-3 text-xs leading-relaxed text-grey-mid">{t('nhapHoHint')}</p>
 
       {classes.length === 0 ? (
-        <p className="text-[12.5px] font-semibold italic text-grey-mid">{t('lopChamTrong')}</p>
+        <p className="text-than font-semibold italic text-grey-mid">{t('lopChamTrong')}</p>
       ) : (
         <div className="flex flex-col divide-y divide-navy/[0.08]">
           {classes.map((c) => (
             <div key={c.id} className="flex items-center gap-2 py-2">
-              <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-navy">{c.name}</span>
+              <span className="min-w-0 flex-1 truncate text-than font-bold text-navy">{c.name}</span>
               <span
-                className={`shrink-0 text-[11px] font-extrabold ${
+                className={`shrink-0 text-chu-thich font-extrabold ${
                   c.nhap_ho ? 'text-success-dark' : 'text-grey-mid'
                 }`}
               >
@@ -45,13 +45,13 @@ export function CongTacNhapHo({
                 <SubmitButton
                   label={`${t('nhapHoDoi')} — ${c.name}`}
                   wrapClass="contents"
-                  className={`inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-full border-[1.5px] px-2.5 py-0.5 text-[10.5px] font-extrabold transition-all ${
+                  className={`inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-full border-[1.5px] px-2.5 py-0.5 text-chu-thich font-extrabold transition-all ${
                     c.nhap_ho
                       ? 'border-success/40 bg-success/[0.12] text-success-dark hover:bg-success/20'
                       : 'border-navy/20 bg-white text-navy hover:border-navy'
                   }`}
                 >
-                  {c.nhap_ho && <Check size={11} strokeWidth={3} />}
+                  {c.nhap_ho && <Check size={12} strokeWidth={2.5} />}
                   {t('nhapHoDoi')}
                 </SubmitButton>
               </form>

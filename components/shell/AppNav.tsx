@@ -241,7 +241,7 @@ export function AppNav({
     >
       <NapTruoc duong={duongNapTruoc} />
       {/* Bar full-width navy. Desktop (lg+): logo | tabs | cụm phải. Mobile (<lg): logo | tên trang | hamburger. */}
-      <div className="flex w-full items-center gap-3 rounded-[24px] bg-[linear-gradient(180deg,#2f3170,#26275d)] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_10px_28px_-6px_rgba(38,39,93,0.5)] ring-1 ring-white/10">
+      <div className="flex w-full items-center gap-3 rounded-[20px] bg-[linear-gradient(180deg,var(--color-navy-700),var(--color-navy))] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_10px_28px_-6px_rgba(38,39,93,0.5)] ring-1 ring-white/10">
         {/* Logo + tên */}
         <Link href={NHA_CUA[role] ?? '/'} className="flex shrink-0 items-center gap-2.5" onClick={() => setOpen(false)}>
           {/* Dùng bản 128px (2,8 KB), KHÔNG dùng logo-viet-anh.jpg (900×900, 72 KB).
@@ -257,7 +257,7 @@ export function AppNav({
             height={32}
             className="cham-44 h-8 w-8 shrink-0 rounded-full border-[1.5px] border-white/90 bg-white object-cover shadow-[0_2px_8px_rgba(38,39,93,0.15)]"
           />
-          <span className="hidden whitespace-nowrap font-display text-[16px] font-bold text-white sm:inline">
+          <span className="hidden whitespace-nowrap font-display text-doc font-bold text-white sm:inline">
             Việt Anh Class
           </span>
         </Link>
@@ -273,7 +273,7 @@ export function AppNav({
                 onMouseEnter={napKhiCham(href)}
                 onTouchStart={napKhiCham(href)}
                 aria-current={active ? 'page' : undefined}
-                className={`inline-flex h-11 shrink-0 items-center gap-[7px] whitespace-nowrap rounded-xl px-3.5 text-[13px] font-extrabold transition-all ${
+                className={`inline-flex h-11 shrink-0 items-center gap-[7px] whitespace-nowrap rounded-[12px] px-3.5 text-than font-extrabold transition-all ${
                   active
                     ? 'bg-white text-navy shadow-[0_4px_12px_-2px_rgba(0,0,0,0.28)]'
                     : 'text-white/75 hover:bg-white/10 hover:text-white'
@@ -295,14 +295,14 @@ export function AppNav({
         <div className="hidden shrink-0 items-center gap-1.5 lg:flex">
           {/* Người dùng */}
           <span className="inline-flex items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 ring-1 ring-white/15">
-            <span className="cham-44 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-linear-to-b from-gold-soft to-gold font-display text-[11px] font-bold text-navy">
+            <span className="cham-44 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-linear-to-b from-gold-soft to-gold font-display text-chu-thich font-bold text-navy">
               {initialsOf(displayName)}
             </span>
             <span className="block min-w-0">
-              <span className="block max-w-[140px] truncate text-[12.5px] font-extrabold leading-tight text-white">
+              <span className="block max-w-[140px] truncate text-than font-extrabold leading-tight text-white">
                 {displayName}
               </span>
-              <span className="block text-[9.5px] font-extrabold uppercase tracking-wide text-gold-soft">
+              <span className="block text-nhan font-extrabold uppercase tracking-wide text-gold-soft">
                 {tr(role)}
               </span>
             </span>
@@ -326,7 +326,7 @@ export function AppNav({
         {/* Mobile (<lg): tên trang hiện tại + chuông + hamburger.
             Chuông phải nằm ngoài drawer vì "Thông báo" không còn là tab trong danh sách trang. */}
         <div className="flex flex-1 items-center gap-2 lg:hidden">
-          <span className="min-w-0 flex-1 truncate font-display text-[15px] font-bold text-white sm:opacity-0">
+          <span className="min-w-0 flex-1 truncate font-display text-doc font-bold text-white sm:opacity-0">
             {activeItem ? t(activeItem.key) : ''}
           </span>
           {CO_LIEN_LAC.has(role) && (
@@ -353,7 +353,7 @@ export function AppNav({
             aria-expanded={open}
             className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white"
           >
-            {open ? <X size={20} strokeWidth={2.2} /> : <Menu size={20} strokeWidth={2.2} />}
+            {open ? <X size={20} strokeWidth={2} /> : <Menu size={20} strokeWidth={2} />}
           </button>
         </div>
       </div>
@@ -364,14 +364,14 @@ export function AppNav({
           <div className="glass-strong animate-drawer rounded-[20px] p-2.5">
             {/* Người dùng + tuần */}
             <div className="flex items-center gap-3 rounded-2xl px-2.5 py-2">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-linear-to-b from-gold-soft to-gold font-display text-[13px] font-bold text-navy">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-linear-to-b from-gold-soft to-gold font-display text-than font-bold text-navy">
                 {initialsOf(displayName)}
               </span>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[14px] font-extrabold leading-tight text-navy">
+                <div className="truncate text-noi-dung font-extrabold leading-tight text-navy">
                   {displayName}
                 </div>
-                <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-gold-text">
+                <div className="text-nhan font-extrabold uppercase tracking-wide text-gold-text">
                   {tr(role)}
                 </div>
               </div>
@@ -389,13 +389,13 @@ export function AppNav({
                     onClick={() => setOpen(false)}
                     aria-current={active ? 'page' : undefined}
                     style={{'--i': i} as CSSProperties}
-                    className={`animate-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] font-extrabold transition-colors ${
+                    className={`animate-item flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-noi-dung font-extrabold transition-colors ${
                       active
                         ? 'bg-white/70 text-navy shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_12px_rgba(38,39,93,0.10)]'
                         : 'text-navy/70 hover:bg-white/50 hover:text-navy'
                     }`}
                   >
-                    <NavIcon Icon={Icon} size={18} />
+                    <NavIcon Icon={Icon} size={20} />
                     {t(key)}
                   </Link>
                 );
@@ -407,14 +407,14 @@ export function AppNav({
                 gãy hai dòng vì flex-wrap chia không đều (audit 04/09/2026). */}
             <div className="mt-2 grid grid-cols-3 gap-1 border-t border-navy/[0.08] pt-2">
               <MoHuongDan
-                className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-1 text-[12.5px] font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy"
+                className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] px-1 text-than font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy"
                 onDone={() => setOpen(false)}
               />
-              <LocaleToggle className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-1 text-[12.5px] font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy disabled:opacity-50" />
+              <LocaleToggle className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] px-1 text-than font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy disabled:opacity-50" />
               <form action={signOut} className="contents">
                 <button
                   type="submit"
-                  className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-1 text-[12.5px] font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy"
+                  className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] px-1 text-than font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy"
                 >
                   <LogOut size={16} strokeWidth={2} />
                   {tc('logout')}
@@ -461,9 +461,9 @@ function BellLink({
         active ? 'bg-white text-navy' : 'text-white/70 hover:bg-white/10 hover:text-white'
       }`}
     >
-      <Icon size={17} strokeWidth={2} />
+      <Icon size={16} strokeWidth={2} />
       {count > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 grid h-[17px] min-w-[17px] place-items-center rounded-full bg-gold px-1 font-display text-[10px] font-bold text-navy ring-2 ring-navy">
+        <span className="absolute -right-0.5 -top-0.5 grid h-[17px] min-w-[17px] place-items-center rounded-full bg-gold px-1 font-display text-chu-thich font-bold text-navy ring-2 ring-navy">
           {count > 99 ? '99+' : count}
         </span>
       )}
@@ -495,7 +495,7 @@ function SettingsMenu() {
   }, [open]);
 
   const item =
-    'flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-left text-[13px] font-extrabold text-navy/75 transition-colors hover:bg-navy/[0.06] hover:text-navy';
+    'flex w-full cursor-pointer items-center gap-2 rounded-[12px] px-3 py-2 text-left text-than font-extrabold text-navy/75 transition-colors hover:bg-navy/[0.06] hover:text-navy';
 
   return (
     <div ref={boxRef} className="relative shrink-0">
@@ -510,7 +510,7 @@ function SettingsMenu() {
           open ? 'bg-white text-navy' : 'text-white/70 hover:bg-white/10 hover:text-white'
         }`}
       >
-        <Settings size={17} strokeWidth={2} />
+        <Settings size={16} strokeWidth={2} />
       </button>
       {open && (
         <div
@@ -573,7 +573,7 @@ function LocaleToggle({className, withLabel}: {className?: string; withLabel?: b
       onClick={() => startTransition(() => router.replace(pathname, {locale: other}))}
       className={
         className ??
-        'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full px-3 text-[12px] font-extrabold text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50'
+        'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full px-3 text-chu-thich font-extrabold text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50'
       }
     >
       <Languages size={16} strokeWidth={2} />

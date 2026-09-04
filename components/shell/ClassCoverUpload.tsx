@@ -53,10 +53,10 @@ export function ClassCoverUpload({classId}: {classId: string}) {
   }
 
   return (
-    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-navy/[0.02] px-3 py-1.5 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy hover:bg-white focus-within:border-navy focus-within:ring-1 focus-within:ring-navy/20">
+    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-[12px] border-[1.5px] border-navy/20 bg-navy/[0.02] px-3 py-1.5 text-than font-extrabold text-navy transition-all hover:border-navy hover:bg-white focus-within:border-navy focus-within:ring-1 focus-within:ring-navy/20">
       <input type="file"
                 aria-label={t('coverLabel')} accept="image/*" className="hidden" onChange={onChange} disabled={busy} />
-      {busy ? <Loader2 size={14} className="animate-spin" /> : <ImageUp size={14} strokeWidth={2.2} />}
+      {busy ? <Loader2 size={14} className="animate-spin" /> : <ImageUp size={14} strokeWidth={2} />}
       {busy ? t('coverUploading') : t('coverUpload')}
       {err && <span className="text-status-bad">· {err}</span>}
     </label>

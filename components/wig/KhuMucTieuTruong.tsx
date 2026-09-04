@@ -81,24 +81,24 @@ export async function KhuMucTieuTruong({
   }
 
   const dinhSo = (n: number) => (Math.round(n * 10) / 10).toString();
-  const nutPhu = 'rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy focus-visible:ring-2 focus-visible:ring-gold';
+  const nutPhu = 'rounded-[12px] border-[1.5px] border-navy/20 bg-white px-3 text-than font-extrabold text-navy transition-all hover:border-navy focus-visible:ring-2 focus-visible:ring-gold';
 
   return (
     <section className="flex flex-col gap-3 rounded-[16px] bg-navy/[0.03] p-3.5">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="font-display text-[14px] font-bold text-navy">{t('khu')}</h3>
+        <h3 className="font-display text-noi-dung font-bold text-navy">{t('khu')}</h3>
         {laQuanTri && (
           <div className="ml-auto">
             <NutTaoMucTieuTruong campusId={campusId} nhanTheoArea={nhanTheoArea} donViList={donViList} />
           </div>
         )}
       </div>
-      <p className="text-[11.5px] font-semibold text-grey-mid">{t('giaiThich')}</p>
+      <p className="text-chu-thich font-semibold text-grey-mid">{t('giaiThich')}</p>
 
       {mucTieu.length === 0 ? (
         <div className="flex flex-col items-center gap-2.5 rounded-[16px] border-[1.5px] border-dashed border-navy/25 px-5 py-6 text-center">
-          <Lock size={18} strokeWidth={2.5} className="text-grey-mid" />
-          <p className="max-w-[440px] text-[12.5px] font-semibold leading-relaxed text-grey-mid">
+          <Lock size={20} strokeWidth={2.5} className="text-grey-mid" />
+          <p className="max-w-[440px] text-than font-semibold leading-relaxed text-grey-mid">
             {laQuanTri ? t('trong') : t('trongGvcn')}
           </p>
         </div>
@@ -113,29 +113,29 @@ export async function KhuMucTieuTruong({
                 borderColor: `color-mix(in srgb, ${meta.hex} 30%, white)`,
                 background: `color-mix(in srgb, ${meta.hex} 6%, white)`,
               }}
-              className="flex flex-col gap-2 rounded-[14px] border-[1.5px] p-3.5"
+              className="flex flex-col gap-2 rounded-[16px] border-[1.5px] p-3.5"
             >
               <div className="flex flex-wrap items-start gap-3.5">
                 {m.pct != null ? (
                   <DonutRing pct={Number(m.pct)} color={meta.hex} size={54} />
                 ) : (
-                  <span className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full bg-navy/[0.05] text-[11px] font-extrabold text-grey-mid">
+                  <span className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full bg-navy/[0.05] text-chu-thich font-extrabold text-grey-mid">
                     —
                   </span>
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span
-                      className="inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-extrabold"
+                      className="inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-chu-thich font-extrabold"
                       style={{background: meta.soft, color: meta.hex}}
                     >
                       {areaLabel(meta, locale)}
                     </span>
-                    <span className="min-w-0 flex-1 font-display text-[15px] font-bold text-navy">{m.ten ?? ''}</span>
+                    <span className="min-w-0 flex-1 font-display text-doc font-bold text-navy">{m.ten ?? ''}</span>
                   </div>
-                  <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[12px] font-semibold text-grey-mid">
+                  <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-chu-thich font-semibold text-grey-mid">
                     {m.y_so != null && (
-                      <span className="text-[13.5px] font-extrabold tabular-nums text-navy">
+                      <span className="text-noi-dung font-extrabold tabular-nums text-navy">
                         {m.so != null ? dinhSo(Number(m.so)) : '—'}
                         <span className="font-bold text-grey-mid">
                           {' / '}
@@ -157,7 +157,7 @@ export async function KhuMucTieuTruong({
                       <input type="hidden" name="muc_tieu_id" value={m.id} />
                       <NutGui
                         label={t('xoa')}
-                        className="cham-44 relative grid h-9 w-9 place-items-center rounded-[10px] text-status-bad transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:bg-status-bad/10 focus-visible:ring-2 focus-visible:ring-gold"
+                        className="cham-44 relative grid h-9 w-9 place-items-center rounded-[12px] text-status-bad transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:bg-status-bad/10 focus-visible:ring-2 focus-visible:ring-gold"
                       >
                         <Trash2 size={14} strokeWidth={2.5} />
                       </NutGui>
@@ -170,7 +170,7 @@ export async function KhuMucTieuTruong({
               {laQuanTri && m.trang_thai === 'duyet' && m.loai_moc === 'do_luong' && m.nguon_so === 'ghi_tay' && (
                 <FormTaiCho action={ghiSoMucTieuTruong} className="flex flex-wrap items-end gap-2">
                   <input type="hidden" name="muc_tieu_id" value={m.id} />
-                  <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
+                  <label className="flex flex-col gap-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
                     {t('ghiSoNhan')}
                     <ONhap
                       type="number"
@@ -179,7 +179,7 @@ export async function KhuMucTieuTruong({
                       min="0"
                       inputMode="decimal"
                       placeholder={m.ten_don_vi ?? ''}
-                      className="ctl-h w-32 rounded-[10px] border-[1.5px] bg-white px-3 text-base font-semibold text-navy focus-visible:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm"
+                      className="ctl-h w-32 rounded-[12px] border-[1.5px] bg-white px-3 text-base font-semibold text-navy focus-visible:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm"
                     />
                   </label>
                   <NutGui className={nutPhu}>{t('ghiSoLuu')}</NutGui>
@@ -189,16 +189,16 @@ export async function KhuMucTieuTruong({
 
               {/* Các lớp đã hướng vào mục tiêu này. */}
               <div className="mt-1 rounded-[12px] bg-white/60 p-2.5">
-                <p className="mb-1 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('lopDaNoi')}</p>
+                <p className="mb-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{t('lopDaNoi')}</p>
                 {dsLop.length === 0 ? (
-                  <p className="text-[11.5px] font-semibold italic text-grey-mid">{t('chuaLopNao')}</p>
+                  <p className="text-chu-thich font-semibold italic text-grey-mid">{t('chuaLopNao')}</p>
                 ) : (
                   <div className="flex flex-col gap-1">
                     {dsLop.map((l, i) => (
-                      <div key={i} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12.5px]">
+                      <div key={i} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-than">
                         <span className="font-extrabold text-navy">{l.lop}</span>
                         <span className="min-w-0 flex-1 font-semibold text-grey-mid">{l.ten}</span>
-                        <span className="inline-flex shrink-0 items-center rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10px] font-extrabold text-grey-mid">
+                        <span className="inline-flex shrink-0 items-center rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-extrabold text-grey-mid">
                           {t('chiGiuHuong')}
                         </span>
                       </div>

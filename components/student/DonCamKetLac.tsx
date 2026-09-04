@@ -34,9 +34,9 @@ export function DonCamKetLac({
 
   return (
     <div className="flex flex-col gap-2 rounded-[12px] border-[1.5px] border-dashed border-navy/20 bg-white/70 p-3">
-      <p className="text-[13.5px] font-extrabold text-navy">
+      <p className="text-noi-dung font-extrabold text-navy">
         {noiDung}
-        {soHua != null && <span className="ml-2 text-[11.5px] font-bold text-grey-mid">{t('soHua')} {soHua}</span>}
+        {soHua != null && <span className="ml-2 text-chu-thich font-bold text-grey-mid">{t('soHua')} {soHua}</span>}
       </p>
       {mucTieu.length > 0 ? (
         <form action={formAction} className="flex flex-wrap items-center gap-2">
@@ -49,7 +49,7 @@ export function DonCamKetLac({
             onChange={(e) => setMt(e.target.value)}
             required
             aria-label={t('lacGanVao')}
-            className="ctl-h min-w-0 flex-1 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-2.5 text-base text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm"
+            className="ctl-h min-w-0 flex-1 rounded-[12px] border-[1.5px] border-navy/20 bg-white px-2.5 text-base text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm"
           >
             <option value="">{t('lacGanVao')}</option>
             {mucTieu.map((m) => (
@@ -61,7 +61,7 @@ export function DonCamKetLac({
           <button
             type="submit"
             disabled={dangGui || !mt}
-            className="min-h-[44px] cursor-pointer rounded-[10px] bg-navy px-4 text-[13px] font-extrabold text-white transition-colors hover:bg-navy/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50"
+            className="min-h-[44px] cursor-pointer rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-colors hover:bg-navy/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50"
           >
             {t('lacGanNut')}
           </button>
@@ -72,22 +72,22 @@ export function DonCamKetLac({
               type="submit"
               aria-label={t('xoaCamKet')}
               title={t('xoaCamKet')}
-              className="grid h-11 w-11 cursor-pointer place-items-center rounded-[10px] text-status-bad transition-colors hover:bg-status-bad/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-[12px] text-status-bad transition-colors hover:bg-status-bad/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
             >
               <Trash2 size={16} strokeWidth={2.5} />
             </button>
           </XacNhanForm>
-          {state.error && <p role="alert" className="w-full text-[12px] font-bold text-status-bad">{state.error}</p>}
+          {state.error && <p role="alert" className="w-full text-chu-thich font-bold text-status-bad">{state.error}</p>}
         </form>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
-          <p className="min-w-0 flex-1 text-[12px] font-semibold text-grey-mid">{t('lacChuaCoMucTieu')}</p>
+          <p className="min-w-0 flex-1 text-chu-thich font-semibold text-grey-mid">{t('lacChuaCoMucTieu')}</p>
           <XacNhanForm action={xoaCamKet} hoi={t('xoaHoi')} nhanDongY={t('xoaCamKet')} nguyHiem className="contents">
             <input type="hidden" name="student_id" value={studentId} />
             <input type="hidden" name="cam_ket_id" value={camKetId} />
             <button
               type="submit"
-              className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 rounded-[10px] px-3 text-[12.5px] font-extrabold text-status-bad hover:bg-status-bad/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+              className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 rounded-[12px] px-3 text-than font-extrabold text-status-bad hover:bg-status-bad/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
             >
               <Trash2 size={14} strokeWidth={2.5} />
               {t('xoaCamKet')}

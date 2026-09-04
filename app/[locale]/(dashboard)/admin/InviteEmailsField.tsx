@@ -50,7 +50,7 @@ export function InviteEmailsField({
         }}
       />
       {bad.length > 0 && (
-        <p className="text-[11.5px] font-semibold text-status-bad">
+        <p className="text-chu-thich font-semibold text-status-bad">
           Chưa đúng định dạng: {bad.join(', ')} — cần dạng ten@truongvietanh.com
         </p>
       )}

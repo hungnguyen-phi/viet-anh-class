@@ -15,9 +15,9 @@ import {Disclosure} from './Disclosure';
 import {HocSinhChuaCoLop} from './HocSinhChuaCoLop';
 import {SchoolNetworkManager} from './SchoolNetworkManager';
 
-const cardTitle = 'mb-3 font-display text-[15px] font-bold text-navy';
+const cardTitle = 'mb-3 font-display text-doc font-bold text-navy';
 const openLink =
-  'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy';
+  'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[12px] border-[1.5px] border-navy/20 bg-white px-3 text-than font-extrabold text-navy transition-all hover:border-navy';
 
 // PHẦN CÒN LẠI CỦA MÀN QUẢN TRỊ — cây cơ sở, wifi, lĩnh vực, kho lưu trữ, mục lục màn hình.
 //
@@ -149,7 +149,7 @@ export async function AdminSections({phan}: {phan: 'nguoi' | 'truong' | 'khac'})
         count={networks.length}
         badge={
           activeNetworks === 0 ? (
-            <span className="rounded-full border border-warn/40 bg-warn/10 px-2.5 py-1 text-[11px] font-extrabold text-navy">
+            <span className="rounded-full border border-warn/40 bg-warn/10 px-2.5 py-1 text-chu-thich font-extrabold text-navy">
               {t('networkOpenBadge')}
             </span>
           ) : undefined
@@ -234,13 +234,13 @@ export async function AdminSections({phan}: {phan: 'nguoi' | 'truong' | 'khac'})
             {/* Bốn chuỗi trong khối này trước đây gõ thẳng tiếng Việt vào JSX — bản tiếng Anh
                 của màn Quản trị hiện ra hai đoạn tiếng Việt. */}
             <Link href="/subjects" className={openLink}>
-              <BookMarked size={14} strokeWidth={2.2} />
+              <BookMarked size={14} strokeWidth={2} />
               {t('openSubjects')}
             </Link>
           </div>
           <div>
             <Link href="/menu" className={openLink}>
-              <UtensilsCrossed size={14} strokeWidth={2.2} />
+              <UtensilsCrossed size={14} strokeWidth={2} />
               {t('openMenu')}
             </Link>
           </div>
@@ -254,14 +254,14 @@ export async function AdminSections({phan}: {phan: 'nguoi' | 'truong' | 'khac'})
             <Link
               key={s.href}
               href={s.href}
-              className="glass glass-hover block cursor-pointer rounded-[14px] p-3.5"
+              className="glass glass-hover block cursor-pointer rounded-[16px] p-3.5"
             >
               <div className="flex items-center justify-between">
-                <span className="font-display text-[15px] font-bold text-navy">{s.label}</span>
+                <span className="font-display text-doc font-bold text-navy">{s.label}</span>
                 <span className="text-xs font-extrabold text-gold-text">{tcommon('open')} →</span>
               </div>
               <p className="mt-1 text-xs text-grey-mid">{s.desc}</p>
-              <code className="mt-1 block text-[11px] text-grey-mid">{s.href}</code>
+              <code className="mt-1 block text-chu-thich text-grey-mid">{s.href}</code>
             </Link>
           ))}
         </div>
@@ -288,7 +288,7 @@ function ArchivedCol({
 }) {
   return (
     <div>
-      <div className="mb-1.5 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+      <div className="mb-1.5 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
         {label} ({rows.length})
       </div>
       <div className="rounded-[12px] border-[1.5px] border-navy/10">
@@ -300,24 +300,24 @@ function ArchivedCol({
             }`}
           >
             <div className="min-w-0">
-              <div className="truncate text-[13px] font-bold text-navy">{r.label}</div>
-              {r.sub && <div className="truncate text-[11px] font-semibold text-grey-mid">{r.sub}</div>}
+              <div className="truncate text-than font-bold text-navy">{r.label}</div>
+              {r.sub && <div className="truncate text-chu-thich font-semibold text-grey-mid">{r.sub}</div>}
             </div>
             {r.khongKhoiPhucDuoc ? (
               // Không bày một cái nút bấm vào không đổi gì. Dòng phụ bên trái đã nói phải làm gì.
-              <span className="shrink-0 text-[11px] font-bold text-grey-mid">{restoreViaCampus}</span>
+              <span className="shrink-0 text-chu-thich font-bold text-grey-mid">{restoreViaCampus}</span>
             ) : (
               <form action={action}>
                 <input type="hidden" name="id" value={r.id} />
                 <input type="hidden" name="active" value="true" />
-                <SubmitButton className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700">
+                <SubmitButton className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[8px] bg-navy px-2.5 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700">
                   {restoreLabel}
                 </SubmitButton>
               </form>
             )}
           </div>
         ))}
-        {rows.length === 0 && <div className="px-3 py-2 text-[12px] text-grey-mid">{emptyLabel}</div>}
+        {rows.length === 0 && <div className="px-3 py-2 text-chu-thich text-grey-mid">{emptyLabel}</div>}
       </div>
     </div>
   );

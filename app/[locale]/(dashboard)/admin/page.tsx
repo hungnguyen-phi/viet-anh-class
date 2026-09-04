@@ -91,7 +91,7 @@ export default async function AdminPage({
       {/* Tiêu đề + MỘT nút "Tạo mới" gom cả năm việc khai báo (cơ sở, lớp, mời người, phân công,
           mời phụ huynh) — trước đây là năm thẻ form luôn mở giữa trang. */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-display text-[22px] font-bold text-navy">{t('title')}</h1>
+        <h1 className="font-display text-dau font-bold text-navy">{t('title')}</h1>
         <Suspense fallback={<CreateMenuSkeleton />}>
           <CreateMenuLoader revision={revision} />
         </Suspense>

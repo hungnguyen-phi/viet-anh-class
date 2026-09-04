@@ -18,10 +18,10 @@ type Grade = {id: string; name: string; campus_id: string; is_active: boolean};
 type Teacher = {id: string; full_name: string | null; email: string};
 
 const inp =
-  'min-w-0 rounded-[10px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
+  'min-w-0 rounded-[12px] border-[1.5px] border-navy/15 bg-white px-3 py-2 text-than font-semibold text-navy outline-none transition-all focus:border-navy';
 const navyBtn =
-  'btn-gold h-11 shrink-0 inline-flex items-center cursor-pointer whitespace-nowrap rounded-[12px] px-3.5 text-[12.5px] font-extrabold transition-all';
-const lbl = 'flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
+  'btn-gold h-11 shrink-0 inline-flex items-center cursor-pointer whitespace-nowrap rounded-[12px] px-3.5 text-than font-extrabold transition-all';
+const lbl = 'flex flex-col gap-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid';
 
 // Sửa lớp (dạng card đầy đủ) — Cơ sở ↔ Khối liên kết. Dùng ở trang chi tiết lớp.
 export function ClassEditForm({

@@ -141,7 +141,7 @@ export function IntroGuide({
         role="dialog"
         aria-modal="true"
         aria-labelledby="intro-title"
-        className="w-[460px] max-w-full rounded-[26px] bg-white p-7 shadow-pop outline-none ring-1 ring-navy/10"
+        className="w-[460px] max-w-full rounded-[20px] bg-white p-7 shadow-pop outline-none ring-1 ring-navy/10"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Chấm tiến trình */}
@@ -160,10 +160,10 @@ export function IntroGuide({
           <span className="grid h-16 w-16 place-items-center rounded-2xl bg-linear-to-b from-gold-soft to-gold text-navy shadow-[var(--shadow-gold)]">
             <step.Icon size={30} strokeWidth={2} />
           </span>
-          <h2 id="intro-title" className="mt-4 font-display text-[22px] font-bold text-navy">{step.title}</h2>
+          <h2 id="intro-title" className="mt-4 font-display text-dau font-bold text-navy">{step.title}</h2>
           <ul className="mt-3 space-y-2 text-left">
             {step.bullets.map((b, idx) => (
-              <li key={idx} className="flex gap-2.5 text-[13.5px] leading-relaxed text-txt">
+              <li key={idx} className="flex gap-2.5 text-noi-dung leading-relaxed text-txt">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
                 <span>{b}</span>
               </li>
@@ -175,7 +175,7 @@ export function IntroGuide({
           <button
             type="button"
             onClick={finish}
-            className="min-h-[44px] cursor-pointer px-2 text-[13px] font-bold text-grey-mid transition-colors hover:text-navy"
+            className="min-h-[44px] cursor-pointer px-2 text-than font-bold text-grey-mid transition-colors hover:text-navy"
           >
             {t('intro.nutBo')}
           </button>
@@ -184,19 +184,19 @@ export function IntroGuide({
               <button
                 type="button"
                 onClick={() => setI((v) => v - 1)}
-                className="inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-xl border-[1.5px] border-navy/15 px-3.5 text-[13px] font-bold text-navy transition-colors hover:border-navy"
+                className="inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-[12px] border-[1.5px] border-navy/15 px-3.5 text-than font-bold text-navy transition-colors hover:border-navy"
               >
-                <ArrowLeft size={15} strokeWidth={2.5} />
+                <ArrowLeft size={16} strokeWidth={2.5} />
                 {t('intro.nutQuayLai')}
               </button>
             )}
             <button
               type="button"
               onClick={() => (last ? finish() : setI((v) => v + 1))}
-              className="btn-gold inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-xl px-5 font-display text-[13.5px] font-bold"
+              className="btn-gold inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-[12px] px-5 font-display text-noi-dung font-bold"
             >
               {last ? t('intro.nutBatDau') : t('intro.nutTiep')}
-              {!last && <ArrowRight size={15} strokeWidth={2.5} />}
+              {!last && <ArrowRight size={16} strokeWidth={2.5} />}
             </button>
           </div>
         </div>

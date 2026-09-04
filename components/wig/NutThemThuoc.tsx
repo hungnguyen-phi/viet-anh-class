@@ -55,7 +55,7 @@ export function NutThemThuoc({
       <button
         type="button"
         onClick={() => setMo(true)}
-        className="inline-flex min-h-[44px] items-center gap-1.5 self-start rounded-[10px] border-[1.5px] border-dashed border-navy/30 px-3 text-[12.5px] font-extrabold text-navy/80 transition-colors hover:border-navy hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+        className="inline-flex min-h-[44px] items-center gap-1.5 self-start rounded-[12px] border-[1.5px] border-dashed border-navy/30 px-3 text-than font-extrabold text-navy/80 transition-colors hover:border-navy hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
       >
         <Ruler size={14} strokeWidth={2.5} />
         {t('themThuoc')}
@@ -85,7 +85,7 @@ export function NutThemThuoc({
                 </Field>
                 {/* CÁCH ĐO: tick những ngày đã chọn, hoặc đo bằng số (đơn vị + đích/tuần). */}
                 <div>
-                  <div className="mb-1.5 inline-flex rounded-[10px] border-[1.5px] border-navy/20 p-0.5 text-[12.5px] font-extrabold">
+                  <div className="mb-1.5 inline-flex rounded-[12px] border-[1.5px] border-navy/20 p-0.5 text-than font-extrabold">
                     {(['cham', 'dien_so'] as const).map((c) => (
                       <button
                         key={c}
@@ -126,7 +126,7 @@ export function NutThemThuoc({
                     </div>
                   )}
                 </div>
-                <NutGui className="mt-1 self-start rounded-[12px] bg-navy px-4 text-[13px] font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
+                <NutGui className="mt-1 self-start rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
                   {tf('luuThuoc')}
                 </NutGui>
               </>

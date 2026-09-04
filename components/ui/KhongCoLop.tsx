@@ -44,10 +44,10 @@ export async function KhongCoLop({role}: {role: Role}) {
   return (
     <div className="glass rounded-[20px] p-8 text-center">
       <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-navy/[0.06] text-navy/50">
-        <SchoolIcon size={26} strokeWidth={1.8} />
+        <SchoolIcon size={26} strokeWidth={2} />
       </span>
-      <p className="font-display text-[16px] font-bold text-navy">{tc('noClass')}</p>
-      <p className="mx-auto mt-2 max-w-[440px] text-[12.5px] font-semibold leading-relaxed text-grey-mid">
+      <p className="font-display text-doc font-bold text-navy">{tc('noClass')}</p>
+      <p className="mx-auto mt-2 max-w-[440px] text-than font-semibold leading-relaxed text-grey-mid">
         {theoVai[role] ?? tc('noClassDesc')}
       </p>
     </div>

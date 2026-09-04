@@ -40,16 +40,16 @@ type Tab = (typeof TABS)[number];
 const HANG_VAI: Record<string, number> = {teacher: 0, principal: 1, admin: 2, student: 3, parent: 4};
 
 const oChon =
-  'h-8 w-full min-w-0 cursor-pointer rounded-[9px] border-[1.5px] border-navy/15 bg-white px-1.5 text-[12px] font-semibold text-navy outline-none focus:border-navy';
+  'h-8 w-full min-w-0 cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-1.5 text-chu-thich font-semibold text-navy outline-none focus:border-navy';
 const selectCls =
-  'h-10 cursor-pointer rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy';
+  'h-10 cursor-pointer rounded-[12px] border-[1.5px] border-navy/15 bg-white px-2.5 text-than font-semibold text-navy outline-none focus:border-navy';
 const navyBtn =
-  'inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] bg-navy px-3 text-[12px] font-extrabold text-white transition-all hover:bg-navy-700';
+  'inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] bg-navy px-3 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700';
 const ghostBtn =
-  'inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/20 bg-white/70 px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
+  'inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[8px] border-[1.5px] border-navy/20 bg-white/70 px-2.5 text-chu-thich font-extrabold text-navy transition-all hover:border-navy';
 const ghostBtnLg =
-  'inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white/60 px-3 text-[12px] font-extrabold text-navy transition-all hover:border-navy';
-const th = 'text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
+  'inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] border-[1.5px] border-navy/20 bg-white/60 px-3 text-chu-thich font-extrabold text-navy transition-all hover:border-navy';
+const th = 'text-nhan font-extrabold uppercase tracking-wide text-grey-mid';
 
 // MỘT BỘ CỘT DÙNG CHUNG CHO CẢ TIÊU ĐỀ LẪN MỌI DÒNG.
 //
@@ -83,7 +83,7 @@ const cotNut = 'w-[72px] flex-none';
 const tangDuoiSua = 'grid w-full grid-cols-[2fr_0.85fr_auto] items-center gap-x-1.5 sm:contents';
 const cotSuaVai = 'min-w-0';
 const cotSuaLop = 'min-w-0';
-const sttCls = 'text-[11.5px] font-bold tabular-nums text-grey-mid';
+const sttCls = 'text-chu-thich font-bold tabular-nums text-grey-mid';
 
 // HAI BỐ CỤC, MỘT CÂY DOM.
 //
@@ -335,7 +335,7 @@ export function GrantsPanel({
                 type="button"
                 onClick={() => setTab(k)}
                 aria-pressed={on}
-                className={`inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-[12px] font-extrabold transition-all ${
+                className={`inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-chu-thich font-extrabold transition-all ${
                   on
                     ? 'bg-navy text-white'
                     : 'border-[1.5px] border-navy/15 bg-white/60 text-navy hover:border-navy'
@@ -352,7 +352,7 @@ export function GrantsPanel({
           <span className="relative">
             <Search
               size={14}
-              strokeWidth={2.4}
+              strokeWidth={2.5}
               className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-grey-mid"
             />
             <input
@@ -360,12 +360,12 @@ export function GrantsPanel({
               onChange={(e) => setQ(e.target.value)}
               placeholder={t('grantsSearch')}
               aria-label={t('grantsSearch')}
-              className="h-10 w-[230px] rounded-[10px] border-[1.5px] border-navy/15 bg-white pl-8 pr-3 text-[16px] font-semibold text-navy focus-visible:border-navy focus-visible:outline-none sm:text-[12.5px]"
+              className="h-10 w-[230px] rounded-[12px] border-[1.5px] border-navy/15 bg-white pl-8 pr-3 text-doc font-semibold text-navy focus-visible:border-navy focus-visible:outline-none sm:text-than"
             />
           </span>
           {q && (
             <button type="button" onClick={() => setQ('')} className={ghostBtnLg}>
-              <X size={13} strokeWidth={2.6} />
+              <X size={14} strokeWidth={2.5} />
               {t('clear')}
             </button>
           )}
@@ -408,7 +408,7 @@ export function GrantsPanel({
           )}
           {(cs || khoi || lop) && (
             <button type="button" onClick={() => chonCs('')} className={ghostBtnLg}>
-              <X size={13} strokeWidth={2.6} />
+              <X size={14} strokeWidth={2.5} />
               {t('filterClear')}
             </button>
           )}
@@ -417,7 +417,7 @@ export function GrantsPanel({
           <div className="ml-auto flex items-center gap-2">
             {!sua ? (
               <button type="button" onClick={() => setSua(true)} className={navyBtn}>
-                <Pencil size={13} strokeWidth={2.6} />
+                <Pencil size={14} strokeWidth={2.5} />
                 {t('grantsEdit')}
               </button>
             ) : (
@@ -439,7 +439,7 @@ export function GrantsPanel({
                     </SubmitButton>
                   </form>
                 ) : (
-                  <span className="text-[12px] font-bold text-grey-mid">{t('grantsNoChange')}</span>
+                  <span className="text-chu-thich font-bold text-grey-mid">{t('grantsNoChange')}</span>
                 )}
                 <button type="button" onClick={thoatSua} className={ghostBtnLg}>
                   {t('grantsExitEdit')}
@@ -453,7 +453,7 @@ export function GrantsPanel({
 
       {hoiThoat && (
         <Popup title={t('grantsExitEdit')} onClose={() => setHoiThoat(false)} width="max-w-[400px]">
-          <p className="text-[14px] font-semibold leading-relaxed text-navy">
+          <p className="text-noi-dung font-semibold leading-relaxed text-navy">
             {t('grantsConfirmLeave', {n: daSua.length})}
           </p>
           <div className="mt-4 flex items-center justify-end gap-2">
@@ -470,7 +470,7 @@ export function GrantsPanel({
       {/* role="row" phải nằm TRONG một role="table"/"grid" thì trình đọc màn hình mới hiểu; đứng
           trơ một mình là ARIA không hợp lệ và bị bỏ qua. Khai đủ bộ như bảng người dùng. */}
       {/* Chỉ cuộn ngang từ 640px trở lên — dưới đó không còn gì phải cuộn, dòng đã xuống thẻ. */}
-      <div className="rounded-[14px] border-[1.5px] border-navy/10 sm:overflow-x-auto">
+      <div className="rounded-[16px] border-[1.5px] border-navy/10 sm:overflow-x-auto">
         <div role="table" aria-label={t('grantsTitle')}>
           {/* Hàng tiêu đề chỉ có nghĩa khi còn là bảng. Ở dạng thẻ, mỗi dòng tự nói ra nó là gì. */}
           <div
@@ -512,15 +512,15 @@ export function GrantsPanel({
             ) : (
               <div key={`p-${d.email}`} role="row" className={hangCls}>
                 <span className={`${cotStt} ${sttCls}`}>{batDau + i + 1}</span>
-                <span className={`${cotEmail} truncate text-[13px] font-bold text-navy`}>
+                <span className={`${cotEmail} truncate text-than font-bold text-navy`}>
                   {d.email}
                 </span>
                 <span className={tangDuoi}>
-                  <span className={`${cotVai} truncate text-[12.5px] font-semibold text-navy`}>
+                  <span className={`${cotVai} truncate text-than font-semibold text-navy`}>
                     {tr('parent')}
                   </span>
                   <span className={chamNgan}>·</span>
-                  <span className={`${cotLop} truncate text-[12.5px] font-semibold text-grey-mid`}>
+                  <span className={`${cotLop} truncate text-than font-semibold text-grey-mid`}>
                     {/* Phụ huynh gắn với CON, không gắn với lớp — nên cột này hiện tên con. */}
                     {d.i.childName ?? t('classNone')}
                   </span>
@@ -546,10 +546,10 @@ export function GrantsPanel({
 
           {dangHien.length === 0 && (
             <div className="border-t border-navy/[0.08] px-[14px] py-8 text-center">
-              <div className="text-[13.5px] font-extrabold text-navy">
+              <div className="text-noi-dung font-extrabold text-navy">
                 {tuKhoa ? t('noMatch', {q}) : t('noUsersFilter')}
               </div>
-              <div className="mt-1 text-[12px] font-semibold text-grey-mid">
+              <div className="mt-1 text-chu-thich font-semibold text-grey-mid">
                 {t('noUsersFilterHint')}
               </div>
             </div>
@@ -559,7 +559,7 @@ export function GrantsPanel({
 
       {/* Phân trang + số dòng mỗi trang. Chỉ hiện khi danh sách đủ dài để cần tới. */}
       {(locDuoc.length > PAGE_SIZES[0] || soTrang > 1) && (
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[12.5px] font-bold text-navy">
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-than font-bold text-navy">
           <button
             type="button"
             onClick={() => setTrang(trangHienTai - 1)}
@@ -577,13 +577,13 @@ export function GrantsPanel({
           >
             {t('next')} →
           </button>
-          <label className="ml-2 flex items-center gap-1.5 text-[12px] font-bold text-grey-mid">
+          <label className="ml-2 flex items-center gap-1.5 text-chu-thich font-bold text-grey-mid">
             {t('perPage')}
             <select
               value={size}
               onChange={(e) => setSize(Number(e.target.value))}
               aria-label={t('perPage')}
-              className={`${selectCls} h-8 text-[12px]`}
+              className={`${selectCls} h-8 text-chu-thich`}
             >
               {PAGE_SIZES.map((n) => (
                 <option key={n} value={n}>
@@ -632,11 +632,11 @@ function DongKhai({
     <div role="row" className={`${hangCls} ${doi ? 'bg-navy/[0.05]' : ''}`}>
       <span className={`${cotStt} ${sttCls}`}>{stt}</span>
       <span className={`${cotEmail} flex items-center gap-1.5`}>
-        <span className="min-w-0 truncate text-[13px] font-bold text-navy">{g.email}</span>
+        <span className="min-w-0 truncate text-than font-bold text-navy">{g.email}</span>
         {/* Nhãn "đã sửa" bám vào EMAIL chứ không vào ô chọn: nó phải đọc được ở cả hai chế độ, và
             khi chen vào giữa cột vai/lớp thì hai ô chọn bị bóp lại mỗi lần đổi một dòng. */}
         {doi && (
-          <span className="shrink-0 whitespace-nowrap rounded-[7px] bg-navy/10 px-1.5 py-0.5 text-[10px] font-extrabold uppercase text-navy">
+          <span className="shrink-0 whitespace-nowrap rounded-[8px] bg-navy/10 px-1.5 py-0.5 text-nhan font-extrabold uppercase text-navy">
             {t('grantsChangedBadge')}
           </span>
         )}
@@ -691,11 +691,11 @@ function DongKhai({
         </>
       ) : (
         <>
-          <span className={`${cotVai} truncate text-[12.5px] font-semibold text-navy`}>
+          <span className={`${cotVai} truncate text-than font-semibold text-navy`}>
             {tr(g.role as 'student')}
           </span>
           <span className={chamNgan}>·</span>
-          <span className={`${cotLop} truncate text-[12.5px] font-semibold text-grey-mid`}>
+          <span className={`${cotLop} truncate text-than font-semibold text-grey-mid`}>
             {tenLop(g.class_id)}
           </span>
           <span className={chamNgan}>·</span>
@@ -704,7 +704,7 @@ function DongKhai({
       {/* Đang sửa trên máy hẹp thì ngày phải nhường chỗ: hai ô chọn cộng ngày trong 318px là ba
           thứ đều chật, mà ngày khai là thứ ít cần nhất lúc đang gán vai. */}
       <span
-        className={`${cotNgay} whitespace-nowrap text-[11.5px] font-semibold text-grey-mid ${
+        className={`${cotNgay} whitespace-nowrap text-chu-thich font-semibold text-grey-mid ${
           sua ? 'hidden sm:block' : ''
         }`}
       >

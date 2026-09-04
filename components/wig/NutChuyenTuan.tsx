@@ -23,9 +23,9 @@ export function NutChuyenTuan({huong, nhan, chiIcon}: {huong: 'truoc' | 'sau'; n
   const Mui = huong === 'truoc' ? ChevronLeft : ChevronRight;
 
   const icon = pending ? (
-    <Loader2 size={17} strokeWidth={2.5} className="animate-spin" />
+    <Loader2 size={16} strokeWidth={2.5} className="animate-spin" />
   ) : (
-    <Mui size={17} strokeWidth={2.5} />
+    <Mui size={16} strokeWidth={2.5} />
   );
 
   return (

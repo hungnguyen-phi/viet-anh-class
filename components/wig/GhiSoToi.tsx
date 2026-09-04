@@ -48,7 +48,7 @@ export function GhiSoToi({
 
   return (
     <div className="mt-1.5 flex flex-wrap items-center gap-2">
-      <span className="text-[12px] font-bold tabular-nums text-grey-mid">
+      <span className="text-chu-thich font-bold tabular-nums text-grey-mid">
         {t('tongTuan', {so: Math.round(tongTuan * 10) / 10, dich: chiTieu, dv: donVi})}
       </span>
       <input
@@ -66,18 +66,18 @@ export function GhiSoToi({
         inputMode="decimal"
         placeholder={donVi}
         aria-label={t('ghiThem')}
-        className="ctl-h w-24 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-base font-semibold text-navy focus-visible:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm"
+        className="ctl-h w-24 rounded-[12px] border-[1.5px] border-navy/20 bg-white px-3 text-base font-semibold text-navy focus-visible:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm"
       />
       <button
         type="button"
         onClick={ghi}
         disabled={dangGhi || so.trim() === ''}
-        className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 rounded-[12px] border-[1.5px] border-navy/20 bg-white px-3 text-than font-extrabold text-navy transition-all hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <Plus size={12} strokeWidth={3} />
+        <Plus size={12} strokeWidth={2.5} />
         {t('ghiThem')}
       </button>
-      {loi && <span role="alert" className="text-[12px] font-bold text-status-bad">{loi}</span>}
+      {loi && <span role="alert" className="text-chu-thich font-bold text-status-bad">{loi}</span>}
     </div>
   );
 }

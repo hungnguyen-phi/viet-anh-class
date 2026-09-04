@@ -31,18 +31,18 @@ type ClassRow = {
 type Teacher = {id: string; full_name: string | null; email: string};
 
 const inp =
-  'min-w-0 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
+  'min-w-0 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-than font-semibold text-navy outline-none transition-all focus:border-navy';
 const navyBtn =
-  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700';
+  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[8px] bg-navy px-2.5 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700';
 const ghost =
-  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/20 bg-white px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
+  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2.5 text-chu-thich font-extrabold text-navy transition-all hover:border-navy';
 const gold =
-  'btn-gold h-8 shrink-0 inline-flex items-center cursor-pointer whitespace-nowrap rounded-[9px] px-2.5 text-[11.5px] font-extrabold transition-all';
+  'btn-gold h-8 shrink-0 inline-flex items-center cursor-pointer whitespace-nowrap rounded-[8px] px-2.5 text-chu-thich font-extrabold transition-all';
 // Pha từ chính token --color-status-bad thay vì gõ lại rgba(192,57,43,…): đổi màu trạng thái hỏng
 // một chỗ là đổi cả app, không phải đi tìm ba con số ấy nằm rải ở đâu. Cùng cách ConfirmButton làm.
 const danger =
-  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-[color-mix(in_srgb,var(--color-status-bad)_12%,transparent)] px-2.5 text-[11.5px] font-extrabold text-status-bad transition-all hover:bg-[color-mix(in_srgb,var(--color-status-bad)_22%,transparent)]';
-const subLabel = 'text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
+  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[8px] bg-[color-mix(in_srgb,var(--color-status-bad)_12%,transparent)] px-2.5 text-chu-thich font-extrabold text-status-bad transition-all hover:bg-[color-mix(in_srgb,var(--color-status-bad)_22%,transparent)]';
+const subLabel = 'text-nhan font-extrabold uppercase tracking-wide text-grey-mid';
 
 // CÂY CƠ SỞ → KHỐI → LỚP.
 //
@@ -109,7 +109,7 @@ export function CampusTree({
       <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
         <button type="button" onClick={() => setAdding((v) => !v)} className={ghost}>
           <span className="inline-flex items-center gap-1">
-            <Plus size={13} strokeWidth={2.6} />
+            <Plus size={14} strokeWidth={2.5} />
             {t('createCampus')}
           </span>
         </button>
@@ -127,7 +127,7 @@ export function CampusTree({
       )}
 
       {campuses.length === 0 ? (
-        <div className="rounded-[12px] border-[1.5px] border-navy/10 px-[13px] py-[9px] text-[13px] text-grey-mid">
+        <div className="rounded-[12px] border-[1.5px] border-navy/10 px-[13px] py-[9px] text-than text-grey-mid">
           {t('none')}
         </div>
       ) : (
@@ -181,7 +181,7 @@ function CampusNode({
   const [editClassId, setEditClassId] = useState<string | null>(null);
 
   return (
-    <div className="rounded-[14px] border-[1.5px] border-navy/10 bg-white/50">
+    <div className="rounded-[16px] border-[1.5px] border-navy/10 bg-white/50">
       {/* Hàng tiêu đề cơ sở */}
       {edit ? (
         <form action={updateCampus} className="flex flex-wrap items-center gap-1.5 p-3">
@@ -217,27 +217,27 @@ function CampusNode({
           >
             <ChevronRight
               size={16}
-              strokeWidth={2.6}
+              strokeWidth={2.5}
               className={`shrink-0 text-grey-mid transition-transform ${open ? 'rotate-90' : ''}`}
             />
-            <Building2 size={15} strokeWidth={2.2} className="shrink-0 text-gold-deep" />
-            <span className="truncate font-display text-[15px] font-bold text-navy">{campus.name}</span>
-            <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[11px] font-bold text-grey-mid">
+            <Building2 size={16} strokeWidth={2} className="shrink-0 text-gold-deep" />
+            <span className="truncate font-display text-doc font-bold text-navy">{campus.name}</span>
+            <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-bold text-grey-mid">
               {campus.code}
             </span>
             {campus.levels.length > 0 ? (
               // Hiện ĐỦ các cấp. Trước đây chỗ này chỉ vẽ được một cấp nên cơ sở dạy cả THCS lẫn
               // THPT hiện ra là "THPT" — nhãn nói sai về chính dữ liệu ngay bên dưới nó.
-              <span className="rounded-full bg-gold/[0.18] px-2 py-0.5 text-[11px] font-bold text-navy">
+              <span className="rounded-full bg-gold/[0.18] px-2 py-0.5 text-chu-thich font-bold text-navy">
                 {levelLabels(campus.levels, t)}
               </span>
             ) : (
               // Chưa khai cấp học thì chưa sinh được khối nào → nói thẳng việc cần làm.
-              <span className="rounded-full bg-status-bad/[0.10] px-2 py-0.5 text-[11px] font-bold text-status-bad">
+              <span className="rounded-full bg-status-bad/[0.10] px-2 py-0.5 text-chu-thich font-bold text-status-bad">
                 {t('noLevel')}
               </span>
             )}
-            <span className="whitespace-nowrap text-[11px] font-semibold text-grey-mid">
+            <span className="whitespace-nowrap text-chu-thich font-semibold text-grey-mid">
               {grades.length} {t('gradesShort')} · {classes.length} {t('classesShort')}
             </span>
           </button>
@@ -268,7 +268,7 @@ function CampusNode({
           {/* Khối — GradeManager giữ nguyên (có sẵn thêm/sửa/lưu-trữ/xoá bên trong). */}
           <GradeManager campusId={campus.id} grades={grades} levels={campus.levels} />
           {campus.levels.length > 0 && gradeNumbersFor(campus.levels) == null && grades.length === 0 && (
-            <p className="mt-1 text-[11.5px] font-semibold italic text-grey-mid">{t('manualGradeHint')}</p>
+            <p className="mt-1 text-chu-thich font-semibold italic text-grey-mid">{t('manualGradeHint')}</p>
           )}
 
           {/* Lớp của chính cơ sở này */}
@@ -283,7 +283,7 @@ function CampusNode({
                 className={`${ghost} ml-auto`}
               >
                 <span className="inline-flex items-center gap-1">
-                  <Plus size={13} strokeWidth={2.6} />
+                  <Plus size={14} strokeWidth={2.5} />
                   {t('createClass')}
                 </span>
               </button>
@@ -310,21 +310,21 @@ function CampusNode({
                 const lyDoKhongXoa = t('cannotDeleteClass', {wig: c.soWig, hs: c.soHocSinh});
                 return (
                 <div key={c.id}>
-                  <div className="flex flex-wrap items-center gap-2 rounded-[10px] px-1.5 py-1.5 transition-colors hover:bg-navy/[0.03]">
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-navy">{c.name}</span>
+                  <div className="flex flex-wrap items-center gap-2 rounded-[12px] px-1.5 py-1.5 transition-colors hover:bg-navy/[0.03]">
+                    <span className="min-w-0 flex-1 truncate text-than font-bold text-navy">{c.name}</span>
                     {/* Hiện SỐ LIỆU ĐANG GIỮ ngay trên dòng: đây là thứ quyết định lớp có xoá được
                         hay không, nên nó phải nhìn thấy được TRƯỚC khi người ta với tay tới nút. */}
                     {coDuLieu && (
-                      <span className="whitespace-nowrap rounded-full bg-navy/[0.06] px-2 py-0.5 text-[11px] font-bold text-grey-mid">
+                      <span className="whitespace-nowrap rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-bold text-grey-mid">
                         {c.soWig > 0 && t('classHasData', {n: c.soWig})}
                         {c.soWig > 0 && c.soHocSinh > 0 && ' · '}
                         {c.soHocSinh > 0 && t('classHasStudents', {n: c.soHocSinh})}
                       </span>
                     )}
-                    <span className="whitespace-nowrap text-[11.5px] font-semibold text-grey-mid">
+                    <span className="whitespace-nowrap text-chu-thich font-semibold text-grey-mid">
                       {c.grade ?? t('noGrade')} · {c.school_year}
                     </span>
-                    <span className="min-w-0 max-w-[180px] flex-1 truncate text-[11.5px] font-semibold text-grey-mid">
+                    <span className="min-w-0 max-w-[180px] flex-1 truncate text-chu-thich font-semibold text-grey-mid">
                       {c.homeroom_teacher_id
                         ? teachers.find((p) => p.id === c.homeroom_teacher_id)?.full_name ??
                           teachers.find((p) => p.id === c.homeroom_teacher_id)?.email ??
@@ -394,7 +394,7 @@ function CampusNode({
                 );
               })}
               {classes.length === 0 && (
-                <div className="px-1.5 py-1 text-[12px] font-semibold text-grey-mid">{t('noClass')}</div>
+                <div className="px-1.5 py-1 text-chu-thich font-semibold text-grey-mid">{t('noClass')}</div>
               )}
             </div>
           </div>

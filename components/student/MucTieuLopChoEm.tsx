@@ -48,28 +48,28 @@ export function MucTieuLopChoEm({
               borderColor: `color-mix(in srgb, ${mau.hex} 30%, white)`,
               background: `color-mix(in srgb, ${mau.hex} 6%, white)`,
             }}
-            className="flex items-start gap-3.5 rounded-[14px] border-[1.5px] p-3.5"
+            className="flex items-start gap-3.5 rounded-[16px] border-[1.5px] p-3.5"
           >
             {m.pct != null ? (
               <DonutRing pct={Number(m.pct)} color={mau.hex} size={54} />
             ) : (
-              <span className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full bg-navy/[0.05] text-[11px] font-extrabold text-grey-mid">
+              <span className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full bg-navy/[0.05] text-chu-thich font-extrabold text-grey-mid">
                 —
               </span>
             )}
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span
-                  className="inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-extrabold"
+                  className="inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-chu-thich font-extrabold"
                   style={{background: mau.soft, color: mau.hex}}
                 >
                   {nhanTheoArea[area] ?? ''}
                 </span>
-                <span className="min-w-0 flex-1 font-display text-[15px] font-bold text-navy">{m.ten}</span>
+                <span className="min-w-0 flex-1 font-display text-doc font-bold text-navy">{m.ten}</span>
               </div>
-              <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[12px] font-semibold text-grey-mid">
+              <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-chu-thich font-semibold text-grey-mid">
                 {m.loai_moc === 'do_luong' && m.y_so != null ? (
-                  <span className="text-[13.5px] font-extrabold tabular-nums text-navy">
+                  <span className="text-noi-dung font-extrabold tabular-nums text-navy">
                     {m.so != null ? dinhSo(m.so) : '–'}
                     <span className="font-bold text-grey-mid">
                       {' / '}

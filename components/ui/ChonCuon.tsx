@@ -97,14 +97,14 @@ export function ChonCuon({
             chon(muc[conTro].ma);
           }
         }}
-        className={`ctl-h flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-[10px] border-[1.5px] bg-white px-3 text-sm font-semibold text-navy transition-colors ${
+        className={`ctl-h flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-[12px] border-[1.5px] bg-white px-3 text-sm font-semibold text-navy transition-colors ${
           loi ? 'border-status-bad' : 'border-navy/15 focus:border-navy'
         }`}
       >
         <span className={`min-w-0 flex-1 truncate text-left ${dangChon ? '' : 'text-grey-mid'}`}>
           {dangChon ? dangChon.nhan ?? dangChon.ma : chuaChon}
         </span>
-        <ChevronDown size={15} strokeWidth={2.5} className="shrink-0 text-grey-mid" />
+        <ChevronDown size={16} strokeWidth={2.5} className="shrink-0 text-grey-mid" />
       </button>
 
       {mo && (
@@ -126,7 +126,7 @@ export function ChonCuon({
               } ${m.ma === value ? 'text-navy' : 'text-navy/80'}`}
             >
               <span className="min-w-0 flex-1 truncate">{m.nhan ?? m.ma}</span>
-              {m.ma === value && <Check size={14} strokeWidth={3} className="shrink-0" />}
+              {m.ma === value && <Check size={14} strokeWidth={2.5} className="shrink-0" />}
             </button>
           ))}
         </div>

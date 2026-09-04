@@ -12,9 +12,9 @@ type Grade = {id: string; name: string; campus_id: string};
 
 // Lớp copy nguyên từ admin/page.tsx (goldBtn, inputCls) — tách phần màu viền để tô đỏ khi lỗi.
 const goldBtn =
-  'btn-gold inline-flex h-11 cursor-pointer items-center self-start whitespace-nowrap rounded-[12px] px-3.5 text-[12.5px] font-extrabold transition-all';
+  'btn-gold inline-flex h-11 cursor-pointer items-center self-start whitespace-nowrap rounded-[12px] px-3.5 text-than font-extrabold transition-all';
 const inputBase =
-  'w-full rounded-[10px] border-[1.5px] bg-white px-3 py-2 text-sm font-semibold text-navy outline-none transition-all';
+  'w-full rounded-[12px] border-[1.5px] bg-white px-3 py-2 text-sm font-semibold text-navy outline-none transition-all';
 
 // Tạo lớp — validation INLINE (useActionState): lỗi cạnh field, giữ input, báo thành công ngay.
 // Khối là thực thể: chọn từ select lọc theo cơ sở (grade_id). Cột text 'grade' được đồng bộ ở action.
@@ -158,14 +158,14 @@ export function ClassForm({
 
       {/* Lỗi chung (server/DB) */}
       {state.error && !state.fieldError && (
-        <p className="inline-flex items-center gap-1.5 text-[13px] font-bold text-status-bad">
+        <p className="inline-flex items-center gap-1.5 text-than font-bold text-status-bad">
           <AlertCircle size={14} strokeWidth={2.5} />
           {state.error}
         </p>
       )}
       {/* Báo thành công */}
       {state.ok && state.message && (
-        <p className="inline-flex items-center gap-1.5 text-[13px] font-bold text-success-dark">
+        <p className="inline-flex items-center gap-1.5 text-than font-bold text-success-dark">
           <CheckCircle2 size={14} strokeWidth={2.5} />
           {state.message}
         </p>
@@ -176,7 +176,7 @@ export function ClassForm({
 
 function FieldError({msg}: {msg: string}) {
   return (
-    <p className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-status-bad">
+    <p className="mt-1 inline-flex items-center gap-1 text-chu-thich font-bold text-status-bad">
       <AlertCircle size={12} strokeWidth={2.5} />
       {msg}
     </p>

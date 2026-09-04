@@ -62,7 +62,7 @@ export function LoTrinhEm({
   return (
     <div className="flex flex-col gap-1.5 rounded-[12px] bg-white/60 p-2.5">
       {loi && (
-        <p className="rounded-[10px] border border-status-bad/40 bg-status-bad/[0.08] px-2.5 py-1.5 text-[12px] font-bold text-status-bad">
+        <p className="rounded-[12px] border border-status-bad/40 bg-status-bad/[0.08] px-2.5 py-1.5 text-chu-thich font-bold text-status-bad">
           {loi}
         </p>
       )}
@@ -70,7 +70,7 @@ export function LoTrinhEm({
       {/* CAM KẾT TUẦN của em cho mục tiêu này — hàng đầu có nút (+) thêm, như thẻ của thầy cô. Dưới
           MỖI cam kết là thước đo dẫn dắt (em tick để hoàn thành cam kết). */}
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{tb('loCamKet')}</p>
+        <p className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{tb('loCamKet')}</p>
         {laChinhEm && classId && (
           <ThemCamKetEm
             studentId={studentId}
@@ -81,7 +81,7 @@ export function LoTrinhEm({
         )}
       </div>
       {camKet.length === 0 && (
-        <p className="text-[11.5px] font-semibold italic text-grey-mid">
+        <p className="text-chu-thich font-semibold italic text-grey-mid">
           {monday > thisMonday ? tb('loCamKetTuLan') : tb('loCamKetTrong')}
         </p>
       )}
@@ -92,7 +92,7 @@ export function LoTrinhEm({
           <div key={c.id} className="flex flex-col gap-1.5 rounded-[12px] bg-white/70 p-2">
             <TheCamKet c={c} studentId={studentId} laChinhEm={laChinhEm} tuanNghi={tuanNghi} today={today} anGiup />
             {chumThuoc.map((vBoTro) => (
-              <div key={vBoTro.thuoc_id} className="rounded-[10px] bg-navy/[0.03] p-1.5">
+              <div key={vBoTro.thuoc_id} className="rounded-[12px] bg-navy/[0.03] p-1.5">
                 <HangViec
                   v={vBoTro}
                   khoa={c.ket_qua != null}

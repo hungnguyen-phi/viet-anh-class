@@ -24,7 +24,7 @@ export function HocSinhChuaCoLop({
 }) {
   if (hocSinh.length === 0) {
     return (
-      <p className="text-[12.5px] font-semibold italic leading-relaxed text-grey-mid">
+      <p className="text-than font-semibold italic leading-relaxed text-grey-mid">
         Không có em nào đang lơ lửng. Em nào đăng nhập mà chưa được xếp lớp sẽ hiện ở đây.
       </p>
     );
@@ -32,7 +32,7 @@ export function HocSinhChuaCoLop({
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-[12px] font-semibold italic leading-relaxed text-grey-mid">
+      <p className="text-chu-thich font-semibold italic leading-relaxed text-grey-mid">
         Những em đã đăng nhập được nhưng chưa thuộc lớp nào. Chọn lớp rồi bấm Xếp lớp — em vào lớp
         ngay, không phải mời lại.
       </p>
@@ -45,13 +45,13 @@ export function HocSinhChuaCoLop({
         >
           <input type="hidden" name="email" value={h.email} />
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-extrabold text-navy">
+            <span className="block truncate text-than font-extrabold text-navy">
               {h.full_name || h.email}
             </span>
             {/* Tên hiển thị có thể là nickname Google, nên LUÔN kèm email — đó mới là thứ nhận
                 diện được em nào với em nào khi hai bạn trùng tên. */}
             {h.full_name && (
-              <span className="block truncate text-[11.5px] font-semibold text-grey-mid">{h.email}</span>
+              <span className="block truncate text-chu-thich font-semibold text-grey-mid">{h.email}</span>
             )}
           </span>
           <select name="class_id" aria-label={`Chọn lớp cho ${h.full_name || h.email}`} required className={`${selectInline} w-[190px]`}>
@@ -64,7 +64,7 @@ export function HocSinhChuaCoLop({
             ))}
           </select>
           <SubmitButton
-            className="btn-gold h-9 cursor-pointer rounded-[10px] px-3 text-[12.5px] font-extrabold"
+            className="btn-gold h-9 cursor-pointer rounded-[12px] px-3 text-than font-extrabold"
             wrapClass="contents"
           >
             Xếp lớp

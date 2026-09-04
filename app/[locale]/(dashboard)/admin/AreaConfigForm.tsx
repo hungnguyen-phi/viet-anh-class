@@ -9,12 +9,12 @@ import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {AREA_ICON_MAP, AREA_ICON_NAMES, type AreaMeta, type Area} from '@/lib/areas';
 
 const resetBtn =
-  'h-8 cursor-pointer whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/15 bg-white/70 px-2.5 text-[11.5px] font-extrabold text-grey-mid transition-all hover:border-navy hover:text-navy';
+  'h-8 cursor-pointer whitespace-nowrap rounded-[8px] border-[1.5px] border-navy/15 bg-white/70 px-2.5 text-chu-thich font-extrabold text-grey-mid transition-all hover:border-navy hover:text-navy';
 const inp =
-  'min-w-0 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
+  'min-w-0 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-than font-semibold text-navy outline-none transition-all focus:border-navy';
 const navyBtn =
-  'h-9 shrink-0 cursor-pointer whitespace-nowrap rounded-[10px] bg-navy px-3 text-[12px] font-extrabold text-white transition-all hover:bg-navy-700';
-const lbl = 'flex flex-col gap-1 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
+  'h-9 shrink-0 cursor-pointer whitespace-nowrap rounded-[12px] bg-navy px-3 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700';
+const lbl = 'flex flex-col gap-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid';
 
 // Cấu hình 4 lĩnh vực 4DX: nhãn VN/EN · màu · icon · đơn vị mặc định. Xem trước trực tiếp.
 export function AreaConfigForm({rows}: {rows: {area: Area; meta: AreaMeta}[]}) {
@@ -35,19 +35,19 @@ function AreaCard({area, meta}: {area: Area; meta: AreaMeta}) {
   const Preview = AREA_ICON_MAP[icon] ?? AREA_ICON_MAP.BookOpen;
 
   return (
-    <div className="rounded-[14px] border-[1.5px] border-navy/10 bg-white/50 p-3">
+    <div className="rounded-[16px] border-[1.5px] border-navy/10 bg-white/50 p-3">
       <form action={updateArea} id={`area-${area}`}>
       <input type="hidden" name="area" value={area} />
       {/* Xem trước: chip icon + màu + nhãn */}
       <div className="mb-2.5 flex items-center gap-2">
         <span
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px]"
           style={{background: `${color}22`, color}}
         >
-          <Preview size={18} strokeWidth={2.4} />
+          <Preview size={20} strokeWidth={2.5} />
         </span>
-        <span className="font-display text-[15px] font-bold text-navy">{labelVi || meta.label_vi}</span>
-        <code className="ml-auto text-[10px] font-bold text-grey-soft">{area}</code>
+        <span className="font-display text-doc font-bold text-navy">{labelVi || meta.label_vi}</span>
+        <code className="ml-auto text-chu-thich font-bold text-grey-soft">{area}</code>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -70,7 +70,7 @@ function AreaCard({area, meta}: {area: Area; meta: AreaMeta}) {
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
-              className="h-9 w-full cursor-pointer rounded-[9px] border-[1.5px] border-navy/15 bg-white p-0.5"
+              className="h-9 w-full cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white p-0.5"
             />
           </label>
           <label className={`${lbl} flex-1`}>
@@ -107,7 +107,7 @@ function AreaCard({area, meta}: {area: Area; meta: AreaMeta}) {
         <input type="hidden" name="area" value={area} />
         <ConfirmButton message={t('confirmResetArea')} className={resetBtn}>
           <span className="inline-flex items-center gap-1.5">
-            <RotateCcw size={12} strokeWidth={2.4} />
+            <RotateCcw size={12} strokeWidth={2.5} />
             {t('resetArea')}
           </span>
         </ConfirmButton>

@@ -8,7 +8,7 @@ import {LevelPicker} from '../admin/LevelPicker';
 import {setCampusLevel} from './actions';
 
 const navyBtn =
-  'inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700';
+  'inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[8px] bg-navy px-2.5 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700';
 
 // Khai cấp học cho cơ sở → DB sinh luôn bộ khối chuẩn.
 //
@@ -24,7 +24,7 @@ export function CampusLevelPicker({levels}: {levels: SchoolLevel[]}) {
   return (
     <form action={setCampusLevel} className="flex flex-wrap items-end gap-2">
       <div className="min-w-[260px] flex-1">
-        <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+        <span className="mb-1 block text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
           {t('level')}
         </span>
         <LevelPicker value={chon} onChange={setChon} />
@@ -33,7 +33,7 @@ export function CampusLevelPicker({levels}: {levels: SchoolLevel[]}) {
         {t('save')}
       </SubmitButton>
       {chon.length === 0 && (
-        <p className="w-full text-[11px] italic text-grey-mid">{t('pickLevelFirst')}</p>
+        <p className="w-full text-chu-thich italic text-grey-mid">{t('pickLevelFirst')}</p>
       )}
     </form>
   );

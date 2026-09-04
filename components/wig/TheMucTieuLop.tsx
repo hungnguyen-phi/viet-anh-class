@@ -79,7 +79,7 @@ export async function TheMucTieuLop({
         : m.trang_thai === 'tra_lai'
           ? {text: tMt('traLai'), cls: 'bg-status-bad/[0.12] text-status-bad'}
           : null;
-  const nutPhu = 'rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy focus-visible:ring-2 focus-visible:ring-gold';
+  const nutPhu = 'rounded-[12px] border-[1.5px] border-navy/20 bg-white px-3 text-than font-extrabold text-navy transition-all hover:border-navy focus-visible:ring-2 focus-visible:ring-gold';
   const ctx = (
     <>
       <input type="hidden" name="class_id" value={classId} />
@@ -90,25 +90,25 @@ export async function TheMucTieuLop({
   return (
     <div
       style={{borderColor: `color-mix(in srgb, ${meta.hex} 30%, white)`, background: `color-mix(in srgb, ${meta.hex} 6%, white)`}}
-      className="flex flex-col gap-2 rounded-[14px] border-[1.5px] p-3.5"
+      className="flex flex-col gap-2 rounded-[16px] border-[1.5px] p-3.5"
     >
       <div className="flex flex-wrap items-start gap-3.5">
         {m.pct != null ? (
           <DonutRing pct={Number(m.pct)} color={meta.hex} size={54} />
         ) : (
-          <span className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full bg-navy/[0.05] text-[11px] font-extrabold text-grey-mid">—</span>
+          <span className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-full bg-navy/[0.05] text-chu-thich font-extrabold text-grey-mid">—</span>
         )}
         <div className="min-w-0 flex-1 basis-[190px]">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-extrabold" style={{background: meta.soft, color: meta.hex}}>
+            <span className="inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-chu-thich font-extrabold" style={{background: meta.soft, color: meta.hex}}>
               {areaLabel(meta, locale)}
             </span>
-            <span className="min-w-0 flex-1 font-display text-[15px] font-bold text-navy">{m.ten ?? areaLabel(meta, locale)}</span>
-            {nhan && <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${nhan.cls}`}>{nhan.text}</span>}
+            <span className="min-w-0 flex-1 font-display text-doc font-bold text-navy">{m.ten ?? areaLabel(meta, locale)}</span>
+            {nhan && <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-chu-thich font-extrabold ${nhan.cls}`}>{nhan.text}</span>}
           </div>
-          <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[12px] font-semibold text-grey-mid">
+          <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-chu-thich font-semibold text-grey-mid">
             {m.loai_moc === 'do_luong' && m.y_so != null ? (
-              <span className="text-[13.5px] font-extrabold tabular-nums text-navy">
+              <span className="text-noi-dung font-extrabold tabular-nums text-navy">
                 {m.so != null ? dinhSo(m.so) : '—'}
                 <span className="font-bold text-grey-mid">
                   {' / '}
@@ -119,7 +119,7 @@ export async function TheMucTieuLop({
             <span>{tMt('denHan', {ngay: ngayVN(m.ket_thuc)})}</span>
           </p>
           {m.trang_thai === 'tra_lai' && m.ly_do_tra_lai && (
-            <p className="mt-1 text-[11.5px] font-semibold text-status-bad">{tMt('lyDoTraLai', {note: m.ly_do_tra_lai})}</p>
+            <p className="mt-1 text-chu-thich font-semibold text-status-bad">{tMt('lyDoTraLai', {note: m.ly_do_tra_lai})}</p>
           )}
         </div>
         {m.y_so != null && lichSu.length >= 2 && (
@@ -130,7 +130,7 @@ export async function TheMucTieuLop({
       </div>
 
       {m.mo_ta && (
-        <p className="mt-1 rounded-[10px] bg-white/70 px-2.5 py-2 text-center text-[12px] font-semibold leading-relaxed text-navy">{m.mo_ta}</p>
+        <p className="mt-1 rounded-[12px] bg-white/70 px-2.5 py-2 text-center text-chu-thich font-semibold leading-relaxed text-navy">{m.mo_ta}</p>
       )}
 
       {/* KẾ HOẠCH — checklist các bước. Đã duyệt & không chỉ-đọc: tick (% nhảy qua trigger). */}
@@ -142,21 +142,21 @@ export async function TheMucTieuLop({
                 <span className="grid h-[22px] w-[22px] shrink-0 place-items-center">
                   {b.xong ? (
                     <span style={{background: meta.hex}} className="grid h-[22px] w-[22px] place-items-center rounded-full text-white">
-                      <Check size={13} strokeWidth={3.5} />
+                      <Check size={14} strokeWidth={2.5} />
                     </span>
                   ) : (
                     <span className="h-[20px] w-[20px] rounded-full border-2 border-navy/25" />
                   )}
                 </span>
-                <span className={`min-w-0 flex-1 text-[13px] font-semibold leading-snug ${b.xong ? 'text-grey-mid line-through' : 'text-navy'}`}>{b.tieu_de}</span>
-                <span className="shrink-0 text-[11px] font-extrabold tabular-nums text-grey-mid">{Math.round(b.phan_tram)}%</span>
+                <span className={`min-w-0 flex-1 text-than font-semibold leading-snug ${b.xong ? 'text-grey-mid line-through' : 'text-navy'}`}>{b.tieu_de}</span>
+                <span className="shrink-0 text-chu-thich font-extrabold tabular-nums text-grey-mid">{Math.round(b.phan_tram)}%</span>
               </>
             );
             return m.trang_thai === 'duyet' && !chiDoc ? (
               <form key={b.id} action={datBuocXong}>
                 <input type="hidden" name="buoc_id" value={b.id} />
                 <input type="hidden" name="xong" value={b.xong ? '' : '1'} />
-                <SubmitButton className="flex min-h-[44px] w-full items-center gap-2.5 rounded-[10px] px-1.5 text-left transition-colors hover:bg-navy/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold" wrapClass="contents">
+                <SubmitButton className="flex min-h-[44px] w-full items-center gap-2.5 rounded-[12px] px-1.5 text-left transition-colors hover:bg-navy/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold" wrapClass="contents">
                   {noiDung}
                 </SubmitButton>
               </form>
@@ -168,7 +168,7 @@ export async function TheMucTieuLop({
       )}
 
       {m.loai_moc === 'hanh_dong' && m.trang_thai !== 'duyet' && m.trang_thai !== 'dong' && (
-        <p className="mt-1 text-[11.5px] font-semibold italic text-grey-mid">{t('hanhDongCachDo')}</p>
+        <p className="mt-1 text-chu-thich font-semibold italic text-grey-mid">{t('hanhDongCachDo')}</p>
       )}
       {m.loai_moc === 'hanh_dong' && m.trang_thai === 'duyet' && !chiDoc && (
         <form action={datHanhDong} className="mt-1">
@@ -177,12 +177,12 @@ export async function TheMucTieuLop({
           <SubmitButton
             className={
               m.dat
-                ? 'inline-flex min-h-[44px] items-center gap-1.5 rounded-[12px] border-[1.5px] border-success/40 bg-success/[0.12] px-3.5 text-[13px] font-extrabold text-success-dark transition-colors hover:bg-success/20'
-                : 'inline-flex min-h-[44px] items-center gap-1.5 rounded-[12px] bg-gold px-3.5 text-[13px] font-extrabold text-navy transition-all hover:brightness-95'
+                ? 'inline-flex min-h-[44px] items-center gap-1.5 rounded-[12px] border-[1.5px] border-success/40 bg-success/[0.12] px-3.5 text-than font-extrabold text-success-dark transition-colors hover:bg-success/20'
+                : 'inline-flex min-h-[44px] items-center gap-1.5 rounded-[12px] bg-gold px-3.5 text-than font-extrabold text-navy transition-all hover:brightness-95'
             }
             wrapClass="contents"
           >
-            <Check size={15} strokeWidth={3} />
+            <Check size={16} strokeWidth={2.5} />
             {m.dat ? tMt('daXong') : tMt('danhDauDat')}
           </SubmitButton>
         </form>
@@ -192,12 +192,12 @@ export async function TheMucTieuLop({
       {m.trang_thai === 'duyet' && (
         <div className="mt-1 flex flex-col gap-2 rounded-[12px] bg-white/60 p-2.5">
           {m.nguon_so === 'con' ? (
-            <p className="text-[11.5px] font-semibold text-grey-mid">{t('nguonTuThayCo')}</p>
+            <p className="text-chu-thich font-semibold text-grey-mid">{t('nguonTuThayCo')}</p>
           ) : m.loai_moc === 'do_luong' && m.nguon_so === 'ghi_tay' && !chiDoc ? (
             <FormTaiCho action={ghiSoMucTieuLop} className="flex flex-wrap items-end gap-2">
               {ctx}
               <input type="hidden" name="muc_tieu_id" value={m.id} />
-              <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
+              <label className="flex flex-col gap-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
                 {t('ghiSoNhan')}
                 <ONhap
                   type="number"
@@ -206,7 +206,7 @@ export async function TheMucTieuLop({
                   min="0"
                   inputMode="decimal"
                   placeholder={dv}
-                  className="ctl-h w-32 rounded-[10px] border-[1.5px] bg-white px-3 text-base font-semibold text-navy focus-visible:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm"
+                  className="ctl-h w-32 rounded-[12px] border-[1.5px] bg-white px-3 text-base font-semibold text-navy focus-visible:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm"
                 />
               </label>
               <NutGui className={nutPhu}>{t('ghiSoLuu')}</NutGui>
@@ -214,14 +214,14 @@ export async function TheMucTieuLop({
             </FormTaiCho>
           ) : null}
           {noiTruong ? (
-            <div className="flex flex-wrap items-center gap-2 text-[11.5px] font-semibold text-grey-mid">
+            <div className="flex flex-wrap items-center gap-2 text-chu-thich font-semibold text-grey-mid">
               <span>{t('huongTruong', {ten: tenTruong.get(noiTruong.chaId) ?? ''})}</span>
               {!chiDoc && (
                 <FormTaiCho action={goWigTruong} anThanhCong className="contents">
                   {ctx}
                   <input type="hidden" name="muc_tieu_id" value={m.id} />
                   <input type="hidden" name="truong_id" value={noiTruong.chaId} />
-                  <NutGui className="rounded-[8px] px-2 text-[11.5px] font-bold text-grey-mid hover:text-status-bad focus-visible:ring-2 focus-visible:ring-gold">{t('goTruong')}</NutGui>
+                  <NutGui className="rounded-[8px] px-2 text-chu-thich font-bold text-grey-mid hover:text-status-bad focus-visible:ring-2 focus-visible:ring-gold">{t('goTruong')}</NutGui>
                 </FormTaiCho>
               )}
             </div>
@@ -229,9 +229,9 @@ export async function TheMucTieuLop({
             <FormTaiCho action={noiWigTruong} anThanhCong className="flex flex-wrap items-end gap-2">
               {ctx}
               <input type="hidden" name="muc_tieu_id" value={m.id} />
-              <label className="flex min-w-0 flex-col gap-1 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
+              <label className="flex min-w-0 flex-col gap-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
                 {t('chonTruong')}
-                <ONhap as="select" name="truong_id" defaultValue="" className="ctl-h max-w-full rounded-[10px] border-[1.5px] bg-white px-3 text-base font-semibold text-navy focus-visible:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm">
+                <ONhap as="select" name="truong_id" defaultValue="" className="ctl-h max-w-full rounded-[12px] border-[1.5px] bg-white px-3 text-base font-semibold text-navy focus-visible:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm">
                   <option value="">{t('chonTruong')}</option>
                   {truongWigs.map((tw) => (
                     <option key={tw.id} value={tw.id}>

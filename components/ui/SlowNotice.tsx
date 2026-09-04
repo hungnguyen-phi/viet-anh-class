@@ -35,11 +35,11 @@ export function SlowNotice({pending}: {pending: boolean}) {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2 rounded-[14px] border border-gold-deep/30 bg-white px-4 py-3 shadow-pop"
+      className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2 rounded-[16px] border border-gold-deep/30 bg-white px-4 py-3 shadow-pop"
     >
       <div className="flex items-start gap-2.5">
-        <RotateCcw size={16} strokeWidth={2.4} className="mt-0.5 shrink-0 text-gold-deep" />
-        <p className="text-[12.5px] font-semibold leading-[1.55] text-navy">
+        <RotateCcw size={16} strokeWidth={2.5} className="mt-0.5 shrink-0 text-gold-deep" />
+        <p className="text-than font-semibold leading-[1.55] text-navy">
           Máy chủ đang phản hồi chậm. <b>Đừng bấm lại</b> — thao tác có thể đã xong rồi. Hãy tải
           lại trang (F5) để xem kết quả.
         </p>

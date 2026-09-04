@@ -28,7 +28,7 @@ export function ConfirmButton({
   message,
   // rgba(192,57,43,…) là --color-status-bad gõ lại bằng tay. Pha từ chính token để đổi một chỗ
   // là đổi cả nút, thay vì phải nhớ ba con số này nằm ở đây.
-  className = 'cursor-pointer rounded-[10px] border-[1.5px] border-[color-mix(in_srgb,var(--color-status-bad)_30%,transparent)] bg-[color-mix(in_srgb,var(--color-status-bad)_12%,transparent)] px-3 py-1.5 text-sm font-bold text-status-bad transition-all hover:bg-[color-mix(in_srgb,var(--color-status-bad)_20%,transparent)] active:translate-y-px',
+  className = 'cursor-pointer rounded-[12px] border-[1.5px] border-[color-mix(in_srgb,var(--color-status-bad)_30%,transparent)] bg-[color-mix(in_srgb,var(--color-status-bad)_12%,transparent)] px-3 py-1.5 text-sm font-bold text-status-bad transition-all hover:bg-[color-mix(in_srgb,var(--color-status-bad)_20%,transparent)] active:translate-y-px',
   children,
   label,
 }: {
@@ -96,12 +96,12 @@ export function ConfirmButton({
       <SlowNotice pending={pending} />
       {hoi && (
         <Popup title={tc('xacNhan')} onClose={() => setHoi(false)} width="max-w-[400px]">
-          <p className="text-[14px] font-semibold leading-relaxed text-navy">{message}</p>
+          <p className="text-noi-dung font-semibold leading-relaxed text-navy">{message}</p>
           <div className="mt-4 flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setHoi(false)}
-              className="min-h-11 cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-[13px] font-extrabold text-navy transition-colors hover:border-navy"
+              className="min-h-11 cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-than font-extrabold text-navy transition-colors hover:border-navy"
             >
               {tc('thoi')}
             </button>
@@ -109,7 +109,7 @@ export function ConfirmButton({
               type="button"
               onClick={dongY}
               autoFocus
-              className="min-h-11 cursor-pointer rounded-[12px] bg-status-bad px-4 text-[13px] font-extrabold text-white transition-colors hover:bg-status-bad/90"
+              className="min-h-11 cursor-pointer rounded-[12px] bg-status-bad px-4 text-than font-extrabold text-white transition-colors hover:bg-status-bad/90"
             >
               {tc('dongY')}
             </button>

@@ -81,37 +81,37 @@ export function HopPdr({
   const [moXem, setMoXem] = useState(false);
 
   const khungChu =
-    'w-full rounded-[10px] border-[1.5px] border-navy/15 bg-white px-2.5 py-2 text-[12.5px] font-semibold text-navy outline-none focus:border-navy';
+    'w-full rounded-[12px] border-[1.5px] border-navy/15 bg-white px-2.5 py-2 text-than font-semibold text-navy outline-none focus:border-navy';
 
   return (
     <section className="glass flex flex-col gap-3 rounded-[16px] p-4">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <h2 className="inline-flex items-center gap-1.5 font-display text-[15px] font-bold text-navy">
-          <Users size={15} strokeWidth={2.2} className="text-gold-deep" />
+        <h2 className="inline-flex items-center gap-1.5 font-display text-doc font-bold text-navy">
+          <Users size={16} strokeWidth={2} className="text-gold-deep" />
           {t(loai === 'coach' ? 'titleCoach' : 'title')}
         </h2>
         {/* Chữ tuần đứng trước, mã tuần + khoảng ngày theo sau — em không giải mã "W34-2026"
             (19/08/2026). Từ 24/08/2026 khối đi theo thanh tuần, nên chữ này nói đúng tuần ĐANG
             MỞ chứ không còn đóng cứng "Tuần này". */}
-        <span className="font-display text-[13px] font-bold text-navy">
+        <span className="font-display text-than font-bold text-navy">
           {t(laTuanNay ? 'thisWeek' : 'tuanDaQua')}
         </span>
-        <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10.5px] font-extrabold tabular-nums text-grey-mid">
+        <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-extrabold tabular-nums text-grey-mid">
           {weekLabel}
           {khoangNgay && ` · ${khoangNgay}`}
         </span>
         {daKy && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-success/[0.12] px-2 py-0.5 text-[10.5px] font-extrabold text-success-dark">
-            <CheckCircle2 size={11} strokeWidth={2.5} />
+          <span className="inline-flex items-center gap-1 rounded-full bg-success/[0.12] px-2 py-0.5 text-chu-thich font-extrabold text-success-dark">
+            <CheckCircle2 size={12} strokeWidth={2.5} />
             {t('acked')}
           </span>
         )}
       </div>
 
       {tenBuddy.length === 0 && loai === 'buddy' ? (
-        <p className="text-[12.5px] font-semibold italic text-grey-mid">{t('noBuddy')}</p>
+        <p className="text-than font-semibold italic text-grey-mid">{t('noBuddy')}</p>
       ) : (
-        <p className="text-[12.5px] font-semibold text-grey-mid">
+        <p className="text-than font-semibold text-grey-mid">
           <span className="font-extrabold text-navy">{tenBuddy.join(' · ')}</span>
           {lich && <> · {lich}</>}
         </p>
@@ -122,7 +122,7 @@ export function HopPdr({
           nào?" là câu chủ dự án hỏi nguyên văn (19/08/2026). Chỉ hiện khi biên bản còn mở:
           đã ký rồi thì dòng dạy nhịp chỉ còn là tiếng ồn. */}
       {!daKy && moGhi && (loai === 'coach' || tenBuddy.length > 0) && (
-        <p className="rounded-[10px] bg-navy/[0.04] px-2.5 py-1.5 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
+        <p className="rounded-[12px] bg-navy/[0.04] px-2.5 py-1.5 text-chu-thich font-semibold leading-relaxed text-grey-mid">
           {tuanSau ? t('nhip', {tuanSau}) : t('nhipKhongTuan')}
         </p>
       )}
@@ -133,7 +133,7 @@ export function HopPdr({
           <button
             type="button"
             onClick={() => setMoXem((v) => !v)}
-            className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 self-start text-[12px] font-extrabold text-navy underline"
+            className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 self-start text-chu-thich font-extrabold text-navy underline"
           >
             <ChevronDown size={12} strokeWidth={2.5} className={moXem ? 'rotate-180' : ''} />
             {moXem ? t('collapse') : t('expand')}
@@ -141,9 +141,9 @@ export function HopPdr({
           {moXem && (
             <dl className="flex flex-col gap-1.5">
               {CAU.map((c, i) => (
-                <div key={c} className="rounded-[10px] bg-navy/[0.04] px-2.5 py-1.5">
-                  <dt className="text-[10.5px] font-extrabold uppercase text-grey-mid">{t(`q${i + 1}`)}</dt>
-                  <dd className="text-[12.5px] font-semibold text-navy">{bienBan[c] || '—'}</dd>
+                <div key={c} className="rounded-[12px] bg-navy/[0.04] px-2.5 py-1.5">
+                  <dt className="text-nhan font-extrabold uppercase text-grey-mid">{t(`q${i + 1}`)}</dt>
+                  <dd className="text-than font-semibold text-navy">{bienBan[c] || '—'}</dd>
                 </div>
               ))}
             </dl>
@@ -155,7 +155,7 @@ export function HopPdr({
           mở biên bản tháng trước rồi hứa cho một tuần đã đi qua là lời hứa không ai giữ được, và
           máy chủ cũng chặn. Nói thẳng ra thay vì bày một cái form gửi lên là báo lỗi. */}
       {!daKy && laChinhEm && tenBuddy.length > 0 && !moGhi && (
-        <p className="rounded-[10px] bg-navy/[0.04] px-2.5 py-1.5 text-[11.5px] font-semibold leading-relaxed text-grey-mid">
+        <p className="rounded-[12px] bg-navy/[0.04] px-2.5 py-1.5 text-chu-thich font-semibold leading-relaxed text-grey-mid">
           {t('chiTuanNong')}
         </p>
       )}
@@ -167,20 +167,20 @@ export function HopPdr({
           {/* Tuần của biên bản đi theo thanh tuần; máy chủ kiểm lại (ô hidden sửa được). */}
           <input type="hidden" name="week_start" value={weekStart} />
           {luuState.error && (
-            <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
-              <AlertCircle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+            <p className="inline-flex items-start gap-1.5 rounded-[12px] bg-status-bad/[0.08] px-2.5 py-2 text-chu-thich font-bold text-status-bad">
+              <AlertCircle size={14} strokeWidth={2.5} className="mt-px shrink-0" />
               {luuState.error}
             </p>
           )}
           {luuState.ok && luuState.message && (
-            <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-success/[0.10] px-2.5 py-2 text-[12px] font-bold text-success-dark">
-              <CheckCircle2 size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+            <p className="inline-flex items-start gap-1.5 rounded-[12px] bg-success/[0.10] px-2.5 py-2 text-chu-thich font-bold text-success-dark">
+              <CheckCircle2 size={14} strokeWidth={2.5} className="mt-px shrink-0" />
               {luuState.message}
             </p>
           )}
           {CAU.map((c, i) => (
             <label key={c} className="flex flex-col gap-1">
-              <span className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
+              <span className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
                 {i + 1}. {t(`q${i + 1}`)}
               </span>
               <textarea
@@ -197,7 +197,7 @@ export function HopPdr({
                   {(['win', 'lose'] as const).map((v) => (
                     <label
                       key={v}
-                      className={`inline-flex min-h-[28px] cursor-pointer items-center gap-1.5 rounded-full border-[1.5px] px-2.5 text-[11.5px] font-extrabold ${
+                      className={`inline-flex min-h-[28px] cursor-pointer items-center gap-1.5 rounded-full border-[1.5px] px-2.5 text-chu-thich font-extrabold ${
                         v === 'win'
                           ? 'border-success/40 text-success-dark'
                           : 'border-status-bad/40 text-status-bad'
@@ -213,7 +213,7 @@ export function HopPdr({
           ))}
           {/* Câu 6 phải chỉ vào một WIG đã duyệt của em — cam kết không mục tiêu là lạc hướng. */}
           <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
+            <span className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
               {t('linkWig')}
             </span>
             <select
@@ -241,11 +241,11 @@ export function HopPdr({
       {!daKy && bienBan && (
         <form action={kyAction} className="flex flex-col gap-1.5 border-t border-navy/[0.06] pt-2.5">
           {kyState.error && (
-            <p className="text-[12px] font-bold text-status-bad">{kyState.error}</p>
+            <p className="text-chu-thich font-bold text-status-bad">{kyState.error}</p>
           )}
           <input type="hidden" name="meeting_id" value={bienBan.id} />
           <SubmitButton className={btnGhost} wrapClass="contents">
-            <CheckCircle2 size={13} strokeWidth={2.5} />
+            <CheckCircle2 size={14} strokeWidth={2.5} />
             {t('ackBtn')}
           </SubmitButton>
         </form>

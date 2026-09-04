@@ -55,7 +55,7 @@ export function MucQuanTri({
               role="tab"
               aria-selected={on}
               onClick={() => chon(m.key)}
-              className={`inline-flex h-10 cursor-pointer items-center rounded-full px-4 text-[13px] font-extrabold transition-all ${
+              className={`inline-flex h-10 cursor-pointer items-center rounded-full px-4 text-than font-extrabold transition-all ${
                 on
                   ? 'bg-navy text-white'
                   : 'border-[1.5px] border-navy/15 bg-white/60 text-navy hover:border-navy'

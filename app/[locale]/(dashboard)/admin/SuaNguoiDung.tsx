@@ -51,12 +51,12 @@ export function SuaNguoiDung({
       </button>
       {mo && (
         <Popup title={`${t('suaNguoiDungTitle')}: ${who}`} onClose={() => setMo(false)} width="max-w-[440px]">
-          <p className="text-[12px] font-semibold text-grey-mid">{email}</p>
+          <p className="text-chu-thich font-semibold text-grey-mid">{email}</p>
 
           {/* Đổi vai trò */}
           <form action={goi(setUserRole)} className="mt-3 flex flex-col gap-2">
             <input type="hidden" name="userId" value={id} />
-            <label htmlFor={`vai-${id}`} className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
+            <label htmlFor={`vai-${id}`} className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
               {t('role')}
             </label>
             <div className="flex flex-wrap items-center gap-2">
@@ -64,7 +64,7 @@ export function SuaNguoiDung({
                 id={`vai-${id}`}
                 name="role"
                 defaultValue={role}
-                className="ctl-h min-w-0 flex-1 cursor-pointer rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-base font-semibold text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm"
+                className="ctl-h min-w-0 flex-1 cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-3 text-base font-semibold text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm"
               >
                 {ROLES.map((r) => (
                   <option key={r} value={r}>
@@ -73,7 +73,7 @@ export function SuaNguoiDung({
                 ))}
               </select>
               <SubmitButton
-                className="min-h-[44px] cursor-pointer rounded-[12px] bg-navy px-4 text-[13px] font-extrabold text-white transition-colors hover:bg-navy/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50"
+                className="min-h-[44px] cursor-pointer rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-colors hover:bg-navy/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50"
                 wrapClass="contents"
                 label={t('setRoleFor', {name: who})}
               >
@@ -84,14 +84,14 @@ export function SuaNguoiDung({
 
           {/* Vùng nguy hiểm: vô hiệu + xoá — mỗi cái hỏi lại bằng hộp xác nhận của app. */}
           <div className="mt-5 border-t border-navy/10 pt-3">
-            <p className="text-[11px] font-extrabold uppercase tracking-wide text-status-bad">{t('vungNguyHiem')}</p>
+            <p className="text-nhan font-extrabold uppercase tracking-wide text-status-bad">{t('vungNguyHiem')}</p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <XacNhanForm action={goi(disableUser)} hoi={t('confirmDisable', {name: who, role: tr(role)})} nhanDongY={t('disable')} className="contents">
                 <input type="hidden" name="userId" value={id} />
                 <button
                   type="submit"
                   disabled={dangGui}
-                  className="min-h-[44px] cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-[13px] font-extrabold text-navy transition-colors hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50"
+                  className="min-h-[44px] cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-than font-extrabold text-navy transition-colors hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50"
                 >
                   {t('disable')}
                 </button>
@@ -101,7 +101,7 @@ export function SuaNguoiDung({
                 <button
                   type="submit"
                   disabled={dangGui}
-                  className="min-h-[44px] cursor-pointer rounded-[12px] bg-status-bad/[0.1] px-4 text-[13px] font-extrabold text-status-bad transition-colors hover:bg-status-bad/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50"
+                  className="min-h-[44px] cursor-pointer rounded-[12px] bg-status-bad/[0.1] px-4 text-than font-extrabold text-status-bad transition-colors hover:bg-status-bad/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50"
                 >
                   {t('delete')}
                 </button>

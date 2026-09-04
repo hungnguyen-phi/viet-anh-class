@@ -168,7 +168,7 @@ export async function StudentScoreboard({
 
   if (!student) {
     return (
-      <div className="animate-rise glass mt-4 rounded-[26px] p-10 text-center">
+      <div className="animate-rise glass mt-4 rounded-[20px] p-10 text-center">
         <p className="text-sm font-semibold text-grey-mid">{t('notFound')}</p>
       </div>
     );
@@ -586,18 +586,18 @@ export async function StudentScoreboard({
       {flash && <FlashToast message={flash} />}
 
       {/* ① HERO + ĐIỂM DANH CẢM XÚC (giữ nguyên) */}
-      <div className="animate-rise grid grid-cols-1 overflow-hidden rounded-[26px] glass md:grid-cols-2">
+      <div className="animate-rise grid grid-cols-1 overflow-hidden rounded-[20px] glass md:grid-cols-2">
         <div className="flex items-center gap-[18px] p-7">
-          <span className="animate-pop grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[22px] bg-linear-to-b from-gold-soft to-gold font-display text-[28px] font-bold text-navy shadow-[var(--shadow-gold)]">
+          <span className="animate-pop grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[20px] bg-linear-to-b from-gold-soft to-gold font-display text-hien-thi font-bold text-navy shadow-[var(--shadow-gold)]">
             ★
           </span>
           <div className="min-w-0">
-            <div className="text-[12px] font-extrabold uppercase tracking-[0.04em] text-gold-text">{t('title')}</div>
-            <h1 className="font-display text-[30px] font-bold leading-[1.15] text-navy">
+            <div className="text-chu-thich font-extrabold uppercase tracking-[0.04em] text-gold-text">{t('title')}</div>
+            <h1 className="font-display text-hien-thi font-bold leading-[1.15] text-navy">
               {t('hello', {name: displayName})}
             </h1>
             {cls && (
-              <div className="mt-0.5 text-[13.5px] font-bold text-txt">
+              <div className="mt-0.5 text-noi-dung font-bold text-txt">
                 {cls.name} · {cls.school_year}
               </div>
             )}
@@ -629,7 +629,7 @@ export async function StudentScoreboard({
       {/* ③ MỤC TIÊU CỦA LỚP — CHỈ XEM: đích chung cả lớp mà mục tiêu năm của em hướng (hỗ trợ) vào. */}
       {classId && mucTieuLopThe.length > 0 ? (
         <section>
-          <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{tBang('khuMucTieuLop')}</h2>
+          <h2 className="mb-3 font-display text-tieu-de font-bold text-navy">{tBang('khuMucTieuLop')}</h2>
           <div className="flex flex-col gap-4">
             {mucTieuLopThe.map((g) => (
               <MucTieuLopChoEm key={g.id} mucTieu={[g]} mauTheoArea={mauTheoArea} nhanTheoArea={nhanTheoArea} />
@@ -642,7 +642,7 @@ export async function StudentScoreboard({
           tuần + thước đo dẫn dắt nằm NGAY TRONG thẻ mục tiêu đã duyệt (cùng bố cục thẻ của thầy cô). */}
       {classId ? (
         <section>
-          <h2 className="mb-3 font-display text-[17px] font-bold text-navy">{tBang('khuMucTieu')}</h2>
+          <h2 className="mb-3 font-display text-tieu-de font-bold text-navy">{tBang('khuMucTieu')}</h2>
           <MucTieuCuaCon
             studentId={studentId}
             classId={classId}
@@ -684,8 +684,8 @@ export async function StudentScoreboard({
           {/* Cam kết CHƯA gắn vào mục tiêu nào — vẫn hiện để không mất lời hứa nào. */}
           {camKetMoCoi.length > 0 && (
             <div className="mt-3 flex flex-col gap-2">
-              <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{tBang('khuCamKetLac')}</p>
-              <p className="text-[12px] font-semibold text-grey-mid">{tBang('khuCamKetLacNhac')}</p>
+              <p className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{tBang('khuCamKetLac')}</p>
+              <p className="text-chu-thich font-semibold text-grey-mid">{tBang('khuCamKetLacNhac')}</p>
               {camKetMoCoi.map((c) =>
                 canTick ? (
                   <DonCamKetLac key={c.id} camKetId={c.id} noiDung={c.noi_dung} soHua={c.so_hua} mucTieu={wigDaDuyet} studentId={studentId} />
@@ -700,7 +700,7 @@ export async function StudentScoreboard({
 
       {/* ⑥ HỌP CỦA EM */}
       <section className="flex flex-col gap-3">
-        <h2 className="font-display text-[17px] font-bold text-navy">{t('meetings')}</h2>
+        <h2 className="font-display text-tieu-de font-bold text-navy">{t('meetings')}</h2>
         <HopPdr
           laChinhEm={canTick}
           tenBuddy={tenBuddy}
@@ -753,7 +753,7 @@ function BangRon({
 }) {
   if (tuanNghi) {
     return (
-      <div className="rounded-[16px] border border-navy/10 bg-white/60 px-4 py-3 text-[13px] font-semibold text-txt">
+      <div className="rounded-[16px] border border-navy/10 bg-white/60 px-4 py-3 text-than font-semibold text-txt">
         {tTuan('nghiBanner')}
       </div>
     );
@@ -761,8 +761,8 @@ function BangRon({
   if (!raw || raw.trang_thai === 'chua_co') {
     return (
       <div className="rounded-[16px] border border-navy/10 bg-white/60 px-4 py-3">
-        <div className="text-[14px] font-extrabold text-navy">{tBang('chuaCo')}</div>
-        <p className="mt-0.5 text-[12.5px] text-grey-mid">{tBang('chuaCoHint')}</p>
+        <div className="text-noi-dung font-extrabold text-navy">{tBang('chuaCo')}</div>
+        <p className="mt-0.5 text-than text-grey-mid">{tBang('chuaCoHint')}</p>
       </div>
     );
   }
@@ -774,8 +774,8 @@ function BangRon({
   const m = meta[raw.trang_thai] ?? meta.can_co;
   return (
     <div className={`rounded-[16px] border ${m.vien} ${m.nen} px-4 py-3`}>
-      <div className={`font-display text-[18px] font-extrabold tracking-wide ${m.chu}`}>{m.nhan}</div>
-      <p className="mt-0.5 text-[12.5px] font-semibold text-txt">
+      <div className={`font-display text-tieu-de font-extrabold tracking-wide ${m.chu}`}>{m.nhan}</div>
+      <p className="mt-0.5 text-than font-semibold text-txt">
         {tBang('tomTat', {du: raw.viec_dung_nhip, tong: raw.viec_tong, giu: raw.ck_giu, ck: raw.ck_tong})}
       </p>
     </div>

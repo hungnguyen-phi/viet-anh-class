@@ -33,7 +33,7 @@ export function ChamCamKetToi({
     <form action={formAction} className="flex flex-col gap-1.5">
       <input type="hidden" name="cam_ket_id" value={camKetId} />
       {soHua != null && (
-        <label className="flex flex-col gap-1 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
+        <label className="flex flex-col gap-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
           {nhanSo}
           <input
             type="number"
@@ -43,7 +43,7 @@ export function ChamCamKetToi({
             value={so}
             onChange={(e) => datSo(e.target.value)}
             inputMode="decimal"
-            className="ctl-h w-full max-w-[200px] rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-base font-semibold text-navy focus-visible:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm"
+            className="ctl-h w-full max-w-[200px] rounded-[12px] border-[1.5px] border-navy/20 bg-white px-3 text-base font-semibold text-navy focus-visible:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm"
           />
         </label>
       )}
@@ -53,9 +53,9 @@ export function ChamCamKetToi({
           name="ket_qua"
           value="thang"
           disabled={dangGui}
-          className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 rounded-[10px] border-[1.5px] border-success/40 bg-success/[0.12] px-3.5 text-[13px] font-extrabold text-success-dark transition-all hover:bg-success/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50"
+          className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 rounded-[12px] border-[1.5px] border-success/40 bg-success/[0.12] px-3.5 text-than font-extrabold text-success-dark transition-all hover:bg-success/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50"
         >
-          <Check size={13} strokeWidth={3} />
+          <Check size={14} strokeWidth={2.5} />
           {t('thang')}
         </button>
         <button
@@ -63,9 +63,9 @@ export function ChamCamKetToi({
           name="ket_qua"
           value="thua"
           disabled={dangGui}
-          className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 rounded-[10px] border-[1.5px] border-status-bad/40 bg-status-bad/[0.08] px-3.5 text-[13px] font-extrabold text-status-bad transition-all hover:bg-status-bad/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50"
+          className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 rounded-[12px] border-[1.5px] border-status-bad/40 bg-status-bad/[0.08] px-3.5 text-than font-extrabold text-status-bad transition-all hover:bg-status-bad/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50"
         >
-          <X size={13} strokeWidth={3} />
+          <X size={14} strokeWidth={2.5} />
           {t('thua')}
         </button>
         {/* Đã chấm rồi → cho bỏ chấm (ket_qua rỗng = null): mở đường sửa/xoá lại. */}
@@ -75,13 +75,13 @@ export function ChamCamKetToi({
             name="ket_qua"
             value=""
             disabled={dangGui}
-            className="min-h-[44px] cursor-pointer rounded-[10px] px-3 text-[12.5px] font-extrabold text-grey-mid underline transition-colors hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50"
+            className="min-h-[44px] cursor-pointer rounded-[12px] px-3 text-than font-extrabold text-grey-mid underline transition-colors hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50"
           >
             {t('boCham')}
           </button>
         )}
       </div>
-      {state.error && <p role="alert" className="text-[12px] font-bold text-status-bad">{state.error}</p>}
+      {state.error && <p role="alert" className="text-chu-thich font-bold text-status-bad">{state.error}</p>}
     </form>
   );
 }

@@ -51,20 +51,20 @@ export function ChonTuanCuaEm({
         <ChevronLeft size={16} strokeWidth={2.5} />
       </button>
       <div className="flex min-w-0 flex-1 flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5 text-center">
-        <span className="font-display text-[16px] font-bold leading-none text-navy">{label}</span>
-        <span className="text-[12.5px] font-bold tabular-nums text-grey-mid">
+        <span className="font-display text-doc font-bold leading-none text-navy">{label}</span>
+        <span className="text-than font-bold tabular-nums text-grey-mid">
           {ngayVN(start).slice(0, 5)} → {ngayVN(end).slice(0, 5)}
         </span>
         {khi === 'now' ? (
-          <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-gold-text">{t('weekNow')}</span>
+          <span className="rounded-full bg-gold/25 px-2 py-0.5 text-nhan font-extrabold uppercase tracking-wide text-gold-text">{t('weekNow')}</span>
         ) : (
           <button
             type="button"
             onClick={() => di(thisMonday)}
             disabled={dangTai}
-            className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-navy/15 px-2 text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid hover:border-navy"
+            className="inline-flex min-h-[24px] cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-navy/15 px-2 text-nhan font-extrabold uppercase tracking-wide text-grey-mid hover:border-navy"
           >
-            <RotateCcw size={10} strokeWidth={2.5} />
+            <RotateCcw size={12} strokeWidth={2.5} />
             {khi === 'past' ? t('weekPast') : t('weekFuture')} · {t('weekNow')}
           </button>
         )}

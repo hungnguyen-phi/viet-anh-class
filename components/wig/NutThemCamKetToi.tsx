@@ -45,7 +45,7 @@ export function NutThemCamKetToi({
         title={t('themCamKetToi')}
         className="cham-44 relative grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-full bg-gold text-navy shadow-sm transition-transform after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
       >
-        <Plus size={18} strokeWidth={3} />
+        <Plus size={20} strokeWidth={2.5} />
       </button>
       {mo && (
         <Popup title={t('themCamKetToi')} onClose={dong} width="max-w-[460px]">
@@ -56,7 +56,7 @@ export function NutThemCamKetToi({
                 <input type="hidden" name="week" value={weekQ} />
                 <input type="hidden" name="tuan_bat_dau" value={monday} />
                 <input type="hidden" name="muc_tieu_id" value={mucTieuId} />
-                <p className="text-[12px] font-bold text-grey-mid">{tCk('giupMucTieu', {ten: tenMucTieu})}</p>
+                <p className="text-chu-thich font-bold text-grey-mid">{tCk('giupMucTieu', {ten: tenMucTieu})}</p>
                 <Field label={tCk('noiDungToi')} htmlFor="ckt-noi" error={state.fieldError === 'noi_dung' ? state.error : null}>
                   <input id="ckt-noi" name="noi_dung" maxLength={300} value={nd} onChange={(e) => setNd(e.target.value)} placeholder={tCk('noiDungToi')} className={ctlWithBorder(state.fieldError === 'noi_dung')} autoFocus />
                 </Field>
@@ -64,11 +64,11 @@ export function NutThemCamKetToi({
                   <Field label={tCk('soHuaLabel')} htmlFor="ckt-so" error={state.fieldError === 'so_hua' ? state.error : null}>
                     <span className="inline-flex items-center gap-2">
                       <input id="ckt-so" type="number" name="so_hua" step="any" min="0" value={so} onChange={(e) => setSo(e.target.value)} placeholder={tCk('soHua')} className={`${ctlWithBorder(state.fieldError === 'so_hua')} max-w-[160px]`} />
-                      <span className="text-[13px] font-bold text-grey-mid">{tenDonVi}</span>
+                      <span className="text-than font-bold text-grey-mid">{tenDonVi}</span>
                     </span>
                   </Field>
                 )}
-                <NutGui className="mt-1 self-start rounded-[12px] bg-navy px-4 text-[13px] font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
+                <NutGui className="mt-1 self-start rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
                   {tCk('luu')}
                 </NutGui>
               </>

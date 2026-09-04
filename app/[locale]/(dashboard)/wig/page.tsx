@@ -283,21 +283,21 @@ export default async function WigPage({
   const diemMucTieu = mtDuyetCoDich.length ? mtDuyetCoDich.reduce((s, m) => s + Number(m.pct ?? 0), 0) / mtDuyetCoDich.length : td?.diem_muc_tieu;
 
   const baSo = (label: string, val: number | null | undefined) => (
-    <div className="flex-1 rounded-[14px] border-[1.5px] border-navy/10 bg-white px-3 py-2.5">
-      <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid">{label}</div>
-      <div className="mt-0.5 font-display text-[22px] font-bold text-navy tabular-nums">
+    <div className="flex-1 rounded-[16px] border-[1.5px] border-navy/10 bg-white px-3 py-2.5">
+      <div className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{label}</div>
+      <div className="mt-0.5 font-display text-dau font-bold text-navy tabular-nums">
         {val == null ? <span className="text-grey-mid">—</span> : `${Math.round(Number(val))}%`}
       </div>
     </div>
   );
-  const nutDuyet = 'rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-3 text-[12px] font-extrabold text-gold-text transition-all hover:bg-gold/30 focus-visible:ring-2 focus-visible:ring-navy';
+  const nutDuyet = 'rounded-full border-[1.5px] border-gold-deep/40 bg-gold/[0.18] px-3 text-chu-thich font-extrabold text-gold-text transition-all hover:bg-gold/30 focus-visible:ring-2 focus-visible:ring-navy';
   const truongChon = truongWigs.map((tw) => ({id: tw.id, ten: tw.ten ?? '', linh_vuc: ''}));
 
   return (
     <div className="flex flex-col gap-4">
       {/* ── Đầu trang ─────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-auto font-display text-[22px] font-bold text-navy">
+        <h1 className="mr-auto font-display text-dau font-bold text-navy">
           {t('title')} · {myClass.name}
         </h1>
         {/* Mục tiêu LỚP + TRƯỜNG thu vào một popup (04/09) — ít đụng tới hằng ngày, đỡ chật trang. */}
@@ -307,8 +307,8 @@ export default async function WigPage({
           {mucTieuLop.length === 0 ? (
             <section className="glass flex flex-col gap-4 rounded-[20px] p-[18px]">
               <div className="flex flex-col items-center gap-2.5 rounded-[16px] border-[1.5px] border-dashed border-navy/25 px-5 py-7 text-center">
-                <h2 className="font-display text-[16px] font-bold text-navy">{t('khuMucTieu')}</h2>
-                <p className="max-w-[440px] text-[12.5px] font-semibold leading-relaxed text-grey-mid">{t('rongDanDat')}</p>
+                <h2 className="font-display text-doc font-bold text-navy">{t('khuMucTieu')}</h2>
+                <p className="max-w-[440px] text-than font-semibold leading-relaxed text-grey-mid">{t('rongDanDat')}</p>
                 {!chiDoc && (
                   <div className="mt-1">
                     <NutTaoMucTieuLop classId={myClass.id} nhanTheoArea={nhanTheoArea} donViList={donViList} truongWigs={truongChon} />
@@ -320,7 +320,7 @@ export default async function WigPage({
             <div className="flex flex-col gap-4">
               <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="font-display text-[15px] font-bold text-navy">{t('khuMucTieu')}</h2>
+                  <h2 className="font-display text-doc font-bold text-navy">{t('khuMucTieu')}</h2>
                   {!chiDoc && (
                     <div className="ml-auto">
                       <NutTaoMucTieuLop classId={myClass.id} nhanTheoArea={nhanTheoArea} donViList={donViList} truongWigs={truongChon} />
@@ -352,21 +352,21 @@ export default async function WigPage({
               {/* Việc lớp cũ CHƯA gắn mục tiêu — di sản, gom gọn để dọn. */}
               {viecChuaGan.length > 0 && !chiDoc && (
                 <section className="glass flex flex-col gap-2 rounded-[20px] p-[18px]">
-                  <h2 className="font-display text-[14px] font-bold text-navy">{t('viecChuaGan')}</h2>
+                  <h2 className="font-display text-noi-dung font-bold text-navy">{t('viecChuaGan')}</h2>
                   <div className="flex flex-col gap-2">
                     {viecChuaGan.map((v) => {
                       const xanh = v.trang_thai === 'dat' || v.trang_thai === 'dang_thang' || v.trang_thai === 'dang_giu';
                       return (
                         <div key={v.thuoc_id} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2">
-                          <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">{v.ten}</span>
-                          <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-extrabold ${xanh ? 'bg-success/[0.12] text-success-dark' : 'bg-gold/[0.18] text-gold-text'}`}>
+                          <span className="min-w-0 flex-1 text-than font-bold text-navy">{v.ten}</span>
+                          <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-chu-thich font-extrabold ${xanh ? 'bg-success/[0.12] text-success-dark' : 'bg-gold/[0.18] text-gold-text'}`}>
                             {v.mien ? tViec('oNghi') : xanh ? tViec('du') : tViec('chuaDu')}
                           </span>
                           <SuaChiTieuLop thuocId={v.thuoc_id} chiTieuHienTai={null} donVi="" classId={myClass.id} weekQ={weekQ} />
                           <FormTaiCho action={xoaViecLop} xacNhan={tf('xoaViecHoi')} nhanXacNhan={t('xoaViec')} nguyHiem anThanhCong>
                             {ctx}
                             <input type="hidden" name="thuoc_id" value={v.thuoc_id} />
-                            <NutGui label={t('xoaViec')} className="relative grid h-9 w-9 place-items-center rounded-[10px] text-status-bad transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:bg-status-bad/10 focus-visible:ring-2 focus-visible:ring-gold">
+                            <NutGui label={t('xoaViec')} className="relative grid h-9 w-9 place-items-center rounded-[12px] text-status-bad transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:bg-status-bad/10 focus-visible:ring-2 focus-visible:ring-gold">
                               <Trash2 size={14} strokeWidth={2.5} />
                             </NutGui>
                           </FormTaiCho>
@@ -396,7 +396,7 @@ export default async function WigPage({
 
       {/* ── BA SỐ CỦA CÁC EM — 4 tuần đã khép (thi_dua_lop). Nói rõ nguồn, đừng để ai tưởng là "tuần này". */}
       <section className="glass flex flex-col gap-2 rounded-[20px] p-[18px]">
-        <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{tf('baSoChuThich')}</p>
+        <p className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{tf('baSoChuThich')}</p>
         <div className="flex items-stretch gap-2.5">
           {baSo(t('cotMucTieu'), diemMucTieu)}
           {baSo(t('cotViec'), td?.diem_thuoc)}
@@ -430,7 +430,7 @@ export default async function WigPage({
           mucTieuLopChon={mucTieuLop.filter((g) => g.trang_thai === 'duyet').map((g) => ({id: g.id, ten: g.ten ?? '', linh_vuc: (g.linh_vuc ?? 'knowledge') as string}))}
         />
       ) : (
-        <p className="text-[12px] font-semibold text-grey-mid">{tf('khuToiCuaGvcn')}</p>
+        <p className="text-chu-thich font-semibold text-grey-mid">{tf('khuToiCuaGvcn')}</p>
       )}
 
       {/* ── CÁC EM TUẦN NÀY ─────────────────────────────────────────────────────────────── */}
@@ -438,17 +438,17 @@ export default async function WigPage({
 
       {/* ── CHỜ DUYỆT — mục tiêu năm của em + hạ chỉ tiêu nhiều. Nút đi đường state. ────── */}
       <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
-        <h2 className="font-display text-[15px] font-bold text-navy">{soCho > 0 ? tDuyet('choDuyetN', {n: soCho}) : tDuyet('choDuyet')}</h2>
-        <p className="text-[11.5px] font-semibold text-grey-mid">{tDuyet('luuY')}</p>
+        <h2 className="font-display text-doc font-bold text-navy">{soCho > 0 ? tDuyet('choDuyetN', {n: soCho}) : tDuyet('choDuyet')}</h2>
+        <p className="text-chu-thich font-semibold text-grey-mid">{tDuyet('luuY')}</p>
         {soCho === 0 ? (
-          <p className="text-[12.5px] font-semibold text-grey-mid">{tDuyet('khongCo')}</p>
+          <p className="text-than font-semibold text-grey-mid">{tDuyet('khongCo')}</p>
         ) : (
           <div className="flex flex-col gap-2">
             {(mtCho ?? []).map((m) => (
               <div key={m.id} className="flex flex-col gap-2 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2.5">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-[10px] font-extrabold text-grey-mid">{tDuyet('loaiMucTieu')}</span>
-                  <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">
+                  <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-extrabold text-grey-mid">{tDuyet('loaiMucTieu')}</span>
+                  <span className="min-w-0 flex-1 text-than font-bold text-navy">
                     {m.ten} <span className="font-semibold text-grey-mid">{tDuyet('cua', {ten: tenEm.get(m.student_id ?? '') ?? ''})}</span>
                   </span>
                 </div>
@@ -460,15 +460,15 @@ export default async function WigPage({
                       <NutGui className={nutDuyet}>{tDuyet('duyet')}</NutGui>
                     </FormTaiCho>
                     <details className="min-w-0 flex-1">
-                      <summary className="inline-flex min-h-[44px] cursor-pointer list-none items-center rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12px] font-extrabold text-navy hover:border-navy">
+                      <summary className="inline-flex min-h-[44px] cursor-pointer list-none items-center rounded-[12px] border-[1.5px] border-navy/20 bg-white px-3 text-chu-thich font-extrabold text-navy hover:border-navy">
                         {tDuyet('traLai')}
                       </summary>
                       <FormTaiCho action={traLaiMucTieuEm} anThanhCong className="mt-2 flex flex-col gap-1.5">
                         {ctx}
                         <input type="hidden" name="muc_tieu_id" value={m.id ?? undefined} />
-                        <ONhap as="textarea" name="note" maxLength={300} placeholder={tDuyet('traLaiNhan')} className="w-full rounded-[10px] border-[1.5px] px-3 py-2 text-base text-navy focus-visible:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm" />
-                        <LoiO ten="note" className="text-[12px] font-bold text-status-bad" />
-                        <NutGui className="self-start rounded-[10px] bg-navy px-3 text-[12px] font-extrabold text-white focus-visible:ring-2 focus-visible:ring-gold">{tDuyet('traLaiGui')}</NutGui>
+                        <ONhap as="textarea" name="note" maxLength={300} placeholder={tDuyet('traLaiNhan')} className="w-full rounded-[12px] border-[1.5px] px-3 py-2 text-base text-navy focus-visible:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:text-sm" />
+                        <LoiO ten="note" className="text-chu-thich font-bold text-status-bad" />
+                        <NutGui className="self-start rounded-[12px] bg-navy px-3 text-chu-thich font-extrabold text-white focus-visible:ring-2 focus-visible:ring-gold">{tDuyet('traLaiGui')}</NutGui>
                       </FormTaiCho>
                     </details>
                   </div>
@@ -480,10 +480,10 @@ export default async function WigPage({
               const one = Array.isArray(th) ? th[0] : th;
               return (
                 <div key={r.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2.5">
-                  <span className="rounded-full bg-status-bad/[0.10] px-2 py-0.5 text-[10px] font-extrabold text-status-bad">
+                  <span className="rounded-full bg-status-bad/[0.10] px-2 py-0.5 text-chu-thich font-extrabold text-status-bad">
                     {tDuyet('loaiHaChiTieu', {cu: one?.ten ?? '', moi: r.chi_tieu_ky ?? ''})}
                   </span>
-                  <span className="min-w-0 flex-1 text-[13px] font-bold text-navy">
+                  <span className="min-w-0 flex-1 text-than font-bold text-navy">
                     {one?.ten} <span className="font-semibold text-grey-mid">{tDuyet('cua', {ten: tenEm.get(one?.student_id ?? '') ?? ''})}</span>
                   </span>
                   {!chiDoc && (
