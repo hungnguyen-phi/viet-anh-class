@@ -35,7 +35,7 @@ export function SuaCamKetEm({
         onClick={() => setMo(true)}
         aria-label={t('sua')}
         title={t('sua')}
-        className="cham-44 relative grid h-8 w-8 cursor-pointer place-items-center rounded-[8px] text-navy transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+        className="grid h-11 w-11 cursor-pointer place-items-center rounded-[12px] text-navy transition-colors hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
       >
         <Pencil size={14} strokeWidth={2.5} />
       </button>

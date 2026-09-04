@@ -45,7 +45,7 @@ export function SuaNguoiDung({
         onClick={() => setMo(true)}
         aria-label={t('suaNguoiDung', {name: who})}
         title={t('suaNguoiDung', {name: who})}
-        className="cham-44 grid h-8 w-8 cursor-pointer place-items-center rounded-[8px] text-navy transition-colors hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+        className="grid h-11 w-11 cursor-pointer place-items-center rounded-[12px] text-navy transition-colors hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
       >
         <Pencil size={14} strokeWidth={2.5} />
       </button>

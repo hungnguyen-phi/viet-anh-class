@@ -53,7 +53,7 @@ export function ThemCamKetEm({
         onClick={() => setMo(true)}
         aria-label={t('themCuaEm')}
         title={t('themCuaEm')}
-        className="cham-44 grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full bg-gold text-navy shadow-sm transition-transform hover:scale-105 active:scale-95"
+        className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-gold text-navy shadow-sm transition-transform hover:scale-105 active:scale-95"
       >
         <Plus size={16} strokeWidth={2.5} />
       </button>
@@ -115,7 +115,7 @@ export function ThemCamKetEm({
               <p className="text-chu-thich font-semibold text-status-bad">{state.error}</p>
             )}
             <SubmitButton
-              className="mt-1 self-start rounded-[12px] bg-navy px-4 py-2.5 text-than font-extrabold text-white transition-all hover:bg-navy/90"
+              className="mt-1 min-h-[44px] self-start rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-all hover:bg-navy/90"
               wrapClass="contents"
             >
               {t('luu')}

@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {Children, cloneElement, isValidElement, type ReactNode} from 'react';
 import {AlertCircle} from 'lucide-react';
 
 // ============================================================
@@ -109,19 +109,33 @@ export function Field({
   className?: string;
   children: ReactNode;
 }) {
+  // Nối ô ↔ câu lỗi/gợi ý cho máy đọc màn hình (rule Error Placement): id câu = `${htmlFor}-loi`,
+  // ô nhận aria-describedby + aria-invalid. Chỉ gắn khi con là MỘT phần tử điều khiển (input/select/
+  // textarea) — con phức tạp hơn thì để nguyên, caller tự lo.
+  const moTaId = htmlFor && (error || hint) ? `${htmlFor}-loi` : undefined;
+  const con = Children.toArray(children);
+  const conMot = con.length === 1 && isValidElement(con[0]) ? con[0] : null;
+  const laDieuKhien = conMot && typeof conMot.type === 'string' && ['input', 'select', 'textarea'].includes(conMot.type);
+  const body =
+    laDieuKhien && moTaId
+      ? cloneElement(conMot as React.ReactElement<Record<string, unknown>>, {
+          'aria-describedby': moTaId,
+          ...(error ? {'aria-invalid': true} : {}),
+        })
+      : children;
   return (
     <div className={`min-w-0 ${className}`}>
       <label className={labelCls} htmlFor={htmlFor}>
         {label}
       </label>
-      {children}
+      {body}
       {error ? (
-        <p className="mt-1 inline-flex items-center gap-1 text-chu-thich font-bold text-status-bad">
+        <p id={moTaId} role="alert" className="mt-1 inline-flex items-center gap-1 text-chu-thich font-bold text-status-bad">
           <AlertCircle size={12} strokeWidth={2.5} />
           {error}
         </p>
       ) : hint ? (
-        <p className="mt-1 text-chu-thich font-semibold text-grey-mid">{hint}</p>
+        <p id={moTaId} className="mt-1 text-chu-thich font-semibold text-grey-mid">{hint}</p>
       ) : null}
     </div>
   );

@@ -51,7 +51,7 @@ export async function KhuBuddyPdr({
   const coachCua = new Map(lich.filter((l) => l.type === 'coach').map((l) => [l.student_id, l]));
   const nhanThu = (d: number | null) => (d === 8 ? 'CN' : d ? `T${d}` : '');
   const oNho =
-    'h-9 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2 text-[12px] font-bold text-navy outline-none focus:border-navy';
+    'min-h-[44px] rounded-[12px] border-[1.5px] border-navy/15 bg-white px-2.5 text-base sm:text-than font-bold text-navy focus:border-navy';
 
   // ── GỘP CẶP → NHÓM (union-find tí hon) ────────────────────────────────────────────────────
   // Nhóm 3 nằm dưới CSDL là 3 cặp đôi một; đây là phép gộp ngược để mỗi nhóm hiện MỘT dòng.
@@ -150,7 +150,7 @@ export async function KhuBuddyPdr({
                 <ConfirmButton
                   message={t('confirmUnpair', {names: tenNhom})}
                   label={t('unpair')}
-                  className="grid h-9 w-9 cursor-pointer place-items-center rounded-[9px] text-status-bad transition-colors hover:bg-status-bad/10"
+                  className="grid h-11 w-11 cursor-pointer place-items-center rounded-[12px] text-status-bad transition-colors hover:bg-status-bad/10"
                 >
                   ✕
                 </ConfirmButton>
@@ -194,7 +194,7 @@ export async function KhuBuddyPdr({
             </option>
           ))}
         </select>
-        <SubmitButton className="btn-gold h-9 cursor-pointer rounded-[9px] px-3.5 text-[12.5px] font-extrabold" wrapClass="contents">
+        <SubmitButton className="btn-gold min-h-[44px] cursor-pointer rounded-[12px] px-4 text-than font-extrabold" wrapClass="contents">
           {t('pair')}
         </SubmitButton>
       </form>
@@ -212,7 +212,7 @@ export async function KhuBuddyPdr({
             <ConfirmButton
               message={t('confirmRandom', {n: conTrong.length})}
               label={t('randomize', {n: conTrong.length})}
-              className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-3 text-[12.5px] font-extrabold text-navy hover:border-navy"
+              className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[12px] border-[1.5px] border-navy/15 bg-white px-3 text-than font-extrabold text-navy hover:border-navy"
             >
               <Shuffle size={13} strokeWidth={2.5} />
               {t('randomize', {n: conTrong.length})}

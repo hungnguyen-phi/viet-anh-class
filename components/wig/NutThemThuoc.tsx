@@ -92,7 +92,7 @@ export function NutThemThuoc({
                         type="button"
                         onClick={() => setViecCach(c)}
                         aria-pressed={viecCach === c}
-                        className={`min-h-[40px] cursor-pointer rounded-[8px] px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${viecCach === c ? 'bg-navy text-white' : 'text-grey-mid'}`}
+                        className={`min-h-[44px] cursor-pointer rounded-[8px] px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${viecCach === c ? 'bg-navy text-white' : 'text-grey-mid'}`}
                       >
                         {c === 'cham' ? t('viecTick') : t('viecSo')}
                       </button>
@@ -126,7 +126,7 @@ export function NutThemThuoc({
                     </div>
                   )}
                 </div>
-                <NutGui className="mt-1 self-start rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
+                <NutGui className="mt-1 min-h-[44px] self-start rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
                   {tf('luuThuoc')}
                 </NutGui>
               </>

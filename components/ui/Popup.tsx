@@ -35,7 +35,15 @@ export function Popup({
   const [daGan, setDaGan] = useState(false);
   useEffect(() => setDaGan(true), []);
   const hopRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(daGan, hopRef);
+  // Nút đã mở hộp: ghi ở LẦN RENDER ĐẦU trên máy khách — trước khi ô `autoFocus` trong hộp giật
+  // focus (effect của trap chạy sau mount nên nhìn thấy ô nhập chứ không phải nút). Audit 04/09:
+  // 2/7 popup có autoFocus đóng xong focus rơi về skip-link vì thế.
+  const nutMoRef = useRef<HTMLElement | null>(null);
+  if (typeof document !== 'undefined' && nutMoRef.current === null) {
+    const ae = document.activeElement as HTMLElement | null;
+    nutMoRef.current = ae && ae !== document.body ? ae : null;
+  }
+  useFocusTrap(daGan, hopRef, nutMoRef);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -74,7 +82,7 @@ export function Popup({
             type="button"
             onClick={onClose}
             aria-label={tc('dong')}
-            className="cham-44 relative grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-[8px] text-grey-mid transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:bg-navy/[0.07] hover:text-navy"
+            className="-mr-2 -mt-2 grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-[12px] text-grey-mid transition-colors hover:bg-navy/[0.07] hover:text-navy"
           >
             <X size={16} strokeWidth={2.5} />
           </button>
