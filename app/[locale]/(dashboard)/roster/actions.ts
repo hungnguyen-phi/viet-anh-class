@@ -149,7 +149,7 @@ export async function enrollStudent(_prev: EnrollState, formData: FormData): Pro
 
   // Chặn ngày sinh sai TRƯỚC khi ghi danh: nếu để lọt xuống dưới thì em vẫn vào lớp nhưng ngày
   // sinh bị bỏ trắng lặng lẽ, giáo viên không biết mà điền lại.
-  const dob = parseDob({day: fields.dob_day, month: fields.dob_month, year: fields.dob_year});
+  const dob = parseDob({day: fields.dob_day, month: fields.dob_month, year: fields.dob_year}, undefined, await getTranslations('common'));
   if (dob.error) return {ok: false, fieldError: 'date_of_birth', error: dob.error, values};
 
   const supabase = await createClient();
@@ -234,7 +234,7 @@ export async function capNhatHocSinh(_prev: EnrollState, formData: FormData): Pr
 
   if (!email) return {ok: false, error: t('rThieuEmail'), values};
 
-  const dob = parseDob({day: fields.dob_day, month: fields.dob_month, year: fields.dob_year});
+  const dob = parseDob({day: fields.dob_day, month: fields.dob_month, year: fields.dob_year}, undefined, await getTranslations('common'));
   if (dob.error) return {ok: false, fieldError: 'date_of_birth', error: dob.error, values};
 
   const supabase = await createClient();

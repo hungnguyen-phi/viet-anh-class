@@ -28,6 +28,7 @@ export type AreaMeta = {
 };
 
 // FALLBACK = map SUBJ trong page.tsx + nhãn messages class.areas.* (bản hiện tại).
+// Dữ liệu mặc định (gieo area_config khi trống) — có sẵn cả label_vi lẫn label_en; không phải nhãn UI.
 export const AREA_FALLBACK: Record<Area, AreaMeta> = {
   knowledge: {hex: '#3a62c9', soft: 'rgba(58,98,201,0.14)', icon_name: 'BookOpen', label_vi: 'Kiến thức', label_en: 'Knowledge', default_unit: null},
   leadership_skills: {hex: '#557f3c', soft: 'rgba(85,127,60,0.14)', icon_name: 'Sparkles', label_vi: 'Kỹ năng lãnh đạo', label_en: 'Leadership skills', default_unit: null},

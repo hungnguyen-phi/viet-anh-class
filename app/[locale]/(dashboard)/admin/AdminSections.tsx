@@ -79,13 +79,13 @@ export async function AdminSections({phan}: {phan: 'nguoi' | 'truong' | 'khac'})
   // một cái nút chỉ dùng được sau khi làm một việc khác. Thẻ bấm vào mà không tới đâu thì lần sau
   // người ta thôi tin cả cái mục lục.
   const screens = [
-    {href: '/', label: tn('scoreboard'), desc: 'Trang lớp: bảng điểm, xếp hạng, donut mục tiêu'},
-    {href: '/attendance', label: tn('attendance'), desc: 'Điểm danh hằng ngày (tick cả lớp rồi bấm Lưu)'},
-    {href: '/roster', label: tn('roster'), desc: 'Danh sách lớp + gán trưởng điểm danh'},
-    {href: '/wig', label: tn('wig'), desc: 'Mục tiêu tuần, việc để các em tick'},
-    ...(HOC_BA_BAT ? [{href: '/grades', label: tn('grades'), desc: 'Học bạ: điểm số và rèn luyện'}] : []),
-    {href: '/campus', label: tn('campus'), desc: 'Bảng tổng hợp toàn trường (BGH)'},
-    {href: '/admin', label: tn('admin'), desc: 'Trang quản trị (màn hình này)'},
+    {href: '/', label: tn('scoreboard'), desc: t('moTaScoreboard')},
+    {href: '/attendance', label: tn('attendance'), desc: t('moTaAttendance')},
+    {href: '/roster', label: tn('roster'), desc: t('moTaRoster')},
+    {href: '/wig', label: tn('wig'), desc: t('moTaWig')},
+    ...(HOC_BA_BAT ? [{href: '/grades', label: tn('grades'), desc: t('moTaGrades')}] : []),
+    {href: '/campus', label: tn('campus'), desc: t('moTaCampus')},
+    {href: '/admin', label: tn('admin'), desc: t('moTaAdmin')},
   ];
 
   if (phan === 'nguoi') {
@@ -96,7 +96,7 @@ export async function AdminSections({phan}: {phan: 'nguoi' | 'truong' | 'khac'})
           (em ấy mở app ra không thấy gì cả), nhưng ngày thường thì danh sách rỗng và một mục rỗng
           mở toang chỉ tổ chiếm chỗ. */}
       <Disclosure
-        title="Học sinh chưa vào lớp nào"
+        title={t('hocSinhChuaVaoLop')}
         count={hocSinhChuaCoLop.length}
         defaultOpen={hocSinhChuaCoLop.length > 0}
       >
@@ -149,7 +149,7 @@ export async function AdminSections({phan}: {phan: 'nguoi' | 'truong' | 'khac'})
         count={networks.length}
         badge={
           activeNetworks === 0 ? (
-            <span className="rounded-full border border-warn/40 bg-warn/10 px-2.5 py-1 text-nhan font-extrabold text-navy">
+            <span className="rounded-full border border-warn/40 bg-warn/10 px-2.5 py-1 text-chu-thich font-extrabold text-navy">
               {t('networkOpenBadge')}
             </span>
           ) : undefined
@@ -261,7 +261,7 @@ export async function AdminSections({phan}: {phan: 'nguoi' | 'truong' | 'khac'})
                 <span className="text-xs font-extrabold text-gold-text">{tcommon('open')} →</span>
               </div>
               <p className="mt-1 text-xs text-grey-mid">{s.desc}</p>
-              <code className="mt-1 block text-nhan text-grey-mid">{s.href}</code>
+              <code className="mt-1 block text-chu-thich text-grey-mid">{s.href}</code>
             </Link>
           ))}
         </div>
@@ -301,11 +301,11 @@ function ArchivedCol({
           >
             <div className="min-w-0">
               <div className="truncate text-than font-bold text-navy">{r.label}</div>
-              {r.sub && <div className="truncate text-nhan font-semibold text-grey-mid">{r.sub}</div>}
+              {r.sub && <div className="truncate text-chu-thich font-semibold text-grey-mid">{r.sub}</div>}
             </div>
             {r.khongKhoiPhucDuoc ? (
               // Không bày một cái nút bấm vào không đổi gì. Dòng phụ bên trái đã nói phải làm gì.
-              <span className="shrink-0 text-nhan font-bold text-grey-mid">{restoreViaCampus}</span>
+              <span className="shrink-0 text-chu-thich font-bold text-grey-mid">{restoreViaCampus}</span>
             ) : (
               <form action={action}>
                 <input type="hidden" name="id" value={r.id} />

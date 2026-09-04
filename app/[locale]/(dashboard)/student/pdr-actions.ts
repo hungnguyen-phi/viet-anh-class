@@ -3,6 +3,7 @@
 import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
 import {getCurrentProfile} from '@/lib/auth';
+import {getTranslations} from 'next-intl/server';
 import {friendlyError} from '@/lib/errors';
 import {isoWeekLabel, todayInVN, vnNoon, mondayOf, shiftWeeks, tuanTuNhan} from '@/lib/dates';
 
@@ -32,21 +33,23 @@ export type PdrState = {ok: boolean; error?: string; fieldError?: string; messag
 const CAU = ['q1_plan', 'q2_result', 'q3_obstacle', 'q4_overcome', 'q5_better_way', 'q6_commitment'] as const;
 
 export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrState> {
+  const t = await getTranslations('loi');
+  const tc = await getTranslations('common');
   const me = await getCurrentProfile();
-  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
-  if (me.role !== 'student') return {ok: false, error: 'Chỉ em mới ghi được phần này.'};
+  if (!me) return {ok: false, error: t('chuaDangNhap')};
+  if (me.role !== 'student') return {ok: false, error: t('pdrChiEmGhi')};
 
   const traLoi = {} as {[K in (typeof CAU)[number]]: string | null};
   for (const c of CAU) {
     const v = String(formData.get(c) ?? '').trim();
-    if (v.length > 600) return {ok: false, fieldError: c, error: 'Mỗi câu tối đa 600 ký tự.'};
+    if (v.length > 600) return {ok: false, fieldError: c, error: t('pdrToiDa600')};
     traLoi[c] = v || null;
   }
 
   // Họp với BẠN hằng tuần hay với THẦY CÔ (1-1, hằng tháng) — hai nhánh của cùng một biên bản 6 câu.
   const loai = String(formData.get('type') ?? 'buddy');
   if (loai !== 'buddy' && loai !== 'coach')
-    return {ok: false, error: 'Không rõ đây là buổi họp loại nào.'};
+    return {ok: false, error: t('pdrKhongRoLoai')};
 
   const supabase = await createClient();
   const {data: ghiDanh} = await supabase
@@ -56,7 +59,7 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
     .eq('is_active', true)
     .limit(1)
     .maybeSingle();
-  if (!ghiDanh?.class_id) return {ok: false, error: 'Em chưa được xếp lớp.'};
+  if (!ghiDanh?.class_id) return {ok: false, error: t('pdrChuaXepLop')};
 
   // NGƯỜI NGỒI HỌP LẤY TỪ CSDL, không tin form: bạn cùng nhóm do GVCN ghép, coach là chính GVCN.
   // Thứ tự ổn định theo ngày ghép để counterpart/second không nhảy chỗ mỗi lần lưu.
@@ -74,13 +77,13 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
       .order('id');
     const banHoc = (cap ?? []).map((p) => (p.student_id === me.id ? p.buddy_id : p.student_id));
     if (banHoc.length === 0)
-      return {ok: false, error: 'Em chưa có bạn cùng nhóm — thầy cô ghép xong là họp được.'};
+      return {ok: false, error: t('pdrChuaCoBan')};
     counterpart = banHoc[0];
     secondBuddy = banHoc[1] ?? null;
   } else {
     const gvcn = (ghiDanh as unknown as {classes: {homeroom_teacher_id: string | null} | null}).classes
       ?.homeroom_teacher_id;
-    if (!gvcn) return {ok: false, error: 'Lớp em chưa có giáo viên chủ nhiệm.'};
+    if (!gvcn) return {ok: false, error: t('pdrChuaCoGvcn')};
     counterpart = gvcn;
   }
 
@@ -93,11 +96,11 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
   const tuanGui = String(formData.get('week_start') ?? '').trim();
   const tuanBienBan = /^\d{4}-\d{2}-\d{2}$/.test(tuanGui) ? tuanGui : thisMonday;
   if (mondayOf(tuanBienBan) !== tuanBienBan)
-    return {ok: false, error: 'Tuần của biên bản không hợp lệ.'};
+    return {ok: false, error: t('pdrTuanKhongHopLe')};
   if (tuanBienBan > thisMonday)
-    return {ok: false, error: 'Tuần này chưa tới — chưa có gì để nhìn lại. Mở lại tuần hiện tại nhé.'};
+    return {ok: false, error: t('pdrTuanChuaToi')};
   if (tuanBienBan < shiftWeeks(thisMonday, -1))
-    return {ok: false, error: 'Biên bản chỉ ghi được ở tuần này và tuần trước.'};
+    return {ok: false, error: t('pdrChiTuanNayTruoc')};
   const weekLabel = isoWeekLabel(vnNoon(tuanBienBan));
   const {data: daCo} = await supabase
     .from('pdr_meetings')
@@ -107,7 +110,7 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
     .eq('week_label', weekLabel)
     .maybeSingle();
   if (daCo?.acknowledged_at)
-    return {ok: false, error: 'Buổi họp tuần này đã Ghi nhận rồi — biên bản đã đóng.'};
+    return {ok: false, error: t('pdrDaGhiNhanTuan')};
 
   let meetingId = daCo?.id ?? null;
   if (meetingId) {
@@ -128,7 +131,7 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
       .select('id')
       .maybeSingle();
     if (error) return {ok: false, error: friendlyError(error)};
-    if (!data) return {ok: false, error: 'Không lưu được — em không có quyền với lớp này.'};
+    if (!data) return {ok: false, error: t('pdrKhongQuyenLop')};
     meetingId = data.id;
   }
 
@@ -165,8 +168,8 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
   if (loiKeLai > 0)
     canhBao =
       loiKeLai === 1
-        ? ' Một cam kết chưa kể lại được (có thể biên bản đã đóng hoặc cam kết không phải của em).'
-        : ` ${loiKeLai} cam kết chưa kể lại được.`;
+        ? ' ' + t('pdrKeLaiHong1')
+        : ' ' + t('pdrKeLaiHongN', {n: loiKeLai});
 
   // ── CÂU 6 → SINH CAM KẾT MỚI CHO TUẦN KẾ TIẾP ─────────────────────────────────────────────
   // Chỉ sinh MỘT lần cho mỗi buổi (soi pdr_meeting_id); em sửa câu 6 sau đó thì sửa lời văn ở thẻ
@@ -176,7 +179,7 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
   if (traLoi.q6_commitment) {
     const noiDung = traLoi.q6_commitment.trim();
     if (noiDung.length > 300)
-      return {ok: false, fieldError: 'q6_commitment', error: 'Cam kết tối đa 300 ký tự.'};
+      return {ok: false, fieldError: 'q6_commitment', error: t('toiDa300KyTu')};
     const {data: daSinh} = await supabase
       .from('cam_ket')
       .select('id')
@@ -202,15 +205,15 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
       if (error) {
         if (/nhiều nhất 2 cam kết|2\/tuần|tối đa 2/i.test(error.message ?? ''))
           canhBao +=
-            ' Tuần tới đã đủ 2 cam kết — cam kết ở câu 6 chưa sinh thêm được. Biên bản vẫn đã lưu.';
-        else canhBao += ' Cam kết ở câu 6 chưa lưu được: ' + friendlyError(error);
+            ' ' + t('pdrCau6DuTran');
+        else canhBao += ' ' + t('pdrCau6Hong', {loi: friendlyError(error, tc)});
       }
     }
   }
 
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
-  return {ok: true, message: 'Đã lưu biên bản.' + canhBao};
+  return {ok: true, message: t('pdrDaLuu') + canhBao};
 }
 
 // Nút "Ghi nhận" — chữ ký xác nhận buổi họp ĐÃ DIỄN RA (chưa Ghi nhận thì không tính KPI). Người
@@ -219,10 +222,11 @@ export async function luuPdr(_prev: PdrState, formData: FormData): Promise<PdrSt
 // dưới đây chỉ để câu báo lỗi nói tiếng người. Ghi nhận đóng cả tuần lượt ghi (luot_bi_khoa) nên
 // chặn khi còn cam kết TỚI HẠN chưa chấm ở câu 2.
 export async function ghiNhanPdr(_prev: PdrState, formData: FormData): Promise<PdrState> {
+  const t = await getTranslations('loi');
   const me = await getCurrentProfile();
-  if (!me) return {ok: false, error: 'Chưa đăng nhập.'};
+  if (!me) return {ok: false, error: t('chuaDangNhap')};
   const id = String(formData.get('meeting_id') ?? '');
-  if (!id) return {ok: false, error: 'Thiếu buổi họp.'};
+  if (!id) return {ok: false, error: t('pdrThieuBuoiHop')};
 
   const supabase = await createClient();
   const {data: bb} = await supabase
@@ -230,13 +234,13 @@ export async function ghiNhanPdr(_prev: PdrState, formData: FormData): Promise<P
     .select('student_id, class_id, type, counterpart_id, second_buddy_id, acknowledged_at, week_label')
     .eq('id', id)
     .maybeSingle();
-  if (!bb) return {ok: false, error: 'Không tìm thấy buổi họp, hoặc em không tham gia buổi này.'};
+  if (!bb) return {ok: false, error: t('pdrKhongThayBuoi')};
   if (bb.acknowledged_at)
-    return {ok: false, error: 'Buổi họp đã Ghi nhận rồi — biên bản đã đóng.'};
+    return {ok: false, error: t('pdrDaGhiNhan')};
 
   // L8: thầy cô KHÔNG ký thay.
   if (me.role !== 'student')
-    return {ok: false, error: 'Chữ ký là của em hoặc bạn em — thầy cô không ký thay.'};
+    return {ok: false, error: t('pdrThayCoKhongKy')};
   // Bạn ký hộ chỉ được ở lớp bật nhập hộ, và chỉ khi là bạn trong buổi họp (buddy).
   if (me.id !== bb.student_id) {
     const {data: lop} = await supabase
@@ -247,10 +251,10 @@ export async function ghiNhanPdr(_prev: PdrState, formData: FormData): Promise<P
     if (!lop?.nhap_ho)
       return {
         ok: false,
-        error: 'Ở lớp mình, chỉ em bấm Ghi nhận được — em bấm trên máy của em nhé.',
+        error: t('pdrChiEmBam'),
       };
     if (bb.type !== 'buddy' || (me.id !== bb.counterpart_id && me.id !== bb.second_buddy_id))
-      return {ok: false, error: 'Chỉ em hoặc bạn cùng nhóm trong buổi họp mới ký được biên bản.'};
+      return {ok: false, error: t('pdrChiBanKy')};
   }
 
   // Chặn khi còn cam kết TỚI HẠN (tuan_ket_thuc ≤ tuần biên bản) chưa chấm Thắng/Thua (câu 2).
@@ -265,7 +269,7 @@ export async function ghiNhanPdr(_prev: PdrState, formData: FormData): Promise<P
       .is('ket_qua', null)
       .lte('tuan_ket_thuc', tuan.start);
     if (count && count > 0)
-      return {ok: false, error: `Còn ${count} cam kết chưa chấm Thắng/Thua ở câu 2.`};
+      return {ok: false, error: t('pdrConCamKetChuaCham', {n: count})};
   }
 
   const {data, error} = await supabase
@@ -276,8 +280,8 @@ export async function ghiNhanPdr(_prev: PdrState, formData: FormData): Promise<P
     .select('id')
     .maybeSingle();
   if (error) return {ok: false, error: friendlyError(error)};
-  if (!data) return {ok: false, error: 'Buổi họp đã Ghi nhận rồi, hoặc em không tham gia buổi này.'};
+  if (!data) return {ok: false, error: t('pdrDaGhiNhanHoacKhongThamGia')};
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
-  return {ok: true, message: 'Đã ghi nhận buổi họp.'};
+  return {ok: true, message: t('pdrDaGhiNhanXong')};
 }

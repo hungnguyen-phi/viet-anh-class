@@ -39,7 +39,10 @@ function flash(msg: string): never {
 // lần mời giáo viên / vô hiệu giáo viên.
 async function myCampus() {
   const profile = await requireRole(['principal', 'admin']);
-  if (!profile.campus_id) flash('Tài khoản của bạn chưa được gán cơ sở. Nhờ quản trị viên gán trước.');
+  if (!profile.campus_id) {
+    const t = await getTranslations('loi');
+    flash(loi(t('csChuaGanCoSo')));
+  }
   return profile;
 }
 
@@ -80,9 +83,9 @@ export async function inviteTeachers(formData: FormData) {
   revalidatePath('/[locale]/campus', 'page');
   const msg =
     valid.length === 1
-      ? `Đã mời ${valid[0]}. Vai trò giáo viên được gán khi họ đăng nhập lần đầu.`
-      : `Đã mời ${valid.length} giáo viên. Vai trò được gán khi họ đăng nhập lần đầu.`;
-  flash(error ? loi(friendlyError(error)) : msg + (skipped > 0 ? ` (bỏ qua ${skipped} email sai định dạng)` : ''));
+      ? t('csDaMoi1', {email: valid[0]})
+      : t('csDaMoiN', {n: valid.length});
+  flash(error ? loi(friendlyError(error)) : msg + (skipped > 0 ? ' ' + t('csBoQuaEmail', {n: skipped}) : ''));
 }
 
 export async function cancelInvite(formData: FormData) {
@@ -94,7 +97,7 @@ export async function cancelInvite(formData: FormData) {
   // RLS giới hạn đúng cơ sở HT → không cần (và không nên) tự lọc campus ở đây.
   const {error} = await supabase.from('pending_user_grants').delete().eq('email', email);
   revalidatePath('/[locale]/campus', 'page');
-  flash(error ? loi(friendlyError(error)) : `Đã huỷ lời mời ${email}`);
+  flash(error ? loi(friendlyError(error)) : t('csDaHuyMoi', {email}));
 }
 
 // Vô hiệu / khôi phục giáo viên. 'pending' = còn tài khoản nhưng không vào được gì —

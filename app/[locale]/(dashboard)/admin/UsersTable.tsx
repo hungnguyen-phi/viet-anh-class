@@ -137,9 +137,9 @@ export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: strin
                 </div>
                 <div className="truncate text-chu-thich font-semibold text-grey-mid">{p.email}</div>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-nhan font-extrabold text-navy">{tr(p.role)}</span>
+                  <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-extrabold text-navy">{tr(p.role)}</span>
                   {p.lop !== undefined && (
-                    <span className={`rounded-full px-2 py-0.5 text-nhan font-bold ${p.lop === null ? 'bg-gold/20 italic text-navy' : 'bg-navy/[0.06] text-navy'}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-chu-thich font-bold ${p.lop === null ? 'bg-gold/20 italic text-navy' : 'bg-navy/[0.06] text-navy'}`}>
                       {p.lop ?? t('chuaCoLop')}
                     </span>
                   )}
@@ -148,7 +148,7 @@ export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: strin
               {!laMinh ? (
                 <SuaNguoiDung id={p.id} who={who} role={p.role} email={p.email} />
               ) : (
-                <span className="text-nhan font-bold text-grey-mid">{t('isYou')}</span>
+                <span className="text-chu-thich font-bold text-grey-mid">{t('isYou')}</span>
               )}
             </li>
           );
@@ -239,7 +239,7 @@ export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: strin
                     <SuaNguoiDung id={p.id} who={who} role={p.role} email={p.email} />
                   ) : (
                     // Dòng của chính mình: không có bút — đổi vai/xoá chính mình là tự khoá quyền.
-                    <span className="text-nhan font-bold text-grey-mid" title={t('isYou')}>
+                    <span className="text-chu-thich font-bold text-grey-mid" title={t('isYou')}>
                       {t('isYou')}
                     </span>
                   )}

@@ -13,7 +13,10 @@
 
 export type DobParts = {day?: string; month?: string; year?: string};
 
-export function parseDob(p: DobParts, namNay = new Date().getFullYear()): {
+// t tuỳ chọn (common.dob*): action truyền getTranslations('common') để câu lỗi theo ngôn ngữ người dùng;
+// không truyền thì rơi về tiếng Việt (script test-dob.mjs gọi thẳng).
+export type DobT = (k: string, v?: Record<string, string | number>) => string;
+export function parseDob(p: DobParts, namNay = new Date().getFullYear(), t?: DobT): {
   iso: string | null;
   error?: string;
 } {
@@ -23,19 +26,19 @@ export function parseDob(p: DobParts, namNay = new Date().getFullYear()): {
 
   // Không điền gì — hợp lệ, đây là trường không bắt buộc.
   if (!d && !m && !y) return {iso: null};
-  if (!d || !m || !y) return {iso: null, error: 'Ngày sinh phải điền đủ cả ngày, tháng và năm.'};
+  if (!d || !m || !y) return {iso: null, error: t ? t('dobThieu') : 'Ngày sinh phải điền đủ cả ngày, tháng và năm.'};
   if (!/^\d{1,2}$/.test(d) || !/^\d{1,2}$/.test(m) || !/^\d{4}$/.test(y))
-    return {iso: null, error: 'Ngày sinh chỉ nhận chữ số: ngày 1–31, tháng 1–12, năm đủ 4 số.'};
+    return {iso: null, error: t ? t('dobChuSo') : 'Ngày sinh chỉ nhận chữ số: ngày 1–31, tháng 1–12, năm đủ 4 số.'};
 
   const dd = Number(d);
   const mm = Number(m);
   const yy = Number(y);
-  if (mm < 1 || mm > 12) return {iso: null, error: 'Tháng sinh phải từ 1 đến 12.'};
+  if (mm < 1 || mm > 12) return {iso: null, error: t ? t('dobThang') : 'Tháng sinh phải từ 1 đến 12.'};
   if (yy < 1900 || yy > namNay)
-    return {iso: null, error: `Năm sinh phải trong khoảng 1900–${namNay}.`};
+    return {iso: null, error: t ? t('dobNam', {nam: namNay}) : `Năm sinh phải trong khoảng 1900–${namNay}.`};
   // Ngày 0 của tháng SAU = ngày cuối của tháng này → tự đúng cả năm nhuận.
   const soNgay = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
-  if (dd < 1 || dd > soNgay) return {iso: null, error: `Tháng ${mm}/${yy} chỉ có ${soNgay} ngày.`};
+  if (dd < 1 || dd > soNgay) return {iso: null, error: t ? t('dobSoNgay', {thang: mm, nam: yy, n: soNgay}) : `Tháng ${mm}/${yy} chỉ có ${soNgay} ngày.`};
 
   const p2 = (n: number) => String(n).padStart(2, '0');
   return {iso: `${yy}-${p2(mm)}-${p2(dd)}`};

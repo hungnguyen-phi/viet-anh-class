@@ -5,6 +5,7 @@ import {redirect} from 'next/navigation';
 import {headers} from 'next/headers';
 import {createClient} from '@/lib/supabase/server';
 import {requireRole} from '@/lib/auth';
+import {getTranslations} from 'next-intl/server';
 import {friendlyError, loi, tachLoi} from '@/lib/errors';
 import {clientIp} from '@/lib/ip';
 
@@ -24,10 +25,11 @@ function toCidr(raw: string): string | null {
 // Thêm dải/IP trường thủ công.
 export async function addSchoolNetwork(formData: FormData) {
   await requireRole(['admin']);
+  const t = await getTranslations('loiAdmin');
   const label = String(formData.get('label') ?? '').trim();
   const cidr = toCidr(String(formData.get('cidr') ?? ''));
   const campus_id = String(formData.get('campus_id') ?? '') || null;
-  if (!label || !cidr) flash('Thiếu nhãn hoặc IP/dải IP');
+  if (!label || !cidr) flash(loi(t('netThieuNhanIp')));
   const supabase = await createClient();
   // upsert theo (campus_id, cidr): bấm lại cùng một dải thì CẬP NHẬT chứ không đẻ thêm dòng.
   // Bảng thật đang có 21 dòng mà chỉ là 3 dải khác nhau — mỗi lần bấm lại là một bản sao,
@@ -37,16 +39,17 @@ export async function addSchoolNetwork(formData: FormData) {
     .upsert({label, cidr, campus_id, is_active: true}, {onConflict: 'campus_id,cidr'});
   if (!error) await supabase.rpc('log_audit', {p_action: 'add_school_network', p_detail: {label, cidr}});
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? loi(friendlyError(error)) : `Đã thêm mạng "${label}"`);
+  flash(error ? loi(friendlyError(error)) : t('netDaThem', {label}));
 }
 
 // Thêm nhanh IP HIỆN TẠI của admin (đứng ở trường bấm 1 nút) — server đọc IP thật từ header.
 export async function addCurrentSchoolIp(formData: FormData) {
   await requireRole(['admin']);
-  const label = String(formData.get('label') ?? '').trim() || 'IP hiện tại';
+  const t = await getTranslations('loiAdmin');
+  const label = String(formData.get('label') ?? '').trim() || t('netIpHienTai');
   const campus_id = String(formData.get('campus_id') ?? '') || null;
   const ip = clientIp(await headers());
-  if (!ip) flash('Không đọc được IP hiện tại (thử lại hoặc nhập tay).');
+  if (!ip) flash(loi(t('netKhongDocIp')));
   const cidr = ip.includes(':') ? `${ip}/128` : `${ip}/32`;
   const supabase = await createClient();
   const {error} = await supabase
@@ -54,26 +57,28 @@ export async function addCurrentSchoolIp(formData: FormData) {
     .upsert({label, cidr, campus_id, is_active: true}, {onConflict: 'campus_id,cidr'});
   if (!error) await supabase.rpc('log_audit', {p_action: 'add_current_ip', p_detail: {cidr}});
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? loi(friendlyError(error)) : `Đã thêm IP hiện tại: ${ip}`);
+  flash(error ? loi(friendlyError(error)) : t('netDaThemIp', {ip}));
 }
 
 export async function setSchoolNetworkActive(formData: FormData) {
   await requireRole(['admin']);
+  const t = await getTranslations('loiAdmin');
   const id = String(formData.get('id') ?? '');
   const active = String(formData.get('active') ?? '') === 'true';
-  if (!id) flash('Thiếu mạng');
+  if (!id) flash(loi(t('netThieu')));
   const supabase = await createClient();
   const {error} = await supabase.from('school_networks').update({is_active: active}).eq('id', id);
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? loi(friendlyError(error)) : active ? 'Đã bật mạng' : 'Đã tắt mạng');
+  flash(error ? loi(friendlyError(error)) : active ? t('netDaBat') : t('netDaTat'));
 }
 
 export async function deleteSchoolNetwork(formData: FormData) {
   await requireRole(['admin']);
+  const t = await getTranslations('loiAdmin');
   const id = String(formData.get('id') ?? '');
-  if (!id) flash('Thiếu mạng');
+  if (!id) flash(loi(t('netThieu')));
   const supabase = await createClient();
   const {error} = await supabase.from('school_networks').delete().eq('id', id);
   revalidatePath('/[locale]/admin', 'page');
-  flash(error ? loi(friendlyError(error)) : 'Đã xoá mạng');
+  flash(error ? loi(friendlyError(error)) : t('netDaXoa'));
 }
