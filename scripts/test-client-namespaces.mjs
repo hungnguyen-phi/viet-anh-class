@@ -20,7 +20,7 @@ const LAYOUT = 'app/[locale]/layout.tsx';
 
 function walk(d, out = []) {
   for (const f of readdirSync(d)) {
-    if (f === 'node_modules' || f === '.next' || f === '.git' || f === 'scripts') continue;
+    if (f === 'node_modules' || f === '.next' || f === '.git' || f === 'scripts' || f === '.claude') continue;
     const p = d + '/' + f;
     if (statSync(p).isDirectory()) walk(p, out);
     else if (/\.(tsx|ts)$/.test(f)) out.push(p.replace(/\\/g, '/'));
