@@ -170,7 +170,7 @@ export default async function TimetablePage({
     (gioData ?? []).map((g) => [g.period_no, {tu: hhmm(g.start_time), den: hhmm(g.end_time)}]),
   );
   const cellInput =
-    'w-full rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-2.5 text-[12.5px] font-semibold text-navy outline-none focus:border-navy';
+    'w-full rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-2.5 text-than font-semibold text-navy outline-none focus:border-navy';
 
   // TÊN MÔN ĐỂ HIỆN. Đọc từ danh mục; dòng cũ còn subject_id NULL thì hiện tạm chữ cũ — chỉ để
   // không mất dữ liệu đang có, KHÔNG phải để ghi tiếp vào cột đó.
@@ -227,21 +227,21 @@ export default async function TimetablePage({
                 thấy chỉ nhìn được T2 với T3 trong sáu ngày. Cuộn sang T5 thì cột số tiết trôi
                 mất, người xem không còn biết ô đang nhìn là tiết mấy — mà đó chính là toạ độ
                 thứ hai của mỗi ô. sticky giữ nó lại; nền trắng để chữ bên dưới không lộ qua. */}
-            <div className="sticky left-0 z-10 w-14 shrink-0 bg-white px-2 py-2 text-[11px] font-extrabold uppercase text-grey-mid">
+            <div className="sticky left-0 z-10 w-14 shrink-0 bg-white px-2 py-2 text-nhan font-extrabold uppercase text-grey-mid">
               {t('period')}
             </div>
             {DAYS.map((d, i) => (
               <div key={d} className={`flex-1 rounded-t-[10px] px-2 py-2 text-center ${weekDates[i] === today ? 'bg-gold/[0.14]' : ''}`}>
-                <div className="text-[12px] font-extrabold text-navy">
+                <div className="text-chu-thich font-extrabold text-navy">
                   {dayLabel(d)}
                   {weekDates[i] === today && (
-                    <span className="ml-1 rounded-full bg-gold px-1.5 py-px align-middle text-[8.5px] font-black uppercase text-navy">
+                    <span className="ml-1 rounded-full bg-gold px-1.5 py-px align-middle text-nhan font-black uppercase text-navy">
                       {t('today')}
                     </span>
                   )}
                 </div>
                 <div
-                  className={`text-[10.5px] font-bold ${
+                  className={`text-chu-thich font-bold ${
                     weekDates[i] === today ? 'text-gold-text' : 'text-grey-mid'
                   }`}
                 >
@@ -253,9 +253,9 @@ export default async function TimetablePage({
           {PERIODS.map((p) => (
             <div key={p} className="flex border-t border-navy/[0.08]">
               <div className="sticky left-0 z-10 flex w-14 shrink-0 flex-col items-center justify-center bg-white leading-tight">
-                <span className="text-[13px] font-bold text-grey-mid">{p}</span>
+                <span className="text-than font-bold text-grey-mid">{p}</span>
                 {gioTiet[p] && (
-                  <span className="text-[9px] font-bold tabular-nums text-grey-mid/80">
+                  <span className="text-chu-thich font-bold tabular-nums text-grey-mid/80">
                     {gioTiet[p].tu}
                     <br />
                     {gioTiet[p].den}
@@ -270,7 +270,7 @@ export default async function TimetablePage({
                   <div key={d} className={`min-w-0 flex-1 p-1.5 ${weekDates[i] === today ? 'bg-gold/[0.07]' : ''}`}>
                     {s ? (
                       <div
-                        className={`relative rounded-[10px] border-[1.5px] px-2 py-1.5 ${style.box} ${
+                        className={`relative rounded-[8px] border-[1.5px] px-2 py-1.5 ${style.box} ${
                           ov?.status === 'cancelled' ? 'opacity-55' : ''
                         }`}
                       >
@@ -285,23 +285,23 @@ export default async function TimetablePage({
                         >
                           <span
                             title={tenMon(s)}
-                            className={`flex min-h-[24px] items-center truncate text-[12.5px] font-bold text-navy ${
+                            className={`flex min-h-[24px] items-center truncate text-than font-bold text-navy ${
                               ov?.status === 'cancelled' ? 'line-through' : ''
                             }`}
                           >
                             {tenMonNgan(s)}
                           </span>
                           {(s.room || s.teacher_name) && (
-                            <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10.5px] font-semibold text-grey-mid">
+                            <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-chu-thich font-semibold text-grey-mid">
                               {s.room && (
                                 <span className="inline-flex items-center gap-0.5">
-                                  <MapPin size={10} strokeWidth={2.5} />
+                                  <MapPin size={12} strokeWidth={2.5} />
                                   {s.room}
                                 </span>
                               )}
                               {s.teacher_name && (
                                 <span className="inline-flex min-w-0 items-center gap-0.5">
-                                  <UserRound size={10} strokeWidth={2.5} />
+                                  <UserRound size={12} strokeWidth={2.5} />
                                   <span className="truncate">{s.teacher_name}</span>
                                 </span>
                               )}
@@ -312,18 +312,18 @@ export default async function TimetablePage({
                         {ov && (
                           <div className="mt-1 flex flex-wrap items-center gap-1">
                             {ov.status === 'cancelled' && (
-                              <span className="rounded-full bg-status-bad/[0.14] px-1.5 py-0.5 text-[9.5px] font-extrabold text-status-bad">
+                              <span className="rounded-full bg-status-bad/[0.14] px-1.5 py-0.5 text-chu-thich font-extrabold text-status-bad">
                                 {t('ovCancelled')}
                               </span>
                             )}
                             {ov.status === 'substituted' && (
-                              <span className="inline-flex items-center gap-0.5 rounded-full bg-navy/[0.10] px-1.5 py-0.5 text-[9.5px] font-extrabold text-navy">
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-navy/[0.10] px-1.5 py-0.5 text-chu-thich font-extrabold text-navy">
                                 {t('ovSubstituted')}: {ov.substitute_name}
                               </span>
                             )}
                             {ov.status === 'moved' && (
-                              <span className="inline-flex items-center gap-0.5 rounded-full bg-navy/[0.10] px-1.5 py-0.5 text-[9.5px] font-extrabold text-navy">
-                                <ArrowRight size={9} strokeWidth={3} />
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-navy/[0.10] px-1.5 py-0.5 text-chu-thich font-extrabold text-navy">
+                                <ArrowRight size={12} strokeWidth={2.5} />
                                 {ov.new_date?.slice(5)} · {t('period')} {ov.new_period_no}
                               </span>
                             )}
@@ -362,12 +362,12 @@ export default async function TimetablePage({
                       <NutTiet
                         o={oCua(d, p)}
                         title={`${t('addSlot')} · ${dayLabel(d)} · ${t('period')} ${p}`}
-                        className="grid w-full cursor-pointer place-items-center rounded-[10px] border-[1.5px] border-dashed border-navy/15 py-2 text-navy/25 transition-colors hover:border-navy/45 hover:bg-navy/[0.04] hover:text-navy"
+                        className="grid w-full cursor-pointer place-items-center rounded-[8px] border-[1.5px] border-dashed border-navy/15 py-2 text-navy/25 transition-colors hover:border-navy/45 hover:bg-navy/[0.04] hover:text-navy"
                       >
                         <Plus size={14} strokeWidth={2.5} />
                       </NutTiet>
                     ) : (
-                      <div className="rounded-[10px] py-1.5 text-center text-[11px] text-navy/15">·</div>
+                      <div className="rounded-[8px] py-1.5 text-center text-chu-thich text-navy/15">·</div>
                     )}
                   </div>
                 );
@@ -405,7 +405,7 @@ export default async function TimetablePage({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-display text-[22px] font-bold text-navy">
+        <h1 className="font-display text-dau font-bold text-navy">
           {t('title')} · {myClass.name}
         </h1>
         {accessible.length > 1 && <ClassPicker classes={accessible} current={myClass.id} />}
@@ -421,7 +421,7 @@ export default async function TimetablePage({
             <Link
               key={c.id}
               href={{pathname: '/timetable', query: {child: c.id}}}
-              className={`rounded-full border px-2.5 py-1 text-[11.5px] font-bold transition-colors ${
+              className={`rounded-full border px-2.5 py-1 text-chu-thich font-bold transition-colors ${
                 c.id === con?.id
                   ? 'border-navy bg-navy text-white'
                   : 'border-navy/15 bg-navy/[0.02] text-navy hover:border-navy'
@@ -443,8 +443,8 @@ export default async function TimetablePage({
 
       {/* Điều hướng tuần + chú thích màu */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-navy">
-          <CalendarDays size={14} strokeWidth={2.2} className="text-grey-mid" />
+        <span className="inline-flex items-center gap-1.5 text-than font-bold text-navy">
+          <CalendarDays size={14} strokeWidth={2} className="text-grey-mid" />
           {rangeLabel}
         </span>
         <span className="flex items-center gap-1.5">
@@ -463,7 +463,7 @@ export default async function TimetablePage({
                   ...(d === 0 ? {} : {week: shiftWeek(d)}),
                 },
               }}
-              className="inline-flex min-h-[44px] items-center rounded-[9px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-[11.5px] font-extrabold text-navy transition-colors hover:border-navy sm:min-h-0 sm:h-8"
+              className="inline-flex min-h-[44px] items-center rounded-[8px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-chu-thich font-extrabold text-navy transition-colors hover:border-navy sm:min-h-0 sm:h-8"
             >
               {label}
             </Link>
@@ -540,7 +540,7 @@ export default async function TimetablePage({
             />
           )}
           {(['regular', 'practice', 'exam'] as const).map((k) => (
-            <span key={k} className="inline-flex items-center gap-1.5 text-[11px] font-bold text-grey-mid">
+            <span key={k} className="inline-flex items-center gap-1.5 text-chu-thich font-bold text-grey-mid">
               <span className={`h-2.5 w-2.5 rounded-full ${KIND_STYLE[k].dot}`} />
               {t(`kind_${k}`)}
             </span>
@@ -552,7 +552,7 @@ export default async function TimetablePage({
           mấy giờ (10A1 trên production đúng cảnh này, audit 04/09). Nhắc ngay chỗ cần, kèm nút. */}
       {canManage && Object.keys(gioTiet).length === 0 && (
         <div className="glass flex flex-wrap items-center gap-2.5 rounded-[16px] px-4 py-3">
-          <p className="min-w-[220px] flex-1 text-[12.5px] font-semibold leading-relaxed text-navy">{t('timesMissing')}</p>
+          <p className="min-w-[220px] flex-1 text-than font-semibold leading-relaxed text-navy">{t('timesMissing')}</p>
           <GioTietForm
             classId={myClass.id}
             gio={gioTiet}
@@ -576,7 +576,7 @@ export default async function TimetablePage({
 
       {/* EM/PHỤ HUYNH mở lớp chưa có tiết nào: nói thẳng, không bày một bảng câm 56 ô trống. */}
       {!canManage && slots.length === 0 && (
-        <p className="glass hidden rounded-[16px] px-4 py-6 text-center text-[13px] font-semibold leading-relaxed text-grey-mid sm:block">
+        <p className="glass hidden rounded-[16px] px-4 py-6 text-center text-than font-semibold leading-relaxed text-grey-mid sm:block">
           {t('emptyForStudent')}
         </p>
       )}
@@ -626,7 +626,7 @@ export default async function TimetablePage({
           {/* RPC seed_class_subjects gieo cả bộ môn đang dùng của cơ sở, gọi lại bao nhiêu lần
               cũng an toàn. */}
           <div className="flex flex-wrap items-center gap-2.5">
-            <p className="min-w-[240px] flex-1 text-[12.5px] font-semibold leading-[1.55] text-txt">
+            <p className="min-w-[240px] flex-1 text-than font-semibold leading-[1.55] text-txt">
               {/* Câu này trước đây gõ THẲNG tiếng Việt vào JSX, nên bản tiếng Anh của trang
                   cũng hiện ra một đoạn tiếng Việt. Bộ kiểm khoá dịch không bắt được: nó chỉ
                   soi những khoá ĐƯỢC GỌI có tồn tại hay không, chứ không biết chỗ nào lẽ ra
@@ -636,7 +636,7 @@ export default async function TimetablePage({
             <form action={seedSubjects}>
               <input type="hidden" name="class_id" value={myClass.id} />
               <SubmitButton
-                className="btn-gold h-11 cursor-pointer rounded-[10px] px-4 text-sm font-extrabold"
+                className="btn-gold h-11 cursor-pointer rounded-[8px] px-4 text-sm font-extrabold"
                 wrapClass="contents"
               >
                 {t('addSubjects')}
@@ -649,7 +649,7 @@ export default async function TimetablePage({
       {/* GVCN/Admin: ngoại lệ theo ngày (huỷ / dời / dạy thay) + danh sách của tuần đang xem */}
       {canManage && slotOptions.length > 0 && (
         <div className="glass rounded-[20px] p-4">
-          <div className="mb-2 font-display text-[15px] font-bold text-navy">{t('ovTitle')}</div>
+          <div className="mb-2 font-display text-noi-dung font-bold text-navy">{t('ovTitle')}</div>
           <OverrideForm
             classId={myClass.id}
             slots={slotOptions}
@@ -679,12 +679,12 @@ export default async function TimetablePage({
                 .map((o) => {
                   const s = slotById.get(o.slot_id);
                   return (
-                    <div key={o.id} className="flex flex-wrap items-center gap-2 text-[12px] font-semibold text-navy">
+                    <div key={o.id} className="flex flex-wrap items-center gap-2 text-chu-thich font-semibold text-navy">
                       <span className="font-extrabold">{o.date.slice(5)}</span>
                       <span className="text-grey-mid">
                         {s ? `${tenMon(s)} · ${t('period')} ${s.period_no}` : '—'}
                       </span>
-                      <span className="rounded-full bg-navy/[0.08] px-2 py-0.5 text-[10.5px] font-extrabold">
+                      <span className="rounded-full bg-navy/[0.08] px-2 py-0.5 text-chu-thich font-extrabold">
                         {o.status === 'cancelled'
                           ? t('ovCancelled')
                           : o.status === 'moved'
@@ -698,7 +698,7 @@ export default async function TimetablePage({
                         <ConfirmButton
                           message={t('confirmRemoveOverride')}
                           label={t('ovRemove')}
-                          className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-1 text-[11px] font-extrabold text-navy hover:border-navy"
+                          className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 py-1 text-chu-thich font-extrabold text-navy hover:border-navy"
                         >
                           {t('ovRemove')}
                         </ConfirmButton>

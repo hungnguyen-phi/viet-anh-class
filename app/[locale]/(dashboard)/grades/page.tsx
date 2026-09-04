@@ -239,7 +239,7 @@ export default async function GradesPage({
 
   const tieuDe = (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <h1 className="font-display text-[22px] font-bold text-navy">{t('pageTitle', {cls: myClass.name})}</h1>
+      <h1 className="font-display text-dau font-bold text-navy">{t('pageTitle', {cls: myClass.name})}</h1>
       {/* Quản trị/BGH thấy bộ chọn KỂ CẢ khi chỉ có một lớp: nó là chỗ duy nhất trên màn hình
             nói rõ mình đang đứng ở lớp nào. Giáo viên chỉ có lớp mình thì giấu đi cho gọn. */}
         {(accessible.length > 1 || profile.role === 'admin' || profile.role === 'principal') && (
@@ -259,11 +259,11 @@ export default async function GradesPage({
             người mở đường — thay vì đưa ngay một cái form hành chính mà không giải thích nó là gì.
             Ban giám hiệu vào đây để xem học sinh học ra sao, không phải để làm thủ tục. */}
         <div className="glass rounded-[20px] p-8 text-center">
-          <p className="font-display text-[16px] font-bold text-navy">
+          <p className="font-display text-doc font-bold text-navy">
             {t('noTermTitle', {year: myClass.school_year})}
           </p>
           {canTerm && (
-            <p className="mx-auto mt-2 max-w-[520px] text-[12.5px] font-semibold leading-relaxed text-grey-mid">
+            <p className="mx-auto mt-2 max-w-[520px] text-than font-semibold leading-relaxed text-grey-mid">
               {t('noTermForLeader')}
             </p>
           )}
@@ -554,7 +554,7 @@ export default async function GradesPage({
 
           <div className="flex flex-wrap items-center gap-2 pb-2.5">
             <span
-              className={`rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${
+              className={`rounded-full px-2 py-0.5 text-chu-thich font-extrabold ${
                 term.is_locked ? 'bg-status-bad/[0.08] text-status-bad' : 'bg-gold/20 text-navy'
               }`}
             >
@@ -563,7 +563,7 @@ export default async function GradesPage({
             {/* Giáo viên bộ môn không đọc được phiếu nên không biết đã công bố bao nhiêu — không
                 bịa một con số 0 ra cho họ đọc. */}
             {!laGVBM && (
-              <span className="text-[12px] font-semibold text-grey-mid">
+              <span className="text-chu-thich font-semibold text-grey-mid">
                 {t.rich('publishedCount', {n: daCongBo, total: coPhieu.length, b: (c) => <b className="text-navy">{c}</b>})}
               </span>
             )}
@@ -613,7 +613,7 @@ export default async function GradesPage({
           </div>
         </div>
 
-        <p className="mt-1.5 text-[11px] italic text-grey-mid">
+        <p className="mt-1.5 text-chu-thich italic text-grey-mid">
           {t('termMeta', {kind: t(`termKinds.${term.kind as TermKind}`), year: term.school_year})}
           {(term.start_date || term.end_date) &&
             t('termRange', {from: ngayVN(term.start_date) || '…', to: ngayVN(term.end_date) || '…'})}
@@ -625,12 +625,12 @@ export default async function GradesPage({
           thì "sao tôi không thấy điểm môn khác" sẽ thành phiếu báo lỗi, trong khi đó là thiết kế. */}
       {laGVBM && (
         <div className="glass rounded-[20px] p-4">
-          <div className="font-display text-[15px] font-bold text-navy">
+          <div className="font-display text-noi-dung font-bold text-navy">
             {monToiDay.length > 0
               ? t('subjectTeacherHere', {subject: subjectName || monToiDay[0].name, class: myClass.name})
               : t('subjectTeacherNone', {class: myClass.name})}
           </div>
-          <p className="mt-1 text-[12px] font-semibold leading-[1.55] text-grey-mid">
+          <p className="mt-1 text-chu-thich font-semibold leading-[1.55] text-grey-mid">
             {monToiDay.length > 0 ? (
               <>
                 {t.rich('subjectTeacherScope', {n: monToiDay.length, list: monToiDay.map((m) => m.name).join(', '), b: (c) => <b className="text-navy">{c}</b>})}
@@ -651,10 +651,10 @@ export default async function GradesPage({
           khi lớp chưa có phiếu nào, tức là đúng lúc lớp mới lập. */}
       {monHienCo.length === 0 && (canEdit || canTerm) && (
         <div className="glass rounded-[20px] p-4">
-          <div className="font-display text-[15px] font-bold text-navy">
+          <div className="font-display text-noi-dung font-bold text-navy">
             {t('noSubjectsTitle', {cls: myClass.name})}
           </div>
-          <p className="mt-1 text-[12px] font-semibold leading-[1.55] text-grey-mid">
+          <p className="mt-1 text-chu-thich font-semibold leading-[1.55] text-grey-mid">
             {t('seedHint')}
           </p>
           <form action={seedClassSubjects} className="mt-2.5">
@@ -671,7 +671,7 @@ export default async function GradesPage({
       )}
 
       {term.is_locked && (canEdit || laGVBM) && profile.role !== 'admin' && (
-        <p className="text-[12px] font-bold text-status-bad">
+        <p className="text-chu-thich font-bold text-status-bad">
           {t('lockedNotice')}
         </p>
       )}
@@ -690,7 +690,7 @@ export default async function GradesPage({
           {nhapDiem && (
             <div className="flex flex-col gap-3">
               <div className="glass rounded-[20px] p-4">
-                <div className="mb-2.5 font-display text-[15px] font-bold text-navy">
+                <div className="mb-2.5 font-display text-noi-dung font-bold text-navy">
                   {t('pickColumn')}
                 </div>
                 <ColumnPicker
@@ -719,7 +719,7 @@ export default async function GradesPage({
                   rows={scoreCells}
                 />
               ) : (
-                <p className="text-[12px] font-semibold text-grey-mid">
+                <p className="text-chu-thich font-semibold text-grey-mid">
                   {monHienCo.length === 0
                     ? t('noSubjectsSeed')
                     : t('pickSubjectFirst')}
@@ -733,7 +733,7 @@ export default async function GradesPage({
             <>
               <ReviewListForm classId={myClass.id} termId={term.id} rows={reviewRows} />
               {daRoiLop > 0 && (
-                <p className="text-[11px] italic text-grey-mid">
+                <p className="text-chu-thich italic text-grey-mid">
                   {t('leftMidTerm', {n: daRoiLop})}
                 </p>
               )}
@@ -743,10 +743,10 @@ export default async function GradesPage({
           {/* ── Công bố cho gia đình ───────────────────────────────────────── */}
           {suaPhieu && (
             <div className="glass rounded-[20px] p-4">
-              <div className="font-display text-[15px] font-bold text-navy">
+              <div className="font-display text-noi-dung font-bold text-navy">
                 {t('publishTitle')}
               </div>
-              <p className="mt-1 text-[12px] font-semibold leading-[1.55] text-grey-mid">
+              <p className="mt-1 text-chu-thich font-semibold leading-[1.55] text-grey-mid">
                 {t('publishHint')}
               </p>
               <div className="mt-2.5 flex flex-wrap items-center gap-2">
@@ -783,7 +783,7 @@ export default async function GradesPage({
                   </form>
                 )}
                 {coTheCongBo === 0 && coTheGoCongBo === 0 && (
-                  <span className="text-[12px] font-semibold text-grey-mid">
+                  <span className="text-chu-thich font-semibold text-grey-mid">
                     {t('nothingToPublish')}
                   </span>
                 )}
@@ -798,7 +798,7 @@ export default async function GradesPage({
           {!laGVBM && (
             <>
               <section>
-                <h2 className="mb-3 font-display text-[17px] font-bold text-navy">
+                <h2 className="mb-3 font-display text-tieu-de font-bold text-navy">
                   {t('classTableTitle', {term: term.name})}
                 </h2>
                 <ClassScoreTable
@@ -806,12 +806,12 @@ export default async function GradesPage({
                   rows={tableRows}
                 />
                 {monCoDiem.size === 0 && (
-                  <p className="mt-2 text-[11px] italic text-grey-mid">
+                  <p className="mt-2 text-chu-thich italic text-grey-mid">
                     {t('noScoresYet')}
                   </p>
                 )}
                 {nhapDiem && subjectName && (
-                  <p className="mt-2 text-[11px] italic text-grey-mid">
+                  <p className="mt-2 text-chu-thich italic text-grey-mid">
                     {t('enteringNow', {column: tenCot(subjectName, kind, ordinal, t), weight: heSo})}
                   </p>
                 )}
@@ -826,7 +826,7 @@ export default async function GradesPage({
       )}
 
       {thieuPhieu > 0 && coPhieu.length > 0 && (
-        <p className="text-[11px] italic text-grey-mid">
+        <p className="text-chu-thich italic text-grey-mid">
           {t('missingCount', {n: thieuPhieu})}
           {canEdit
             ? t('missingSheetsManage')

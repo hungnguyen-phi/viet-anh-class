@@ -54,8 +54,8 @@ export async function ClassScoreTable({
         className="flex items-center gap-2 bg-navy/[0.03] px-[18px] py-[10px]"
         style={{minWidth}}
       >
-        <span className="w-[22px] flex-none text-[11px] font-extrabold text-grey-mid">#</span>
-        <span className="flex-[1.4] text-[11px] font-extrabold uppercase text-grey-mid">
+        <span className="w-[22px] flex-none text-chu-thich font-extrabold text-grey-mid">#</span>
+        <span className="flex-[1.4] text-nhan font-extrabold uppercase text-grey-mid">
           {t('thStudent')}
         </span>
         {/* Ô tiêu đề rộng 80px: hiện MÃ NGẮN của môn (cột short_name có sẵn trong danh mục, đặt
@@ -65,15 +65,15 @@ export async function ClassScoreTable({
           <span
             key={s.id}
             title={s.name}
-            className="w-[80px] flex-none truncate text-center text-[11px] font-extrabold uppercase text-grey-mid"
+            className="w-[80px] flex-none truncate text-center text-nhan font-extrabold uppercase text-grey-mid"
           >
             {s.short_name}
           </span>
         ))}
-        <span className="w-[104px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid">
+        <span className="w-[104px] flex-none text-center text-nhan font-extrabold uppercase text-grey-mid">
           {t('thConduct')}
         </span>
-        <span className="w-[92px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid">
+        <span className="w-[92px] flex-none text-center text-nhan font-extrabold uppercase text-grey-mid">
           {t('thStatus')}
         </span>
       </div>
@@ -84,13 +84,13 @@ export async function ClassScoreTable({
           className="flex items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2 transition-colors hover:bg-navy/[0.03]"
           style={{minWidth}}
         >
-          <span className="w-[22px] flex-none text-[12px] font-bold text-grey-mid">{i + 1}</span>
+          <span className="w-[22px] flex-none text-chu-thich font-bold text-grey-mid">{i + 1}</span>
           <span className="flex min-w-0 flex-[1.4] items-center gap-1.5">
-            <span className="min-w-0 truncate text-[13.5px] font-bold text-navy">{r.name}</span>
+            <span className="min-w-0 truncate text-noi-dung font-bold text-navy">{r.name}</span>
             {r.daRoiLop && (
               <span
                 title={t('leftClassTitle')}
-                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-navy/[0.07] px-2 py-0.5 text-[10.5px] font-extrabold text-navy/70"
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-navy/[0.07] px-2 py-0.5 text-chu-thich font-extrabold text-navy/70"
               >
                 ○ đã rời lớp
               </span>
@@ -99,7 +99,7 @@ export async function ClassScoreTable({
           {subjects.map((s) => (
             <span
               key={s.id}
-              className={`w-[80px] flex-none text-center text-[13px] font-bold ${
+              className={`w-[80px] flex-none text-center text-than font-bold ${
                 typeof r.tb[s.id] === 'number' ? 'text-navy' : 'text-navy/25'
               }`}
             >
@@ -109,17 +109,17 @@ export async function ClassScoreTable({
           <span className="grid w-[104px] flex-none place-items-center">
             {r.conduct ? (
               <span
-                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10.5px] font-extrabold ${CONDUCT_CHIP[r.conduct]}`}
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-chu-thich font-extrabold ${CONDUCT_CHIP[r.conduct]}`}
               >
                 {t(`conducts.${r.conduct}`)}
               </span>
             ) : (
-              <span className="text-[12px] font-semibold text-navy/25">—</span>
+              <span className="text-chu-thich font-semibold text-navy/25">—</span>
             )}
           </span>
           <span className="grid w-[92px] flex-none place-items-center">
             <span
-              className={`rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${
+              className={`rounded-full px-2 py-0.5 text-chu-thich font-extrabold ${
                 r.published ? 'bg-gold/20 text-navy' : 'bg-navy/[0.08] text-grey-mid'
               }`}
             >
@@ -141,13 +141,13 @@ export async function ClassScoreTable({
           style={{minWidth}}
         >
           <span className="w-[22px] flex-none" />
-          <span className="flex-[1.4] text-[11px] font-extrabold uppercase text-grey-mid">
+          <span className="flex-[1.4] text-nhan font-extrabold uppercase text-grey-mid">
             {t('classAverage')}
           </span>
           {subjects.map((s) => (
             <span
               key={s.id}
-              className="w-[80px] flex-none text-center text-[13px] font-extrabold text-navy"
+              className="w-[80px] flex-none text-center text-than font-extrabold text-navy"
             >
               {soVN(tbLop(s.id))}
             </span>

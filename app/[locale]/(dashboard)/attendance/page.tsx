@@ -19,7 +19,7 @@ type EnrRow = {
 };
 
 const nutTuan =
-  'inline-flex h-[42px] items-center gap-1 rounded-[10px] border-[1.5px] border-navy/15 bg-navy/[0.02] px-2.5 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
+  'inline-flex h-[42px] items-center gap-1 rounded-[8px] border-[1.5px] border-navy/15 bg-navy/[0.02] px-2.5 text-chu-thich font-extrabold text-navy transition-all hover:border-navy';
 
 export default async function AttendancePage({
   params,
@@ -135,15 +135,15 @@ export default async function AttendancePage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h1 className="font-display text-[22px] font-bold text-navy">
+          <h1 className="font-display text-dau font-bold text-navy">
             {t('title')} · {myClass.name}
           </h1>
-          <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-txt">
-            <CalendarDays size={14} strokeWidth={2.2} className="text-grey-mid" />
+          <span className="inline-flex items-center gap-1.5 text-than font-bold text-txt">
+            <CalendarDays size={14} strokeWidth={2} className="text-grey-mid" />
             {today === realToday ? t('todayLabel') : t('viewingDay')}: <b className="text-navy">{ngayVN(today)}</b>
           </span>
-          <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-txt">
-            <Users size={14} strokeWidth={2.2} className="text-grey-mid" />
+          <span className="inline-flex items-center gap-1.5 text-than font-bold text-txt">
+            <Users size={14} strokeWidth={2} className="text-grey-mid" />
             {t('sizeLabel')}: <b className="text-navy">{students.length}</b>
           </span>
         </div>
@@ -173,10 +173,10 @@ export default async function AttendancePage({
               return (
                 <span
                   key={d}
-                  className="inline-flex flex-col items-center rounded-[10px] border-[1.5px] border-navy/[0.08] px-2.5 py-1.5 text-[11px] font-extrabold leading-tight text-grey-soft"
+                  className="inline-flex flex-col items-center rounded-[8px] border-[1.5px] border-navy/[0.08] px-2.5 py-1.5 text-chu-thich font-extrabold leading-tight text-grey-soft"
                 >
                   <span>{dow}</span>
-                  <span className="text-[10px] font-bold">{ngayVN(d).slice(0, 5)}</span>
+                  <span className="text-chu-thich font-bold">{ngayVN(d).slice(0, 5)}</span>
                 </span>
               );
             }
@@ -184,14 +184,14 @@ export default async function AttendancePage({
               <NutDoiTrang
                 key={d}
                 href={duongNgay(d)}
-                className={`inline-flex flex-col items-center rounded-[10px] px-2.5 py-1.5 text-[11px] font-extrabold leading-tight transition-all ${
+                className={`inline-flex flex-col items-center rounded-[8px] px-2.5 py-1.5 text-chu-thich font-extrabold leading-tight transition-all ${
                   active
                     ? 'btn-gold border border-transparent'
                     : 'border-[1.5px] border-navy/15 bg-navy/[0.02] text-navy hover:border-navy'
                 }`}
               >
                 <span>{isToday ? t('todayLabel') : dow}</span>
-                <span className="text-[10px] font-bold opacity-70">{ngayVN(d).slice(0, 5)}</span>
+                <span className="text-chu-thich font-bold opacity-70">{ngayVN(d).slice(0, 5)}</span>
               </NutDoiTrang>
             );
           })}
@@ -209,7 +209,7 @@ export default async function AttendancePage({
       )}
 
       {dateNotice && (
-        <p className="rounded-[10px] bg-gold/15 px-3 py-2 text-[12.5px] font-semibold text-gold-text">
+        <p className="rounded-[8px] bg-gold/15 px-3 py-2 text-than font-semibold text-gold-text">
           {dateNotice}
         </p>
       )}

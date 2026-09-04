@@ -55,9 +55,9 @@ export function EnrollForm({classId}: {classId: string}) {
     }
   };
 
-  const lbl = 'mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
+  const lbl = 'mb-1 block text-nhan font-extrabold uppercase tracking-wide text-grey-mid';
   const inp =
-    'w-full px-3 rounded-[10px] border-[1.5px] bg-white py-2 text-sm font-semibold text-navy outline-none';
+    'w-full px-3 rounded-[8px] border-[1.5px] bg-white py-2 text-sm font-semibold text-navy outline-none';
   const emailBorder =
     state.fieldError === 'email'
       ? 'border-status-bad focus:border-status-bad'
@@ -67,11 +67,11 @@ export function EnrollForm({classId}: {classId: string}) {
     return (
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => setMo(true)} className={btnGhost}>
-          <Plus size={15} strokeWidth={2.8} />
+          <Plus size={14} strokeWidth={2.5} />
           {t('enrollOpen')}
         </button>
         {state.ok && state.message && (
-          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-success-dark">
+          <span className="inline-flex items-center gap-1.5 text-than font-bold text-success-dark">
             <CheckCircle2 size={14} strokeWidth={2.5} />
             {state.message}
           </span>
@@ -100,7 +100,7 @@ export function EnrollForm({classId}: {classId: string}) {
             className={`${inp} ${emailBorder}`}
           />
           {state.fieldError === 'email' && state.error && (
-            <p className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-status-bad">
+            <p className="mt-1 inline-flex items-center gap-1 text-chu-thich font-bold text-status-bad">
               <AlertCircle size={12} strokeWidth={2.5} />
               {state.error}
             </p>
@@ -116,7 +116,7 @@ export function EnrollForm({classId}: {classId: string}) {
 
         <div className="flex items-end">
           <SubmitButton
-            className="btn-gold h-11 w-full cursor-pointer rounded-[10px] px-4 text-sm font-extrabold"
+            className="btn-gold h-11 w-full cursor-pointer rounded-[8px] px-4 text-sm font-extrabold"
             wrapClass="contents"
           >
             + {t('enroll')}
@@ -128,21 +128,21 @@ export function EnrollForm({classId}: {classId: string}) {
       <button
         type="button"
         onClick={() => setMo(false)}
-        className="mt-2 inline-flex min-h-[24px] cursor-pointer items-center text-[12px] font-extrabold text-grey-mid underline"
+        className="mt-2 inline-flex min-h-[24px] cursor-pointer items-center text-chu-thich font-extrabold text-grey-mid underline"
       >
         {t('enrollClose')}
       </button>
 
       {/* Lỗi chung (không gắn field cụ thể) */}
       {state.error && !state.fieldError && (
-        <p className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-bold text-status-bad">
+        <p className="mt-2 inline-flex items-center gap-1.5 text-than font-bold text-status-bad">
           <AlertCircle size={14} strokeWidth={2.5} />
           {state.error}
         </p>
       )}
       {/* Báo thành công inline */}
       {state.ok && state.message && (
-        <p className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-bold text-success-dark">
+        <p className="mt-2 inline-flex items-center gap-1.5 text-than font-bold text-success-dark">
           <CheckCircle2 size={14} strokeWidth={2.5} />
           {state.message}
         </p>

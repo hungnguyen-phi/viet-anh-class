@@ -13,9 +13,9 @@ export type LopDich = {id: string; name: string; school_year: string; campus_nam
 export type DeNghiDangCho = {id: string; toClassName: string};
 
 const nutNho =
-  'inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[9px] border-[1.5px] border-navy/20 bg-white px-2 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy';
+  'inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 text-chu-thich font-extrabold text-navy transition-all hover:border-navy';
 const inp =
-  'w-full min-w-0 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-[13px] font-semibold text-navy outline-none transition-all focus:border-navy';
+  'w-full min-w-0 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-than font-semibold text-navy outline-none transition-all focus:border-navy';
 
 // DỜI MỘT EM SANG LỚP KHÁC.
 //
@@ -63,12 +63,12 @@ export function TransferControl({
       >
         {pending ? (
           <>
-            <Clock3 size={12} strokeWidth={2.6} />
+            <Clock3 size={12} strokeWidth={2.5} />
             {t('transferPendingShort')}
           </>
         ) : (
           <>
-            <ArrowRightLeft size={12} strokeWidth={2.6} />
+            <ArrowRightLeft size={12} strokeWidth={2.5} />
             {t('transfer')}
           </>
         )}
@@ -84,7 +84,7 @@ export function TransferControl({
             <form action={cancelTransfer} className="flex flex-wrap items-center justify-end gap-2">
               <input type="hidden" name="classId" value={classId} />
               <input type="hidden" name="requestId" value={pending.id} />
-              <p className="min-w-0 flex-1 text-[12.5px] font-semibold leading-relaxed text-txt">
+              <p className="min-w-0 flex-1 text-than font-semibold leading-relaxed text-txt">
                 {t('transferPendingBody', {name: studentName, class: pending.toClassName})}
               </p>
               <SubmitButton

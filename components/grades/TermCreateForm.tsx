@@ -30,7 +30,7 @@ export async function TermCreateForm({
 
   if (conLai.length === 0) {
     return (
-      <p className="text-[11px] italic text-grey-mid">
+      <p className="text-chu-thich italic text-grey-mid">
         Năm học {schoolYear} đã khai báo đủ 5 đợt đánh giá cho cơ sở này.
       </p>
     );
@@ -42,7 +42,7 @@ export async function TermCreateForm({
       <input type="hidden" name="school_year" value={schoolYear} />
       <input type="hidden" name="class_id" value={classId} />
 
-      <h2 className="mb-2 font-display text-[15px] font-bold text-navy">
+      <h2 className="mb-2 font-display text-noi-dung font-bold text-navy">
         Khai báo đợt đánh giá · năm học {schoolYear}
       </h2>
 
@@ -84,7 +84,7 @@ export async function TermCreateForm({
         </div>
       </div>
 
-      <p className="mt-2 text-[11px] italic text-grey-mid">
+      <p className="mt-2 text-chu-thich italic text-grey-mid">
         {t('hTermName')} {t('termCreateHint')}
       </p>
     </form>

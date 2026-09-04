@@ -74,16 +74,16 @@ export function GioTietForm({
   };
 
   const oNho =
-    'h-10 rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2 text-[12.5px] font-bold tabular-nums text-navy outline-none focus:border-navy';
+    'h-10 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 text-than font-bold tabular-nums text-navy outline-none focus:border-navy';
 
   return (
     <>
       <button
         type="button"
         onClick={() => setMo(true)}
-        className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[9px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-[11.5px] font-extrabold text-navy transition-colors hover:border-navy sm:min-h-0 sm:h-8"
+        className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[8px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-chu-thich font-extrabold text-navy transition-colors hover:border-navy sm:min-h-0 sm:h-8"
       >
-        <Clock3 size={13} strokeWidth={2.4} />
+        <Clock3 size={12} strokeWidth={2.5} />
         {nhan.moNut}
       </button>
 
@@ -94,36 +94,36 @@ export function GioTietForm({
 
             {/* Tự điền: ba con số → cả dãy. */}
             <div className="flex flex-wrap items-end gap-2 rounded-[12px] bg-navy/[0.04] p-2.5">
-              <label className="flex flex-col gap-1 text-[10.5px] font-extrabold uppercase text-grey-mid">
+              <label className="flex flex-col gap-1 text-nhan font-extrabold uppercase text-grey-mid">
                 {nhan.batDau1}
                 <input type="time" value={batDau1} onChange={(e) => setBatDau1(e.target.value)} className={`${oNho} w-28`} />
               </label>
-              <label className="flex flex-col gap-1 text-[10.5px] font-extrabold uppercase text-grey-mid">
+              <label className="flex flex-col gap-1 text-nhan font-extrabold uppercase text-grey-mid">
                 {nhan.doDai}
                 <input type="number" min={20} max={120} value={doDai} onChange={(e) => setDoDai(Number(e.target.value))} className={`${oNho} w-20`} />
               </label>
-              <label className="flex flex-col gap-1 text-[10.5px] font-extrabold uppercase text-grey-mid">
+              <label className="flex flex-col gap-1 text-nhan font-extrabold uppercase text-grey-mid">
                 {nhan.nghi}
                 <input type="number" min={0} max={60} value={nghi} onChange={(e) => setNghi(Number(e.target.value))} className={`${oNho} w-20`} />
               </label>
               <button type="button" onClick={tuDien} className={btnGhost}>
-                <Wand2 size={13} strokeWidth={2.4} />
+                <Wand2 size={12} strokeWidth={2.5} />
                 {nhan.tuDien}
               </button>
             </div>
 
             <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-x-2 gap-y-1.5">
-              <span className="text-[10.5px] font-extrabold uppercase text-grey-mid">{nhan.tiet}</span>
-              <span className="text-[10.5px] font-extrabold uppercase text-grey-mid">{nhan.tu}</span>
-              <span className="text-[10.5px] font-extrabold uppercase text-grey-mid">{nhan.den}</span>
+              <span className="text-nhan font-extrabold uppercase text-grey-mid">{nhan.tiet}</span>
+              <span className="text-nhan font-extrabold uppercase text-grey-mid">{nhan.tu}</span>
+              <span className="text-nhan font-extrabold uppercase text-grey-mid">{nhan.den}</span>
               {Array.from({length: soTiet}, (_, i) => i + 1).map((p) => (
                 <FieldsTiet key={p} p={p} o={o} setO={setO} oNho={oNho} />
               ))}
             </div>
 
             {state.error && (
-              <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12px] font-bold text-status-bad">
-                <AlertCircle size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+              <p className="inline-flex items-start gap-1.5 rounded-[8px] bg-status-bad/[0.08] px-2.5 py-2 text-chu-thich font-bold text-status-bad">
+                <AlertCircle size={12} strokeWidth={2.5} className="mt-px shrink-0" />
                 {state.error}
               </p>
             )}
@@ -158,7 +158,7 @@ function FieldsTiet({
     setO((cu) => ({...cu, [p]: {tu: cu[p]?.tu ?? '', den: cu[p]?.den ?? '', [k]: e.target.value}}));
   return (
     <>
-      <span className="text-[13px] font-bold text-navy">{p}</span>
+      <span className="text-than font-bold text-navy">{p}</span>
       <input type="time" name={`tu_${p}`} value={o[p]?.tu ?? ''} onChange={dat('tu')} className={oNho} />
       <input type="time" name={`den_${p}`} value={o[p]?.den ?? ''} onChange={dat('den')} className={oNho} />
     </>

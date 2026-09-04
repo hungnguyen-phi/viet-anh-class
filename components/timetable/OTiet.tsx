@@ -175,7 +175,7 @@ function HopTiet({
             lan ra cả tuần. */}
         {!o.slot && (
           <fieldset className="rounded-[12px] border-[1.5px] border-navy/10 p-2.5">
-            <legend className="px-1 text-[10.5px] font-extrabold uppercase tracking-wide text-grey-mid">
+            <legend className="px-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
               {nhan.apDung}
             </legend>
             <div className="flex flex-wrap gap-1.5">
@@ -184,7 +184,7 @@ function HopTiet({
                 .map((d) => (
                   <label key={d.value} className="cursor-pointer">
                     <input type="checkbox" name="ap_thu" value={d.value} className="peer sr-only" />
-                    <span className="grid h-11 w-11 select-none place-items-center rounded-[10px] border-[1.5px] border-navy/15 bg-white text-[11.5px] font-extrabold text-grey-mid transition-all hover:border-navy peer-checked:border-transparent peer-checked:bg-gold peer-checked:text-navy peer-focus-visible:ring-2 peer-focus-visible:ring-navy/40">
+                    <span className="grid h-11 w-11 select-none place-items-center rounded-[8px] border-[1.5px] border-navy/15 bg-white text-chu-thich font-extrabold text-grey-mid transition-all hover:border-navy peer-checked:border-transparent peer-checked:bg-gold peer-checked:text-navy peer-focus-visible:ring-2 peer-focus-visible:ring-navy/40">
                       {d.label}
                     </span>
                   </label>
@@ -194,7 +194,7 @@ function HopTiet({
         )}
 
         {state.error && (
-          <p className="inline-flex items-start gap-1.5 rounded-[10px] bg-status-bad/[0.08] px-2.5 py-2 text-[12.5px] font-bold text-status-bad">
+          <p className="inline-flex items-start gap-1.5 rounded-[8px] bg-status-bad/[0.08] px-2.5 py-2 text-than font-bold text-status-bad">
             <AlertCircle size={14} strokeWidth={2.5} className="mt-px shrink-0" />
             {state.error}
           </p>

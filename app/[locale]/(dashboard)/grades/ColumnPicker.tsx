@@ -101,7 +101,7 @@ export function ColumnPicker({
       </div>
 
       {/* Nói trước đường đi khi thiếu môn, để không ai đi tìm ô gõ tay đã bỏ. */}
-      <p className="text-[11px] italic text-grey-mid">
+      <p className="text-chu-thich italic text-grey-mid">
         {t('columnHint')}
       </p>
     </div>

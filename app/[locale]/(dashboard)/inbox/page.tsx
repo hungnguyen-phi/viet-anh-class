@@ -21,7 +21,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const SO_TIN_TOI_DA = 200;
 
 const backLinkCls =
-  'inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy';
+  'inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-[8px] border-[1.5px] border-navy/20 bg-white px-3 text-than font-extrabold text-navy transition-all hover:border-navy';
 
 type LinkRow = {student_id: string; profiles: {full_name: string | null} | null};
 type EnrolRow = {
@@ -141,11 +141,11 @@ export default async function InboxPage({
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
-            <h1 className="truncate font-display text-[22px] font-bold text-navy">
+            <h1 className="truncate font-display text-dau font-bold text-navy">
               {t('threadAbout', {name: tenCon ?? t('aStudent')})}
             </h1>
             {tenLop && (
-              <p className="mt-0.5 text-[12.5px] font-bold text-grey-mid">
+              <p className="mt-0.5 text-than font-bold text-grey-mid">
                 {t('classLine', {cls: tenLop})} · {laPhuHuynh ? t('withTeacher') : t('withParents')}
               </p>
             )}
@@ -166,7 +166,7 @@ export default async function InboxPage({
           ) : (
             <>
               {messages.length === SO_TIN_TOI_DA && (
-                <p className="text-center text-[11px] italic text-grey-mid">
+                <p className="text-center text-chu-thich italic text-grey-mid">
                   {t('showingLatest', {n: SO_TIN_TOI_DA})}
                 </p>
               )}
@@ -181,7 +181,7 @@ export default async function InboxPage({
           <MessageForm threadId={openId} laPhuHuynh={laPhuHuynh} />
         ) : (
           <div className="glass rounded-[16px] p-3">
-            <p className="inline-flex items-start gap-1.5 text-[13px] font-bold text-grey-mid">
+            <p className="inline-flex items-start gap-1.5 text-than font-bold text-grey-mid">
               <Lock size={14} strokeWidth={2.5} className="mt-0.5 shrink-0" />
               {t('lockedLeftClass')}
             </p>
@@ -189,8 +189,8 @@ export default async function InboxPage({
         )}
 
         {laPhuHuynh && (
-          <p className="inline-flex items-start gap-1.5 text-[11px] italic text-grey-mid">
-            <ShieldCheck size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+          <p className="inline-flex items-start gap-1.5 text-chu-thich italic text-grey-mid">
+            <ShieldCheck size={12} strokeWidth={2.5} className="mt-px shrink-0" />
             {t('privacyThread')}
           </p>
         )}
@@ -224,7 +224,7 @@ export default async function InboxPage({
     if (cacCon.length === 0) {
       return (
         <div className="glass rounded-[20px] p-8 text-center">
-          <h1 className="font-display text-[22px] font-bold text-navy">
+          <h1 className="font-display text-dau font-bold text-navy">
             {t('noLinkTitle')}
           </h1>
           <p className="mt-2 text-sm text-grey-mid">
@@ -263,17 +263,17 @@ export default async function InboxPage({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="inline-flex items-center gap-2 font-display text-[22px] font-bold text-navy">
-          <MessagesSquare size={20} strokeWidth={2.2} />
+        <h1 className="inline-flex items-center gap-2 font-display text-dau font-bold text-navy">
+          <MessagesSquare size={20} strokeWidth={2} />
           {laPhuHuynh ? t('titleParent') : t('titleTeacher')}
           {tongChuaDoc > 0 && (
-            <span className="rounded-full bg-gold px-2 py-0.5 text-[12px] font-black text-navy">
+            <span className="rounded-full bg-gold px-2 py-0.5 text-chu-thich font-black text-navy">
               {tongChuaDoc}
             </span>
           )}
         </h1>
         {!laPhuHuynh && soCuocDangCho > 0 && (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-status-bad/[0.08] px-2.5 py-1 text-[11.5px] font-extrabold text-status-bad">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-status-bad/[0.08] px-2.5 py-1 text-chu-thich font-extrabold text-status-bad">
             {t('waitingFamilies', {n: soCuocDangCho})}
           </span>
         )}
@@ -306,8 +306,8 @@ export default async function InboxPage({
       />
 
       {laPhuHuynh && (
-        <p className="inline-flex items-start gap-1.5 text-[11px] italic text-grey-mid">
-          <ShieldCheck size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+        <p className="inline-flex items-start gap-1.5 text-chu-thich italic text-grey-mid">
+          <ShieldCheck size={12} strokeWidth={2.5} className="mt-px shrink-0" />
           {t('privacyFootParent')}
         </p>
       )}

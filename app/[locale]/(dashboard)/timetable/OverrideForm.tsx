@@ -44,7 +44,7 @@ export function OverrideForm({
       <input type="hidden" name="class_id" value={classId} />
 
       <label className="min-w-[220px] flex-1">
-        <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+        <span className="mb-1 block text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
           {labels.slot}
         </span>
         <select
@@ -67,7 +67,7 @@ export function OverrideForm({
       </label>
 
       <label>
-        <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+        <span className="mb-1 block text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
           {labels.date}
         </span>
         <input
@@ -81,7 +81,7 @@ export function OverrideForm({
       </label>
 
       <label>
-        <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+        <span className="mb-1 block text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
           {labels.status}
         </span>
         <select
@@ -99,13 +99,13 @@ export function OverrideForm({
       {status === 'moved' && (
         <>
           <label>
-            <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+            <span className="mb-1 block text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
               {labels.newDate}
             </span>
             <input type="date" name="new_date" className={inputCls} required />
           </label>
           <label>
-            <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+            <span className="mb-1 block text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
               {labels.newPeriod}
             </span>
             <select name="new_period_no" defaultValue="1" className={`${inputCls} w-28 cursor-pointer`}>
@@ -121,7 +121,7 @@ export function OverrideForm({
 
       {status === 'substituted' && (
         <label className="min-w-[150px]">
-          <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+          <span className="mb-1 block text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
             {labels.substitute}
           </span>
           <input name="substitute_name" className={inputCls} required />
@@ -129,14 +129,14 @@ export function OverrideForm({
       )}
 
       <label className="min-w-[160px] flex-1">
-        <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+        <span className="mb-1 block text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
           {labels.note}
         </span>
         <input name="note" className={inputCls} />
       </label>
 
       <SubmitButton
-        className="btn-gold h-11 cursor-pointer rounded-[10px] px-4 text-sm font-extrabold"
+        className="btn-gold h-11 cursor-pointer rounded-[8px] px-4 text-sm font-extrabold"
         wrapClass="contents"
       >
         {labels.save}

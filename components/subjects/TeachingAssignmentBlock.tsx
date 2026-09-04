@@ -29,9 +29,9 @@ export type GiaoVien = {
 // Kiểu điều khiển gọn cho hàng bảng chật — y hệt bộ đang dùng ở TeacherManager của trang Cơ sở,
 // để hai màn hình quản lý nhân sự trông cùng một họ.
 const selectNho =
-  'h-8 min-w-0 flex-1 cursor-pointer rounded-[9px] border-[1.5px] border-navy/15 bg-white px-2 text-[12.5px] font-semibold text-navy outline-none transition-colors focus:border-navy';
+  'h-8 min-w-0 flex-1 cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2 text-than font-semibold text-navy outline-none transition-colors focus:border-navy';
 const nutNavy =
-  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[9px] bg-navy px-2.5 text-[11.5px] font-extrabold text-white transition-all hover:bg-navy-700';
+  'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[8px] bg-navy px-2.5 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700';
 
 export function TeachingAssignmentBlock({
   classId,
@@ -73,7 +73,7 @@ export function TeachingAssignmentBlock({
     const nhomNgoai = ngoaiCoSo.filter((g) => !daCo.has(g.id));
     if (nhomTrong.length + nhomNgoai.length === 0)
       return (
-        <span className="text-[11.5px] font-semibold text-grey-mid">{t('allAssigned')}</span>
+        <span className="text-chu-thich font-semibold text-grey-mid">{t('allAssigned')}</span>
       );
 
     return (
@@ -116,7 +116,7 @@ export function TeachingAssignmentBlock({
   return (
     <section className="flex flex-col gap-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-display text-[17px] font-bold text-navy">
+        <h2 className="font-display text-tieu-de font-bold text-navy">
           {t('assignTitle', {class: tenLop})}
         </h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -138,7 +138,7 @@ export function TeachingAssignmentBlock({
           <p className="text-sm font-semibold text-txt">
             {t('noSubjectsTitle', {class: tenLop})}
           </p>
-          <p className="mx-auto mt-1 max-w-[560px] text-[12.5px] text-grey-mid">
+          <p className="mx-auto mt-1 max-w-[560px] text-than text-grey-mid">
             {t('noSubjectsHint')}
           </p>
         </div>
@@ -146,14 +146,14 @@ export function TeachingAssignmentBlock({
         <div className="glass overflow-x-auto rounded-[20px]">
           {/* Header */}
           <div className="flex min-w-[900px] items-center gap-2 bg-navy/[0.03] px-[18px] py-[10px]">
-            <span className="w-[22px] flex-none text-[11px] font-extrabold text-grey-mid">#</span>
-            <span className="flex-[1.2] text-[11px] font-extrabold uppercase text-grey-mid">
+            <span className="w-[22px] flex-none text-chu-thich font-extrabold text-grey-mid">#</span>
+            <span className="flex-[1.2] text-nhan font-extrabold uppercase text-grey-mid">
               {t('thSubject')}
             </span>
-            <span className="flex-[2] text-[11px] font-extrabold uppercase text-grey-mid">
+            <span className="flex-[2] text-nhan font-extrabold uppercase text-grey-mid">
               {t('thTeaching')}
             </span>
-            <span className="w-[290px] flex-none text-[11px] font-extrabold uppercase text-grey-mid">
+            <span className="w-[290px] flex-none text-nhan font-extrabold uppercase text-grey-mid">
               {t('thAddTeacher')}
             </span>
           </div>
@@ -165,13 +165,13 @@ export function TeachingAssignmentBlock({
                 key={m.subjectId}
                 className="flex min-w-[900px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2 transition-colors hover:bg-navy/[0.03]"
               >
-                <span className="w-[22px] flex-none text-[12px] font-bold text-grey-mid">
+                <span className="w-[22px] flex-none text-chu-thich font-bold text-grey-mid">
                   {i + 1}
                 </span>
                 <span className="flex min-w-0 flex-[1.2] items-center gap-1.5">
-                  <span className="truncate text-[13.5px] font-bold text-navy">{m.name}</span>
+                  <span className="truncate text-noi-dung font-bold text-navy">{m.name}</span>
                   {!m.isActive && (
-                    <span className="shrink-0 rounded-full bg-status-bad/[0.08] px-2 py-0.5 text-[10.5px] font-extrabold text-status-bad">
+                    <span className="shrink-0 rounded-full bg-status-bad/[0.08] px-2 py-0.5 text-chu-thich font-extrabold text-status-bad">
                       {t('subjectOffChip')}
                     </span>
                   )}
@@ -179,7 +179,7 @@ export function TeachingAssignmentBlock({
 
                 <span className="flex min-w-0 flex-[2] flex-wrap items-center gap-1.5">
                   {ds.length === 0 && (
-                    <span className="text-[12.5px] font-semibold text-grey-mid">
+                    <span className="text-than font-semibold text-grey-mid">
                       {t('nobodyTeaches')}
                     </span>
                   )}
@@ -188,7 +188,7 @@ export function TeachingAssignmentBlock({
                     // người dạy (dạy đôi, tách nhóm, dạy thay giữa kỳ) nên không gộp thành một ô.
                     <span
                       key={p.id}
-                      className="inline-flex items-center gap-1 rounded-full bg-gold/20 px-2 py-0.5 text-[11.5px] font-extrabold text-navy"
+                      className="inline-flex items-center gap-1 rounded-full bg-gold/20 px-2 py-0.5 text-chu-thich font-extrabold text-navy"
                     >
                       {p.teacherName}
                       <form action={unassignTeacher} className="contents">
@@ -201,7 +201,7 @@ export function TeachingAssignmentBlock({
                             class: tenLop,
                           })}
                           label={t('unassign')}
-                          className="grid h-6 w-6 cursor-pointer place-items-center rounded-full border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-[10px] font-extrabold leading-none text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                          className="grid h-6 w-6 cursor-pointer place-items-center rounded-full border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-chu-thich font-extrabold leading-none text-status-bad transition-all hover:bg-status-bad/[0.16]"
                         >
                           ✕
                         </ConfirmButton>
@@ -216,12 +216,12 @@ export function TeachingAssignmentBlock({
                       người dùng bấm rồi nhận lỗi. */}
                   {m.isActive && giaoVien.length > 0 && oChonGiaoVien(m)}
                   {m.isActive && giaoVien.length === 0 && (
-                    <span className="text-[11.5px] font-semibold text-grey-mid">
+                    <span className="text-chu-thich font-semibold text-grey-mid">
                       {t('noTeacherAccounts')}
                     </span>
                   )}
                   {!m.isActive && (
-                    <span className="text-[11.5px] font-semibold text-grey-mid">
+                    <span className="text-chu-thich font-semibold text-grey-mid">
                       {t('subjectOffHint')}
                     </span>
                   )}
@@ -234,7 +234,7 @@ export function TeachingAssignmentBlock({
 
       {/* Hậu quả của nút ✕ nói ngay dưới bảng, không giấu trong hộp xác nhận: người bấm phải
           hiểu đây là thao tác CẤP/THU QUYỀN, không phải sửa một dòng danh sách. */}
-      <p className="text-[11px] italic text-grey-mid">{t('assignHint')}</p>
+      <p className="text-chu-thich italic text-grey-mid">{t('assignHint')}</p>
     </section>
   );
 }

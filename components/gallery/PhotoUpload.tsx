@@ -143,7 +143,7 @@ export function PhotoUpload({
         </Field>
 
         <div className="flex items-end">
-          <label className="ctl-h inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] border-[1.5px] border-navy/20 bg-navy/[0.02] px-4 text-[13px] font-extrabold text-navy transition-all focus-within:border-navy focus-within:ring-1 focus-within:ring-navy/20 hover:border-navy hover:bg-white">
+          <label className="ctl-h inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] border-[1.5px] border-navy/20 bg-navy/[0.02] px-4 text-than font-extrabold text-navy transition-all focus-within:border-navy focus-within:ring-1 focus-within:ring-navy/20 hover:border-navy hover:bg-white">
             <input
               type="file"
               multiple
@@ -153,23 +153,23 @@ export function PhotoUpload({
               onChange={onChange}
               disabled={dangTai}
             />
-            {dangTai ? <Loader2 size={14} className="animate-spin" /> : <ImageUp size={14} strokeWidth={2.2} />}
+            {dangTai ? <Loader2 size={14} className="animate-spin" /> : <ImageUp size={14} strokeWidth={2} />}
             {dangTai ? t('uploading', {i: tienDo.i, n: tienDo.n}) : t('pickPhotos')}
           </label>
         </div>
       </div>
 
-      <p className="mt-2 text-[11px] italic text-grey-mid">
+      <p className="mt-2 text-chu-thich italic text-grey-mid">
         {t('uploadHint')}
       </p>
 
       {loi && (
-        <p className="mt-2 inline-flex items-start gap-1.5 text-[13px] font-bold text-status-bad">
+        <p className="mt-2 inline-flex items-start gap-1.5 text-than font-bold text-status-bad">
           <AlertCircle size={14} strokeWidth={2.5} className="mt-0.5 shrink-0" />
           {loi}
         </p>
       )}
-      {xong && <p className="mt-2 text-[13px] font-bold text-success-dark">{xong}</p>}
+      {xong && <p className="mt-2 text-than font-bold text-success-dark">{xong}</p>}
     </div>
   );
 }

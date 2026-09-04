@@ -89,19 +89,19 @@ export function AlbumForm({classId, today}: {classId: string; today: string}) {
       </div>
 
       {state.error && !state.fieldError && (
-        <p className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-bold text-status-bad">
+        <p className="mt-2 inline-flex items-center gap-1.5 text-than font-bold text-status-bad">
           <AlertCircle size={14} strokeWidth={2.5} />
           {state.error}
         </p>
       )}
       {state.ok && state.message && (
-        <p className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-bold text-success-dark">
+        <p className="mt-2 inline-flex items-center gap-1.5 text-than font-bold text-success-dark">
           <CheckCircle2 size={14} strokeWidth={2.5} />
           {state.message}
         </p>
       )}
 
-      <p className="mt-2 text-[11px] italic text-grey-mid">
+      <p className="mt-2 text-chu-thich italic text-grey-mid">
         {t('dateHint')}
       </p>
     </form>

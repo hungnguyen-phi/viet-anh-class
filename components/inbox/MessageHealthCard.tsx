@@ -62,34 +62,34 @@ export async function MessageHealthCard() {
   return (
     <section className="glass rounded-[20px] p-[18px]">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="inline-flex items-center gap-2 font-display text-[15px] font-bold text-navy">
-          <MessagesSquare size={17} strokeWidth={2.2} />
+        <h2 className="inline-flex items-center gap-2 font-display text-noi-dung font-bold text-navy">
+          <MessagesSquare size={16} strokeWidth={2} />
           {t('healthTitle')}
         </h2>
         {tongCho > 0 && (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-status-bad/[0.08] px-2.5 py-1 text-[11.5px] font-extrabold text-status-bad">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-status-bad/[0.08] px-2.5 py-1 text-chu-thich font-extrabold text-status-bad">
             {t('cuocChuaTraLoi', {n: tongCho})}
           </span>
         )}
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-[13px] italic text-grey-mid">
+        <p className="text-than italic text-grey-mid">
           {t('healthEmpty')}
         </p>
       ) : (
         <div className="overflow-x-auto">
           <div className="flex min-w-[520px] items-center gap-2 bg-navy/[0.03] px-[18px] py-[10px]">
-            <span className="flex-[1.4] text-[11px] font-extrabold uppercase text-grey-mid">
+            <span className="flex-[1.4] text-nhan font-extrabold uppercase text-grey-mid">
               {t('thClass')}
             </span>
-            <span className="w-[110px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid">
+            <span className="w-[110px] flex-none text-center text-nhan font-extrabold uppercase text-grey-mid">
               {t('thThreads')}
             </span>
-            <span className="w-[110px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid">
+            <span className="w-[110px] flex-none text-center text-nhan font-extrabold uppercase text-grey-mid">
               {t('thWaiting')}
             </span>
-            <span className="w-[130px] flex-none text-center text-[11px] font-extrabold uppercase text-grey-mid">
+            <span className="w-[130px] flex-none text-center text-nhan font-extrabold uppercase text-grey-mid">
               {t('thLongest')}
             </span>
           </div>
@@ -98,21 +98,21 @@ export async function MessageHealthCard() {
               key={r.class_id}
               className="flex min-w-[520px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2 transition-colors hover:bg-navy/[0.03]"
             >
-              <span className="min-w-0 flex-[1.4] truncate text-[13.5px] font-bold text-navy">
+              <span className="min-w-0 flex-[1.4] truncate text-noi-dung font-bold text-navy">
                 {r.class_name}
               </span>
-              <span className="w-[110px] flex-none text-center text-[12.5px] font-semibold text-grey-mid">
+              <span className="w-[110px] flex-none text-center text-than font-semibold text-grey-mid">
                 {r.thread_count}
               </span>
               <span
-                className={`w-[110px] flex-none text-center text-[12.5px] font-bold ${
+                className={`w-[110px] flex-none text-center text-than font-bold ${
                   Number(r.waiting_count) > 0 ? 'text-status-bad' : 'text-grey-mid'
                 }`}
               >
                 {r.waiting_count}
               </span>
               <span
-                className={`w-[130px] flex-none text-center text-[12.5px] font-bold ${mauCho(
+                className={`w-[130px] flex-none text-center text-than font-bold ${mauCho(
                   r.oldest_waiting_hours,
                 )}`}
               >
@@ -123,8 +123,8 @@ export async function MessageHealthCard() {
         </div>
       )}
 
-      <p className="mt-3 inline-flex items-start gap-1.5 text-[11px] italic text-grey-mid">
-        <ShieldCheck size={13} strokeWidth={2.5} className="mt-px shrink-0" />
+      <p className="mt-3 inline-flex items-start gap-1.5 text-chu-thich italic text-grey-mid">
+        <ShieldCheck size={12} strokeWidth={2.5} className="mt-px shrink-0" />
         {t('healthFoot')}
       </p>
     </section>

@@ -43,10 +43,10 @@ export function baOTuIso(iso: string | null | undefined): Pick<ThongTinHS, 'dob_
   return {dob_day: d ?? '', dob_month: m ?? '', dob_year: y ?? ''};
 }
 
-const lbl = 'mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-grey-mid';
+const lbl = 'mb-1 block text-nhan font-extrabold uppercase tracking-wide text-grey-mid';
 // Tách phần KHÔNG có chiều rộng ra riêng: ba ô ngày sinh tự đặt chiều rộng, không được dính
 // w-full (hai lớp width cùng độ ưu tiên thì thứ tự thắng thua phụ thuộc thứ tự trong file CSS).
-const inpBase = 'rounded-[10px] border-[1.5px] bg-white py-2 text-sm font-semibold text-navy outline-none';
+const inpBase = 'rounded-[8px] border-[1.5px] bg-white py-2 text-sm font-semibold text-navy outline-none';
 const inp = `w-full px-3 ${inpBase}`;
 const inpDob = `px-2 ${inpBase}`;
 const plain = 'border-navy/15 focus:border-navy';
@@ -181,7 +181,7 @@ export function OThongTinHocSinh({
           />
         </div>
         {loiNgaySinh && (
-          <p className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-status-bad">
+          <p className="mt-1 inline-flex items-center gap-1 text-chu-thich font-bold text-status-bad">
             <AlertCircle size={12} strokeWidth={2.5} />
             {loiNgaySinh}
           </p>

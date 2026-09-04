@@ -285,7 +285,7 @@ export default async function RosterPage({
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-[22px] font-bold text-navy">
+        <h1 className="font-display text-dau font-bold text-navy">
           {t('title')} · {myClass.name}
         </h1>
         <div className="flex flex-wrap items-center gap-2">
@@ -294,9 +294,9 @@ export default async function RosterPage({
               lớp" vì cùng là việc với hình ảnh của lớp này. */}
           <Link
             href={`/gallery?class=${myClass.id}`}
-            className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[10px] border-[1.5px] border-navy/20 bg-white px-3 text-[12.5px] font-extrabold text-navy transition-all hover:border-navy"
+            className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[8px] border-[1.5px] border-navy/20 bg-white px-3 text-than font-extrabold text-navy transition-all hover:border-navy"
           >
-            <Images size={14} strokeWidth={2.2} />{t('images')}</Link>
+            <Images size={14} strokeWidth={2} />{t('images')}</Link>
           {canManage && <ClassCoverUpload classId={myClass.id} />}
           {/* Quản trị/BGH thấy bộ chọn KỂ CẢ khi chỉ có một lớp: nó là chỗ duy nhất trên màn hình
             nói rõ mình đang đứng ở lớp nào. Giáo viên chỉ có lớp mình thì giấu đi cho gọn. */}
@@ -310,7 +310,7 @@ export default async function RosterPage({
       <Flash />
 
       {tongChoDuyet > 0 && (
-        <p className="rounded-[12px] border-[1.5px] border-gold-deep/30 bg-gold/[0.12] px-3.5 py-2.5 text-[12.5px] font-bold text-navy">
+        <p className="rounded-[12px] border-[1.5px] border-gold-deep/30 bg-gold/[0.12] px-3.5 py-2.5 text-than font-bold text-navy">
           {t('pendingBanner', {n: tongChoDuyet})}
         </p>
       )}
@@ -329,21 +329,21 @@ export default async function RosterPage({
       <div className="glass overflow-x-auto rounded-[20px]">
         {/* Header */}
         <div className={`${hang} bg-navy/[0.03] py-[10px]`} style={cot}>
-          <span className="text-[11px] font-extrabold text-grey-mid">#</span>
-          <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
+          <span className="text-chu-thich font-extrabold text-grey-mid">#</span>
+          <span className="min-w-0 truncate text-nhan font-extrabold uppercase text-grey-mid">
             {t('name')}
           </span>
           {xemChiTiet && (
-            <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">{t('colCode')}</span>
+            <span className="min-w-0 truncate text-nhan font-extrabold uppercase text-grey-mid">{t('colCode')}</span>
           )}
-          <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">
+          <span className="min-w-0 truncate text-nhan font-extrabold uppercase text-grey-mid">
             {t('email')}
           </span>
           {xemChiTiet && (
             <>
-              <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">{t('colDob')}</span>
-              <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">{t('colParentPhone')}</span>
-              <span className="min-w-0 truncate text-[11px] font-extrabold uppercase text-grey-mid">{t('colNote')}</span>
+              <span className="min-w-0 truncate text-nhan font-extrabold uppercase text-grey-mid">{t('colDob')}</span>
+              <span className="min-w-0 truncate text-nhan font-extrabold uppercase text-grey-mid">{t('colParentPhone')}</span>
+              <span className="min-w-0 truncate text-nhan font-extrabold uppercase text-grey-mid">{t('colNote')}</span>
             </>
           )}
           <span />
@@ -356,7 +356,7 @@ export default async function RosterPage({
             className={`${hang} border-t border-navy/[0.08] py-2 transition-colors hover:bg-navy/[0.03]`}
             style={cot}
           >
-            <span className="text-[12px] font-bold text-grey-mid">{i + 1}</span>
+            <span className="text-chu-thich font-bold text-grey-mid">{i + 1}</span>
             {/* flex-wrap + tên được ưu tiên chỗ.
                 Audit mobile 2026-08-06, màn 360px: nhãn "○ chưa đăng nhập" (shrink-0, ~100px)
                 không bao giờ nhường chỗ, nên TÊN HỌC SINH lãnh trọn phần thiếu và bị cắt còn ba
@@ -367,7 +367,7 @@ export default async function RosterPage({
               {r.studentId ? (
                 <Link
                   href={`/student/${r.studentId}`}
-                  className="block min-w-[88px] flex-1 truncate py-1 text-[13.5px] font-bold text-navy underline-offset-2 transition-colors hover:underline"
+                  className="block min-w-[88px] flex-1 truncate py-1 text-noi-dung font-bold text-navy underline-offset-2 transition-colors hover:underline"
                 >
                   {r.name}
                 </Link>
@@ -375,7 +375,7 @@ export default async function RosterPage({
                 // min-w-[88px] flex-1 y như nhánh có tài khoản ở trên: thiếu nó thì ô tên co lại
                 // theo nội dung và nhường hết chỗ cho nhãn shrink-0 bên cạnh — mà đây đúng là
                 // nhánh của những em CHƯA đăng nhập, tức là những dòng luôn có nhãn ấy.
-                <span className="block min-w-[88px] flex-1 truncate py-1 text-[13.5px] font-bold text-navy/70">
+                <span className="block min-w-[88px] flex-1 truncate py-1 text-noi-dung font-bold text-navy/70">
                   {r.name}
                 </span>
               )}
@@ -383,7 +383,7 @@ export default async function RosterPage({
               {r.isLeader && (
                 <span
                   title={t('attendanceLeader')}
-                  className="inline-flex min-w-0 shrink items-center gap-1 truncate rounded-full bg-gold/20 px-2 py-0.5 text-[10.5px] font-extrabold text-navy"
+                  className="inline-flex min-w-0 shrink items-center gap-1 truncate rounded-full bg-gold/20 px-2 py-0.5 text-chu-thich font-extrabold text-navy"
                 >
                   ★ {t('attendanceLeader')}
                 </span>
@@ -391,7 +391,7 @@ export default async function RosterPage({
               {r.studentId && (choDuyet.get(r.studentId) ?? 0) > 0 && (
                 <span
                   title={t('pendingTitle')}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-extrabold text-gold-text"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gold/25 px-2 py-0.5 text-chu-thich font-extrabold text-gold-text"
                 >
                   {t('pendingChip', {n: choDuyet.get(r.studentId) ?? 0})}
                 </span>
@@ -399,30 +399,30 @@ export default async function RosterPage({
               {!r.studentId && (
                 <span
                   title={t('notSignedInTitle')}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-navy/[0.07] px-2 py-0.5 text-[10.5px] font-extrabold text-navy/70"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-navy/[0.07] px-2 py-0.5 text-chu-thich font-extrabold text-navy/70"
                 >
                   ○ {t('notSignedIn')}
                 </span>
               )}
             </span>
             {xemChiTiet && (
-              <span className="min-w-0 truncate text-[12.5px] font-bold text-navy/70">
+              <span className="min-w-0 truncate text-than font-bold text-navy/70">
                 {r.code ?? '—'}
               </span>
             )}
-            <span className="min-w-0 truncate text-[12.5px] font-semibold text-grey-mid">
+            <span className="min-w-0 truncate text-than font-semibold text-grey-mid">
               {r.email}
             </span>
             {xemChiTiet && (
               <>
-                <span className="min-w-0 truncate text-[12.5px] font-semibold text-grey-mid">
+                <span className="min-w-0 truncate text-than font-semibold text-grey-mid">
                   {ngayVN(r.dob)}
                 </span>
-                <span className="min-w-0 truncate text-[12.5px] font-semibold text-grey-mid">
+                <span className="min-w-0 truncate text-than font-semibold text-grey-mid">
                   {r.phone ?? '—'}
                 </span>
                 <span
-                  className="min-w-0 truncate text-[12.5px] font-semibold text-grey-mid"
+                  className="min-w-0 truncate text-than font-semibold text-grey-mid"
                   title={r.note ?? ''}
                 >
                   {r.note ?? '—'}
@@ -466,7 +466,7 @@ export default async function RosterPage({
                   <input type="hidden" name="studentId" value={r.studentId} />
                   <ConfirmButton
                     message={t('confirmRemove', {name: r.name})}
-                    className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                    className="grid h-8 w-8 cursor-pointer place-items-center rounded-[8px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] text-status-bad transition-all hover:bg-status-bad/[0.16]"
                   >
                     ✕
                   </ConfirmButton>
@@ -478,7 +478,7 @@ export default async function RosterPage({
                   <input type="hidden" name="email" value={r.email} />
                   <ConfirmButton
                     message={t('cancelInviteConfirm', {email: r.email})}
-                    className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-navy/20 bg-white text-navy/70 transition-all hover:border-navy"
+                    className="grid h-8 w-8 cursor-pointer place-items-center rounded-[8px] border-[1.5px] border-navy/20 bg-white text-navy/70 transition-all hover:border-navy"
                   >
                     ✕
                   </ConfirmButton>

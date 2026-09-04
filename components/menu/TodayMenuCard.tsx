@@ -48,11 +48,11 @@ export async function TodayMenuCard({campusId}: {campusId?: string}) {
   return (
     <div className="glass rounded-[20px] p-[18px]">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-1.5 font-display text-[15px] font-bold text-navy">
-          <UtensilsCrossed size={15} strokeWidth={2.2} className="text-grey-mid" />
+        <span className="inline-flex items-center gap-1.5 font-display text-noi-dung font-bold text-navy">
+          <UtensilsCrossed size={14} strokeWidth={2} className="text-grey-mid" />
           {t('todayTitle')}
         </span>
-        <span className="rounded-full bg-navy/[0.08] px-2 py-0.5 text-[10.5px] font-extrabold">
+        <span className="rounded-full bg-navy/[0.08] px-2 py-0.5 text-chu-thich font-extrabold">
           {ngayVN(hom_nay)}
         </span>
       </div>
@@ -61,7 +61,7 @@ export async function TodayMenuCard({campusId}: {campusId?: string}) {
           màn hình trống, người dùng không báo "sai quyền" mà báo "app hỏng" — nên phải phân biệt
           rõ "nhà trường chưa cập nhật" với "app lỗi". */}
       {co.length === 0 ? (
-        <p className="text-[12.5px] font-semibold text-grey-mid">
+        <p className="text-than font-semibold text-grey-mid">
           {t('todayEmpty')}
         </p>
       ) : (
@@ -70,16 +70,16 @@ export async function TodayMenuCard({campusId}: {campusId?: string}) {
             const r = byMeal.get(s)!;
             return (
               <div key={s} className="flex gap-2">
-                <span className="w-[62px] shrink-0 text-[10px] font-extrabold uppercase tracking-wide text-grey-mid">
+                <span className="w-[62px] shrink-0 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
                   {t(`meals.${s}`)}
                 </span>
                 <div className="min-w-0 flex-1">
                   {/* items lưu dạng văn bản mỗi món một dòng (0062) → phải giữ xuống dòng */}
-                  <p className="whitespace-pre-line break-words text-[12.5px] font-semibold leading-[1.5] text-navy">
+                  <p className="whitespace-pre-line break-words text-than font-semibold leading-[1.5] text-navy">
                     {r.items}
                   </p>
                   {r.note && (
-                    <p className="mt-0.5 text-[11px] italic text-grey-mid">{r.note}</p>
+                    <p className="mt-0.5 text-chu-thich italic text-grey-mid">{r.note}</p>
                   )}
                 </div>
               </div>
@@ -90,7 +90,7 @@ export async function TodayMenuCard({campusId}: {campusId?: string}) {
 
       <Link
         href="/menu"
-        className="mt-2 inline-flex min-h-[24px] items-center text-[11.5px] font-extrabold text-gold-text underline underline-offset-2"
+        className="mt-2 inline-flex min-h-[24px] items-center text-chu-thich font-extrabold text-gold-text underline underline-offset-2"
       >
         {t('seeWeek')}
       </Link>

@@ -41,32 +41,32 @@ export async function KhuCLBCoSo({
   return (
     <section className="glass rounded-[20px] p-4">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <h2 className="inline-flex items-center gap-1.5 font-display text-[15px] font-bold text-navy">
-          <Users size={15} strokeWidth={2.2} className="text-gold-deep" />
+        <h2 className="inline-flex items-center gap-1.5 font-display text-noi-dung font-bold text-navy">
+          <Users size={14} strokeWidth={2} className="text-gold-deep" />
           {t('clubTitle')}
         </h2>
-        <span className="text-[11.5px] font-semibold text-grey-mid">{t('clubCampusHint')}</span>
+        <span className="text-chu-thich font-semibold text-grey-mid">{t('clubCampusHint')}</span>
       </div>
 
       {clbs.length === 0 ? (
-        <p className="text-[12.5px] font-semibold text-grey-mid">{t('noClubs')}</p>
+        <p className="text-than font-semibold text-grey-mid">{t('noClubs')}</p>
       ) : (
         <div className="flex flex-col gap-1.5">
           {THU.filter((d) => theoNgay.has(d)).map((d) => (
             <div key={d} className="flex flex-wrap items-center gap-2">
-              <span className="w-9 shrink-0 text-[12px] font-extrabold text-navy">{dayLabel(d)}</span>
+              <span className="w-9 shrink-0 text-chu-thich font-extrabold text-navy">{dayLabel(d)}</span>
               {theoNgay.get(d)!.map((c) => (
                 <span
                   key={c.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-navy/30 bg-navy/[0.06] py-1 pl-2.5 pr-1.5 text-[12px] font-bold text-navy"
+                  className="inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-navy/30 bg-navy/[0.06] py-1 pl-2.5 pr-1.5 text-chu-thich font-bold text-navy"
                 >
                   {c.name}
-                  <span className="text-[11px] font-bold tabular-nums text-grey-mid">
+                  <span className="text-chu-thich font-bold tabular-nums text-grey-mid">
                     {gio(c.start_time)}–{gio(c.end_time)}
                   </span>
                   {c.room && (
-                    <span className="inline-flex items-center gap-0.5 text-[10.5px] font-semibold text-grey-mid">
-                      <MapPin size={10} strokeWidth={2.5} />
+                    <span className="inline-flex items-center gap-0.5 text-chu-thich font-semibold text-grey-mid">
+                      <MapPin size={12} strokeWidth={2.5} />
                       {c.room}
                     </span>
                   )}
