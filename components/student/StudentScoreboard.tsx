@@ -27,6 +27,7 @@ import {MucTieuCuaCon} from '@/components/student/MucTieuCuaCon';
 import {LoTrinhEm} from '@/components/student/LoTrinhEm';
 import type {DonViChon, MucTieuLopChon, MauMucTieu, BuocThe} from '@/components/student/FormMucTieu';
 import {thuoc12TuanNhieu} from '@/lib/rpc-nhieu';
+import {layTrangStudent, type TrangStudent} from '@/lib/trang-gop';
 import {TheCamKet, type ViecEm, type ViecTuan, type CamKetEm} from '@/components/student/BangEmPA2';
 import {DonCamKetLac} from '@/components/student/DonCamKetLac';
 import type {Database} from '@/lib/database.types';
@@ -75,23 +76,40 @@ export async function StudentScoreboard({
   const weekDays = weekDaysVN(monday);
   const nhanTuan = isoWeekLabel(vnNoon(monday));
 
-  // ── ĐỢT MỘT: mọi thứ chỉ cần studentId/monday (đã biết ngay từ tham số) ─────────────────────
-  const [
-    {data: student},
-    {data: enr},
-    {data: moodRow},
-    bangRonRes,
-    mucTieuRes,
-    viecRes,
-    camKetRes,
-    donViRes,
-    pdrBuddyRes,
-    pdrCoachRes,
-    capRes,
-    lichCoachRes,
-    {data: myRequestRows},
-    {data: reqs},
-  ] = await Promise.all([
+  // ── ĐỢT MỘT + HAI: MỘT lượt RPC trang_student (0189) — 20 câu → 1 (+3 câu khoá dịch vụ và
+  //    edit_requests theo NGƯỜI XEM vẫn chạy riêng, song song). Fallback đường cũ khi CSDL chưa có hàm. ──
+  const [gop, {data: myRequestRows}, {data: reqs}] = await Promise.all([
+    layTrangStudent(supabase, {studentId, monday, today, nhanTuan}),
+    canTick
+      ? supabase
+          .from('edit_requests')
+          .select('id, kind, ref_id, message')
+          .eq('requester_id', viewer.id)
+          .eq('status', 'pending')
+          .order('created_at', {ascending: false})
+      : Promise.resolve({data: null}),
+    canManage
+      ? supabase
+          .from('edit_requests')
+          .select('id, kind, ref_id, message, created_at, requester:profiles!edit_requests_requester_id_fkey(full_name)')
+          .eq('student_id', studentId)
+          .eq('status', 'pending')
+          .order('created_at', {ascending: false})
+      : Promise.resolve({data: null}),
+  ]);
+  type D<T> = {data: T};
+  type PdrRow = {id: string; week_label: string; q1_plan: string | null; q2_result: string | null; q3_obstacle: string | null; q4_overcome: string | null; q5_better_way: string | null; q6_commitment: string | null; acknowledged_at: string | null};
+  let student: TrangStudent['student'], enr: unknown, moodRow: {mood: string; buoi: string; created_at: string}[] | null;
+  let bangRonRes: D<unknown>, mucTieuRes: D<unknown>, viecRes: D<unknown>, camKetRes: D<unknown>, donViRes: D<unknown>,
+    pdrBuddyRes: D<PdrRow | null>, pdrCoachRes: D<PdrRow | null>, capRes: D<{id: string; student_id: string; buddy_id: string}[] | null>,
+    lichCoachRes: D<{monthly_day: number | null} | null>;
+  if (gop) {
+    student = gop.student; enr = gop.enr; moodRow = gop.moodRow as typeof moodRow;
+    bangRonRes = {data: gop.bangRon}; mucTieuRes = {data: gop.mucTieu}; viecRes = {data: gop.viec}; camKetRes = {data: gop.camKet};
+    donViRes = {data: gop.donVi}; pdrBuddyRes = {data: gop.pdrBuddy as PdrRow | null}; pdrCoachRes = {data: gop.pdrCoach as PdrRow | null};
+    capRes = {data: gop.cap}; lichCoachRes = {data: gop.lichCoach};
+  } else {
+    const cu = await Promise.all([
     supabase.from('profiles').select('id, full_name, email').eq('id', studentId).maybeSingle(),
     supabase
       .from('enrollments')
@@ -140,23 +158,13 @@ export async function StudentScoreboard({
       .eq('type', 'coach')
       .eq('is_active', true)
       .maybeSingle(),
-    canTick
-      ? supabase
-          .from('edit_requests')
-          .select('id, kind, ref_id, message')
-          .eq('requester_id', viewer.id)
-          .eq('status', 'pending')
-          .order('created_at', {ascending: false})
-      : Promise.resolve({data: null}),
-    canManage
-      ? supabase
-          .from('edit_requests')
-          .select('id, kind, ref_id, message, created_at, requester:profiles!edit_requests_requester_id_fkey(full_name)')
-          .eq('student_id', studentId)
-          .eq('status', 'pending')
-          .order('created_at', {ascending: false})
-      : Promise.resolve({data: null}),
-  ]);
+    // (edit_requests đã hỏi ở trên — không hỏi lại)
+    ]);
+    student = cu[0].data as TrangStudent['student']; enr = cu[1].data; moodRow = cu[2].data as typeof moodRow;
+    bangRonRes = cu[3] as D<unknown>; mucTieuRes = cu[4] as D<unknown>; viecRes = cu[5] as D<unknown>; camKetRes = cu[6] as D<unknown>;
+    donViRes = cu[7] as D<unknown>; pdrBuddyRes = cu[8] as D<PdrRow | null>; pdrCoachRes = cu[9] as D<PdrRow | null>;
+    capRes = cu[10] as D<{id: string; student_id: string; buddy_id: string}[] | null>; lichCoachRes = cu[11] as D<{monthly_day: number | null} | null>;
+  }
 
   if (!student) {
     return (
@@ -219,20 +227,28 @@ export async function StudentScoreboard({
   const {createAdminClient} = canGoiCong || campusId ? await import('@/lib/supabase/admin') : {createAdminClient: null};
   const admin = createAdminClient ? createAdminClient() : null;
 
-  const [
-    luotRes,
-    noiRes,
-    tuanHocRes,
-    mucTieuLopRes,
-    mauRes,
-    cuaSoRes,
-    ipRes,
-    mangRes,
-    tenBuddyRes,
-    lichBuddyRes,
-    buocRes,
-    tuan12Map,
-  ] = await Promise.all([
+  type D2<T> = {data: T};
+  let luotRes: D2<unknown>, noiRes: D2<unknown>, tuanHocRes: D2<unknown>, mucTieuLopRes: D2<unknown>, mauRes: D2<unknown>,
+    cuaSoRes: D2<unknown>, ipRes: D2<unknown>, mangRes: D2<unknown>, tenBuddyRes: D2<unknown>, lichBuddyRes: D2<unknown>,
+    buocRes: D2<unknown>, tuan12Map: Map<string, unknown[]>;
+  if (gop) {
+    // Ba câu khoá dịch vụ (cửa sổ điểm danh, IP, mạng trường) không đi qua RLS → vẫn hỏi riêng, song song.
+    const [c1, c2, c3] = await Promise.all([
+      admin && campusId ? admin.rpc('checkin_windows', {p_campus: campusId}) : Promise.resolve({data: null}),
+      admin && canGoiCong ? admin.rpc('ip_allowed', {p_ip: ipHienTai ?? ''}) : Promise.resolve({data: null}),
+      admin && canGoiCong ? admin.rpc('truong_da_khai_mang') : Promise.resolve({data: null}),
+    ]);
+    cuaSoRes = c1 as D2<unknown>; ipRes = c2 as D2<unknown>; mangRes = c3 as D2<unknown>;
+    luotRes = {data: gop.luot}; noiRes = {data: gop.noi}; tuanHocRes = {data: gop.tuanHoc}; mucTieuLopRes = {data: gop.mucTieuLop};
+    mauRes = {data: gop.mau}; tenBuddyRes = {data: gop.tenBuddy}; lichBuddyRes = {data: gop.lichBuddy}; buocRes = {data: gop.buoc};
+    tuan12Map = new Map();
+    for (const r of gop.tuan12) {
+      const arr = tuan12Map.get(r.thuoc_id) ?? [];
+      arr.push(r);
+      tuan12Map.set(r.thuoc_id, arr);
+    }
+  } else {
+    const cu = await Promise.all([
     thuocIds.length > 0
       ? supabase
           .from('luot')
@@ -305,7 +321,11 @@ export async function StudentScoreboard({
     // 12 tuần của MỌI thước trong MỘT lượt RPC (0187 thuoc_12_tuan_nhieu; tự lùi về từng cái khi
     // CSDL chưa có hàm) — hết N request song song dính đuôi trễ trên đường mạng rớt gói.
     thuoc12TuanNhieu(supabase, thuocIds, studentId, monday),
-  ]);
+    ]);
+    luotRes = cu[0] as D2<unknown>; noiRes = cu[1] as D2<unknown>; tuanHocRes = cu[2] as D2<unknown>; mucTieuLopRes = cu[3] as D2<unknown>;
+    mauRes = cu[4] as D2<unknown>; cuaSoRes = cu[5] as D2<unknown>; ipRes = cu[6] as D2<unknown>; mangRes = cu[7] as D2<unknown>;
+    tenBuddyRes = cu[8] as D2<unknown>; lichBuddyRes = cu[9] as D2<unknown>; buocRes = cu[10] as D2<unknown>; tuan12Map = cu[11] as Map<string, unknown[]>;
+  }
   const tuan12Res = thuocIds.map((id) => ({data: tuan12Map.get(id) ?? []}));
 
   // Gộp bước theo mục tiêu → vừa cho form sửa (khỏi nhập lại), vừa cho checklist trên thẻ (tick).
