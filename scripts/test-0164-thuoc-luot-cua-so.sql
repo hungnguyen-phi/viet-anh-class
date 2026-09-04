@@ -44,6 +44,13 @@ select t.lop, t.cs, t.gvcn,
 from t;
 grant select on bc to public;
 
+-- Tự chủ số đếm (0187): đóng tạm mọi thước đo còn chạy của lớp Test trong giao dịch — trần 4
+-- thước/em từng làm bài này đỏ oan khi tài khoản test có sẵn thước thử tay (04/09).
+do $$ declare r bc%rowtype; begin
+  select * into r from bc;
+  update thuoc set trang_thai = 'dong' where class_id = r.lop and trang_thai <> 'dong';
+end $$;
+
 create temporary table art (k text primary key, v uuid) on commit drop;
 grant all on art to public;
 
