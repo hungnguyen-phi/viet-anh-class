@@ -28,6 +28,7 @@ const NAMESPACE_CHO_CLIENT = [
   'coSoMucTieu',
   'duyet',
   'gallery',
+  'goal',
   'grades',
   'inbox',
   'login',
@@ -117,6 +118,11 @@ export default async function LocaleLayout({
   return (
     <html lang={locale}>
       <head>
+        {/* TẢI TRƯỚC HAI FONT CHÍNH (audit 04/09/2026): font tự chứa nhưng không preload → trình
+            duyệt chỉ biết cần font khi đã phân tích CSS, chữ nhấp nháy/nhảy cỡ lần mở đầu. Chỉ
+            preload subset vietnamese — tiếng Việt là ngôn ngữ thứ nhất, trang nào cũng có dấu. */}
+        <link rel="preload" href="/fonts/nunito-vietnamese.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/baloo2-vietnamese.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         {/* PHÁT HIỆN NHÚNG TRONG HUB TRƯỚC KHI VẼ TRANG (xem globals.css để biết vì sao phải
             chạy trước paint, không phải sau bằng React effect). beforeInteractive nhúng thẳng
             vào <head> của HTML gửi về, chạy trước cả hydrate. */}

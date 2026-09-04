@@ -113,6 +113,8 @@ export type ClassOption = {
   school_year: string;
   grade_name: string;
   grade_sort: number;
+  /** Tên cơ sở — bộ chọn lớp gom theo cơ sở rồi khối (audit 04/09/2026). */
+  campus_name?: string | null;
 };
 
 // Chuẩn hoá 1 dòng `classes` có kèm khối nhúng thành ClassOption.
@@ -123,24 +125,34 @@ type RawClass = {
   school_year: string;
   grade: string | null;
   grades: {name: string; sort_order: number} | null;
+  campuses?: {name: string} | null;
 };
+// Lớp thử nghiệm (tên bắt đầu "Test") xuống cuối danh sách dù có gán khối — audit 04/09/2026 thấy
+// "Test" kẹp giữa 6B2 và 7A2 vì nó mang khối 6.
+const laLopThu = (name: string) => /^test/i.test(name.trim());
 function toOption(c: RawClass): ClassOption {
   return {
     id: c.id,
     name: c.name,
     school_year: c.school_year,
-    grade_name: c.grades?.name ?? c.grade ?? '—',
-    grade_sort: c.grades?.sort_order ?? 9999,
+    grade_name: laLopThu(c.name) ? '—' : (c.grades?.name ?? c.grade ?? '—'),
+    grade_sort: laLopThu(c.name) ? 9999 : (c.grades?.sort_order ?? 9998),
+    campus_name: c.campuses?.name ?? null,
   };
 }
+// Thứ tự: cơ sở → khối → tên (so sánh tự nhiên: 10A2 sau 10A1, 6A2 trước 10A1).
 function sortByGradeThenName(a: ClassOption, b: ClassOption): number {
-  return a.grade_sort - b.grade_sort || a.name.localeCompare(b.name, 'vi');
+  return (
+    (a.campus_name ?? '').localeCompare(b.campus_name ?? '', 'vi') ||
+    a.grade_sort - b.grade_sort ||
+    a.name.localeCompare(b.name, 'vi', {numeric: true})
+  );
 }
 
 // Danh sách lớp người dùng được phép duyệt (admin: tất cả · BGH: campus · GVCN: lớp mình).
 // Kèm KHỐI để bộ chọn lớp gom nhóm được — BGH có vài chục lớp thì danh sách phẳng là không
 // dùng nổi, phải thấy khối trước rồi mới tới lớp.
-const CLASS_SELECT = 'id, name, school_year, grade, grades(name, sort_order)';
+const CLASS_SELECT = 'id, name, school_year, grade, grades(name, sort_order), campuses(name)';
 
 export async function getAccessibleClasses(
   supabase: SB,

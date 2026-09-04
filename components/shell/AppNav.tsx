@@ -134,6 +134,15 @@ const LINKS: Record<string, NavItem[]> = {
 // 0065), nên vẽ icon cho họ là vẽ một cái cửa mở ra phòng trống.
 const CO_LIEN_LAC = new Set(['teacher', 'parent']);
 
+// Tab tải trước theo vai — chỗ người ta SẮP tới, không phải mọi chỗ có thể tới.
+const UU_TIEN_NAP_TRUOC: Record<string, string[]> = {
+  student: ['/student', '/timetable'],
+  teacher: ['/wig', '/attendance'],
+  admin: ['/admin', '/wig'],
+  principal: ['/campus', '/roster'],
+  parent: ['/report'],
+};
+
 // Logo dẫn về ĐÂU. Trước đây luôn là '/' — mà '/' là bảng điểm lớp của giáo viên. Phụ huynh bấm
 // vào cái nút to nhất màn hình là rơi thẳng vào tám ô trống kèm câu bảo chị đi thiết lập WIG cho
 // lớp; học sinh cũng vậy. Phải khớp với homeRouteForRole() trong lib/auth.ts — không import được
@@ -201,9 +210,13 @@ export function AppNav({
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
   const activeItem = links.find((l) => isActive(l.href));
-  // Các tab để NapTruoc tải sẵn — trừ tab đang đứng; cùng query giữ lại (?class=, ?child=) để đúng
-  // là cái đường mà cú bấm sẽ đi.
-  const duongNapTruoc = links.filter((l) => !isActive(l.href)).map((l) => ({pathname: l.href, query: giuLai}));
+  // Các tab để NapTruoc tải sẵn — CHỈ 1–2 tab hay đi nhất theo vai (audit 04/09/2026: tải trước
+  // cả bảy tab = ×7 tải máy chủ mỗi phiên), trừ tab đang đứng; cùng query giữ lại (?class=,
+  // ?child=) để đúng là cái đường mà cú bấm sẽ đi. Tab còn lại tải khi rê chuột/chạm (napKhiCham).
+  const uuTien = UU_TIEN_NAP_TRUOC[role] ?? [];
+  const duongNapTruoc = uuTien
+    .filter((href) => links.some((l) => l.href === href) && !isActive(href))
+    .map((href) => ({pathname: href, query: giuLai}));
   // Rê chuột / chạm vào tab là tải đầy đủ ngay — lớp thứ hai sau NapTruoc, cho lúc đệm 30 giây đã
   // hết hạn: vẫn đi trước cú bấm vài trăm mili-giây.
   const napKhiCham = (href: string) => () => {
@@ -338,7 +351,7 @@ export function AppNav({
             onClick={() => setOpen((v) => !v)}
             aria-label="Menu"
             aria-expanded={open}
-            className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white"
           >
             {open ? <X size={20} strokeWidth={2.2} /> : <Menu size={20} strokeWidth={2.2} />}
           </button>
@@ -390,16 +403,18 @@ export function AppNav({
             </nav>
 
             {/* Tiện ích: ngôn ngữ · đăng xuất (đã bỏ nút Hướng dẫn theo yêu cầu) */}
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-navy/[0.08] pt-2">
+            {/* Ba nút tiện ích: lưới 3 cột + không ngắt chữ — ở 360px "Hướng dẫn"/"Đăng xuất" từng
+                gãy hai dòng vì flex-wrap chia không đều (audit 04/09/2026). */}
+            <div className="mt-2 grid grid-cols-3 gap-1 border-t border-navy/[0.08] pt-2">
               <MoHuongDan
-                className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-[13px] font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy"
+                className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-1 text-[12.5px] font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy"
                 onDone={() => setOpen(false)}
               />
-              <LocaleToggle className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-[13px] font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy disabled:opacity-50" />
-              <form action={signOut} className="flex-1">
+              <LocaleToggle className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-1 text-[12.5px] font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy disabled:opacity-50" />
+              <form action={signOut} className="contents">
                 <button
                   type="submit"
-                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-[13px] font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy"
+                  className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-1 text-[12.5px] font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy"
                 >
                   <LogOut size={16} strokeWidth={2} />
                   {tc('logout')}
@@ -442,7 +457,7 @@ function BellLink({
       aria-label={count > 0 ? `${label} (${count})` : label}
       title={label}
       aria-current={active ? 'page' : undefined}
-      className={`relative grid h-9 w-9 shrink-0 place-items-center rounded-full transition-colors ${
+      className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-full transition-colors ${
         active ? 'bg-white text-navy' : 'text-white/70 hover:bg-white/10 hover:text-white'
       }`}
     >
@@ -491,7 +506,7 @@ function SettingsMenu() {
         title={tc('settings')}
         aria-expanded={open}
         aria-haspopup="menu"
-        className={`grid h-9 w-9 cursor-pointer place-items-center rounded-full transition-colors ${
+        className={`grid h-11 w-11 cursor-pointer place-items-center rounded-full transition-colors ${
           open ? 'bg-white text-navy' : 'text-white/70 hover:bg-white/10 hover:text-white'
         }`}
       >

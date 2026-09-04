@@ -78,6 +78,13 @@ export async function requireProfile(): Promise<Profile> {
   return profile;
 }
 
+// BAN GIÁM HIỆU XEM, KHÔNG GHI (audit 04/09/2026): /wig và màn của em mở cho principal để họ thấy
+// mục tiêu lớp/trường và bảng điểm trong cơ sở mình (ROLE_MATRIX), nhưng mọi nút ghi phải ẩn —
+// luật thật vẫn ở RLS, cờ này chỉ để trang khỏi mời bấm một nút chắc chắn bị từ chối.
+export function laChiDoc(profile: Profile): boolean {
+  return profile.role === 'principal';
+}
+
 export async function requireRole(roles: Role[]): Promise<Profile> {
   const profile = await requireProfile();
   if (!roles.includes(profile.role)) redirect(homeRouteForRole(profile.role));

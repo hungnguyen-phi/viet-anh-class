@@ -8,9 +8,6 @@ import {GradeManager} from '@/app/[locale]/(dashboard)/admin/GradeManager';
 import {ClassForm} from '@/app/[locale]/(dashboard)/admin/ClassForm';
 import {ClassManager} from '@/app/[locale]/(dashboard)/admin/ClassManager';
 import {SchoolRollup, type RollupRow} from './SchoolRollup';
-import {NutDuyet} from '@/components/wig/NutDuyet';
-import {NutTraLaiMtLop} from '@/components/campus/NutTraLaiMtLop';
-import {duyetMucTieuLop} from './actions';
 import {LichTuanHoc} from './LichTuanHoc';
 import {CongTacNhapHo} from './CongTacNhapHo';
 import {getAreaMeta} from '@/lib/area-config';
@@ -47,6 +44,7 @@ export default async function CampusPage({
   const profile = await requireRole(['principal', 'admin']);
   const t = await getTranslations('campusReport');
   const tCo = await getTranslations('coSoMucTieu');
+  const tc = await getTranslations('common');
   const supabase = await createClient();
 
   const laBgh = profile.role === 'principal' && !!profile.campus_id;
@@ -62,17 +60,6 @@ export default async function CampusPage({
     (r) => r.data ?? [],
     () => [],
   );
-  // C2 — mục tiêu LỚP đang chờ BGH duyệt (RLS giới hạn đúng cơ sở của hiệu trưởng).
-  const choDuyetPromise = supabase
-    .from('muc_tieu_v')
-    .select('id, ten, class_id, linh_vuc, y_so, ten_don_vi, y_chu, kieu_dich')
-    .eq('cap', 'lop')
-    .eq('trang_thai', 'gui')
-    .order('created_at', {ascending: true})
-    .then(
-      (r) => r.data ?? [],
-      () => [],
-    );
   const areaMetaPromise = getAreaMeta();
 
   // BGH quản lý Cơ sở mình (admin dùng /admin). Các truy vấn dưới đây độc lập → chạy song song.
@@ -185,15 +172,7 @@ export default async function CampusPage({
     };
   }
 
-  const [rows, coSo, choDuyet, areaMeta] = await Promise.all([
-    rollupPromise,
-    coSoPromise,
-    choDuyetPromise,
-    areaMetaPromise,
-  ]);
-
-  // Tên lớp cho khối Chờ duyệt (muc_tieu_v chỉ có class_id) — dựng từ chính co_so_tong_hop.
-  const tenLop = new Map(coSo.map((c) => [c.class_id, c.class_name]));
+  const [rows, coSo, areaMeta] = await Promise.all([rollupPromise, coSoPromise, areaMetaPromise]);
 
   // C1 — mục tiêu của CHÍNH cơ sở. Chỉ hiệu trưởng của cơ sở này quản; admin xem qua /admin.
   const mtTruong = laBgh
@@ -243,49 +222,7 @@ export default async function CampusPage({
 
       <Flash />
 
-      {/* C2 — MỤC TIÊU LỚP CHỜ DUYỆT. GVCN gửi (trạng thái 'gui'), BGH gật ở đây. Trigger
-          mt_lop_qua_tay_bgh chặn GVCN tự duyệt; RLS giới hạn đúng cơ sở. */}
-      <section className="glass rounded-[20px] p-[18px]">
-        <div className="mb-3 font-display text-[15px] font-bold text-navy">{tCo('khuChoDuyet')}</div>
-        {choDuyet.length === 0 ? (
-          <p className="text-[12.5px] font-semibold italic text-grey-mid">{tCo('choDuyetTrong')}</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {choDuyet.map((w) => {
-              const meta = w.linh_vuc ? areaMeta[w.linh_vuc as Area] : null;
-              const dich =
-                w.kieu_dich === 'chu'
-                  ? w.y_chu
-                  : [w.y_so, w.ten_don_vi].filter(Boolean).join(' ');
-              return (
-                <div key={w.id ?? ''} className="flex flex-wrap items-center gap-2">
-                  <span className="min-w-[80px] text-[12.5px] font-extrabold text-navy">
-                    {(w.class_id && tenLop.get(w.class_id)) || '—'}
-                  </span>
-                  {meta && (
-                    <span
-                      className="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-extrabold"
-                      style={{background: meta.soft, color: meta.hex}}
-                    >
-                      {areaLabel(meta, locale)}
-                    </span>
-                  )}
-                  <span className="min-w-0 flex-1 text-[12.5px] font-semibold text-grey-mid">
-                    {w.ten}
-                    {dich ? ` · ${dich}` : ''}
-                  </span>
-                  <NutDuyet
-                    hanhDong={duyetMucTieuLop}
-                    o={{muc_tieu_id: w.id ?? undefined}}
-                    label={`${tCo('cotChoDuyet')} — ${w.ten ?? ''}`}
-                  />
-                  <NutTraLaiMtLop mtId={w.id ?? ''} ten={w.ten ?? ''} />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
+      {/* C2 (mục tiêu lớp chờ BGH duyệt) đã GỠ — từ 0186 GVCN tạo mục tiêu lớp là hiệu lực ngay. */}
 
       {/* PHÂN BIỆT "CHƯA ĐƯỢC GÁN CƠ SỞ" VỚI "CƠ SỞ CHƯA CÓ LỚP". Hiệu trưởng chưa được gán cơ
           sở thì khối truy vấn quản lý bị bỏ qua, rồi trang rơi vào câu "chưa có lớp" trong khi
@@ -297,12 +234,22 @@ export default async function CampusPage({
       ) : rows.length === 0 ? (
         <p className="text-sm italic text-grey-mid">{t('noClasses')}</p>
       ) : (
-        <SchoolRollup rows={rows} />
+        // THU GỌN (audit 04/09/2026): trang này dài 8487px ở 360px vì hai bảng liệt kê đủ 28 lớp.
+        // Bảng tổng hợp theo khối xếp gọn, bấm mới mở — thứ BGH cần liếc mỗi ngày là "lớp nào cần
+        // chú ý" ở khối ngay dưới.
+        <details className="glass rounded-[20px] p-[18px]">
+          <summary className="min-h-11 cursor-pointer list-none font-display text-[15px] font-bold text-navy marker:content-none [&::-webkit-details-marker]:hidden">
+            {tc('tatCaLop', {n: rows.length})} · {t('title')}
+          </summary>
+          <div className="mt-3">
+            <SchoolRollup rows={rows} />
+          </div>
+        </details>
       )}
 
       {/* C3 — LỚP NÀO ĐI CHẬM. Bảng từ co_so_tong_hop, sắp theo trung bình các % có số (tính ở
           app, không lưu). Tô nền cảnh báo khi có ≥1 số < 50%. */}
-      <LopDiCham rows={coSo} t={tCo} />
+      <LopDiCham rows={coSo} t={tCo} tc={tc} />
 
       {/* C1 — MỤC TIÊU CỦA CƠ SỞ. Tầng trên cùng: trường đếm lớp, lớp đếm em. Số của nó do máy
           cuộn từ mục tiêu lớp, không ai gõ. */}
@@ -439,9 +386,11 @@ type CoSoRow = {
 function LopDiCham({
   rows,
   t,
+  tc,
 }: {
   rows: CoSoRow[];
   t: (k: string) => string;
+  tc: (k: string, v?: Record<string, string | number>) => string;
 }) {
   const coSo = rows.map((r) => {
     const cac = [r.mt_pct, r.thuoc_dat_pct, r.ck_giu_pct, r.pdr_ky_pct].filter(
@@ -459,6 +408,8 @@ function LopDiCham({
   });
 
   const so = (x: number | null) => (x == null ? t('chuaCoSo') : `${Math.round(x)}%`);
+  const canChuY = coSo.filter((r) => r.canhBao);
+  const conLai = coSo.filter((r) => !r.canhBao);
 
   return (
     <section className="glass overflow-hidden rounded-[20px]">
@@ -470,6 +421,37 @@ function LopDiCham({
           {t('lopChamTrong')}
         </p>
       ) : (
+        <>
+          {/* Mặc định chỉ hiện lớp CẦN CHÚ Ý; số còn lại xếp trong <details> (audit 04/09/2026). */}
+          {canChuY.length === 0 && (
+            <p className="px-[18px] pb-3 text-[12.5px] font-semibold italic text-grey-mid">{t('lopChamTrong')}</p>
+          )}
+          <BangLop rows={canChuY} t={t} so={so} />
+          {conLai.length > 0 && (
+            <details className="border-t border-navy/[0.08]">
+              <summary className="min-h-11 cursor-pointer list-none px-[18px] py-2.5 text-[12.5px] font-extrabold text-navy marker:content-none [&::-webkit-details-marker]:hidden">
+                {tc('xemTatCa')} · {tc('tatCaLop', {n: coSo.length})}
+              </summary>
+              <BangLop rows={conLai} t={t} so={so} />
+            </details>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+function BangLop({
+  rows,
+  t,
+  so,
+}: {
+  rows: (CoSoRow & {canhBao: boolean})[];
+  t: (k: string) => string;
+  so: (x: number | null) => string;
+}) {
+  if (rows.length === 0) return null;
+  return (
         <div className="overflow-x-auto">
           <div className="min-w-[560px]">
             <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_repeat(5,minmax(0,1fr))] items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5 text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">
@@ -481,7 +463,7 @@ function LopDiCham({
               <span className="text-center">{t('cotHop')}</span>
               <span className="text-center">{t('cotChoDuyet')}</span>
             </div>
-            {coSo.map((r) => (
+            {rows.map((r) => (
               <div
                 key={r.class_id}
                 className={`grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_repeat(5,minmax(0,1fr))] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2.5 ${
@@ -511,7 +493,5 @@ function LopDiCham({
             ))}
           </div>
         </div>
-      )}
-    </section>
   );
 }

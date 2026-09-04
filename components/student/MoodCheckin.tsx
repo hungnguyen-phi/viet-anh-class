@@ -404,7 +404,7 @@ export function MoodCheckin({
                 setDraft(mood);
                 setOpen(true);
               }}
-              className="inline-flex cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-navy/20 bg-white/50 px-3 py-[5px] text-[11.5px] font-extrabold text-navy transition-colors hover:border-navy hover:bg-white"
+              className="inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-full border-[1.5px] border-navy/20 bg-white/50 px-3 text-[12px] font-extrabold text-navy transition-colors hover:border-navy hover:bg-white"
             >
               <Pencil size={11} strokeWidth={2.5} />
               {t('moodEdit')}
@@ -419,20 +419,23 @@ export function MoodCheckin({
               <button
                 key={k}
                 type="button"
-                title={t(`levels.${k}`)}
+                title={suaDuoc ? t(`levels.${k}`) : `${t(`levels.${k}`)} — ${cauDongCua}`}
                 aria-label={t(`levels.${k}`)}
+                // Ngoài giờ / đã khoá: nút THẬT SỰ tắt (audit 04/09/2026 — trước đây bấm được mà
+                // không trả lời gì). Mặt đã chọn vẫn hiện rõ để em biết mình đã bấm gì.
+                disabled={!suaDuoc}
                 onClick={() => {
                   if (!suaDuoc) return;
                   setDraft(mood);
                   setOpen(true);
                 }}
                 className={`grid h-11 w-11 place-items-center rounded-full transition-all ${
-                  canEdit ? 'cursor-pointer' : 'cursor-default'
+                  suaDuoc ? 'cursor-pointer' : 'cursor-not-allowed'
                 }`}
                 style={{
                   background: m.bg,
                   color: m.fg,
-                  opacity: active ? 1 : 0.4,
+                  opacity: active ? 1 : suaDuoc ? 0.4 : 0.25,
                   boxShadow: active ? '0 0 0 2.5px #26275d' : 'none',
                 }}
               >

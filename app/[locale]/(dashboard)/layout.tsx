@@ -1,5 +1,6 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
 import {requireProfile, getUserId} from '@/lib/auth';
+import {signOut} from '@/lib/auth-actions';
 import {PARENT_PORTAL} from '@/lib/flags';
 import {createClient} from '@/lib/supabase/server';
 import {AppNav} from '@/components/shell/AppNav';
@@ -85,9 +86,18 @@ export default async function DashboardLayout({
   if (profile.role === 'parent' && !PARENT_PORTAL) {
     return (
       <div className="grid min-h-screen place-items-center px-6">
-        <p className="glass max-w-[420px] rounded-[20px] p-6 text-center text-[14px] font-semibold leading-relaxed text-navy">
-          {tc('parentPaused')}
-        </p>
+        <div className="glass flex max-w-[420px] flex-col items-center gap-4 rounded-[20px] p-6 text-center">
+          <p className="text-[14px] font-semibold leading-relaxed text-navy">{tc('parentPaused')}</p>
+          {/* Không có nút này thì phụ huynh dùng chung máy với con bị kẹt (audit 04/09/2026). */}
+          <form action={signOut}>
+            <button
+              type="submit"
+              className="min-h-11 cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-[13px] font-extrabold text-navy transition-colors hover:border-navy"
+            >
+              {tc('logout')}
+            </button>
+          </form>
+        </div>
       </div>
     );
   }

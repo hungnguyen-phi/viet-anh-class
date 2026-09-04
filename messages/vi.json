@@ -30,7 +30,14 @@
     "parentPaused": "Cổng phụ huynh sẽ mở ở giai đoạn sau của Việt Anh Class. Nhà trường sẽ báo khi sẵn sàng.",
     "xacNhan": "Xác nhận",
     "thoi": "Thôi",
-    "dongY": "Đồng ý"
+    "dongY": "Đồng ý",
+    "dong": "Đóng",
+    "chonLop": "Chọn lớp",
+    "dangChuyenLop": "Đang chuyển lớp…",
+    "xemTatCa": "Xem tất cả",
+    "thuGon": "Thu gọn",
+    "lopCanChuY": "Lớp cần chú ý",
+    "tatCaLop": "Tất cả {n} lớp"
   },
   "roles": {
     "admin": "Quản trị viên",

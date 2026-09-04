@@ -2,6 +2,7 @@
 
 import {useMemo, useState, useTransition} from 'react';
 import {useTranslations} from 'next-intl';
+import {Popup} from '@/components/ui/Popup';
 import {datTuanHoc} from './actions';
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
@@ -23,6 +24,7 @@ const KE_TIEP: Record<Loai, Loai> = {hoc: 'nghi', nghi: 'thi', thi: 'hoc'};
 
 export function LichTuanHoc({nam, weeks}: {nam: string; weeks: Tuan[]}) {
   const t = useTranslations('coSoMucTieu');
+  const tc = useTranslations('common');
   const [pending, startTransition] = useTransition();
   // Ghi đè lạc quan: đổi màu ngay khi bấm, không đợi máy chủ dựng lại trang.
   const [ghiDe, setGhiDe] = useState<Record<string, Loai>>({});
@@ -37,11 +39,18 @@ export function LichTuanHoc({nam, weeks}: {nam: string; weeks: Tuan[]}) {
     return [...m.entries()];
   }, [weeks]);
 
-  function bam(w: Tuan) {
+  // Tuần đã qua: hỏi lại bằng hộp của app (không window.confirm — audit 04/09/2026), giữ tuần
+  // đang chờ trong state rồi mới đổi khi bấm Đồng ý.
+  const [hoiTuan, setHoiTuan] = useState<Tuan | null>(null);
+
+  function bam(w: Tuan, daXacNhan = false) {
     if (pending) return;
     const hienTai = ghiDe[w.monday] ?? w.loai;
     const dich = KE_TIEP[hienTai];
-    if (w.quaKhu && !window.confirm(t('lichQuaKhu'))) return;
+    if (w.quaKhu && !daXacNhan) {
+      setHoiTuan(w);
+      return;
+    }
     setGhiDe((g) => ({...g, [w.monday]: dich}));
     const fd = new FormData();
     fd.set('week_start', w.monday);
@@ -94,6 +103,32 @@ export function LichTuanHoc({nam, weeks}: {nam: string; weeks: Tuan[]}) {
           </div>
         ))}
       </div>
+      {hoiTuan && (
+        <Popup title={tc('xacNhan')} onClose={() => setHoiTuan(null)} width="max-w-[400px]">
+          <p className="text-[14px] font-semibold leading-relaxed text-navy">{t('lichQuaKhu')}</p>
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setHoiTuan(null)}
+              className="min-h-11 cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-[13px] font-extrabold text-navy transition-colors hover:border-navy"
+            >
+              {tc('thoi')}
+            </button>
+            <button
+              type="button"
+              autoFocus
+              onClick={() => {
+                const w = hoiTuan;
+                setHoiTuan(null);
+                bam(w, true);
+              }}
+              className="min-h-11 cursor-pointer rounded-[12px] bg-navy px-4 text-[13px] font-extrabold text-white transition-colors hover:bg-navy/90"
+            >
+              {tc('dongY')}
+            </button>
+          </div>
+        </Popup>
+      )}
     </section>
   );
 }
