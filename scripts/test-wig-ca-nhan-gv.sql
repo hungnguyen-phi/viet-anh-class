@@ -42,6 +42,17 @@ select t.lop, t.cs, t.gvcn,
   (select id from don_vi where lower(ma)='diem' limit 1)             dv2
 from t;
 grant select on bc181 to authenticated;
+
+-- Tự gieo chủ thể SẠCH (0187): dọn cam kết / thước cá nhân của GVCN test trong giao dịch (rollback
+-- trả lại) — bài kiểm không được phụ thuộc vào thứ người ta đang thử tay trên tài khoản ấy
+-- (trần 2 cam kết/tuần, thước đã có lượt ghi từng làm bài này đỏ oan 04/09).
+do $$ declare r bc181%rowtype; begin
+  select * into r from bc181;
+  -- Không xoá (trigger th_truoc_xoa giữ thước đã có lượt) — chỉ đóng/huỷ: 'dong' không tính trần thước,
+  -- 'huy' không tính trần 2 cam kết/tuần.
+  update thuoc set trang_thai = 'dong' where chu_the = 'em' and student_id = r.gvcn and trang_thai <> 'dong';
+  update cam_ket set trang_thai = 'huy' where chu_the = 'em' and student_id = r.gvcn and trang_thai = 'hieu_luc';
+end $$;
 create temporary table art181 (k text primary key, v uuid) on commit drop;
 grant all on art181 to authenticated;
 
@@ -119,8 +130,10 @@ end $$;
 do $$ declare r bc181%rowtype; v uuid; begin
   select * into r from bc181;
   perform set_config('request.jwt.claims', json_build_object('sub', r.em1::text)::text, true);
-  delete from cam_ket where student_id = r.em1 and class_id = r.lop
-    and tuan_bat_dau >= vn_week_start() and trang_thai = 'hieu_luc' and ket_qua is null;  -- dọn trần 2/tuần trong txn
+  -- dọn trần 2/tuần trong txn: HUỶ thay vì delete — từ 0185 xoá cam kết cascade sang thước (cam_ket_id)
+  -- và th_truoc_xoa chặn thước đã có lượt ghi.
+  update cam_ket set trang_thai = 'huy' where student_id = r.em1 and class_id = r.lop
+    and tuan_bat_dau >= vn_week_start() and trang_thai = 'hieu_luc' and ket_qua is null;
   insert into cam_ket (chu_the, class_id, student_id, noi_dung, so_tuan, tuan_bat_dau)
   values ('em', r.lop, r.em1, 'ZZTEST181-ck-em', 1, vn_week_start()) returning id into v;
   if v is null then raise exception 'CA4 HỎNG: em thường không tạo được cam kết của mình nữa'; end if;
@@ -165,18 +178,21 @@ do $$ declare r bc181%rowtype; g_lop uuid; v2 uuid; n int; begin
   raise notice 'CA6 OK — khác đơn vị: chỉ giữ hướng';
 end $$;
 
--- ⑦ Lớp→trường cùng đơn vị: gop_so + trường sang 'con'.
+-- ⑦ Lớp→trường: từ 0182 CHỈ GIỮ HƯỚNG (trường đo theo cách riêng) — dù cùng đơn vị cũng không gop_so,
+--    trường KHÔNG chuyển sang 'con'. (Bài này viết theo 0181, cập nhật 04/09 theo 0182.)
 do $$ declare r bc181%rowtype; g_lop uuid; g_tr uuid; n int; ns text; begin
   select * into r from bc181;
   select v into g_lop from art181 where k='g_lop';
   select v into g_tr  from art181 where k='g_truong';
   perform set_config('request.jwt.claims', json_build_object('sub', r.gvcn::text)::text, true);
   perform noi_wig_len_tren(g_lop, g_tr);
+  select count(*) into n from noi where cha_id = g_tr and con_muc_tieu_id = g_lop and vai = 'chi_huong';
+  if n <> 1 then raise exception 'CA7 HỎNG: lớp→trường thiếu dây chi_huong'; end if;
   select count(*) into n from noi where cha_id = g_tr and con_muc_tieu_id = g_lop and vai = 'gop_so';
-  if n <> 1 then raise exception 'CA7 HỎNG: lớp→trường cùng đơn vị mà không có gop_so'; end if;
+  if n <> 0 then raise exception 'CA7 HỎNG: lớp→trường có gop_so — 0182 đã bỏ cộng số lên trường'; end if;
   select nguon_so into ns from muc_tieu where id = g_tr;
-  if ns is distinct from 'con' then raise exception 'CA7 HỎNG: trường mong nguon_so=con, ra %', ns; end if;
-  raise notice 'CA7 OK — lớp nối lên trường, số cộng';
+  if ns = 'con' then raise exception 'CA7 HỎNG: trường bị chuyển sang nguon_so=con'; end if;
+  raise notice 'CA7 OK — lớp nối lên trường chỉ giữ hướng (0182)';
 end $$;
 
 -- ⑧ Gỡ dây: hết con gop_so → cha quay về ghi_tay.

@@ -54,6 +54,13 @@ select t.lop, t.cs, t.gvcn,
 from t;
 grant select on bc to authenticated;
 
+-- Tự chủ số đếm (0187): đóng tạm mọi mục tiêu đang 'duyet' của lớp Test (lớp + em) trong giao dịch —
+-- trần 4 mục tiêu/chủ thể từng làm bài này đỏ oan khi lớp Test có sẵn mục tiêu thử tay (04/09).
+do $$ declare r bc%rowtype; begin
+  select * into r from bc;
+  update muc_tieu set trang_thai = 'dong', ly_do_dong = 'bo' where class_id = r.lop and trang_thai = 'duyet';
+end $$;
+
 -- Kho id mục tiêu chia sẻ giữa các bước / hai phase.
 create temporary table art (k text primary key, v uuid) on commit drop;
 grant all on art to authenticated;
