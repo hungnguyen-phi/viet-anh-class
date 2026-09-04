@@ -19,6 +19,7 @@ import {MessageHealthCard} from '@/components/inbox/MessageHealthCard';
 import {Link} from '@/i18n/navigation';
 import {BookMarked} from 'lucide-react';
 import {BoLocCoSo} from '@/components/campus/BoLocCoSo';
+import {layTrangCampus} from '@/lib/trang-gop';
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
 // /campus — MÀN HÌNH CẤP CƠ SỞ CỦA BAN GIÁM HIỆU (viết lại cho mô hình mục tiêu PA2, 40-C)
@@ -53,18 +54,28 @@ export default async function CampusPage({
 
   const laBgh = profile.role === 'principal' && !!profile.campus_id;
 
-  // MỘT ĐỢT phóng song song mọi truy vấn cấp trường — không câu nào cần kết quả câu nào. Builder
-  // supabase-js là "thenable" lười: phải gọi .then() mới thật sự bắn request đi.
-  const rollupPromise = supabase.rpc('campus_rollup').then(
-    (r) => (r.data ?? []) as RollupRow[],
-    () => [] as RollupRow[],
-  );
-  // C3 — mỗi lớp một dòng, tuần hiện tại (p_tuan mặc định = tuần chứa hôm nay).
-  const coSoPromise = supabase.rpc('co_so_tong_hop', {}).then(
-    (r) => r.data ?? [],
-    () => [],
-  );
+  // MỘT LƯỢT ĐI CSDL cho cả trang (0190): trang_campus trả mọi khối đúng tên biến bên dưới. Khi
+  // CSDL chưa có hàm (deploy code trước 0190) → null → đường nhiều câu cũ chạy y nguyên.
   const areaMetaPromise = getAreaMeta();
+  const gop = await layTrangCampus(supabase, {
+    campusId: laBgh ? (profile.campus_id as string) : null,
+    nam: sp.nam ?? null,
+    khoi: sp.khoi ?? null,
+  });
+  // Builder supabase-js là "thenable" lười: phải gọi .then() mới thật sự bắn request đi.
+  const rollupPromise = gop
+    ? Promise.resolve(gop.rows as RollupRow[])
+    : supabase.rpc('campus_rollup').then(
+        (r) => (r.data ?? []) as RollupRow[],
+        () => [] as RollupRow[],
+      );
+  // C3 — mỗi lớp một dòng, tuần hiện tại (p_tuan mặc định = tuần chứa hôm nay).
+  const coSoPromise = gop
+    ? Promise.resolve(gop.coSoTatCa)
+    : supabase.rpc('co_so_tong_hop', {}).then(
+        (r) => r.data ?? [],
+        () => [],
+      );
 
   // BGH quản lý Cơ sở mình (admin dùng /admin). Các truy vấn dưới đây độc lập → chạy song song.
   let mgmt: null | {
@@ -92,7 +103,18 @@ export default async function CampusPage({
 
   if (profile.role === 'principal' && profile.campus_id) {
     const campusId = profile.campus_id;
-    const [{data: gr}, {data: cls}, {data: staffRows}, {data: cp}, {data: inv}] = await Promise.all([
+    type GrRow = {id: string; name: string; sort_order: number; is_active: boolean; campus_id: string};
+    type ClsRow = {id: string; name: string; grade_id: string | null; grade: string | null; school_year: string; campus_id: string; homeroom_teacher_id: string | null; is_active: boolean; nhap_ho: boolean};
+    type StaffRow = {id: string; full_name: string | null; email: string; role: string};
+    const [{data: gr}, {data: cls}, {data: staffRows}, {data: cp}, {data: inv}] = gop
+      ? [
+          {data: gop.gr as GrRow[]},
+          {data: gop.cls as ClsRow[]},
+          {data: gop.staffRows as StaffRow[]},
+          {data: gop.cp as {name: string; levels: unknown} | null},
+          {data: gop.inv},
+        ]
+      : await Promise.all([
       supabase
         .from('grades')
         .select('id, name, sort_order, is_active, campus_id')
@@ -180,9 +202,14 @@ export default async function CampusPage({
 
   // BỘ LỌC Năm học → Khối (04/09/2026): "Lớp nào đi chậm" liệt kê mọi lớp một bảng — BGH cần lọc
   // được khối. Lớp lấy theo cơ sở của BGH (admin: mọi lớp); RLS tự giới hạn.
-  const lopQ = supabase.from('classes').select('id, school_year, grade_id, grades(name, sort_order)').eq('is_active', true);
-  const {data: lopRows} = await (laBgh ? lopQ.eq('campus_id', profile.campus_id as string) : lopQ);
   type LopLoc = {id: string; school_year: string; grade_id: string | null; grades: {name: string; sort_order: number} | null};
+  let lopRows: unknown[] | null;
+  if (gop) {
+    lopRows = gop.lopRows;
+  } else {
+    const lopQ = supabase.from('classes').select('id, school_year, grade_id, grades(name, sort_order)').eq('is_active', true);
+    lopRows = (await (laBgh ? lopQ.eq('campus_id', profile.campus_id as string) : lopQ)).data;
+  }
   const lopLoc = (lopRows ?? []) as unknown as LopLoc[];
   const namList = [...new Set(lopLoc.map((l) => l.school_year))].sort().reverse();
   const namChon = sp.nam && namList.includes(sp.nam) ? sp.nam : (namList[0] ?? '');
@@ -198,16 +225,19 @@ export default async function CampusPage({
   const coSo = (coSoTatCa as CoSoRow[]).filter((r) => lopHopLe.has(r.class_id));
 
   // C1 — mục tiêu của CHÍNH cơ sở. Chỉ hiệu trưởng của cơ sở này quản; admin xem qua /admin.
-  const mtTruong = laBgh
-    ? (
-        await supabase
-          .from('muc_tieu_v')
-          .select('id, ten, linh_vuc, pct, trang_thai, nguon_so')
-          .eq('cap', 'truong')
-          .neq('trang_thai', 'dong')
-          .order('created_at', {ascending: false})
-      ).data ?? []
-    : [];
+  type MtTruongRow = {id: string | null; ten: string | null; linh_vuc: string | null; pct: number | null; trang_thai: string | null; nguon_so: string | null};
+  const mtTruong: MtTruongRow[] = !laBgh
+    ? []
+    : gop
+      ? (gop.mtTruong as MtTruongRow[])
+      : ((
+          await supabase
+            .from('muc_tieu_v')
+            .select('id, ten, linh_vuc, pct, trang_thai, nguon_so')
+            .eq('cap', 'truong')
+            .neq('trang_thai', 'dong')
+            .order('created_at', {ascending: false})
+        ).data ?? []) as MtTruongRow[];
 
   // C4 — lịch tuần học của cơ sở: dựng đủ 52 tuần của năm học, tô loại từ bảng tuan_hoc.
   const lichWeeks: {monday: string; thang: number; loai: 'hoc' | 'nghi' | 'thi'; quaKhu: boolean}[] = [];
@@ -215,12 +245,16 @@ export default async function CampusPage({
   if (laBgh) {
     const {start, end, label} = schoolYearRangeVN();
     namHoc = label;
-    const {data: th} = await supabase
-      .from('tuan_hoc')
-      .select('week_start, loai')
-      .eq('campus_id', profile.campus_id as string)
-      .gte('week_start', start)
-      .lte('week_start', end);
+    const th = gop
+      ? gop.tuanHoc
+      : (
+          await supabase
+            .from('tuan_hoc')
+            .select('week_start, loai')
+            .eq('campus_id', profile.campus_id as string)
+            .gte('week_start', start)
+            .lte('week_start', end)
+        ).data;
     const loaiMap = new Map((th ?? []).map((r) => [r.week_start, r.loai]));
     const endMon = mondayOf(end);
     const todayMon = mondayOf(todayInVN());
