@@ -8,6 +8,6 @@ export const SITE_URL = (
 // Thông tin trường dùng cho Open Graph + JSON-LD. Không phải dữ liệu học sinh nên công khai được.
 export const SCHOOL = {
   name: 'Trường Việt Anh',
-  appName: 'Viet Anh Class',
+  appName: 'Việt Anh Class',
   url: 'https://truongvietanh.com',
 } as const;

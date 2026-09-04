@@ -13,9 +13,10 @@ const BACKCHANNEL_LOGOUT_EVENT = 'http://schemas.openid.net/event/backchannel-lo
 
 export async function POST(request: Request) {
   const appId = process.env.HUB_APP_ID;
-  if (!appId) {
-    console.error('[hub] backchannel-logout: thiếu HUB_APP_ID');
-    return NextResponse.json({error: 'hub_not_configured'}, {status: 500});
+  // Chưa bật Hub (thiếu HUB_APP_ID/HUB_ISSUER_URL) là TRẠNG THÁI, không phải sự cố: 501 "chưa hỗ
+  // trợ" thay cho 500/503 — audit 04/09/2026 thấy mọi vai gọi vào đều nhận 503 hub_unreachable.
+  if (!appId || !process.env.HUB_ISSUER_URL) {
+    return NextResponse.json({error: 'hub_chua_bat'}, {status: 501});
   }
 
   const form = await request.formData().catch(() => null);

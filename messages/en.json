@@ -30,7 +30,14 @@
     "parentPaused": "The parent portal opens in a later phase of Viet Anh Class. The school will let you know when it is ready.",
     "xacNhan": "Confirm",
     "thoi": "Cancel",
-    "dongY": "OK"
+    "dongY": "OK",
+    "dong": "Close",
+    "chonLop": "Choose class",
+    "dangChuyenLop": "Switching class…",
+    "xemTatCa": "Show all",
+    "thuGon": "Collapse",
+    "lopCanChuY": "Classes needing attention",
+    "tatCaLop": "All {n} classes"
   },
   "roles": {
     "admin": "Administrator",

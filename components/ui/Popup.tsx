@@ -1,8 +1,10 @@
 'use client';
 
-import {useEffect, useState, type ReactNode} from 'react';
+import {useEffect, useRef, useState, type ReactNode} from 'react';
 import {createPortal} from 'react-dom';
 import {X} from 'lucide-react';
+import {useTranslations} from 'next-intl';
+import {useFocusTrap} from '@/lib/useFocusTrap';
 
 // HỘP THOẠI DÙNG CHUNG — cùng lớp áo với hộp xác nhận xoá nhiều người ở màn Quản trị
 // (BulkDeleteDialog): phủ navy mờ, thẻ glass bo 20px. Tách ra vì nay có hai chỗ cần nó — ô thời
@@ -11,6 +13,11 @@ import {X} from 'lucide-react';
 // DỰNG QUA PORTAL, KHÔNG ĐỂ TẠI CHỖ. Cả hai chỗ gọi đều nằm trong một khung có `overflow-x-auto`
 // (bảng cuộn ngang); hộp thoại dựng tại chỗ sẽ bị chính khung ấy cắt mất một nửa, hoặc trôi theo
 // khi người dùng cuộn bảng. Portal đưa nó ra thẳng <body> nên không dính gì tới bảng.
+//
+// FOCUS (audit 04/09/2026): mở hộp mà activeElement vẫn là <body> — người dùng bàn phím/đọc màn
+// hình không biết hộp đã mở, Tab thì lọt ra trang sau lưng. Nay dùng chung useFocusTrap với
+// MoodCheckin: đưa focus vào phần tử đầu, giữ Tab luẩn quẩn trong hộp, trả focus về nút mở khi
+// đóng. Hộp cam kết/thước có autoFocus riêng vẫn thắng (trap chỉ focus khi chưa có gì được focus).
 export function Popup({
   title,
   onClose,
@@ -22,10 +29,13 @@ export function Popup({
   children: ReactNode;
   width?: string;
 }) {
+  const tc = useTranslations('common');
   // Chỉ dựng sau khi đã gắn vào cây DOM: createPortal cần `document`, mà lần render đầu của
   // Next chạy trên máy chủ.
   const [daGan, setDaGan] = useState(false);
   useEffect(() => setDaGan(true), []);
+  const hopRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(daGan, hopRef);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -50,13 +60,20 @@ export function Popup({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div role="dialog" aria-modal="true" aria-label={title} className={`glass w-full ${width} rounded-[20px] p-[18px]`}>
+      <div
+        ref={hopRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={`glass w-full ${width} rounded-[20px] p-[18px] outline-none`}
+      >
         <div className="mb-3 flex items-start gap-2">
           <h2 className="min-w-0 flex-1 font-display text-[16px] font-bold text-navy">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Đóng"
+            aria-label={tc('dong')}
             className="relative grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-[9px] text-grey-mid transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:bg-navy/[0.07] hover:text-navy"
           >
             <X size={15} strokeWidth={2.5} />

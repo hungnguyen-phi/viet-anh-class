@@ -37,6 +37,26 @@
   src: url('/fonts/nunito-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
+/* FALLBACK CÓ ĐO ĐẠC (audit 04/09/2026): font-display: swap nghĩa là chữ hiện bằng font hệ thống
+   trước rồi đổi sang Nunito/Baloo 2 khi tệp về — hai font khác bề rộng nên cả trang nhảy (CLS).
+   Khai một "font giả" dựa trên Arial với size-adjust/ascent-override lấy theo số đo của Nunito và
+   Baloo 2 (xấp xỉ từ bảng metrics font, đủ để dòng chữ không đổi chiều dài/độ cao khi đổi). */
+@font-face {
+  font-family: 'Nunito Fallback';
+  src: local('Arial'), local('Helvetica Neue'), local('Roboto');
+  size-adjust: 101%;
+  ascent-override: 101%;
+  descent-override: 35%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Baloo 2 Fallback';
+  src: local('Arial'), local('Helvetica Neue'), local('Roboto');
+  size-adjust: 104%;
+  ascent-override: 106%;
+  descent-override: 38%;
+  line-gap-override: 0%;
+}
 :root {
   --font-baloo: 'Baloo 2';
   --font-nunito: 'Nunito';
@@ -159,8 +179,8 @@
   --z-modal: 50;
 
   /* Fonts — Baloo 2 (display, có tiếng Việt) + Nunito (body) */
-  --font-display: var(--font-baloo), "Baloo 2", ui-rounded, "Segoe UI", sans-serif;
-  --font-body: var(--font-nunito), "Nunito", ui-rounded, "Segoe UI", sans-serif;
+  --font-display: var(--font-baloo), "Baloo 2", "Baloo 2 Fallback", ui-rounded, "Segoe UI", sans-serif;
+  --font-body: var(--font-nunito), "Nunito", "Nunito Fallback", ui-rounded, "Segoe UI", sans-serif;
   /* Alias tương thích với code cũ trong lúc chuyển đổi */
   --font-heading: var(--font-display);
   --font-fun: var(--font-display);
@@ -228,10 +248,40 @@ textarea,
     opacity var(--dur-fast) var(--ease-out-expo);
 }
 
-/* Focus nhìn thấy được */
-:where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-navy);
+/* FOCUS NHÌN THẤY ĐƯỢC — THẮNG `outline-none` (audit 04/09/2026).
+   Luật cũ dùng :where() (độ ưu tiên 0) nên 44 chỗ `outline-none` của Tailwind đè mất vòng focus —
+   người dùng bàn phím mù đường. Nay: bộ chọn thường (độ ưu tiên 0,1,1) + !important, vì
+   `outline-none` là utility (0,1,0) và không có lý do chính đáng nào để một ô nhập giấu focus bàn
+   phím; chuột/chạm không bị ảnh hưởng — :focus-visible chỉ bật với bàn phím. Vàng viền + quầng
+   navy để rõ trên cả nền trắng lẫn thanh menu navy. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-gold) !important;
   outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgba(38, 39, 93, 0.35);
+}
+
+/* Ô NHẬP 16PX TRÊN ĐIỆN THOẠI: iOS phóng to cả trang khi chạm vào ô nhập có chữ dưới 16px.
+   !important vì nhiều ô inline đặt text-[11.5px]…text-[13px] bằng utility; từ 640px trở lên trả
+   lại cỡ chữ từng ô. */
+@media (max-width: 639.98px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ĐANG CHUYỂN LỚP (ClassPicker đánh dấu html[data-chuyen-lop]): mờ nội dung để người dùng thấy
+   cú bấm đã ăn và đừng bấm lại — trước đây tên lớp đổi mà nội dung đứng im vài giây. */
+html[data-chuyen-lop] main {
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 150ms ease-out;
 }
 
 /* Tôn trọng prefers-reduced-motion */

@@ -16,8 +16,12 @@ import {AlertCircle} from 'lucide-react';
 // ============================================================
 
 // Nền chung: bo góc, viền, chuyển động. KHÔNG chứa bề rộng — xem ghi chú ở inputInline.
+//
+// `text-base sm:text-sm` (audit 04/09/2026): iOS tự PHÓNG TO cả trang khi chạm vào ô nhập có chữ
+// dưới 16px — 700 em dùng điện thoại, mọi form đều bị. Từ 640px trở lên giữ 14px như cũ.
+// Không còn `outline-none`: vòng focus bàn phím do luật :focus-visible toàn cục (globals.css) vẽ.
 const CTL_BASE =
-  'ctl-h min-w-0 rounded-[10px] border-[1.5px] bg-white px-3 text-sm font-semibold text-navy outline-none transition-colors';
+  'ctl-h min-w-0 rounded-[10px] border-[1.5px] bg-white px-3 text-base sm:text-sm font-semibold text-navy transition-colors';
 
 export const BORDER_OK = 'border-navy/15 focus:border-navy';
 export const BORDER_ERR = 'border-status-bad focus:border-status-bad';

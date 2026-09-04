@@ -1,8 +1,11 @@
 'use client';
 
+import {useRef, useState} from 'react';
 import {useFormStatus} from 'react-dom';
+import {useTranslations} from 'next-intl';
 import {Loader2} from 'lucide-react';
 import {SlowNotice} from './SlowNotice';
+import {Popup} from './Popup';
 
 // Nút submit có hộp xác nhận (cho thao tác nguy hiểm như xoá).
 // Mặc định kiểu "danger" đỏ nhạt của v3; caller vẫn có thể truyền className riêng.
@@ -13,6 +16,11 @@ import {SlowNotice} from './SlowNotice';
 // vừa xoá vẫn còn trên bảng. Người dùng không có cách nào biết là xong hay hỏng — đúng kiểu phàn
 // nàn "bấm không thấy gì xảy ra". Nay: khoá nút (chặn bấm hai lần), hiện spinner, và sau 12 giây
 // thì bày cách tự thoát (tải lại trang).
+//
+// HỘP XÁC NHẬN LÀ CỦA APP, KHÔNG PHẢI window.confirm (audit 04/09/2026): hộp hệ thống lệch bản
+// sắc, nút OK/Cancel không dịch, và trên điện thoại nó chặn cả tab. Nút này nằm trong <form> của
+// người gọi nên không đổi API: bấm lần đầu chặn submit và mở Popup; bấm "Đồng ý" mới submit form
+// thật (requestSubmit) — lượt ấy đi qua với cờ daXacNhan nên không hỏi lại.
 //
 // Giữ NGUYÊN kích thước nút khi đang gửi: nội dung chuyển invisible, spinner phủ tuyệt đối ở
 // giữa. Các nút này nằm trong hàng bảng chật nên không được phép nhảy bố cục.
@@ -37,17 +45,35 @@ export function ConfirmButton({
   label?: string;
 }) {
   const {pending} = useFormStatus();
+  const tc = useTranslations('common');
+  const [hoi, setHoi] = useState(false);
+  const nutRef = useRef<HTMLButtonElement>(null);
+  const daXacNhan = useRef(false);
+
+  const dongY = () => {
+    setHoi(false);
+    daXacNhan.current = true;
+    // requestSubmit(nút) để form nhận đúng name/value của nút này (nhiều form phân nhánh theo đó).
+    const form = nutRef.current?.form;
+    if (form && nutRef.current) form.requestSubmit(nutRef.current);
+  };
 
   return (
     <>
       <button
+        ref={nutRef}
         type="submit"
         disabled={pending}
         aria-busy={pending}
         aria-label={label}
         className={`relative ${className}`}
         onClick={(e) => {
-          if (!window.confirm(message)) e.preventDefault();
+          if (daXacNhan.current) {
+            daXacNhan.current = false;
+            return;
+          }
+          e.preventDefault();
+          setHoi(true);
         }}
       >
         {/* `contents` để cái span này KHÔNG tự làm một hộp.
@@ -68,6 +94,28 @@ export function ConfirmButton({
         )}
       </button>
       <SlowNotice pending={pending} />
+      {hoi && (
+        <Popup title={tc('xacNhan')} onClose={() => setHoi(false)} width="max-w-[400px]">
+          <p className="text-[14px] font-semibold leading-relaxed text-navy">{message}</p>
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setHoi(false)}
+              className="min-h-11 cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white px-4 text-[13px] font-extrabold text-navy transition-colors hover:border-navy"
+            >
+              {tc('thoi')}
+            </button>
+            <button
+              type="button"
+              onClick={dongY}
+              autoFocus
+              className="min-h-11 cursor-pointer rounded-[12px] bg-status-bad px-4 text-[13px] font-extrabold text-white transition-colors hover:bg-status-bad/90"
+            >
+              {tc('dongY')}
+            </button>
+          </div>
+        </Popup>
+      )}
     </>
   );
 }
