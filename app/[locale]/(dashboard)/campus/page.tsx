@@ -251,7 +251,7 @@ export default async function CampusPage({
           sở thì khối truy vấn quản lý bị bỏ qua, rồi trang rơi vào câu "chưa có lớp" trong khi
           trường đang có lớp — đổ cho dữ liệu thay vì nói đúng tình trạng của người đang đứng đó. */}
       {profile.role === 'principal' && !profile.campus_id ? (
-        <p className="rounded-[16px] bg-warn/[0.10] px-4 py-3 text-sm font-semibold leading-relaxed text-navy">
+        <p className="rounded-[12px] bg-warn/[0.10] px-4 py-3 text-sm font-semibold leading-relaxed text-navy">
           {t('noCampusAssigned')}
         </p>
       ) : rows.length === 0 ? (
@@ -261,7 +261,7 @@ export default async function CampusPage({
         // Bảng tổng hợp theo khối xếp gọn, bấm mới mở — thứ BGH cần liếc mỗi ngày là "lớp nào cần
         // chú ý" ở khối ngay dưới.
         <details className="glass rounded-[20px] p-[18px]">
-          <summary className="min-h-11 cursor-pointer list-none font-display text-doc font-bold text-navy marker:content-none [&::-webkit-details-marker]:hidden">
+          <summary className="min-h-11 cursor-pointer list-none font-display text-noi-dung font-bold text-navy marker:content-none [&::-webkit-details-marker]:hidden">
             {tc('tatCaLop', {n: rows.length})} · {t('title')}
           </summary>
           <div className="mt-3">
@@ -281,9 +281,9 @@ export default async function CampusPage({
           cuộn từ mục tiêu lớp, không ai gõ. */}
       {laBgh && (
         <section className="glass rounded-[20px] p-[18px]">
-          <div className="mb-3 font-display text-doc font-bold text-navy">{tCo('khuMucTieu')}</div>
+          <div className="mb-3 font-display text-noi-dung font-bold text-navy">{tCo('khuMucTieu')}</div>
           {mtTruong.length === 0 ? (
-            <p className="rounded-[16px] border-[1.5px] border-dashed border-navy/15 p-4 text-center text-than font-semibold italic leading-relaxed text-grey-mid">
+            <p className="rounded-[12px] border-[1.5px] border-dashed border-navy/15 p-4 text-center text-than font-semibold italic leading-relaxed text-grey-mid">
               {tCo('mucTieuTrong')}
             </p>
           ) : (
@@ -296,7 +296,7 @@ export default async function CampusPage({
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                       {meta && (
                         <span
-                          className="inline-flex w-fit items-center rounded-full px-2 py-0.5 text-chu-thich font-extrabold"
+                          className="inline-flex w-fit items-center rounded-full px-2 py-0.5 text-nhan font-extrabold"
                           style={{background: meta.soft, color: meta.hex}}
                         >
                           {areaLabel(meta, locale)}
@@ -318,7 +318,7 @@ export default async function CampusPage({
                         }}
                       />
                     </div>
-                    <p className="mt-1 text-chu-thich font-bold text-grey-mid">
+                    <p className="mt-1 text-nhan font-bold text-grey-mid">
                       {w.nguon_so === 'con' ? tCo('cuon') : tCo('tuDo')}
                     </p>
                   </div>
@@ -332,11 +332,11 @@ export default async function CampusPage({
       {/* Môn riêng của cơ sở + phân công giáo viên bộ môn cho từng lớp. Hiệu trưởng sửa được môn
           RIÊNG của cơ sở mình; môn dùng chung toàn trường thì chỉ quản trị viên đổi (RLS 0069). */}
       <section className="glass rounded-[20px] p-[18px]">
-        <div className="mb-3 font-display text-doc font-bold text-navy">{t('subjectsCard')}</div>
+        <div className="mb-3 font-display text-noi-dung font-bold text-navy">{t('subjectsCard')}</div>
         <p className="mb-3 text-xs text-grey-mid">{t('subjectsCardHint')}</p>
         <Link
           href="/subjects"
-          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[12px] border-[1.5px] border-navy/20 bg-white px-3 text-than font-extrabold text-navy transition-all hover:border-navy"
+          className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[8px] border-[1.5px] border-navy/20 bg-white px-3 text-than font-extrabold text-navy transition-all hover:border-navy"
         >
           <BookMarked size={14} strokeWidth={2} />
           {t('openSubjects')}
@@ -353,14 +353,14 @@ export default async function CampusPage({
       {mgmt && (
         <>
           <section className="glass rounded-[20px] p-[18px]">
-            <div className="mb-3 font-display text-doc font-bold text-navy">
+            <div className="mb-3 font-display text-noi-dung font-bold text-navy">
               {t('manageTeachers')} · {mgmt.campusName}
             </div>
             <TeacherManager teachers={mgmt.staff} invites={mgmt.invites} />
           </section>
 
           <section className="glass rounded-[20px] p-[18px]">
-            <div className="mb-3 font-display text-doc font-bold text-navy">
+            <div className="mb-3 font-display text-noi-dung font-bold text-navy">
               {t('manageGrades')} · {mgmt.campusName}
             </div>
             {/* Chọn cấp học trước — khối sinh ra từ đây, không ai phải gõ tên khối nữa. */}
@@ -369,7 +369,7 @@ export default async function CampusPage({
           </section>
 
           <section className="glass rounded-[20px] p-[18px]">
-            <div className="mb-3 font-display text-doc font-bold text-navy">{t('createClass')}</div>
+            <div className="mb-3 font-display text-noi-dung font-bold text-navy">{t('createClass')}</div>
             <ClassForm
               campuses={[{id: mgmt.campusId, name: mgmt.campusName}]}
               grades={mgmt.gradeOptions}
@@ -439,7 +439,7 @@ function LopDiCham({
 
   return (
     <section className="glass overflow-hidden rounded-[20px]">
-      <div className="px-[18px] pb-1 pt-4 font-display text-doc font-bold text-navy">
+      <div className="px-[18px] pb-1 pt-4 font-display text-noi-dung font-bold text-navy">
         {t('khuLopCham')}
       </div>
       {coSo.length === 0 ? (
@@ -478,7 +478,33 @@ function BangLop({
 }) {
   if (rows.length === 0) return null;
   return (
-        <div className="overflow-x-auto">
+    <>
+      {/* ĐIỆN THOẠI: mỗi lớp một thẻ + 5 ô số — bảng 7 cột không vừa 360px. */}
+      <ul className="flex flex-col gap-2 px-3 py-2 sm:hidden">
+        {rows.map((r) => (
+          <li key={r.class_id} className={`rounded-[12px] border-[1.5px] p-3 ${r.canhBao ? 'border-status-bad/30 bg-status-bad/[0.05]' : 'border-navy/10 bg-white'}`}>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-noi-dung font-extrabold text-navy">{r.class_name}</span>
+              <span className="truncate text-chu-thich font-semibold text-grey-mid">{r.gvcn_ten ?? '—'}</span>
+            </div>
+            <div className="mt-2 grid grid-cols-5 gap-1 text-center">
+              {[
+                [t('cotMucTieu'), so(r.mt_pct)],
+                [t('cotViec'), so(r.thuoc_dat_pct)],
+                [t('cotCamKet'), so(r.ck_giu_pct)],
+                [t('cotHop'), so(r.pdr_ky_pct)],
+                [t('cotChoDuyet'), r.cho_duyet > 0 ? String(r.cho_duyet) : '—'],
+              ].map(([nhan, gia]) => (
+                <div key={nhan} className="rounded-[8px] bg-navy/[0.04] px-1 py-1.5">
+                  <div className="text-than font-extrabold tabular-nums text-navy">{gia}</div>
+                  <div className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{nhan}</div>
+                </div>
+              ))}
+            </div>
+          </li>
+        ))}
+      </ul>
+        <div className="hidden overflow-x-auto sm:block">
           <div className="min-w-[560px]">
             <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_repeat(5,minmax(0,1fr))] items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
               <span>{t('cotLop')}</span>
@@ -519,5 +545,6 @@ function BangLop({
             ))}
           </div>
         </div>
+    </>
   );
 }

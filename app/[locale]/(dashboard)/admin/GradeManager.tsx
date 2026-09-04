@@ -11,7 +11,7 @@ type Grade = {id: string; name: string; sort_order: number};
 
 // Style gọn — nhất quán với admin/page.tsx (glass on gradient v3).
 const inp =
-  'min-w-0 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-than font-semibold text-navy outline-none transition-all focus:border-navy';
+  'min-w-0 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-base sm:text-than font-semibold text-navy outline-none transition-all focus:border-navy';
 const navyBtn =
   'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[8px] bg-navy px-2.5 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700';
 const ghost =
@@ -47,7 +47,7 @@ export function GradeManager({
           {t('grades')} ({grades.length})
         </span>
         {auto && (
-          <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-bold text-grey-mid">
+          <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-nhan font-bold text-grey-mid">
             {t('gradesAuto')}
           </span>
         )}
@@ -78,7 +78,7 @@ export function GradeManager({
             </form>
           ) : (
             <div key={g.id} className="flex items-center gap-1.5">
-              <span className="grid h-5 min-w-5 place-items-center rounded-[8px] bg-navy/[0.06] px-1 text-chu-thich font-extrabold text-grey-mid">
+              <span className="grid h-5 min-w-5 place-items-center rounded-[8px] bg-navy/[0.06] px-1 text-nhan font-extrabold text-grey-mid">
                 {g.sort_order}
               </span>
               <span className="flex-1 truncate text-than font-bold text-navy">{g.name}</span>

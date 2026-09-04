@@ -40,15 +40,15 @@ type Tab = (typeof TABS)[number];
 const HANG_VAI: Record<string, number> = {teacher: 0, principal: 1, admin: 2, student: 3, parent: 4};
 
 const oChon =
-  'h-8 w-full min-w-0 cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-1.5 text-chu-thich font-semibold text-navy outline-none focus:border-navy';
+  'h-8 w-full min-w-0 cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-1.5 text-base sm:text-chu-thich font-semibold text-navy outline-none focus:border-navy';
 const selectCls =
-  'h-10 cursor-pointer rounded-[12px] border-[1.5px] border-navy/15 bg-white px-2.5 text-than font-semibold text-navy outline-none focus:border-navy';
+  'h-11 cursor-pointer rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 text-than font-semibold text-navy outline-none focus:border-navy';
 const navyBtn =
-  'inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] bg-navy px-3 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700';
+  'inline-flex h-11 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[8px] bg-navy px-3 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700';
 const ghostBtn =
   'inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[8px] border-[1.5px] border-navy/20 bg-white/70 px-2.5 text-chu-thich font-extrabold text-navy transition-all hover:border-navy';
 const ghostBtnLg =
-  'inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] border-[1.5px] border-navy/20 bg-white/60 px-3 text-chu-thich font-extrabold text-navy transition-all hover:border-navy';
+  'inline-flex h-11 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[8px] border-[1.5px] border-navy/20 bg-white/60 px-3 text-chu-thich font-extrabold text-navy transition-all hover:border-navy';
 const th = 'text-nhan font-extrabold uppercase tracking-wide text-grey-mid';
 
 // MỘT BỘ CỘT DÙNG CHUNG CHO CẢ TIÊU ĐỀ LẪN MỌI DÒNG.
@@ -335,7 +335,7 @@ export function GrantsPanel({
                 type="button"
                 onClick={() => setTab(k)}
                 aria-pressed={on}
-                className={`inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-chu-thich font-extrabold transition-all ${
+                className={`inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-chu-thich font-extrabold transition-all ${
                   on
                     ? 'bg-navy text-white'
                     : 'border-[1.5px] border-navy/15 bg-white/60 text-navy hover:border-navy'
@@ -360,12 +360,12 @@ export function GrantsPanel({
               onChange={(e) => setQ(e.target.value)}
               placeholder={t('grantsSearch')}
               aria-label={t('grantsSearch')}
-              className="h-10 w-[230px] rounded-[12px] border-[1.5px] border-navy/15 bg-white pl-8 pr-3 text-doc font-semibold text-navy focus-visible:border-navy focus-visible:outline-none sm:text-than"
+              className="h-11 w-[230px] rounded-[8px] border-[1.5px] border-navy/15 bg-white pl-8 pr-3 text-doc font-semibold text-navy focus-visible:border-navy focus-visible:outline-none sm:text-than"
             />
           </span>
           {q && (
             <button type="button" onClick={() => setQ('')} className={ghostBtnLg}>
-              <X size={14} strokeWidth={2.5} />
+              <X size={13} strokeWidth={2.5} />
               {t('clear')}
             </button>
           )}
@@ -408,7 +408,7 @@ export function GrantsPanel({
           )}
           {(cs || khoi || lop) && (
             <button type="button" onClick={() => chonCs('')} className={ghostBtnLg}>
-              <X size={14} strokeWidth={2.5} />
+              <X size={13} strokeWidth={2.5} />
               {t('filterClear')}
             </button>
           )}
@@ -417,7 +417,7 @@ export function GrantsPanel({
           <div className="ml-auto flex items-center gap-2">
             {!sua ? (
               <button type="button" onClick={() => setSua(true)} className={navyBtn}>
-                <Pencil size={14} strokeWidth={2.5} />
+                <Pencil size={13} strokeWidth={2.5} />
                 {t('grantsEdit')}
               </button>
             ) : (
@@ -470,7 +470,7 @@ export function GrantsPanel({
       {/* role="row" phải nằm TRONG một role="table"/"grid" thì trình đọc màn hình mới hiểu; đứng
           trơ một mình là ARIA không hợp lệ và bị bỏ qua. Khai đủ bộ như bảng người dùng. */}
       {/* Chỉ cuộn ngang từ 640px trở lên — dưới đó không còn gì phải cuộn, dòng đã xuống thẻ. */}
-      <div className="rounded-[16px] border-[1.5px] border-navy/10 sm:overflow-x-auto">
+      <div className="rounded-[12px] border-[1.5px] border-navy/10 sm:overflow-x-auto">
         <div role="table" aria-label={t('grantsTitle')}>
           {/* Hàng tiêu đề chỉ có nghĩa khi còn là bảng. Ở dạng thẻ, mỗi dòng tự nói ra nó là gì. */}
           <div

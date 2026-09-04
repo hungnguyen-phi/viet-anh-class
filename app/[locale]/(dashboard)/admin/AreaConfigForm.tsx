@@ -11,9 +11,9 @@ import {AREA_ICON_MAP, AREA_ICON_NAMES, type AreaMeta, type Area} from '@/lib/ar
 const resetBtn =
   'h-8 cursor-pointer whitespace-nowrap rounded-[8px] border-[1.5px] border-navy/15 bg-white/70 px-2.5 text-chu-thich font-extrabold text-grey-mid transition-all hover:border-navy hover:text-navy';
 const inp =
-  'min-w-0 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-than font-semibold text-navy outline-none transition-all focus:border-navy';
+  'min-w-0 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-base sm:text-than font-semibold text-navy outline-none transition-all focus:border-navy';
 const navyBtn =
-  'h-9 shrink-0 cursor-pointer whitespace-nowrap rounded-[12px] bg-navy px-3 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700';
+  'h-9 shrink-0 cursor-pointer whitespace-nowrap rounded-[8px] bg-navy px-3 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700';
 const lbl = 'flex flex-col gap-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid';
 
 // Cấu hình 4 lĩnh vực 4DX: nhãn VN/EN · màu · icon · đơn vị mặc định. Xem trước trực tiếp.
@@ -35,19 +35,19 @@ function AreaCard({area, meta}: {area: Area; meta: AreaMeta}) {
   const Preview = AREA_ICON_MAP[icon] ?? AREA_ICON_MAP.BookOpen;
 
   return (
-    <div className="rounded-[16px] border-[1.5px] border-navy/10 bg-white/50 p-3">
+    <div className="rounded-[12px] border-[1.5px] border-navy/10 bg-white/50 p-3">
       <form action={updateArea} id={`area-${area}`}>
       <input type="hidden" name="area" value={area} />
       {/* Xem trước: chip icon + màu + nhãn */}
       <div className="mb-2.5 flex items-center gap-2">
         <span
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px]"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[12px]"
           style={{background: `${color}22`, color}}
         >
-          <Preview size={20} strokeWidth={2.5} />
+          <Preview size={18} strokeWidth={2.5} />
         </span>
-        <span className="font-display text-doc font-bold text-navy">{labelVi || meta.label_vi}</span>
-        <code className="ml-auto text-chu-thich font-bold text-grey-soft">{area}</code>
+        <span className="font-display text-noi-dung font-bold text-navy">{labelVi || meta.label_vi}</span>
+        <code className="ml-auto text-nhan font-bold text-grey-soft">{area}</code>
       </div>
 
       <div className="flex flex-col gap-2">

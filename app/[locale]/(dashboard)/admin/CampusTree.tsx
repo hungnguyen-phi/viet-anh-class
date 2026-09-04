@@ -31,7 +31,7 @@ type ClassRow = {
 type Teacher = {id: string; full_name: string | null; email: string};
 
 const inp =
-  'min-w-0 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-than font-semibold text-navy outline-none transition-all focus:border-navy';
+  'min-w-0 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-1.5 text-base sm:text-than font-semibold text-navy outline-none transition-all focus:border-navy';
 const navyBtn =
   'h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-[8px] bg-navy px-2.5 text-chu-thich font-extrabold text-white transition-all hover:bg-navy-700';
 const ghost =
@@ -109,7 +109,7 @@ export function CampusTree({
       <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
         <button type="button" onClick={() => setAdding((v) => !v)} className={ghost}>
           <span className="inline-flex items-center gap-1">
-            <Plus size={14} strokeWidth={2.5} />
+            <Plus size={13} strokeWidth={2.5} />
             {t('createCampus')}
           </span>
         </button>
@@ -181,7 +181,7 @@ function CampusNode({
   const [editClassId, setEditClassId] = useState<string | null>(null);
 
   return (
-    <div className="rounded-[16px] border-[1.5px] border-navy/10 bg-white/50">
+    <div className="rounded-[12px] border-[1.5px] border-navy/10 bg-white/50">
       {/* Hàng tiêu đề cơ sở */}
       {edit ? (
         <form action={updateCampus} className="flex flex-wrap items-center gap-1.5 p-3">
@@ -220,24 +220,24 @@ function CampusNode({
               strokeWidth={2.5}
               className={`shrink-0 text-grey-mid transition-transform ${open ? 'rotate-90' : ''}`}
             />
-            <Building2 size={16} strokeWidth={2} className="shrink-0 text-gold-deep" />
-            <span className="truncate font-display text-doc font-bold text-navy">{campus.name}</span>
-            <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-bold text-grey-mid">
+            <Building2 size={15} strokeWidth={2} className="shrink-0 text-gold-deep" />
+            <span className="truncate font-display text-noi-dung font-bold text-navy">{campus.name}</span>
+            <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-nhan font-bold text-grey-mid">
               {campus.code}
             </span>
             {campus.levels.length > 0 ? (
               // Hiện ĐỦ các cấp. Trước đây chỗ này chỉ vẽ được một cấp nên cơ sở dạy cả THCS lẫn
               // THPT hiện ra là "THPT" — nhãn nói sai về chính dữ liệu ngay bên dưới nó.
-              <span className="rounded-full bg-gold/[0.18] px-2 py-0.5 text-chu-thich font-bold text-navy">
+              <span className="rounded-full bg-gold/[0.18] px-2 py-0.5 text-nhan font-bold text-navy">
                 {levelLabels(campus.levels, t)}
               </span>
             ) : (
               // Chưa khai cấp học thì chưa sinh được khối nào → nói thẳng việc cần làm.
-              <span className="rounded-full bg-status-bad/[0.10] px-2 py-0.5 text-chu-thich font-bold text-status-bad">
+              <span className="rounded-full bg-status-bad/[0.10] px-2 py-0.5 text-nhan font-bold text-status-bad">
                 {t('noLevel')}
               </span>
             )}
-            <span className="whitespace-nowrap text-chu-thich font-semibold text-grey-mid">
+            <span className="whitespace-nowrap text-nhan font-semibold text-grey-mid">
               {grades.length} {t('gradesShort')} · {classes.length} {t('classesShort')}
             </span>
           </button>
@@ -283,7 +283,7 @@ function CampusNode({
                 className={`${ghost} ml-auto`}
               >
                 <span className="inline-flex items-center gap-1">
-                  <Plus size={14} strokeWidth={2.5} />
+                  <Plus size={13} strokeWidth={2.5} />
                   {t('createClass')}
                 </span>
               </button>
@@ -310,12 +310,12 @@ function CampusNode({
                 const lyDoKhongXoa = t('cannotDeleteClass', {wig: c.soWig, hs: c.soHocSinh});
                 return (
                 <div key={c.id}>
-                  <div className="flex flex-wrap items-center gap-2 rounded-[12px] px-1.5 py-1.5 transition-colors hover:bg-navy/[0.03]">
+                  <div className="flex flex-wrap items-center gap-2 rounded-[8px] px-1.5 py-1.5 transition-colors hover:bg-navy/[0.03]">
                     <span className="min-w-0 flex-1 truncate text-than font-bold text-navy">{c.name}</span>
                     {/* Hiện SỐ LIỆU ĐANG GIỮ ngay trên dòng: đây là thứ quyết định lớp có xoá được
                         hay không, nên nó phải nhìn thấy được TRƯỚC khi người ta với tay tới nút. */}
                     {coDuLieu && (
-                      <span className="whitespace-nowrap rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-bold text-grey-mid">
+                      <span className="whitespace-nowrap rounded-full bg-navy/[0.06] px-2 py-0.5 text-nhan font-bold text-grey-mid">
                         {c.soWig > 0 && t('classHasData', {n: c.soWig})}
                         {c.soWig > 0 && c.soHocSinh > 0 && ' · '}
                         {c.soHocSinh > 0 && t('classHasStudents', {n: c.soHocSinh})}

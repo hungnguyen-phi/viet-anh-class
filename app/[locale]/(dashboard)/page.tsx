@@ -182,7 +182,7 @@ export default async function ClassPage({
               isWinning ? 'bg-success/[0.12] text-success-dark' : 'bg-status-bad/[0.10] text-status-bad'
             }`}
           >
-            {isWinning ? <Check size={14} strokeWidth={2.5} /> : <Minus size={14} strokeWidth={2.5} />}
+            {isWinning ? <Check size={13} strokeWidth={2.5} /> : <Minus size={13} strokeWidth={2.5} />}
             {isWinning ? t('class.nhipDung') : t('class.nhipCham')}
           </span>
           <span className="text-grey-mid">{t('class.yearOnTrack', {n: onCount, total: goals.length})}</span>
@@ -204,13 +204,13 @@ export default async function ClassPage({
           <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-than font-bold text-txt">
             {gradeName && (
               <span className="inline-flex items-center gap-1.5">
-                <Layers size={16} strokeWidth={2} className="text-gold-deep" />
+                <Layers size={15} strokeWidth={2} className="text-gold-deep" />
                 {t('class.grade')}: <b className="text-navy">{gradeName}</b>
               </span>
             )}
             {campusName && (
               <span className="inline-flex items-center gap-1.5">
-                <Building2 size={16} strokeWidth={2} className="text-gold-deep" />
+                <Building2 size={15} strokeWidth={2} className="text-gold-deep" />
                 {t('class.campus')}: <b className="text-navy">{campusName}</b>
               </span>
             )}
@@ -222,7 +222,7 @@ export default async function ClassPage({
             )}
             {rosterCount !== null && (
               <span className="inline-flex items-center gap-1.5">
-                <Users size={16} strokeWidth={2} className="text-gold-deep" />
+                <Users size={15} strokeWidth={2} className="text-gold-deep" />
                 {t('class.students')}: <b className="text-navy">{rosterCount}</b>
               </span>
             )}
@@ -233,7 +233,7 @@ export default async function ClassPage({
       {/* Ba số thi đua TÁCH nhau — không cộng thành một điểm (thi_dua_lop, 30 §4.2) */}
       {td && (
         <div className="glass rounded-[20px] p-5 sm:px-6">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {[
               {label: t('class.diemMucTieu'), value: td.diem_muc_tieu},
               {label: t('class.diemViec'), value: td.diem_thuoc},
@@ -241,7 +241,7 @@ export default async function ClassPage({
             ].map((s) => (
               <div
                 key={s.label}
-                className="rounded-[16px] bg-navy/[0.04] px-4 py-3.5 text-center"
+                className="rounded-[16px] bg-navy/[0.04] px-2 py-3 text-center sm:px-4 sm:py-3.5"
               >
                 <div className="font-display text-hien-thi font-bold leading-none text-navy">
                   {fmtDiem(s.value)}
@@ -274,10 +274,10 @@ export default async function ClassPage({
               <div key={a} className="glass glass-hover rounded-[20px] p-4 text-center">
                 <div className="flex items-center justify-center gap-2 text-noi-dung font-extrabold text-navy">
                   <span
-                    className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-[8px]"
+                    className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-[12px]"
                     style={{background: am.soft, color: am.hex}}
                   >
-                    <Icon size={16} strokeWidth={2.5} />
+                    <Icon size={15} strokeWidth={2.5} />
                   </span>
                   {areaLabel(am, locale)}
                 </div>
@@ -288,7 +288,7 @@ export default async function ClassPage({
                     </div>
                     {meta && nhip && (
                       <span
-                        className="mt-3 inline-flex items-center rounded-full px-2.5 py-1 text-chu-thich font-extrabold"
+                        className="mt-3 inline-flex items-center rounded-full px-2.5 py-1 text-nhan font-extrabold"
                         style={{background: meta.bg, color: meta.color}}
                       >
                         {statusLabel[nhip] ?? ''}
