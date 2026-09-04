@@ -473,7 +473,13 @@
     "filterClass": "Lớp",
     "filterClear": "Bỏ lọc",
     "grantsKeepEditing": "Sửa tiếp",
-    "grantsDiscard": "Bỏ thay đổi"
+    "grantsDiscard": "Bỏ thay đổi",
+    "cotLop": "Lớp",
+    "chuaCoLop": "Chưa có lớp",
+    "suaNguoiDung": "Sửa {name}",
+    "suaNguoiDungTitle": "Sửa người dùng",
+    "luuVaiTro": "Lưu vai trò",
+    "vungNguyHiem": "Không hoàn tác được"
   },
   "wig": {
     "weekResolved": "Tuần {week} · {from} → {to}",

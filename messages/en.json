@@ -473,7 +473,13 @@
     "filterClass": "Class",
     "filterClear": "Clear filters",
     "grantsKeepEditing": "Keep editing",
-    "grantsDiscard": "Discard changes"
+    "grantsDiscard": "Discard changes",
+    "cotLop": "Class",
+    "chuaCoLop": "No class yet",
+    "suaNguoiDung": "Edit {name}",
+    "suaNguoiDungTitle": "Edit user",
+    "luuVaiTro": "Save role",
+    "vungNguyHiem": "Cannot be undone"
   },
   "wig": {
     "weekResolved": "Week {week} · {from} → {to}",

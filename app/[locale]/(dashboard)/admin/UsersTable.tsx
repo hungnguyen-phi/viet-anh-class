@@ -3,14 +3,13 @@
 import {useEffect, useRef, useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {SubmitButton} from '@/components/ui/SubmitButton';
-import {ConfirmButton} from '@/components/ui/ConfirmButton';
-import {bulkSetUserRole, deleteUser, disableUser, setUserRole} from './actions';
+import {bulkSetUserRole} from './actions';
 import {BulkDeleteDialog} from './BulkDeleteDialog';
+import {SuaNguoiDung} from './SuaNguoiDung';
 import type {Role} from './user-tabs';
 
-type Row = {id: string; full_name: string | null; email: string; role: Role};
-
-const ROLES = ['admin', 'principal', 'teacher', 'student', 'parent', 'pending'] as const;
+// lop: string = có lớp/cơ sở · null = vai này lẽ ra có mà chưa có · undefined = vai không áp dụng.
+type Row = {id: string; full_name: string | null; email: string; role: Role; lop?: string | null};
 // Cấp quyền cả mẻ thì KHÔNG cho chọn "chờ cấp quyền": đẩy một loạt người về vai đó nghĩa là đăng
 // nhập vào chỉ còn màn hình đỏ, và vai cũ của họ không được lưu ở đâu để mà lùi lại. Muốn làm việc
 // đó với một người thì vẫn có nút "Vô hiệu" ở cuối dòng, kèm câu hỏi nêu rõ tên và vai đang có.
@@ -117,23 +116,23 @@ export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: strin
         <div role="table" aria-label={t('usersTable')}>
           <div
             role="row"
-            className="box-border flex min-w-[800px] items-center gap-2 bg-navy/[0.03] px-[14px] py-[9px]"
+            className="box-border flex min-w-[640px] items-center gap-2 bg-navy/[0.03] px-[14px] py-[9px]"
           >
             <span className="w-4 flex-none" aria-hidden />
-            <span role="columnheader" className={`flex-[1.2] ${th}`}>
+            <span role="columnheader" className={`flex-[1.3] ${th}`}>
               {t('name')}
             </span>
-            <span role="columnheader" className={`flex-[1.4] ${th}`}>
+            <span role="columnheader" className={`flex-[1.6] ${th}`}>
               {t('email')}
             </span>
-            <span role="columnheader" className={`flex-1 ${th}`}>
+            <span role="columnheader" className={`w-[120px] flex-none ${th}`}>
               {t('role')}
             </span>
-            <span role="columnheader" className={`flex-[1.6] ${th}`}>
-              {t('setRole')}
+            <span role="columnheader" className={`flex-1 ${th}`}>
+              {t('cotLop')}
             </span>
-            <span role="columnheader" className={`w-[130px] flex-none ${th}`}>
-              {t('actions')}
+            <span role="columnheader" className={`w-11 flex-none text-center ${th}`}>
+              <span className="sr-only">{t('actions')}</span>
             </span>
           </div>
 
@@ -148,7 +147,7 @@ export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: strin
               <div
                 key={p.id}
                 role="row"
-                className={`box-border flex min-w-[800px] items-center gap-2 border-t border-navy/[0.08] px-[14px] py-2 transition-colors ${
+                className={`box-border flex min-w-[640px] items-center gap-2 border-t border-navy/[0.08] px-[14px] py-1.5 transition-colors ${
                   dangChon ? 'bg-navy/[0.05]' : 'hover:bg-navy/[0.03]'
                 }`}
               >
@@ -158,9 +157,9 @@ export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: strin
                   onChange={() => toggle(p.id)}
                   disabled={laMinh}
                   aria-label={t('pickFor', {name: who})}
-                  className="h-4 w-4 flex-none cursor-pointer accent-[var(--color-navy)] disabled:cursor-not-allowed disabled:opacity-30"
+                  className="cham-44 h-4 w-4 flex-none cursor-pointer accent-[var(--color-navy)] disabled:cursor-not-allowed disabled:opacity-30"
                 />
-                <span role="cell" className="min-w-0 flex-[1.2] truncate text-[13px] font-bold text-navy">
+                <span role="cell" className="min-w-0 flex-[1.3] truncate text-[13px] font-bold text-navy">
                   {/* Chưa có họ tên thì nói thẳng là chưa có, đừng vẽ một dấu gạch ngang. Một ô chỉ
                       chứa "—" không nói được là dữ liệu thiếu hay hệ thống hỏng. */}
                   {p.full_name ?? (
@@ -169,73 +168,30 @@ export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: strin
                 </span>
                 <span
                   role="cell"
-                  className="min-w-0 flex-[1.4] truncate text-xs font-semibold text-grey-mid"
+                  className="min-w-0 flex-[1.6] truncate text-xs font-semibold text-grey-mid"
                 >
                   {p.email}
                 </span>
-                <span role="cell" className="flex-1 whitespace-nowrap text-[12.5px] font-bold text-navy">
+                <span role="cell" className="w-[120px] flex-none truncate text-[12.5px] font-bold text-navy">
                   {tr(p.role)}
                 </span>
-                <span role="cell" className="flex-[1.6]">
-                  <form action={setUserRole} className="flex items-center gap-1.5">
-                    <input type="hidden" name="userId" value={p.id} />
-                    <select
-                      name="role"
-                      aria-label={t('roleFor', {name: who})}
-                      defaultValue={p.role}
-                      className={selectSm}
-                    >
-                      {ROLES.map((r) => (
-                        <option key={r} value={r}>
-                          {tr(r)}
-                        </option>
-                      ))}
-                    </select>
-                    {/* SubmitButton (không phải <button> trần): đổi vai trò là thao tác chạm DB rồi
-                        tải lại cả trang, mất một khoảng thấy rõ. Nút trần không báo gì trong lúc đó
-                        nên người thử tưởng "bấm không ăn / bị treo" rồi bấm lại nhiều lần. */}
-                    <SubmitButton
-                      className={navyBtnSm}
-                      wrapClass="contents"
-                      label={t('setRoleFor', {name: who})}
-                    >
-                      {t('setRole')}
-                    </SubmitButton>
-                  </form>
-                </span>
-                <span role="cell" className="flex w-[130px] flex-none gap-1.5">
-                  {!laMinh ? (
-                    <>
-                      {/* Vô hiệu = đẩy người ta về vai "chờ cấp quyền", tức là đăng nhập vào chỉ còn
-                          màn hình đỏ. Nút "Xoá" ngay bên cạnh thì hỏi lại, nút này thì không — mà
-                          hai nút cách nhau 6px và hậu quả của cái này cũng không tự gỡ được (vai cũ
-                          không được lưu ở đâu cả). Câu hỏi nêu rõ TÊN và VAI ĐANG CÓ để người bấm
-                          còn đường tự khôi phục. */}
-                      <form action={disableUser}>
-                        <input type="hidden" name="userId" value={p.id} />
-                        <ConfirmButton
-                          message={t('confirmDisable', {name: who, role: tr(p.role)})}
-                          label={t('disableFor', {name: who})}
-                          className={outlineBtnSm}
-                        >
-                          {t('disable')}
-                        </ConfirmButton>
-                      </form>
-                      <form action={deleteUser}>
-                        <input type="hidden" name="userId" value={p.id} />
-                        <ConfirmButton
-                          message={t('confirmDelete')}
-                          label={t('deleteFor', {name: who})}
-                          className={dangerBtnSm}
-                        >
-                          {t('delete')}
-                        </ConfirmButton>
-                      </form>
-                    </>
+                {/* LỚP: học sinh → lớp ghi danh; GVCN → lớp chủ nhiệm; BGH → cơ sở. null = lẽ ra phải
+                    có mà chưa có (nói thẳng "Chưa có lớp"); undefined = vai không áp dụng ("—"). */}
+                <span role="cell" className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-navy">
+                  {p.lop === undefined ? (
+                    <span className="text-grey-mid">—</span>
+                  ) : p.lop === null ? (
+                    <span className="italic text-grey-mid">{t('chuaCoLop')}</span>
                   ) : (
-                    // Dòng của chính mình: nói RÕ vì sao không có nút, đừng để trống cho người ta
-                    // đoán là lỗi phân quyền.
-                    <span className="self-center text-[11.5px] font-bold text-grey-mid">
+                    p.lop
+                  )}
+                </span>
+                <span role="cell" className="flex w-11 flex-none justify-center">
+                  {!laMinh ? (
+                    <SuaNguoiDung id={p.id} who={who} role={p.role} email={p.email} />
+                  ) : (
+                    // Dòng của chính mình: không có bút — đổi vai/xoá chính mình là tự khoá quyền.
+                    <span className="text-[10.5px] font-bold text-grey-mid" title={t('isYou')}>
                       {t('isYou')}
                     </span>
                   )}

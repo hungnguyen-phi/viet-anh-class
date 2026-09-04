@@ -54,8 +54,8 @@ export async function UsersSection({
   // Lọc theo nơi học đi qua enrollments!inner → chỉ ra người CÓ ghi danh khớp. Chọn cột gọn nhất
   // đủ để lọc; PostgREST lồng bảng trong CÙNG một truy vấn nên không thêm vòng đi-về.
   const cotChon = coLoc
-    ? 'id, full_name, email, role, enrollments!inner(class_id, is_active, classes!inner(campus_id, grade_id))'
-    : 'id, full_name, email, role';
+    ? 'id, full_name, email, role, campus_id, enrollments!inner(class_id, is_active, classes!inner(campus_id, grade_id))'
+    : 'id, full_name, email, role, campus_id';
 
   // Điều kiện tìm: KHÔNG DẤU. "Hung" phải ra "Hùng" — người quản trị gõ nhanh trên bàn phím không
   // bật Telex, và tên học sinh có dấu là chuyện cả trường. So trên cột đã bỏ dấu (CSDL) với từ khoá
@@ -94,12 +94,39 @@ export async function UsersSection({
     [trangRes, demRes] = await Promise.all([hoiTrang(false), hoiDem(false)]);
   }
 
-  type Dong = {id: string; full_name: string | null; email: string; role: Role};
-  const rows = ((trangRes.data ?? []) as unknown as Dong[]).map(({id, full_name, email, role}) => ({
+  type Dong = {id: string; full_name: string | null; email: string; role: Role; campus_id: string | null};
+  const dongTrang = (trangRes.data ?? []) as unknown as Dong[];
+
+  // CỘT "LỚP" (04/09): học sinh → lớp đang ghi danh; GVCN → lớp chủ nhiệm; BGH → cơ sở.
+  // Chỉ hỏi ghi danh cho đúng các id trên trang (≤ size dòng) — không tải cả bảng; lớp chủ nhiệm và
+  // cơ sở lấy từ layDanhMuc (đã cache theo request).
+  const {allCampuses, allGrades, allClasses} = await layDanhMuc();
+  const idTrang = dongTrang.map((d) => d.id);
+  const {data: ghiDanh} = idTrang.length
+    ? await supabase.from('enrollments').select('student_id, classes(name)').in('student_id', idTrang).eq('is_active', true)
+    : {data: null};
+  const lopCuaEm = new Map<string, string[]>();
+  for (const e of (ghiDanh ?? []) as unknown as {student_id: string; classes: {name: string} | {name: string}[] | null}[]) {
+    const c = Array.isArray(e.classes) ? e.classes[0] : e.classes;
+    if (!c) continue;
+    lopCuaEm.set(e.student_id, [...(lopCuaEm.get(e.student_id) ?? []), c.name]);
+  }
+  const lopChuNhiem = new Map<string, string[]>();
+  for (const c of allClasses) {
+    if (c.is_active && c.homeroom_teacher_id) lopChuNhiem.set(c.homeroom_teacher_id, [...(lopChuNhiem.get(c.homeroom_teacher_id) ?? []), c.name]);
+  }
+  const tenCoSo = new Map(allCampuses.map((c) => [c.id, c.name]));
+  const sapLop = (a: string[]) => [...a].sort((x, y) => x.localeCompare(y, 'vi', {numeric: true})).join(', ');
+  const rows = dongTrang.map(({id, full_name, email, role, campus_id}) => ({
     id,
     full_name,
     email,
     role,
+    lop:
+      role === 'student' ? (lopCuaEm.has(id) ? sapLop(lopCuaEm.get(id)!) : null)
+      : role === 'teacher' ? (lopChuNhiem.has(id) ? sapLop(lopChuNhiem.get(id)!) : null)
+      : role === 'principal' ? (campus_id ? (tenCoSo.get(campus_id) ?? null) : null)
+      : undefined,
   }));
   const total = trangRes.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / page));
@@ -123,9 +150,7 @@ export async function UsersSection({
     ]),
   ) as Record<UserTab, number>;
 
-  // Danh mục cho bộ lọc nơi học — layDanhMuc đã được các mảnh khác gọi và bọc cache(), không thêm
-  // vòng đi-về nào.
-  const {allCampuses, allGrades, allClasses} = await layDanhMuc();
+  // Danh mục cho bộ lọc nơi học (cùng layDanhMuc ở trên).
   const danhMuc = {
     campuses: allCampuses.filter((c) => c.is_active).map((c) => ({id: c.id, name: c.name})),
     grades: allGrades.filter((g) => g.is_active).map((g) => ({id: g.id, name: g.name, campus_id: g.campus_id})),
