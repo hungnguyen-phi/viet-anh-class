@@ -22,7 +22,11 @@ const nextConfig: NextConfig = {
   // trong 30 giây kế là hiện NGAY, không phải chờ đường truyền một lần nữa. Server action nào gọi
   // revalidatePath vẫn xoá đệm như thường, nên việc mình vừa làm không bao giờ hiện bản cũ.
   // 30 giây, không hơn: dữ liệu ở đây là tick của em, cam kết vừa duyệt — để lâu là nói dối.
-  experimental: {staleTimes: {dynamic: 30, static: 300}},
+  // 04/09 (M3): 30 → 60 s. An toàn vì MỌI action ghi (tick, chấm, cam kết, thước, mục tiêu — 28+ chỗ)
+  // đều revalidatePath trang liên quan, nên bản đệm chỉ sống khi KHÔNG ai ghi; 60 s đủ để bấm
+  // qua-lại tab trong một lượt xem mà không dựng lại trang trên máy chủ (đo: mỗi lượt /student là
+  // một RPC + vỏ trang, 20 người cùng lúc = 4 s). Tuần/ngày đổi thì URL đổi (?week=) → đệm khác khoá.
+  experimental: {staleTimes: {dynamic: 60, static: 300}},
   // DẤU PHIÊN BẢN BẢN BUILD — chữa lỗi "Ứng dụng gặp sự cố" sau mỗi lần deploy.
   //
   // Không có nó thì mỗi lần đẩy bản mới, MỌI TAB ĐANG MỞ đều hỏng: trình duyệt giữ mã của bản cũ,

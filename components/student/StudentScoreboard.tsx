@@ -28,6 +28,7 @@ import {LoTrinhEm} from '@/components/student/LoTrinhEm';
 import type {DonViChon, MucTieuLopChon, MauMucTieu, BuocThe} from '@/components/student/FormMucTieu';
 import {thuoc12TuanNhieu} from '@/lib/rpc-nhieu';
 import {layTrangStudent, type TrangStudent} from '@/lib/trang-gop';
+import {nho} from '@/lib/dem-ram';
 import {TheCamKet, type ViecEm, type ViecTuan, type CamKetEm} from '@/components/student/BangEmPA2';
 import {DonCamKetLac} from '@/components/student/DonCamKetLac';
 import type {Database} from '@/lib/database.types';
@@ -233,10 +234,20 @@ export async function StudentScoreboard({
     buocRes: D2<unknown>, tuan12Map: Map<string, unknown[]>;
   if (gop) {
     // Ba câu khoá dịch vụ (cửa sổ điểm danh, IP, mạng trường) không đi qua RLS → vẫn hỏi riêng, song song.
+    // Ba câu khoá dịch vụ đổi hiếm (cửa sổ điểm danh theo cơ sở, mạng trường đã khai, IP có trong
+    // dải) → đệm RAM 60 s theo đúng khoá (campus / ip); admin sửa mạng thì network-actions gọi
+    // quen('congdanh:') nên không chờ hết hạn. Đo 04/09 (M3): ba lượt PostgREST ~7 ms CSDL nhưng
+    // mỗi lượt là một vòng đi-về + một kết nối pooler trên MỌI lần em mở trang.
     const [c1, c2, c3] = await Promise.all([
-      admin && campusId ? admin.rpc('checkin_windows', {p_campus: campusId}) : Promise.resolve({data: null}),
-      admin && canGoiCong ? admin.rpc('ip_allowed', {p_ip: ipHienTai ?? ''}) : Promise.resolve({data: null}),
-      admin && canGoiCong ? admin.rpc('truong_da_khai_mang') : Promise.resolve({data: null}),
+      admin && campusId
+        ? nho(`congdanh:cuaso:${campusId}`, 60_000, async () => admin.rpc('checkin_windows', {p_campus: campusId}).then((r) => r))
+        : Promise.resolve({data: null}),
+      admin && canGoiCong
+        ? nho(`congdanh:ip:${ipHienTai ?? ''}`, 60_000, async () => admin.rpc('ip_allowed', {p_ip: ipHienTai ?? ''}).then((r) => r))
+        : Promise.resolve({data: null}),
+      admin && canGoiCong
+        ? nho('congdanh:mang', 60_000, async () => admin.rpc('truong_da_khai_mang').then((r) => r))
+        : Promise.resolve({data: null}),
     ]);
     cuaSoRes = c1 as D2<unknown>; ipRes = c2 as D2<unknown>; mangRes = c3 as D2<unknown>;
     luotRes = {data: gop.luot}; noiRes = {data: gop.noi}; tuanHocRes = {data: gop.tuanHoc}; mucTieuLopRes = {data: gop.mucTieuLop};
