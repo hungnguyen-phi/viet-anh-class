@@ -255,7 +255,7 @@ export function AppNav({
             alt="Logo Việt Anh"
             width={32}
             height={32}
-            className="h-8 w-8 shrink-0 rounded-full border-[1.5px] border-white/90 bg-white object-cover shadow-[0_2px_8px_rgba(38,39,93,0.15)]"
+            className="cham-44 h-8 w-8 shrink-0 rounded-full border-[1.5px] border-white/90 bg-white object-cover shadow-[0_2px_8px_rgba(38,39,93,0.15)]"
           />
           <span className="hidden whitespace-nowrap font-display text-[16px] font-bold text-white sm:inline">
             Việt Anh Class
@@ -295,7 +295,7 @@ export function AppNav({
         <div className="hidden shrink-0 items-center gap-1.5 lg:flex">
           {/* Người dùng */}
           <span className="inline-flex items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 ring-1 ring-white/15">
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-linear-to-b from-gold-soft to-gold font-display text-[11px] font-bold text-navy">
+            <span className="cham-44 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-linear-to-b from-gold-soft to-gold font-display text-[11px] font-bold text-navy">
               {initialsOf(displayName)}
             </span>
             <span className="block min-w-0">

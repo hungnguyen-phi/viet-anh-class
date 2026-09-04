@@ -404,7 +404,7 @@ export function FormMucTieu3Buoc({
             <div>
               <div className="mb-1 flex items-center gap-1.5">
                 <label htmlFor="mt-ten" className="text-[12px] font-bold text-grey-mid">{t('nhapMucTieu')}</label>
-                <button type="button" data-kiem="mt-smart" onClick={() => setMoSmart((v) => !v)} aria-label={t('smartTitle')} aria-expanded={moSmart} className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-gold-deep hover:bg-gold/20 hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
+                <button type="button" data-kiem="mt-smart" onClick={() => setMoSmart((v) => !v)} aria-label={t('smartTitle')} aria-expanded={moSmart} className="cham-44 grid h-8 w-8 cursor-pointer place-items-center rounded-full text-gold-deep hover:bg-gold/20 hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
                   <Lightbulb size={15} strokeWidth={2.5} />
                 </button>
               </div>
@@ -454,7 +454,7 @@ export function FormMucTieu3Buoc({
                 ].map((o) => (
                   <div key={o.ma} className="relative">
                     <OChon chon={loaiMoc === o.ma} onClick={() => setLoaiMoc(o.ma)} nhan={o.nhan} kiem={o.kiem} />
-                    <button type="button" data-kiem={`${o.kiem}-help`} onClick={() => setMoHelp((v) => (v === o.ma ? null : o.ma))} aria-label={t('giaiThichLoai', {loai: o.nhan})} aria-expanded={moHelp === o.ma} className="absolute right-0.5 top-0.5 grid h-8 w-8 cursor-pointer place-items-center rounded-full text-grey-mid transition-colors hover:bg-navy/10 hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
+                    <button type="button" data-kiem={`${o.kiem}-help`} onClick={() => setMoHelp((v) => (v === o.ma ? null : o.ma))} aria-label={t('giaiThichLoai', {loai: o.nhan})} aria-expanded={moHelp === o.ma} className="cham-44 absolute right-0.5 top-0.5 grid h-8 w-8 cursor-pointer place-items-center rounded-full text-grey-mid transition-colors hover:bg-navy/10 hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
                       <HelpCircle size={15} strokeWidth={2.5} />
                     </button>
                   </div>
@@ -488,7 +488,7 @@ export function FormMucTieu3Buoc({
                         <input value={b.tieu_de} onChange={(e) => setBuocList((l) => l.map((s, j) => (j === i ? {...s, tieu_de: e.target.value} : s)))} placeholder={t('buocTieuDePh')} maxLength={200} data-kiem="mt-buoc-ten" className={`${inputInline} min-w-0 flex-1`} />
                         <input value={b.phan_tram} onChange={(e) => setBuocList((l) => l.map((s, j) => (j === i ? {...s, phan_tram: e.target.value} : s)))} type="number" min="0" max="100" inputMode="numeric" placeholder="%" aria-label={t('buocPhanTram')} className={`${inputInline} w-16`} />
                         <span className="text-[12px] font-bold text-grey-mid">%</span>
-                        <button type="button" onClick={() => setBuocList((l) => l.filter((_, j) => j !== i))} aria-label={t('buocXoa')} className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-[8px] text-status-bad hover:bg-status-bad/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
+                        <button type="button" onClick={() => setBuocList((l) => l.filter((_, j) => j !== i))} aria-label={t('buocXoa')} className="cham-44 grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-[8px] text-status-bad hover:bg-status-bad/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
                           <Trash2 size={13} strokeWidth={2.5} />
                         </button>
                       </div>

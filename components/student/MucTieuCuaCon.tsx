@@ -140,7 +140,7 @@ export function MucTieuCuaCon({
               }}
               className="flex min-h-[112px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[16px] border-[1.5px] border-dashed p-4 text-navy transition-colors hover:bg-white/70"
             >
-              <span style={{background: mau.hex}} className="grid h-9 w-9 place-items-center rounded-full text-white">
+              <span style={{background: mau.hex}} className="cham-44 grid h-9 w-9 place-items-center rounded-full text-white">
                 <Plus size={18} strokeWidth={2.8} />
               </span>
               <span className="text-[13px] font-extrabold">{nhan}</span>
@@ -243,7 +243,7 @@ function TheMucTieu({
       <div className="flex items-start gap-3.5">
         {/* Ghi số: nút nhỏ góc phải hàng đầu — không chiếm một dòng riêng. */}
         {ghiTay && canGhi && mt.trang_thai !== 'dong' && (
-          <div className="absolute right-3 top-3">
+          <div className="absolute right-3 top-3 z-[1]">
             <GhiSo mtId={mt.id ?? ''} dv={mt.ten_don_vi ?? ''} onDone={onDone} />
           </div>
         )}
@@ -259,7 +259,7 @@ function TheMucTieu({
           </span>
         )}
 
-        <div className="min-w-0 flex-1">
+        <div className={`min-w-0 flex-1 ${ghiTay && canGhi && mt.trang_thai !== 'dong' ? 'pr-16' : ''}`}>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span
               style={{background: `color-mix(in srgb, ${mau.hex} 16%, white)`}}
@@ -409,7 +409,7 @@ function TheMucTieu({
               onClick={onSua}
               aria-label={t('sua')}
               title={t('sua')}
-              className="grid h-7 w-7 cursor-pointer place-items-center rounded-[8px] text-navy transition-colors hover:bg-navy/[0.06]"
+              className="cham-44 grid h-7 w-7 cursor-pointer place-items-center rounded-[8px] text-navy transition-colors hover:bg-navy/[0.06]"
             >
               <Pencil size={13} strokeWidth={2.5} />
             </button>
@@ -467,7 +467,7 @@ function GhiSo({mtId, dv, onDone}: {mtId: string; dv: string; onDone: (msg: stri
         type="button"
         data-kiem="nut-ghi"
         onClick={() => setMo(true)}
-        className="shrink-0 cursor-pointer rounded-[9px] border-[1.5px] border-navy/20 bg-white/80 px-2.5 py-1 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy"
+        className="cham-44 shrink-0 cursor-pointer rounded-[9px] border-[1.5px] border-navy/20 bg-white/80 px-2.5 py-1 text-[11.5px] font-extrabold text-navy transition-all hover:border-navy"
       >
         {t('ghiSo')}
       </button>

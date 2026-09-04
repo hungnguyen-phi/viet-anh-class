@@ -95,6 +95,7 @@ export function LoTrinhEm({
               <div key={vBoTro.thuoc_id} className="rounded-[10px] bg-navy/[0.03] p-1.5">
                 <HangViec
                   v={vBoTro}
+                  khoa={c.ket_qua != null}
                   weekDays={weekDays}
                   today={today}
                   moNgay={moNgay}

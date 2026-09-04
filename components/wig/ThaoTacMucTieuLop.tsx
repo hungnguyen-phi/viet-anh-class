@@ -35,7 +35,7 @@ export function ThaoTacMucTieuLop({
         onClick={() => setSua(true)}
         aria-label={t('sua')}
         title={t('sua')}
-        className="grid h-7 w-7 cursor-pointer place-items-center rounded-[8px] text-navy transition-colors hover:bg-navy/[0.06]"
+        className="cham-44 grid h-7 w-7 cursor-pointer place-items-center rounded-[8px] text-navy transition-colors hover:bg-navy/[0.06]"
       >
         <Pencil size={14} strokeWidth={2.5} />
       </button>

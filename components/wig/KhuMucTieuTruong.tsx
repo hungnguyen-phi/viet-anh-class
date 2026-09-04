@@ -157,7 +157,7 @@ export async function KhuMucTieuTruong({
                       <input type="hidden" name="muc_tieu_id" value={m.id} />
                       <NutGui
                         label={t('xoa')}
-                        className="relative grid h-9 w-9 place-items-center rounded-[10px] text-status-bad transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:bg-status-bad/10 focus-visible:ring-2 focus-visible:ring-gold"
+                        className="cham-44 relative grid h-9 w-9 place-items-center rounded-[10px] text-status-bad transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:bg-status-bad/10 focus-visible:ring-2 focus-visible:ring-gold"
                       >
                         <Trash2 size={14} strokeWidth={2.5} />
                       </NutGui>

@@ -1499,7 +1499,8 @@
     "loCamKet": "Cam kết tuần của em",
     "loCamKetTrong": "Tuần này chưa có cam kết cho mục tiêu này.",
     "khuCamKetLac": "Cam kết chưa gắn vào mục tiêu nào",
-    "loCamKetTuLan": "Tuần này chưa tới. Cam kết và thước đo đang có sẽ tự tiếp sang vào sáng thứ Hai."
+    "loCamKetTuLan": "Tuần này chưa tới. Cam kết và thước đo đang có sẽ tự tiếp sang vào sáng thứ Hai.",
+    "khuCamKetLacNhac": "Mấy lời hứa này chưa thuộc mục tiêu nào. Gắn vào một mục tiêu để tính điểm, hoặc xoá."
   },
   "mucTieu": {
     "tt_dat": "Đã đạt",
@@ -1666,7 +1667,11 @@
     "moTaPhToi": "Viết vài câu: tôi sẽ làm gì để đạt được mục tiêu này?",
     "moTaPhLop": "Viết vài câu: lớp sẽ làm gì để đạt được mục tiêu này?",
     "moTaPhTruong": "Viết vài câu: trường sẽ làm gì để đạt được mục tiêu này?",
-    "hoTroGiaiThichToi": "Mục tiêu của tôi góp phần vào mục tiêu chung của lớp."
+    "hoTroGiaiThichToi": "Mục tiêu của tôi góp phần vào mục tiêu chung của lớp.",
+    "buoc3NguoiLon": "Đọc lại xem đúng ý chưa",
+    "mocDoLuongGiaiNguoiLon": "Chọn khi muốn một con số đi lên hoặc đi xuống — như điểm, số bài, số phút. Mục tiêu này theo dõi bằng con số.",
+    "mocHanhDongGiaiNguoiLon": "Chọn khi chỉ cần làm xong một việc (làm hay chưa làm). Nếu đo bằng số hay chia bước được thì nên chọn cách đó.",
+    "mocKeHoachGiaiNguoiLon": "Chọn khi việc gồm nhiều phần nối nhau, khó gói vào một con số. Chia nhỏ thành các bước rồi theo dõi từng bước một."
   },
   "viec": {
     "chipLop": "Của lớp",
@@ -1738,7 +1743,8 @@
     "chayLai": "Chạy lại từ tuần sau",
     "doThi": "12 tuần",
     "chonNhom": "Nhóm",
-    "khoaCachDo": "Đã có lượt ghi — cách đo và đơn vị giữ nguyên. Muốn đổi thì xóa thước đo và tạo lại."
+    "khoaCachDo": "Đã có lượt ghi — cách đo và đơn vị giữ nguyên. Muốn đổi thì xóa thước đo và tạo lại.",
+    "ngayKhoaDaCham": "Cam kết đã chấm rồi — bấm Bỏ chấm nếu muốn sửa."
   },
   "camKet": {
     "chipSo": "{dat}/{hua} {dv}",
@@ -1751,8 +1757,6 @@
     "thang": "Thắng",
     "thua": "Thua",
     "chuaCham": "Chưa chấm",
-    "goiYThang": "Máy thấy việc đủ {so}/{n} — có vẻ Thắng. Em tự chấm nhé.",
-    "goiYThua": "Máy thấy việc mới {so}/{n} — có vẻ chưa. Em tự chấm nhé.",
     "soDatHoi": "Em đạt được bao nhiêu {dv}?",
     "xacNhan": "{ten} đã xác nhận",
     "xacNhanBan": "Bạn cùng nhóm đã xác nhận",
@@ -1827,7 +1831,10 @@
     "xoaThuocHoi": "Xóa thước đo này? Cam kết vẫn giữ nguyên.",
     "boCham": "Bỏ chấm",
     "khoaCachDo": "Đã có lượt ghi — cách đo và đơn vị giữ nguyên. Muốn đổi thì xóa thước đo và tạo lại.",
-    "soDatHoiChung": "Đạt được bao nhiêu {dv}?"
+    "soDatHoiChung": "Đạt được bao nhiêu {dv}?",
+    "lacGanVao": "Gắn vào mục tiêu nào?",
+    "lacGanNut": "Gắn",
+    "lacChuaCoMucTieu": "Em chưa có mục tiêu nào để gắn — đặt mục tiêu trước, hoặc xoá cam kết này."
   },
   "duyet": {
     "duyet": "Duyệt",
@@ -1879,10 +1886,7 @@
     "hopDaKy": "Đã ghi nhận",
     "hopChua": "Chưa",
     "nhapHoBat": "Lớp này đang bật chế độ nhập giúp (khối 1–3). Chữ ký buổi họp vẫn là của em.",
-    "rongDanDat": "Đặt đích cho cả lớp trước — rồi thêm việc đẩy đích và cam kết mỗi tuần.",
-    "rongTiepTheo": "tiếp theo, để đẩy mục tiêu",
-    "camKetTuanNgan": "Cam kết tuần",
-    "khoaMoKhi": "mở khi có mục tiêu",
+    "rongDanDat": "Lớp chưa có mục tiêu nào. Đặt mục tiêu cho lớp để các em có đích chung để hướng tới.",
     "camKetHuong": "Cam kết tuần",
     "camKetTrongMt": "Tuần này chưa có cam kết.",
     "viecChuaGan": "Việc chưa gắn mục tiêu",

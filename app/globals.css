@@ -557,6 +557,20 @@ input[type="number"] {
   height: 2.75rem; /* 44px */
 }
 
+/* VÙNG CHẠM ẢO 44×44 cho nút icon nhỏ (bút, +, ✕, Ghi số…): hình vẫn 28–36px, vùng bấm đủ chuẩn
+   WCAG 2.5.5 / ui-ux-pro-max touch-target-size. Audit 04/09: 8 nút trên màn em dưới 44. */
+@utility cham-44 {
+  position: relative;
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: max(100%, 2.75rem);
+    height: max(100%, 2.75rem);
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* Ô TICK ĐỦ TO ĐỂ BẤM BẰNG NGÓN TAY — chỉ trên thiết bị cảm ứng.
    Audit mobile 2026-08-06 (viewport 360px, touch thật) đếm được 8 ô tick 16×16 trên màn Quản
    trị: bảng người dùng và khối "đang chờ bạn cấp quyền". Sàn WCAG 2.5.8 là 24×24, và đây lại là

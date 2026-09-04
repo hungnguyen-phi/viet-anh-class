@@ -89,6 +89,7 @@ const ddmm = (s: string | null) => (s ? `${s.slice(8, 10)}/${s.slice(5, 7)}` : '
 // ④ HÀNG VIỆC — 12 ô tuần + 7 ô ngày
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 export function HangViec({
+  khoa = false,
   v,
   weekDays,
   today,
@@ -107,6 +108,8 @@ export function HangViec({
   today: string;
   moNgay: (d: string) => boolean;
   daChotHopTuan: boolean;
+  /** Cam kết đã chấm Thắng/Thua → thước khoá (Bỏ chấm mới mở lại). */
+  khoa?: boolean;
   dangChay: boolean;
   ghi: (fn: () => Promise<LuotResult>) => void;
   dayShort: string[];
@@ -205,7 +208,7 @@ export function HangViec({
           const giaNgay = d in luotLocal ? luotLocal[d] : v.ngayLuot[d] ?? 0;
           const coSo = giaNgay > 0;
           const tuongLai = d > today;
-          const moChinhNgay = moNgay(d) && ap && !heThong;
+          const moChinhNgay = moNgay(d) && ap && !heThong && !khoa;
 
           if (!ap) {
             return (
@@ -238,6 +241,8 @@ export function HangViec({
                 title={
                   tuongLai
                     ? tv('ngayTuongLai')
+                    : khoa
+                      ? tv('ngayKhoaDaCham')
                     : daChotHopTuan
                       ? tv('ngayKhoaKy')
                       : !moNgay(d)
@@ -384,28 +389,26 @@ export function TheCamKet({
         <div className="mt-2">
           <form action={chamAction} className="flex flex-col gap-1.5">
             <input type="hidden" name="cam_ket_id" value={c.id} />
-            {c.so_hua != null && (
-              <div className="flex flex-wrap items-center gap-2">
-                <label htmlFor={`so-dat-${c.id}`} className="text-[12px] font-bold text-navy">
-                  {tc('soDatHoi', {dv: c.ten_don_vi ?? ''})}
-                </label>
+            {/* Ô số + Thắng/Thua CÙNG MỘT HÀNG (04/09: bỏ câu gợi ý máy nên có chỗ) — thẻ thấp lại. */}
+            <div className="flex flex-wrap items-center gap-2">
+              {c.so_hua != null && (
                 <input
                   id={`so-dat-${c.id}`}
                   name="so_dat"
                   inputMode="decimal"
                   value={soDat}
                   onChange={(e) => datSoDat(e.target.value)}
-                  className="min-h-[44px] w-24 rounded-[9px] border-[1.5px] border-navy/15 px-2 text-base text-navy sm:text-sm"
+                  aria-label={tc('soDatHoi', {dv: c.ten_don_vi ?? ''})}
+                  placeholder={tc('soDatHoi', {dv: c.ten_don_vi ?? ''})}
+                  className="min-h-[44px] w-[4.75rem] rounded-[9px] border-[1.5px] border-navy/15 px-2 text-base text-navy sm:text-sm"
                 />
-              </div>
-            )}
-            <div className="flex flex-wrap items-center gap-2">
+              )}
               <button
                 type="submit"
                 name="ket_qua"
                 value="thang"
                 disabled={dangCham}
-                className="min-h-[44px] cursor-pointer rounded-[10px] bg-success px-4 text-[13px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="min-h-[44px] cursor-pointer rounded-[10px] bg-success px-3.5 text-[13px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {tc('thang')}
               </button>
@@ -414,17 +417,10 @@ export function TheCamKet({
                 name="ket_qua"
                 value="thua"
                 disabled={dangCham}
-                className="min-h-[44px] cursor-pointer rounded-[10px] border-[1.5px] border-status-bad/40 px-4 text-[13px] font-extrabold text-status-bad disabled:cursor-not-allowed disabled:opacity-40"
+                className="min-h-[44px] cursor-pointer rounded-[10px] border-[1.5px] border-status-bad/40 px-3.5 text-[13px] font-extrabold text-status-bad disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {tc('thua')}
               </button>
-              {(c.goi_y_may === 'thang' || c.goi_y_may === 'thua') && (
-                <span className="text-[11px] font-semibold italic text-grey-mid">
-                  {c.goi_y_may === 'thang'
-                    ? tc('goiYThang', {so: so(c.so_dat_goi_y ?? 0), n: so(c.so_hua ?? 0)})
-                    : tc('goiYThua', {so: so(c.so_dat_goi_y ?? 0), n: so(c.so_hua ?? 0)})}
-                </span>
-              )}
             </div>
             {chamState.error && <p className="text-[11px] font-semibold text-status-bad">{chamState.error}</p>}
           </form>

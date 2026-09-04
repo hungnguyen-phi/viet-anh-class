@@ -981,7 +981,7 @@ export async function suaCamKetTaiCho(_prev: FormState, formData: FormData): Pro
   const noi_dung = String(formData.get('noi_dung') ?? '').trim();
   if (!noi_dung) return {ok: false, fieldError: 'noi_dung', error: t('tuanNayEmHuaLamGi')};
   if (noi_dung.length > 300) return {ok: false, fieldError: 'noi_dung', error: t('toiDa300KyTu')};
-  const patch: {noi_dung: string; so_hua?: number} = {noi_dung};
+  const patch: {noi_dung: string; so_hua?: number; muc_tieu_id?: string; don_vi_id?: string | null} = {noi_dung};
   const soHuaRaw = formData.get('so_hua');
   if (soHuaRaw != null && String(soHuaRaw).trim() !== '') {
     const so_hua = Number(String(soHuaRaw).trim());
@@ -989,6 +989,16 @@ export async function suaCamKetTaiCho(_prev: FormState, formData: FormData): Pro
     patch.so_hua = so_hua;
   }
   const supabase = await createClient();
+  // Gắn cam kết LẠC vào một mục tiêu (khu dọn trên màn em). Đơn vị ép theo mục tiêu: có số hứa mà
+  // mục tiêu không có đơn vị thì bỏ số (ck_don_vi_ck: so_hua ⟺ don_vi_id).
+  const mtRaw = String(formData.get('muc_tieu_id') ?? '').trim();
+  if (mtRaw) {
+    const {data: mt} = await supabase.from('muc_tieu').select('id, don_vi_id').eq('id', mtRaw).maybeSingle();
+    if (!mt) return {ok: false, fieldError: 'muc_tieu_id', error: t('khongRoMucTieu')};
+    patch.muc_tieu_id = mt.id;
+    patch.don_vi_id = mt.don_vi_id ?? null;
+    if (!mt.don_vi_id) patch.so_hua = undefined;
+  }
   const {data, error} = await supabase.from('cam_ket').update(patch).eq('id', id).select('id');
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');

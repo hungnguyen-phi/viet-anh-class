@@ -74,7 +74,7 @@ export function Popup({
             type="button"
             onClick={onClose}
             aria-label={tc('dong')}
-            className="relative grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-[9px] text-grey-mid transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:bg-navy/[0.07] hover:text-navy"
+            className="cham-44 relative grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-[9px] text-grey-mid transition-colors after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] hover:bg-navy/[0.07] hover:text-navy"
           >
             <X size={15} strokeWidth={2.5} />
           </button>

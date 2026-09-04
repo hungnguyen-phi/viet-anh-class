@@ -53,7 +53,7 @@ export function ThemCamKetEm({
         onClick={() => setMo(true)}
         aria-label={t('themCuaEm')}
         title={t('themCuaEm')}
-        className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full bg-gold text-navy shadow-sm transition-transform hover:scale-105 active:scale-95"
+        className="cham-44 grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full bg-gold text-navy shadow-sm transition-transform hover:scale-105 active:scale-95"
       >
         <Plus size={16} strokeWidth={3} />
       </button>

@@ -28,6 +28,7 @@ import {LoTrinhEm} from '@/components/student/LoTrinhEm';
 import type {DonViChon, MucTieuLopChon, MauMucTieu, BuocThe} from '@/components/student/FormMucTieu';
 import {thuoc12TuanNhieu} from '@/lib/rpc-nhieu';
 import {TheCamKet, type ViecEm, type ViecTuan, type CamKetEm} from '@/components/student/BangEmPA2';
+import {DonCamKetLac} from '@/components/student/DonCamKetLac';
 import type {Database} from '@/lib/database.types';
 
 type MucTieuV = Database['public']['Views']['muc_tieu_v']['Row'];
@@ -664,9 +665,14 @@ export async function StudentScoreboard({
           {camKetMoCoi.length > 0 && (
             <div className="mt-3 flex flex-col gap-2">
               <p className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{tBang('khuCamKetLac')}</p>
-              {camKetMoCoi.map((c) => (
-                <TheCamKet key={c.id} c={c} studentId={studentId} laChinhEm={canTick} tuanNghi={tuanNghi} today={today} />
-              ))}
+              <p className="text-[12px] font-semibold text-grey-mid">{tBang('khuCamKetLacNhac')}</p>
+              {camKetMoCoi.map((c) =>
+                canTick ? (
+                  <DonCamKetLac key={c.id} camKetId={c.id} noiDung={c.noi_dung} soHua={c.so_hua} mucTieu={wigDaDuyet} studentId={studentId} />
+                ) : (
+                  <TheCamKet key={c.id} c={c} studentId={studentId} laChinhEm={false} tuanNghi={tuanNghi} today={today} />
+                ),
+              )}
             </div>
           )}
         </section>

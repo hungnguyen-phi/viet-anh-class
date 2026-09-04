@@ -187,7 +187,7 @@ export async function KhuMucTieuToi({
                               days={weekDays}
                               daTick={daTickTheoThuoc.get(th.id) ?? []}
                               today={todayVN}
-                              moKhoa={laTuanNay}
+                              moKhoa={laTuanNay && c.ket_qua == null}
                               dayShort={dayShort}
                             />
                           ) : (

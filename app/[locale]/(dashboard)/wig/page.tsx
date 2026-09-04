@@ -1,5 +1,5 @@
 import {getTranslations, setRequestLocale} from 'next-intl/server';
-import {CalendarDays, Lock, Trash2} from 'lucide-react';
+import {CalendarDays, Trash2} from 'lucide-react';
 import {requireRole} from '@/lib/auth';
 import {createClient} from '@/lib/supabase/server';
 import {KhongCoLop} from '@/components/ui/KhongCoLop';
@@ -276,26 +276,6 @@ export default async function WigPage({
                     <NutTaoMucTieuLop classId={myClass.id} nhanTheoArea={nhanTheoArea} donViList={donViList} truongWigs={truongChon} />
                   </div>
                 )}
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="h-px flex-1 bg-navy/10" />
-                <span className="text-[11px] font-extrabold uppercase tracking-wide text-grey-mid">{t('rongTiepTheo')}</span>
-                <span className="h-px flex-1 bg-navy/10" />
-              </div>
-              <div className="flex flex-col gap-2">
-                {[
-                  {n: 2, nhan: t('khuViec')},
-                  {n: 3, nhan: t('camKetTuanNgan')},
-                ].map((b) => (
-                  <div key={b.n} className="flex items-center gap-3 rounded-[12px] border-[1.5px] border-navy/[0.08] bg-navy/[0.02] px-3.5 py-2.5 opacity-70">
-                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-navy/10 text-[12px] font-extrabold text-navy">{b.n}</span>
-                    <span className="text-[13px] font-bold text-navy">{b.nhan}</span>
-                    <span className="ml-auto inline-flex items-center gap-1 text-[11.5px] font-semibold text-grey-mid">
-                      <Lock size={12} strokeWidth={2.5} />
-                      {t('khoaMoKhi')}
-                    </span>
-                  </div>
-                ))}
               </div>
             </section>
           ) : (
