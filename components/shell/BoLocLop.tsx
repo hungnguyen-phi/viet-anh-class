@@ -10,7 +10,8 @@
 // Dữ liệu: đúng prop `classes` (ClassOption) mà ClassPicker nhận — không gọi Supabase ở client.
 // BGH chỉ có lớp của cơ sở mình (RLS) nên ô Cơ sở tự thành một mục và bị khoá.
 import {useEffect, useMemo, useState, useTransition} from 'react';
-import {Loader2} from 'lucide-react';
+import {ChevronDown, Loader2} from 'lucide-react';
+import {Popup} from '@/components/ui/Popup';
 import {useTranslations} from 'next-intl';
 import {useRouter, usePathname} from '@/i18n/navigation';
 import {useSearchParams} from 'next/navigation';
@@ -77,21 +78,25 @@ export function BoLocLop({classes, current}: {classes: ClassOption[]; current?: 
   const lopList = useMemo(() => theoCoSo.filter((c) => !khoi || c.grade_id === khoi), [theoCoSo, khoi]);
   const khoaCoSo = coSoList.length <= 1;
 
+  // Điện thoại: bốn ô lọc chiếm 150 px đầu trang (audit 04/09) → thu thành MỘT nút "Lớp: Test ▾"
+  // mở sheet; chọn xong sheet tự đóng. Máy tính giữ bốn ô một hàng.
+  const [moSheet, setMoSheet] = useState(false);
   const doiLop = (id: string) => {
     if (!id || id === current) return;
     const q = new URLSearchParams(searchParams.toString());
     q.set('class', id);
+    setMoSheet(false);
     batDau(() => {
       router.push(`${pathname}?${q.toString()}`);
     });
   };
 
-  return (
+  const boLoc = (
     <div
       role="group"
       aria-label={tc('chonLop')}
       aria-busy={dangChuyen}
-      className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto_minmax(9rem,auto)] sm:items-end"
+      className="grid w-full grid-cols-1 gap-3 sm:w-auto sm:grid-cols-[auto_auto_auto_minmax(9rem,auto)] sm:items-end sm:gap-2"
     >
       <O label={t('locNam')} htmlFor="loc-nam">
         <select
@@ -165,5 +170,32 @@ export function BoLocLop({classes, current}: {classes: ClassOption[]; current?: 
         </span>
       )}
     </div>
+  );
+
+  return (
+    <>
+      {/* Điện thoại: một nút gọn */}
+      <button
+        type="button"
+        onClick={() => setMoSheet(true)}
+        aria-haspopup="dialog"
+        aria-busy={dangChuyen}
+        disabled={dangChuyen}
+        className="ctl-h inline-flex w-full cursor-pointer items-center justify-between gap-2 rounded-[12px] border-[1.5px] border-navy/20 bg-white px-3 text-noi-dung font-extrabold text-navy transition-all hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-60 sm:hidden"
+      >
+        <span className="min-w-0 truncate">
+          <span className="text-grey-mid">{t('lopHienTai')}: </span>
+          {hienTai ? `${hienTai.name} · ${hienTai.school_year}` : tc('chonLop')}
+        </span>
+        {dangChuyen ? <Loader2 size={16} strokeWidth={2.5} className="shrink-0 animate-spin" /> : <ChevronDown size={16} strokeWidth={2.5} className="shrink-0" />}
+      </button>
+      {moSheet && (
+        <Popup title={t('chonLopSheet')} onClose={() => setMoSheet(false)} width="max-w-[480px]">
+          {boLoc}
+        </Popup>
+      )}
+      {/* Máy tính: bốn ô một hàng */}
+      <div className="hidden sm:block">{boLoc}</div>
+    </>
   );
 }
