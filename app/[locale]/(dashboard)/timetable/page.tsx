@@ -218,7 +218,9 @@ export default async function TimetablePage({
 
   // LƯỚI TUẦN dựng MỘT lần, dùng ở hai chỗ: màn rộng, và trong "Cả tuần" của máy hẹp.
   const luoi = (
-      <div className="glass overflow-x-auto rounded-[20px] p-2">
+      // data-hd: neo cho tour Thời khoá biểu (components/huongdan/buoc-trang.ts). Máy hẹp dựng
+      // lưới này bên trong TkbHomNay chỉ khi bấm "Cả tuần" — tour dùng hdPhu 'tkb-ngay' cho mobile.
+      <div data-hd="tkb-luoi" className="glass overflow-x-auto rounded-[20px] p-2">
         <div className="min-w-[1000px]">
           <div className="flex">
             {/* CỘT "TIẾT" DÍNH LẠI KHI CUỘN NGANG.
@@ -447,7 +449,7 @@ export default async function TimetablePage({
           <CalendarDays size={14} strokeWidth={2} className="text-grey-mid" />
           {rangeLabel}
         </span>
-        <span className="flex items-center gap-1.5">
+        <span data-hd="tkb-tuan" className="flex items-center gap-1.5">
           {[
             {d: -7, label: t('prevWeek')},
             {d: 0, label: t('thisWeek')},
@@ -539,12 +541,14 @@ export default async function TimetablePage({
               }}
             />
           )}
-          {(['regular', 'practice', 'exam'] as const).map((k) => (
-            <span key={k} className="inline-flex items-center gap-1.5 text-chu-thich font-bold text-grey-mid">
-              <span className={`h-2.5 w-2.5 rounded-full ${KIND_STYLE[k].dot}`} />
-              {t(`kind_${k}`)}
-            </span>
-          ))}
+          <span data-hd="tkb-chu-thich" className="inline-flex flex-wrap items-center gap-2.5">
+            {(['regular', 'practice', 'exam'] as const).map((k) => (
+              <span key={k} className="inline-flex items-center gap-1.5 text-chu-thich font-bold text-grey-mid">
+                <span className={`h-2.5 w-2.5 rounded-full ${KIND_STYLE[k].dot}`} />
+                {t(`kind_${k}`)}
+              </span>
+            ))}
+          </span>
         </span>
       </div>
 
@@ -648,7 +652,7 @@ export default async function TimetablePage({
 
       {/* GVCN/Admin: ngoại lệ theo ngày (huỷ / dời / dạy thay) + danh sách của tuần đang xem */}
       {canManage && slotOptions.length > 0 && (
-        <div className="glass rounded-[20px] p-4">
+        <div data-hd="tkb-ngoai-le" className="glass rounded-[20px] p-4">
           <div className="mb-2 font-display text-noi-dung font-bold text-navy">{t('ovTitle')}</div>
           <OverrideForm
             classId={myClass.id}

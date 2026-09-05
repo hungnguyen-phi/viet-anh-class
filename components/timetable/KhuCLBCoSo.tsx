@@ -39,7 +39,7 @@ export async function KhuCLBCoSo({
   for (const c of clbs) theoNgay.set(c.weekday, [...(theoNgay.get(c.weekday) ?? []), c]);
 
   return (
-    <section className="glass rounded-[20px] p-4">
+    <section data-hd="tkb-clb" className="glass rounded-[20px] p-4">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <h2 className="inline-flex items-center gap-1.5 font-display text-noi-dung font-bold text-navy">
           <Users size={14} strokeWidth={2} className="text-gold-deep" />

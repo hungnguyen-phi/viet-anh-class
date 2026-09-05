@@ -2723,9 +2723,116 @@
       "moTa": "Sơ đồ: số từ cam kết tuần cộng vào mục tiêu của tôi, rồi cộng vào mục tiêu lớp khi cùng đơn vị."
     },
     "dangCho": "Đang chờ nút hiện ra…",
-    "danhSach": {},
-    "diemDanh": {},
-    "thoiKhoaBieu": {},
+    "danhSach": {
+      "doc1": {
+        "tieuDe": "Danh sách lớp",
+        "noiDung": "Đây là sổ lớp: tên, email và thông tin của từng em. Thầy cô chủ nhiệm ghi danh em mới, chọn tổ trưởng điểm danh, sửa thông tin, dời em sang lớp khác. Ban giám hiệu chỉ xem."
+      },
+      "deNghiDen": {
+        "tieuDe": "Đề nghị chuyển đến lớp này",
+        "noiDung": "Một lớp khác muốn gửi em sang lớp bạn. Em còn ở lớp cũ cho tới khi bạn bấm Nhận hoặc Từ chối ở đây — để lâu là em bị treo giữa hai lớp."
+      },
+      "chonLop": {
+        "tieuDe": "Chọn lớp",
+        "noiDung": "Bạn có nhiều lớp thì đổi lớp đang xem ở đây. Sổ lớp bên dưới đổi theo."
+      },
+      "ghiDanh": {
+        "tieuDe": "Ghi danh em mới",
+        "noiDung": "Bấm để mở ô ghi danh. Chỉ cần email của em; họ tên, mã học sinh, ngày sinh, số điện thoại phụ huynh điền thêm được sau. Em chưa đăng nhập lần nào vẫn hiện trong danh sách."
+      },
+      "toTruong": {
+        "tieuDe": "Tổ trưởng điểm danh",
+        "noiDung": "Chọn một em làm tổ trưởng: em ấy mở được trang Điểm danh của lớp trong ngày. Đổi người thì em cũ tự thôi."
+      },
+      "bang": {
+        "tieuDe": "Sổ lớp",
+        "noiDung": "Mỗi em một dòng. Nhãn “chưa đăng nhập” là em đã được ghi danh nhưng chưa vào app lần nào. Dấu sao là tổ trưởng điểm danh."
+      },
+      "tenEm": {
+        "tieuDe": "Bấm tên em",
+        "noiDung": "Bấm vào tên để mở trang riêng của em: mục tiêu, cam kết tuần, điểm danh và yêu cầu sửa thông tin đang chờ bạn duyệt."
+      },
+      "thaoTac": {
+        "tieuDe": "Dời · Sửa · Xoá",
+        "noiDung": "Ba nút cuối dòng: dời em sang lớp khác (gửi đề nghị, lớp bên kia duyệt), sửa thông tin của em, hoặc xoá em khỏi lớp — xoá thì app hỏi lại trước."
+      }
+    },
+    "diemDanh": {
+      "doc1": {
+        "tieuDe": "Điểm danh",
+        "noiDung": "Điểm danh ở đây do CHÍNH các em làm: sáng vào app, em chọn một gương mặt cảm xúc — đó là điểm danh. Bảng này chỉ để nhìn: em nào đã tới, lúc mấy giờ, hôm nay thấy thế nào. Không ai bấm thay em."
+      },
+      "chonLop": {
+        "tieuDe": "Chọn lớp",
+        "noiDung": "Bạn có nhiều lớp thì đổi lớp đang xem ở đây. Bảng bên dưới đổi theo."
+      },
+      "siSo": {
+        "tieuDe": "Ngày và sĩ số",
+        "noiDung": "Đang xem ngày nào, lớp có bao nhiêu em — để so với số em đã tới ở cuối bảng."
+      },
+      "tuan": {
+        "tieuDe": "Xem ngày khác",
+        "noiDung": "Bấm một ngày trong tuần để xem lại; ← → để lùi hay tiến cả tuần. Ngày chưa tới thì mờ, không bấm được."
+      },
+      "chonNgay": {
+        "tieuDe": "Nhảy tới một ngày",
+        "noiDung": "Gõ ngày / tháng / năm là trang tự mở ngày đó, không cần bấm thêm."
+      },
+      "cot": {
+        "tieuDe": "Sáng và chiều",
+        "noiDung": "Mỗi em có hai ô: buổi sáng (06:30–08:00) và buổi chiều (16:00–17:00). Mỗi ô hiện gương mặt em chọn và giờ em bấm."
+      },
+      "bang": {
+        "tieuDe": "Bảng điểm danh",
+        "noiDung": "Ô trống là em chưa check-in buổi ấy — không có chữ “vắng” hay “muộn”, ai nhìn cũng tự hiểu. Em bấm check-in là bảng đổi ngay, không cần tải lại trang."
+      },
+      "dem": {
+        "tieuDe": "Đã tới bao nhiêu em",
+        "noiDung": "Dòng này đếm số em đã check-in ít nhất một buổi trên tổng sĩ số."
+      }
+    },
+    "thoiKhoaBieu": {
+      "doc1": {
+        "tieuDe": "Thời khoá biểu",
+        "noiDung": "Lịch học của lớp theo tuần: hàng là tiết, cột là thứ. Đây là MẪU LẶP — xếp một lần, tuần nào cũng vậy. Thầy cô chủ nhiệm xếp và sửa; học sinh, phụ huynh chỉ xem."
+      },
+      "chonLop": {
+        "tieuDe": "Chọn lớp",
+        "noiDung": "Bạn có nhiều lớp thì đổi lớp đang xem ở đây."
+      },
+      "tuan": {
+        "tieuDe": "Xem tuần khác",
+        "noiDung": "Tuần trước / Tuần này / Tuần sau. Lịch mẫu giống nhau mọi tuần; đổi tuần là để xem tiết nào bị huỷ, dời hay dạy thay đúng tuần đó."
+      },
+      "chuThich": {
+        "tieuDe": "Ba màu ô",
+        "noiDung": "Chính khoá, thực hành, kiểm tra — mỗi loại một màu để nhìn lưới là biết ngay."
+      },
+      "luoi": {
+        "tieuDe": "Lưới thời khoá biểu",
+        "noiDung": "Bấm ô trống có dấu + để thêm tiết: chọn môn, phòng, người dạy, và tick thêm các thứ khác nếu môn ấy học nhiều buổi. Bấm ô đã có môn để sửa; dấu ✕ ở góc là xoá (app hỏi lại). Trên điện thoại hiện một ngày một cột, bấm Cả tuần để xem đủ."
+      },
+      "nhapLoat": {
+        "tieuDe": "Dán từ bảng tính",
+        "noiDung": "Có sẵn thời khoá biểu trong Excel hay Google Sheets? Chép bảng, dán vào đây, xem trước rồi lưu một lần — khỏi bấm từng ô."
+      },
+      "saoChep": {
+        "tieuDe": "Sao chép từ lớp khác",
+        "noiDung": "Lớp cùng khối thường học cùng khung. Chọn lớp nguồn, app chép nguyên lịch sang lớp này."
+      },
+      "gioTiet": {
+        "tieuDe": "Khung giờ tiết",
+        "noiDung": "Khai tiết 1 bắt đầu mấy giờ, mỗi tiết bao nhiêu phút, nghỉ giữa tiết bao lâu — app tự rải giờ cho cả dãy tiết, cột Tiết bên trái sẽ hiện giờ."
+      },
+      "ngoaiLe": {
+        "tieuDe": "Huỷ · Dời · Dạy thay",
+        "noiDung": "Một ngày cụ thể có tiết bị huỷ, dời sang giờ khác, hay người khác dạy thay: khai ở đây. Chỉ ngày đó đổi, lịch mẫu vẫn nguyên."
+      },
+      "clb": {
+        "tieuDe": "Câu lạc bộ",
+        "noiDung": "Lịch câu lạc bộ dùng chung cả cơ sở, đặt dưới lịch lớp. Em tự biết mình đăng ký gì rồi nhìn giờ mà đi. Ban giám hiệu hoặc quản trị viên thêm và xoá."
+      }
+    },
     "taoMauEm": {},
     "taoMauGv": {}
   }

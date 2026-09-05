@@ -142,7 +142,7 @@ export default async function AttendancePage({
             <CalendarDays size={14} strokeWidth={2} className="text-grey-mid" />
             {today === realToday ? t('todayLabel') : t('viewingDay')}: <b className="text-navy">{ngayVN(today)}</b>
           </span>
-          <span className="inline-flex items-center gap-1.5 text-than font-bold text-txt">
+          <span data-hd="dd-si-so" className="inline-flex items-center gap-1.5 text-than font-bold text-txt">
             <Users size={14} strokeWidth={2} className="text-grey-mid" />
             {t('sizeLabel')}: <b className="text-navy">{students.length}</b>
           </span>
@@ -160,7 +160,7 @@ export default async function AttendancePage({
       {/* Thanh tuần: ← tuần trước · T2…CN (ngày/tháng) · tuần sau → · ô lịch. Ngày trước, tháng
           sau — người Việt đọc 11/8, không đọc 08-11. */}
       {xemDuocNgayKhac && (
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div data-hd="dd-tuan" className="flex flex-wrap items-center gap-1.5">
           <NutDoiTrang href={duongNgay(tuanTruoc)} className={nutTuan} ariaLabel={t('prevWeek')}>
             ← {t('prevWeek')}
           </NutDoiTrang>
@@ -202,7 +202,7 @@ export default async function AttendancePage({
           ) : (
             <span className={`${nutTuan} cursor-not-allowed opacity-40`}>{t('nextWeek')} →</span>
           )}
-          <span className="ml-1">
+          <span data-hd="dd-chon-ngay" className="ml-1">
             <ChonNgayDiemDanh ngay={today} toiDa={realToday} classParam={classParam} />
           </span>
         </div>

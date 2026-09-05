@@ -59,7 +59,8 @@ export function TkbHomNay({
   const n = ngay.find((x) => x.d === chon) ?? ngay[0];
 
   return (
-    <div className="flex flex-col gap-2">
+    // data-hd="tkb-ngay": neo dự phòng của tour TKB trên máy hẹp (lưới tuần không dựng ở đây).
+    <div data-hd="tkb-ngay" className="flex flex-col gap-2">
       {/* Dải chọn ngày + nút Cả tuần. Nút chạm cao 44px. */}
       <div className="flex items-center gap-1 overflow-x-auto pb-1">
         {ngay.map((x) => (

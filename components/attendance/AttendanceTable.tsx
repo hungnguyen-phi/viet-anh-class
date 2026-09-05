@@ -140,8 +140,9 @@ export function AttendanceTable({
 
   return (
     <div className="space-y-3">
-      <div className="glass overflow-x-auto rounded-[20px]">
-        <div className="flex items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
+      {/* data-hd: neo cho tour Điểm danh (components/huongdan/buoc-trang.ts). */}
+      <div data-hd="dd-bang" className="glass overflow-x-auto rounded-[20px]">
+        <div data-hd="dd-cot" className="flex items-center gap-2 bg-navy/[0.03] px-[18px] py-2.5 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
           <span className="flex-1">{t('student')}</span>
           <span className="w-[78px] flex-none">{t('morning')}</span>
           <span className="w-[78px] flex-none">{t('afternoon')}</span>
@@ -167,7 +168,7 @@ export function AttendanceTable({
         ))}
       </div>
 
-      <p className="text-chu-thich font-bold text-grey-mid">
+      <p data-hd="dd-dem" className="text-chu-thich font-bold text-grey-mid">
         {t('checkedInCount', {n: coMat, total: rows.length})}
       </p>
     </div>
