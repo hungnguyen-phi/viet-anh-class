@@ -39,6 +39,7 @@ const NAMESPACE_CHO_CLIENT = [
   'menu',
   'mucTieu',
   'nav',
+  'notif',
   'pdr',
   'roles',
   'roster',

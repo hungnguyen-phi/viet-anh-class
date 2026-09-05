@@ -12,6 +12,7 @@
 //   <FormTaiCho action={xoaTaiCho} xacNhan="Xoá thật chứ?" nhanXacNhan="Xoá" nguyHiem>…</FormTaiCho>
 // `xacNhan` mở hộp xác nhận (cùng lớp áo với XacNhanForm) trước khi gửi thật.
 import {createContext, useActionState, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode} from 'react';
+import {danhDauVuaGhi} from '@/components/shell/LamMoiKhiDoi';
 import {useTranslations} from 'next-intl';
 import {useFormStatus} from 'react-dom';
 import {Loader2} from 'lucide-react';
@@ -59,6 +60,7 @@ export function FormTaiCho({
   useEffect(() => {
     if (!state.ok) return;
     lanOk.current += 1;
+    danhDauVuaGhi(); // LamMoiKhiDoi bỏ qua echo realtime của chính cú ghi này (action đã revalidate)
     onOk?.(state.message);
     if (!anThanhCong) {
       setHienOk(true);

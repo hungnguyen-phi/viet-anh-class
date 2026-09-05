@@ -910,7 +910,9 @@
   "notif": {
     "title": "Thông báo",
     "markAll": "Đánh dấu đã đọc tất cả",
-    "empty": "Chưa có thông báo nào."
+    "empty": "Chưa có thông báo nào.",
+    "daDuyetEm": "Thầy cô đã duyệt mục tiêu của em 🎉",
+    "traLaiEm": "Thầy cô trả lại mục tiêu — xem lý do trong thẻ nhé."
   },
   "timetable": {
     "title": "Thời khoá biểu",

@@ -17,6 +17,7 @@ import {
 } from '@/lib/dates';
 import {MoodCheckin, MoodGate, type MoodKey} from '@/components/student/MoodCheckin';
 import {FlashToast} from '@/components/ui/FlashToast';
+import {BaoDuyetRealtime} from '@/components/student/BaoDuyetRealtime';
 import {ChonTuanCuaEm} from '@/components/student/ChonTuanCuaEm';
 import {HopPdr, type PdrMeeting} from '@/components/student/HopPdr';
 import {MyRequests, type MyRequest} from '@/components/student/MyRequests';
@@ -595,6 +596,8 @@ export async function StudentScoreboard({
     <div className="mt-4 flex flex-col gap-[22px]">
       {mustCheckin && <MoodGate />}
       {flash && <FlashToast message={flash} />}
+      {/* REALTIME (0192): thầy cô duyệt / trả lại → thẻ đổi ngay + một câu báo, không F5. */}
+      {canTick && <BaoDuyetRealtime studentId={studentId} />}
 
       {/* ① HERO + ĐIỂM DANH CẢM XÚC (giữ nguyên) */}
       <div className="animate-rise grid grid-cols-1 overflow-hidden rounded-[20px] glass md:grid-cols-2">
