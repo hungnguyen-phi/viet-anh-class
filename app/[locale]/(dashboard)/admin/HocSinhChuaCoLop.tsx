@@ -24,13 +24,8 @@ export async function HocSinhChuaCoLop({
   lops: {id: string; name: string; school_year: string | null}[];
 }) {
   const t = await getTranslations('admin');
-  if (hocSinh.length === 0) {
-    return (
-      <p className="text-than font-semibold italic leading-relaxed text-grey-mid">
-        {t('hsLoLungTrong')}
-      </p>
-    );
-  }
+  // Không có em nào chờ xếp lớp → không hiện gì (05/09: chủ dự án bỏ câu giải thích thừa).
+  if (hocSinh.length === 0) return null;
 
   return (
     <div className="flex flex-col gap-2">

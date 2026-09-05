@@ -1,5 +1,6 @@
 import {useTranslations} from 'next-intl';
 import {Link} from '@/i18n/navigation';
+import {Pencil, Power, RotateCcw, AlertTriangle} from 'lucide-react';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {ConfirmButton} from '@/components/ui/ConfirmButton';
 import {labelCls, btnGold, btnGhost} from '@/components/ui/Field';
@@ -42,7 +43,14 @@ export function moTaLop(nums: number[]): string {
 }
 
 const chipXam = 'rounded-full bg-navy/[0.08] px-2 py-0.5 text-nhan font-extrabold text-navy/70';
+const nutIcon =
+  'grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-[12px] text-navy transition-colors hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold';
 
+// DANH MỤC MÔN — sắp lại 05/09 (chủ dự án: "nhìn rối quá"). Trước: bảng 7 cột rộng 980 px, 14 dòng
+// đều lặp "đang dùng · Sửa lớp · Tắt", điện thoại phải cuộn ngang. Nay MỖI MÔN MỘT DÒNG BA PHẦN:
+//   tên (mã · mã ngắn ở dòng phụ) · lớp nào học (một chip) · hai nút biểu tượng.
+// Trạng thái chỉ hiện khi KHÁC thường (đã tắt → dòng mờ + chip đỏ); "đang dùng" là mặc định, khỏi nói.
+// Điện thoại: cùng dòng ấy xếp dọc, không cuộn ngang.
 export function SubjectTable({
   rows,
   isAdmin,
@@ -65,14 +73,14 @@ export function SubjectTable({
   const editing = editingId ? rows.find((r) => r.id === editingId) : undefined;
 
   return (
-    <div className="flex flex-col gap-3.5">
+    <div className="flex flex-col gap-3">
       {/* Panel sửa "môn này dạy lớp mấy" — hiện khi ?edit=<id>, server-rendered như panel sửa
           WIG (không cần client state cho 12 ô tick). */}
       {isAdmin && editing && (
         <section className="glass animate-rise rounded-[20px] p-[18px] ring-2 ring-gold/60">
-          <h2 className="mb-2.5 font-display text-noi-dung font-bold text-navy">
+          <h3 className="mb-2.5 font-display text-noi-dung font-bold text-navy">
             {t('editPanelTitle', {name: editing.name})}
-          </h2>
+          </h3>
           <form action={saveSubjectGrades} className="flex flex-col gap-3">
             <input type="hidden" name="subject_id" value={editing.id} />
             {classParam && <input type="hidden" name="class_id" value={classParam} />}
@@ -82,7 +90,7 @@ export function SubjectTable({
                 {LOP.map((n) => (
                   <label
                     key={n}
-                    className="flex cursor-pointer items-center gap-1.5 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-2 text-than font-bold text-navy transition-colors hover:border-navy"
+                    className="flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[8px] border-[1.5px] border-navy/15 bg-white px-2.5 py-2 text-than font-bold text-navy transition-colors hover:border-navy"
                   >
                     <input
                       type="checkbox"
@@ -107,88 +115,57 @@ export function SubjectTable({
         </section>
       )}
 
-      <div className="glass overflow-x-auto rounded-[20px]">
-        {/* Header */}
-        <div className="flex min-w-[980px] items-center gap-2 bg-navy/[0.03] px-[18px] py-[10px]">
-          <span className="w-[22px] flex-none text-chu-thich font-extrabold text-grey-mid">#</span>
-          <span className="w-[86px] flex-none text-nhan font-extrabold uppercase text-grey-mid">
-            {t('thCode')}
-          </span>
-          <span className="flex-[1.6] text-nhan font-extrabold uppercase text-grey-mid">
-            {t('thName')}
-          </span>
-          <span className="w-[96px] flex-none text-nhan font-extrabold uppercase text-grey-mid">
-            {t('thShort')}
-          </span>
-          <span className="flex-[1.6] text-nhan font-extrabold uppercase text-grey-mid">
-            {t('thGrades')}
-          </span>
-          <span className="w-[92px] flex-none text-nhan font-extrabold uppercase text-grey-mid">
-            {t('thStatus')}
-          </span>
-          <span className="w-[160px] flex-none text-center text-nhan font-extrabold uppercase text-grey-mid" />
+      <div className="glass overflow-hidden rounded-[20px]">
+        {/* Đầu bảng — chỉ ở màn rộng; điện thoại mỗi dòng tự nói tên cột bằng bố cục. */}
+        <div className="hidden items-center gap-3 bg-navy/[0.03] px-[18px] py-2 sm:grid sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_112px]">
+          <span className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{t('thName')}</span>
+          <span className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{t('thGrades')}</span>
+          <span />
         </div>
 
-        {/* Rows */}
         {rows.map((s, i) => (
           <div
             key={s.id}
-            className={`flex min-w-[980px] items-center gap-2 border-t border-navy/[0.08] px-[18px] py-2 transition-colors hover:bg-navy/[0.03] ${
-              s.is_active ? '' : 'opacity-70'
+            className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 border-t border-navy/[0.08] px-[18px] py-2.5 transition-colors hover:bg-navy/[0.03] sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_112px] ${
+              s.is_active ? '' : 'opacity-60'
             }`}
           >
-            <span className="w-[22px] flex-none text-chu-thich font-bold text-grey-mid">{i + 1}</span>
-            <span className="w-[86px] flex-none truncate text-than font-bold text-navy/70">
-              {s.code}
-            </span>
-            <span className="flex min-w-0 flex-[1.6] items-center gap-1.5">
-              <span className="truncate text-noi-dung font-bold text-navy">{s.name}</span>
-              {/* Môn riêng của cơ sở: phải nhìn ra ngay, vì chỉ lớp của cơ sở đó chọn được. */}
-              {s.campus_id && (
-                <span className={`${chipXam} shrink-0`} title={t('chipOwnTitle')}>
-                  {t('chipOwn')}
-                  {s.campusName ? ` · ${s.campusName}` : ''}
-                </span>
-              )}
-              {!s.is_scored && (
-                <span className={`${chipXam} shrink-0`} title={t('chipReviewTitle')}>
-                  {t('chipReview')}
-                </span>
-              )}
-            </span>
-            <span className="w-[96px] flex-none truncate text-than font-semibold text-grey-mid">
-              {s.short_name}
-            </span>
-            <span className="min-w-0 flex-[1.6] text-than font-semibold text-grey-mid">
-              {s.grades.length > 0 ? (
-                t('gradesRange', {list: moTaLop(s.grades)})
-              ) : (
-                // KHÔNG ẩn cho gọn: bốn môn đang ở tình trạng này và nhà trường CẦN thấy để bổ
-                // sung. Chưa khai = chọn được cho mọi lớp, tức là ô chọn môn của lớp 6 vẫn hiện
-                // "Giáo dục kinh tế và pháp luật" — dễ nhập nhầm.
-                <span className="inline-flex items-center gap-1 rounded-full border-[1.5px] border-warn/40 bg-warn/[0.12] px-2 py-0.5 text-chu-thich font-extrabold text-warn-text">
-                  {t('gradesUndeclared')}
-                </span>
-              )}
-            </span>
-            <span className="w-[92px] flex-none">
-              {s.is_active ? (
-                <span className="rounded-full bg-success/[0.12] px-2 py-0.5 text-chu-thich font-extrabold text-success-dark">
-                  {t('statusActive')}
-                </span>
-              ) : (
-                <span className="rounded-full bg-status-bad/[0.08] px-2 py-0.5 text-chu-thich font-extrabold text-status-bad">
-                  {t('statusOff')}
-                </span>
-              )}
-            </span>
-            <span className="flex w-[160px] flex-none items-center justify-end gap-1.5">
+            {/* Tên môn + dòng phụ mã · mã ngắn (hai cột riêng trước đây chỉ để lặp lại tên). */}
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                <span className="truncate text-noi-dung font-bold text-navy">{s.name}</span>
+                {s.campus_id && (
+                  <span className={chipXam} title={t('chipOwnTitle')}>
+                    {t('chipOwn')}
+                    {s.campusName ? ` · ${s.campusName}` : ''}
+                  </span>
+                )}
+                {!s.is_scored && (
+                  <span className={chipXam} title={t('chipReviewTitle')}>
+                    {t('chipReview')}
+                  </span>
+                )}
+                {!s.is_active && (
+                  <span className="rounded-full bg-status-bad/[0.08] px-2 py-0.5 text-nhan font-extrabold text-status-bad">
+                    {t('statusOff')}
+                  </span>
+                )}
+              </div>
+              <div className="mt-0.5 text-chu-thich font-semibold tabular-nums text-grey-mid">
+                {i + 1} · {s.code} · {s.short_name}
+              </div>
+            </div>
+
+            {/* Nút: hàng đầu bên phải ở điện thoại, cột cuối ở màn rộng. */}
+            <div className="flex items-center justify-end gap-0.5 sm:order-3">
               {isAdmin && (
                 <Link
                   href={`/subjects?edit=${encodeURIComponent(s.id)}${keo}`}
-                  className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-chu-thich font-extrabold text-navy transition-all hover:border-navy"
+                  aria-label={t('editGrades')}
+                  title={t('editGrades')}
+                  className={nutIcon}
                 >
-                  {t('editGrades')}
+                  <Pencil size={15} strokeWidth={2.5} />
                 </Link>
               )}
               {s.canEdit &&
@@ -199,9 +176,10 @@ export function SubjectTable({
                     {classParam && <input type="hidden" name="class_id" value={classParam} />}
                     <ConfirmButton
                       message={t('confirmOff', {name: s.name})}
-                      className="cursor-pointer rounded-[8px] border-[1.5px] border-status-bad/30 bg-status-bad/[0.08] px-2 py-1 text-chu-thich font-extrabold text-status-bad transition-all hover:bg-status-bad/[0.16]"
+                      label={`${t('turnOff')} · ${s.name}`}
+                      className={`${nutIcon} text-status-bad hover:bg-status-bad/[0.08]`}
                     >
-                      {t('turnOff')}
+                      <Power size={15} strokeWidth={2.5} />
                     </ConfirmButton>
                   </form>
                 ) : (
@@ -210,14 +188,35 @@ export function SubjectTable({
                     <input type="hidden" name="active" value="true" />
                     {classParam && <input type="hidden" name="class_id" value={classParam} />}
                     <SubmitButton
-                      className="cursor-pointer rounded-[8px] border-[1.5px] border-navy/20 bg-white px-2 py-1 text-chu-thich font-extrabold text-navy transition-all hover:border-navy"
-                      wrapClass="contents"
+                      label={`${t('reuse')} · ${s.name}`}
+                      className="inline-flex h-11 cursor-pointer items-center gap-1 rounded-[12px] border-[1.5px] border-navy/20 bg-white px-2.5 text-chu-thich font-extrabold text-navy transition-all hover:border-navy"
+                      wrapClass="inline-flex items-center gap-1"
                     >
+                      <RotateCcw size={13} strokeWidth={2.5} />
                       {t('reuse')}
                     </SubmitButton>
                   </form>
                 ))}
-            </span>
+            </div>
+
+            {/* Lớp nào học: một chip; chưa khai → chip cảnh báo ngắn. */}
+            <div className="col-span-2 min-w-0 sm:col-span-1 sm:order-2">
+              {s.grades.length > 0 ? (
+                <span className="inline-flex rounded-full bg-navy/[0.06] px-2.5 py-0.5 text-chu-thich font-extrabold tabular-nums text-navy">
+                  {t('gradesRange', {list: moTaLop(s.grades)})}
+                </span>
+              ) : (
+                // KHÔNG ẩn cho gọn: nhà trường CẦN thấy để bổ sung. Chưa khai = chọn được cho mọi
+                // lớp, tức là ô chọn môn của lớp 6 vẫn hiện "Giáo dục kinh tế và pháp luật".
+                <span
+                  title={t('gradesUndeclaredTitle')}
+                  className="inline-flex items-center gap-1 rounded-full border-[1.5px] border-warn/40 bg-warn/[0.12] px-2 py-0.5 text-chu-thich font-extrabold text-warn-text"
+                >
+                  <AlertTriangle size={12} strokeWidth={2.5} />
+                  {t('gradesUndeclared')}
+                </span>
+              )}
+            </div>
           </div>
         ))}
         {rows.length === 0 && (

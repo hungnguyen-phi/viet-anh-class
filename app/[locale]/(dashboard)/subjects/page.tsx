@@ -162,22 +162,52 @@ export default async function SubjectsPage({
   const picker =
     accessible.length > 1 ? <ClassPicker classes={accessible} current={myClass?.id} /> : null;
 
+  const soChuaKhai = rows.filter((r) => r.grades.length === 0).length;
+  const soTat = rows.filter((r) => !r.is_active).length;
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <h1 className="font-display text-dau font-bold text-navy">{t('title')}</h1>
 
       <Flash />
 
-      {profile.role === 'principal' && !profile.campus_id ? (
-        <p className="text-chu-thich italic text-grey-mid">{t('noCampus')}</p>
-      ) : (
-        <SubjectCreateForm
-          scope={isAdmin ? 'chung' : 'rieng'}
-          campusName={profile.campus_id ? (tenCoSo.get(profile.campus_id) ?? null) : null}
-        />
-      )}
+      {/* ① DANH MỤC MÔN TOÀN TRƯỜNG — sắp lại 05/09 (chủ dự án: "nhìn rối quá"): tiêu đề khu đánh
+          số + một dòng tóm tắt (bao nhiêu môn, mấy môn chưa khai lớp), form thêm môn THU VÀO nút
+          "+ Thêm môn" (<details>, không cần JS) vì việc thêm môn cả năm làm vài lần, không đáng
+          chiếm cả đầu trang. */}
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="mr-auto min-w-0">
+            <p className="text-nhan font-extrabold uppercase tracking-wide text-gold-text">{t('sec1Eyebrow')}</p>
+            <h2 className="font-display text-tieu-de font-bold text-navy">{t('sec1Title')}</h2>
+            <p className="text-chu-thich font-semibold text-grey-mid">
+              {t('sec1Summary', {n: rows.length})}
+              {soChuaKhai > 0 ? ` · ${t('sec1ChuaKhai', {n: soChuaKhai})}` : ''}
+              {soTat > 0 ? ` · ${t('sec1Tat', {n: soTat})}` : ''}
+            </p>
+          </div>
+          {profile.role === 'principal' && !profile.campus_id ? (
+            <p className="text-chu-thich italic text-grey-mid">{t('noCampus')}</p>
+          ) : (
+            // <details> chiếm trọn hàng: nút nằm phải, form bung ra trải hết bề rộng ngay dưới tiêu đề.
+            <details className="w-full">
+              <summary className="btn-gold ml-auto flex min-h-[44px] w-fit cursor-pointer list-none items-center gap-1.5 rounded-[12px] px-4 text-than font-extrabold [&::-webkit-details-marker]:hidden">
+                {t('addSubject')}
+              </summary>
+              <div className="mt-3 animate-rise">
+                <SubjectCreateForm
+                  scope={isAdmin ? 'chung' : 'rieng'}
+                  campusName={profile.campus_id ? (tenCoSo.get(profile.campus_id) ?? null) : null}
+                />
+              </div>
+            </details>
+          )}
+        </div>
 
-      <SubjectTable rows={rows} isAdmin={isAdmin} classParam={classParam} editingId={editId} />
+        <SubjectTable rows={rows} isAdmin={isAdmin} classParam={classParam} editingId={editId} />
+      </section>
+
+      <hr className="border-navy/10" />
 
       {myClass ? (
         <TeachingAssignmentBlock

@@ -150,13 +150,6 @@ export default async function MenuPage({
 
       <Flash />
 
-      <p className="text-chu-thich font-semibold leading-[1.55] text-grey-mid">
-        {t('intro')}
-        {canManage
-          ? t('introManage')
-          : t('introView')}
-      </p>
-
       {/* Điều hướng tuần — dùng lại lối làm của /timetable để hai trang thao tác giống nhau */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1.5 text-than font-bold text-navy">
@@ -394,11 +387,7 @@ export default async function MenuPage({
               </Field>
             </div>
 
-            <Field
-              label={t('fDishes')}
-              htmlFor="menu-items"
-              hint={t('hDishes')}
-            >
+            <Field label={t('fDishes')} htmlFor="menu-items">
               <textarea
                 id="menu-items"
                 name="items"
@@ -416,10 +405,6 @@ export default async function MenuPage({
               </SubmitButton>
             </div>
           </form>
-
-          <p className="mt-1.5 text-chu-thich italic text-grey-mid">
-            {t('saveHint')}
-          </p>
         </div>
       )}
     </div>

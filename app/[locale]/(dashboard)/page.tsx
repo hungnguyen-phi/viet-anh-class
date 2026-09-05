@@ -185,7 +185,6 @@ export default async function ClassPage({
             {isWinning ? <Check size={13} strokeWidth={2.5} /> : <Minus size={13} strokeWidth={2.5} />}
             {isWinning ? t('class.nhipDung') : t('class.nhipCham')}
           </span>
-          <span className="text-grey-mid">{t('class.yearOnTrack', {n: onCount, total: goals.length})}</span>
         </p>
       )}
 
