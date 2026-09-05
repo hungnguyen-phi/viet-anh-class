@@ -11,6 +11,7 @@ import {Popup} from '@/components/ui/Popup';
 import {ChonNgayTuan} from '@/components/ui/ChonNgayTuan';
 import {Field, ctlWithBorder} from '@/components/ui/Field';
 import {FormTaiCho, NutGui} from '@/components/ui/FormTaiCho';
+import {DayLaGi, GoiYO} from '@/components/huongdan/DayLaGi';
 import {themThuocChoCamKetToi} from '@/app/[locale]/(dashboard)/wig/lop-actions';
 import {themThuocChoCamKet} from '@/app/[locale]/(dashboard)/student/actions';
 
@@ -54,6 +55,7 @@ export function NutThemThuoc({
     <>
       <button
         type="button"
+        data-hd={mode === 'em' ? 'em-them-thuoc' : 'gv-them-thuoc'}
         onClick={() => setMo(true)}
         className="inline-flex min-h-[44px] items-center gap-1.5 self-start rounded-[12px] border-[1.5px] border-dashed border-navy/30 px-3 text-than font-extrabold text-navy/80 transition-colors hover:border-navy hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
       >
@@ -71,7 +73,9 @@ export function NutThemThuoc({
                 {mode === 'toi' && <input type="hidden" name="week" value={weekQ ?? ''} />}
                 <input type="hidden" name="tuan_bat_dau" value={monday} />
                 <input type="hidden" name="viec_cach" value={viecCach} />
+                <DayLaGi tang="thuoc" vai={mode === 'em' ? 'em' : 'gvToi'} />
                 <Field label={t('viecBoTroLabel')} htmlFor="tt-ten" hint={t('viecBoTroHint')} error={state.fieldError === 'ten' ? state.error : null}>
+                  <GoiYO k="thuoc" />
                   <input
                     id="tt-ten"
                     name="ten"
@@ -100,6 +104,7 @@ export function NutThemThuoc({
                   </div>
                   {viecCach === 'cham' ? (
                     <Field label={t('chonNgayTick')} htmlFor="tt-ngay" hint={t('chonNgayHint')} error={state.fieldError === 'ngay' ? state.error : null}>
+                      <GoiYO k="ngayTick" />
                       <ChonNgayTuan />
                     </Field>
                   ) : (

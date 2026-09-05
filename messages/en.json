@@ -43,64 +43,6 @@
       "thangSau": "Next month",
       "chonNgay": "Pick a date"
     },
-    "intro": {
-      "chaoTitle": "Welcome to Viet Anh Class!",
-      "chaoEm": "This is where your class tracks its goals for the year, and you track what you do each day.",
-      "chaoNguoiLon": "This is where the class tracks its goals for the year, and each student tracks what they do each day.",
-      "chaoNgonNgu": "To read in Vietnamese: press the gear icon at the top right and pick “Language”.",
-      "cachTitle": "How your class works",
-      "cach1": "Goals: the most important things the class wants to reach this year, in 4 areas: Knowledge, Leadership skills, Character, Physical well-being.",
-      "cach2Em": "Weekly promise: each week you promise one small thing, and at the end of the week you mark it Won or Lost yourself.",
-      "cach2NguoiLon": "Weekly promise: each week every student promises one small thing and marks it Won or Lost at the end.",
-      "cach3Em": "Lead measures: what you do each day to keep the promise, like reading 15 minutes. Tick the day’s box once done.",
-      "cach3NguoiLon": "Lead measures: what each student does daily to keep the promise. They tick the day’s box once done.",
-      "cach4Em": "Progress ring: a percentage that tells you whether you are on pace or behind.",
-      "cach4NguoiLon": "Progress ring: a percentage that shows whether the class and each student are on pace or behind.",
-      "cach5Em": "Buddy meeting: each week you sit with your buddy, look back at the week, then promise next week’s work.",
-      "vai": {
-        "teacher": {
-          "title": "You're a homeroom teacher",
-          "b1": "Class page: scoreboard, competition rank, 4-area goal rings.",
-          "b2": "Attendance: tick the whole class fast, adjust a few, saved instantly.",
-          "b3": "Goals: set the class goal and your own; students set their promises and measures. Progress comes from their own ticks.",
-          "b4": "Roster: set an “Attendance leader” so a student can mark attendance (today only)."
-        },
-        "student": {
-          "title": "You're a student",
-          "b1": "Open “My board” to find everything: today’s mood, your goals, promises and measures to tick.",
-          "b2": "Pick a face each day in “How are you today?”. That is also your attendance.",
-          "b3": "If you are the “Attendance leader”: mark attendance for the class (today only)."
-        },
-        "parent": {
-          "title": "You're a parent",
-          "b1": "Open Report: only your child’s data, attendance plus weekly goal progress.",
-          "b2": "Pick a week to see per-area results and your child’s reflection.",
-          "b3": "You cannot see other students’ data."
-        },
-        "principal": {
-          "title": "You're school leadership",
-          "b1": "Campus report: classes in your campus, competition score plus today’s attendance.",
-          "b2": "You cannot see other campuses."
-        },
-        "admin": {
-          "title": "You're an administrator",
-          "b1": "Create campuses and classes, assign homeroom teachers.",
-          "b2": "Invite new users (pick role + class): assigned on first sign-in.",
-          "b3": "Change roles, disable or delete users; invite parents and link children."
-        },
-        "pending": {
-          "title": "Account pending access",
-          "b1": "Contact your school administrator to be assigned a role."
-        }
-      },
-      "xongTitle": "You're all set!",
-      "xong1": "To replay this guide: press the gear icon at the top right and pick “Guide”.",
-      "nutTiep": "Next",
-      "nutQuayLai": "Back",
-      "nutBatDau": "Start",
-      "nutBo": "Skip",
-      "buoc": "Step {i}/{n}"
-    },
     "logoAlt": "Viet Anh logo",
     "doiNgonNgu": "Change language",
     "dobThieu": "Date of birth needs day, month and year.",
@@ -2492,5 +2434,268 @@
     "rChoTen": "for {ten}",
     "bNhomCuoi3": "(last group has 3)",
     "gMonNhan": "for {ten}"
+  },
+  "huongDan": {
+    "buoc": "Step {i}/{n}",
+    "boQua": "Skip",
+    "quayLai": "Back",
+    "tiep": "Next",
+    "xong": "Done",
+    "thuBam": "Try tapping it",
+    "nutHoi": "Guide for this screen",
+    "chuaCoOChoNay": "Nothing here yet. Once you do the previous step, the button will appear here.",
+    "hocSinh": {
+      "doc1": {
+        "tieuDe": "This is your scoreboard",
+        "noiDung": "This app helps you set one goal for the school year, then do one small thing each week to get there. Your teacher and buddy will see your effort."
+      },
+      "doc2": {
+        "tieuDe": "Your week",
+        "noiDung": "Morning: tap a mood face. Every day: tick your lead measure. End of week: mark your promise Win or Loss. That's it."
+      },
+      "doc3": {
+        "tieuDe": "Three things that matter",
+        "noiDung": "Goal = the year's target. Promise = what you commit to this week. Lead measure = the small daily action. Tick enough → promise wins → the number adds to your goal."
+      },
+      "camXuc": {
+        "tieuDe": "How are you today?",
+        "noiDung": "Tap one face when you arrive. This also counts as attendance. Outside the window the buttons are dimmed."
+      },
+      "tuan": {
+        "tieuDe": "See another week",
+        "noiDung": "Use ‹ › to look at last week or next week. Only this week can be ticked."
+      },
+      "mucTieuLop": {
+        "tieuDe": "Class goal",
+        "noiDung": "The shared target the whole class pushes. Your goal will link to it."
+      },
+      "datMucTieu": {
+        "tieuDe": "Set your goal",
+        "noiDung": "Tap + in the area you want. There is a guide inside about what to write. One or two goals a year is enough."
+      },
+      "theMucTieu": {
+        "tieuDe": "Goal card",
+        "noiDung": "The ring shows how far you have gone in percent. The number below is where you are versus the target."
+      },
+      "ghiSo": {
+        "tieuDe": "Log a number",
+        "noiDung": "For goals measured by a number, tap here to log the latest value, like weight or a score."
+      },
+      "themCamKet": {
+        "tieuDe": "Promise one thing this week",
+        "noiDung": "Tap + to write one thing you will finish this week, with a number. One or two promises a week is enough."
+      },
+      "chamCamKet": {
+        "tieuDe": "Grade yourself at week end",
+        "noiDung": "Enter what you reached, then tap Win or Loss. You grade yourself — nobody else. Slipped? Tap Ungrade."
+      },
+      "themThuoc": {
+        "tieuDe": "Add a lead measure",
+        "noiDung": "A lead measure is the small thing you do every day so the promise comes true. Pick the days you will do it."
+      },
+      "tickNgay": {
+        "tieuDe": "Tick every day",
+        "noiDung": "Did it today? Tap that day. Tap again to untick. The 12-week bar shows how steady you are."
+      },
+      "sua": {
+        "tieuDe": "Edit or delete",
+        "noiDung": "Tap the pencil to edit. The edit box has a Delete button if you want to drop it."
+      },
+      "hopBan": {
+        "tieuDe": "Meet your buddy",
+        "noiDung": "Each week you sit with your buddy, share what you did, and promise next week's work."
+      },
+      "thanhDuoi": {
+        "tieuDe": "Bottom bar",
+        "noiDung": "Four shortcuts: Scoreboard, Timetable, Menu, Notifications."
+      },
+      "chuong": {
+        "tieuDe": "Notifications",
+        "noiDung": "Anything new from your teacher or buddy shows a gold dot here."
+      },
+      "menu": {
+        "tieuDe": "Menu",
+        "noiDung": "Open this to change language, sign out, or replay the Guide any time."
+      }
+    },
+    "giaoVien": {
+      "doc1": {
+        "tieuDe": "The class Goals screen",
+        "noiDung": "Here you set the class target, follow each student, and lead by example with your own goal."
+      },
+      "doc2": {
+        "tieuDe": "Your week",
+        "noiDung": "Monday: see what students promised. During the week: tick your own lead measure. Week end: approve new goals, grade your promise."
+      },
+      "doc3": {
+        "tieuDe": "How numbers flow",
+        "noiDung": "Your promise adds to your goal; your goal adds to the class goal when units match. Students' goals only point at the class goal — they do not add."
+      },
+      "chonLop": {
+        "tieuDe": "Pick a class",
+        "noiDung": "Switch here if you have several classes. The week you are viewing is kept."
+      },
+      "lopTruong": {
+        "tieuDe": "Class · school goals",
+        "noiDung": "Set the class goal, link it to the school goal, and tick plan steps. Rarely used, so it lives in one box."
+      },
+      "lichHop": {
+        "tieuDe": "Meetings",
+        "noiDung": "Pair students into buddy groups of 2–3 and schedule one-on-one meetings. All in one box."
+      },
+      "tuan": {
+        "tieuDe": "See another week",
+        "noiDung": "Use ‹ › to go back or forward. Future weeks fill in automatically on Monday morning."
+      },
+      "baSo": {
+        "tieuDe": "Three class numbers",
+        "noiDung": "Over the last 4 closed weeks: goal progress, lead measures met, promises kept."
+      },
+      "datMucTieuToi": {
+        "tieuDe": "My goal",
+        "noiDung": "Teachers have a personal goal too. Set one and link it to the class goal — your number adds up to the class."
+      },
+      "camKetToi": {
+        "tieuDe": "My weekly promise",
+        "noiDung": "Tap + to promise one thing this week for this goal. The unit follows the goal."
+      },
+      "chamToi": {
+        "tieuDe": "Grade yourself",
+        "noiDung": "Enter what you reached, tap Win or Loss. Ungrade if you mistyped. Once graded, lead measures lock."
+      },
+      "thuocToi": {
+        "tieuDe": "My lead measure",
+        "noiDung": "The small daily action. Tick the day you did it; add more with the button below."
+      },
+      "cacEm": {
+        "tieuDe": "Students this week",
+        "noiDung": "One row per student: goals, lead measures met, promises kept, buddy meeting done. Tap a name to open their board."
+      },
+      "choDuyet": {
+        "tieuDe": "Awaiting approval",
+        "noiDung": "Students' yearly goals land here. Approve to let them start; return with a reason if not."
+      },
+      "tabKhac": {
+        "tieuDe": "Other screens",
+        "noiDung": "Attendance, Roster and Grades are in this menu. So is the Guide."
+      },
+      "chuong": {
+        "tieuDe": "Notifications",
+        "noiDung": "Goal submissions, parent messages, meeting reminders — all show here."
+      }
+    },
+    "quanTri": {
+      "doc1": {
+        "tieuDe": "Admin screens",
+        "noiDung": "You can view every class, manage users, and set up classes and subjects. School goals are set in the Class · school goals box."
+      },
+      "chonLop": {
+        "tieuDe": "Pick a class",
+        "noiDung": "Filter by Year → Campus → Grade → Class instead of scrolling the whole list."
+      },
+      "quanTri": {
+        "tieuDe": "Admin",
+        "noiDung": "Users tab: change roles, assign classes. School & classes tab: campuses, grades, classes, subjects."
+      },
+      "coSo": {
+        "tieuDe": "Campus report",
+        "noiDung": "Classes falling behind show at the top. Filter by grade."
+      },
+      "menu": {
+        "tieuDe": "Menu",
+        "noiDung": "Language, sign out and the Guide live here."
+      }
+    },
+    "dayLaGi": {
+      "mucTieu": {
+        "tieuDe": "What is a goal?",
+        "khaiNiem": {
+          "em": "A goal is the target you want to reach this school year, measured by one number.",
+          "nguoiLon": "A goal is the target to reach this school year, measured by one number."
+        }
+      },
+      "camKet": {
+        "tieuDe": "What is a weekly promise?",
+        "khaiNiem": {
+          "em": "A promise is one thing you commit to finish this week to get closer to the target.",
+          "nguoiLon": "A promise is one thing to finish this week to get closer to the target."
+        }
+      },
+      "thuoc": {
+        "tieuDe": "What is a lead measure?",
+        "khaiNiem": {
+          "em": "A lead measure is the small thing you do every day. Ticking it shows whether you are doing it.",
+          "nguoiLon": "A lead measure is the small daily action. Ticking it shows whether it is being done."
+        }
+      },
+      "chuoi": "Tick enough lead measures → promise wins → the number adds to the goal.",
+      "viDu": "Example",
+      "soDoMoTa": "Three levels: lead measure every day, promise every week, goal for the year",
+      "tang": {
+        "thuoc": "Lead measure",
+        "thuocPhu": "every day",
+        "camKet": "Promise",
+        "camKetPhu": "every week",
+        "mucTieu": "Goal",
+        "mucTieuPhu": "the year"
+      },
+      "viDuTheo": {
+        "em": {
+          "mucTieu": "Goal: Maths average from 7.0 to 8.0 by 25 May",
+          "camKet": "Promise: Self-study Maths 4 hours this week",
+          "thuoc": "Lead measure: Maths self-study hours — enter a number, Mon · Wed · Fri"
+        },
+        "gvToi": {
+          "mucTieu": "My goal: 100% of my class has an approved goal by 30 Sep",
+          "camKet": "Promise: Approve goals for 8 students this week",
+          "thuoc": "Lead measure: Students approved — enter a number, Mon–Fri"
+        },
+        "gvLop": {
+          "mucTieu": "Class goal: 95% of students reach their personal learning goal by 25 May",
+          "camKet": "Teacher's promise: Hold 1 goal meeting with the class this week",
+          "thuoc": "Lead measure: Goal meeting held — tick, Fri"
+        }
+      },
+      "dungViet": "Don't write it like this",
+      "loi": {
+        "mucTieu": {
+          "sai": "Get better at badminton",
+          "dung": "Win a badminton medal at the March sports day"
+        },
+        "camKet": {
+          "sai": "Revise English",
+          "dung": "Learn 20 new English words"
+        },
+        "thuoc": {
+          "sai": "1. Study English 5 hours 2. Finish all homework",
+          "dung": "One action, one number per lead measure — want two? Tap add again"
+        }
+      },
+      "loiNguoiLon": {
+        "mucTieu": {
+          "sai": "Raise the class's learning quality",
+          "dung": "95% of students reach their personal goal by 25 May"
+        },
+        "camKet": {
+          "sai": "Keep an eye on the students",
+          "dung": "Approve goals for 8 students"
+        },
+        "thuoc": {
+          "sai": "1. Class meeting 2. Message parents",
+          "dung": "One action, one number per lead measure — want two? Tap add again"
+        }
+      }
+    },
+    "goiYO": {
+      "tenMucTieu": "One sentence with a number. E.g. Read 20 books.",
+      "moTa": "A few words: what will you do to get there?",
+      "donVi": "Counted in what? books, minutes, times…",
+      "dich": "The number to reach.",
+      "han": "By which date?",
+      "camKet": "One thing finished this week, with a number.",
+      "soHua": "How much do you promise?",
+      "thuoc": "The small thing done every day.",
+      "ngayTick": "Which days? Skip rest days."
+    }
   }
 }

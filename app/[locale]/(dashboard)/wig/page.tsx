@@ -301,7 +301,7 @@ export default async function WigPage({
           {t('title')} · {myClass.name}
         </h1>
         {/* Mục tiêu LỚP + TRƯỜNG thu vào một popup (04/09) — ít đụng tới hằng ngày, đỡ chật trang. */}
-        <PopupLopTruong nhan={t('nutLopTruong')} tieuDe={t('popupLopTruong')} moBanDau={bangParam === 'lop'}>
+        <PopupLopTruong nhan={t('nutLopTruong')} tieuDe={t('popupLopTruong')} moBanDau={bangParam === 'lop'} hd="gv-lop-truong">
           {/* TRƯỜNG ở TRÊN (khung như cũ) — LỚP ở DƯỚI trong thẻ riêng (chủ dự án 04/09). */}
           <KhuMucTieuTruong campusId={campusId} locale={locale} laQuanTri={laQuanTri} nhanTheoArea={nhanTheoArea} donViList={donViList} />
           {mucTieuLop.length === 0 ? (
@@ -381,7 +381,7 @@ export default async function WigPage({
         </PopupLopTruong>
         {/* Lịch họp: popup ngay tại đây (04/09: thôi nhảy sang /roster), nút VÀNG để khác nút lớp·trường. */}
         {!chiDoc && (
-          <PopupLopTruong nhan={t('lichHop')} tieuDe={t('lichHop')} icon="hop" giong="vang" tenBang="hop" moBanDau={bangParam === 'hop'}>
+          <PopupLopTruong nhan={t('lichHop')} tieuDe={t('lichHop')} icon="hop" giong="vang" tenBang="hop" moBanDau={bangParam === 'hop'} hd="gv-lich-hop">
             <KhuBuddyPdr classId={myClass.id} hocSinh={[...tenEm].map(([id, name]) => ({id, name}))} ve="wig" />
           </PopupLopTruong>
         )}
@@ -393,12 +393,12 @@ export default async function WigPage({
 
       {/* ── Thanh tuần — một hàng, giữ ?class= ─────────────────────────────────────────── */}
       {/* Dính đầu khi cuộn (điện thoại): tuần đang xem luôn trong tầm mắt; z dưới header (z-20). */}
-      <div className="sticky top-[var(--h-nav,76px)] z-10 -mx-4 bg-[rgba(247,247,251,0.92)] px-4 py-1.5 backdrop-blur-md sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+      <div data-hd="tuan" className="sticky top-[var(--h-nav,76px)] z-10 -mx-4 bg-[rgba(247,247,251,0.92)] px-4 py-1.5 backdrop-blur-md sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
         <ThanhTuanWig monday={monday} thisMonday={thisMonday} label={wk.label} start={wk.start} end={wk.end} classParam={classParam} />
       </div>
 
       {/* ── BA SỐ CỦA CÁC EM — 4 tuần đã khép (thi_dua_lop). Nói rõ nguồn, đừng để ai tưởng là "tuần này". */}
-      <section className="glass flex flex-col gap-2 rounded-[20px] p-[18px]">
+      <section data-hd="gv-ba-so" className="glass flex flex-col gap-2 rounded-[20px] p-[18px]">
         <p className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">{tf('baSoChuThich')}</p>
         <div className="flex items-stretch gap-2.5">
           {baSo(t('cotMucTieu'), diemMucTieu)}
@@ -437,10 +437,12 @@ export default async function WigPage({
       )}
 
       {/* ── CÁC EM TUẦN NÀY ─────────────────────────────────────────────────────────────── */}
-      <BangCacEm classId={myClass.id} monday={monday} weekQ={weekQ} classParam={classParam} />
+      <div data-hd="gv-cac-em">
+        <BangCacEm classId={myClass.id} monday={monday} weekQ={weekQ} classParam={classParam} />
+      </div>
 
       {/* ── CHỜ DUYỆT — mục tiêu năm của em + hạ chỉ tiêu nhiều. Nút đi đường state. ────── */}
-      <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
+      <section data-hd="gv-cho-duyet" className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
         <h2 className="font-display text-doc font-bold text-navy">{soCho > 0 ? tDuyet('choDuyetN', {n: soCho}) : tDuyet('choDuyet')}</h2>
         <p className="text-chu-thich font-semibold text-grey-mid">{tDuyet('luuY')}</p>
         {soCho === 0 ? (

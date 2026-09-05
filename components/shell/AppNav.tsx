@@ -16,6 +16,7 @@ import {useSearchParams} from 'next/navigation';
 import {Link, usePathname, useRouter} from '@/i18n/navigation';
 import {signOut} from '@/lib/auth-actions';
 import {ThanhDuoi, type MucThanhDuoi} from '@/components/shell/ThanhDuoi';
+import {NutHuongDan, moHuongDan} from '@/components/huongdan/Tour';
 import type {Profile} from '@/lib/auth';
 import {tenHienThi} from '@/lib/ten-hien-thi';
 import {
@@ -353,7 +354,8 @@ export function AppNav({
             />
           )}
           <BellLink href="/notifications" count={unreadCount} label={t('notifications')} active={isActive('/notifications')} />
-          <SettingsMenu />
+          <NutHuongDan role={role} className={NUT_TRON} />
+          <SettingsMenu role={role} />
         </div>
 
         {/* Mobile (<lg): tên trang hiện tại + chuông + hamburger.
@@ -379,8 +381,10 @@ export function AppNav({
             active={isActive('/notifications')}
             onNavigate={() => setOpen(false)}
           />
+          <NutHuongDan role={role} className={NUT_TRON} />
           <button
             type="button"
+            data-hd="menu"
             onClick={() => setOpen((v) => !v)}
             aria-label="Menu"
             aria-expanded={open}
@@ -440,6 +444,7 @@ export function AppNav({
                 gãy hai dòng vì flex-wrap chia không đều (audit 04/09/2026). */}
             <div className="mt-2 grid grid-cols-3 gap-1 border-t border-navy/[0.08] pt-2">
               <MoHuongDan
+                role={role}
                 className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] px-1 text-than font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy"
                 onDone={() => setOpen(false)}
               />
@@ -488,6 +493,7 @@ function BellLink({
     <Link
       href={href}
       onClick={onNavigate}
+      data-hd={href === '/notifications' ? 'chuong' : undefined}
       aria-label={count > 0 ? `${label} (${count})` : label}
       title={label}
       aria-current={active ? 'page' : undefined}
@@ -506,7 +512,10 @@ function BellLink({
 }
 
 // Cài đặt: gom đổi ngôn ngữ + đăng xuất vào một chỗ (trước đây là 3 icon rời trên thanh).
-function SettingsMenu() {
+const NUT_TRON =
+  'grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white';
+
+function SettingsMenu({role}: {role: Profile['role']}) {
   const tc = useTranslations('common');
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -535,6 +544,7 @@ function SettingsMenu() {
     <div ref={boxRef} className="relative shrink-0">
       <button
         type="button"
+        data-hd="menu"
         onClick={() => setOpen((v) => !v)}
         aria-label={tc('settings')}
         title={tc('settings')}
@@ -551,7 +561,7 @@ function SettingsMenu() {
           role="menu"
           className="absolute right-0 top-[calc(100%+8px)] z-30 w-[188px] rounded-[16px] bg-white p-1.5 shadow-pop ring-1 ring-navy/10"
         >
-          <MoHuongDan className={item} onDone={() => setOpen(false)} />
+          <MoHuongDan role={role} className={item} onDone={() => setOpen(false)} />
           <LocaleToggle className={item} withLabel />
           <form action={signOut}>
             <button type="submit" className={item} role="menuitem">
@@ -574,16 +584,19 @@ function SettingsMenu() {
 //
 // Rẻ nhất là sửa câu chữ. Nhưng ở đây trả lại nút thì đúng hơn: menu Cài đặt còn thừa chỗ, và
 // người mới cần xem lại hướng dẫn hơn là cần đổi ngôn ngữ.
-function MoHuongDan({className, onDone}: {className?: string; onDone?: () => void}) {
+// 04/09: tour chỉ tận nút sống ở /student hoặc /wig — đứng trang khác thì đưa về đó rồi mở.
+function MoHuongDan({role, className, onDone}: {role: Profile['role']; className?: string; onDone?: () => void}) {
   const tc = useTranslations('common');
+  const pathname = usePathname();
+  const router = useRouter();
   return (
     <button
       type="button"
       role="menuitem"
       className={className}
       onClick={() => {
-        window.dispatchEvent(new Event('va:open-intro'));
         onDone?.();
+        moHuongDan(role, pathname, (h) => router.push(h as never));
       }}
     >
       <BookOpenCheck size={16} strokeWidth={2} />

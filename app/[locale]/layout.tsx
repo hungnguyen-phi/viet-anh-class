@@ -31,6 +31,7 @@ const NAMESPACE_CHO_CLIENT = [
   'gallery',
   'goal',
   'grades',
+  'huongDan',
   'inbox',
   'login',
   'truongWig',

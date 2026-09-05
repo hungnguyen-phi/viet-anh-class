@@ -28,7 +28,7 @@ export function NutTaoMucTieuToi({
   const [mo, setMo] = useState(false);
   return (
     <>
-      <button type="button" onClick={() => setMo(true)} className={btnGold}>
+      <button type="button" data-hd="gv-dat-muc-tieu-toi" onClick={() => setMo(true)} className={btnGold}>
         <Plus size={16} strokeWidth={2.5} />
         {t('taoMucTieuToi')}
       </button>

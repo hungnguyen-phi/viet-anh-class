@@ -71,7 +71,7 @@ export function TickCuaToi({
   if (days.length === 0) return null;
 
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+    <div data-hd="gv-tick" className="mt-2 flex flex-wrap items-center gap-1.5">
       {days.map((d) => {
         const on = view.includes(d);
         const sau = d > today || !apDung(d);

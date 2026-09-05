@@ -84,7 +84,7 @@ export function HopPdr({
     'w-full rounded-[12px] border-[1.5px] border-navy/15 bg-white px-2.5 py-2 text-than font-semibold text-navy outline-none focus:border-navy';
 
   return (
-    <section className="glass flex flex-col gap-3 rounded-[16px] p-4">
+    <section data-hd="em-hop-ban" className="glass flex flex-col gap-3 rounded-[16px] p-4">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <h2 className="inline-flex items-center gap-1.5 font-display text-doc font-bold text-navy">
           <Users size={16} strokeWidth={2} className="text-gold-deep" />

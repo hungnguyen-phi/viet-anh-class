@@ -411,7 +411,7 @@ export function MoodCheckin({
             </button>
           )}
         </div>
-        <div className="flex items-center justify-center gap-1.5">
+        <div data-hd="em-cam-xuc" className="flex items-center justify-center gap-1.5">
           {DISPLAY.map((k) => {
             const m = byKey.get(k)!;
             const active = mood === k;
