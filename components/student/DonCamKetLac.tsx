@@ -39,7 +39,11 @@ export function DonCamKetLac({
         {soHua != null && <span className="ml-2 text-chu-thich font-bold text-grey-mid">{t('soHua')} {soHua}</span>}
       </p>
       {mucTieu.length > 0 ? (
-        <form action={formAction} className="flex flex-wrap items-center gap-2">
+        /* Form Gắn và form Xoá là HAI form ANH EM. Trước đây XacNhanForm (một <form>) nằm TRONG form
+           Gắn → HTML không cho form lồng form, trình duyệt bỏ form trong, nút thùng rác thành nút
+           gửi của form Gắn (đang bắt buộc chọn mục tiêu) → bấm Xoá không đi đâu (chủ dự án 05/09). */
+        <div className="flex flex-wrap items-center gap-2">
+        <form action={formAction} className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
           <input type="hidden" name="cam_ket_id" value={camKetId} />
           <input type="hidden" name="noi_dung" value={noiDung} />
           {soHua != null && <input type="hidden" name="so_hua" value={soHua} />}
@@ -65,20 +69,21 @@ export function DonCamKetLac({
           >
             {t('lacGanNut')}
           </button>
-          <XacNhanForm action={xoaCamKet} hoi={t('xoaHoi')} nhanDongY={t('xoaCamKet')} nguyHiem className="contents">
-            <input type="hidden" name="student_id" value={studentId} />
-            <input type="hidden" name="cam_ket_id" value={camKetId} />
-            <button
-              type="submit"
-              aria-label={t('xoaCamKet')}
-              title={t('xoaCamKet')}
-              className="grid h-11 w-11 cursor-pointer place-items-center rounded-[12px] text-status-bad transition-colors hover:bg-status-bad/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-            >
-              <Trash2 size={16} strokeWidth={2.5} />
-            </button>
-          </XacNhanForm>
           {state.error && <p role="alert" className="w-full text-chu-thich font-bold text-status-bad">{state.error}</p>}
         </form>
+        <XacNhanForm action={xoaCamKet} hoi={t('xoaHoi')} nhanDongY={t('xoaCamKet')} nguyHiem className="contents">
+          <input type="hidden" name="student_id" value={studentId} />
+          <input type="hidden" name="cam_ket_id" value={camKetId} />
+          <button
+            type="submit"
+            aria-label={t('xoaCamKet')}
+            title={t('xoaCamKet')}
+            className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-[12px] text-status-bad transition-colors hover:bg-status-bad/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+          >
+            <Trash2 size={16} strokeWidth={2.5} />
+          </button>
+        </XacNhanForm>
+        </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           <p className="min-w-0 flex-1 text-chu-thich font-semibold text-grey-mid">{t('lacChuaCoMucTieu')}</p>
