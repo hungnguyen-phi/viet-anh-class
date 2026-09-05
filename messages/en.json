@@ -968,7 +968,9 @@
   "notif": {
     "title": "Notifications",
     "markAll": "Mark all read",
-    "empty": "No notifications yet."
+    "empty": "No notifications yet.",
+    "daDuyetEm": "Your teacher approved your goal 🎉",
+    "traLaiEm": "Your teacher sent the goal back — see the note on the card."
   },
   "timetable": {
     "title": "Timetable",

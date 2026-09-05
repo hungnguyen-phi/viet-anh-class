@@ -64,6 +64,13 @@ export default async function DashboardLayout({
   const isAttendanceLeader = vo.toTruong;
   const unreadCount = vo.chuong;
   const unreadMessages = vo.tinNhan;
+  // 0192: số mục tiêu của em đang chờ GVCN duyệt — chấm đỏ trên mục "Mục tiêu" của thanh đáy.
+  // Một câu count nhẹ, chỉ với vai giáo viên (RLS tự giới hạn lớp cô chủ nhiệm); realtime ở
+  // /wig refresh layout → số này tự đổi, không F5.
+  const soChoDuyet =
+    profile.role === 'teacher'
+      ? await supabase.from('muc_tieu').select('id', {count: 'exact', head: true}).eq('cap', 'em').eq('trang_thai', 'gui').then((r) => r.count ?? 0, () => 0)
+      : 0;
 
   // PRD v3 #10: Giai đoạn 1 CHƯA có phiên bản phụ huynh. Tài khoản phụ huynh còn lại (schema
   // giữ nguyên) thấy một lời hẹn thay vì báo cáo — bật lại bằng PARENT_PORTAL=true, không sửa mã.
@@ -106,6 +113,7 @@ export default async function DashboardLayout({
         isAttendanceLeader={isAttendanceLeader}
         unreadCount={unreadCount ?? 0}
         unreadMessages={unreadMessages}
+        soChoDuyet={soChoDuyet}
       />
       {/* Nội dung căn giữa dưới top-nav; nền gradient nằm ở <body>. */}
       <main id="noi-dung" className="pb-thanh-duoi mx-auto max-w-[1160px] px-4 pt-2 sm:px-6 lg:pb-10">

@@ -178,6 +178,7 @@ export function AppNav({
   isAttendanceLeader = false,
   unreadCount = 0,
   unreadMessages = 0,
+  soChoDuyet = 0,
 }: {
   profile: Profile;
   isAttendanceLeader?: boolean;
@@ -185,6 +186,8 @@ export function AppNav({
   unreadCount?: number;
   // Số tin nhắn phụ huynh↔giáo viên chưa đọc — badge trên icon phong bì.
   unreadMessages?: number;
+  /** Mục tiêu của em đang chờ GVCN duyệt — chấm đỏ trên mục "Mục tiêu" ở thanh đáy (0192). */
+  soChoDuyet?: number;
 }) {
   const t = useTranslations('nav');
   const tr = useTranslations('roles');
@@ -222,7 +225,7 @@ export function AppNav({
     .map((href): MucThanhDuoi | null => {
       if (href === '/notifications') return {href, key: 'notifications', Icon: Bell, badge: unreadCount};
       const l = links.find((x) => x.href === href);
-      return l ? {href: l.href, key: l.key, Icon: l.Icon} : null;
+      return l ? {href: l.href, key: l.key, Icon: l.Icon, badge: href === '/wig' ? soChoDuyet : undefined} : null;
     })
     .filter((x): x is MucThanhDuoi => x !== null);
 

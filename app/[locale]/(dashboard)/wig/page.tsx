@@ -18,6 +18,7 @@ import {PopupLopTruong} from '@/components/wig/PopupLopTruong';
 import {KhuBuddyPdr} from '@/components/roster/KhuBuddyPdr';
 import {KhuMucTieuTruong} from '@/components/wig/KhuMucTieuTruong';
 import {BangCacEm} from '@/components/wig/BangCacEm';
+import {LamMoiKhiDoi} from '@/components/shell/LamMoiKhiDoi';
 import {NutTaoMucTieuLop} from '@/components/wig/NutTaoMucTieuLop';
 import {SuaChiTieuLop} from '@/components/wig/SuaChiTieuLop';
 import {ThanhTuanWig} from '@/components/wig/ThanhTuanWig';
@@ -295,6 +296,15 @@ export default async function WigPage({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* REALTIME (0192): em gửi/đổi mục tiêu, cam kết, thước → trang tự dựng lại, không F5. */}
+      <LamMoiKhiDoi
+        kenh={`wig-${myClass.id}`}
+        nguon={[
+          {table: 'muc_tieu', filter: `class_id=eq.${myClass.id}`},
+          {table: 'cam_ket', filter: `class_id=eq.${myClass.id}`},
+          {table: 'thuoc', filter: `class_id=eq.${myClass.id}`},
+        ]}
+      />
       {/* ── Đầu trang ─────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="mr-auto font-display text-dau font-bold text-navy">
@@ -441,7 +451,17 @@ export default async function WigPage({
 
       {/* ── CHỜ DUYỆT — mục tiêu năm của em + hạ chỉ tiêu nhiều. Nút đi đường state. ────── */}
       <section className="glass flex flex-col gap-3 rounded-[20px] p-[18px]">
-        <h2 className="font-display text-doc font-bold text-navy">{soCho > 0 ? tDuyet('choDuyetN', {n: soCho}) : tDuyet('choDuyet')}</h2>
+        <h2 className="flex items-center gap-2 font-display text-doc font-bold text-navy" data-hd="cho-duyet">
+          {tDuyet('choDuyet')}
+          {soCho > 0 && (
+            <span
+              aria-label={tDuyet('choDuyetN', {n: soCho})}
+              className="grid h-6 min-w-[24px] place-items-center rounded-full bg-status-bad px-1.5 font-display text-chu-thich font-bold text-white"
+            >
+              {soCho}
+            </span>
+          )}
+        </h2>
         <p className="text-chu-thich font-semibold text-grey-mid">{tDuyet('luuY')}</p>
         {soCho === 0 ? (
           <p className="text-than font-semibold text-grey-mid">{tDuyet('khongCo')}</p>
