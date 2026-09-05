@@ -17,7 +17,7 @@
 import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTranslations} from 'next-intl';
-import {usePathname, useRouter} from '@/i18n/navigation';
+import {usePathname} from '@/i18n/navigation';
 import {ArrowLeft, ArrowRight, Sparkles, CalendarDays, Target, ShieldCheck, GraduationCap, X, MousePointerClick} from 'lucide-react';
 import {createClient} from '@/lib/supabase/client';
 import {useFocusTrap} from '@/lib/useFocusTrap';
@@ -64,7 +64,6 @@ function timPhanTu(hd: string): HTMLElement | null {
 export function Tour({userId, role, introSeen}: {userId: string; role: Role; introSeen: boolean}) {
   const t = useTranslations('huongDan');
   const pathname = usePathname();
-  const router = useRouter();
   const [supabase] = useState(() => createClient());
 
   const [tour, setTour] = useState<TenTour | null>(null);
@@ -361,25 +360,5 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
       {the}
     </div>,
     document.body,
-  );
-}
-
-/** Nút "?" trên header: mở tour của trang đang đứng; ở trang không có tour → mời đi tới trang có. */
-export function NutHuongDan({role, className}: {role: Role; className?: string}) {
-  const t = useTranslations('huongDan');
-  const pathname = usePathname();
-  const router = useRouter();
-  if (!tourTheoVai(role)) return null;
-  return (
-    <button
-      type="button"
-      data-hd="nut-hoi"
-      aria-label={t('nutHoi')}
-      title={t('nutHoi')}
-      onClick={() => moHuongDan(role, pathname, (h) => router.push(h as never))}
-      className={className}
-    >
-      <span className="font-display text-doc font-bold leading-none">?</span>
-    </button>
   );
 }

@@ -16,7 +16,7 @@ import {useSearchParams} from 'next/navigation';
 import {Link, usePathname, useRouter} from '@/i18n/navigation';
 import {signOut} from '@/lib/auth-actions';
 import {ThanhDuoi, type MucThanhDuoi} from '@/components/shell/ThanhDuoi';
-import {NutHuongDan, moHuongDan} from '@/components/huongdan/Tour';
+import {moHuongDan} from '@/components/huongdan/Tour';
 import type {Profile} from '@/lib/auth';
 import {tenHienThi} from '@/lib/ten-hien-thi';
 import {
@@ -357,7 +357,7 @@ export function AppNav({
             />
           )}
           <BellLink href="/notifications" count={unreadCount} label={t('notifications')} active={isActive('/notifications')} />
-          <NutHuongDan role={role} className={NUT_TRON} />
+          {/* Hướng dẫn nằm TRONG menu Cài đặt (05/09: chủ dự án bỏ nút "?" riêng — một lối vào là đủ). */}
           <SettingsMenu role={role} />
         </div>
 
@@ -384,7 +384,6 @@ export function AppNav({
             active={isActive('/notifications')}
             onNavigate={() => setOpen(false)}
           />
-          <NutHuongDan role={role} className={NUT_TRON} />
           <button
             type="button"
             data-hd="menu"
@@ -514,10 +513,7 @@ function BellLink({
   );
 }
 
-// Cài đặt: gom đổi ngôn ngữ + đăng xuất vào một chỗ (trước đây là 3 icon rời trên thanh).
-const NUT_TRON =
-  'grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white';
-
+// Cài đặt: gom hướng dẫn + đổi ngôn ngữ + đăng xuất vào một chỗ (trước đây là 3 icon rời trên thanh).
 function SettingsMenu({role}: {role: Profile['role']}) {
   const tc = useTranslations('common');
   const [open, setOpen] = useState(false);
