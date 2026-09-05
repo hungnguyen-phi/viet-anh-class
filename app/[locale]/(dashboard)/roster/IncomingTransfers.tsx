@@ -31,7 +31,7 @@ export async function IncomingTransfers({
   if (requests.length === 0) return null;
 
   return (
-    <section className="rounded-[20px] border-[1.5px] border-gold-deep/40 bg-gold/[0.10] p-[18px]">
+    <section data-hd="ds-de-nghi-den" className="rounded-[20px] border-[1.5px] border-gold-deep/40 bg-gold/[0.10] p-[18px]">
       <div className="mb-1 flex items-center gap-2 font-display text-noi-dung font-bold text-navy">
         <ArrowRightLeft size={16} strokeWidth={2.5} />
         {t('incomingTitle', {n: requests.length})}

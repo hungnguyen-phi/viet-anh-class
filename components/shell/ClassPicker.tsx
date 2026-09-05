@@ -66,7 +66,8 @@ export function ClassPicker({
   };
 
   return (
-    <div className="relative inline-flex items-center">
+    // data-hd="chon-lop": neo chung cho các tour (BoLocLop ở nhánh nhiều lớp cũng mang cùng tên).
+    <div data-hd="chon-lop" className="relative inline-flex items-center">
       <select
         value={current ?? ''}
         aria-label={t('chonLop')}

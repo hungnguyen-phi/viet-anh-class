@@ -15,7 +15,6 @@ import {EnrollForm} from './EnrollForm';
 import {SuaHocSinh} from './SuaHocSinh';
 import {removeStudent, cancelStudentInvite} from './actions';
 import {IncomingTransfers, type DeNghiDen} from './IncomingTransfers';
-import {KhuBuddyPdr} from '@/components/roster/KhuBuddyPdr';
 import {TransferControl, type LopDich} from './TransferControl';
 import {Flash} from '@/components/ui/Flash';
 
@@ -318,18 +317,25 @@ export default async function RosterPage({
         </p>
       )}
 
-      {/* Ghi danh / chuyển lớp: nhập email học sinh (đã có tài khoản) — chỉ GVCN/Admin */}
-      {canManage && <EnrollForm classId={myClass.id} />}
+      {/* Ghi danh / chuyển lớp: nhập email học sinh (đã có tài khoản) — chỉ GVCN/Admin.
+          data-hd: neo cho tour Danh sách (components/huongdan/buoc-trang.ts). */}
+      {canManage && (
+        <div data-hd="ds-ghi-danh">
+          <EnrollForm classId={myClass.id} />
+        </div>
+      )}
       {/* Tổ trưởng điểm danh gom về MỘT chỗ (trước đây mỗi dòng một nút) */}
       {chonToTruong && (
-        <AttendanceLeaderPicker
-          classId={myClass.id}
-          students={candidates}
-          currentLeaderId={leaderId}
-        />
+        <div data-hd="ds-to-truong">
+          <AttendanceLeaderPicker
+            classId={myClass.id}
+            students={candidates}
+            currentLeaderId={leaderId}
+          />
+        </div>
       )}
 
-      <div className="glass overflow-x-auto rounded-[20px]">
+      <div data-hd="ds-bang" className="glass overflow-x-auto rounded-[20px]">
         {/* Header */}
         <div className={`${hang} bg-navy/[0.03] py-[10px]`} style={cot}>
           <span className="text-chu-thich font-extrabold text-grey-mid">#</span>
@@ -370,6 +376,7 @@ export default async function RosterPage({
               {r.studentId ? (
                 <Link
                   href={`/student/${r.studentId}`}
+                  data-hd={i === 0 ? 'ds-ten-em' : undefined}
                   className="block min-w-[88px] flex-1 truncate py-1 text-noi-dung font-bold text-navy underline-offset-2 transition-colors hover:underline"
                 >
                   {r.name}
@@ -434,7 +441,7 @@ export default async function RosterPage({
             )}
             {/* Ô THAO TÁC — dời lớp, sửa, xoá. Nút dời lớp nay nằm trong đây thay vì chiếm một ô
                 riêng chỉ có ở vài dòng (xem ghi chú ở phần khai cột). */}
-            <span className="flex min-w-0 items-center justify-end gap-1.5">
+            <span data-hd={i === 0 && canManage ? 'ds-thao-tac' : undefined} className="flex min-w-0 items-center justify-end gap-1.5">
               {/* Dời sang lớp khác. Chỉ cho em ĐÃ có tài khoản: em chưa đăng nhập lần nào thì
                   chưa có hàng ghi danh nào để dời — sửa lời mời là xong. */}
               {canManage && r.studentId && (
@@ -501,13 +508,8 @@ export default async function RosterPage({
           (student_checkin ghi cả mood_checkins lẫn attendance_records), nên đặt cạnh nhau mới
           đọc được cùng lúc. */}
 
-      {/* BUDDY & LỊCH PDR (PRD v3, 0146) — chỉ người quản lớp; học sinh xem trên màn của mình. */}
-      {canManage && (
-        <KhuBuddyPdr
-          classId={myClass.id}
-          hocSinh={candidates.map((c) => ({id: c.id, name: c.name}))}
-        />
-      )}
+      {/* NHÓM BẠN HỌC & LỊCH HỌP ĐÃ DỜI sang nút "Lịch họp" trên trang Mục tiêu (05/09/2026, chủ
+          dự án: một việc chỉ nên có một chỗ làm). Component KhuBuddyPdr vẫn sống ở /wig. */}
     </div>
   );
 }

@@ -50,6 +50,7 @@ export function SaoChepTkb({
       <button
         type="button"
         onClick={() => setMo(true)}
+        data-hd="tkb-sao-chep"
         className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[8px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-chu-thich font-extrabold text-navy transition-colors hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:min-h-0 sm:h-8"
       >
         <Copy size={12} strokeWidth={2.5} />

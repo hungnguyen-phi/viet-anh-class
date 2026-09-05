@@ -2723,9 +2723,116 @@
       "moTa": "Diagram: the number from a weekly promise adds to my goal, then to the class goal when units match."
     },
     "dangCho": "Waiting for the button to appear…",
-    "danhSach": {},
-    "diemDanh": {},
-    "thoiKhoaBieu": {},
+    "danhSach": {
+      "doc1": {
+        "tieuDe": "Class roster",
+        "noiDung": "This is the class register: each student's name, email and details. The homeroom teacher enrols new students, picks the attendance leader, edits details and moves students to another class. School leadership can only view."
+      },
+      "deNghiDen": {
+        "tieuDe": "Transfer requests into this class",
+        "noiDung": "Another class wants to send a student to yours. The student stays in the old class until you tap Accept or Decline here — leave it and the student hangs between two classes."
+      },
+      "chonLop": {
+        "tieuDe": "Choose a class",
+        "noiDung": "If you have several classes, switch the one you are viewing here. The roster below follows."
+      },
+      "ghiDanh": {
+        "tieuDe": "Enrol a new student",
+        "noiDung": "Tap to open the enrolment box. Only the email is required; name, student code, date of birth and parent phone can be added later. A student who has never signed in still shows in the list."
+      },
+      "toTruong": {
+        "tieuDe": "Attendance leader",
+        "noiDung": "Pick one student as leader: they can open the class Attendance page for the day. Pick someone else and the old leader steps down automatically."
+      },
+      "bang": {
+        "tieuDe": "The register",
+        "noiDung": "One row per student. “Not signed in” means enrolled but never opened the app. The star marks the attendance leader."
+      },
+      "tenEm": {
+        "tieuDe": "Tap a name",
+        "noiDung": "Tap a student's name to open their own page: goal, weekly promise, attendance and any edit requests waiting for your approval."
+      },
+      "thaoTac": {
+        "tieuDe": "Move · Edit · Remove",
+        "noiDung": "Three buttons at the end of each row: move the student to another class (sends a request the other class approves), edit their details, or remove them from the class — removal asks you first."
+      }
+    },
+    "diemDanh": {
+      "doc1": {
+        "tieuDe": "Attendance",
+        "noiDung": "Here the students take attendance THEMSELVES: in the morning they open the app and pick a mood face — that is the check-in. This table is for viewing only: who has arrived, at what time, and how they feel today. Nobody checks in on a student's behalf."
+      },
+      "chonLop": {
+        "tieuDe": "Choose a class",
+        "noiDung": "If you have several classes, switch the one you are viewing here. The table below follows."
+      },
+      "siSo": {
+        "tieuDe": "Date and class size",
+        "noiDung": "Which day you are viewing and how many students the class has — compare with the count at the bottom of the table."
+      },
+      "tuan": {
+        "tieuDe": "View another day",
+        "noiDung": "Tap a day of the week to look back; ← → moves a whole week. Days that have not come yet are greyed out."
+      },
+      "chonNgay": {
+        "tieuDe": "Jump to a date",
+        "noiDung": "Type day / month / year and the page opens that date — no extra button."
+      },
+      "cot": {
+        "tieuDe": "Morning and afternoon",
+        "noiDung": "Each student has two cells: morning (06:30–08:00) and afternoon (16:00–17:00). Each shows the face they picked and the time they tapped."
+      },
+      "bang": {
+        "tieuDe": "The attendance table",
+        "noiDung": "An empty cell means no check-in for that session — no “absent” or “late” label, everyone understands. When a student checks in, the table updates by itself."
+      },
+      "dem": {
+        "tieuDe": "How many arrived",
+        "noiDung": "This line counts students who checked in at least once today, out of the class size."
+      }
+    },
+    "thoiKhoaBieu": {
+      "doc1": {
+        "tieuDe": "Timetable",
+        "noiDung": "The class schedule by week: rows are periods, columns are days. It is a REPEATING template — set it once and every week is the same. The homeroom teacher builds and edits it; students and parents only view."
+      },
+      "chonLop": {
+        "tieuDe": "Choose a class",
+        "noiDung": "If you have several classes, switch the one you are viewing here."
+      },
+      "tuan": {
+        "tieuDe": "View another week",
+        "noiDung": "Last week / This week / Next week. The template is the same every week; switching weeks shows which periods were cancelled, moved or covered that week."
+      },
+      "chuThich": {
+        "tieuDe": "Three cell colours",
+        "noiDung": "Regular, practice, exam — each type has its own colour so the grid reads at a glance."
+      },
+      "luoi": {
+        "tieuDe": "The timetable grid",
+        "noiDung": "Tap an empty cell with + to add a period: pick subject, room, teacher, and tick other days if the subject repeats. Tap a filled cell to edit; ✕ in the corner deletes (the app asks first). On a phone you see one day at a time — tap Full week for the grid."
+      },
+      "nhapLoat": {
+        "tieuDe": "Paste from a spreadsheet",
+        "noiDung": "Already have the timetable in Excel or Google Sheets? Copy the table, paste it here, preview, save once — no cell-by-cell tapping."
+      },
+      "saoChep": {
+        "tieuDe": "Copy from another class",
+        "noiDung": "Classes in the same grade usually share a frame. Pick a source class and the app copies its schedule here."
+      },
+      "gioTiet": {
+        "tieuDe": "Period times",
+        "noiDung": "Enter when period 1 starts, how long a period is and the break between — the app fills the times for the whole run, and the Period column shows them."
+      },
+      "ngoaiLe": {
+        "tieuDe": "Cancel · Move · Cover",
+        "noiDung": "On one specific day a period is cancelled, moved to another time, or taught by someone else: record it here. Only that day changes; the template stays."
+      },
+      "clb": {
+        "tieuDe": "Clubs",
+        "noiDung": "The club schedule is shared across the campus, shown under the class timetable. Students know what they signed up for and check the time here. School leadership or admins add and remove."
+      }
+    },
     "taoMauEm": {
       "doc1": {
         "tieuDe": "Practice making a goal",
