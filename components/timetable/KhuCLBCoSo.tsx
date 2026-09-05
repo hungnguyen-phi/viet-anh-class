@@ -45,7 +45,6 @@ export async function KhuCLBCoSo({
           <Users size={14} strokeWidth={2} className="text-gold-deep" />
           {t('clubTitle')}
         </h2>
-        <span className="text-chu-thich font-semibold text-grey-mid">{t('clubCampusHint')}</span>
       </div>
 
       {clbs.length === 0 ? (

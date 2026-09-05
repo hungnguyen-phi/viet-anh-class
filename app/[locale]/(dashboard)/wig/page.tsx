@@ -464,7 +464,6 @@ export default async function WigPage({
             </span>
           )}
         </h2>
-        <p className="text-chu-thich font-semibold text-grey-mid">{tDuyet('luuY')}</p>
         {soCho === 0 ? (
           <p className="text-than font-semibold text-grey-mid">{tDuyet('khongCo')}</p>
         ) : (

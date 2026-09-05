@@ -968,7 +968,6 @@
     "today": "Hôm nay",
     "confirmRemoveOverride": "Gỡ thay đổi này? Tiết trở lại bình thường ở ngày đó.",
     "addSubjects": "Thêm bộ môn cho lớp",
-    "clubCampusHint": "Lịch chung của cơ sở — ai cũng xem, ban giám hiệu/quản trị điều phối",
     "errMissingCell": "Thiếu thông tin ô thời khoá biểu",
     "errPickSubject": "Hãy chọn môn cho ô này",
     "savedDays": "Đã lưu tiết này cho {n} ngày",
@@ -1913,8 +1912,7 @@
     "khongCo": "Không có gì chờ duyệt.",
     "loaiMucTieu": "Mục tiêu",
     "loaiHaChiTieu": "Hạ chỉ tiêu {cu} → {moi} (từ tuần sau)",
-    "cua": "của {ten}",
-    "luuY": "Cam kết tuần không cần duyệt — em tự hứa, tự chấm."
+    "cua": "của {ten}"
   },
   "lopMucTieu": {
     "title": "Mục tiêu của lớp",
@@ -1960,7 +1958,6 @@
     "camKetChuaHuong": "Cam kết chưa hướng mục tiêu",
     "khuMucTieuToi": "Mục tiêu của tôi",
     "taoMucTieuToi": "Đặt mục tiêu của tôi",
-    "mucTieuToiTrong": "Bạn cũng có mục tiêu riêng như các em: đặt một mục tiêu và nối vào mục tiêu của lớp để cùng đẩy nó lên.",
     "themCamKetToi": "Thêm cam kết tuần của tôi",
     "camKetToiNhan": "Cam kết tuần của tôi",
     "camKetToiTrong": "Tuần này tôi chưa hứa gì — bấm (+) để hứa một việc.",

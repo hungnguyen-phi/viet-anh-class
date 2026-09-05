@@ -76,9 +76,7 @@ export async function KhuMucTieuToi({
           <NutTaoMucTieuToi teacherId={profileId} classId={classId} nhanTheoArea={nhanTheoArea} donViList={donViList} mucTieuLop={mucTieuLopChon} />
         </div>
       </div>
-      {mucTieuToi.length === 0 ? (
-        <p className="text-than font-semibold text-grey-mid">{t('mucTieuToiTrong')}</p>
-      ) : (
+      {mucTieuToi.length === 0 ? null : (
         mucTieuToi.map((m) => {
           const meta = areaMeta[(m.linh_vuc ?? 'knowledge') as Area];
           const dv = m.ten_don_vi ?? '';

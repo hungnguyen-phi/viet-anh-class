@@ -968,7 +968,6 @@
     "today": "Today",
     "confirmRemoveOverride": "Remove this change? The period returns to normal on that day.",
     "addSubjects": "Add subjects to class",
-    "clubCampusHint": "Campus-wide schedule — everyone views, admin/principal manage",
     "errMissingCell": "Missing timetable cell details",
     "errPickSubject": "Pick a subject for this cell",
     "savedDays": "Saved this period for {n} days",
@@ -1913,8 +1912,7 @@
     "khongCo": "Nothing awaiting approval.",
     "loaiMucTieu": "Goal",
     "loaiHaChiTieu": "Target drop {cu} → {moi} (from next week)",
-    "cua": "by {ten}",
-    "luuY": "Weekly commitments need no approval — students set and score their own."
+    "cua": "by {ten}"
   },
   "lopMucTieu": {
     "title": "Class goals",
@@ -1960,7 +1958,6 @@
     "camKetChuaHuong": "Commitments not aimed at a goal",
     "khuMucTieuToi": "My goals",
     "taoMucTieuToi": "Set my goal",
-    "mucTieuToiTrong": "You have a personal goal too: set one and link it to the class goal so you push it together.",
     "themCamKetToi": "Add my weekly commitment",
     "camKetToiNhan": "My weekly commitments",
     "camKetToiTrong": "No promise yet this week — tap (+) to make one.",
