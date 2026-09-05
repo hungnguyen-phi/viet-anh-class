@@ -81,6 +81,9 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
   const [hop, setHop] = useState<Hop | null>(null);
   const [thieu, setThieu] = useState(false);   // bước hiện tại không có phần tử → thẻ "chưa có gì"
   const [dangCho, setDangCho] = useState(false); // bước có `cho`: đang đợi phần tử hiện sau khi Lưu
+  const [dangLuu, setDangLuu] = useState(false); // bước `choDong`: đã bấm Lưu hộ, đang đợi hộp đóng
+  const [loiHop, setLoiHop] = useState(false);   // hộp không đóng sau 12 s → máy chủ báo lỗi trong hộp
+  useEffect(() => { setDangLuu(false); setLoiHop(false); }, [i, tour]);
   const [mounted, setMounted] = useState(false);
   const [hep, setHep] = useState(false);
   const theRef = useRef<HTMLDivElement>(null);
@@ -252,10 +255,27 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
     if (buoc.tuBam && !thieu) {
       const el = buoc.bam ? timPhanTu(buoc.bam) : dichRef.current;
       el?.click();
+      if (buoc.choDong && el) {
+        // Bấm Lưu xong: đợi hộp đóng (máy chủ ghi xong) rồi mới sang bước — hộp còn đó = lỗi.
+        setDangLuu(true);
+        setLoiHop(false);
+        const dich = buoc.hd!;
+        const t0 = Date.now();
+        const doi = () => {
+          const hop = timPhanTu(dich);
+          if (!hop) { setDangLuu(false); setI((v) => v + 1); return; }
+          // Máy chủ trả lỗi → hộp hiện dòng role="alert" ngay: báo luôn, khỏi đợi hết 12 s.
+          const coLoi = hop.querySelector('[role="alert"]') && Date.now() - t0 > 600;
+          if (coLoi || Date.now() - t0 > 12000) { setDangLuu(false); setLoiHop(true); return; }
+          setTimeout(doi, 200);
+        };
+        setTimeout(doi, 300);
+        return;
+      }
     }
     setI((v) => v + 1);
   };
-  const nhanTiep = cuoi ? t('xong') : buoc.nhanTiep ? t(`nut.${buoc.nhanTiep}`) : t('tiep');
+  const nhanTiep = cuoi ? t('xong') : dangLuu ? t('nut.dangLuu') : buoc.nhanTiep ? t(`nut.${buoc.nhanTiep}`) : t('tiep');
   // Thiếu phần tử vẫn nói đủ "đây là gì, cần điền gì" (05/09: chủ dự án thấy thẻ trống vô nghĩa),
   // chỉ thêm một dòng nhỏ giải thích vì sao chưa có nút.
   const tieuDe = t(`${tour}.${buoc.key}.tieuDe`);
@@ -352,7 +372,10 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
           <p className={`mt-1 text-noi-dung leading-relaxed text-txt ${docTruoc ? 'mx-auto max-w-[38ch]' : ''}`}>{noiDung}</p>
           {buoc.luong && docTruoc && <LuongSo />}
           {thieu && (
-            <p className="mt-2 rounded-[12px] bg-navy/[0.05] px-2.5 py-1.5 text-chu-thich font-semibold text-grey-mid">{t('chuaCoOChoNay')}</p>
+            <p className="mt-2 rounded-[12px] bg-navy/[0.05] px-2.5 py-1.5 text-chu-thich font-semibold text-grey-mid">{t(buoc.ghiChuThieu ?? 'chuaCoOChoNay')}</p>
+          )}
+          {loiHop && (
+            <p role="alert" className="mt-2 rounded-[12px] bg-status-bad/[0.08] px-2.5 py-1.5 text-chu-thich font-bold text-status-bad">{t('hopBaoLoi')}</p>
           )}
           {dangCho && !thieu && (
             <p className="mt-2 inline-flex items-center gap-1.5 rounded-[12px] bg-gold/15 px-2.5 py-1.5 text-chu-thich font-semibold text-navy">
@@ -393,7 +416,8 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
             type="button"
             data-tour-tiep
             onClick={tiep}
-            className="btn-gold inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[12px] px-4 font-display text-noi-dung font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
+            disabled={dangLuu}
+            className="btn-gold inline-flex disabled:opacity-60 min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[12px] px-4 font-display text-noi-dung font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
           >
             {nhanTiep}
             {!cuoi && <ArrowRight size={14} strokeWidth={2.5} />}

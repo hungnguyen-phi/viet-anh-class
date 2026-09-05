@@ -32,6 +32,12 @@ export type BuocTour = {
   bam?: string;
   /** Nhãn nút Tiếp của thẻ — khoá dưới huongDan.nut.* (moHop / tiepTrongHop / luu / gui). */
   nhanTiep?: string;
+  /** Bước `tuBam` bấm Lưu: CHỜ hộp đóng (phần tử đích biến mất) rồi mới sang bước kế; hộp còn đó
+   *  sau 12 s = máy chủ báo lỗi → thẻ nói "đọc dòng đỏ trong hộp rồi Lưu lại", không nhảy bước. */
+  choDong?: boolean;
+  /** Khoá chuỗi dòng ghi chú khi thiếu phần tử (mặc định huongDan.chuaCoOChoNay) — vd tour tập của
+   *  em: "thầy cô duyệt xong nút mới hiện" thay vì "bước trước chưa làm". */
+  ghiChuThieu?: string;
 };
 // `hd` / `hdPhu` / `bam` bắt đầu bằng '@' = CSS selector thô (vd '@[data-mau] [data-hd="em-tick"]'),
 // còn lại là giá trị data-hd.

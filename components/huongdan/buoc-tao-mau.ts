@@ -17,25 +17,27 @@ const CHO = 15000; // sau một lần Lưu, trang dựng lại trên VPS mất 1
 function tour(vai: 'em' | 'gv'): BuocTour[] {
   const p = vai; // tiền tố data-hd: em-* / gv-*
   const datMucTieu = vai === 'em' ? 'em-dat-muc-tieu' : 'gv-dat-muc-tieu-toi';
+  // Em: các bước sau khi gửi mục tiêu chỉ có nút khi thầy cô đã duyệt — ghi chú thiếu nói đúng lý do.
+  const thieu = vai === 'em' ? {ghiChuThieu: 'chuaCoViChoDuyet'} : {};
   return [
     {key: 'doc1', icon: 'sparkles'},
     // ① Mở hộp đặt mục tiêu (điền sẵn mẫu).
     {key: 'moHop', hd: datMucTieu, hdPhu: '@[data-kiem="nut-them-muc-tieu"]', tuBam: true, nhanTiep: 'moHop', khiThieu: 'thay', truoc: () => datCoMau('mucTieu')},
     {key: 'b1', hd: 'mt-b1', bam: 'mt-tiep', tuBam: true, nhanTiep: 'tiepTrongHop', khiThieu: 'thay', cho: 3000},
     {key: 'b2', hd: 'mt-b2', bam: 'mt-tiep', tuBam: true, nhanTiep: 'tiepTrongHop', khiThieu: 'thay', cho: 3000},
-    {key: 'b3', hd: 'mt-b3', bam: 'mt-luu', tuBam: true, nhanTiep: vai === 'em' ? 'gui' : 'luu', khiThieu: 'thay', cho: 3000},
+    {key: 'b3', hd: 'mt-b3', bam: 'mt-luu', tuBam: true, choDong: true, nhanTiep: vai === 'em' ? 'gui' : 'luu', khiThieu: 'thay', cho: 3000},
     // ② Thẻ mẫu hiện ra.
     {key: 'the', hd: '@[data-mau]', khiThieu: 'thay', cho: CHO},
     // ③ Cam kết tuần trong thẻ mẫu.
-    {key: 'moCamKet', hd: `@[data-mau] [data-hd="${p}-them-cam-ket"]`, tuBam: true, nhanTiep: 'moHop', khiThieu: 'thay', truoc: () => datCoMau('camKet')},
-    {key: 'ckForm', hd: 'ck-form', bam: 'ck-luu', tuBam: true, nhanTiep: 'luu', khiThieu: 'thay', cho: 3000},
-    {key: 'cham', hd: `@[data-mau] [data-hd="${p}-cham"]`, khiThieu: 'thay', cho: CHO},
+    {key: 'moCamKet', ...thieu, hd: `@[data-mau] [data-hd="${p}-them-cam-ket"]`, tuBam: true, nhanTiep: 'moHop', khiThieu: 'thay', truoc: () => datCoMau('camKet')},
+    {key: 'ckForm', ...thieu, hd: 'ck-form', bam: 'ck-luu', tuBam: true, choDong: true, nhanTiep: 'luu', khiThieu: 'thay', cho: 3000},
+    {key: 'cham', ...thieu, hd: `@[data-mau] [data-hd="${p}-cham"]`, khiThieu: 'thay', cho: CHO},
     // ④ Thước đo dẫn dắt dưới cam kết mẫu.
-    {key: 'moThuoc', hd: `@[data-mau] [data-hd="${p}-them-thuoc"]`, tuBam: true, nhanTiep: 'moHop', khiThieu: 'thay', truoc: () => datCoMau('thuoc')},
-    {key: 'ttForm', hd: 'tt-form', bam: 'tt-luu', tuBam: true, nhanTiep: 'luu', khiThieu: 'thay', cho: 3000},
-    {key: 'tick', hd: `@[data-mau] [data-hd="${p}-tick"]`, khiThieu: 'thay', cho: CHO},
+    {key: 'moThuoc', ...thieu, hd: `@[data-mau] [data-hd="${p}-them-thuoc"]`, tuBam: true, nhanTiep: 'moHop', khiThieu: 'thay', truoc: () => datCoMau('thuoc')},
+    {key: 'ttForm', ...thieu, hd: 'tt-form', bam: 'tt-luu', tuBam: true, choDong: true, nhanTiep: 'luu', khiThieu: 'thay', cho: 3000},
+    {key: 'tick', ...thieu, hd: `@[data-mau] [data-hd="${p}-tick"]`, khiThieu: 'thay', cho: CHO},
     // ⑤ Giữ hay xoá — tuỳ người dùng.
-    {key: 'xoa', hd: `@[data-mau] [data-hd="${p}-sua"]`, khiThieu: 'thay'},
+    {key: 'xoa', ...thieu, hd: `@[data-mau] [data-hd="${p}-sua"]`, khiThieu: 'thay'},
   ];
 }
 

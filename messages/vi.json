@@ -2945,7 +2945,8 @@
       "moHop": "Mở hộp",
       "tiepTrongHop": "Tiếp trong hộp",
       "luu": "Lưu",
-      "gui": "Gửi"
+      "gui": "Gửi",
+      "dangLuu": "Đang lưu…"
     },
     "mau": {
       "em": {
@@ -2960,6 +2961,8 @@
         "camKet": "(Tập) Tuần này tôi đọc xong 3 quyển",
         "thuoc": "Đọc 20 phút mỗi tối"
       }
-    }
+    },
+    "hopBaoLoi": "Hộp chưa đóng vì máy chủ báo lỗi. Đọc dòng đỏ trong hộp, sửa rồi bấm Lưu lại — hoặc Bỏ qua tour.",
+    "chuaCoViChoDuyet": "Nút này hiện sau khi thầy cô duyệt mục tiêu của em. Em cứ đọc để biết trước, duyệt xong quay lại làm."
   }
 }

@@ -2945,7 +2945,8 @@
       "moHop": "Open the box",
       "tiepTrongHop": "Next in the box",
       "luu": "Save",
-      "gui": "Send"
+      "gui": "Send",
+      "dangLuu": "Saving…"
     },
     "mau": {
       "em": {
@@ -2960,6 +2961,8 @@
         "camKet": "(Practice) This week I finish 3 books",
         "thuoc": "Read 20 minutes every evening"
       }
-    }
+    },
+    "hopBaoLoi": "The box did not close because the server reported an error. Read the red line in the box, fix it and tap Save again — or skip the tour.",
+    "chuaCoViChoDuyet": "This button appears once your teacher approves your goal. Read ahead now, then come back after approval."
   }
 }

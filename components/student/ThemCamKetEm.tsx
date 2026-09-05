@@ -133,7 +133,7 @@ export function ThemCamKetEm({
             </div>
             {mucTieuLop.length > 0 && <p className="text-chu-thich italic text-grey-mid">{t('huongNhac')}</p>}
             {state.error && state.fieldError !== 'noi_dung' && (
-              <p className="text-chu-thich font-semibold text-status-bad">{state.error}</p>
+              <p role="alert" className="text-chu-thich font-semibold text-status-bad">{state.error}</p>
             )}
             <SubmitButton
               className="mt-1 min-h-[44px] self-start rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-all hover:bg-navy/90"
