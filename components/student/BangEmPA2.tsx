@@ -17,10 +17,9 @@
 import {useActionState, useState, useTransition, useEffect} from 'react';
 import {useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {XacNhanForm} from '@/components/ui/PopupXacNhan';
 import {Check, X} from 'lucide-react';
 import {isoDowVN} from '@/lib/dates';
-import {ghiLuot, chamCamKetTaiCho, doiCamKet, type ChamEmState, type LuotResult} from '@/app/[locale]/(dashboard)/student/actions';
+import {ghiLuot, chamCamKetTaiCho, type ChamEmState, type LuotResult} from '@/app/[locale]/(dashboard)/student/actions';
 import {SuaCamKetEm} from '@/components/student/SuaCamKetEm';
 import {SuaViecEm} from '@/components/student/SuaViecEm';
 
@@ -152,9 +151,9 @@ export function HangViec({
   };
 
   return (
-    <div className={`px-3.5 py-3 ${vien ? 'border-t border-navy/10' : ''}`}>
+    <div className={`px-2.5 py-2 ${vien ? 'border-t border-navy/10' : ''}`}>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="min-w-0 flex-1 text-noi-dung font-extrabold text-navy">{v.ten}</span>
+        <span className="min-w-0 flex-1 text-than font-extrabold text-navy">{v.ten}</span>
         {v.chi_xem && (
           <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-bold text-grey-mid">{tv('chipLop')}</span>
         )}
@@ -181,9 +180,9 @@ export function HangViec({
       </div>
 
       {/* 12 ô tuần */}
-      <div className="mt-2">
-        <div className="text-chu-thich font-bold text-grey-mid/70">{tv('doThi')}</div>
-        <div className="mt-1 flex gap-[3px]">
+      <div className="mt-1.5">
+        <div className="text-nhan font-bold text-grey-mid/70">{tv('doThi')}</div>
+        <div className="mt-0.5 flex gap-[3px]">
           {v.muoiHaiTuan.map((w) => {
             let bg = 'bg-navy/[0.06]';
             if (!w.la_tuan_hoc) bg = 'bg-navy/[0.03]';
@@ -202,7 +201,7 @@ export function HangViec({
       </div>
 
       {/* 7 ô ngày */}
-      <div data-hd="em-tick" className="mt-2 grid grid-cols-7 gap-[3px]">
+      <div data-hd="em-tick" className="mt-1.5 grid grid-cols-7 gap-[3px]">
         {weekDays.map((d, i) => {
           const ap = v.ngay_ap_dung.includes(isoDowVN(d));
           const giaNgay = d in luotLocal ? luotLocal[d] : v.ngayLuot[d] ?? 0;
@@ -257,7 +256,7 @@ export function HangViec({
                       ? 'bg-status-bad/70 text-white'
                       : 'bg-success/80 text-white'
                     : moChinhNgay
-                      ? 'border-[1.5px] border-dashed border-navy/25 text-navy hover:bg-navy/5'
+                      ? 'border-[1.5px] border-dashed border-navy/40 bg-white text-navy hover:bg-navy/5'
                       : 'bg-navy/[0.03] text-grey-mid/40'
                 } ${moChinhNgay ? 'cursor-pointer' : 'cursor-not-allowed'}`}
               >
@@ -346,32 +345,30 @@ export function TheCamKet({
   const daCham = c.ket_qua != null;
 
   return (
-    <div className="glass rounded-[16px] border-l-[3px] border-gold-mid p-3.5">
-      {/* Hàng 1: lời hứa trọn hàng + bút. Hàng 2: các chip — hết cảnh "Tuần / này em / đọc 3 / quyển". */}
-      <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0 flex-1 text-noi-dung font-extrabold leading-snug text-navy">{c.noi_dung}</span>
-        {laChinhEm && !daCham && (
-          <SuaCamKetEm studentId={studentId} camKetId={c.id} noiDung={c.noi_dung} soHua={c.so_hua} tenDonVi={c.ten_don_vi} />
-        )}
-      </div>
-      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+    // 05/09 chủ dự án: "tối ưu không gian nhất có thể" — thẻ cam kết gọn lại để THƯỚC ĐO (thứ em bấm
+    // mỗi ngày) nổi lên: chip nằm cùng hàng với lời hứa, bút nhỏ, hàng chấm thấp (h-9, vùng chạm 44
+    // giữ bằng cham-44), Xoá dời vào hộp Sửa (bút chì) — bớt hẳn một dòng.
+    <div className="rounded-[12px] border-l-[3px] border-gold-mid bg-white/70 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <span className="min-w-0 flex-1 text-than font-extrabold leading-snug text-navy">{c.noi_dung}</span>
         {c.so_hua != null && (
-          <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-bold text-navy">
+          <span className="rounded-full bg-navy/[0.06] px-1.5 py-px text-nhan font-bold tabular-nums text-navy">
             {tc('chipSo', {dat: so(c.so_dat ?? 0), hua: so(c.so_hua), dv: c.ten_don_vi ?? ''})}
           </span>
         )}
         {daCham ? (
           <span
-            className={`rounded-full px-2 py-0.5 text-chu-thich font-extrabold ${
+            className={`rounded-full px-1.5 py-px text-nhan font-extrabold ${
               c.ket_qua === 'thang' ? 'bg-success/15 text-success-dark' : 'bg-status-bad/[0.1] text-status-bad'
             }`}
           >
             {c.ket_qua === 'thang' ? tc('thang') : tc('thua')}
           </span>
         ) : (
-          <span className="rounded-full bg-navy/[0.06] px-2 py-0.5 text-chu-thich font-bold text-grey-mid">
-            {tc('chuaCham')}
-          </span>
+          <span className="rounded-full bg-navy/[0.06] px-1.5 py-px text-nhan font-bold text-grey-mid">{tc('chuaCham')}</span>
+        )}
+        {laChinhEm && !daCham && (
+          <SuaCamKetEm studentId={studentId} camKetId={c.id} noiDung={c.noi_dung} soHua={c.so_hua} tenDonVi={c.ten_don_vi} />
         )}
       </div>
 
@@ -386,11 +383,12 @@ export function TheCamKet({
       {tuanNghi && <p className="mt-1 text-chu-thich font-semibold italic text-grey-mid">{tc('nghi')}</p>}
 
       {laChinhEm && !daCham && !tuanNghi && (
-        <div className="mt-2" data-hd="em-cham">
-          <form action={chamAction} className="flex flex-col gap-1.5">
+        <div className="mt-1.5" data-hd="em-cham">
+          <form action={chamAction} className="flex flex-col gap-1">
             <input type="hidden" name="cam_ket_id" value={c.id} />
-            {/* Ô số + Thắng/Thua CÙNG MỘT HÀNG (04/09: bỏ câu gợi ý máy nên có chỗ) — thẻ thấp lại. */}
-            <div className="flex flex-wrap items-center gap-2">
+            {/* Ô số + Thắng/Thua một hàng THẤP (36 px; vùng chạm 44 nhờ cham-44) — thẻ cam kết lùi
+                xuống hàng phụ, chỗ để dành cho ô tick thước đo. */}
+            <div className="flex flex-wrap items-center gap-1.5">
               {c.so_hua != null && (
                 <input
                   id={`so-dat-${c.id}`}
@@ -400,7 +398,7 @@ export function TheCamKet({
                   onChange={(e) => datSoDat(e.target.value)}
                   aria-label={tc('soDatHoi', {dv: c.ten_don_vi ?? ''})}
                   placeholder={tc('soDatHoi', {dv: c.ten_don_vi ?? ''})}
-                  className="min-h-[44px] w-[4.75rem] rounded-[8px] border-[1.5px] border-navy/15 px-2 text-base text-navy sm:text-sm"
+                  className="h-9 w-16 rounded-[8px] border-[1.5px] border-navy/15 px-2 text-base tabular-nums text-navy sm:text-chu-thich"
                 />
               )}
               <button
@@ -408,7 +406,7 @@ export function TheCamKet({
                 name="ket_qua"
                 value="thang"
                 disabled={dangCham}
-                className="min-h-[44px] cursor-pointer rounded-[12px] bg-success px-3.5 text-than font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="cham-44 h-9 cursor-pointer rounded-[8px] bg-success px-3 text-chu-thich font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {tc('thang')}
               </button>
@@ -417,7 +415,7 @@ export function TheCamKet({
                 name="ket_qua"
                 value="thua"
                 disabled={dangCham}
-                className="min-h-[44px] cursor-pointer rounded-[12px] border-[1.5px] border-status-bad/40 px-3.5 text-than font-extrabold text-status-bad disabled:cursor-not-allowed disabled:opacity-40"
+                className="cham-44 h-9 cursor-pointer rounded-[8px] border-[1.5px] border-status-bad/40 px-3 text-chu-thich font-extrabold text-status-bad disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {tc('thua')}
               </button>
@@ -428,34 +426,21 @@ export function TheCamKet({
       )}
       {/* Đã chấm rồi → cho bỏ chấm tại chỗ (ket_qua rỗng = null): lỡ tay thì sửa lại ngay. */}
       {laChinhEm && daCham && !tuanNghi && (
-        <form action={chamAction} className="mt-1.5 flex flex-wrap items-center gap-2">
+        <form action={chamAction} className="mt-1 flex flex-wrap items-center gap-2">
           <input type="hidden" name="cam_ket_id" value={c.id} />
           <button
             type="submit"
             name="ket_qua"
             value=""
             disabled={dangCham}
-            className="min-h-[44px] cursor-pointer rounded-[8px] px-2 text-chu-thich font-extrabold text-grey-mid underline transition-colors hover:text-navy disabled:opacity-50"
+            className="cham-44 h-9 cursor-pointer rounded-[8px] px-2 text-chu-thich font-extrabold text-grey-mid underline transition-colors hover:text-navy disabled:opacity-50"
           >
             {tc('boCham')}
           </button>
           {chamState.error && <p className="text-chu-thich font-semibold text-status-bad">{chamState.error}</p>}
         </form>
       )}
-      {/* XÓA CAM KẾT — bỏ cam kết này KÈM lead measure của nó (doiCamKet: đánh dấu 'huy' để cam kết
-          tự-lăn NGỪNG lăn dòng này + xoá thước đo dẫn dắt gắn nó). */}
-      {laChinhEm && !daCham && (
-        <XacNhanForm action={doiCamKet} hoi={tc('xoaHoi')} nhanDongY={tc('xoaCamKet')} nguyHiem className="mt-1 flex justify-end">
-          <input type="hidden" name="student_id" value={studentId} />
-          <input type="hidden" name="cam_ket_id" value={c.id} />
-          <button
-            type="submit"
-            className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 px-2 text-chu-thich font-bold text-grey-mid underline hover:text-status-bad"
-          >
-            {tc('xoaCamKet')}
-          </button>
-        </XacNhanForm>
-      )}
+      {/* XÓA CAM KẾT nằm TRONG hộp Sửa (bút chì) — 05/09 dời vào để thẻ bớt một dòng. */}
     </div>
   );
 }

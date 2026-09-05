@@ -246,10 +246,10 @@ function TheMucTieu({
     >
       <div className="flex items-start gap-3.5">
         {coQuang ? (
-          <DonutRing pct={mt.pct ?? 0} color={mau.hex} size={60} />
+          <DonutRing pct={mt.pct ?? 0} color={mau.hex} size={48} />
         ) : (
           <span
-            className={`grid h-[60px] w-[60px] shrink-0 place-items-center rounded-full text-center text-chu-thich font-extrabold leading-tight ${
+            className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-center text-nhan font-extrabold leading-tight ${
               mt.dat ? 'bg-success/15 text-success-dark' : 'bg-navy/[0.07] text-grey-mid'
             }`}
           >

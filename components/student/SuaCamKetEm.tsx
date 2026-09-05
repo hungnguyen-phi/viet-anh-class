@@ -5,11 +5,12 @@
 // (trước đây redirect, mất luôn nội dung đang sửa).
 import {useState} from 'react';
 import {useTranslations} from 'next-intl';
-import {Pencil} from 'lucide-react';
+import {Pencil, Trash2} from 'lucide-react';
 import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder} from '@/components/ui/Field';
 import {FormTaiCho, NutGui} from '@/components/ui/FormTaiCho';
-import {suaCamKetTaiCho} from '@/app/[locale]/(dashboard)/student/actions';
+import {XacNhanForm} from '@/components/ui/PopupXacNhan';
+import {suaCamKetTaiCho, doiCamKet} from '@/app/[locale]/(dashboard)/student/actions';
 
 export function SuaCamKetEm({
   studentId,
@@ -35,7 +36,7 @@ export function SuaCamKetEm({
         onClick={() => setMo(true)}
         aria-label={t('sua')}
         title={t('sua')}
-        className="grid h-11 w-11 cursor-pointer place-items-center rounded-[12px] text-navy transition-colors hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+        className="cham-44 grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-[8px] text-navy transition-colors hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
       >
         <Pencil size={14} strokeWidth={2.5} />
       </button>
@@ -63,6 +64,19 @@ export function SuaCamKetEm({
               </>
             )}
           </FormTaiCho>
+          {/* XOÁ nằm trong hộp Sửa (05/09: thẻ cam kết bớt một dòng). Form ANH EM với form Sửa —
+              không lồng. doiCamKet đánh dấu 'huy' (ngừng tự lăn) + xoá thước đo gắn nó. */}
+          <XacNhanForm action={doiCamKet} hoi={t('xoaHoi')} nhanDongY={t('xoaCamKet')} nguyHiem className="mt-3 flex justify-end border-t border-navy/10 pt-2">
+            <input type="hidden" name="student_id" value={studentId} />
+            <input type="hidden" name="cam_ket_id" value={camKetId} />
+            <button
+              type="submit"
+              className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 rounded-[12px] px-3 text-chu-thich font-extrabold text-status-bad hover:bg-status-bad/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+            >
+              <Trash2 size={12} strokeWidth={2.5} />
+              {t('xoaCamKet')}
+            </button>
+          </XacNhanForm>
         </Popup>
       )}
     </>

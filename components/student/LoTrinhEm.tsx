@@ -92,7 +92,8 @@ export function LoTrinhEm({
           <div key={c.id} className="flex flex-col gap-1.5 rounded-[12px] bg-white/70 p-2">
             <TheCamKet c={c} studentId={studentId} laChinhEm={laChinhEm} tuanNghi={tuanNghi} today={today} anGiup />
             {chumThuoc.map((vBoTro) => (
-              <div key={vBoTro.thuoc_id} className="rounded-[12px] bg-navy/[0.03] p-1.5">
+              // THƯỚC ĐO là chỗ em bấm MỖI NGÀY → nổi hơn phần chấm cam kết (viền + nền vàng nhạt, 05/09).
+              <div key={vBoTro.thuoc_id} className="rounded-[12px] border-[1.5px] border-gold/70 bg-gold/[0.10] p-1">
                 <HangViec
                   v={vBoTro}
                   khoa={c.ket_qua != null}
