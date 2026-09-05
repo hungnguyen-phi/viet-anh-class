@@ -17,6 +17,7 @@ import {Link, usePathname, useRouter} from '@/i18n/navigation';
 import {signOut} from '@/lib/auth-actions';
 import {ThanhDuoi, type MucThanhDuoi} from '@/components/shell/ThanhDuoi';
 import {moHuongDan} from '@/components/huongdan/Tour';
+import {tourTaoMau} from '@/components/huongdan/buoc';
 import type {Profile} from '@/lib/auth';
 import {tenHienThi} from '@/lib/ten-hien-thi';
 import {
@@ -444,9 +445,15 @@ export function AppNav({
             {/* Tiện ích: ngôn ngữ · đăng xuất (đã bỏ nút Hướng dẫn theo yêu cầu) */}
             {/* Ba nút tiện ích: lưới 3 cột + không ngắt chữ — ở 360px "Hướng dẫn"/"Đăng xuất" từng
                 gãy hai dòng vì flex-wrap chia không đều (audit 04/09/2026). */}
-            <div className="mt-2 grid grid-cols-3 gap-1 border-t border-navy/[0.08] pt-2">
+            <div className="mt-2 grid grid-cols-2 gap-1 border-t border-navy/[0.08] pt-2">
               <MoHuongDan
                 role={role}
+                className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] px-1 text-than font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy"
+                onDone={() => setOpen(false)}
+              />
+              <MoHuongDan
+                role={role}
+                tapTao
                 className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] px-1 text-than font-extrabold text-navy/70 transition-colors hover:bg-white/50 hover:text-navy"
                 onDone={() => setOpen(false)}
               />
@@ -561,6 +568,7 @@ function SettingsMenu({role}: {role: Profile['role']}) {
           className="absolute right-0 top-[calc(100%+8px)] z-30 w-[188px] rounded-[16px] bg-white p-1.5 shadow-pop ring-1 ring-navy/10"
         >
           <MoHuongDan role={role} className={item} onDone={() => setOpen(false)} />
+          <MoHuongDan role={role} className={item} onDone={() => setOpen(false)} tapTao />
           <LocaleToggle className={item} withLabel />
           <form action={signOut}>
             <button type="submit" className={item} role="menuitem">
@@ -584,10 +592,14 @@ function SettingsMenu({role}: {role: Profile['role']}) {
 // Rẻ nhất là sửa câu chữ. Nhưng ở đây trả lại nút thì đúng hơn: menu Cài đặt còn thừa chỗ, và
 // người mới cần xem lại hướng dẫn hơn là cần đổi ngôn ngữ.
 // 04/09: tour chỉ tận nút sống ở /student hoặc /wig — đứng trang khác thì đưa về đó rồi mở.
-function MoHuongDan({role, className, onDone}: {role: Profile['role']; className?: string; onDone?: () => void}) {
+// 05/09: menu Hướng dẫn mở tour CỦA TRANG ĐANG ĐỨNG (Mục tiêu / Danh sách / Điểm danh / TKB);
+// `tapTao` là mục thứ hai "Tập tạo mục tiêu" — tour dắt tay tạo mục tiêu mẫu, chỉ HS và GVCN.
+function MoHuongDan({role, className, onDone, tapTao}: {role: Profile['role']; className?: string; onDone?: () => void; tapTao?: boolean}) {
   const tc = useTranslations('common');
   const pathname = usePathname();
   const router = useRouter();
+  const ten = tapTao ? tourTaoMau(role) : undefined;
+  if (tapTao && !ten) return null;
   return (
     <button
       type="button"
@@ -595,11 +607,11 @@ function MoHuongDan({role, className, onDone}: {role: Profile['role']; className
       className={className}
       onClick={() => {
         onDone?.();
-        moHuongDan(role, pathname, (h) => router.push(h as never));
+        moHuongDan(role, pathname, (h) => router.push(h as never), ten ?? undefined);
       }}
     >
-      <BookOpenCheck size={16} strokeWidth={2} />
-      {tc('guide')}
+      {tapTao ? <Target size={16} strokeWidth={2} /> : <BookOpenCheck size={16} strokeWidth={2} />}
+      {tapTao ? tc('tapTaoMucTieu') : tc('guide')}
     </button>
   );
 }

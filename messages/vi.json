@@ -62,7 +62,8 @@
     "tienDoPhanTram": "Tiến độ {pct}%",
     "logoTruong": "Logo Trường Việt Anh",
     "mau": "Màu",
-    "bieuTuong": "Biểu tượng"
+    "bieuTuong": "Biểu tượng",
+    "tapTaoMucTieu": "Tập tạo mục tiêu"
   },
   "roles": {
     "admin": "Quản trị viên",
@@ -2720,6 +2721,12 @@
       "mucTieuLop": "Mục tiêu lớp",
       "cungDonVi": "cùng đơn vị",
       "moTa": "Sơ đồ: số từ cam kết tuần cộng vào mục tiêu của tôi, rồi cộng vào mục tiêu lớp khi cùng đơn vị."
-    }
+    },
+    "dangCho": "Đang chờ nút hiện ra…",
+    "danhSach": {},
+    "diemDanh": {},
+    "thoiKhoaBieu": {},
+    "taoMauEm": {},
+    "taoMauGv": {}
   }
 }

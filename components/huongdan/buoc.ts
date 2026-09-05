@@ -23,9 +23,17 @@ export type BuocTour = {
   truoc?: () => boolean | void;
   /** Thẻ đọc-trước có sơ đồ luồng số động (LuongSo) dưới câu chữ. */
   luong?: boolean;
+  /** Chờ phần tử hiện tối đa N ms (bước ngay sau một lần Lưu: trang dựng lại mất 1–3 s). */
+  cho?: number;
 };
 
-export type TenTour = 'hocSinh' | 'giaoVien' | 'quanTri';
+// Tour THEO TRANG (05/09/2026): mỗi trang chính một tour; menu Cài đặt → Hướng dẫn mở tour của
+// trang đang đứng. Ba tour theo vai (hocSinh/giaoVien/quanTri) là tour của trang Mục tiêu.
+// 'taoMauEm' / 'taoMauGv' là tour TẬP LÀM: dắt tay tạo một mục tiêu mẫu → cam kết → thước đo.
+export type TenTour =
+  | 'hocSinh' | 'giaoVien' | 'quanTri'
+  | 'danhSach' | 'diemDanh' | 'thoiKhoaBieu'
+  | 'taoMauEm' | 'taoMauGv';
 
 // Phiên bản nội dung — đổi số này khi sửa tour đáng kể để người đã xem được xem lại.
 export const PHIEN_BAN_TOUR = 2;
@@ -80,15 +88,29 @@ export const TOUR_QUAN_TRI: BuocTour[] = [
   {key: 'menu', hd: 'menu'},
 ];
 
+// Tour Danh sách / Điểm danh / Thời khoá biểu — xem buoc-trang.ts (cùng thư mục).
+import {TOUR_DANH_SACH, TOUR_DIEM_DANH, TOUR_THOI_KHOA_BIEU} from './buoc-trang';
+// Tour tập tạo mục tiêu mẫu — xem buoc-tao-mau.ts.
+import {TOUR_TAO_MAU_EM, TOUR_TAO_MAU_GV} from './buoc-tao-mau';
+
 export const TOURS: Record<TenTour, BuocTour[]> = {
   hocSinh: TOUR_HOC_SINH,
   giaoVien: TOUR_GIAO_VIEN,
   quanTri: TOUR_QUAN_TRI,
+  danhSach: TOUR_DANH_SACH,
+  diemDanh: TOUR_DIEM_DANH,
+  thoiKhoaBieu: TOUR_THOI_KHOA_BIEU,
+  taoMauEm: TOUR_TAO_MAU_EM,
+  taoMauGv: TOUR_TAO_MAU_GV,
 };
 
-/** Tour của trang đang đứng theo vai. Không khớp → null (nút "?" sẽ mời đi tới trang có tour). */
+/** Tour của trang đang đứng theo vai. Không khớp → null (menu Hướng dẫn sẽ đưa về trang có tour). */
 export function tourChoTrang(pathname: string, role: string): TenTour | null {
   const p = pathname.replace(/^\/(vi|en)(?=\/|$)/, '') || '/';
+  // Tour theo trang — chung cho mọi vai có trang đó (bước không có phần tử thì tự bỏ).
+  if (p.startsWith('/roster')) return 'danhSach';
+  if (p.startsWith('/attendance')) return 'diemDanh';
+  if (p.startsWith('/timetable')) return 'thoiKhoaBieu';
   if (role === 'student') return p.startsWith('/student') ? 'hocSinh' : null;
   if (role === 'teacher') return p.startsWith('/wig') ? 'giaoVien' : null;
   if (role === 'admin' || role === 'principal') {
@@ -98,9 +120,23 @@ export function tourChoTrang(pathname: string, role: string): TenTour | null {
   return null;
 }
 
-/** Trang "nhà" của tour — để nút "Đi tới trang đó" khi đang ở chỗ khác. */
+/** Trang "nhà" của tour — để chuyển tới đó rồi mở khi đang đứng chỗ khác. */
 export function trangCuaTour(tour: TenTour): string {
-  return tour === 'hocSinh' ? '/student' : tour === 'giaoVien' ? '/wig' : '/admin';
+  switch (tour) {
+    case 'hocSinh': case 'taoMauEm': return '/student';
+    case 'giaoVien': case 'taoMauGv': return '/wig';
+    case 'danhSach': return '/roster';
+    case 'diemDanh': return '/attendance';
+    case 'thoiKhoaBieu': return '/timetable';
+    default: return '/admin';
+  }
+}
+
+/** Tour tập tạo mục tiêu mẫu theo vai — null với vai không có mục tiêu cá nhân. */
+export function tourTaoMau(role: string): TenTour | null {
+  if (role === 'student') return 'taoMauEm';
+  if (role === 'teacher') return 'taoMauGv';
+  return null;
 }
 
 /** Tour mặc định theo vai (lần đầu đăng nhập). */

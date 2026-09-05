@@ -62,7 +62,8 @@
     "tienDoPhanTram": "Progress {pct}%",
     "logoTruong": "Viet Anh School logo",
     "mau": "Colour",
-    "bieuTuong": "Icon"
+    "bieuTuong": "Icon",
+    "tapTaoMucTieu": "Practice: make a goal"
   },
   "roles": {
     "admin": "Administrator",
@@ -2720,6 +2721,12 @@
       "mucTieuLop": "Class goal",
       "cungDonVi": "same unit",
       "moTa": "Diagram: the number from a weekly promise adds to my goal, then to the class goal when units match."
-    }
+    },
+    "dangCho": "Waiting for the button to appear…",
+    "danhSach": {},
+    "diemDanh": {},
+    "thoiKhoaBieu": {},
+    "taoMauEm": {},
+    "taoMauGv": {}
   }
 }

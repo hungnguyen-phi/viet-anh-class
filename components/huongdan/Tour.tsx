@@ -32,16 +32,21 @@ const CACH = 12;   // khoảng cách thẻ ↔ phần tử
 type Hop = {top: number; left: number; width: number; height: number};
 const CO_MO_SAU = 'va:hd:mo-sau';
 
-/** Mở tour: đang ở trang có tour thì phát sự kiện; chưa thì sang trang đó rồi mở. */
-export function moHuongDan(role: Role, pathname: string, push: (href: string) => void) {
-  const macDinh = tourTheoVai(role);
-  if (!macDinh) return;
-  if (tourChoTrang(pathname, role)) {
-    window.dispatchEvent(new Event('va:open-intro'));
+function boLocale(pathname: string) {
+  return pathname.replace(/^\/(vi|en)(?=\/|$)/, '') || '/';
+}
+
+/** Mở tour: `ten` cho trước (vd tập tạo mẫu) hoặc tour của trang đang đứng; chưa ở đúng trang
+ *  thì sang trang đó rồi mở (cờ trong sessionStorage ghi TÊN tour). */
+export function moHuongDan(role: Role, pathname: string, push: (href: string) => void, ten?: TenTour) {
+  const muon = ten ?? tourChoTrang(pathname, role) ?? tourTheoVai(role);
+  if (!muon) return;
+  if (boLocale(pathname).startsWith(trangCuaTour(muon)) || (!ten && tourChoTrang(pathname, role))) {
+    window.dispatchEvent(new CustomEvent('va:open-intro', {detail: muon}));
     return;
   }
-  try { sessionStorage.setItem(CO_MO_SAU, '1'); } catch { /* private mode */ }
-  push(trangCuaTour(macDinh));
+  try { sessionStorage.setItem(CO_MO_SAU, muon); } catch { /* private mode */ }
+  push(trangCuaTour(muon));
 }
 
 function khoaXem(userId: string, tour: TenTour) {
@@ -71,6 +76,7 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
   const [i, setI] = useState(0);
   const [hop, setHop] = useState<Hop | null>(null);
   const [thieu, setThieu] = useState(false);   // bước hiện tại không có phần tử → thẻ "chưa có gì"
+  const [dangCho, setDangCho] = useState(false); // bước có `cho`: đang đợi phần tử hiện sau khi Lưu
   const [mounted, setMounted] = useState(false);
   const [hep, setHep] = useState(false);
   const theRef = useRef<HTMLDivElement>(null);
@@ -108,19 +114,25 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
   // Menu ☰ → "Hướng dẫn" và nút "?" phát sự kiện này. Đứng ở trang không có tour thì nút đã
   // chuyển trang trước và để lại cờ trong sessionStorage — tới nơi thì mở.
   useEffect(() => {
-    const h = () => {
-      const ten = tourTrang ?? tourTheoVai(role);
+    const h = (e: Event) => {
+      const chiDinh = (e as CustomEvent<TenTour | undefined>).detail;
+      const ten = (chiDinh && TOURS[chiDinh] ? chiDinh : null) ?? tourTrang ?? tourTheoVai(role);
       if (ten) mo(ten);
     };
     window.addEventListener('va:open-intro', h);
     try {
-      if (tourTrang && sessionStorage.getItem(CO_MO_SAU) === '1') {
-        sessionStorage.removeItem(CO_MO_SAU);
-        mo(tourTrang);
+      const co = sessionStorage.getItem(CO_MO_SAU);
+      if (co) {
+        const ten = (TOURS[co as TenTour] ? (co as TenTour) : null) ?? tourTrang;
+        // Chỉ mở khi đã tới đúng trang của tour (cờ đặt trước lúc chuyển trang).
+        if (ten && boLocale(pathname).startsWith(trangCuaTour(ten))) {
+          sessionStorage.removeItem(CO_MO_SAU);
+          mo(ten);
+        }
       }
     } catch { /* private mode */ }
     return () => window.removeEventListener('va:open-intro', h);
-  }, [tourTrang, role, mo]);
+  }, [tourTrang, role, mo, pathname]);
 
   // ── Kết thúc ───────────────────────────────────────────────────────────────────────────
   const ket = useCallback(async () => {
@@ -159,12 +171,17 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
     // Phần tử có thể xuất hiện muộn CHỈ khi bước này vừa mở popup/sheet (`truoc`) — khi ấy thử lại
     // vài nhịp. Bước thường thì quyết ngay: trang đã dựng xong trước khi tour chạy, thử lại chỉ
     // làm khung bước trước đứng lì ~1s rồi mới nhảy về giữa (chủ dự án thấy ở bước 9→10, 05/09).
-    const toiDa = buoc.truoc && buoc.khiThieu !== 'bo' ? 6 : 0;
+    // Bước có `cho` (ngay sau một lần Lưu, trang đang dựng lại): bỏ khung cũ ngay, thẻ về giữa
+    // với dòng "đang chờ…", rồi thăm dò mỗi 200 ms tới hạn.
+    const nhip = buoc.cho ? 200 : 120;
+    const toiDa = buoc.cho ? Math.ceil(buoc.cho / nhip) : buoc.truoc && buoc.khiThieu !== 'bo' ? 6 : 0;
+    if (buoc.cho) { setHop(null); setThieu(false); setDangCho(true); }
     const tim = () => {
       if (huy) return;
       const el = timPhanTu(buoc.hd!) ?? (buoc.hdPhu ? timPhanTu(buoc.hdPhu) : null);
       if (!el) {
-        if (lan++ < toiDa) { setTimeout(tim, 120); return; }
+        if (lan++ < toiDa) { setTimeout(tim, nhip); return; }
+        setDangCho(false);
         // Không có trên màn.
         if (buoc.khiThieu === 'bo') {
           setI((v) => Math.min(v + 1, buocs.length - 1));
@@ -176,6 +193,7 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
         return;
       }
       setThieu(false);
+      setDangCho(false);
       dichRef.current = el;
       el.scrollIntoView({block: 'center', behavior: 'smooth', inline: 'nearest'});
       // Chờ cuộn xong rồi đo (smooth scroll ~300ms), đo thêm lần nữa cho chắc.
@@ -319,6 +337,12 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
           {buoc.luong && docTruoc && <LuongSo />}
           {thieu && (
             <p className="mt-2 rounded-[12px] bg-navy/[0.05] px-2.5 py-1.5 text-chu-thich font-semibold text-grey-mid">{t('chuaCoOChoNay')}</p>
+          )}
+          {dangCho && !thieu && (
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-[12px] bg-gold/15 px-2.5 py-1.5 text-chu-thich font-semibold text-navy">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-gold-deep" aria-hidden />
+              {t('dangCho')}
+            </p>
           )}
           {buoc.hanhDong && !thieu && (
             <p className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-gold/20 px-2 py-0.5 text-chu-thich font-extrabold text-navy">
