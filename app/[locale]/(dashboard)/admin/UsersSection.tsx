@@ -103,17 +103,23 @@ export async function UsersSection({
   const {allCampuses, allGrades, allClasses} = await layDanhMuc();
   const idTrang = dongTrang.map((d) => d.id);
   const {data: ghiDanh} = idTrang.length
-    ? await supabase.from('enrollments').select('student_id, classes(name)').in('student_id', idTrang).eq('is_active', true)
+    ? await supabase.from('enrollments').select('student_id, classes(id, name)').in('student_id', idTrang).eq('is_active', true)
     : {data: null};
   const lopCuaEm = new Map<string, string[]>();
-  for (const e of (ghiDanh ?? []) as unknown as {student_id: string; classes: {name: string} | {name: string}[] | null}[]) {
+  const lopIdCuaEm = new Map<string, string>();
+  for (const e of (ghiDanh ?? []) as unknown as {student_id: string; classes: {id: string; name: string} | {id: string; name: string}[] | null}[]) {
     const c = Array.isArray(e.classes) ? e.classes[0] : e.classes;
     if (!c) continue;
     lopCuaEm.set(e.student_id, [...(lopCuaEm.get(e.student_id) ?? []), c.name]);
+    if (!lopIdCuaEm.has(e.student_id)) lopIdCuaEm.set(e.student_id, c.id);
   }
   const lopChuNhiem = new Map<string, string[]>();
+  const lopIdChuNhiem = new Map<string, string>();
   for (const c of allClasses) {
-    if (c.is_active && c.homeroom_teacher_id) lopChuNhiem.set(c.homeroom_teacher_id, [...(lopChuNhiem.get(c.homeroom_teacher_id) ?? []), c.name]);
+    if (c.is_active && c.homeroom_teacher_id) {
+      lopChuNhiem.set(c.homeroom_teacher_id, [...(lopChuNhiem.get(c.homeroom_teacher_id) ?? []), c.name]);
+      if (!lopIdChuNhiem.has(c.homeroom_teacher_id)) lopIdChuNhiem.set(c.homeroom_teacher_id, c.id);
+    }
   }
   const tenCoSo = new Map(allCampuses.map((c) => [c.id, c.name]));
   const sapLop = (a: string[]) => [...a].sort((x, y) => x.localeCompare(y, 'vi', {numeric: true})).join(', ');
@@ -122,6 +128,9 @@ export async function UsersSection({
     full_name,
     email,
     role,
+    campus_id,
+    // Lớp hiện tại theo id — để hộp Quyền chọn sẵn (học sinh: lớp ghi danh; giáo viên: lớp chủ nhiệm).
+    lopId: role === 'student' ? (lopIdCuaEm.get(id) ?? null) : role === 'teacher' ? (lopIdChuNhiem.get(id) ?? null) : null,
     lop:
       role === 'student' ? (lopCuaEm.has(id) ? sapLop(lopCuaEm.get(id)!) : null)
       : role === 'teacher' ? (lopChuNhiem.has(id) ? sapLop(lopChuNhiem.get(id)!) : null)
@@ -179,7 +188,7 @@ export async function UsersSection({
     <Disclosure title={t('users')} count={counts.all} defaultOpen>
       <UsersToolbar q={q} tab={tab} size={page} counts={counts} loc={loc} danhMuc={danhMuc} />
 
-      <UsersTable rows={rows} meId={meId} q={q} />
+      <UsersTable rows={rows} meId={meId} q={q} danhMuc={{campuses: danhMuc.campuses, classes: danhMuc.classes}} />
 
       {/* Phân trang — giữ nguyên tab, bộ lọc và cỡ trang khi sang trang khác. */}
       {totalPages > 1 && (

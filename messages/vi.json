@@ -485,7 +485,20 @@
     "xepLop": "Xếp lớp",
     "emailKhongHopLe": "Email không hợp lệ: {ds}. Dạng đúng: ten@truongvietanh.com",
     "emailSaiDinhDang": "Chưa đúng định dạng: {ds} — cần dạng ten@truongvietanh.com",
-    "khoiN": "Khối {n}"
+    "khoiN": "Khối {n}",
+    "quyenTitle": "Quyền của tài khoản",
+    "coSo": "Cơ sở",
+    "coSoChuaGan": "— chưa gán cơ sở —",
+    "coSoBoGan": "Bỏ gán cơ sở",
+    "coSoMoi": "Mọi cơ sở",
+    "coSoBghHint": "Ban giám hiệu chỉ thấy lớp, thời khoá biểu, thực đơn của cơ sở được gán.",
+    "lopHoc": "Lớp học",
+    "chuNhiemLop": "Chủ nhiệm lớp",
+    "lopGiuNguyen": "— giữ nguyên lớp hiện tại —",
+    "lopKhongGan": "— không gán lớp —",
+    "lopHocHint": "Chọn lớp là ghi danh em vào lớp đó ngay.",
+    "chuNhiemHint": "Chọn lớp là đặt người này làm giáo viên chủ nhiệm lớp đó.",
+    "luuQuyen": "Lưu quyền"
   },
   "wig": {
     "weekResolved": "Tuần {week} · {from} → {to}",
@@ -2081,7 +2094,8 @@
     "lvThieuThongTin": "Thiếu thông tin lĩnh vực.",
     "lvDaCapNhat": "Đã cập nhật lĩnh vực",
     "lvThieu": "Thiếu lĩnh vực.",
-    "lvDaKhoiPhuc": "Đã khôi phục lĩnh vực về mặc định"
+    "lvDaKhoiPhuc": "Đã khôi phục lĩnh vực về mặc định",
+    "quyenDaLuu": "Đã lưu quyền cho tài khoản."
   },
   "loi": {
     "chuaDangNhap": "Chưa đăng nhập.",

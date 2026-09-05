@@ -5,11 +5,11 @@ import {useTranslations} from 'next-intl';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {bulkSetUserRole} from './actions';
 import {BulkDeleteDialog} from './BulkDeleteDialog';
-import {SuaNguoiDung} from './SuaNguoiDung';
+import {SuaNguoiDung, type DanhMucQuyen} from './SuaNguoiDung';
 import type {Role} from './user-tabs';
 
 // lop: string = có lớp/cơ sở · null = vai này lẽ ra có mà chưa có · undefined = vai không áp dụng.
-type Row = {id: string; full_name: string | null; email: string; role: Role; lop?: string | null};
+type Row = {id: string; full_name: string | null; email: string; role: Role; lop?: string | null; campus_id: string | null; lopId: string | null};
 // Cấp quyền cả mẻ thì KHÔNG cho chọn "chờ cấp quyền": đẩy một loạt người về vai đó nghĩa là đăng
 // nhập vào chỉ còn màn hình đỏ, và vai cũ của họ không được lưu ở đâu để mà lùi lại. Muốn làm việc
 // đó với một người thì vẫn có nút "Vô hiệu" ở cuối dòng, kèm câu hỏi nêu rõ tên và vai đang có.
@@ -33,7 +33,7 @@ const selectSm =
 //
 // Ô tick nằm NGOÀI hai form (giữ bằng state React) rồi mới đổ vào hidden input: một ô tick không
 // thể nằm trong hai form cùng lúc, mà "Cấp quyền" và "Xoá" là hai server action khác nhau.
-export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: string}) {
+export function UsersTable({rows, meId, q, danhMuc}: {rows: Row[]; meId: string; q: string; danhMuc: DanhMucQuyen}) {
   const t = useTranslations('admin');
   const tr = useTranslations('roles');
   const [sel, setSel] = useState<string[]>([]);
@@ -146,7 +146,7 @@ export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: strin
                 </div>
               </div>
               {!laMinh ? (
-                <SuaNguoiDung id={p.id} who={who} role={p.role} email={p.email} />
+                <SuaNguoiDung id={p.id} who={who} role={p.role} email={p.email} campusId={p.campus_id} lopId={p.lopId} danhMuc={danhMuc} />
               ) : (
                 <span className="text-chu-thich font-bold text-grey-mid">{t('isYou')}</span>
               )}
@@ -236,7 +236,7 @@ export function UsersTable({rows, meId, q}: {rows: Row[]; meId: string; q: strin
                 </span>
                 <span role="cell" className="flex w-11 flex-none justify-center">
                   {!laMinh ? (
-                    <SuaNguoiDung id={p.id} who={who} role={p.role} email={p.email} />
+                    <SuaNguoiDung id={p.id} who={who} role={p.role} email={p.email} campusId={p.campus_id} lopId={p.lopId} danhMuc={danhMuc} />
                   ) : (
                     // Dòng của chính mình: không có bút — đổi vai/xoá chính mình là tự khoá quyền.
                     <span className="text-chu-thich font-bold text-grey-mid" title={t('isYou')}>

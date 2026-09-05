@@ -70,6 +70,58 @@ export async function setUserRole(formData: FormData) {
   flash(error ? loi(friendlyError(error, tLoi)) : t('roleChanged'));
 }
 
+// ---------- CẤP QUYỀN MỘT NGƯỜI: VAI · CƠ SỞ · LỚP TRONG MỘT LẦN LƯU (05/09/2026) ----------
+//
+// Chủ dự án: "thêm giao diện quản lý quyền cho các vai" — trước đây bút chì chỉ đổi vai; cơ sở
+// của BGH phải gán bằng SQL, lớp của em/GVCN phải đi hai màn khác. Nay một form:
+//   vai trò → profiles.role (như setUserRole, kèm thôi chủ nhiệm nếu rời vai giáo viên)
+//   cơ sở   → profiles.campus_id (trigger protect_profile_privileged_cols chỉ cho admin — đúng vai ở đây)
+//   lớp     → học sinh: ghi danh (RPC enroll_student_by_email); giáo viên: đặt làm GVCN lớp ấy
+// Ô để trống = giữ nguyên; giá trị '__bo__' ở cơ sở = bỏ gán cơ sở.
+export async function capQuyenNguoiDung(formData: FormData) {
+  const tLoi = await getTranslations('common');
+  const me = await requireRole(['admin']);
+  const t = await tl();
+  const userId = String(formData.get('userId') ?? '');
+  const role = String(formData.get('role') ?? '') as Role;
+  const campusRaw = String(formData.get('campus_id') ?? '');
+  const classId = String(formData.get('class_id') ?? '');
+  if (!userId || !role) flash(loi(t('assignMissing')));
+  if (me.id === userId) flash(loi(t('roleSelf')));
+  const supabase = await createClient();
+  const {data: nguoi} = await supabase.from('profiles').select('role, email, campus_id').eq('id', userId).maybeSingle();
+  if (!nguoi) flash(loi(t('assignNotFound')));
+
+  const doiVai = nguoi!.role !== role;
+  const campusMoi = campusRaw === '__bo__' ? null : campusRaw || nguoi!.campus_id;
+  const doiCoSo = campusMoi !== nguoi!.campus_id;
+  if (doiVai || doiCoSo) {
+    const {error} = await supabase.from('profiles').update({role, campus_id: campusMoi}).eq('id', userId);
+    if (error) flash(loi(friendlyError(error, tLoi)));
+    if (doiVai) await thoiChuNhiemNeuKhongConLaGiaoVien(supabase, [userId], role);
+  }
+
+  let loiLop: string | null = null;
+  if (classId && role === 'student') {
+    const {data, error} = await supabase.rpc('enroll_student_by_email', {p_class: classId, p_email: nguoi!.email});
+    if (error) loiLop = friendlyError(error, tLoi);
+    else if (data !== 'ok') loiLop = t('xepLopFail', {email: nguoi!.email});
+  } else if (classId && role === 'teacher') {
+    const {error} = await supabase.from('classes').update({homeroom_teacher_id: userId}).eq('id', classId);
+    if (error) loiLop = friendlyError(error, tLoi);
+  }
+
+  await supabase.rpc('log_audit', {
+    p_action: 'cap_quyen_nguoi_dung',
+    p_detail: {target_user: userId, role, campus_id: campusMoi, class_id: classId || null},
+  });
+  quen();
+  revalidatePath('/[locale]/admin', 'page');
+  revalidatePath('/[locale]/roster', 'page');
+  if (loiLop) flash(loi(loiLop));
+  flash(t('quyenDaLuu'));
+}
+
 // ---------- DUYỆT / XOÁ NHIỀU NGƯỜI CÙNG LÚC ----------
 //
 // Một đợt tuyển đầu năm đẩy vài chục giáo viên vào vai "chờ cấp quyền" cùng một buổi. Trước đây

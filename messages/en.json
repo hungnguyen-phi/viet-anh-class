@@ -485,7 +485,20 @@
     "xepLop": "Assign",
     "emailKhongHopLe": "Invalid email: {ds}. Expected form: name@truongvietanh.com",
     "emailSaiDinhDang": "Wrong format: {ds} — use name@truongvietanh.com",
-    "khoiN": "Grade {n}"
+    "khoiN": "Grade {n}",
+    "quyenTitle": "Account permissions",
+    "coSo": "Campus",
+    "coSoChuaGan": "— no campus —",
+    "coSoBoGan": "Remove campus",
+    "coSoMoi": "All campuses",
+    "coSoBghHint": "Leadership only sees classes, timetables and menus of the assigned campus.",
+    "lopHoc": "Class",
+    "chuNhiemLop": "Homeroom class",
+    "lopGiuNguyen": "— keep current class —",
+    "lopKhongGan": "— no class —",
+    "lopHocHint": "Picking a class enrols the student right away.",
+    "chuNhiemHint": "Picking a class makes this person its homeroom teacher.",
+    "luuQuyen": "Save permissions"
   },
   "wig": {
     "weekResolved": "Week {week} · {from} → {to}",
@@ -2081,7 +2094,8 @@
     "lvThieuThongTin": "Missing area information.",
     "lvDaCapNhat": "Area updated",
     "lvThieu": "Missing area.",
-    "lvDaKhoiPhuc": "Area restored to default"
+    "lvDaKhoiPhuc": "Area restored to default",
+    "quyenDaLuu": "Permissions saved."
   },
   "loi": {
     "chuaDangNhap": "Not signed in.",
