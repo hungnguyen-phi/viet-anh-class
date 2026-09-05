@@ -161,14 +161,26 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
   if (bat_dau && isValidDayVN(bat_dau) && bat_dau > ket_thuc)
     return {ok: false, fieldError: 'bat_dau', error: t('ngayBatDauPhaiTruocNgay')};
 
-  // Giá trị đo hiệu lực: hành động/kế hoạch ép về 0→100%; đo lường giữ như form.
-  const eff_kieu_dich = laPhanTram ? 'toi' : kieu_dich;
-  const eff_chieu = laPhanTram ? 'tang' : chieu;
-  const eff_x = laPhanTram ? 0 : x_so;
+  // Số này lấy từ đâu — với mục tiêu của EM chỉ hai đường: ĐẾM (máy cộng từ việc được nối vào →
+  // 'thuoc') hoặc ĐO (em/thầy cô ghi tay → 'ghi_tay'). Hành động/kế hoạch luôn ghi_tay.
+  // 0193: mục tiêu LỚP/TRƯỜNG có thêm 'dem_em' — % số em đạt mục tiêu của mình ("95% học sinh
+  // đạt mục tiêu cá nhân", kiểu lớp hay đặt nhất). Máy đếm qua dây nối, đơn vị ép '%', 0 → y.
+  const nguonSoRaw = String(formData.get('nguon_so') ?? '').trim();
+  const laDemEm = !laPhanTram && nguonSoRaw === 'dem_em' && (laLop || laTruong);
+  const nguon_so = laPhanTram ? 'ghi_tay' : laDemEm ? 'dem_em' : nguonSoRaw === 'thuoc' || nguonSoRaw === 'ghi_tay' ? nguonSoRaw : 'ghi_tay';
+  void kieuDonVi;
+
+  // Giá trị đo hiệu lực: hành động/kế hoạch ép về 0→100%; đếm em ép 0→y%; đo lường giữ như form.
+  const eff_kieu_dich = laPhanTram || laDemEm ? 'toi' : kieu_dich;
+  const eff_chieu = laPhanTram || laDemEm ? 'tang' : chieu;
+  const eff_x = laPhanTram || laDemEm ? 0 : x_so;
   const eff_y = laPhanTram ? 100 : y_so;
 
   // Đích bằng lời (kieu='chu') cần y_chu; đích bằng số cần y_so. Đơn vị bắt buộc trừ chu/ti_le_dat.
-  if (!laPhanTram) {
+  if (laDemEm) {
+    if (y_so === null || y_so <= 0 || y_so > 100)
+      return {ok: false, fieldError: 'y_so', error: t('demEmDichPhanTram')};
+  } else if (!laPhanTram) {
     if (kieu_dich === 'chu') {
       if (!y_chu) return {ok: false, fieldError: 'y_chu', error: t('emSeDatDuocGiViet')};
     } else {
@@ -178,17 +190,11 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
     }
   }
 
-  // Số này lấy từ đâu — với mục tiêu của EM chỉ hai đường: ĐẾM (máy cộng từ việc được nối vào →
-  // 'thuoc') hoặc ĐO (em/thầy cô ghi tay → 'ghi_tay'). Hành động/kế hoạch luôn ghi_tay.
-  const nguonSoRaw = String(formData.get('nguon_so') ?? '').trim();
-  const nguon_so = laPhanTram ? 'ghi_tay' : nguonSoRaw === 'thuoc' || nguonSoRaw === 'ghi_tay' ? nguonSoRaw : 'ghi_tay';
-  void kieuDonVi;
-
   const supabase = await createClient();
 
-  // Đơn vị '%' cho hành động/kế hoạch (tra một lần, không cắm cứng UUID).
+  // Đơn vị '%' cho hành động/kế hoạch/đếm em (tra một lần, không cắm cứng UUID).
   let don_vi_pt: string | null = null;
-  if (laPhanTram) {
+  if (laPhanTram || laDemEm) {
     const {data: dv} = await supabase.from('don_vi').select('id').eq('ma', 'phan_tram').maybeSingle();
     don_vi_pt = dv?.id ?? null;
   }
@@ -200,7 +206,8 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
     if (!dv.id) return {ok: false, fieldError: 'don_vi_id', error: dv.error ?? t('khongTaoDonVi')};
     don_vi_id = dv.id;
   }
-  const eff_don_vi = laPhanTram ? don_vi_pt : don_vi_id;
+  const eff_don_vi = laPhanTram || laDemEm ? don_vi_pt : don_vi_id;
+  if (laDemEm && !don_vi_pt) return {ok: false, error: t('khongTaoDonVi')};
 
   // Nội dung chung (dùng cho cả insert lẫn update). trang_thai đặt riêng theo nhánh.
   const noiDung = {
@@ -210,13 +217,13 @@ export async function luuMucTieu(_prev: MucTieuState, formData: FormData): Promi
     loai_moc,
     kieu_dich: eff_kieu_dich,
     chieu: eff_chieu,
-    ky: laPhanTram ? null : ky,
+    ky: laPhanTram || laDemEm ? null : ky,
     don_vi_id: eff_kieu_dich === 'chu' || eff_kieu_dich === 'ti_le_dat' ? null : eff_don_vi,
     x_so: eff_kieu_dich === 'chu' ? null : eff_x,
     y_so: eff_kieu_dich === 'chu' ? null : eff_y,
     x_chu: eff_kieu_dich === 'chu' ? x_chu : null,
     y_chu: eff_kieu_dich === 'chu' ? y_chu : null,
-    chua_do_x: laPhanTram ? false : chua_do_x,
+    chua_do_x: laPhanTram || laDemEm ? false : chua_do_x,
     ket_thuc,
     nguon_so,
     mo_ta,

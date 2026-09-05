@@ -38,7 +38,7 @@ export async function KhuMucTieuTruong({
 
   const {data: mtRows} = await supabase
     .from('muc_tieu_v')
-    .select('id, ten, linh_vuc, loai_moc, trang_thai, ket_thuc, x_so, y_so, ten_don_vi, so, pct, nguon_so')
+    .select('id, ten, linh_vuc, loai_moc, trang_thai, ket_thuc, x_so, y_so, ten_don_vi, so, pct, nguon_so, tu_so, mau_so')
     .eq('campus_id', campusId)
     .eq('cap', 'truong')
     .neq('trang_thai', 'dong');
@@ -55,6 +55,8 @@ export async function KhuMucTieuTruong({
     so: number | null;
     pct: number | null;
     nguon_so: string | null;
+    tu_so: number | null;
+    mau_so: number | null;
   }[];
 
   // Các lớp đã nối vào từng mục tiêu trường (con là mục tiêu LỚP) — sau 0182 chỉ còn giữ hướng.
@@ -134,7 +136,15 @@ export async function KhuMucTieuTruong({
                     <span className="min-w-0 flex-1 font-display text-doc font-bold text-navy">{m.ten ?? ''}</span>
                   </div>
                   <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-chu-thich font-semibold text-grey-mid">
-                    {m.y_so != null && (
+                    {m.nguon_so === 'dem_em' ? (
+                      <span className="text-noi-dung font-extrabold tabular-nums text-navy">
+                        {t('demEmDat', {dat: m.tu_so ?? 0, tong: m.mau_so ?? 0})}
+                        <span className="font-bold text-grey-mid">
+                          {' · '}
+                          {dinhSo(Number(m.so ?? 0))}% / {dinhSo(Number(m.y_so ?? 0))}%
+                        </span>
+                      </span>
+                    ) : m.y_so != null ? (
                       <span className="text-noi-dung font-extrabold tabular-nums text-navy">
                         {m.so != null ? dinhSo(Number(m.so)) : '—'}
                         <span className="font-bold text-grey-mid">
@@ -142,9 +152,10 @@ export async function KhuMucTieuTruong({
                           {dinhSo(Number(m.y_so))} {m.ten_don_vi ?? ''}
                         </span>
                       </span>
-                    )}
+                    ) : null}
                     <span>{tMt('denHan', {ngay: ngayVN(m.ket_thuc)})}</span>
                   </p>
+                  {m.nguon_so === 'dem_em' && <p className="mt-0.5 text-chu-thich font-semibold text-grey-mid">{t('nguonDemEm')}</p>}
                 </div>
                 {laQuanTri && (
                   <div className="flex shrink-0 flex-wrap items-center gap-1.5">

@@ -29,10 +29,13 @@ export type MucTieuV = {
   dang_tap_trung: boolean | null;
   ly_do_tra_lai: string | null;
   student_id: string | null;
+  /** 0193: nguon_so='dem_em' → số em đạt / tổng số em được đếm. Null với nguồn khác. */
+  tu_so?: number | null;
+  mau_so?: number | null;
 };
 
 export const MT_COLS =
-  'id, ten, linh_vuc, subject_id, mo_ta, don_vi_id, loai_moc, dat, trang_thai, trang_thai_do, nguon_so, kieu_dich, chieu, chua_do_x, ket_thuc, ky, x_so, x_chu, y_so, y_chu, ten_don_vi, so, le_ra, pct, dang_tap_trung, ly_do_tra_lai, student_id';
+  'id, ten, linh_vuc, subject_id, mo_ta, don_vi_id, loai_moc, dat, trang_thai, trang_thai_do, nguon_so, kieu_dich, chieu, chua_do_x, ket_thuc, ky, x_so, x_chu, y_so, y_chu, ten_don_vi, so, le_ra, pct, dang_tap_trung, ly_do_tra_lai, student_id, tu_so, mau_so';
 
 export type TruongWig = {id: string; ten: string | null; don_vi_id: string | null; ten_don_vi: string | null; so: number | null; y_so: number | null};
 export type BuocLop = {id: string; tieu_de: string; phan_tram: number; xong: boolean};

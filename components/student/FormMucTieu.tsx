@@ -124,6 +124,14 @@ export function FormMucTieu3Buoc({
   const [moTa, setMoTa] = useState(dangSua?.mo_ta ?? '');
   const [hoTroCho, setHoTroCho] = useState('');
   const [loaiMoc, setLoaiMoc] = useState<string>(dangSua?.loai_moc ?? 'do_luong');
+  // 0193: mục tiêu LỚP/TRƯỜNG "đếm số em đạt mục tiêu (%)" — kiểu lớp hay đặt nhất ngoài đời
+  // ("95% học sinh đạt mục tiêu cá nhân"). Bật thì đơn vị khoá '%', đích mặc định 95, máy tự đếm.
+  const [demEm, setDemEm] = useState<boolean>(cap !== 'em' && dangSua?.nguon_so === 'dem_em');
+  const dvPhanTram = donViList.find((d) => d.ma === 'phan_tram')?.id ?? '';
+  function batDemEm(bat: boolean) {
+    setDemEm(bat);
+    if (bat && !y.trim()) setY('95');
+  }
   type BuocItem = {tieu_de: string; phan_tram: string; bat_dau: string; ket_thuc: string; mo_ta: string};
   const buocRong = (): BuocItem => ({tieu_de: '', phan_tram: '', bat_dau: '', ket_thuc: '', mo_ta: ''});
   const [buocList, setBuocList] = useState<BuocItem[]>(
@@ -152,8 +160,8 @@ export function FormMucTieu3Buoc({
   }, [state]);
 
   const err = (f: string) => (state.fieldError === f ? state.error : null);
-  const suy = suyTuSo(x, y, false);
-  const nhanDv = donViList.find((d) => d.id === donViId)?.nhan ?? (donViId === '__khac__' ? donViMoi : '');
+  const suy = demEm ? {kieu_dich: 'toi', chieu: 'tang'} : suyTuSo(x, y, false);
+  const nhanDv = demEm ? '%' : (donViList.find((d) => d.id === donViId)?.nhan ?? (donViId === '__khac__' ? donViMoi : ''));
   const laDo = loaiMoc === 'do_luong';
   const nguoiLon = laToi || cap !== 'em';
   const kNL = (k: string) => (nguoiLon ? `${k}NguoiLon` : k);
@@ -167,12 +175,14 @@ export function FormMucTieu3Buoc({
     const xNum = Number(x);
     const list = [
       {key: 'clCuThe', dat: tenLen >= 10 && tenLen <= 120},
-      {key: 'clDoDuoc', dat: laDo ? Boolean(y.trim()) && Boolean(donViId) : true},
+      {key: 'clDoDuoc', dat: laDo ? Boolean(y.trim()) && (Boolean(donViId) || demEm) : true},
       {
         key: 'clVuaSuc',
-        dat: !laDo || suy.chieu !== 'tang' || x.trim() === ''
-          ? Boolean(y.trim()) || !laDo
-          : Number.isFinite(yNum) && Number.isFinite(xNum) && yNum > xNum && yNum <= (xNum || 1) * 20,
+        dat: demEm
+          ? yNum > 0 && yNum <= 100
+          : !laDo || suy.chieu !== 'tang' || x.trim() === ''
+            ? Boolean(y.trim()) || !laDo
+            : Number.isFinite(yNum) && Number.isFinite(xNum) && yNum > xNum && yNum <= (xNum || 1) * 20,
       },
       {key: 'clLienKet', dat: Boolean(hoTroCho) || Boolean(dangSua)},
       {key: 'clCoHan', dat: Boolean(ketThuc)},
@@ -183,7 +193,7 @@ export function FormMucTieu3Buoc({
       if (!laDo && (c.key === 'clDoDuoc' || c.key === 'clVuaSuc')) return false;
       return true;
     });
-  }, [ten, y, x, donViId, hoTroCho, ketThuc, moTa, laDo, suy.chieu, dangSua, cap]);
+  }, [ten, y, x, donViId, hoTroCho, ketThuc, moTa, laDo, suy.chieu, dangSua, cap, demEm]);
   const soDat = tieuChi.filter((c) => c.dat).length;
   const phanTram = Math.round((soDat / tieuChi.length) * 100);
 
@@ -194,11 +204,12 @@ export function FormMucTieu3Buoc({
     if (loaiMoc !== 'do_luong') return null;
     if (!y.trim() || !nhanDv || !ketThuc) return null;
     const ngay = ngayVN(ketThuc);
+    if (demEm) return t('cauChotLopDemEm', {ten, y, ngay});
     const p = cap === 'lop' ? 'Lop' : '';
     if (suy.chieu === 'giu') return t(`cauChot${p}Giu`, {ten, dau: '≥', y, dv: nhanDv});
     if (!x.trim()) return t(`cauChot${p}ChuaX`, {ten, y, dv: nhanDv, ngay});
     return t(`cauChot${p}`, {ten, x, chieu: suy.chieu === 'giam' ? t('chieuGiam') : t('chieuTang'), y, dv: nhanDv, ngay});
-  }, [ten, loaiMoc, suy.chieu, x, y, nhanDv, ketThuc, t, cap]);
+  }, [ten, loaiMoc, suy.chieu, x, y, nhanDv, ketThuc, t, cap, demEm]);
 
   function chonMau(m: MauMucTieu) {
     setTen(m.ten);
@@ -221,7 +232,8 @@ export function FormMucTieu3Buoc({
     }
     if (loaiMoc === 'do_luong') {
       if (!y.trim() || Number(y) <= 0) return tf('canDich');
-      if (!donViId || (donViId === '__khac__' && !donViMoi.trim())) return tf('canDonVi');
+      if (demEm && Number(y) > 100) return tf('canDich');
+      if (!demEm && (!donViId || (donViId === '__khac__' && !donViMoi.trim()))) return tf('canDonVi');
     }
     if (loaiMoc === 'ke_hoach') {
       if (buocList.filter((s) => s.tieu_de.trim()).length === 0 || tongBuoc !== 100) return tf('canBuoc');
@@ -319,13 +331,13 @@ export function FormMucTieu3Buoc({
         <input type="hidden" name="kieu_dich" value={suy.kieu_dich} />
         <input type="hidden" name="chieu" value={suy.chieu} />
         <input type="hidden" name="ky" value="" />
-        <input type="hidden" name="nguon_so" value="ghi_tay" />
-        <input type="hidden" name="chua_do_x" value={x.trim() === '' ? '1' : ''} />
-        <input type="hidden" name="x_so" value={x} />
+        <input type="hidden" name="nguon_so" value={demEm ? 'dem_em' : 'ghi_tay'} />
+        <input type="hidden" name="chua_do_x" value={!demEm && x.trim() === '' ? '1' : ''} />
+        <input type="hidden" name="x_so" value={demEm ? '0' : x} />
         <input type="hidden" name="y_so" value={y} />
         <input type="hidden" name="y_chu" value="" />
-        <input type="hidden" name="don_vi_id" value={donViId} />
-        {buoc !== 2 && donViId === '__khac__' && <input type="hidden" name="don_vi_moi" value={donViMoi} />}
+        <input type="hidden" name="don_vi_id" value={demEm ? dvPhanTram : donViId} />
+        {buoc !== 2 && !demEm && donViId === '__khac__' && <input type="hidden" name="don_vi_moi" value={donViMoi} />}
         <input type="hidden" name="bat_dau" value={batDau} />
         <input type="hidden" name="ket_thuc" value={ketThuc} />
         <input type="hidden" name="mo_ta" value={moTa} />
@@ -522,7 +534,29 @@ export function FormMucTieu3Buoc({
               </div>
             )}
 
-            {loaiMoc === 'do_luong' && (
+            {/* 0193: lớp/trường có thể ĐẾM số em đạt thay vì đo một con số — bật là khoá '%', đích 95. */}
+            {loaiMoc === 'do_luong' && cap !== 'em' && (
+              <label data-kiem="mt-dem-em" className="flex min-h-[44px] cursor-pointer items-start gap-2.5 rounded-[12px] border-[1.5px] border-navy/10 px-3 py-2 has-[:checked]:border-navy has-[:checked]:bg-gold/[0.10]">
+                <input type="checkbox" checked={demEm} onChange={(e) => batDemEm(e.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[var(--color-navy)]" />
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-than font-extrabold text-navy">{t('demEmToggle')}</span>
+                  <span className="text-chu-thich font-semibold leading-relaxed text-grey-mid">{t(cap === 'truong' ? 'demEmHintTruong' : 'demEmHint')}</span>
+                </span>
+              </label>
+            )}
+
+            {loaiMoc === 'do_luong' && demEm && (
+              <div data-kiem="mt-buoc-2" className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                <Field label={t('demEmY')} htmlFor="mt-y" error={err('y_so')}>
+                  <div className="flex items-center gap-2">
+                    <input id="mt-y" data-kiem="mt-y" type="number" step="1" min="1" max="100" inputMode="numeric" value={y} onChange={(e) => setY(e.target.value)} className={ctlWithBorder(state.fieldError === 'y_so')} />
+                    <span className="shrink-0 text-than font-extrabold text-navy">%</span>
+                  </div>
+                </Field>
+              </div>
+            )}
+
+            {loaiMoc === 'do_luong' && !demEm && (
               <div data-kiem="mt-buoc-2" className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                 <Field label={t('donViSao')} htmlFor="mt-don-vi" error={err('don_vi_id')}>
                   <GoiYO k="donVi" />
@@ -567,7 +601,7 @@ export function FormMucTieu3Buoc({
                 <dd className="font-bold text-navy">{ten}</dd>
                 <dt className="font-extrabold text-grey-mid">{t('loaiMocLabel')}</dt>
                 <dd className="font-bold text-navy">
-                  {loaiMoc === 'do_luong' ? `${t('mocDoLuong')} · ${x || '0'} → ${y} ${nhanDv}` : loaiMoc === 'hanh_dong' ? t('mocHanhDong') : `${t('mocKeHoach')} · ${buocList.filter((s) => s.tieu_de.trim()).length} ${t('cacBuoc').toLowerCase()}`}
+                  {loaiMoc === 'do_luong' ? (demEm ? t('demEmTomTat', {y}) : `${t('mocDoLuong')} · ${x || '0'} → ${y} ${nhanDv}`) : loaiMoc === 'hanh_dong' ? t('mocHanhDong') : `${t('mocKeHoach')} · ${buocList.filter((s) => s.tieu_de.trim()).length} ${t('cacBuoc').toLowerCase()}`}
                 </dd>
                 <dt className="font-extrabold text-grey-mid">{t('ngayDenHan')}</dt>
                 <dd className="font-bold text-navy">{ketThuc ? ngayVN(ketThuc) : '—'}</dd>

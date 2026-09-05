@@ -51,6 +51,7 @@ export const DON_VI: DonVi[] = [
   // gõ tay qua ô "Khác…" thì chúng phải về đúng kiểu, không rơi vào mặc định.
   {ma: 'phút', kieu: 'luong'},
   {ma: 'trang', kieu: 'luong'},
+  {ma: 'quyển', kieu: 'luong'},
   {ma: 'từ', kieu: 'luong'},
   {ma: 'km', kieu: 'luong'},
   {ma: '%', kieu: 'do'},
