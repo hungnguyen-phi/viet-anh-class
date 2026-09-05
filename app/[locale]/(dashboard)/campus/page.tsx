@@ -309,7 +309,9 @@ export default async function CampusPage({
       {(namList.length > 1 || khoiList.length > 1) && (
         <BoLocCoSo namList={namList} khoiList={khoiList.map((k) => ({id: k.id, name: k.name}))} nam={namChon} khoi={khoiChon} />
       )}
-      <LopDiCham rows={coSo} t={tCo} tc={tc} />
+      <div data-hd="ad-co-so">
+        <LopDiCham rows={coSo} t={tCo} tc={tc} />
+      </div>
 
       {/* C1 — MỤC TIÊU CỦA CƠ SỞ. Tầng trên cùng: trường đếm lớp, lớp đếm em. Số của nó do máy
           cuộn từ mục tiêu lớp, không ai gõ. */}

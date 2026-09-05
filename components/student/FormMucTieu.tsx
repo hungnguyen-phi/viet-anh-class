@@ -9,6 +9,7 @@ import {Field, ctlWithBorder, inputInline} from '@/components/ui/Field';
 import {ONgayVN, ngayVN} from '@/components/ui/ONgayVN';
 import {ChonCuon} from '@/components/ui/ChonCuon';
 import {FormTaiCho, NutGui} from '@/components/ui/FormTaiCho';
+import {DayLaGi, GoiYO} from '@/components/huongdan/DayLaGi';
 import {AREAS} from '@/lib/areas';
 import {luuMucTieu, xoaMucTieu, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
 import {xoaMucTieuLop} from '@/app/[locale]/(dashboard)/wig/lop-actions';
@@ -359,6 +360,7 @@ export function FormMucTieu3Buoc({
         {/* ═══════════ BƯỚC 1 · MỤC TIÊU LÀ GÌ? ═══════════ */}
         {buoc === 1 && (
           <div className="flex flex-col gap-3">
+            {!dangSua && <DayLaGi tang="mucTieu" vai={laToi ? 'gvToi' : cap === 'em' ? 'em' : cap === 'lop' ? 'gvLop' : 'nguoiLon'} />}
             {mauCuaLop.length > 0 && !dangSua && (
               <div className="rounded-[12px] bg-gold/[0.10] p-2.5">
                 <button type="button" data-kiem="mt-chon-mau" onClick={() => setMoMau((v) => !v)} className="min-h-[32px] text-than font-extrabold text-gold-text underline">
@@ -422,6 +424,7 @@ export function FormMucTieu3Buoc({
                   <p className="mt-1 italic text-grey-mid">{t('smartVd')}</p>
                 </div>
               )}
+              <GoiYO k="tenMucTieu" />
               <input
                 id="mt-ten"
                 data-kiem="mt-ten"
@@ -443,6 +446,7 @@ export function FormMucTieu3Buoc({
             </div>
 
             <Field label={t('moTa')} htmlFor="mt-mo-ta" error={err('mo_ta')}>
+              <GoiYO k="moTa" />
               <textarea id="mt-mo-ta" data-kiem="mt-mo-ta" value={moTa} onChange={(e) => setMoTa(e.target.value)} placeholder={t(laToi ? 'moTaPhToi' : cap === 'lop' ? 'moTaPhLop' : cap === 'truong' ? 'moTaPhTruong' : 'moTaPh')} rows={2} maxLength={1000} className={ctlWithBorder(!!err('mo_ta'))} />
             </Field>
 
@@ -521,6 +525,7 @@ export function FormMucTieu3Buoc({
             {loaiMoc === 'do_luong' && (
               <div data-kiem="mt-buoc-2" className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                 <Field label={t('donViSao')} htmlFor="mt-don-vi" error={err('don_vi_id')}>
+                  <GoiYO k="donVi" />
                   <ChonCuon id="mt-don-vi" name="_don_vi_ui" value={donViId} onChange={setDonViId} danhSach={[...donViList.map((d) => ({ma: d.id, nhan: d.nhan})), {ma: '__khac__', nhan: t('donViKhac')}]} chuaChon={t('donViChon')} loi={state.fieldError === 'don_vi_id'} />
                   {donViId === '__khac__' && (
                     <input name="don_vi_moi" value={donViMoi} onChange={(e) => setDonViMoi(e.target.value)} maxLength={30} placeholder={t('donViMoiHoi')} className={`${ctlWithBorder(false)} mt-1.5`} />
@@ -531,12 +536,14 @@ export function FormMucTieu3Buoc({
                   <input id="mt-x" data-kiem="mt-x" type="number" step="any" min="0" inputMode="decimal" value={x} onChange={(e) => setX(e.target.value)} placeholder="0" className={ctlWithBorder(state.fieldError === 'x_so')} />
                 </Field>
                 <Field label={t('giaTriMucTieu')} htmlFor="mt-y" error={err('y_so')}>
+                  <GoiYO k="dich" />
                   <input id="mt-y" data-kiem="mt-y" type="number" step="any" min="0.01" inputMode="decimal" value={y} onChange={(e) => setY(e.target.value)} className={ctlWithBorder(state.fieldError === 'y_so')} />
                 </Field>
               </div>
             )}
 
             <Field label={t('ngayDenHan')} error={err('ket_thuc')} hint={t('ngayDenHanNhac', {min: ngayVN(hanGioi.min), max: ngayVN(hanGioi.max)})}>
+              <GoiYO k="han" />
               <span data-kiem="mt-han" className="block max-w-[220px]">
                 <ONgayVN name="_ket_thuc_ui" nhan={t('ngayDenHan')} value={ketThuc} loi={state.fieldError === 'ket_thuc'} onChange={setKetThuc} min={hanGioi.min} max={hanGioi.max} />
               </span>

@@ -202,7 +202,7 @@ export function HangViec({
       </div>
 
       {/* 7 ô ngày */}
-      <div className="mt-2 grid grid-cols-7 gap-[3px]">
+      <div data-hd="em-tick" className="mt-2 grid grid-cols-7 gap-[3px]">
         {weekDays.map((d, i) => {
           const ap = v.ngay_ap_dung.includes(isoDowVN(d));
           const giaNgay = d in luotLocal ? luotLocal[d] : v.ngayLuot[d] ?? 0;
@@ -386,7 +386,7 @@ export function TheCamKet({
       {tuanNghi && <p className="mt-1 text-chu-thich font-semibold italic text-grey-mid">{tc('nghi')}</p>}
 
       {laChinhEm && !daCham && !tuanNghi && (
-        <div className="mt-2">
+        <div className="mt-2" data-hd="em-cham">
           <form action={chamAction} className="flex flex-col gap-1.5">
             <input type="hidden" name="cam_ket_id" value={c.id} />
             {/* Ô số + Thắng/Thua CÙNG MỘT HÀNG (04/09: bỏ câu gợi ý máy nên có chỗ) — thẻ thấp lại. */}

@@ -43,64 +43,6 @@
       "thangSau": "Tháng sau",
       "chonNgay": "Chọn ngày"
     },
-    "intro": {
-      "chaoTitle": "Chào mừng đến Việt Anh Class!",
-      "chaoEm": "Đây là chỗ cả lớp cùng theo dõi mục tiêu của năm, và em theo dõi việc mình làm mỗi ngày.",
-      "chaoNguoiLon": "Đây là chỗ cả lớp cùng theo dõi mục tiêu của năm, và từng em theo dõi việc mình làm mỗi ngày.",
-      "chaoNgonNgu": "Muốn đọc bằng tiếng Anh: bấm hình bánh răng ở góc trên bên phải, chọn “Ngôn ngữ”.",
-      "cachTitle": "Lớp mình làm việc thế nào?",
-      "cach1": "Mục tiêu: điều quan trọng nhất lớp muốn đạt trong năm, ở 4 mảng: Kiến thức, Kỹ năng lãnh đạo, Phẩm chất, Sức khoẻ thể chất.",
-      "cach2Em": "Cam kết tuần: mỗi tuần em hứa một việc nhỏ, cuối tuần tự chấm Thắng hay Thua.",
-      "cach2NguoiLon": "Cam kết tuần: mỗi tuần từng em hứa một việc nhỏ, cuối tuần tự chấm Thắng hay Thua.",
-      "cach3Em": "Thước đo dẫn dắt: việc em làm mỗi ngày để giữ lời hứa, ví dụ đọc sách 15 phút. Làm xong thì tick vào ô của ngày đó.",
-      "cach3NguoiLon": "Thước đo dẫn dắt: việc từng em làm mỗi ngày để giữ lời hứa. Làm xong thì tick vào ô của ngày đó.",
-      "cach4Em": "Bảng tiến độ: vòng tròn phần trăm cho biết em đang đúng nhịp hay chậm so với kế hoạch.",
-      "cach4NguoiLon": "Bảng tiến độ: vòng tròn phần trăm cho biết lớp và từng em đang đúng nhịp hay chậm.",
-      "cach5Em": "Họp với bạn: mỗi tuần em ngồi với bạn cùng nhóm nhìn lại tuần vừa rồi, rồi hứa việc tuần tới.",
-      "vai": {
-        "teacher": {
-          "title": "Bạn là giáo viên chủ nhiệm",
-          "b1": "Trang lớp: bảng điểm, thứ hạng thi đua, vòng tròn mục tiêu 4 lĩnh vực.",
-          "b2": "Điểm danh: chọn nhanh cả lớp rồi chỉnh vài em, lưu ngay.",
-          "b3": "Mục tiêu: đặt mục tiêu lớp và mục tiêu của bạn, các em tự đặt cam kết và thước đo. Tiến độ do chính các em tick mà thành.",
-          "b4": "Danh sách: bật “Trưởng điểm danh” cho một học sinh điểm danh thay (chỉ hôm nay)."
-        },
-        "student": {
-          "title": "Em là học sinh",
-          "b1": "Mở “Bảng điểm của em” là thấy đủ: cảm xúc hôm nay, mục tiêu của em, cam kết và thước đo cần tick.",
-          "b2": "Mỗi ngày chọn một mặt cười ở ô “Hôm nay em thế nào?”. Đó cũng chính là điểm danh của em.",
-          "b3": "Nếu được giao “Trưởng điểm danh”: em điểm danh giúp cả lớp (chỉ trong hôm nay)."
-        },
-        "parent": {
-          "title": "Bạn là phụ huynh",
-          "b1": "Vào Báo cáo: chỉ xem dữ liệu con mình, gồm điểm danh và tiến độ mục tiêu theo tuần.",
-          "b2": "Chọn tuần để xem kết quả từng lĩnh vực và chiêm nghiệm của con.",
-          "b3": "Bạn không xem được dữ liệu của học sinh khác."
-        },
-        "principal": {
-          "title": "Bạn là ban giám hiệu",
-          "b1": "Báo cáo cơ sở: các lớp trong cơ sở mình, gồm điểm thi đua và điểm danh hôm nay.",
-          "b2": "Bạn không xem được cơ sở khác."
-        },
-        "admin": {
-          "title": "Bạn là quản trị viên",
-          "b1": "Tạo cơ sở, tạo lớp, phân công giáo viên chủ nhiệm.",
-          "b2": "Mời người dùng mới (chọn vai + lớp): tự gán khi họ đăng nhập lần đầu.",
-          "b3": "Đổi vai, vô hiệu hoặc xoá người dùng; mời phụ huynh và gán con."
-        },
-        "pending": {
-          "title": "Tài khoản đang chờ cấp quyền",
-          "b1": "Liên hệ quản trị viên của trường để được gán vai."
-        }
-      },
-      "xongTitle": "Sẵn sàng rồi!",
-      "xong1": "Muốn xem lại hướng dẫn này: bấm hình bánh răng ở góc trên bên phải, chọn “Hướng dẫn”.",
-      "nutTiep": "Tiếp",
-      "nutQuayLai": "Quay lại",
-      "nutBatDau": "Bắt đầu",
-      "nutBo": "Bỏ qua",
-      "buoc": "Bước {i}/{n}"
-    },
     "logoAlt": "Logo Việt Anh",
     "doiNgonNgu": "Đổi ngôn ngữ",
     "dobThieu": "Ngày sinh phải điền đủ cả ngày, tháng và năm.",
@@ -2492,5 +2434,268 @@
     "rChoTen": "cho {ten}",
     "bNhomCuoi3": "(nhóm cuối 3 em)",
     "gMonNhan": "môn {ten}"
+  },
+  "huongDan": {
+    "buoc": "Bước {i}/{n}",
+    "boQua": "Bỏ qua",
+    "quayLai": "Quay lại",
+    "tiep": "Tiếp",
+    "xong": "Xong",
+    "thuBam": "Thử bấm xem",
+    "nutHoi": "Hướng dẫn màn này",
+    "chuaCoOChoNay": "Chỗ này chưa có gì. Khi em làm bước trước, nút sẽ hiện ở đây.",
+    "hocSinh": {
+      "doc1": {
+        "tieuDe": "Đây là bảng điểm của em",
+        "noiDung": "App này giúp em đặt một mục tiêu cho năm học, rồi mỗi tuần làm một việc nhỏ để tiến tới đó. Thầy cô và bạn cùng nhóm sẽ thấy em cố gắng."
+      },
+      "doc2": {
+        "tieuDe": "Một tuần của em",
+        "noiDung": "Sáng: bấm mặt cảm xúc. Mỗi ngày: tick thước đo. Cuối tuần: xem cam kết Thắng hay Thua. Chỉ vậy thôi."
+      },
+      "doc3": {
+        "tieuDe": "Ba thứ quan trọng",
+        "noiDung": "Mục tiêu là đích cả năm. Cam kết là việc hứa làm trong tuần. Thước đo là việc nhỏ làm mỗi ngày. Tick đủ thước đo → cam kết Thắng → số cộng vào mục tiêu."
+      },
+      "camXuc": {
+        "tieuDe": "Hôm nay em thế nào?",
+        "noiDung": "Sáng đến lớp, bấm một mặt. Đây cũng là điểm danh có mặt. Ngoài giờ thì nút mờ đi."
+      },
+      "tuan": {
+        "tieuDe": "Xem tuần khác",
+        "noiDung": "Bấm ‹ › để xem tuần trước hoặc tuần sau. Chỉ tuần này mới tick được."
+      },
+      "mucTieuLop": {
+        "tieuDe": "Mục tiêu của lớp",
+        "noiDung": "Đích chung cả lớp cùng đẩy. Mục tiêu của em sẽ nối vào đây để góp sức."
+      },
+      "datMucTieu": {
+        "tieuDe": "Đặt mục tiêu của em",
+        "noiDung": "Bấm dấu + ở ô lĩnh vực em muốn. Trong đó có hướng dẫn nên viết gì. Một năm chỉ cần 1–2 mục tiêu là đủ."
+      },
+      "theMucTieu": {
+        "tieuDe": "Thẻ mục tiêu",
+        "noiDung": "Vòng tròn là em đã đi được bao nhiêu phần trăm. Số bên dưới là đang ở đâu so với đích."
+      },
+      "ghiSo": {
+        "tieuDe": "Ghi số",
+        "noiDung": "Mục tiêu đo bằng số thì bấm đây để ghi số mới nhất, ví dụ cân nặng hay điểm."
+      },
+      "themCamKet": {
+        "tieuDe": "Hứa một việc cho tuần này",
+        "noiDung": "Bấm + để viết một việc em sẽ làm xong trong tuần, có con số. Mỗi tuần chỉ nên hứa 1–2 việc."
+      },
+      "chamCamKet": {
+        "tieuDe": "Cuối tuần tự chấm",
+        "noiDung": "Điền số em đạt được rồi bấm Thắng hoặc Thua. Em tự chấm, không ai chấm hộ. Lỡ tay thì bấm Bỏ chấm."
+      },
+      "themThuoc": {
+        "tieuDe": "Thêm thước đo dẫn dắt",
+        "noiDung": "Thước đo là việc nhỏ em làm mỗi ngày để cam kết thành thật. Chọn ngày nào em sẽ làm."
+      },
+      "tickNgay": {
+        "tieuDe": "Tick mỗi ngày",
+        "noiDung": "Làm xong hôm nào thì bấm ô ngày đó. Bấm lại là bỏ tick. Thanh 12 tuần cho thấy em đều đặn tới đâu."
+      },
+      "sua": {
+        "tieuDe": "Sửa hoặc xoá",
+        "noiDung": "Bấm bút chì để sửa. Trong hộp sửa có nút Xoá nếu em muốn bỏ."
+      },
+      "hopBan": {
+        "tieuDe": "Họp với bạn",
+        "noiDung": "Mỗi tuần em ngồi với bạn cùng nhóm, kể tuần vừa rồi làm được gì, rồi hứa việc tuần sau."
+      },
+      "thanhDuoi": {
+        "tieuDe": "Thanh dưới",
+        "noiDung": "Bốn nút để đi nhanh: Bảng điểm, Lịch học, Thực đơn, Thông báo."
+      },
+      "chuong": {
+        "tieuDe": "Chuông thông báo",
+        "noiDung": "Có gì mới từ thầy cô hay bạn thì chấm vàng hiện ở đây."
+      },
+      "menu": {
+        "tieuDe": "Menu",
+        "noiDung": "Mở menu này để đổi ngôn ngữ, đăng xuất, và xem lại Hướng dẫn bất cứ lúc nào."
+      }
+    },
+    "giaoVien": {
+      "doc1": {
+        "tieuDe": "Màn Mục tiêu của lớp",
+        "noiDung": "Đây là nơi bạn đặt đích cho lớp, theo dõi từng em, và làm gương bằng mục tiêu của chính mình."
+      },
+      "doc2": {
+        "tieuDe": "Một tuần của thầy cô",
+        "noiDung": "Đầu tuần: xem các em đã hứa gì. Trong tuần: tick thước đo của mình. Cuối tuần: duyệt mục tiêu mới, chấm cam kết của mình."
+      },
+      "doc3": {
+        "tieuDe": "Số chảy thế nào",
+        "noiDung": "Cam kết của bạn cộng vào mục tiêu của bạn; mục tiêu của bạn cộng vào mục tiêu lớp nếu cùng đơn vị. Mục tiêu của các em chỉ hướng theo lớp, không cộng."
+      },
+      "chonLop": {
+        "tieuDe": "Chọn lớp",
+        "noiDung": "Bạn có nhiều lớp thì đổi ở đây. Tuần đang xem giữ nguyên khi đổi lớp."
+      },
+      "lopTruong": {
+        "tieuDe": "Mục tiêu lớp · trường",
+        "noiDung": "Bấm để đặt mục tiêu cho lớp, nối lên mục tiêu trường, và tick từng bước của kế hoạch. Ít đụng tới nên gom vào một hộp."
+      },
+      "lichHop": {
+        "tieuDe": "Lịch họp",
+        "noiDung": "Ghép nhóm bạn học 2–3 em và đặt lịch họp riêng với từng em. Mọi thứ trong một hộp."
+      },
+      "tuan": {
+        "tieuDe": "Xem tuần khác",
+        "noiDung": "Bấm ‹ › để lùi hoặc tiến. Tuần chưa tới thì cam kết tự lăn sang vào sáng thứ Hai."
+      },
+      "baSo": {
+        "tieuDe": "Ba số của các em",
+        "noiDung": "Tính trên 4 tuần đã khép: mục tiêu đi được bao nhiêu, thước đo đủ chưa, cam kết giữ được mấy phần."
+      },
+      "datMucTieuToi": {
+        "tieuDe": "Mục tiêu của tôi",
+        "noiDung": "Thầy cô cũng có mục tiêu riêng như các em. Bấm để đặt và nối vào mục tiêu lớp — số của bạn sẽ cộng lên lớp."
+      },
+      "camKetToi": {
+        "tieuDe": "Cam kết tuần của tôi",
+        "noiDung": "Bấm + để hứa một việc trong tuần cho mục tiêu này. Đơn vị theo mục tiêu."
+      },
+      "chamToi": {
+        "tieuDe": "Tự chấm",
+        "noiDung": "Điền số đạt được, bấm Thắng hoặc Thua. Bỏ chấm nếu nhập nhầm. Chấm xong thì thước đo khoá lại."
+      },
+      "thuocToi": {
+        "tieuDe": "Thước đo của tôi",
+        "noiDung": "Việc nhỏ mỗi ngày. Tick ô ngày làm xong; thêm thước đo bằng nút bên dưới."
+      },
+      "cacEm": {
+        "tieuDe": "Các em tuần này",
+        "noiDung": "Mỗi em một dòng: mấy mục tiêu, thước đo đủ chưa, cam kết giữ được mấy, đã họp bạn chưa. Bấm tên để mở bảng của em."
+      },
+      "choDuyet": {
+        "tieuDe": "Chờ duyệt",
+        "noiDung": "Mục tiêu năm của em gửi lên nằm đây. Duyệt thì em bắt đầu được; trả lại thì ghi vì sao."
+      },
+      "tabKhac": {
+        "tieuDe": "Các màn khác",
+        "noiDung": "Điểm danh, Danh sách lớp, Bảng điểm nằm trong menu này. Hướng dẫn cũng ở đây."
+      },
+      "chuong": {
+        "tieuDe": "Chuông",
+        "noiDung": "Em gửi mục tiêu, tin nhắn phụ huynh, nhắc họp — đều báo ở đây."
+      }
+    },
+    "quanTri": {
+      "doc1": {
+        "tieuDe": "Màn quản trị",
+        "noiDung": "Bạn xem được mọi lớp, quản người dùng, khai lớp và môn. Mục tiêu trường đặt ở hộp Mục tiêu lớp · trường."
+      },
+      "chonLop": {
+        "tieuDe": "Chọn lớp",
+        "noiDung": "Lọc theo Năm học → Cơ sở → Khối → Lớp để không phải cuộn cả danh sách."
+      },
+      "quanTri": {
+        "tieuDe": "Quản trị",
+        "noiDung": "Tab Người dùng: đổi vai, gán lớp. Tab Trường & lớp: cơ sở, khối, lớp, môn."
+      },
+      "coSo": {
+        "tieuDe": "Báo cáo cơ sở",
+        "noiDung": "Lớp nào đi chậm hiện lên đầu. Lọc theo khối để xem từng khối."
+      },
+      "menu": {
+        "tieuDe": "Menu",
+        "noiDung": "Ngôn ngữ, đăng xuất và Hướng dẫn nằm ở đây."
+      }
+    },
+    "dayLaGi": {
+      "mucTieu": {
+        "tieuDe": "Mục tiêu là gì?",
+        "khaiNiem": {
+          "em": "Mục tiêu là đích em muốn tới trong năm học, đo được bằng một con số.",
+          "nguoiLon": "Mục tiêu là đích muốn tới trong năm học, đo được bằng một con số."
+        }
+      },
+      "camKet": {
+        "tieuDe": "Cam kết tuần là gì?",
+        "khaiNiem": {
+          "em": "Cam kết là một việc em hứa làm xong trong tuần này để tiến gần đích.",
+          "nguoiLon": "Cam kết là một việc hứa làm xong trong tuần này để tiến gần đích."
+        }
+      },
+      "thuoc": {
+        "tieuDe": "Thước đo dẫn dắt là gì?",
+        "khaiNiem": {
+          "em": "Thước đo là việc nhỏ em làm mỗi ngày. Tick vào là biết mình có đang làm không.",
+          "nguoiLon": "Thước đo là việc nhỏ làm mỗi ngày. Tick vào là biết mình có đang làm không."
+        }
+      },
+      "chuoi": "Tick đủ thước đo → cam kết Thắng → số cộng vào mục tiêu.",
+      "viDu": "Ví dụ",
+      "soDoMoTa": "Sơ đồ ba tầng: thước đo mỗi ngày, cam kết mỗi tuần, mục tiêu cả năm",
+      "tang": {
+        "thuoc": "Thước đo",
+        "thuocPhu": "mỗi ngày",
+        "camKet": "Cam kết",
+        "camKetPhu": "mỗi tuần",
+        "mucTieu": "Mục tiêu",
+        "mucTieuPhu": "cả năm"
+      },
+      "viDuTheo": {
+        "em": {
+          "mucTieu": "Mục tiêu: Điểm trung bình Toán từ 7,0 lên 8,0 trước 25/5",
+          "camKet": "Cam kết: Tuần này tự học Toán 4 giờ",
+          "thuoc": "Thước đo: Giờ tự học Toán — điền số, T2 · T4 · T6"
+        },
+        "gvToi": {
+          "mucTieu": "Mục tiêu của tôi: 100% học sinh lớp có mục tiêu được duyệt trước 30/9",
+          "camKet": "Cam kết: Tuần này duyệt mục tiêu cho 8 em",
+          "thuoc": "Thước đo: Em đã duyệt — điền số, T2–T6"
+        },
+        "gvLop": {
+          "mucTieu": "Mục tiêu lớp: 95% học sinh đạt mục tiêu học tập cá nhân trước 25/5",
+          "camKet": "Cam kết của thầy cô: Tuần này họp mục tiêu với lớp 1 lần",
+          "thuoc": "Thước đo: Buổi họp mục tiêu — tick, T6"
+        }
+      },
+      "dungViet": "Đừng viết thế này",
+      "loi": {
+        "mucTieu": {
+          "sai": "Chơi cầu lông giỏi hơn",
+          "dung": "Giành huy chương cầu lông hội thao tháng 3"
+        },
+        "camKet": {
+          "sai": "Ôn tập tiếng Anh",
+          "dung": "Học 20 từ mới tiếng Anh"
+        },
+        "thuoc": {
+          "sai": "1. Học tiếng Anh 5 giờ 2. Làm hết bài tập",
+          "dung": "Mỗi thước một việc, một con số — muốn hai việc thì bấm thêm thước"
+        }
+      },
+      "loiNguoiLon": {
+        "mucTieu": {
+          "sai": "Nâng chất lượng học tập của lớp",
+          "dung": "95% học sinh đạt mục tiêu cá nhân trước 25/5"
+        },
+        "camKet": {
+          "sai": "Theo sát các em",
+          "dung": "Duyệt mục tiêu cho 8 em"
+        },
+        "thuoc": {
+          "sai": "1. Họp lớp 2. Nhắn phụ huynh",
+          "dung": "Mỗi thước một việc, một con số — muốn hai việc thì bấm thêm thước"
+        }
+      }
+    },
+    "goiYO": {
+      "tenMucTieu": "Một câu có con số. Ví dụ: Đọc 20 quyển sách.",
+      "moTa": "Vài chữ: làm gì để tới đích?",
+      "donVi": "Đếm bằng gì? quyển, phút, lần…",
+      "dich": "Con số muốn tới.",
+      "han": "Trước ngày nào?",
+      "camKet": "Một việc làm xong trong tuần, có số.",
+      "soHua": "Hứa đạt bao nhiêu?",
+      "thuoc": "Việc nhỏ làm mỗi ngày.",
+      "ngayTick": "Ngày nào sẽ làm? Bỏ ngày nghỉ."
+    }
   }
 }

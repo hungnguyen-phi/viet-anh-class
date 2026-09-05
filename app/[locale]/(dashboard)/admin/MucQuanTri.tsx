@@ -45,7 +45,7 @@ export function MucQuanTri({
 
   return (
     <>
-      <div role="tablist" className="flex flex-wrap gap-1.5">
+      <div role="tablist" data-hd="ad-tab" className="flex flex-wrap gap-1.5">
         {MUC.map((m) => {
           const on = m.key === muc;
           return (

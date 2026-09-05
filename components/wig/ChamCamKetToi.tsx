@@ -30,7 +30,7 @@ export function ChamCamKetToi({
   const nhanSo = t.has('soDatHoiChung') ? t('soDatHoiChung', {dv: tenDonVi ?? ''}) : t('soDatHoi', {dv: tenDonVi ?? ''});
 
   return (
-    <form action={formAction} className="flex flex-col gap-1.5">
+    <form action={formAction} data-hd="gv-cham" className="flex flex-col gap-1.5">
       <input type="hidden" name="cam_ket_id" value={camKetId} />
       {soHua != null && (
         <label className="flex flex-col gap-1 text-nhan font-extrabold uppercase tracking-wide text-grey-mid">

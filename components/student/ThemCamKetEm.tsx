@@ -10,6 +10,7 @@ import {Plus} from 'lucide-react';
 import {luuCamKet, type CamKetState} from '@/app/[locale]/(dashboard)/student/actions';
 import {Popup} from '@/components/ui/Popup';
 import {SubmitButton} from '@/components/ui/SubmitButton';
+import {DayLaGi, GoiYO} from '@/components/huongdan/DayLaGi';
 
 const INIT: CamKetState = {ok: false};
 
@@ -50,6 +51,7 @@ export function ThemCamKetEm({
     <>
       <button
         type="button"
+        data-hd="em-them-cam-ket"
         onClick={() => setMo(true)}
         aria-label={t('themCuaEm')}
         title={t('themCuaEm')}
@@ -63,9 +65,11 @@ export function ThemCamKetEm({
             <input type="hidden" name="student_id" value={studentId} />
             <input type="hidden" name="class_id" value={classId} />
             <input type="hidden" name="tuan_bat_dau" value={monday} />
+            <DayLaGi tang="camKet" vai="em" />
             <label htmlFor="ck-em-noi" className="text-nhan font-extrabold uppercase tracking-wide text-grey-mid">
               {t('noiDungEm')}
             </label>
+            <GoiYO k="camKet" />
             <input
               id="ck-em-noi"
               name="noi_dung"

@@ -5,7 +5,7 @@ import {PARENT_PORTAL} from '@/lib/flags';
 import {createClient} from '@/lib/supabase/server';
 import {layTrangLayout} from '@/lib/trang-gop';
 import {AppNav} from '@/components/shell/AppNav';
-import {IntroGuide} from '@/components/shell/IntroGuide';
+import {Tour} from '@/components/huongdan/Tour';
 import {getInboxUnreadCount} from '@/components/inbox/unread';
 
 // Trang sau đăng nhập phụ thuộc session (cookie) → luôn render động, không cache tĩnh.
@@ -111,8 +111,8 @@ export default async function DashboardLayout({
       <main id="noi-dung" className="pb-thanh-duoi mx-auto max-w-[1160px] px-4 pt-2 sm:px-6 lg:pb-10">
         {children}
       </main>
-      {/* Hướng dẫn onboarding — tự hiện lần đầu, mở lại từ nút Hướng dẫn trên nav. */}
-      <IntroGuide userId={profile.id} role={profile.role} introSeen={profile.intro_seen} />
+      {/* Tour chỉ tận nút — tự chạy lần đầu, mở lại từ nút "?" hoặc menu Hướng dẫn. */}
+      <Tour userId={profile.id} role={profile.role} introSeen={profile.intro_seen} />
     </div>
   );
 }

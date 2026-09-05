@@ -107,6 +107,7 @@ export function BoLocLop({classes, current}: {classes: ClassOption[]; current?: 
   const boLoc = (
     <div
       role="group"
+      data-hd="chon-lop"
       aria-label={tc('chonLop')}
       aria-busy={dangChuyen}
       className="grid w-full grid-cols-1 gap-3 sm:w-auto sm:grid-cols-[auto_auto_auto_minmax(9rem,auto)] sm:items-end sm:gap-2"
@@ -190,6 +191,7 @@ export function BoLocLop({classes, current}: {classes: ClassOption[]; current?: 
       {/* Điện thoại: một nút gọn */}
       <button
         type="button"
+        data-hd="chon-lop"
         onClick={() => setMoSheet(true)}
         aria-haspopup="dialog"
         aria-busy={dangChuyen}

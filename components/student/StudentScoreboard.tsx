@@ -639,7 +639,7 @@ export async function StudentScoreboard({
 
       {/* ③ MỤC TIÊU CỦA LỚP — CHỈ XEM: đích chung cả lớp mà mục tiêu năm của em hướng (hỗ trợ) vào. */}
       {classId && mucTieuLopThe.length > 0 ? (
-        <section>
+        <section data-hd="em-muc-tieu-lop">
           <h2 className="mb-3 font-display text-tieu-de font-bold text-navy">{tBang('khuMucTieuLop')}</h2>
           <div className="flex flex-col gap-4">
             {mucTieuLopThe.map((g) => (

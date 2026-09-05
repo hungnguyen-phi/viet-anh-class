@@ -15,11 +15,14 @@ export function PopupLopTruong({
   icon = 'lop',
   giong = 'trang',
   tenBang = 'lop',
+  hd,
   children,
 }: {
   nhan: string;
   tieuDe: string;
   moBanDau?: boolean;
+  /** data-hd cho tour hướng dẫn chỉ vào nút. */
+  hd?: string;
   /** Biểu tượng trên nút: 'lop' (toà nhà) hay 'hop' (lịch). */
   icon?: 'lop' | 'hop';
   /** Giọng nút: 'trang' viền navy, 'vang' nền gold — để hai nút cạnh nhau không giống nhau (04/09). */
@@ -47,6 +50,7 @@ export function PopupLopTruong({
     <>
       <button
         type="button"
+        data-hd={hd}
         onClick={() => setMo(true)}
         className={`inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[12px] px-3 text-than font-extrabold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
           giong === 'vang'

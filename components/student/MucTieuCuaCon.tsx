@@ -132,6 +132,7 @@ export function MucTieuCuaCon({
               key={a}
               type="button"
               data-kiem="o-trong-muc-tieu"
+              data-hd="em-dat-muc-tieu"
               data-area={a}
               onClick={() => setMoForm({area: a, khoa: true})}
               style={{
@@ -238,6 +239,7 @@ function TheMucTieu({
         borderColor: `color-mix(in srgb, ${mau.hex} 30%, white)`,
         background: `color-mix(in srgb, ${mau.hex} 9%, white)`,
       }}
+      data-hd="em-the-muc-tieu"
       className="relative flex flex-col gap-3 rounded-[16px] border-[1.5px] p-4"
     >
       <div className="flex items-start gap-3.5">
@@ -407,6 +409,7 @@ function TheMucTieu({
             <button
               type="button"
               onClick={onSua}
+              data-hd="em-sua"
               aria-label={t('sua')}
               title={t('sua')}
               className="grid h-11 w-11 cursor-pointer place-items-center rounded-[12px] text-navy transition-colors hover:bg-navy/[0.06]"
@@ -466,6 +469,7 @@ function GhiSo({mtId, dv, onDone}: {mtId: string; dv: string; onDone: (msg: stri
       <button
         type="button"
         data-kiem="nut-ghi"
+        data-hd="em-ghi-so"
         onClick={() => setMo(true)}
         className="min-h-[44px] shrink-0 cursor-pointer rounded-[12px] border-[1.5px] border-navy/20 bg-white/80 px-3 text-chu-thich font-extrabold text-navy transition-all hover:border-navy"
       >

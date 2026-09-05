@@ -31,6 +31,7 @@ export function ThanhDuoi({muc, giuLai}: {muc: MucThanhDuoi[]; giuLai: Record<st
 
   return (
     <nav
+      data-hd="thanh-duoi"
       aria-label={t('thanhDuoi')}
       className="fixed inset-x-0 bottom-0 z-30 pb-safe lg:hidden [background:linear-gradient(0deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.92)_100%)] shadow-[0_-6px_24px_-8px_rgba(38,39,93,0.25)] backdrop-blur-md"
     >

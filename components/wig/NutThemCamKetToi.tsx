@@ -8,6 +8,7 @@ import {useTranslations} from 'next-intl';
 import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder} from '@/components/ui/Field';
 import {FormTaiCho, NutGui} from '@/components/ui/FormTaiCho';
+import {DayLaGi, GoiYO} from '@/components/huongdan/DayLaGi';
 import {taoCamKetToi} from '@/app/[locale]/(dashboard)/wig/lop-actions';
 
 export function NutThemCamKetToi({
@@ -40,6 +41,7 @@ export function NutThemCamKetToi({
     <>
       <button
         type="button"
+        data-hd="gv-them-cam-ket"
         onClick={() => setMo(true)}
         aria-label={t('themCamKetToi')}
         title={t('themCamKetToi')}
@@ -56,12 +58,15 @@ export function NutThemCamKetToi({
                 <input type="hidden" name="week" value={weekQ} />
                 <input type="hidden" name="tuan_bat_dau" value={monday} />
                 <input type="hidden" name="muc_tieu_id" value={mucTieuId} />
+                <DayLaGi tang="camKet" vai="gvToi" />
                 <p className="text-chu-thich font-bold text-grey-mid">{tCk('giupMucTieu', {ten: tenMucTieu})}</p>
                 <Field label={tCk('noiDungToi')} htmlFor="ckt-noi" error={state.fieldError === 'noi_dung' ? state.error : null}>
+                  <GoiYO k="camKet" />
                   <input id="ckt-noi" name="noi_dung" maxLength={300} value={nd} onChange={(e) => setNd(e.target.value)} placeholder={tCk('noiDungToi')} className={ctlWithBorder(state.fieldError === 'noi_dung')} autoFocus />
                 </Field>
                 {tenDonVi && (
                   <Field label={tCk('soHuaLabel')} htmlFor="ckt-so" error={state.fieldError === 'so_hua' ? state.error : null}>
+                    <GoiYO k="soHua" />
                     <span className="inline-flex items-center gap-2">
                       <input id="ckt-so" type="number" name="so_hua" step="any" min="0" value={so} onChange={(e) => setSo(e.target.value)} placeholder={tCk('soHua')} className={`${ctlWithBorder(state.fieldError === 'so_hua')} max-w-[160px]`} />
                       <span className="text-than font-bold text-grey-mid">{tenDonVi}</span>
