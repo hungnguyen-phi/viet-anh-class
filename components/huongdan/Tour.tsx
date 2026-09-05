@@ -110,7 +110,12 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
   // ── Mở tour ────────────────────────────────────────────────────────────────────────────
   const mo = useCallback((ten: TenTour) => {
     setTour(ten);
-    setI(0);
+    // Tour tập chạy lần hai khi thẻ (Tập) đã có: không tạo thêm bản mẫu nữa — vào thẳng bước
+    // "thẻ mẫu" rồi đi tiếp cam kết / thước đo / giữ hay xoá (kiểm 05/09: mỗi lượt sinh thêm một (Tập)).
+    const laTap = ten === 'taoMauEm' || ten === 'taoMauGv';
+    const daCoMau = laTap && typeof document !== 'undefined' && !!document.querySelector('[data-mau]');
+    const kThe = daCoMau ? TOURS[ten].findIndex((b) => b.key === 'the') : -1;
+    setI(kThe > 0 ? kThe : 0);
   }, []);
 
   // Lần đầu đăng nhập: tự chạy tour của trang đang đứng (đúng vai). Chưa ở trang đó thì thôi —
@@ -220,7 +225,16 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
       // CSS (cuộn mượt + đo giữa chừng là nguồn giật). Đo thêm một nhịp sau khi bố cục lắng.
       el.scrollIntoView({block: 'center', behavior: 'instant' as ScrollBehavior, inline: 'nearest'});
       doLai();
-      setTimeout(doLai, 220);
+      // Popup vừa đóng thì body có thể còn khoá cuộn lúc cuộn lần đầu (kiểm 05/09: thẻ mẫu tìm thấy
+      // ở y=1300, ngoài màn). Vài nhịp sau: còn ngoài màn thì cuộn lại rồi đo.
+      const canhLai = () => {
+        if (huy || dichRef.current !== el) return;
+        const r = el.getBoundingClientRect();
+        if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({block: 'center', behavior: 'instant' as ScrollBehavior, inline: 'nearest'});
+        doLai();
+      };
+      setTimeout(canhLai, 220);
+      setTimeout(canhLai, 700);
     };
     tim();
     return () => { huy = true; };
@@ -266,12 +280,18 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
       setLoiHop(false);
       const dich = buoc.hd!;
       const t0 = Date.now();
+      let soLanAlert = 0;
       const doi = () => {
         if (!conOBuoc()) return;
         const hopEl = timPhanTu(dich);
         if (!hopEl) { setDangLuu(false); sang(); return; }
-        const coLoi = hopEl.querySelector('[role="alert"]') && Date.now() - t0 > 600;
-        if (coLoi || Date.now() - t0 > 12000) { setDangLuu(false); setLoiHop(true); return; }
+        // Lỗi thật = hộp KHÔNG còn đang gửi (không nút aria-busy) VÀ dòng role="alert" còn đó ở hai
+        // lần đo liên tiếp (kiểm 05/09: cảnh báo thoáng hiện lúc gửi từng bị coi là lỗi dù đã lưu xong).
+        const dangGui = !!hopEl.querySelector('[aria-busy="true"]');
+        const coAlert = !dangGui && !!hopEl.querySelector('[role="alert"]') && Date.now() - t0 > 600;
+        if (coAlert && soLanAlert >= 1) { setDangLuu(false); setLoiHop(true); return; }
+        soLanAlert = coAlert ? soLanAlert + 1 : 0;
+        if (Date.now() - t0 > 12000) { setDangLuu(false); setLoiHop(true); return; }
         setTimeout(doi, 200);
       };
       setTimeout(doi, 300);
@@ -344,7 +364,7 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
     const left = Math.max(12, Math.min(vw - rongThe - 12, hop.left + hop.width / 2 - rongThe / 2));
     if (choDuoi >= CAO_THE || (choDuoi >= 220 && choDuoi >= choTren)) {
       theStyle = {top: hop.top + hop.height + CACH, left, width: rongThe}; muiTen = 'tren';
-    } else if (choTren >= 220) {
+    } else if (choTren >= CAO_THE) {
       theStyle = {bottom: vh - hop.top + CACH, left, width: rongThe}; muiTen = 'duoi';
     } else {
       // Lỗ khoét chiếm gần hết chiều cao (cả một form) → không đặt trên/dưới được: neo góc dưới
@@ -356,10 +376,10 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
   const overlay = hop && !docTruoc ? (
     <>
       {/* 4 tấm chắn quanh lỗ khoét — phần tử đích ở giữa vẫn bấm được; cũng trượt theo khung. */}
-      <div className="fixed inset-x-0 top-0 bg-navy/60 transition-[height] duration-300 ease-out motion-reduce:transition-none" style={{height: Math.max(0, hop.top)}} onClick={() => void ket()} />
-      <div className="fixed inset-x-0 bottom-0 bg-navy/60 transition-[top] duration-300 ease-out motion-reduce:transition-none" style={{top: hop.top + hop.height}} onClick={() => void ket()} />
-      <div className="fixed left-0 bg-navy/60 transition-[top,height,width] duration-300 ease-out motion-reduce:transition-none" style={{top: hop.top, height: hop.height, width: Math.max(0, hop.left)}} onClick={() => void ket()} />
-      <div className="fixed right-0 bg-navy/60 transition-[top,height,left] duration-300 ease-out motion-reduce:transition-none" style={{top: hop.top, height: hop.height, left: hop.left + hop.width}} onClick={() => void ket()} />
+      <div className="pointer-events-auto fixed inset-x-0 top-0 bg-navy/60 transition-[height] duration-300 ease-out motion-reduce:transition-none" style={{height: Math.max(0, hop.top)}} onClick={() => void ket()} />
+      <div className="pointer-events-auto fixed inset-x-0 bottom-0 bg-navy/60 transition-[top] duration-300 ease-out motion-reduce:transition-none" style={{top: hop.top + hop.height}} onClick={() => void ket()} />
+      <div className="pointer-events-auto fixed left-0 bg-navy/60 transition-[top,height,width] duration-300 ease-out motion-reduce:transition-none" style={{top: hop.top, height: hop.height, width: Math.max(0, hop.left)}} onClick={() => void ket()} />
+      <div className="pointer-events-auto fixed right-0 bg-navy/60 transition-[top,height,left] duration-300 ease-out motion-reduce:transition-none" style={{top: hop.top, height: hop.height, left: hop.left + hop.width}} onClick={() => void ket()} />
       {/* Viền vàng quanh lỗ khoét — không bắt chuột. Trượt tới chỗ mới (300 ms) + nhịp sáng nhẹ
           dẫn mắt như hướng dẫn trong game. */}
       <div
@@ -369,7 +389,7 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
       />
     </>
   ) : (
-    <div className="fixed inset-0 bg-navy/60 backdrop-blur-[2px]" onClick={() => void ket()} />
+    <div className="pointer-events-auto fixed inset-0 bg-navy/60 backdrop-blur-[2px]" onClick={() => void ket()} />
   );
 
   const the = (
@@ -383,11 +403,15 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
       aria-labelledby="hd-tieu-de"
       onClick={(e) => e.stopPropagation()}
       style={docTruoc || hep || !hop ? undefined : theStyle}
-      className={`fixed z-[61] flex flex-col gap-3 rounded-[16px] bg-white p-4 shadow-pop outline-none ring-1 ring-navy/10 transition-[top,left,bottom,right] duration-300 ease-out motion-reduce:transition-none ${
+      className={`pointer-events-auto fixed z-[61] flex flex-col gap-3 rounded-[16px] bg-white p-4 shadow-pop outline-none ring-1 ring-navy/10 transition-[top,left,bottom,right] duration-300 ease-out motion-reduce:transition-none ${
         docTruoc || !hop
           ? 'left-1/2 top-1/2 w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2'
           : hep
-            ? 'inset-x-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+12px)]'
+            ? hop.height > window.innerHeight * 0.6 || buoc.bam
+              // Lỗ khoét cao gần cả màn, hoặc bước chờ bấm nút Tiếp/Lưu dính ĐÁY hộp (`bam`): thẻ lên
+              // ĐẦU màn để không che nút ấy (kiểm 05/09 ở 390 px: thẻ dính đáy đè lên nút Gửi).
+              ? 'inset-x-3 top-3'
+              : 'inset-x-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+12px)]'
             : ''
       }`}
     >
@@ -488,7 +512,9 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
   );
 
   return createPortal(
-    <div className="fixed inset-0 z-[60]">
+    // pointer-events-none ở thẻ bọc: chỉ 4 tấm chắn + thẻ tour bắt chuột, LỖ KHOÉT để bấm xuyên tới
+    // phần tử thật. Kiểm 05/09: thẻ bọc phủ kín màn từng hứng mọi cú bấm tay — không bước nào bấm được.
+    <div className="pointer-events-none fixed inset-0 z-[60]">
       {overlay}
       {the}
     </div>,

@@ -2844,11 +2844,11 @@
       },
       "moHop": {
         "tieuDe": "Đặt mục tiêu",
-        "noiDung": "Mục tiêu là đích em muốn tới trong năm học, có con số để biết mình tới đâu. Bấm dấu + đang sáng để mở hộp đặt mục tiêu (ví dụ đã điền sẵn)."
+        "noiDung": "Mục tiêu là đích em muốn tới trong năm học, có con số để biết mình tới đâu. Bấm dấu + đang sáng để mở hộp đặt mục tiêu — ví dụ đã điền sẵn, thuộc đúng nhóm của ô em bấm."
       },
       "b1": {
         "tieuDe": "Bước 1 · Mục tiêu là gì?",
-        "noiDung": "Nhóm: Kiến thức. Tên mục tiêu: có con số (10 quyển sách). Mô tả: em sẽ làm thế nào. Hướng lên mục tiêu lớp: để mục tiêu của em góp vào mục tiêu chung. Đọc xong bấm nút Tiếp ở cuối hộp."
+        "noiDung": "Nhóm: đúng ô em vừa bấm (đã khoá). Tên mục tiêu: có con số (10 quyển sách). Mô tả: em sẽ làm thế nào. Hướng lên mục tiêu lớp: để mục tiêu của em góp vào mục tiêu chung. Đọc xong bấm nút Tiếp ở cuối hộp."
       },
       "b2": {
         "tieuDe": "Bước 2 · Đo thế nào?",

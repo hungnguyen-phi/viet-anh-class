@@ -3973,6 +3973,7 @@ export type Database = {
         }[]
       }
       homework_class: { Args: { p: string }; Returns: string }
+      huy_cam_ket_ca_cay: { Args: { p_id: string }; Returns: undefined }
       invite_student_to_class: { Args: { p_class: string; p_email: string }; Returns: string }
       ip_allowed: { Args: { p_ip: string }; Returns: boolean }
       is_attendance_leader: { Args: { c: string }; Returns: boolean }

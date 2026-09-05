@@ -122,7 +122,9 @@ export function FormMucTieu3Buoc({
   const [buoc, setBuoc] = useState<1 | 2 | 3>(1);
   const [loiBuoc, setLoiBuoc] = useState<string | null>(null);
   const [ten, setTen] = useState(mau ? th(`${kMau}.ten`) : (dangSua?.ten ?? ''));
-  const [linhVuc, setLinhVuc] = useState<string>(mau ? 'knowledge' : (dangSua?.linh_vuc ?? areaPreset ?? AREAS[0]));
+  // Mẫu lấy NHÓM theo ô người dùng vừa bấm (areaPreset) — kiểm 05/09: ép 'knowledge' tạo mục tiêu
+  // trùng nhóm với mục tiêu đang có, lưới 4 ô che mất một cái.
+  const [linhVuc, setLinhVuc] = useState<string>(dangSua?.linh_vuc ?? areaPreset ?? (mau ? 'knowledge' : AREAS[0]));
   const [monId, setMonId] = useState<string>(dangSua?.subject_id ?? '');
   const [x, setX] = useState(mau ? '0' : dangSua?.x_so != null ? String(dangSua.x_so) : '');
   const [y, setY] = useState(mau ? (laToi ? '12' : '10') : dangSua?.y_so != null ? String(dangSua.y_so) : '');

@@ -17,14 +17,16 @@ const CHO = 15000; // sau một lần Lưu, trang dựng lại trên VPS mất 1
 
 function tour(vai: 'em' | 'gv'): BuocTour[] {
   const p = vai; // tiền tố data-hd: em-* / gv-*
-  const datMucTieu = vai === 'em' ? 'em-dat-muc-tieu' : 'gv-dat-muc-tieu-toi';
+  // Em: ưu tiên ô Kiến thức còn trống (mẫu là "đọc sách"); hết thì ô trống bất kỳ (mẫu theo ô đó).
+  const datMucTieu = vai === 'em' ? '@[data-hd="em-dat-muc-tieu"][data-area="knowledge"]' : 'gv-dat-muc-tieu-toi';
+  const datMucTieuPhu = vai === 'em' ? 'em-dat-muc-tieu' : '@[data-kiem="nut-them-muc-tieu"]';
   // Em: các bước sau khi gửi mục tiêu chỉ có nút khi thầy cô đã duyệt — ghi chú thiếu nói đúng lý do.
   const thieu = vai === 'em' ? {ghiChuThieu: 'chuaCoViChoDuyet'} : {};
   const lam = {hanhDong: true, batBuoc: true} as const;
   return [
     {key: 'doc1', icon: 'sparkles'},
     // ① Bấm dấu + → hộp đặt mục tiêu mở ra (điền sẵn mẫu).
-    {key: 'moHop', hd: datMucTieu, hdPhu: '@[data-kiem="nut-them-muc-tieu"]', ...lam, khiThieu: 'thay', truoc: () => datCoMau('mucTieu')},
+    {key: 'moHop', hd: datMucTieu, hdPhu: datMucTieuPhu, ...lam, khiThieu: 'thay', truoc: () => datCoMau('mucTieu')},
     // Khoanh CẢ form (có thanh nút dính đáy) — bấm đúng nút Tiếp / Lưu trong hộp mới sang bước.
     {key: 'b1', hd: 'mt-form', bam: 'mt-tiep', ...lam, khiThieu: 'thay', cho: 3000},
     {key: 'b2', hd: 'mt-form', bam: 'mt-tiep', ...lam, khiThieu: 'thay', cho: 1500},

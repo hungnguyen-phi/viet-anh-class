@@ -2844,11 +2844,11 @@
       },
       "moHop": {
         "tieuDe": "Set a goal",
-        "noiDung": "A goal is where you want to be by the end of the school year, with a number so you can see progress. Tap the highlighted + to open the goal form (an example is filled in)."
+        "noiDung": "A goal is where you want to be by the end of the school year, with a number so you can see progress. Tap the highlighted + to open the goal form — an example is filled in, in the area of the box you tapped."
       },
       "b1": {
         "tieuDe": "Step 1 · What is the goal?",
-        "noiDung": "Area: Knowledge. Goal name: has a number (10 books). Description: how you will do it. Points at the class goal so yours counts toward the shared one. Then tap Next at the bottom of the box."
+        "noiDung": "Area: the box you just tapped (locked). Goal name: has a number (10 books). Description: how you will do it. Points at the class goal so yours counts toward the shared one. Then tap Next at the bottom of the box."
       },
       "b2": {
         "tieuDe": "Step 2 · How to measure?",

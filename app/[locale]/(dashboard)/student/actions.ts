@@ -952,14 +952,22 @@ export async function doiCamKet(formData: FormData) {
   const id = String(formData.get('cam_ket_id') ?? '');
   if (!id) veTrangEm(student_id, loi(t('thieuCamKet')));
   const supabase = await createClient();
-  // ĐÁNH DẤU 'huy' (không xoá): đây là tín hiệu để cam kết TỰ LĂN (0177) NGỪNG lăn dòng này — bản
-  // mới nhất là 'huy' thì hàm lăn bỏ qua. Xoá thì tuần sau nó lại clone từ bản cũ hơn.
-  const {data, error} = await supabase.from('cam_ket').update({trang_thai: 'huy'}).eq('id', id).select('id');
-  if (error) veTrangEm(student_id, loi(friendlyError(error, tLoi)));
-  if (!data || data.length === 0)
-    veTrangEm(student_id, loi(t('khongDoiDuocCamKetDa')));
-  // Xoá CẢ CHÙM thước của cam kết (0185: thuoc.cam_ket_id; RLS chặn nếu không phải của em).
-  await supabase.from('thuoc').delete().eq('cam_ket_id', id).eq('chu_the', 'em');
+  // 0195: một RPC dọn cả cây (lượt → thước → cam kết 'huy'). Trước đây xoá thước ở đây bị RLS chặn
+  // lặng lẽ với thước ĐÃ DUYỆT của em → thước cũ ở lại. Chưa áp 0195 (PGRST202/42883) → đường cũ.
+  const rpc = await supabase.rpc('huy_cam_ket_ca_cay', {p_id: id});
+  if (rpc.error && rpc.error.code !== 'PGRST202' && rpc.error.code !== '42883') {
+    veTrangEm(student_id, loi(friendlyError(rpc.error, tLoi)));
+  }
+  if (rpc.error) {
+    // ĐÁNH DẤU 'huy' (không xoá): tín hiệu để cam kết TỰ LĂN (0177) NGỪNG lăn dòng này — bản mới
+    // nhất là 'huy' thì hàm lăn bỏ qua. Xoá thì tuần sau nó lại clone từ bản cũ hơn.
+    const {data, error} = await supabase.from('cam_ket').update({trang_thai: 'huy'}).eq('id', id).select('id');
+    if (error) veTrangEm(student_id, loi(friendlyError(error, tLoi)));
+    if (!data || data.length === 0)
+      veTrangEm(student_id, loi(t('khongDoiDuocCamKetDa')));
+    // Xoá CẢ CHÙM thước của cam kết (0185: thuoc.cam_ket_id; RLS chặn nếu không phải của em).
+    await supabase.from('thuoc').delete().eq('cam_ket_id', id).eq('chu_the', 'em');
+  }
   revalidatePath('/[locale]/student', 'page');
   revalidatePath('/[locale]/student/[id]', 'page');
   revalidatePath('/[locale]/wig', 'page');
