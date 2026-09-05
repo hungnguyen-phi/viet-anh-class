@@ -25,7 +25,16 @@ export type BuocTour = {
   luong?: boolean;
   /** Chờ phần tử hiện tối đa N ms (bước ngay sau một lần Lưu: trang dựng lại mất 1–3 s). */
   cho?: number;
+  /** Nút Tiếp của thẻ tour BẤM HỘ phần tử (`bam` nếu có, không thì phần tử đích) rồi mới sang bước kế —
+   *  tour tập làm: người dùng chỉ đọc rồi bấm Tiếp, tour tự mở hộp / bấm Tiếp trong hộp / bấm Lưu. */
+  tuBam?: boolean;
+  /** Phần tử để `tuBam` bấm, khi khác phần tử đang khoanh (vd khoanh cả form, bấm nút Lưu). */
+  bam?: string;
+  /** Nhãn nút Tiếp của thẻ — khoá dưới huongDan.nut.* (moHop / tiepTrongHop / luu / gui). */
+  nhanTiep?: string;
 };
+// `hd` / `hdPhu` / `bam` bắt đầu bằng '@' = CSS selector thô (vd '@[data-mau] [data-hd="em-tick"]'),
+// còn lại là giá trị data-hd.
 
 // Tour THEO TRANG (05/09/2026): mỗi trang chính một tour; menu Cài đặt → Hướng dẫn mở tour của
 // trang đang đứng. Ba tour theo vai (hocSinh/giaoVien/quanTri) là tour của trang Mục tiêu.

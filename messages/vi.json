@@ -2726,7 +2726,133 @@
     "danhSach": {},
     "diemDanh": {},
     "thoiKhoaBieu": {},
-    "taoMauEm": {},
-    "taoMauGv": {}
+    "taoMauEm": {
+      "doc1": {
+        "tieuDe": "Tập tạo một mục tiêu",
+        "noiDung": "Mình sẽ làm THẬT một mục tiêu mẫu: đặt mục tiêu → hứa một việc cho tuần → thêm thước đo mỗi ngày. Mọi ô đã điền sẵn, em chỉ đọc rồi bấm nút vàng. Xong rồi giữ hay xoá đều được."
+      },
+      "moHop": {
+        "tieuDe": "Đặt mục tiêu",
+        "noiDung": "Mục tiêu là đích em muốn tới trong năm học, có con số để biết mình tới đâu. Bấm Mở hộp — hộp đặt mục tiêu sẽ hiện ra với ví dụ điền sẵn."
+      },
+      "b1": {
+        "tieuDe": "Bước 1 · Mục tiêu là gì?",
+        "noiDung": "Nhóm: Kiến thức. Tên mục tiêu: có con số (10 quyển sách). Mô tả: em sẽ làm thế nào. Hướng lên mục tiêu lớp: để mục tiêu của em góp vào mục tiêu chung. Đọc xong bấm Tiếp trong hộp."
+      },
+      "b2": {
+        "tieuDe": "Bước 2 · Đo thế nào?",
+        "noiDung": "Đo bằng số: bắt đầu từ 0, đích 10, đơn vị quyển. Ngày đến hạn: cuối năm học. Số này sẽ tự nhảy khi em ghi số hoặc khi cam kết tuần Thắng."
+      },
+      "b3": {
+        "tieuDe": "Bước 3 · Đọc lại và gửi",
+        "noiDung": "Đây là câu mục tiêu ráp từ những ô em vừa xem. Thấy đúng thì bấm Gửi — mục tiêu sẽ tới thầy cô để duyệt."
+      },
+      "the": {
+        "tieuDe": "Thẻ mục tiêu mẫu",
+        "noiDung": "Mục tiêu mẫu đã nằm trong ô Kiến thức, đang Chờ duyệt. Khi thầy cô duyệt, trong thẻ sẽ hiện chỗ hứa việc tuần và thước đo — hai bước tiếp theo nói về chúng."
+      },
+      "moCamKet": {
+        "tieuDe": "Hứa một việc cho tuần này",
+        "noiDung": "Cam kết tuần là một việc em hứa làm xong trong tuần cho mục tiêu này, có con số. Bấm Mở hộp — lời hứa mẫu đã điền sẵn."
+      },
+      "ckForm": {
+        "tieuDe": "Hộp cam kết tuần",
+        "noiDung": "Lời hứa: “Tuần này em đọc xong 2 quyển”. Số hứa: 2, đơn vị lấy theo mục tiêu. Bấm Lưu."
+      },
+      "cham": {
+        "tieuDe": "Cuối tuần tự chấm",
+        "noiDung": "Đây là chỗ em tự chấm cam kết vào cuối tuần: điền số đã đạt, bấm Thắng hoặc Thua. Thắng thì số cộng vào mục tiêu. Bây giờ chưa cần chấm."
+      },
+      "moThuoc": {
+        "tieuDe": "Thêm thước đo dẫn dắt",
+        "noiDung": "Thước đo là việc nhỏ em làm mỗi ngày để giữ lời hứa (đọc 20 phút mỗi tối). Bấm Mở hộp — tên thước đo đã điền sẵn."
+      },
+      "ttForm": {
+        "tieuDe": "Hộp thước đo",
+        "noiDung": "Tên việc: “Đọc 20 phút mỗi tối”. Cách đo: tick những ngày T2–T6 (đã chọn sẵn, bấm để đổi). Bấm Lưu."
+      },
+      "tick": {
+        "tieuDe": "Tick mỗi ngày",
+        "noiDung": "Mỗi tối đọc xong thì bấm ô ngày hôm đó. Bấm nhầm thì bấm lại để bỏ. Tick đủ ngày → cam kết dễ Thắng → số chảy lên mục tiêu."
+      },
+      "xoa": {
+        "tieuDe": "Giữ hay xoá?",
+        "noiDung": "Mục tiêu mẫu có chữ (Tập) ở đầu tên. Muốn dùng thật: bấm bút chì, sửa tên cho đúng ý em. Không muốn giữ: bấm bút chì → Xoá ở cuối hộp. Tuỳ em."
+      }
+    },
+    "taoMauGv": {
+      "doc1": {
+        "tieuDe": "Tập tạo một mục tiêu của tôi",
+        "noiDung": "Mình sẽ làm THẬT một mục tiêu mẫu của chính thầy cô: đặt mục tiêu → hứa một việc cho tuần → thêm thước đo mỗi ngày. Mọi ô đã điền sẵn, bạn chỉ đọc rồi bấm nút vàng. Xong rồi giữ hay xoá đều được."
+      },
+      "moHop": {
+        "tieuDe": "Đặt mục tiêu của tôi",
+        "noiDung": "Thầy cô có mục tiêu riêng như các em, nối vào mục tiêu lớp để làm gương. Bấm Mở hộp — hộp đặt mục tiêu sẽ hiện ra với ví dụ điền sẵn."
+      },
+      "b1": {
+        "tieuDe": "Bước 1 · Mục tiêu là gì?",
+        "noiDung": "Nhóm: Kiến thức. Tên: có con số (12 quyển). Mô tả: cách làm. Hỗ trợ cho: mục tiêu lớp đầu tiên — cùng đơn vị thì số của bạn cộng thẳng lên lớp. Bấm Tiếp trong hộp."
+      },
+      "b2": {
+        "tieuDe": "Bước 2 · Đo thế nào?",
+        "noiDung": "Đo bằng số: từ 0 lên 12 quyển, hạn cuối năm học. Số nhảy khi bạn ghi số hoặc khi cam kết tuần Thắng."
+      },
+      "b3": {
+        "tieuDe": "Bước 3 · Đọc lại và lưu",
+        "noiDung": "Câu mục tiêu ráp từ các ô vừa xem. Đúng thì bấm Lưu — mục tiêu của thầy cô không cần ai duyệt."
+      },
+      "the": {
+        "tieuDe": "Thẻ mục tiêu mẫu",
+        "noiDung": "Mục tiêu mẫu đã hiện trong khu Mục tiêu của tôi. Ngay dưới là chỗ hứa việc tuần — bước tiếp theo."
+      },
+      "moCamKet": {
+        "tieuDe": "Hứa một việc cho tuần này",
+        "noiDung": "Cam kết tuần là một việc bạn hứa làm xong trong tuần cho mục tiêu này, có con số. Bấm Mở hộp — lời hứa mẫu đã điền sẵn."
+      },
+      "ckForm": {
+        "tieuDe": "Hộp cam kết tuần",
+        "noiDung": "Lời hứa: “Tuần này tôi đọc xong 3 quyển”. Số hứa: 3, đơn vị ép theo mục tiêu. Bấm Lưu."
+      },
+      "cham": {
+        "tieuDe": "Cuối tuần tự chấm",
+        "noiDung": "Đây là chỗ tự chấm cam kết: điền số đã đạt, bấm Thắng hoặc Thua. Thắng thì số cộng vào mục tiêu của bạn rồi lên lớp. Bây giờ chưa cần chấm."
+      },
+      "moThuoc": {
+        "tieuDe": "Thêm thước đo dẫn dắt",
+        "noiDung": "Thước đo là việc nhỏ làm mỗi ngày để giữ lời hứa (đọc 20 phút mỗi tối). Bấm Mở hộp — tên đã điền sẵn."
+      },
+      "ttForm": {
+        "tieuDe": "Hộp thước đo",
+        "noiDung": "Tên việc: “Đọc 20 phút mỗi tối”. Cách đo: tick T2–T6 (đã chọn sẵn, bấm để đổi). Bấm Lưu."
+      },
+      "tick": {
+        "tieuDe": "Tick mỗi ngày",
+        "noiDung": "Làm xong hôm nào thì bấm ô hôm đó; bấm lại để bỏ. Các em nhìn thấy thầy cô tick đều — đó là làm gương."
+      },
+      "xoa": {
+        "tieuDe": "Giữ hay xoá?",
+        "noiDung": "Mục tiêu mẫu có chữ (Tập) ở đầu tên. Muốn dùng thật: bấm bút chì, sửa tên. Không giữ: bấm bút chì → Xoá ở cuối hộp. Tuỳ bạn."
+      }
+    },
+    "nut": {
+      "moHop": "Mở hộp",
+      "tiepTrongHop": "Tiếp trong hộp",
+      "luu": "Lưu",
+      "gui": "Gửi"
+    },
+    "mau": {
+      "em": {
+        "ten": "(Tập) Em đọc 10 quyển sách",
+        "moTa": "Mỗi tối em đọc 20 phút. Đọc xong quyển nào thì bấm Ghi số để cộng.",
+        "camKet": "(Tập) Tuần này em đọc xong 2 quyển",
+        "thuoc": "Đọc 20 phút mỗi tối"
+      },
+      "gv": {
+        "ten": "(Tập) Tôi đọc 12 quyển sách cùng lớp",
+        "moTa": "Mỗi tối tôi đọc 20 phút. Đọc xong quyển nào thì ghi số ngay.",
+        "camKet": "(Tập) Tuần này tôi đọc xong 3 quyển",
+        "thuoc": "Đọc 20 phút mỗi tối"
+      }
+    }
   }
 }

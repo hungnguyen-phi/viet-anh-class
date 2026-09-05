@@ -2726,7 +2726,133 @@
     "danhSach": {},
     "diemDanh": {},
     "thoiKhoaBieu": {},
-    "taoMauEm": {},
-    "taoMauGv": {}
+    "taoMauEm": {
+      "doc1": {
+        "tieuDe": "Practice making a goal",
+        "noiDung": "We will make a REAL sample goal: set the goal → promise one thing for the week → add a daily lead measure. Every box is pre-filled; just read and tap the yellow button. Keep it or delete it at the end."
+      },
+      "moHop": {
+        "tieuDe": "Set a goal",
+        "noiDung": "A goal is where you want to be by the end of the school year, with a number so you can see progress. Tap Open the box — the goal form opens with an example filled in."
+      },
+      "b1": {
+        "tieuDe": "Step 1 · What is the goal?",
+        "noiDung": "Area: Knowledge. Goal name: has a number (10 books). Description: how you will do it. Points at the class goal so yours counts toward the shared one. Then tap Next in the box."
+      },
+      "b2": {
+        "tieuDe": "Step 2 · How to measure?",
+        "noiDung": "Measured by number: from 0 to 10 books. Due date: end of the school year. The number moves when you log it or when a weekly promise wins."
+      },
+      "b3": {
+        "tieuDe": "Step 3 · Read back and send",
+        "noiDung": "This sentence is built from the boxes you just saw. If it looks right, tap Send — it goes to your teacher for approval."
+      },
+      "the": {
+        "tieuDe": "Your sample goal card",
+        "noiDung": "The sample goal now sits in the Knowledge box, awaiting approval. Once your teacher approves, the card shows where to promise a weekly task and add a lead measure — the next two steps explain them."
+      },
+      "moCamKet": {
+        "tieuDe": "Promise one thing this week",
+        "noiDung": "A weekly promise is one thing you commit to finish this week for the goal, with a number. Tap Open the box — a sample promise is filled in."
+      },
+      "ckForm": {
+        "tieuDe": "The weekly promise box",
+        "noiDung": "Promise: “This week I finish 2 books”. Number: 2, unit follows the goal. Tap Save."
+      },
+      "cham": {
+        "tieuDe": "Grade yourself at week end",
+        "noiDung": "Here you grade your own promise at the end of the week: enter what you reached, tap Win or Loss. A win adds to the goal. Nothing to do right now."
+      },
+      "moThuoc": {
+        "tieuDe": "Add a lead measure",
+        "noiDung": "A lead measure is the small daily action that keeps the promise (read 20 minutes every evening). Tap Open the box — the name is filled in."
+      },
+      "ttForm": {
+        "tieuDe": "The lead measure box",
+        "noiDung": "Action: “Read 20 minutes every evening”. Measured by ticking Mon–Fri (pre-selected, tap to change). Tap Save."
+      },
+      "tick": {
+        "tieuDe": "Tick every day",
+        "noiDung": "Each evening after reading, tap that day's box. Tap again to undo. Enough ticks → the promise wins → the number flows up to the goal."
+      },
+      "xoa": {
+        "tieuDe": "Keep or delete?",
+        "noiDung": "The sample goal starts with (Practice). To use it for real: tap the pencil and rename it. To remove it: tap the pencil → Delete at the bottom. Your choice."
+      }
+    },
+    "taoMauGv": {
+      "doc1": {
+        "tieuDe": "Practice making my goal",
+        "noiDung": "We will make a REAL sample goal of your own: set the goal → promise one thing for the week → add a daily lead measure. Every box is pre-filled; just read and tap the yellow button. Keep it or delete it at the end."
+      },
+      "moHop": {
+        "tieuDe": "Set my goal",
+        "noiDung": "Teachers have their own goal like students do, linked to the class goal to lead by example. Tap Open the box — the form opens with an example filled in."
+      },
+      "b1": {
+        "tieuDe": "Step 1 · What is the goal?",
+        "noiDung": "Area: Knowledge. Name: has a number (12 books). Description: how. Supports: the first class goal — same unit means your number adds straight to the class. Tap Next in the box."
+      },
+      "b2": {
+        "tieuDe": "Step 2 · How to measure?",
+        "noiDung": "Measured by number: from 0 to 12 books, due end of the school year. The number moves when you log it or when a weekly promise wins."
+      },
+      "b3": {
+        "tieuDe": "Step 3 · Read back and save",
+        "noiDung": "The sentence is built from the boxes you just saw. If it looks right, tap Save — a teacher's own goal needs no approval."
+      },
+      "the": {
+        "tieuDe": "Your sample goal card",
+        "noiDung": "The sample goal now shows under My goals. Right below is where you promise a weekly task — next step."
+      },
+      "moCamKet": {
+        "tieuDe": "Promise one thing this week",
+        "noiDung": "A weekly promise is one thing you commit to finish this week for this goal, with a number. Tap Open the box — a sample promise is filled in."
+      },
+      "ckForm": {
+        "tieuDe": "The weekly promise box",
+        "noiDung": "Promise: “This week I finish 3 books”. Number: 3, unit forced by the goal. Tap Save."
+      },
+      "cham": {
+        "tieuDe": "Grade yourself at week end",
+        "noiDung": "Here you grade your own promise: enter what you reached, tap Win or Loss. A win adds to your goal, then to the class. Nothing to do right now."
+      },
+      "moThuoc": {
+        "tieuDe": "Add a lead measure",
+        "noiDung": "A lead measure is the small daily action that keeps the promise (read 20 minutes every evening). Tap Open the box — the name is filled in."
+      },
+      "ttForm": {
+        "tieuDe": "The lead measure box",
+        "noiDung": "Action: “Read 20 minutes every evening”. Measured by ticking Mon–Fri (pre-selected, tap to change). Tap Save."
+      },
+      "tick": {
+        "tieuDe": "Tick every day",
+        "noiDung": "Tap the day's box once it's done; tap again to undo. Students can see you ticking steadily — that is leading by example."
+      },
+      "xoa": {
+        "tieuDe": "Keep or delete?",
+        "noiDung": "The sample goal starts with (Practice). To use it for real: tap the pencil and rename it. To remove it: tap the pencil → Delete at the bottom. Your choice."
+      }
+    },
+    "nut": {
+      "moHop": "Open the box",
+      "tiepTrongHop": "Next in the box",
+      "luu": "Save",
+      "gui": "Send"
+    },
+    "mau": {
+      "em": {
+        "ten": "(Practice) I read 10 books",
+        "moTa": "I read 20 minutes every evening. When I finish a book, I tap Log a number to add it.",
+        "camKet": "(Practice) This week I finish 2 books",
+        "thuoc": "Read 20 minutes every evening"
+      },
+      "gv": {
+        "ten": "(Practice) I read 12 books with my class",
+        "moTa": "I read 20 minutes every evening and log each finished book right away.",
+        "camKet": "(Practice) This week I finish 3 books",
+        "thuoc": "Read 20 minutes every evening"
+      }
+    }
   }
 }

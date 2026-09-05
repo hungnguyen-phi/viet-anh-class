@@ -34,9 +34,12 @@ export function FormTaiCho({
   xacNhan,
   nhanXacNhan,
   nguyHiem = false,
+  hd,
 }: {
   action: (prev: TrangThaiForm, formData: FormData) => Promise<TrangThaiForm>;
   className?: string;
+  /** data-hd trên <form> cho tour hướng dẫn. */
+  hd?: string;
   /** Nội dung form; nhận `state` để tự hiện lỗi cạnh ô (fieldError). */
   children: ReactNode | ((state: TrangThaiForm) => ReactNode);
   /** Gọi khi lưu xong — đóng popup, dọn ô… */
@@ -87,7 +90,7 @@ export function FormTaiCho({
 
   return (
     <>
-      <form ref={formRef} action={formAction} onSubmit={onSubmit} className={className}>
+      <form ref={formRef} action={formAction} onSubmit={onSubmit} className={className} data-hd={hd}>
         <NguCanh.Provider value={state}>{typeof children === 'function' ? children(state) : children}</NguCanh.Provider>
         {state.error && !state.fieldError && (
           <p role="alert" className="w-full text-chu-thich font-bold text-status-bad">
@@ -135,12 +138,15 @@ export function NutGui({
   name,
   value,
   label,
+  hd,
 }: {
   className?: string;
   children: ReactNode;
   name?: string;
   value?: string;
   label?: string;
+  /** data-hd cho tour hướng dẫn. */
+  hd?: string;
 }) {
   const {pending} = useFormStatus();
   return (
@@ -148,6 +154,7 @@ export function NutGui({
       type="submit"
       name={name}
       value={value}
+      data-hd={hd}
       disabled={pending}
       aria-busy={pending}
       aria-label={label}

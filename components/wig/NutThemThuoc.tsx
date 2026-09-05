@@ -12,6 +12,7 @@ import {ChonNgayTuan} from '@/components/ui/ChonNgayTuan';
 import {Field, ctlWithBorder} from '@/components/ui/Field';
 import {FormTaiCho, NutGui} from '@/components/ui/FormTaiCho';
 import {DayLaGi, GoiYO} from '@/components/huongdan/DayLaGi';
+import {docCoMau, xoaCoMau} from '@/components/huongdan/mau';
 import {themThuocChoCamKetToi} from '@/app/[locale]/(dashboard)/wig/lop-actions';
 import {themThuocChoCamKet} from '@/app/[locale]/(dashboard)/student/actions';
 
@@ -35,8 +36,17 @@ export function NutThemThuoc({
 }) {
   const t = useTranslations('camKet');
   const tf = useTranslations('formChung');
+  const th = useTranslations('huongDan');
   const [mo, setMo] = useState(false);
   const [ten, setTen] = useState('');
+  // Tour tập tạo (05/09): mở từ tour thì điền sẵn tên thước đo mẫu (tick T2–T6 là mặc định sẵn).
+  const moHop = () => {
+    if (docCoMau('thuoc')) {
+      xoaCoMau();
+      setTen(th(mode === 'em' ? 'mau.em.thuoc' : 'mau.gv.thuoc'));
+    }
+    setMo(true);
+  };
   const [viecCach, setViecCach] = useState<'cham' | 'dien_so'>('cham');
   const [donVi, setDonVi] = useState('');
   const [donViMoi, setDonViMoi] = useState('');
@@ -56,7 +66,7 @@ export function NutThemThuoc({
       <button
         type="button"
         data-hd={mode === 'em' ? 'em-them-thuoc' : 'gv-them-thuoc'}
-        onClick={() => setMo(true)}
+        onClick={moHop}
         className="inline-flex min-h-[44px] items-center gap-1.5 self-start rounded-[12px] border-[1.5px] border-dashed border-navy/30 px-3 text-than font-extrabold text-navy/80 transition-colors hover:border-navy hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
       >
         <Ruler size={14} strokeWidth={2.5} />
@@ -64,7 +74,7 @@ export function NutThemThuoc({
       </button>
       {mo && (
         <Popup title={t('themThuoc')} onClose={dong} width="max-w-[460px]">
-          <FormTaiCho action={action} className="flex flex-col gap-3" onOk={dong} anThanhCong>
+          <FormTaiCho action={action} className="flex flex-col gap-3" onOk={dong} anThanhCong hd="tt-form">
             {(state) => (
               <>
                 <input type="hidden" name="cam_ket_id" value={camKetId} />
@@ -131,7 +141,7 @@ export function NutThemThuoc({
                     </div>
                   )}
                 </div>
-                <NutGui className="mt-1 min-h-[44px] self-start rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
+                <NutGui hd="tt-luu" className="mt-1 min-h-[44px] self-start rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
                   {tf('luuThuoc')}
                 </NutGui>
               </>

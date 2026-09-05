@@ -9,6 +9,7 @@ import {Popup} from '@/components/ui/Popup';
 import {Field, ctlWithBorder} from '@/components/ui/Field';
 import {FormTaiCho, NutGui} from '@/components/ui/FormTaiCho';
 import {DayLaGi, GoiYO} from '@/components/huongdan/DayLaGi';
+import {docCoMau, xoaCoMau} from '@/components/huongdan/mau';
 import {taoCamKetToi} from '@/app/[locale]/(dashboard)/wig/lop-actions';
 
 export function NutThemCamKetToi({
@@ -28,9 +29,19 @@ export function NutThemCamKetToi({
 }) {
   const t = useTranslations('lopMucTieu');
   const tCk = useTranslations('camKet');
+  const th = useTranslations('huongDan');
   const [mo, setMo] = useState(false);
   const [nd, setNd] = useState('');
   const [so, setSo] = useState('');
+  // Tour tập tạo (05/09): mở từ tour thì điền sẵn lời hứa mẫu.
+  const moHop = () => {
+    if (docCoMau('camKet')) {
+      xoaCoMau();
+      setNd(th('mau.gv.camKet'));
+      setSo('3');
+    }
+    setMo(true);
+  };
   const dong = () => {
     setMo(false);
     setNd('');
@@ -42,7 +53,7 @@ export function NutThemCamKetToi({
       <button
         type="button"
         data-hd="gv-them-cam-ket"
-        onClick={() => setMo(true)}
+        onClick={moHop}
         aria-label={t('themCamKetToi')}
         title={t('themCamKetToi')}
         className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-gold text-navy shadow-sm transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
@@ -51,7 +62,7 @@ export function NutThemCamKetToi({
       </button>
       {mo && (
         <Popup title={t('themCamKetToi')} onClose={dong} width="max-w-[460px]">
-          <FormTaiCho action={taoCamKetToi} className="flex flex-col gap-3" onOk={dong} anThanhCong>
+          <FormTaiCho action={taoCamKetToi} className="flex flex-col gap-3" onOk={dong} anThanhCong hd="ck-form">
             {(state) => (
               <>
                 <input type="hidden" name="class_id" value={classId} />
@@ -73,7 +84,7 @@ export function NutThemCamKetToi({
                     </span>
                   </Field>
                 )}
-                <NutGui className="mt-1 self-start rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
+                <NutGui hd="ck-luu" className="mt-1 self-start rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-all hover:bg-navy/90 focus-visible:ring-2 focus-visible:ring-gold">
                   {tCk('luu')}
                 </NutGui>
               </>

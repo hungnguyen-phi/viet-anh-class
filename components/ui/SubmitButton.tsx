@@ -18,9 +18,12 @@ export function SubmitButton({
   name,
   value,
   wrapClass = 'inline-flex items-center gap-1.5',
+  hd,
 }: {
   className?: string;
   children: ReactNode;
+  /** data-hd cho tour hướng dẫn chỉ tận nút. */
+  hd?: string;
   /**
    * TÊN/GIÁ TRỊ GỬI KÈM khi một form có NHIỀU nút gửi làm những việc khác nhau.
    *
@@ -55,6 +58,7 @@ export function SubmitButton({
         aria-label={label}
         name={name}
         value={value}
+        data-hd={hd}
         className={`relative ${className ?? ''}`}
       >
         <span className={`${wrapClass} ${pending ? 'invisible' : ''}`}>{children}</span>

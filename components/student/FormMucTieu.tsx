@@ -10,6 +10,7 @@ import {ONgayVN, ngayVN} from '@/components/ui/ONgayVN';
 import {ChonCuon} from '@/components/ui/ChonCuon';
 import {FormTaiCho, NutGui} from '@/components/ui/FormTaiCho';
 import {DayLaGi, GoiYO} from '@/components/huongdan/DayLaGi';
+import {docCoMau, xoaCoMau} from '@/components/huongdan/mau';
 import {AREAS} from '@/lib/areas';
 import {luuMucTieu, xoaMucTieu, type MucTieuState} from '@/app/[locale]/(dashboard)/student/actions';
 import {xoaMucTieuLop} from '@/app/[locale]/(dashboard)/wig/lop-actions';
@@ -102,27 +103,37 @@ export function FormMucTieu3Buoc({
 }) {
   const t = useTranslations('mucTieu');
   const tf = useTranslations('formChung');
+  const th = useTranslations('huongDan');
   const [state, formAction] = useActionState<MucTieuState, FormData>(luuMucTieu, {ok: false});
-
-  const [buoc, setBuoc] = useState<1 | 2 | 3>(1);
-  const [loiBuoc, setLoiBuoc] = useState<string | null>(null);
-  const [ten, setTen] = useState(dangSua?.ten ?? '');
-  const [linhVuc, setLinhVuc] = useState<string>(dangSua?.linh_vuc ?? areaPreset ?? AREAS[0]);
-  const [monId, setMonId] = useState<string>(dangSua?.subject_id ?? '');
-  const [x, setX] = useState(dangSua?.x_so != null ? String(dangSua.x_so) : '');
-  const [y, setY] = useState(dangSua?.y_so != null ? String(dangSua.y_so) : '');
-  const [donViId, setDonViId] = useState<string>(dangSua?.don_vi_id ?? '');
-  const [donViMoi, setDonViMoi] = useState('');
-  const [batDau] = useState(dangSua?.bat_dau ?? '');
-  const [ketThuc, setKetThuc] = useState(dangSua?.ket_thuc ?? '');
   const hanGioi = (() => {
     const now = new Date();
     const y1 = now.getMonth() + 1 >= 7 ? now.getFullYear() : now.getFullYear() - 1;
     const p = (n: number) => String(n).padStart(2, '0');
     return {min: `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`, max: `${y1 + 1}-07-31`};
   })();
-  const [moTa, setMoTa] = useState(dangSua?.mo_ta ?? '');
-  const [hoTroCho, setHoTroCho] = useState('');
+
+  // TOUR TẬP TẠO (05/09): mở từ tour thì ĐIỀN SẴN một mục tiêu mẫu — "(Tập) Em đọc 10 quyển sách",
+  // đo bằng số 0 → 10 quyển, hạn cuối năm học, hướng lên mục tiêu lớp đầu tiên. Người dùng chỉ
+  // đọc rồi bấm Tiếp/Lưu; xong tour có thể sửa tên thành mục tiêu thật hoặc xoá.
+  const [mau] = useState(() => !dangSua && docCoMau('mucTieu'));
+  useEffect(() => { if (mau) xoaCoMau(); }, [mau]);
+  const kMau = laToi ? 'mau.gv' : 'mau.em';
+
+  const [buoc, setBuoc] = useState<1 | 2 | 3>(1);
+  const [loiBuoc, setLoiBuoc] = useState<string | null>(null);
+  const [ten, setTen] = useState(mau ? th(`${kMau}.ten`) : (dangSua?.ten ?? ''));
+  const [linhVuc, setLinhVuc] = useState<string>(mau ? 'knowledge' : (dangSua?.linh_vuc ?? areaPreset ?? AREAS[0]));
+  const [monId, setMonId] = useState<string>(dangSua?.subject_id ?? '');
+  const [x, setX] = useState(mau ? '0' : dangSua?.x_so != null ? String(dangSua.x_so) : '');
+  const [y, setY] = useState(mau ? (laToi ? '12' : '10') : dangSua?.y_so != null ? String(dangSua.y_so) : '');
+  const [donViId, setDonViId] = useState<string>(
+    mau ? (donViList.find((d) => d.ma === 'quyen')?.id ?? donViList[0]?.id ?? '') : (dangSua?.don_vi_id ?? ''),
+  );
+  const [donViMoi, setDonViMoi] = useState('');
+  const [batDau] = useState(dangSua?.bat_dau ?? '');
+  const [ketThuc, setKetThuc] = useState(mau ? hanGioi.max : (dangSua?.ket_thuc ?? ''));
+  const [moTa, setMoTa] = useState(mau ? th(`${kMau}.moTa`) : (dangSua?.mo_ta ?? ''));
+  const [hoTroCho, setHoTroCho] = useState(mau ? (mucTieuLop[0]?.id ?? '') : '');
   const [loaiMoc, setLoaiMoc] = useState<string>(dangSua?.loai_moc ?? 'do_luong');
   // 0193: mục tiêu LỚP/TRƯỜNG "đếm số em đạt mục tiêu (%)" — kiểu lớp hay đặt nhất ngoài đời
   // ("95% học sinh đạt mục tiêu cá nhân"). Bật thì đơn vị khoá '%', đích mặc định 95, máy tự đếm.
@@ -371,7 +382,7 @@ export function FormMucTieu3Buoc({
 
         {/* ═══════════ BƯỚC 1 · MỤC TIÊU LÀ GÌ? ═══════════ */}
         {buoc === 1 && (
-          <div className="flex flex-col gap-3">
+          <div data-hd="mt-b1" className="flex flex-col gap-3">
             {!dangSua && <DayLaGi tang="mucTieu" vai={laToi ? 'gvToi' : cap === 'em' ? 'em' : cap === 'lop' ? 'gvLop' : 'nguoiLon'} />}
             {mauCuaLop.length > 0 && !dangSua && (
               <div className="rounded-[12px] bg-gold/[0.10] p-2.5">
@@ -475,7 +486,7 @@ export function FormMucTieu3Buoc({
 
         {/* ═══════════ BƯỚC 2 · ĐO THẾ NÀO? ═══════════ */}
         {buoc === 2 && (
-          <div className="flex flex-col gap-3">
+          <div data-hd="mt-b2" className="flex flex-col gap-3">
             <div>
               <p className="mb-1.5 text-chu-thich font-bold text-grey-mid">{t('loaiMocLabel')}</p>
               <div data-kiem="mt-loai-moc" className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
@@ -587,7 +598,7 @@ export function FormMucTieu3Buoc({
 
         {/* ═══════════ BƯỚC 3 · ĐỌC LẠI & LƯU ═══════════ */}
         {buoc === 3 && (
-          <div className="flex flex-col gap-3">
+          <div data-hd="mt-b3" className="flex flex-col gap-3">
             <div data-kiem="mt-buoc-3">
               <p className="mb-1.5 text-than font-extrabold text-navy">{t(kNL('buoc3'))}</p>
               <div data-kiem="mt-cau-rap-lai" className={`rounded-[16px] px-3.5 py-3 text-than font-bold leading-relaxed ${cauRap ? 'bg-gold/[0.14] text-navy' : 'bg-navy/[0.04] italic text-grey-mid'}`}>
@@ -656,7 +667,7 @@ export function FormMucTieu3Buoc({
           )}
           <span className={`${buoc < 3 ? 'ml-auto' : ''} text-chu-thich font-extrabold text-grey-mid`}>{tf('buocCua', {n: buoc})}</span>
           {buoc < 3 ? (
-            <button type="button" data-kiem="mt-tiep" onClick={tiep} className="btn-gold inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-1 rounded-[12px] px-4 text-than font-extrabold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy">
+            <button type="button" data-kiem="mt-tiep" data-hd="mt-tiep" onClick={tiep} className="btn-gold inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-1 rounded-[12px] px-4 text-than font-extrabold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy">
               {tf('tiep')}
               <ChevronRight size={14} strokeWidth={2.5} />
             </button>
@@ -667,7 +678,7 @@ export function FormMucTieu3Buoc({
               <button type="submit" name="action" value="nhap" className={nutPhu}>
                 {t('luuNhap')}
               </button>
-              <SubmitButton className="btn-gold min-h-[44px] rounded-[12px] px-4 text-than font-extrabold" name="action" value="gui" wrapClass="contents">
+              <SubmitButton className="btn-gold min-h-[44px] rounded-[12px] px-4 text-than font-extrabold" name="action" value="gui" wrapClass="contents" hd="mt-luu">
                 <span data-kiem="mt-gui">{laChinhEm ? t('gui') : t('luu')}</span>
               </SubmitButton>
             </span>
@@ -675,8 +686,9 @@ export function FormMucTieu3Buoc({
         </div>
       </form>
 
-      {/* XOÁ — trong hộp Sửa (tại chỗ, có hộp xác nhận). RLS quyết được xoá hay không. */}
-      {dangSua && (laChinhEm || cap === 'lop') && (
+      {/* XOÁ — trong hộp Sửa (tại chỗ, có hộp xác nhận). RLS quyết được xoá hay không.
+          05/09: thầy cô cũng xoá được mục tiêu CỦA CHÍNH MÌNH (laToi) — trước đây không có đường nào. */}
+      {dangSua && (laChinhEm || cap === 'lop' || laToi) && (
         <div className="mt-2 flex justify-end">
           <FormTaiCho action={cap === 'lop' ? xoaMucTieuLop : xoaMucTieu} xacNhan={t('xoaHoi')} nhanXacNhan={t('xoa')} nguyHiem anThanhCong onOk={() => onClose()} className="flex flex-col items-end gap-1">
             <input type="hidden" name="muc_tieu_id" value={dangSua.id ?? ''} />

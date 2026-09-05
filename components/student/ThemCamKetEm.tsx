@@ -11,6 +11,7 @@ import {luuCamKet, type CamKetState} from '@/app/[locale]/(dashboard)/student/ac
 import {Popup} from '@/components/ui/Popup';
 import {SubmitButton} from '@/components/ui/SubmitButton';
 import {DayLaGi, GoiYO} from '@/components/huongdan/DayLaGi';
+import {docCoMau, xoaCoMau} from '@/components/huongdan/mau';
 
 const INIT: CamKetState = {ok: false};
 
@@ -26,10 +27,20 @@ export function ThemCamKetEm({
   mucTieuLop: {id: string; ten: string; don_vi_id: string | null; ten_don_vi: string | null}[];
 }) {
   const t = useTranslations('camKet');
+  const th = useTranslations('huongDan');
   const [state, formAction] = useActionState(luuCamKet, INIT);
   const [mo, setMo] = useState(false);
+  // Tour tập tạo (05/09): mở từ tour thì điền sẵn lời hứa mẫu; đọc cờ lúc BẤM MỞ hộp.
   const [noiDung, setNoiDung] = useState('');
   const [soHua, setSoHua] = useState('');
+  const moHop = () => {
+    if (docCoMau('camKet')) {
+      xoaCoMau();
+      setNoiDung(th('mau.em.camKet'));
+      setSoHua('2');
+    }
+    setMo(true);
+  };
   const [mt, setMt] = useState(mucTieuLop.length === 1 ? mucTieuLop[0].id : '');
   const batBuoc = mucTieuLop.length >= 2;
   // Ràng buộc CSDL: có "hứa bao nhiêu" thì phải có đơn vị. Lấy đơn vị TỪ mục tiêu được chọn —
@@ -52,7 +63,7 @@ export function ThemCamKetEm({
       <button
         type="button"
         data-hd="em-them-cam-ket"
-        onClick={() => setMo(true)}
+        onClick={moHop}
         aria-label={t('themCuaEm')}
         title={t('themCuaEm')}
         className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-gold text-navy shadow-sm transition-transform hover:scale-105 active:scale-95"
@@ -61,7 +72,7 @@ export function ThemCamKetEm({
       </button>
       {mo && (
         <Popup title={t('themCuaEm')} onClose={() => setMo(false)} width="max-w-[460px]">
-          <form action={formAction} className="flex flex-col gap-2.5">
+          <form action={formAction} data-hd="ck-form" className="flex flex-col gap-2.5">
             <input type="hidden" name="student_id" value={studentId} />
             <input type="hidden" name="class_id" value={classId} />
             <input type="hidden" name="tuan_bat_dau" value={monday} />
@@ -127,6 +138,7 @@ export function ThemCamKetEm({
             <SubmitButton
               className="mt-1 min-h-[44px] self-start rounded-[12px] bg-navy px-4 text-than font-extrabold text-white transition-all hover:bg-navy/90"
               wrapClass="contents"
+              hd="ck-luu"
             >
               {t('luu')}
             </SubmitButton>

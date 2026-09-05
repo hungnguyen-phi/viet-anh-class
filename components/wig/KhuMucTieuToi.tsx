@@ -11,6 +11,8 @@ import {SuaThuocToi} from '@/components/wig/SuaThuocToi';
 import {GhiSoToi} from '@/components/wig/GhiSoToi';
 import {ChamCamKetToi} from '@/components/wig/ChamCamKetToi';
 import {NutThemThuoc} from '@/components/wig/NutThemThuoc';
+import {SuaMucTieuToi} from '@/components/wig/SuaMucTieuToi';
+import {laMau} from '@/components/huongdan/mau';
 import {BieuDoThat} from '@/components/wig/TheMucTieuLop';
 import type {DonViChon, MucTieuLopChon} from '@/components/student/FormMucTieu';
 import {dinhSo, type CamKetToi, type DayNoi, type LichSuTuan, type MucTieuV, type ThuocToi} from '@/components/wig/kieu-wig';
@@ -85,6 +87,7 @@ export async function KhuMucTieuToi({
           return (
             <div
               key={m.id}
+              data-mau={laMau(m.ten) ? '1' : undefined}
               style={{borderColor: `color-mix(in srgb, ${meta.hex} 30%, white)`, background: `color-mix(in srgb, ${meta.hex} 6%, white)`}}
               className="flex flex-col gap-2 rounded-[16px] border-[1.5px] p-3.5"
             >
@@ -120,6 +123,8 @@ export async function KhuMucTieuToi({
                     <BieuDoThat lichSu={ls} dich={Number(m.y_so)} mau={meta.hex} />
                   </div>
                 )}
+                {/* Bút chì sửa/xoá mục tiêu của chính mình (05/09) — trước không có đường nào. */}
+                <SuaMucTieuToi goal={m} teacherId={profileId} classId={classId} nhanTheoArea={nhanTheoArea} donViList={donViList} />
               </div>
 
               {/* CAM KẾT TUẦN của tôi cho mục tiêu này. */}

@@ -8,6 +8,7 @@ import {Field, ctlWithBorder, btnGhost, btnGold} from '@/components/ui/Field';
 import {Popup} from '@/components/ui/Popup';
 import {ONgayVN, ngayVN} from '@/components/ui/ONgayVN';
 import {DonutRing} from '@/components/charts/DonutRing';
+import {laMau} from '@/components/huongdan/mau';
 import {AREAS} from '@/lib/areas';
 import {
   FormMucTieu3Buoc,
@@ -240,6 +241,7 @@ function TheMucTieu({
         background: `color-mix(in srgb, ${mau.hex} 9%, white)`,
       }}
       data-hd="em-the-muc-tieu"
+      data-mau={laMau(mt.ten) ? '1' : undefined}
       className="relative flex flex-col gap-3 rounded-[16px] border-[1.5px] p-4"
     >
       <div className="flex items-start gap-3.5">

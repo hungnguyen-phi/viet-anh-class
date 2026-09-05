@@ -24,6 +24,7 @@ import {useFocusTrap} from '@/lib/useFocusTrap';
 import type {Role} from '@/lib/auth';
 import {PHIEN_BAN_TOUR, TOURS, tourChoTrang, tourTheoVai, trangCuaTour, type BuocTour, type TenTour} from './buoc';
 import {LuongSo} from './LuongSo';
+import {xoaCoMau} from './mau';
 
 const ICON = {sparkles: Sparkles, calendar: CalendarDays, target: Target, shield: ShieldCheck, graduation: GraduationCap};
 const LE = 8;      // khoảng hở quanh lỗ khoét
@@ -63,7 +64,10 @@ function ghiDaXem(userId: string, tour: TenTour) {
 function timPhanTu(hd: string): HTMLElement | null {
   // Ưu tiên phần tử ĐANG HIỆN (mobile/desktop có thể render hai bản cùng data-hd).
   // getClientRects() rỗng = display:none (kể cả phần tử fixed như thanh dưới bị lg:hidden).
-  const cands = Array.from(document.querySelectorAll<HTMLElement>(`[data-hd="${hd}"]`));
+  // '@…' = selector thô (tour tập làm chỉ vào nút TRONG thẻ mẫu: '@[data-mau] [data-hd="em-tick"]').
+  const sel = hd.startsWith('@') ? hd.slice(1) : `[data-hd="${hd}"]`;
+  let cands: HTMLElement[] = [];
+  try { cands = Array.from(document.querySelectorAll<HTMLElement>(sel)); } catch { return null; }
   return cands.find((el) => el.getClientRects().length > 0) ?? null;
 }
 
@@ -140,6 +144,7 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
     setTour(null);
     setHop(null);
     dichRef.current = null;
+    xoaCoMau(); // tour tập làm bỏ dở: lần mở hộp sau không bị điền sẵn mẫu
     if (!seenRef.current) {
       const {error} = await supabase.from('profiles').update({intro_seen: true}).eq('id', userId);
       if (!error) seenRef.current = true;
@@ -214,7 +219,7 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
 
   // Bước "thử bấm xem": bấm trúng phần tử đích → sang bước kế.
   useEffect(() => {
-    if (!tour || !buoc?.hanhDong) return;
+    if (!tour || !buoc?.hanhDong || buoc.tuBam) return;
     const el = dichRef.current;
     if (!el) return;
     const h = () => setTimeout(() => setI((v) => Math.min(v + 1, buocs.length - 1)), 250);
@@ -240,6 +245,17 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
 
   const cuoi = i === buocs.length - 1;
   const docTruoc = !buoc.hd;
+  // Tiếp: bước `tuBam` thì bấm hộ phần tử (mở hộp / Tiếp trong hộp / Lưu) rồi mới sang bước kế.
+  // Không tìm thấy gì để bấm (thẻ "thiếu") thì chỉ sang bước.
+  const tiep = () => {
+    if (cuoi) { void ket(); return; }
+    if (buoc.tuBam && !thieu) {
+      const el = buoc.bam ? timPhanTu(buoc.bam) : dichRef.current;
+      el?.click();
+    }
+    setI((v) => v + 1);
+  };
+  const nhanTiep = cuoi ? t('xong') : buoc.nhanTiep ? t(`nut.${buoc.nhanTiep}`) : t('tiep');
   // Thiếu phần tử vẫn nói đủ "đây là gì, cần điền gì" (05/09: chủ dự án thấy thẻ trống vô nghĩa),
   // chỉ thêm một dòng nhỏ giải thích vì sao chưa có nút.
   const tieuDe = t(`${tour}.${buoc.key}.tieuDe`);
@@ -376,10 +392,10 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
           <button
             type="button"
             data-tour-tiep
-            onClick={() => (cuoi ? void ket() : setI((v) => v + 1))}
+            onClick={tiep}
             className="btn-gold inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[12px] px-4 font-display text-noi-dung font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
           >
-            {cuoi ? t('xong') : t('tiep')}
+            {nhanTiep}
             {!cuoi && <ArrowRight size={14} strokeWidth={2.5} />}
           </button>
         </div>
