@@ -107,7 +107,15 @@ export async function TheMucTieuLop({
             {nhan && <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-chu-thich font-extrabold ${nhan.cls}`}>{nhan.text}</span>}
           </div>
           <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-chu-thich font-semibold text-grey-mid">
-            {m.loai_moc === 'do_luong' && m.y_so != null ? (
+            {m.nguon_so === 'dem_em' ? (
+              <span data-kiem="mt-lop-dem-em" className="text-noi-dung font-extrabold tabular-nums text-navy">
+                {t('demEmDat', {dat: m.tu_so ?? 0, tong: m.mau_so ?? 0})}
+                <span className="font-bold text-grey-mid">
+                  {' · '}
+                  {dinhSo(m.so ?? 0)}% / {dinhSo(m.y_so ?? 0)}%
+                </span>
+              </span>
+            ) : m.loai_moc === 'do_luong' && m.y_so != null ? (
               <span className="text-noi-dung font-extrabold tabular-nums text-navy">
                 {m.so != null ? dinhSo(m.so) : '—'}
                 <span className="font-bold text-grey-mid">
@@ -193,6 +201,8 @@ export async function TheMucTieuLop({
         <div className="mt-1 flex flex-col gap-2 rounded-[12px] bg-white/60 p-2.5">
           {m.nguon_so === 'con' ? (
             <p className="text-chu-thich font-semibold text-grey-mid">{t('nguonTuThayCo')}</p>
+          ) : m.nguon_so === 'dem_em' ? (
+            <p className="text-chu-thich font-semibold text-grey-mid">{t('nguonDemEm')}</p>
           ) : m.loai_moc === 'do_luong' && m.nguon_so === 'ghi_tay' && !chiDoc ? (
             <FormTaiCho action={ghiSoMucTieuLop} className="flex flex-wrap items-end gap-2">
               {ctx}

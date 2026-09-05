@@ -1558,6 +1558,7 @@
     "themMucTieu": "Thêm mục tiêu cơ sở",
     "mucTieuTrong": "Cơ sở chưa có mục tiêu nào.",
     "tuDo": "Tự đo",
+    "demEm": "Đếm số em đạt",
     "cuon": "Gộp từ các lớp",
     "gopDong": "Gộp từ {n} {loai} · {cach} · ngưỡng {nguong}",
     "khuChoDuyet": "Mục tiêu lớp chờ duyệt",
@@ -1786,7 +1787,13 @@
     "buoc3NguoiLon": "Đọc lại xem đúng ý chưa",
     "mocDoLuongGiaiNguoiLon": "Chọn khi muốn một con số đi lên hoặc đi xuống — như điểm, số bài, số phút. Mục tiêu này theo dõi bằng con số.",
     "mocHanhDongGiaiNguoiLon": "Chọn khi chỉ cần làm xong một việc (làm hay chưa làm). Nếu đo bằng số hay chia bước được thì nên chọn cách đó.",
-    "mocKeHoachGiaiNguoiLon": "Chọn khi việc gồm nhiều phần nối nhau, khó gói vào một con số. Chia nhỏ thành các bước rồi theo dõi từng bước một."
+    "mocKeHoachGiaiNguoiLon": "Chọn khi việc gồm nhiều phần nối nhau, khó gói vào một con số. Chia nhỏ thành các bước rồi theo dõi từng bước một.",
+    "demEmToggle": "Đếm số em đạt mục tiêu (%)",
+    "demEmHint": "Mỗi em đạt mục tiêu của mình thì lớp tiến 1 phần. Máy tự đếm những mục tiêu của các em đã hướng vào mục tiêu này — không cần cùng đơn vị.",
+    "demEmHintTruong": "Mỗi em đạt mục tiêu của mình thì trường tiến 1 phần. Máy tự đếm qua các mục tiêu lớp đã hướng vào mục tiêu này.",
+    "demEmY": "Bao nhiêu phần trăm các em đạt? *",
+    "demEmTomTat": "Đếm số em đạt mục tiêu · 0 → {y}%",
+    "cauChotLopDemEm": "{ten} — {y}% các em trong lớp đạt mục tiêu của mình, trước {ngay}."
   },
   "viec": {
     "chipLop": "Của lớp",
@@ -2024,7 +2031,9 @@
     "camKetToiTuLan": "Tuần này chưa tới. Cam kết và thước đo đang có sẽ tự tiếp sang vào sáng thứ Hai.",
     "hanhDongCachDo": "Làm xong việc này là đạt mục tiêu.",
     "nutLopTruong": "Mục tiêu lớp · trường",
-    "popupLopTruong": "Mục tiêu của lớp và trường"
+    "popupLopTruong": "Mục tiêu của lớp và trường",
+    "nguonDemEm": "Đếm từ mục tiêu của các em: em nào đạt mục tiêu của mình thì được tính.",
+    "demEmDat": "{dat}/{tong} em đạt"
   },
   "truongWig": {
     "title": "Mục tiêu của trường",
@@ -2039,7 +2048,9 @@
     "xoa": "Xoá mục tiêu",
     "ghiSoNhan": "Ghi số mới nhất:",
     "ghiSoLuu": "Lưu số",
-    "trongGvcn": "Trường chưa có mục tiêu nào. Ban giám hiệu sẽ đặt ở đây."
+    "trongGvcn": "Trường chưa có mục tiêu nào. Ban giám hiệu sẽ đặt ở đây.",
+    "nguonDemEm": "Đếm từ mục tiêu của các em qua mục tiêu lớp: em nào đạt mục tiêu của mình thì được tính.",
+    "demEmDat": "{dat}/{tong} em đạt"
   },
   "loiAdmin": {
     "roleSelf": "Không thể tự đổi vai trò của chính mình (tránh tự khoá quyền quản trị). Hãy nhờ một quản trị viên khác.",
@@ -2344,7 +2355,8 @@
     "csBoQuaEmail": "(bỏ qua {n} email sai định dạng)",
     "csDaHuyMoi": "Đã huỷ lời mời {email}",
     "phanTramBuoc": "Phần trăm các bước phải cộng đủ 100% (đang {dang}%).",
-    "daLuuChuaNoi": "Việc đã lưu, nhưng chưa nối vào mục tiêu được: {loi}"
+    "daLuuChuaNoi": "Việc đã lưu, nhưng chưa nối vào mục tiêu được: {loi}",
+    "demEmDichPhanTram": "Đích là phần trăm số em đạt — ghi một số từ 1 đến 100."
   },
   "formChung": {
     "luuThuoc": "Lưu thước đo",

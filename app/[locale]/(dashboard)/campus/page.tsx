@@ -353,7 +353,7 @@ export default async function CampusPage({
                       />
                     </div>
                     <p className="mt-1 text-nhan font-bold text-grey-mid">
-                      {w.nguon_so === 'con' ? tCo('cuon') : tCo('tuDo')}
+                      {w.nguon_so === 'con' ? tCo('cuon') : w.nguon_so === 'dem_em' ? tCo('demEm') : tCo('tuDo')}
                     </p>
                   </div>
                 );

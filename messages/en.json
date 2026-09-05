@@ -1558,6 +1558,7 @@
     "themMucTieu": "Add a campus goal",
     "mucTieuTrong": "No campus goal yet.",
     "tuDo": "Measured directly",
+    "demEm": "Count of students achieving",
     "cuon": "Rolled up from classes",
     "gopDong": "Rolled up from {n} {loai} · {cach} · threshold {nguong}",
     "khuChoDuyet": "Class goals awaiting approval",
@@ -1786,7 +1787,13 @@
     "buoc3NguoiLon": "Read it back",
     "mocDoLuongGiaiNguoiLon": "Pick this when you want a number to go up or down — like a score, a count, minutes. This goal is tracked by a number.",
     "mocHanhDongGiaiNguoiLon": "Choose this when finishing one thing is the goal (done or not). If it can be measured or split into steps, prefer that.",
-    "mocKeHoachGiaiNguoiLon": "Pick this when your goal has several parts that don't fit into one number. You break it into steps and track them one by one."
+    "mocKeHoachGiaiNguoiLon": "Pick this when your goal has several parts that don't fit into one number. You break it into steps and track them one by one.",
+    "demEmToggle": "Count students who reach their goal (%)",
+    "demEmHint": "Each student who reaches their own goal moves the class one step. The app counts the students' goals aimed at this one — units don't need to match.",
+    "demEmHintTruong": "Each student who reaches their own goal moves the school one step. The app counts through the class goals aimed at this one.",
+    "demEmY": "What percentage of students should reach it? *",
+    "demEmTomTat": "Count of students achieving · 0 → {y}%",
+    "cauChotLopDemEm": "{ten} — {y}% of students in our class reach their own goal, by {ngay}."
   },
   "viec": {
     "chipLop": "Class",
@@ -2024,7 +2031,9 @@
     "camKetToiTuLan": "This week hasn't started yet. Current promises and lead measures roll over automatically on Monday morning.",
     "hanhDongCachDo": "Finishing this action completes the goal.",
     "nutLopTruong": "Class · school goals",
-    "popupLopTruong": "Class and school goals"
+    "popupLopTruong": "Class and school goals",
+    "nguonDemEm": "Counted from the students' own goals: each student who reaches their goal counts.",
+    "demEmDat": "{dat}/{tong} students achieved"
   },
   "truongWig": {
     "title": "School goals",
@@ -2039,7 +2048,9 @@
     "xoa": "Delete goal",
     "ghiSoNhan": "Latest number:",
     "ghiSoLuu": "Save",
-    "trongGvcn": "The school has no goal yet. School leaders will set one here."
+    "trongGvcn": "The school has no goal yet. School leaders will set one here.",
+    "nguonDemEm": "Counted from the students' own goals through class goals: each student who reaches their goal counts.",
+    "demEmDat": "{dat}/{tong} students achieved"
   },
   "loiAdmin": {
     "roleSelf": "You cannot change your own role (to avoid locking yourself out). Ask another admin.",
@@ -2344,7 +2355,8 @@
     "csBoQuaEmail": "({n} malformed email(s) skipped)",
     "csDaHuyMoi": "Invitation to {email} cancelled",
     "phanTramBuoc": "Step percentages must add up to 100% (currently {dang}%).",
-    "daLuuChuaNoi": "Saved, but could not link it to the goal: {loi}"
+    "daLuuChuaNoi": "Saved, but could not link it to the goal: {loi}",
+    "demEmDichPhanTram": "The target is the percentage of students achieving — enter a number from 1 to 100."
   },
   "formChung": {
     "luuThuoc": "Save lead measure",
