@@ -158,12 +158,21 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
     }
   }, [tour, userId, supabase]);
 
-  // ── Đo phần tử đích & bám theo khi cuộn/đổi cỡ ─────────────────────────────────────────
+  // ── Đo phần tử đích ────────────────────────────────────────────────────────────────────
+  // 05/09 (chủ dự án: "không mượt, đừng bám đuổi, nhẹ như game"): đo MỘT LẦN khi vào bước, khung
+  // sáng và thẻ trượt tới chỗ mới bằng CSS transition; chỉ đo lại khi cuộn / đổi cỡ (có giãn cách)
+  // hoặc phần tử đích đổi kích thước. Trước đây một vòng rAF đo mỗi khung hình → dựng lại cả cây
+  // 60 lần/giây, khung sáng giật vì đánh nhau với transition.
   const doLai = useCallback(() => {
     const el = dichRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    setHop({top: r.top - LE, left: r.left - LE, width: r.width + LE * 2, height: r.height + LE * 2});
+    const moi = {top: r.top - LE, left: r.left - LE, width: r.width + LE * 2, height: r.height + LE * 2};
+    setHop((cu) =>
+      cu && Math.abs(cu.top - moi.top) < 0.5 && Math.abs(cu.left - moi.left) < 0.5 && Math.abs(cu.width - moi.width) < 0.5 && Math.abs(cu.height - moi.height) < 0.5
+        ? cu
+        : moi,
+    );
   }, []);
 
   useLayoutEffect(() => {
@@ -207,22 +216,37 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
       setThieu(false);
       setDangCho(false);
       dichRef.current = el;
-      el.scrollIntoView({block: 'center', behavior: 'smooth', inline: 'nearest'});
-      // Chờ cuộn xong rồi đo (smooth scroll ~300ms), đo thêm lần nữa cho chắc.
-      setTimeout(doLai, 60);
-      setTimeout(doLai, 380);
+      // Cuộn TỨC THÌ tới phần tử rồi đo một lần — khung sáng tự trượt từ chỗ cũ sang chỗ mới bằng
+      // CSS (cuộn mượt + đo giữa chừng là nguồn giật). Đo thêm một nhịp sau khi bố cục lắng.
+      el.scrollIntoView({block: 'center', behavior: 'instant' as ScrollBehavior, inline: 'nearest'});
+      doLai();
+      setTimeout(doLai, 220);
     };
     tim();
     return () => { huy = true; };
   }, [tour, i, buoc, buocs.length, doLai]);
 
+  // Đo lại KHI CẦN: cuộn / đổi cỡ (giãn 80 ms, passive) và khi phần tử đích đổi kích thước.
   useEffect(() => {
     if (!tour) return;
-    let raf = 0;
-    const tick = () => { doLai(); raf = requestAnimationFrame(tick); };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [tour, doLai]);
+    let hen: ReturnType<typeof setTimeout> | null = null;
+    const nhac = () => {
+      if (hen) clearTimeout(hen);
+      hen = setTimeout(doLai, 80);
+    };
+    window.addEventListener('scroll', nhac, {passive: true, capture: true});
+    window.addEventListener('resize', nhac, {passive: true});
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(nhac) : null;
+    const el = dichRef.current;
+    if (ro && el) ro.observe(el);
+    return () => {
+      window.removeEventListener('scroll', nhac, {capture: true});
+      window.removeEventListener('resize', nhac);
+      ro?.disconnect();
+      if (hen) clearTimeout(hen);
+    };
+    // hop đổi (tìm thấy phần tử mới) → gắn ResizeObserver vào đúng phần tử ấy.
+  }, [tour, i, hop, doLai]);
 
   // Bước "thử bấm xem": bấm trúng phần tử đích (hoặc `bam` — vd khoanh cả form, chờ bấm nút Lưu)
   // → sang bước kế. `choDong`: sau cú bấm đợi hộp đóng (máy chủ ghi xong) rồi mới sang; hộp còn
@@ -331,15 +355,16 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
 
   const overlay = hop && !docTruoc ? (
     <>
-      {/* 4 tấm chắn quanh lỗ khoét — phần tử đích ở giữa vẫn bấm được. */}
-      <div className="fixed inset-x-0 top-0 bg-navy/60" style={{height: Math.max(0, hop.top)}} onClick={() => void ket()} />
-      <div className="fixed inset-x-0 bottom-0 bg-navy/60" style={{top: hop.top + hop.height}} onClick={() => void ket()} />
-      <div className="fixed left-0 bg-navy/60" style={{top: hop.top, height: hop.height, width: Math.max(0, hop.left)}} onClick={() => void ket()} />
-      <div className="fixed right-0 bg-navy/60" style={{top: hop.top, height: hop.height, left: hop.left + hop.width}} onClick={() => void ket()} />
-      {/* Viền vàng quanh lỗ khoét — không bắt chuột. */}
+      {/* 4 tấm chắn quanh lỗ khoét — phần tử đích ở giữa vẫn bấm được; cũng trượt theo khung. */}
+      <div className="fixed inset-x-0 top-0 bg-navy/60 transition-[height] duration-300 ease-out motion-reduce:transition-none" style={{height: Math.max(0, hop.top)}} onClick={() => void ket()} />
+      <div className="fixed inset-x-0 bottom-0 bg-navy/60 transition-[top] duration-300 ease-out motion-reduce:transition-none" style={{top: hop.top + hop.height}} onClick={() => void ket()} />
+      <div className="fixed left-0 bg-navy/60 transition-[top,height,width] duration-300 ease-out motion-reduce:transition-none" style={{top: hop.top, height: hop.height, width: Math.max(0, hop.left)}} onClick={() => void ket()} />
+      <div className="fixed right-0 bg-navy/60 transition-[top,height,left] duration-300 ease-out motion-reduce:transition-none" style={{top: hop.top, height: hop.height, left: hop.left + hop.width}} onClick={() => void ket()} />
+      {/* Viền vàng quanh lỗ khoét — không bắt chuột. Trượt tới chỗ mới (300 ms) + nhịp sáng nhẹ
+          dẫn mắt như hướng dẫn trong game. */}
       <div
         data-tour-hop
-        className="pointer-events-none fixed rounded-[14px] ring-[3px] ring-gold shadow-[0_0_0_9999px_rgba(38,39,93,0)] transition-[top,left,width,height] duration-200 motion-reduce:transition-none"
+        className="animate-hd-nhip pointer-events-none fixed rounded-[14px] ring-[3px] ring-gold transition-[top,left,width,height] duration-300 ease-out motion-reduce:transition-none"
         style={{top: hop.top, left: hop.left, width: hop.width, height: hop.height}}
       />
     </>
@@ -358,7 +383,7 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
       aria-labelledby="hd-tieu-de"
       onClick={(e) => e.stopPropagation()}
       style={docTruoc || hep || !hop ? undefined : theStyle}
-      className={`fixed z-[61] flex flex-col gap-3 rounded-[16px] bg-white p-4 shadow-pop outline-none ring-1 ring-navy/10 ${
+      className={`fixed z-[61] flex flex-col gap-3 rounded-[16px] bg-white p-4 shadow-pop outline-none ring-1 ring-navy/10 transition-[top,left,bottom,right] duration-300 ease-out motion-reduce:transition-none ${
         docTruoc || !hop
           ? 'left-1/2 top-1/2 w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2'
           : hep
@@ -390,8 +415,8 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
         </button>
       </div>
 
-      {/* Nội dung */}
-      <div className={docTruoc ? 'flex flex-col items-center text-center' : 'flex items-start gap-3'} aria-live="polite">
+      {/* Nội dung — key theo bước để chữ mới hiện lên nhẹ (animate-rise), không nhảy khựng. */}
+      <div key={`${tour}-${i}`} className={`animate-rise ${docTruoc ? 'flex flex-col items-center text-center' : 'flex items-start gap-3'}`} aria-live="polite">
         {docTruoc ? (
           <span className="grid h-14 w-14 place-items-center rounded-2xl bg-linear-to-b from-gold-soft to-gold text-navy">
             <Icon size={26} strokeWidth={2} />

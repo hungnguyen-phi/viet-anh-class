@@ -418,6 +418,15 @@ html[data-chuyen-lop] main {
 @utility animate-luong {
   animation: va-luong 4.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
+/* Khung sáng của tour hướng dẫn: nhịp sáng nhẹ quanh viền vàng để dẫn mắt (kiểu tutorial game). */
+@keyframes va-hd-nhip {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(249, 221, 14, 0.55); }
+  60% { box-shadow: 0 0 0 10px rgba(249, 221, 14, 0); }
+}
+@utility animate-hd-nhip {
+  animation: va-hd-nhip 1.6s ease-out infinite;
+}
+
 @keyframes va-luong-sang {
   0%, 100% { box-shadow: 0 0 0 0 rgba(249, 221, 14, 0); }
   50% { box-shadow: 0 0 0 4px rgba(249, 221, 14, 0.55); }
