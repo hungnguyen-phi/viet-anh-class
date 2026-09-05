@@ -405,6 +405,27 @@ html[data-chuyen-lop] main {
   animation: va-rise var(--dur-base) var(--ease-out-expo) both;
 }
 
+/* Luồng số trong hướng dẫn: viên số chạy Cam kết → Mục tiêu tôi → Mục tiêu lớp, dừng ở mỗi bậc.
+   left tính theo % bề rộng hàng 3 ô (tâm ô = 1/6, 3/6, 5/6). prefers-reduced-motion đã rút về
+   0.001ms × 1 lượt ở trên → viên số đứng yên ở bậc cuối, vẫn đọc được. */
+@keyframes va-luong {
+  0%, 12% { left: 16.67%; opacity: 0; transform: translate(-50%, 6px) scale(0.8); }
+  18%, 32% { left: 16.67%; opacity: 1; transform: translate(-50%, 0) scale(1); }
+  44%, 58% { left: 50%; opacity: 1; transform: translate(-50%, 0) scale(1); }
+  70%, 88% { left: 83.33%; opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { left: 83.33%; opacity: 0; transform: translate(-50%, -6px) scale(0.8); }
+}
+@utility animate-luong {
+  animation: va-luong 4.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes va-luong-sang {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(249, 221, 14, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(249, 221, 14, 0.55); }
+}
+@utility animate-luong-sang {
+  animation: va-luong-sang 4.2s ease-in-out infinite;
+}
+
 @keyframes va-pop {
   0% {
     opacity: 0;

@@ -27,7 +27,7 @@ export function DongThongBao({
   coVien,
 }: {
   id: string;
-  link: string;
+  link: string | null;
   title: string;
   body: string | null;
   ngay: string;
@@ -35,6 +35,20 @@ export function DongThongBao({
   coVien: boolean;
 }) {
   const [moiLucVao] = useState(chuaDoc);
+  // Không có đích (tin chỉ để đọc, hoặc tin của tính năng đã gỡ) → dòng chữ thường, không phải nút.
+  // Trước đây vẫn là nút, bấm thì đi tới… chính trang này — người dùng thấy "bấm mà đứng im" (05/09).
+  if (!link) {
+    return (
+      <div className={`${coVien ? 'border-t border-navy/[0.08]' : ''} ${moiLucVao ? 'bg-gold/[0.06]' : ''} px-4 py-3`}>
+        <span className="flex items-center gap-2">
+          {moiLucVao && <span className="h-2 w-2 shrink-0 rounded-full bg-gold-deep" />}
+          <span className="text-noi-dung font-bold text-navy">{title}</span>
+          <span className="ml-auto shrink-0 text-chu-thich font-semibold text-grey-mid">{ngay}</span>
+        </span>
+        {body && <span className="mt-1 block text-than leading-relaxed text-txt">{body}</span>}
+      </div>
+    );
+  }
   return (
     <form
       action={docMotThongBao}

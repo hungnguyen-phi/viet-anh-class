@@ -76,7 +76,7 @@ export default async function NotificationsPage({params}: {params: Promise<{loca
             <DongThongBao
               key={n.id}
               id={n.id}
-              link={n.link ?? '/notifications'}
+              link={n.link}
               title={n.title}
               body={n.body}
               ngay={new Date(n.created_at).toLocaleDateString(locale === 'en' ? 'en-GB' : 'vi-VN')}

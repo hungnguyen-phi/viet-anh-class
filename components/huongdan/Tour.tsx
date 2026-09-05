@@ -23,6 +23,7 @@ import {createClient} from '@/lib/supabase/client';
 import {useFocusTrap} from '@/lib/useFocusTrap';
 import type {Role} from '@/lib/auth';
 import {PHIEN_BAN_TOUR, TOURS, tourChoTrang, tourTheoVai, trangCuaTour, type BuocTour, type TenTour} from './buoc';
+import {LuongSo} from './LuongSo';
 
 const ICON = {sparkles: Sparkles, calendar: CalendarDays, target: Target, shield: ShieldCheck, graduation: GraduationCap};
 const LE = 8;      // khoảng hở quanh lỗ khoét
@@ -155,13 +156,15 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
     dichRef.current = null;
     let huy = false;
     let lan = 0;
-    // Phần tử có thể xuất hiện muộn (popup đang mở) — thử lại vài nhịp. Bước "bỏ nếu thiếu"
-    // thì quyết ngay lần đầu, khỏi hiện thẻ trống một giây rồi mới nhảy.
+    // Phần tử có thể xuất hiện muộn CHỈ khi bước này vừa mở popup/sheet (`truoc`) — khi ấy thử lại
+    // vài nhịp. Bước thường thì quyết ngay: trang đã dựng xong trước khi tour chạy, thử lại chỉ
+    // làm khung bước trước đứng lì ~1s rồi mới nhảy về giữa (chủ dự án thấy ở bước 9→10, 05/09).
+    const toiDa = buoc.truoc && buoc.khiThieu !== 'bo' ? 6 : 0;
     const tim = () => {
       if (huy) return;
-      const el = timPhanTu(buoc.hd!);
+      const el = timPhanTu(buoc.hd!) ?? (buoc.hdPhu ? timPhanTu(buoc.hdPhu) : null);
       if (!el) {
-        if (buoc.khiThieu !== 'bo' && lan++ < 6) { setTimeout(tim, 120); return; }
+        if (lan++ < toiDa) { setTimeout(tim, 120); return; }
         // Không có trên màn.
         if (buoc.khiThieu === 'bo') {
           setI((v) => Math.min(v + 1, buocs.length - 1));
@@ -219,8 +222,10 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
 
   const cuoi = i === buocs.length - 1;
   const docTruoc = !buoc.hd;
-  const tieuDe = thieu ? t(`${tour}.${buoc.key}.tieuDe`) : t(`${tour}.${buoc.key}.tieuDe`);
-  const noiDung = thieu ? t('chuaCoOChoNay') : t(`${tour}.${buoc.key}.noiDung`);
+  // Thiếu phần tử vẫn nói đủ "đây là gì, cần điền gì" (05/09: chủ dự án thấy thẻ trống vô nghĩa),
+  // chỉ thêm một dòng nhỏ giải thích vì sao chưa có nút.
+  const tieuDe = t(`${tour}.${buoc.key}.tieuDe`);
+  const noiDung = t(`${tour}.${buoc.key}.noiDung`);
   const Icon = buoc.icon ? ICON[buoc.icon] : Sparkles;
 
   // ── Vị trí thẻ ──────────────────────────────────────────────────────────────────────────
@@ -311,6 +316,10 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
         <div className="min-w-0">
           <h2 id="hd-tieu-de" className={`font-display font-bold text-navy ${docTruoc ? 'mt-3 text-tieu-de' : 'text-doc'}`}>{tieuDe}</h2>
           <p className={`mt-1 text-noi-dung leading-relaxed text-txt ${docTruoc ? 'mx-auto max-w-[38ch]' : ''}`}>{noiDung}</p>
+          {buoc.luong && docTruoc && <LuongSo />}
+          {thieu && (
+            <p className="mt-2 rounded-[12px] bg-navy/[0.05] px-2.5 py-1.5 text-chu-thich font-semibold text-grey-mid">{t('chuaCoOChoNay')}</p>
+          )}
           {buoc.hanhDong && !thieu && (
             <p className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-gold/20 px-2 py-0.5 text-chu-thich font-extrabold text-navy">
               <MousePointerClick size={12} strokeWidth={2.5} />

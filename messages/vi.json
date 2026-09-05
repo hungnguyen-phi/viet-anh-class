@@ -2456,7 +2456,7 @@
     "tiep": "Tiếp",
     "xong": "Xong",
     "thuBam": "Thử bấm xem",
-    "chuaCoOChoNay": "Chỗ này chưa có gì. Khi em làm bước trước, nút sẽ hiện ở đây.",
+    "chuaCoOChoNay": "Chưa có nút ở đây vì bước trước chưa làm. Làm xong bước trước, nút sẽ hiện đúng chỗ này.",
     "hocSinh": {
       "doc1": {
         "tieuDe": "Đây là bảng điểm của em",
@@ -2542,23 +2542,23 @@
       },
       "doc3": {
         "tieuDe": "Số chảy thế nào",
-        "noiDung": "Cam kết của bạn cộng vào mục tiêu của bạn; mục tiêu của bạn cộng vào mục tiêu lớp nếu cùng đơn vị. Mục tiêu của các em chỉ hướng theo lớp, không cộng."
+        "noiDung": "Cam kết tuần Thắng → số cộng vào mục tiêu của bạn → rồi cộng tiếp vào mục tiêu lớp, khi cùng đơn vị. Bạn không phải cộng tay."
       },
       "chonLop": {
         "tieuDe": "Chọn lớp",
         "noiDung": "Bạn có nhiều lớp thì đổi ở đây. Tuần đang xem giữ nguyên khi đổi lớp."
       },
       "lopTruong": {
-        "tieuDe": "Mục tiêu lớp · trường",
-        "noiDung": "Bấm để đặt mục tiêu cho lớp, nối lên mục tiêu trường, và tick từng bước của kế hoạch. Ít đụng tới nên gom vào một hộp."
+        "tieuDe": "Mục tiêu lớp",
+        "noiDung": "Bấm để đặt mục tiêu cho lớp và nối lên mục tiêu trường."
       },
       "lichHop": {
         "tieuDe": "Lịch họp",
-        "noiDung": "Ghép nhóm bạn học 2–3 em và đặt lịch họp riêng với từng em. Mọi thứ trong một hộp."
+        "noiDung": "Ghép nhóm bạn học 2–3 em và đặt lịch họp riêng với từng em."
       },
       "tuan": {
         "tieuDe": "Xem tuần khác",
-        "noiDung": "Bấm ‹ › để lùi hoặc tiến. Tuần chưa tới thì cam kết tự lăn sang vào sáng thứ Hai."
+        "noiDung": "Bấm ‹ › để lùi hoặc tiến."
       },
       "baSo": {
         "tieuDe": "Ba số của các em",
@@ -2570,15 +2570,15 @@
       },
       "camKetToi": {
         "tieuDe": "Cam kết tuần của tôi",
-        "noiDung": "Bấm + để hứa một việc trong tuần cho mục tiêu này. Đơn vị theo mục tiêu."
+        "noiDung": "Cam kết tuần là một việc bạn hứa làm xong trong tuần này cho mục tiêu, có con số. Bấm + rồi điền: việc gì, bao nhiêu. Đơn vị lấy theo mục tiêu."
       },
       "chamToi": {
         "tieuDe": "Tự chấm",
-        "noiDung": "Điền số đạt được, bấm Thắng hoặc Thua. Bỏ chấm nếu nhập nhầm. Chấm xong thì thước đo khoá lại."
+        "noiDung": "Cuối tuần bạn tự chấm cam kết: điền số đã đạt được, bấm Thắng hoặc Thua. Nhập nhầm thì Bỏ chấm. Chấm xong, thước đo tuần đó khoá lại."
       },
       "thuocToi": {
         "tieuDe": "Thước đo của tôi",
-        "noiDung": "Việc nhỏ mỗi ngày. Tick ô ngày làm xong; thêm thước đo bằng nút bên dưới."
+        "noiDung": "Thước đo dẫn dắt là việc nhỏ làm mỗi ngày để cam kết thành thật. Bấm Thêm thước đo, điền: việc gì, làm vào những ngày nào. Làm xong hôm nào thì tick ô hôm đó."
       },
       "cacEm": {
         "tieuDe": "Các em tuần này",
@@ -2590,11 +2590,15 @@
       },
       "tabKhac": {
         "tieuDe": "Các màn khác",
-        "noiDung": "Điểm danh, Danh sách lớp, Bảng điểm nằm trong menu này. Hướng dẫn cũng ở đây."
+        "noiDung": "Điểm danh, Danh sách lớp, Bảng điểm và các màn khác nằm ở đây."
       },
       "chuong": {
         "tieuDe": "Chuông",
         "noiDung": "Em gửi mục tiêu, tin nhắn phụ huynh, nhắc họp — đều báo ở đây."
+      },
+      "caiDat": {
+        "tieuDe": "Cài đặt",
+        "noiDung": "Đổi ngôn ngữ, đăng xuất, và xem lại Hướng dẫn này bất cứ lúc nào."
       }
     },
     "quanTri": {
@@ -2709,6 +2713,13 @@
       "soHua": "Hứa đạt bao nhiêu?",
       "thuoc": "Việc nhỏ làm mỗi ngày.",
       "ngayTick": "Ngày nào sẽ làm? Bỏ ngày nghỉ."
+    },
+    "luong": {
+      "camKet": "Cam kết tuần",
+      "mucTieuToi": "Mục tiêu của tôi",
+      "mucTieuLop": "Mục tiêu lớp",
+      "cungDonVi": "cùng đơn vị",
+      "moTa": "Sơ đồ: số từ cam kết tuần cộng vào mục tiêu của tôi, rồi cộng vào mục tiêu lớp khi cùng đơn vị."
     }
   }
 }

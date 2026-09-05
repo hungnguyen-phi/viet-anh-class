@@ -11,6 +11,8 @@ export type BuocTour = {
   key: string;
   /** data-hd của phần tử đích. Không có = thẻ đọc-trước (không spotlight). */
   hd?: string;
+  /** data-hd dự phòng khi `hd` không hiện (vd desktop chỉ thanh tab, mobile chỉ nút ☰). */
+  hdPhu?: string;
   /** Icon lucide cho thẻ đọc-trước. */
   icon?: 'sparkles' | 'calendar' | 'target' | 'shield' | 'graduation';
   /** Bước mời bấm thử: bấm trúng phần tử đích → tự sang bước kế. */
@@ -19,12 +21,14 @@ export type BuocTour = {
   khiThieu?: 'bo' | 'thay';
   /** Việc cần làm trước khi chỉ (mở sheet/popup). Trả về true nếu đã làm. */
   truoc?: () => boolean | void;
+  /** Thẻ đọc-trước có sơ đồ luồng số động (LuongSo) dưới câu chữ. */
+  luong?: boolean;
 };
 
 export type TenTour = 'hocSinh' | 'giaoVien' | 'quanTri';
 
 // Phiên bản nội dung — đổi số này khi sửa tour đáng kể để người đã xem được xem lại.
-export const PHIEN_BAN_TOUR = 1;
+export const PHIEN_BAN_TOUR = 2;
 
 export const TOUR_HOC_SINH: BuocTour[] = [
   {key: 'doc1', icon: 'sparkles'},
@@ -50,7 +54,7 @@ export const TOUR_HOC_SINH: BuocTour[] = [
 export const TOUR_GIAO_VIEN: BuocTour[] = [
   {key: 'doc1', icon: 'graduation'},
   {key: 'doc2', icon: 'calendar'},
-  {key: 'doc3', icon: 'target'},
+  {key: 'doc3', icon: 'target', luong: true},
   {key: 'chonLop', hd: 'chon-lop', khiThieu: 'bo'},
   {key: 'lopTruong', hd: 'gv-lop-truong'},
   {key: 'lichHop', hd: 'gv-lich-hop', khiThieu: 'bo'},
@@ -62,8 +66,10 @@ export const TOUR_GIAO_VIEN: BuocTour[] = [
   {key: 'thuocToi', hd: 'gv-tick', khiThieu: 'thay'},
   {key: 'cacEm', hd: 'gv-cac-em'},
   {key: 'choDuyet', hd: 'gv-cho-duyet'},
-  {key: 'tabKhac', hd: 'menu'},
+  // Desktop: các màn khác là thanh tab; mobile: nằm trong nút ☰ (05/09: từng khoanh nhầm nút Cài đặt).
+  {key: 'tabKhac', hd: 'tab-khac', hdPhu: 'menu'},
   {key: 'chuong', hd: 'chuong'},
+  {key: 'caiDat', hd: 'menu'},
 ];
 
 export const TOUR_QUAN_TRI: BuocTour[] = [

@@ -300,7 +300,7 @@ export function AppNav({
         </Link>
 
         {/* Desktop: nav tabs — chỉ hiện từ lg, cuộn ngang khi hẹp */}
-        <nav className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] lg:flex [&::-webkit-scrollbar]:hidden">
+        <nav data-hd="tab-khac" className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] lg:flex [&::-webkit-scrollbar]:hidden">
           {links.map(({href, key, Icon}) => {
             const active = isActive(href);
             return (

@@ -2456,7 +2456,7 @@
     "tiep": "Next",
     "xong": "Done",
     "thuBam": "Try tapping it",
-    "chuaCoOChoNay": "Nothing here yet. Once you do the previous step, the button will appear here.",
+    "chuaCoOChoNay": "No button here yet because the previous step isn't done. Finish it and the button appears right here.",
     "hocSinh": {
       "doc1": {
         "tieuDe": "This is your scoreboard",
@@ -2542,23 +2542,23 @@
       },
       "doc3": {
         "tieuDe": "How numbers flow",
-        "noiDung": "Your promise adds to your goal; your goal adds to the class goal when units match. Students' goals only point at the class goal — they do not add."
+        "noiDung": "Weekly promise wins → the number adds to your goal → then adds on to the class goal, when units match. No adding by hand."
       },
       "chonLop": {
         "tieuDe": "Pick a class",
         "noiDung": "Switch here if you have several classes. The week you are viewing is kept."
       },
       "lopTruong": {
-        "tieuDe": "Class · school goals",
-        "noiDung": "Set the class goal, link it to the school goal, and tick plan steps. Rarely used, so it lives in one box."
+        "tieuDe": "Class goal",
+        "noiDung": "Tap to set the class goal and link it to the school goal."
       },
       "lichHop": {
         "tieuDe": "Meetings",
-        "noiDung": "Pair students into buddy groups of 2–3 and schedule one-on-one meetings. All in one box."
+        "noiDung": "Pair students into buddy groups of 2–3 and schedule one-on-one meetings."
       },
       "tuan": {
         "tieuDe": "See another week",
-        "noiDung": "Use ‹ › to go back or forward. Future weeks fill in automatically on Monday morning."
+        "noiDung": "Tap ‹ › to go back or forward."
       },
       "baSo": {
         "tieuDe": "Three class numbers",
@@ -2570,15 +2570,15 @@
       },
       "camKetToi": {
         "tieuDe": "My weekly promise",
-        "noiDung": "Tap + to promise one thing this week for this goal. The unit follows the goal."
+        "noiDung": "A weekly promise is one thing you commit to finish this week for the goal, with a number. Tap + and fill in: what, and how much. The unit follows the goal."
       },
       "chamToi": {
         "tieuDe": "Grade yourself",
-        "noiDung": "Enter what you reached, tap Win or Loss. Ungrade if you mistyped. Once graded, lead measures lock."
+        "noiDung": "At week end you grade your own promise: enter what you reached, tap Win or Loss. Mistyped? Ungrade. Once graded, that week's lead measures lock."
       },
       "thuocToi": {
         "tieuDe": "My lead measure",
-        "noiDung": "The small daily action. Tick the day you did it; add more with the button below."
+        "noiDung": "A lead measure is the small daily action that makes the promise come true. Tap Add lead measure and fill in: what, and on which days. Tick the day's box once it's done."
       },
       "cacEm": {
         "tieuDe": "Students this week",
@@ -2590,11 +2590,15 @@
       },
       "tabKhac": {
         "tieuDe": "Other screens",
-        "noiDung": "Attendance, Roster and Grades are in this menu. So is the Guide."
+        "noiDung": "Attendance, Roster, Grades and the other screens live here."
       },
       "chuong": {
         "tieuDe": "Notifications",
         "noiDung": "Goal submissions, parent messages, meeting reminders — all show here."
+      },
+      "caiDat": {
+        "tieuDe": "Settings",
+        "noiDung": "Change language, sign out, and reopen this Guide any time."
       }
     },
     "quanTri": {
@@ -2709,6 +2713,13 @@
       "soHua": "How much do you promise?",
       "thuoc": "The small thing done every day.",
       "ngayTick": "Which days? Skip rest days."
+    },
+    "luong": {
+      "camKet": "Weekly promise",
+      "mucTieuToi": "My goal",
+      "mucTieuLop": "Class goal",
+      "cungDonVi": "same unit",
+      "moTa": "Diagram: the number from a weekly promise adds to my goal, then to the class goal when units match."
     }
   }
 }
