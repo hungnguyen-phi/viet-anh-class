@@ -917,7 +917,7 @@
   },
   "timetable": {
     "title": "Thời khoá biểu",
-    "noSubjects": "Lớp chưa khai môn nào nên chưa chọn được môn. Bấm nút bên cạnh để thêm bộ môn của cơ sở vào lớp, rồi xếp lịch như thường.",
+    "noSubjects": "Lớp chưa khai môn học nào nên các ô chưa có dấu + để xếp tiết. Bấm nút bên cạnh để thêm bộ môn của cơ sở vào lớp — xong là các ô hiện dấu + ngay.",
     "period": "Tiết",
     "subject": "Môn học",
     "room": "Phòng",
@@ -1614,7 +1614,7 @@
     "dongDoi": "Em đổi mục tiêu khác",
     "dongBo": "Em thôi mục tiêu này",
     "xoa": "Xoá",
-    "xoaHoi": "Xoá mục tiêu này? Chỉ xoá được khi chưa có số nào ghi dưới nó.",
+    "xoaHoi": "Xoá mục tiêu này? Cam kết, thước đo và số đã ghi dưới nó cũng bị xoá theo. Không hoàn tác được.",
     "trong": "Em chưa có mục tiêu nào.",
     "them": "Đặt mục tiêu",
     "themTuMau": "Chọn từ mẫu của lớp",
@@ -2094,7 +2094,7 @@
     "khongGhiDuocQuyen": "Không ghi được — bạn không có quyền với mục tiêu này.",
     "daGhiSoLop": "Đã ghi số cho mục tiêu của lớp.",
     "thieuMucTieu": "Thiếu mục tiêu.",
-    "khongXoaMucTieuLop": "Không xoá được — mục tiêu đã có số đo hoặc có dây nối. Hãy Đóng thay vì xoá.",
+    "khongXoaMucTieuLop": "Không xoá được: mục tiêu này không còn, hoặc bạn không có quyền xoá.",
     "daXoaMucTieuLop": "Đã xoá mục tiêu của lớp.",
     "camKetHuaGiToi": "Tuần này bạn hứa làm gì? Viết một câu.",
     "toiDa300": "Tối đa 300 ký tự.",
@@ -2168,7 +2168,7 @@
     "daLuuMucTieuCuaThay": "Đã lưu mục tiêu của thầy cô.",
     "khongDongDuocKhongCoQuyen": "Không đóng được — không có quyền hoặc đã xoá.",
     "daDongMucTieu": "Đã đóng mục tiêu",
-    "chiXoaDuocKhiMucTieu": "Chỉ xoá được khi mục tiêu chưa có số nào ghi dưới nó.",
+    "chiXoaDuocKhiMucTieu": "Không xoá được: mục tiêu này không còn, hoặc em không có quyền xoá.",
     "daXoaMucTieu": "Đã xoá mục tiêu",
     "mucTieuNayKhongConNua": "Mục tiêu này không còn nữa.",
     "daDuyetMucTieuCuaEm": "Đã duyệt mục tiêu của em",
@@ -2831,28 +2831,32 @@
       "clb": {
         "tieuDe": "Câu lạc bộ",
         "noiDung": "Lịch câu lạc bộ dùng chung cả cơ sở, đặt dưới lịch lớp. Em tự biết mình đăng ký gì rồi nhìn giờ mà đi. Ban giám hiệu hoặc quản trị viên thêm và xoá."
+      },
+      "khaiMon": {
+        "tieuDe": "Khai môn trước",
+        "noiDung": "Lớp chưa khai môn nên các ô chưa có dấu +. Bấm Thêm bộ môn cho lớp: app gieo bộ môn chuẩn của cơ sở vào lớp, xong là các ô hiện dấu + để xếp tiết."
       }
     },
     "taoMauEm": {
       "doc1": {
         "tieuDe": "Tập tạo một mục tiêu",
-        "noiDung": "Mình sẽ làm THẬT một mục tiêu mẫu: đặt mục tiêu → hứa một việc cho tuần → thêm thước đo mỗi ngày. Mọi ô đã điền sẵn, em chỉ đọc rồi bấm nút vàng. Xong rồi giữ hay xoá đều được."
+        "noiDung": "Mình sẽ làm THẬT một mục tiêu mẫu: đặt mục tiêu → hứa một việc cho tuần → thêm thước đo mỗi ngày. Các ô đã điền sẵn, em tự bấm từng nút đang sáng. Xong rồi giữ hay xoá đều được."
       },
       "moHop": {
         "tieuDe": "Đặt mục tiêu",
-        "noiDung": "Mục tiêu là đích em muốn tới trong năm học, có con số để biết mình tới đâu. Bấm Mở hộp — hộp đặt mục tiêu sẽ hiện ra với ví dụ điền sẵn."
+        "noiDung": "Mục tiêu là đích em muốn tới trong năm học, có con số để biết mình tới đâu. Bấm dấu + đang sáng để mở hộp đặt mục tiêu (ví dụ đã điền sẵn)."
       },
       "b1": {
         "tieuDe": "Bước 1 · Mục tiêu là gì?",
-        "noiDung": "Nhóm: Kiến thức. Tên mục tiêu: có con số (10 quyển sách). Mô tả: em sẽ làm thế nào. Hướng lên mục tiêu lớp: để mục tiêu của em góp vào mục tiêu chung. Đọc xong bấm Tiếp trong hộp."
+        "noiDung": "Nhóm: Kiến thức. Tên mục tiêu: có con số (10 quyển sách). Mô tả: em sẽ làm thế nào. Hướng lên mục tiêu lớp: để mục tiêu của em góp vào mục tiêu chung. Đọc xong bấm nút Tiếp ở cuối hộp."
       },
       "b2": {
         "tieuDe": "Bước 2 · Đo thế nào?",
-        "noiDung": "Đo bằng số: bắt đầu từ 0, đích 10, đơn vị quyển. Ngày đến hạn: cuối năm học. Số này sẽ tự nhảy khi em ghi số hoặc khi cam kết tuần Thắng."
+        "noiDung": "Đo bằng số: bắt đầu từ 0, đích 10, đơn vị quyển. Ngày đến hạn: cuối năm học. Số này tự nhảy khi em ghi số hoặc khi cam kết tuần Thắng. Bấm Tiếp ở cuối hộp."
       },
       "b3": {
         "tieuDe": "Bước 3 · Đọc lại và gửi",
-        "noiDung": "Đây là câu mục tiêu ráp từ những ô em vừa xem. Thấy đúng thì bấm Gửi — mục tiêu sẽ tới thầy cô để duyệt."
+        "noiDung": "Đây là câu mục tiêu ráp từ những ô em vừa xem. Thấy đúng thì bấm nút Gửi ở cuối hộp — mục tiêu sẽ tới thầy cô để duyệt."
       },
       "the": {
         "tieuDe": "Thẻ mục tiêu mẫu",
@@ -2860,11 +2864,11 @@
       },
       "moCamKet": {
         "tieuDe": "Hứa một việc cho tuần này",
-        "noiDung": "Cam kết tuần là một việc em hứa làm xong trong tuần cho mục tiêu này, có con số. Bấm Mở hộp — lời hứa mẫu đã điền sẵn."
+        "noiDung": "Cam kết tuần là một việc em hứa làm xong trong tuần cho mục tiêu này, có con số. Bấm dấu + đang sáng — lời hứa mẫu đã điền sẵn."
       },
       "ckForm": {
         "tieuDe": "Hộp cam kết tuần",
-        "noiDung": "Lời hứa: “Tuần này em đọc xong 2 quyển”. Số hứa: 2, đơn vị lấy theo mục tiêu. Bấm Lưu."
+        "noiDung": "Lời hứa: “Tuần này em đọc xong 2 quyển”. Số hứa: 2, đơn vị lấy theo mục tiêu. Bấm nút Lưu trong hộp."
       },
       "cham": {
         "tieuDe": "Cuối tuần tự chấm",
@@ -2872,15 +2876,15 @@
       },
       "moThuoc": {
         "tieuDe": "Thêm thước đo dẫn dắt",
-        "noiDung": "Thước đo là việc nhỏ em làm mỗi ngày để giữ lời hứa (đọc 20 phút mỗi tối). Bấm Mở hộp — tên thước đo đã điền sẵn."
+        "noiDung": "Thước đo là việc nhỏ em làm mỗi ngày để giữ lời hứa (đọc 20 phút mỗi tối). Bấm nút Thêm thước đo đang sáng — tên đã điền sẵn."
       },
       "ttForm": {
         "tieuDe": "Hộp thước đo",
-        "noiDung": "Tên việc: “Đọc 20 phút mỗi tối”. Cách đo: tick những ngày T2–T6 (đã chọn sẵn, bấm để đổi). Bấm Lưu."
+        "noiDung": "Tên việc: “Đọc 20 phút mỗi tối”. Cách đo: tick những ngày T2–T6 (đã chọn sẵn, bấm để đổi). Bấm nút Lưu thước đo trong hộp."
       },
       "tick": {
         "tieuDe": "Tick mỗi ngày",
-        "noiDung": "Mỗi tối đọc xong thì bấm ô ngày hôm đó. Bấm nhầm thì bấm lại để bỏ. Tick đủ ngày → cam kết dễ Thắng → số chảy lên mục tiêu."
+        "noiDung": "Mỗi tối đọc xong thì bấm ô ngày hôm đó. Bấm nhầm thì bấm lại để bỏ. Thử bấm ô hôm nay xem — tick đủ ngày → cam kết dễ Thắng → số chảy lên mục tiêu."
       },
       "xoa": {
         "tieuDe": "Giữ hay xoá?",
@@ -2890,23 +2894,23 @@
     "taoMauGv": {
       "doc1": {
         "tieuDe": "Tập tạo một mục tiêu của tôi",
-        "noiDung": "Mình sẽ làm THẬT một mục tiêu mẫu của chính thầy cô: đặt mục tiêu → hứa một việc cho tuần → thêm thước đo mỗi ngày. Mọi ô đã điền sẵn, bạn chỉ đọc rồi bấm nút vàng. Xong rồi giữ hay xoá đều được."
+        "noiDung": "Mình sẽ làm THẬT một mục tiêu mẫu của chính thầy cô: đặt mục tiêu → hứa một việc cho tuần → thêm thước đo mỗi ngày. Các ô đã điền sẵn, bạn tự bấm từng nút đang sáng. Xong rồi giữ hay xoá đều được."
       },
       "moHop": {
         "tieuDe": "Đặt mục tiêu của tôi",
-        "noiDung": "Thầy cô có mục tiêu riêng như các em, nối vào mục tiêu lớp để làm gương. Bấm Mở hộp — hộp đặt mục tiêu sẽ hiện ra với ví dụ điền sẵn."
+        "noiDung": "Thầy cô có mục tiêu riêng như các em, nối vào mục tiêu lớp để làm gương. Bấm nút Đặt mục tiêu của tôi đang sáng để mở hộp (ví dụ đã điền sẵn)."
       },
       "b1": {
         "tieuDe": "Bước 1 · Mục tiêu là gì?",
-        "noiDung": "Nhóm: Kiến thức. Tên: có con số (12 quyển). Mô tả: cách làm. Hỗ trợ cho: mục tiêu lớp đầu tiên — cùng đơn vị thì số của bạn cộng thẳng lên lớp. Bấm Tiếp trong hộp."
+        "noiDung": "Nhóm: Kiến thức. Tên: có con số (12 quyển). Mô tả: cách làm. Hỗ trợ cho: mục tiêu lớp đầu tiên — cùng đơn vị thì số của bạn cộng thẳng lên lớp. Đọc xong bấm nút Tiếp ở cuối hộp."
       },
       "b2": {
         "tieuDe": "Bước 2 · Đo thế nào?",
-        "noiDung": "Đo bằng số: từ 0 lên 12 quyển, hạn cuối năm học. Số nhảy khi bạn ghi số hoặc khi cam kết tuần Thắng."
+        "noiDung": "Đo bằng số: từ 0 lên 12 quyển, hạn cuối năm học. Số nhảy khi bạn ghi số hoặc khi cam kết tuần Thắng. Bấm Tiếp ở cuối hộp."
       },
       "b3": {
         "tieuDe": "Bước 3 · Đọc lại và lưu",
-        "noiDung": "Câu mục tiêu ráp từ các ô vừa xem. Đúng thì bấm Lưu — mục tiêu của thầy cô không cần ai duyệt."
+        "noiDung": "Câu mục tiêu ráp từ các ô vừa xem. Đúng thì bấm nút Lưu ở cuối hộp — mục tiêu của thầy cô không cần ai duyệt."
       },
       "the": {
         "tieuDe": "Thẻ mục tiêu mẫu",
@@ -2914,11 +2918,11 @@
       },
       "moCamKet": {
         "tieuDe": "Hứa một việc cho tuần này",
-        "noiDung": "Cam kết tuần là một việc bạn hứa làm xong trong tuần cho mục tiêu này, có con số. Bấm Mở hộp — lời hứa mẫu đã điền sẵn."
+        "noiDung": "Cam kết tuần là một việc bạn hứa làm xong trong tuần cho mục tiêu này, có con số. Bấm dấu + đang sáng — lời hứa mẫu đã điền sẵn."
       },
       "ckForm": {
         "tieuDe": "Hộp cam kết tuần",
-        "noiDung": "Lời hứa: “Tuần này tôi đọc xong 3 quyển”. Số hứa: 3, đơn vị ép theo mục tiêu. Bấm Lưu."
+        "noiDung": "Lời hứa: “Tuần này tôi đọc xong 3 quyển”. Số hứa: 3, đơn vị ép theo mục tiêu. Bấm nút Lưu cam kết trong hộp."
       },
       "cham": {
         "tieuDe": "Cuối tuần tự chấm",
@@ -2926,15 +2930,15 @@
       },
       "moThuoc": {
         "tieuDe": "Thêm thước đo dẫn dắt",
-        "noiDung": "Thước đo là việc nhỏ làm mỗi ngày để giữ lời hứa (đọc 20 phút mỗi tối). Bấm Mở hộp — tên đã điền sẵn."
+        "noiDung": "Thước đo là việc nhỏ làm mỗi ngày để giữ lời hứa (đọc 20 phút mỗi tối). Bấm nút Thêm thước đo đang sáng — tên đã điền sẵn."
       },
       "ttForm": {
         "tieuDe": "Hộp thước đo",
-        "noiDung": "Tên việc: “Đọc 20 phút mỗi tối”. Cách đo: tick T2–T6 (đã chọn sẵn, bấm để đổi). Bấm Lưu."
+        "noiDung": "Tên việc: “Đọc 20 phút mỗi tối”. Cách đo: tick T2–T6 (đã chọn sẵn, bấm để đổi). Bấm nút Lưu thước đo trong hộp."
       },
       "tick": {
         "tieuDe": "Tick mỗi ngày",
-        "noiDung": "Làm xong hôm nào thì bấm ô hôm đó; bấm lại để bỏ. Các em nhìn thấy thầy cô tick đều — đó là làm gương."
+        "noiDung": "Làm xong hôm nào thì bấm ô hôm đó; bấm lại để bỏ. Thử bấm ô hôm nay xem. Các em nhìn thấy thầy cô tick đều — đó là làm gương."
       },
       "xoa": {
         "tieuDe": "Giữ hay xoá?",
@@ -2963,6 +2967,7 @@
       }
     },
     "hopBaoLoi": "Hộp chưa đóng vì máy chủ báo lỗi. Đọc dòng đỏ trong hộp, sửa rồi bấm Lưu lại — hoặc Bỏ qua tour.",
-    "chuaCoViChoDuyet": "Nút này hiện sau khi thầy cô duyệt mục tiêu của em. Em cứ đọc để biết trước, duyệt xong quay lại làm."
+    "chuaCoViChoDuyet": "Nút này hiện sau khi thầy cô duyệt mục tiêu của em. Em cứ đọc để biết trước, duyệt xong quay lại làm.",
+    "bamNutSang": "Bấm vào chỗ đang sáng để đi tiếp"
   }
 }

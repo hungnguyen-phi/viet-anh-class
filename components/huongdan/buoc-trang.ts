@@ -37,6 +37,8 @@ export const TOUR_THOI_KHOA_BIEU: BuocTour[] = [
   {key: 'chonLop', hd: 'chon-lop', khiThieu: 'bo'},
   {key: 'tuan', hd: 'tkb-tuan'},
   {key: 'chuThich', hd: 'tkb-chu-thich'},
+  // Lớp chưa khai môn → ô chưa có dấu +; hộp nhắc + nút gieo bộ môn nằm ngay trên lưới (05/09).
+  {key: 'khaiMon', hd: 'tkb-khai-mon', khiThieu: 'bo'},
   // Máy rộng: lưới 7 ngày. Máy hẹp: một ngày một cột (TkbHomNay) — lưới chỉ dựng khi bấm "Cả tuần".
   {key: 'luoi', hd: 'tkb-luoi', hdPhu: 'tkb-ngay'},
   {key: 'nhapLoat', hd: 'tkb-nhap-loat', khiThieu: 'bo'},

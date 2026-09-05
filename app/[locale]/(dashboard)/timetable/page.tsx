@@ -593,6 +593,29 @@ export default async function TimetablePage({
         nhan={nhanTiet}
         batDuoc={canManage && monChon.length > 0}
       >
+      {/* LỚP CHƯA KHAI MÔN → ô lưới không có dấu + (không có môn thì hộp thêm tiết chỉ có một ô chọn
+          rỗng). Lời nhắc này từng nằm DƯỚI CÙNG trang, dưới cả lưới lẫn khu CLB — 05/09 chủ dự án
+          (và 24/28 lớp thật chưa khai môn) tưởng "GVCN không sửa được TKB". Đưa lên ngay trên lưới.
+          RPC seed_class_subjects gieo cả bộ môn đang dùng của cơ sở, gọi lại bao nhiêu lần cũng an toàn. */}
+      {canManage && monChon.length === 0 && (
+        <div data-hd="tkb-khai-mon" className="rounded-[20px] border-[1.5px] border-gold bg-gold/[0.12] p-4">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <p className="min-w-[240px] flex-1 text-than font-semibold leading-[1.55] text-navy">
+              {t('noSubjects')}
+            </p>
+            <form action={seedSubjects}>
+              <input type="hidden" name="class_id" value={myClass.id} />
+              <SubmitButton
+                className="btn-gold h-11 cursor-pointer rounded-[8px] px-4 text-sm font-extrabold"
+                wrapClass="contents"
+              >
+                {t('addSubjects')}
+              </SubmitButton>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Màn rộng: lưới 7 ngày. Máy hẹp: một ngày một cột (TkbHomNay), bấm "Cả tuần" mới bung lưới
           — audit 04/09: ở 360px lưới 1000px chỉ lộ 2/7 ngày mà không có dấu hiệu cuộn. */}
       <div className="hidden sm:block">{luoi}</div>
@@ -625,31 +648,6 @@ export default async function TimetablePage({
           chọn thứ trong một ô xổ, chọn tiết trong một ô xổ nữa — rồi mới tới môn. Nay bấm thẳng
           vào ô cần xếp, thứ và tiết đi theo ô đó. Chỉ còn lại đây lời nhắc khai môn, vì không có
           môn thì hộp thoại kia mở ra cũng chỉ có một ô chọn rỗng. */}
-      {canManage && monChon.length === 0 && (
-        <div className="glass rounded-[20px] p-4">
-          {/* RPC seed_class_subjects gieo cả bộ môn đang dùng của cơ sở, gọi lại bao nhiêu lần
-              cũng an toàn. */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <p className="min-w-[240px] flex-1 text-than font-semibold leading-[1.55] text-txt">
-              {/* Câu này trước đây gõ THẲNG tiếng Việt vào JSX, nên bản tiếng Anh của trang
-                  cũng hiện ra một đoạn tiếng Việt. Bộ kiểm khoá dịch không bắt được: nó chỉ
-                  soi những khoá ĐƯỢC GỌI có tồn tại hay không, chứ không biết chỗ nào lẽ ra
-                  phải gọi mà lại gõ tay. */}
-              {t('noSubjects')}
-            </p>
-            <form action={seedSubjects}>
-              <input type="hidden" name="class_id" value={myClass.id} />
-              <SubmitButton
-                className="btn-gold h-11 cursor-pointer rounded-[8px] px-4 text-sm font-extrabold"
-                wrapClass="contents"
-              >
-                {t('addSubjects')}
-              </SubmitButton>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* GVCN/Admin: ngoại lệ theo ngày (huỷ / dời / dạy thay) + danh sách của tuần đang xem */}
       {canManage && slotOptions.length > 0 && (
         <div data-hd="tkb-ngoai-le" className="glass rounded-[20px] p-4">

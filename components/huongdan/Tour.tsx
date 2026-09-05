@@ -81,6 +81,10 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
   const [hop, setHop] = useState<Hop | null>(null);
   const [thieu, setThieu] = useState(false);   // bước hiện tại không có phần tử → thẻ "chưa có gì"
   const [dangCho, setDangCho] = useState(false); // bước có `cho`: đang đợi phần tử hiện sau khi Lưu
+  const iRef = useRef(0);
+  const tourRef = useRef<TenTour | null>(null);
+  iRef.current = i;
+  tourRef.current = tour;
   const [dangLuu, setDangLuu] = useState(false); // bước `choDong`: đã bấm Lưu hộ, đang đợi hộp đóng
   const [loiHop, setLoiHop] = useState(false);   // hộp không đóng sau 12 s → máy chủ báo lỗi trong hộp
   useEffect(() => { setDangLuu(false); setLoiHop(false); }, [i, tour]);
@@ -220,12 +224,34 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
     return () => cancelAnimationFrame(raf);
   }, [tour, doLai]);
 
-  // Bước "thử bấm xem": bấm trúng phần tử đích → sang bước kế.
+  // Bước "thử bấm xem": bấm trúng phần tử đích (hoặc `bam` — vd khoanh cả form, chờ bấm nút Lưu)
+  // → sang bước kế. `choDong`: sau cú bấm đợi hộp đóng (máy chủ ghi xong) rồi mới sang; hộp còn
+  // đó và có role="alert" = lỗi → thẻ nói rõ, không nhảy bước.
   useEffect(() => {
     if (!tour || !buoc?.hanhDong || buoc.tuBam) return;
-    const el = dichRef.current;
+    const el = buoc.bam ? timPhanTu(buoc.bam) : dichRef.current;
     if (!el) return;
-    const h = () => setTimeout(() => setI((v) => Math.min(v + 1, buocs.length - 1)), 250);
+    // Effect này chạy lại MỖI KHUNG HÌNH (hop đo lại bằng rAF) nên không dùng cờ huỷ trong closure —
+    // bộ đếm sẽ bị huỷ trước khi kịp chạy. Kiểm "vẫn còn ở bước này" bằng ref chỉ số bước.
+    const iLuc = i;
+    const conOBuoc = () => iRef.current === iLuc && tourRef.current === tour;
+    const sang = () => { if (conOBuoc()) setI((v) => Math.min(v + 1, buocs.length - 1)); };
+    const h = () => {
+      if (!buoc.choDong) { setTimeout(sang, 250); return; }
+      setDangLuu(true);
+      setLoiHop(false);
+      const dich = buoc.hd!;
+      const t0 = Date.now();
+      const doi = () => {
+        if (!conOBuoc()) return;
+        const hopEl = timPhanTu(dich);
+        if (!hopEl) { setDangLuu(false); sang(); return; }
+        const coLoi = hopEl.querySelector('[role="alert"]') && Date.now() - t0 > 600;
+        if (coLoi || Date.now() - t0 > 12000) { setDangLuu(false); setLoiHop(true); return; }
+        setTimeout(doi, 200);
+      };
+      setTimeout(doi, 300);
+    };
     el.addEventListener('click', h, {once: true});
     return () => el.removeEventListener('click', h);
   }, [tour, i, buoc, buocs.length, hop]);
@@ -235,12 +261,12 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
     if (!tour) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); void ket(); }
-      else if (e.key === 'ArrowRight') setI((v) => Math.min(v + 1, buocs.length - 1));
+      else if (e.key === 'ArrowRight' && !buocs[i]?.batBuoc) setI((v) => Math.min(v + 1, buocs.length - 1));
       else if (e.key === 'ArrowLeft') setI((v) => Math.max(v - 1, 0));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [tour, buocs.length, ket]);
+  }, [tour, buocs, i, ket]);
 
   useFocusTrap(!!tour && mounted, theRef);
 
@@ -288,12 +314,19 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
   if (!docTruoc && hop && !hep) {
     const vh = window.innerHeight, vw = window.innerWidth;
     const rongThe = 360;
+    const CAO_THE = 300; // thẻ cao chừng này — dùng để biết còn chỗ không, tránh tràn khỏi màn
     const choDuoi = vh - (hop.top + hop.height) - CACH;
     const choTren = hop.top - CACH;
-    const dat = choDuoi >= 220 || choDuoi >= choTren ? 'duoi' : 'tren';
     const left = Math.max(12, Math.min(vw - rongThe - 12, hop.left + hop.width / 2 - rongThe / 2));
-    if (dat === 'duoi') { theStyle = {top: hop.top + hop.height + CACH, left, width: rongThe}; muiTen = 'tren'; }
-    else { theStyle = {bottom: vh - hop.top + CACH, left, width: rongThe}; muiTen = 'duoi'; }
+    if (choDuoi >= CAO_THE || (choDuoi >= 220 && choDuoi >= choTren)) {
+      theStyle = {top: hop.top + hop.height + CACH, left, width: rongThe}; muiTen = 'tren';
+    } else if (choTren >= 220) {
+      theStyle = {bottom: vh - hop.top + CACH, left, width: rongThe}; muiTen = 'duoi';
+    } else {
+      // Lỗ khoét chiếm gần hết chiều cao (cả một form) → không đặt trên/dưới được: neo góc dưới
+      // phải màn, đè lên mép hộp một chút còn hơn tràn ra ngoài (chủ dự án thấy tràn 05/09).
+      theStyle = {right: 16, bottom: 16, width: rongThe}; muiTen = null;
+    }
   }
 
   const overlay = hop && !docTruoc ? (
@@ -319,6 +352,7 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
       ref={theRef}
       tabIndex={-1}
       data-tour-the
+      data-tour-bam={buoc.hanhDong ? (buoc.bam ?? buoc.hd) : undefined}
       role="dialog"
       aria-modal="true"
       aria-labelledby="hd-tieu-de"
@@ -386,7 +420,7 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
           {buoc.hanhDong && !thieu && (
             <p className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-gold/20 px-2 py-0.5 text-chu-thich font-extrabold text-navy">
               <MousePointerClick size={12} strokeWidth={2.5} />
-              {t('thuBam')}
+              {dangLuu ? t('nut.dangLuu') : buoc.batBuoc ? t('bamNutSang') : t('thuBam')}
             </p>
           )}
         </div>
@@ -412,7 +446,8 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
               {t('quayLai')}
             </button>
           )}
-          <button
+          {/* Bước bắt buộc tự làm: KHÔNG có nút Tiếp — chỉ bấm đúng chỗ sáng mới đi tiếp (thiếu phần tử thì vẫn có Tiếp). */}
+          {!(buoc.batBuoc && !thieu) && <button
             type="button"
             data-tour-tiep
             onClick={tiep}
@@ -421,7 +456,7 @@ export function Tour({userId, role, introSeen}: {userId: string; role: Role; int
           >
             {nhanTiep}
             {!cuoi && <ArrowRight size={14} strokeWidth={2.5} />}
-          </button>
+          </button>}
         </div>
       </div>
     </div>

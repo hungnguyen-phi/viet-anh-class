@@ -15,8 +15,11 @@ export type BuocTour = {
   hdPhu?: string;
   /** Icon lucide cho thẻ đọc-trước. */
   icon?: 'sparkles' | 'calendar' | 'target' | 'shield' | 'graduation';
-  /** Bước mời bấm thử: bấm trúng phần tử đích → tự sang bước kế. */
+  /** Bước mời bấm thử: bấm trúng phần tử đích (hoặc `bam` nếu có) → tự sang bước kế. */
   hanhDong?: boolean;
+  /** Bước BẮT BUỘC tự làm (tour tập, kiểu hướng dẫn tân thủ game): thẻ không có nút Tiếp, chỉ
+   *  sang bước khi người dùng bấm đúng phần tử đang sáng. Vẫn có Bỏ qua / Quay lại. */
+  batBuoc?: boolean;
   /** Khi phần tử đích không có trên màn: 'bo' = bỏ qua bước; 'thay' = hiện thẻ "chưa có gì". */
   khiThieu?: 'bo' | 'thay';
   /** Việc cần làm trước khi chỉ (mở sheet/popup). Trả về true nếu đã làm. */

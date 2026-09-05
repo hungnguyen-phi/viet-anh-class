@@ -329,7 +329,7 @@ export function FormMucTieu3Buoc({
         })}
       </ol>
 
-      <form action={formAction} className="flex flex-col gap-3">
+      <form action={formAction} data-hd="mt-form" className="flex flex-col gap-3">
         {/* ── Ô ẨN: mọi giá trị mirror vào đây nên đổi bước không mất gì ── */}
         <input type="hidden" name="cap" value={cap} />
         <input type="hidden" name="student_id" value={cap === 'em' ? studentId : ''} />

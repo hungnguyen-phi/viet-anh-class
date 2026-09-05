@@ -917,7 +917,7 @@
   },
   "timetable": {
     "title": "Timetable",
-    "noSubjects": "No subjects for this class yet. Press the button next to this to add the campus subject set, then schedule as usual.",
+    "noSubjects": "No subjects for this class yet, so the cells have no + to add periods. Press the button next to this to add the campus subject set — the + appears right after.",
     "period": "Period",
     "subject": "Subject",
     "room": "Room",
@@ -1614,7 +1614,7 @@
     "dongDoi": "I'm changing to another goal",
     "dongBo": "I'm dropping it",
     "xoa": "Delete",
-    "xoaHoi": "Delete this goal? Only possible while nothing has been logged under it.",
+    "xoaHoi": "Delete this goal? Its promises, lead measures and logged numbers are deleted with it. This cannot be undone.",
     "trong": "No goal yet.",
     "them": "Add a goal",
     "themTuMau": "Pick from class templates",
@@ -2094,7 +2094,7 @@
     "khongGhiDuocQuyen": "Couldn't save — you don't have access to this goal.",
     "daGhiSoLop": "Class goal number saved.",
     "thieuMucTieu": "Goal is missing.",
-    "khongXoaMucTieuLop": "Can't delete — this goal already has numbers or links. Close it instead.",
+    "khongXoaMucTieuLop": "Could not delete: this goal no longer exists, or you are not allowed to delete it.",
     "daXoaMucTieuLop": "Class goal deleted.",
     "camKetHuaGiToi": "What do you promise to do this week? Write one sentence.",
     "toiDa300": "Up to 300 characters.",
@@ -2168,7 +2168,7 @@
     "daLuuMucTieuCuaThay": "Your goal saved.",
     "khongDongDuocKhongCoQuyen": "Couldn't close — no access or already deleted.",
     "daDongMucTieu": "Goal closed",
-    "chiXoaDuocKhiMucTieu": "Can only delete a goal that has no numbers under it yet.",
+    "chiXoaDuocKhiMucTieu": "Could not delete: this goal no longer exists, or you are not allowed to delete it.",
     "daXoaMucTieu": "Goal deleted",
     "mucTieuNayKhongConNua": "This goal no longer exists.",
     "daDuyetMucTieuCuaEm": "Student's goal approved",
@@ -2831,28 +2831,32 @@
       "clb": {
         "tieuDe": "Clubs",
         "noiDung": "The club schedule is shared across the campus, shown under the class timetable. Students know what they signed up for and check the time here. School leadership or admins add and remove."
+      },
+      "khaiMon": {
+        "tieuDe": "Add subjects first",
+        "noiDung": "This class has no subjects yet, so the cells have no +. Tap Add subjects to class: the campus subject set is added, and the + appears in every cell."
       }
     },
     "taoMauEm": {
       "doc1": {
         "tieuDe": "Practice making a goal",
-        "noiDung": "We will make a REAL sample goal: set the goal → promise one thing for the week → add a daily lead measure. Every box is pre-filled; just read and tap the yellow button. Keep it or delete it at the end."
+        "noiDung": "We will make a REAL sample goal: set the goal → promise one thing for the week → add a daily lead measure. The boxes are pre-filled; you tap each highlighted button yourself. Keep it or delete it at the end."
       },
       "moHop": {
         "tieuDe": "Set a goal",
-        "noiDung": "A goal is where you want to be by the end of the school year, with a number so you can see progress. Tap Open the box — the goal form opens with an example filled in."
+        "noiDung": "A goal is where you want to be by the end of the school year, with a number so you can see progress. Tap the highlighted + to open the goal form (an example is filled in)."
       },
       "b1": {
         "tieuDe": "Step 1 · What is the goal?",
-        "noiDung": "Area: Knowledge. Goal name: has a number (10 books). Description: how you will do it. Points at the class goal so yours counts toward the shared one. Then tap Next in the box."
+        "noiDung": "Area: Knowledge. Goal name: has a number (10 books). Description: how you will do it. Points at the class goal so yours counts toward the shared one. Then tap Next at the bottom of the box."
       },
       "b2": {
         "tieuDe": "Step 2 · How to measure?",
-        "noiDung": "Measured by number: from 0 to 10 books. Due date: end of the school year. The number moves when you log it or when a weekly promise wins."
+        "noiDung": "Measured by number: from 0 to 10 books. Due date: end of the school year. The number moves when you log it or when a weekly promise wins. Tap Next at the bottom of the box."
       },
       "b3": {
         "tieuDe": "Step 3 · Read back and send",
-        "noiDung": "This sentence is built from the boxes you just saw. If it looks right, tap Send — it goes to your teacher for approval."
+        "noiDung": "This sentence is built from the boxes you just saw. If it looks right, tap Send at the bottom of the box — it goes to your teacher for approval."
       },
       "the": {
         "tieuDe": "Your sample goal card",
@@ -2860,11 +2864,11 @@
       },
       "moCamKet": {
         "tieuDe": "Promise one thing this week",
-        "noiDung": "A weekly promise is one thing you commit to finish this week for the goal, with a number. Tap Open the box — a sample promise is filled in."
+        "noiDung": "A weekly promise is one thing you commit to finish this week for the goal, with a number. Tap the highlighted + — a sample promise is filled in."
       },
       "ckForm": {
         "tieuDe": "The weekly promise box",
-        "noiDung": "Promise: “This week I finish 2 books”. Number: 2, unit follows the goal. Tap Save."
+        "noiDung": "Promise: “This week I finish 2 books”. Number: 2, unit follows the goal. Tap Save in the box."
       },
       "cham": {
         "tieuDe": "Grade yourself at week end",
@@ -2872,15 +2876,15 @@
       },
       "moThuoc": {
         "tieuDe": "Add a lead measure",
-        "noiDung": "A lead measure is the small daily action that keeps the promise (read 20 minutes every evening). Tap Open the box — the name is filled in."
+        "noiDung": "A lead measure is the small daily action that keeps the promise (read 20 minutes every evening). Tap the highlighted Add lead measure button — the name is filled in."
       },
       "ttForm": {
         "tieuDe": "The lead measure box",
-        "noiDung": "Action: “Read 20 minutes every evening”. Measured by ticking Mon–Fri (pre-selected, tap to change). Tap Save."
+        "noiDung": "Action: “Read 20 minutes every evening”. Measured by ticking Mon–Fri (pre-selected, tap to change). Tap Save lead measure in the box."
       },
       "tick": {
         "tieuDe": "Tick every day",
-        "noiDung": "Each evening after reading, tap that day's box. Tap again to undo. Enough ticks → the promise wins → the number flows up to the goal."
+        "noiDung": "Each evening after reading, tap that day's box. Tap again to undo. Try tapping today's box — enough ticks → the promise wins → the number flows up to the goal."
       },
       "xoa": {
         "tieuDe": "Keep or delete?",
@@ -2890,23 +2894,23 @@
     "taoMauGv": {
       "doc1": {
         "tieuDe": "Practice making my goal",
-        "noiDung": "We will make a REAL sample goal of your own: set the goal → promise one thing for the week → add a daily lead measure. Every box is pre-filled; just read and tap the yellow button. Keep it or delete it at the end."
+        "noiDung": "We will make a REAL sample goal of your own: set the goal → promise one thing for the week → add a daily lead measure. The boxes are pre-filled; you tap each highlighted button yourself. Keep it or delete it at the end."
       },
       "moHop": {
         "tieuDe": "Set my goal",
-        "noiDung": "Teachers have their own goal like students do, linked to the class goal to lead by example. Tap Open the box — the form opens with an example filled in."
+        "noiDung": "Teachers have their own goal like students do, linked to the class goal to lead by example. Tap the highlighted Set my goal button to open the form (an example is filled in)."
       },
       "b1": {
         "tieuDe": "Step 1 · What is the goal?",
-        "noiDung": "Area: Knowledge. Name: has a number (12 books). Description: how. Supports: the first class goal — same unit means your number adds straight to the class. Tap Next in the box."
+        "noiDung": "Area: Knowledge. Name: has a number (12 books). Description: how. Supports: the first class goal — same unit means your number adds straight to the class. Then tap Next at the bottom of the box."
       },
       "b2": {
         "tieuDe": "Step 2 · How to measure?",
-        "noiDung": "Measured by number: from 0 to 12 books, due end of the school year. The number moves when you log it or when a weekly promise wins."
+        "noiDung": "Measured by number: from 0 to 12 books, due end of the school year. The number moves when you log it or when a weekly promise wins. Tap Next at the bottom of the box."
       },
       "b3": {
         "tieuDe": "Step 3 · Read back and save",
-        "noiDung": "The sentence is built from the boxes you just saw. If it looks right, tap Save — a teacher's own goal needs no approval."
+        "noiDung": "The sentence is built from the boxes you just saw. If it looks right, tap Save at the bottom of the box — a teacher's own goal needs no approval."
       },
       "the": {
         "tieuDe": "Your sample goal card",
@@ -2914,11 +2918,11 @@
       },
       "moCamKet": {
         "tieuDe": "Promise one thing this week",
-        "noiDung": "A weekly promise is one thing you commit to finish this week for this goal, with a number. Tap Open the box — a sample promise is filled in."
+        "noiDung": "A weekly promise is one thing you commit to finish this week for this goal, with a number. Tap the highlighted + — a sample promise is filled in."
       },
       "ckForm": {
         "tieuDe": "The weekly promise box",
-        "noiDung": "Promise: “This week I finish 3 books”. Number: 3, unit forced by the goal. Tap Save."
+        "noiDung": "Promise: “This week I finish 3 books”. Number: 3, unit forced by the goal. Tap Save in the box."
       },
       "cham": {
         "tieuDe": "Grade yourself at week end",
@@ -2926,15 +2930,15 @@
       },
       "moThuoc": {
         "tieuDe": "Add a lead measure",
-        "noiDung": "A lead measure is the small daily action that keeps the promise (read 20 minutes every evening). Tap Open the box — the name is filled in."
+        "noiDung": "A lead measure is the small daily action that keeps the promise (read 20 minutes every evening). Tap the highlighted Add lead measure button — the name is filled in."
       },
       "ttForm": {
         "tieuDe": "The lead measure box",
-        "noiDung": "Action: “Read 20 minutes every evening”. Measured by ticking Mon–Fri (pre-selected, tap to change). Tap Save."
+        "noiDung": "Action: “Read 20 minutes every evening”. Measured by ticking Mon–Fri (pre-selected, tap to change). Tap Save lead measure in the box."
       },
       "tick": {
         "tieuDe": "Tick every day",
-        "noiDung": "Tap the day's box once it's done; tap again to undo. Students can see you ticking steadily — that is leading by example."
+        "noiDung": "Tap the day's box once it's done; tap again to undo. Try tapping today's box. Students can see you ticking steadily — that is leading by example."
       },
       "xoa": {
         "tieuDe": "Keep or delete?",
@@ -2963,6 +2967,7 @@
       }
     },
     "hopBaoLoi": "The box did not close because the server reported an error. Read the red line in the box, fix it and tap Save again — or skip the tour.",
-    "chuaCoViChoDuyet": "This button appears once your teacher approves your goal. Read ahead now, then come back after approval."
+    "chuaCoViChoDuyet": "This button appears once your teacher approves your goal. Read ahead now, then come back after approval.",
+    "bamNutSang": "Tap the highlighted spot to continue"
   }
 }
