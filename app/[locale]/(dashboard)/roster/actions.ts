@@ -39,7 +39,7 @@ export async function assignAttendanceLeader(
     .eq('class_id', classId)
     .eq('is_active', true)
     .eq('is_attendance_leader', true);
-  if (clear.error) return {ok: false, error: (friendlyError(clear.error))};
+  if (clear.error) return {ok: false, error: (friendlyError(clear.error, tLoi))};
 
   if (studentId) {
     // .select() để phân biệt "RLS chặn / em đã rời lớp" với "đã đổi xong" — không báo thành công giả.

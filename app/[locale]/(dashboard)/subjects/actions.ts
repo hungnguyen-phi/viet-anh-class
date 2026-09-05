@@ -210,7 +210,7 @@ export async function saveSubjectGrades(formData: FormData) {
   // khoảng trống vài trăm ms chỉ làm môn tạm thời "chưa khai lớp", mà chưa khai = CHỌN ĐƯỢC CHO
   // MỌI LỚP (subject_fits_grade), tức là không chặn nhầm ai giữa chừng.
   const del = await supabase.from('subject_grades').delete().eq('subject_id', subjectId);
-  if (del.error) subjectsFlash(loi(friendlyError(del.error)), classId);
+  if (del.error) subjectsFlash(loi(friendlyError(del.error, tLoi)), classId);
 
   if (chosen.length > 0) {
     const {error} = await supabase
@@ -296,7 +296,7 @@ export async function assignTeacher(formData: FormData) {
   revalidatePath('/[locale]/grades', 'page');
   // P0001 hay gặp nhất ở đây: "Chỉ phân công được cho tài khoản có vai GIÁO VIÊN" (trigger
   // teaching_assignment_guard). friendlyError giữ nguyên câu đó.
-  if (ins.error) subjectsFlash(loi(friendlyError(ins.error)), classId);
+  if (ins.error) subjectsFlash(loi(friendlyError(ins.error, tLoi)), classId);
   if (!ins.data || ins.data.length === 0)
     subjectsFlash(t('sKhongPhanCong'), classId);
   subjectsFlash(

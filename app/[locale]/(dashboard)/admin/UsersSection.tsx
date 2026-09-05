@@ -12,7 +12,7 @@ import {USER_TABS, type UserTab, type Role} from './user-tabs';
 // khi phần tử là <button> (trình duyệt căn sẵn nội dung nút). Trên <a> và <span> — hai nút phân
 // trang bên dưới — chữ bám mép trên, lệch 6px so với nhãn "Trang 1/5" ở giữa. Đã đo trên production.
 const outlineBtnSm =
-  'inline-flex min-h-[44px] cursor-pointer items-center justify-center whitespace-nowrap rounded-[12px] border-[1.5px] border-navy/20 bg-white/60 px-3 text-chu-thich font-extrabold text-navy transition-all hover:border-navy';
+  'inline-flex h-11 min-h-[44px] cursor-pointer items-center justify-center whitespace-nowrap rounded-[12px] border-[1.5px] border-navy/20 bg-white/60 px-3 text-chu-thich font-extrabold text-navy transition-all hover:border-navy';
 
 // BỘ LỌC THEO NƠI HỌC: cơ sở → khối → lớp. Chỉ có nghĩa với HỌC SINH (nơi học = enrollments).
 // Giáo viên/BGH không "thuộc" một lớp theo cách ấy, nên khi bật bộ lọc này trang ép tab về Học sinh.

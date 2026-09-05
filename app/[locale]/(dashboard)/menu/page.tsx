@@ -178,7 +178,7 @@ export default async function MenuPage({
                   ...(d === 0 ? {} : {week: dichNgay(d)}),
                 },
               }}
-              className="inline-flex h-8 items-center rounded-[8px] border-[1.5px] border-navy/15 bg-white/60 px-2.5 text-chu-thich font-extrabold text-navy transition-colors hover:border-navy"
+              className="inline-flex min-h-[44px] items-center rounded-[8px] border-[1.5px] border-navy/15 bg-white/60 px-3 text-chu-thich font-extrabold text-navy transition-colors hover:border-navy"
             >
               {label}
             </Link>

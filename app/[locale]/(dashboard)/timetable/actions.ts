@@ -201,7 +201,7 @@ export async function saoChepTuLop(_prev: LuuOState, formData: FormData): Promis
     supabase.from('timetable_slots').select('day_of_week, period_no').eq('class_id', class_id),
     supabase.from('class_subjects').select('subject_id').eq('class_id', class_id),
   ]);
-  if (e1 || e2 || e3) return {ok: false, error: friendlyError((e1 ?? e2 ?? e3)!)};
+  if (e1 || e2 || e3) return {ok: false, error: friendlyError((e1 ?? e2 ?? e3)!, tLoi)};
   if (!nguon || nguon.length === 0) return {ok: false, error: t('copyErrSourceEmpty')};
 
   // Môn lớp nguồn có mà lớp đích chưa khai → khai thêm (cùng cơ sở thì subject_fits_class cho qua;
